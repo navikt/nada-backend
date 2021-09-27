@@ -1,0 +1,290 @@
+openapi: 3.0.2
+info:
+  title: API Title
+  version: "1.0"
+servers:
+  - url: "https://api.server.test/v1"
+
+components:
+  schemas:
+    Dataproduct:
+      type: object
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        description:
+          type: string
+        slug:
+          type: string
+        repo:
+          type: string
+        last_modified:
+          type: string
+        created:
+          type: string
+        owner:
+          type: object
+          properties:
+            team:
+              type: string
+            teamkatalogen:
+              type: string
+          required:
+            - team
+        keyword:
+          type: array
+          items:
+            type: string
+        datasets:
+          type: array
+          items:
+            type: object
+            properties:
+              id:
+                type: string
+              type:
+                type: string
+                enum:
+                  - bigquery
+      required:
+        - name
+        - owner
+    NewDataproduct:
+      type: object
+      properties:
+        name:
+          type: string
+        description:
+          type: string
+        slug:
+          type: string
+        repo:
+          type: string
+        owner:
+          type: object
+          properties:
+            team:
+              type: string
+          required:
+            - team
+        keyword:
+          type: array
+          items:
+            type: string
+      required:
+        - name
+        - owner
+
+    Dataset:
+      type: object
+      properties:
+        id:
+          type: string
+        dataproduct_id:
+          type: string
+        name:
+          type: string
+        description:
+          type: string
+        pii:
+          type: boolean
+        bigquery:
+          type: object
+          properties:
+            project_id:
+              type: string
+            dataset:
+              type: string
+            table:
+              type: string
+          required:
+            - project_id
+            - dataset
+            - table
+
+    NewDataset:
+      type: object
+      properties:
+        name:
+          type: string
+        description:
+          type: string
+        pii:
+          type: boolean
+        bigquery:
+          type: object
+          properties:
+            project_id:
+              type: string
+            dataset:
+              type: string
+            table:
+              type: string
+          required:
+            - project_id
+            - dataset
+            - table
+      required:
+        - name
+        - pii
+        - bigquery # Update this to a oneOf when we have more than bigquery
+    SearchResultEntry:
+      type: object
+      properties:
+        url:
+          type: string
+        type:
+          type: string
+          enum:
+            - dataset
+            - dataproduct
+            - datapackage
+        id:
+          type: string
+        name:
+          type: string
+        excerpt:
+          type: string
+
+paths:
+  /dataproducts:
+    get:
+      description: "List all dataproducts"
+      responses:
+        "200":
+          description: OK
+          content:
+            "application/json":
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Dataproduct"
+    post:
+      description: "Create a new dataproduct"
+      requestBody:
+        content:
+          "application/json":
+            schema:
+              $ref: "#/components/schemas/NewDataproduct"
+      responses:
+        "201":
+          description: "Created successfully"
+          content:
+            "application/json":
+              schema:
+                $ref: "#/components/schemas/Dataproduct"
+
+  /dataproducts/{dataproduct_id}:
+    get:
+      description: "List a dataproduct with datasets"
+      responses:
+        "200":
+          description: OK
+          content:
+            "application/json":
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Dataproduct"
+    delete:
+      description: "Delete a dataproduct"
+      responses:
+        "204":
+          description: "Deleted OK"
+    put:
+      description: "Update a dataproduct"
+      requestBody:
+        content:
+          "application/json":
+            schema:
+              $ref: "#/components/schemas/NewDataproduct"
+      responses:
+        "200":
+          description: "Updated OK"
+          content:
+            "application/json":
+              schema:
+                $ref: "#/components/schemas/Dataproduct"
+
+  /dataproducts/{dataproduct_id}/datasets:
+    get:
+      description: "List all datasets for a dataproduct"
+      responses:
+        "200":
+          description: OK
+          content:
+            "application/json":
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Dataset"
+    post:
+      description: "Create a new dataset"
+      parameters:
+        - in: path
+          name: dataproduct_id
+          description: Dataproduct ID
+          required: true
+          schema:
+            type: string
+      requestBody:
+        content:
+          "application/json":
+            schema:
+              $ref: "#/components/schemas/NewDataset"
+      responses:
+        "201":
+          description: "Created successfully"
+          content:
+            "application/json":
+              schema:
+                $ref: "#/components/schemas/Dataset"
+
+  /dataproducts/{dataproduct_id}/datasets/{dataset_id}:
+    get:
+      description: "Get dataset"
+      responses:
+        "200":
+          description: OK
+          content:
+            "application/json":
+              schema:
+                $ref: "#/components/schemas/Dataset"
+    put:
+      description: "Update a dataset"
+      requestBody:
+        content:
+          "application/json":
+            schema:
+              $ref: "#/components/schemas/NewDataset"
+      responses:
+        "200":
+          description: "Updated OK"
+          content:
+            "application/json":
+              schema:
+                $ref: "#/components/schemas/Dataset"
+    delete:
+      description: "Delete a dataset"
+      responses:
+        "204":
+          description: "Deleted OK"
+  /search:
+    parameters:
+      - in: query
+        name: q
+        schema:
+          type: string
+    get:
+      responses:
+        "200":
+          description: Search result
+          content:
+            "application/json":
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/SearchResultEntry"
+  # /dataproducts/{id}/datasets/{id}:
