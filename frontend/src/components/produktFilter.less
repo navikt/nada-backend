@@ -1,0 +1,28 @@
+@import (reference) "~nav-frontend-core";
+
+.produkt-filter {
+  display: flex;
+  background: #c9c9c9;
+  align-items: center;
+  padding: 1em 1em;
+
+  label {
+    white-space: nowrap;
+    padding-right: 1em;
+    margin-bottom: 0;
+
+    &::after {
+      content: ":";
+    }
+  }
+
+  .filter-dropdown {
+    flex-grow: 1;
+  }
+
+  button {
+    margin-left: 1em;
+    color: @navGra80;
+    border: 1px solid @navGra40;
+  }
+}

@@ -1,0 +1,53 @@
+@import (reference) "~nav-frontend-core";
+
+.produkt-liste {
+  margin: 0 1em 0 1em;
+
+  table {
+    width: 100%; //word-break: break-word;
+
+    td:not(:last-child) {
+      white-space: nowrap;
+    }
+
+    td:last-child {
+      width: 100%;
+    }
+
+    thead {
+      background: @navBlaLighten20;
+      color: white;
+    }
+
+    tbody {
+      background: @navBlaLighten80;
+
+      a {
+        color: black;
+      }
+    }
+  }
+}
+
+@media screen and (max-width: 768px) {
+  .produkt-liste {
+    width: 100%;
+    margin: 0;
+
+    table {
+      td {
+        max-width: 100%;
+        white-space: normal;
+        padding: 2px 4px;
+      }
+
+      td:not(:last-child) {
+        white-space: normal;
+      }
+
+      td:last-child {
+        width: auto;
+      }
+    }
+  }
+}

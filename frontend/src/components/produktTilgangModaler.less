@@ -1,0 +1,68 @@
+@import "~nav-frontend-core";
+
+.gitilgang {
+  padding: 10px 10px 10px 10px;
+  width: 400px;
+
+  .tilgang-skjema {
+    border: 4px solid @navLysGra;
+    width: 95%;
+    margin: 0.5rem auto;
+    padding: 0.5rem;
+
+    .tilgang-rad {
+      display: flex;
+      align-items: flex-start;
+      padding-bottom: 0.5rem;
+
+      > label {
+        flex-grow: 1;
+        display: block;
+        text-align: right;
+        margin-right: 1em;
+      }
+
+      > div {
+        padding: 0.2rem;
+        flex-basis: 250px;
+      }
+
+      .datovalg {
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+
+        &-disabled {
+          .kalender {
+            background: #ccc;
+
+            > div {
+              pointer-events: none;
+              opacity: 0.3;
+
+              > * {
+                filter: saturate(0%);
+              }
+            }
+          }
+        }
+      }
+    }
+
+    section {
+      > * {
+        margin-top: 1rem;
+      }
+    }
+  }
+
+  .knapperad {
+    display: flex;
+    justify-content: space-between;
+
+    button {
+      margin: 0.2rem;
+      width: 30%;
+    }
+  }
+}
