@@ -45,12 +45,15 @@ components:
               id:
                 type: string
               type:
-                type: string
-                enum:
-                  - bigquery
+                $ref: "#/components/schemas/DatasetType"
       required:
         - name
         - owner
+    DatasetType:
+      type: string
+      enum:
+        - bigquery
+
     NewDataproduct:
       type: object
       properties:
@@ -179,6 +182,13 @@ paths:
   /dataproducts/{dataproduct_id}:
     get:
       description: "List a dataproduct with datasets"
+      parameters:
+        - in: path
+          name: dataproduct_id
+          description: Dataproduct ID
+          required: true
+          schema:
+            type: string
       responses:
         "200":
           description: OK
@@ -190,11 +200,25 @@ paths:
                   $ref: "#/components/schemas/Dataproduct"
     delete:
       description: "Delete a dataproduct"
+      parameters:
+        - in: path
+          name: dataproduct_id
+          description: Dataproduct ID
+          required: true
+          schema:
+            type: string
       responses:
         "204":
           description: "Deleted OK"
     put:
       description: "Update a dataproduct"
+      parameters:
+        - in: path
+          name: dataproduct_id
+          description: Dataproduct ID
+          required: true
+          schema:
+            type: string
       requestBody:
         content:
           "application/json":
@@ -211,6 +235,13 @@ paths:
   /dataproducts/{dataproduct_id}/datasets:
     get:
       description: "List all datasets for a dataproduct"
+      parameters:
+        - in: path
+          name: dataproduct_id
+          description: Dataproduct ID
+          required: true
+          schema:
+            type: string
       responses:
         "200":
           description: OK
@@ -245,6 +276,19 @@ paths:
   /dataproducts/{dataproduct_id}/datasets/{dataset_id}:
     get:
       description: "Get dataset"
+      parameters:
+        - in: path
+          name: dataproduct_id
+          description: Dataproduct ID
+          required: true
+          schema:
+            type: string
+        - in: path
+          name: dataset_id
+          description: Dataset ID
+          required: true
+          schema:
+            type: string
       responses:
         "200":
           description: OK
@@ -254,6 +298,19 @@ paths:
                 $ref: "#/components/schemas/Dataset"
     put:
       description: "Update a dataset"
+      parameters:
+        - in: path
+          name: dataproduct_id
+          description: Dataproduct ID
+          required: true
+          schema:
+            type: string
+        - in: path
+          name: dataset_id
+          description: Dataset ID
+          required: true
+          schema:
+            type: string
       requestBody:
         content:
           "application/json":
@@ -268,6 +325,20 @@ paths:
                 $ref: "#/components/schemas/Dataset"
     delete:
       description: "Delete a dataset"
+      operationId: deleteDataset
+      parameters:
+        - in: path
+          name: dataproduct_id
+          description: Dataproduct ID
+          required: true
+          schema:
+            type: string
+        - in: path
+          name: dataset_id
+          description: Dataset ID
+          required: true
+          schema:
+            type: string
       responses:
         "204":
           description: "Deleted OK"
