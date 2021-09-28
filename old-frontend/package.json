@@ -1,0 +1,110 @@
+{
+  "name": "cra",
+  "version": "0.1.0",
+  "private": true,
+  "dependencies": {
+    "@craco/craco": "^6.0.0",
+    "@navikt/ds-icons": "^0.3.2",
+    "@navikt/fnrvalidator": "^1.1.4",
+    "@testing-library/jest-dom": "^5.11.4",
+    "@testing-library/react": "^11.2.7",
+    "@testing-library/user-event": "^13.1.9",
+    "@types/jest": "^26.0.15",
+    "@types/node": "^15.6.1",
+    "@types/react": "^17.0.8",
+    "@types/react-dom": "^17.0.5",
+    "@types/react-modal": "^3.12.0",
+    "classnames": "^2.3.1",
+    "craco": "^0.0.3",
+    "craco-less": "^1.17.1",
+    "husky": "^6.0.0",
+    "lodash.throttle": "^4.1.1",
+    "moment": "^2.29.1",
+    "nav-frontend-chevron": "^1.0.30",
+    "nav-frontend-chevron-style": "^1.0.4",
+    "nav-frontend-core": "^6.0.1",
+    "nav-frontend-ikoner-assets": "^3.0.1",
+    "nav-frontend-ikonknapper": "^2.0.1",
+    "nav-frontend-js-utils": "^1.0.19",
+    "nav-frontend-knapper": "^3.0.1",
+    "nav-frontend-knapper-style": "^2.0.1",
+    "nav-frontend-lenker": "^2.0.1",
+    "nav-frontend-lenker-style": "^2.0.1",
+    "nav-frontend-lukknapp": "^2.0.1",
+    "nav-frontend-lukknapp-style": "^2.0.1",
+    "nav-frontend-modal": "^2.0.1",
+    "nav-frontend-modal-style": "^2.0.1",
+    "nav-frontend-paneler-style": "^2.0.1",
+    "nav-frontend-skjema": "^4.0.1",
+    "nav-frontend-skjema-style": "^3.0.1",
+    "nav-frontend-spinner": "^3.0.1",
+    "nav-frontend-spinner-style": "^1.0.2",
+    "nav-frontend-tabell-style": "^2.0.1",
+    "nav-frontend-toggle": "^2.0.1",
+    "nav-frontend-toggle-style": "^2.0.1",
+    "nav-frontend-typografi": "^4.0.1",
+    "nav-frontend-typografi-style": "^2.0.1",
+    "prop-types": "^15.7.2",
+    "react": "^17.0.2",
+    "react-datepicker": "^4.1.1",
+    "react-dom": "^17.0.2",
+    "react-markdown": "^6.0.2",
+    "react-mde": "^11.5.0",
+    "react-modal": "^3.13.1",
+    "react-router-dom": "^5.2.0",
+    "react-scripts": "4.0.3",
+    "react-select": "^4.3.1",
+    "typescript": "^4.3.2",
+    "web-vitals": "^2.0.1",
+    "zod": "^3.2.0"
+  },
+  "devDependencies": {
+    "@types/react-bootstrap": "^0.32.25",
+    "@types/react-datepicker": "^3.1.8",
+    "@types/react-router-dom": "^5.1.7",
+    "@types/react-select": "^4.0.15",
+    "prettier": "^2.3.0",
+    "pretty-quick": "^3.1.0",
+    "stylelint": "^13.8.0",
+    "stylelint-config-standard": "^22.0.0"
+  },
+  "scripts": {
+    "start": "craco start",
+    "build": "craco build",
+    "test": "craco test",
+    "eject": "craco eject",
+    "lint": "yarn lint:jsts && yarn lint:less",
+    "lint:jsts": "npx eslint .",
+    "lint:less": "npx stylelint --syntax less **/*.less",
+    "prepare": "cd ../ && husky install frontend/.husky"
+  },
+  "husky": {
+    "hooks": {
+      "pre-commit": "pretty-quick --staged --pattern 'frontend/**'"
+    }
+  },
+  "stylelint": {
+    "extends": "stylelint-config-standard",
+    "rules": {},
+    "ignoreFiles": []
+  },
+  "prettier": {},
+  "eslintConfig": {
+    "extends": [
+      "react-app",
+      "react-app/jest"
+    ]
+  },
+  "browserslist": {
+    "production": [
+      ">0.2%",
+      "not dead",
+      "not op_mini all"
+    ],
+    "development": [
+      "last 1 chrome version",
+      "last 1 firefox version",
+      "last 1 safari version"
+    ]
+  }
+}
