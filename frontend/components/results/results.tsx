@@ -1,9 +1,9 @@
 import SearchResult from './searchresult'
 import styled from "styled-components";
-import {NavGra60} from "../../styles/constants";
+import {navGra60} from "../../styles/constants";
 
 const ResultsBox = styled.div`
-    border: 2px solid ${NavGra60};
+    border: 2px solid ${navGra60};
     flex-grow: 1;
     padding: 15px;
 `

@@ -1,8 +1,8 @@
 import styled from "styled-components";
-import {NavLysGra} from "../../styles/constants";
+import {navLysGra} from "../../styles/constants";
 
 const SearchResultDiv = styled.div`
-    background-color: ${NavLysGra};
+    background-color: ${navLysGra};
     padding: 5px;
     margin-bottom: 5px;
     h1 {
