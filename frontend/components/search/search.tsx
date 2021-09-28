@@ -1,14 +1,17 @@
 import styled from "styled-components";
-import Searchfield from './searchfield'
+import {TextField} from "@navikt/ds-react";
 
-
-const SearchBox = styled.div`
+const SearchDiv = styled.div`
     border: 2px solid black;
     width: 25%;
     padding: 15px;
     margin-right: 25px;
 `
+export interface SearchBoxProps{
+    query: string
+    setQuery: React.Dispatch<React.SetStateAction<string>>
+}
 
-export default function Search(){
-    return (<SearchBox><Searchfield/></SearchBox>)
+export default function SearchBox({query,setQuery}: SearchBoxProps){
+    return (<SearchDiv><TextField label={""}/></SearchDiv>)
 }

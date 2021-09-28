@@ -1,15 +1,21 @@
 import type { NextPage } from "next"
-import Search from "../components/search/search"
+import SearchBox from "../components/search/search"
 import Results from "../components/results/results"
-import { Layout } from "../components/layout"
+import PageLayout from "../components/pageLayout";
+import {useEffect, useState} from "react";
 
-const Home: NextPage = () => {
+const SearchPage: NextPage = () => {
+
+    const [query, setQuery] = useState("")
+
+    useEffect(() => {}, [query])
+
   return (
-    <Layout>
-      <Search />
+    <PageLayout>
+      <SearchBox query={ query} setQuery={setQuery}/>
       <Results />
-    </Layout>
+    </PageLayout>
   )
 }
 
-export default Home
+export default SearchPage

@@ -9,7 +9,7 @@ const Main = styled.main`
     display: flex;
     min-width: 100%;
 `
-export const Layout = ({children}: { children: React.ReactNode }) => (
+export const PageLayout = ({children}: { children: React.ReactNode }) => (
     <Container>
         <Header/>
         <Main>
@@ -18,4 +18,4 @@ export const Layout = ({children}: { children: React.ReactNode }) => (
     </Container>
 )
 
-export default Layout
+export default PageLayout

@@ -9,6 +9,8 @@
     "lint": "next lint"
   },
   "dependencies": {
+    "@navikt/ds-css": "^0.9.0",
+    "@navikt/ds-react": "^0.10.0",
     "nav-frontend-core": "^6.0.1",
     "next": "11.1.2",
     "react": "17.0.2",
@@ -30,7 +32,9 @@
   "babel": {
     "env": {
       "development": {
-        "presets": ["next/babel"],
+        "presets": [
+          "next/babel"
+        ],
         "plugins": [
           [
             "styled-components",
@@ -42,7 +46,9 @@
         ]
       },
       "production": {
-        "presets": ["next/babel"],
+        "presets": [
+          "next/babel"
+        ],
         "plugins": [
           [
             "styled-components",
