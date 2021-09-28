@@ -39,19 +39,19 @@ const (
 
 // Dataproduct defines model for Dataproduct.
 type Dataproduct struct {
-	Created  *time.Time `json:"created,omitempty"`
+	Created  time.Time `json:"created"`
 	Datasets *[]struct {
 		Id   *string      `json:"id,omitempty"`
 		Type *DatasetType `json:"type,omitempty"`
 	} `json:"datasets,omitempty"`
-	Description  *string    `json:"description,omitempty"`
-	Id           *string    `json:"id,omitempty"`
-	Keyword      *[]string  `json:"keyword,omitempty"`
-	LastModified *time.Time `json:"last_modified,omitempty"`
-	Name         string     `json:"name"`
-	Owner        Owner      `json:"owner"`
-	Repo         *string    `json:"repo,omitempty"`
-	Slug         *string    `json:"slug,omitempty"`
+	Description  *string   `json:"description,omitempty"`
+	Id           string    `json:"id"`
+	Keyword      *[]string `json:"keyword,omitempty"`
+	LastModified time.Time `json:"last_modified"`
+	Name         string    `json:"name"`
+	Owner        Owner     `json:"owner"`
+	Repo         *string   `json:"repo,omitempty"`
+	Slug         string    `json:"slug"`
 }
 
 // Dataset defines model for Dataset.
@@ -76,11 +76,9 @@ type NewDataproduct struct {
 	Description *string   `json:"description,omitempty"`
 	Keyword     *[]string `json:"keyword,omitempty"`
 	Name        string    `json:"name"`
-	Owner       struct {
-		Team string `json:"team"`
-	} `json:"owner"`
-	Repo *string `json:"repo,omitempty"`
-	Slug *string `json:"slug,omitempty"`
+	Owner       Owner     `json:"owner"`
+	Repo        *string   `json:"repo,omitempty"`
+	Slug        *string   `json:"slug,omitempty"`
 }
 
 // NewDataset defines model for NewDataset.
@@ -1880,22 +1878,22 @@ func RegisterHandlersWithBaseURL(router EchoRouter, si ServerInterface, baseURL 
 // Base64 encoded, gzipped, json marshaled Swagger object
 var swaggerSpec = []string{
 
-	"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",
+	"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",
 }
 
 // GetSwagger returns the content of the embedded swagger specification file
@@ -1969,4 +1967,3 @@ func GetSwagger() (swagger *openapi3.T, err error) {
 	}
 	return
 }
-

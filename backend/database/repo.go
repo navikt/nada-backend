@@ -2,50 +2,19 @@ package database
 
 import (
 	"context"
-	"net/url"
-	"time"
-
-	"cloud.google.com/go/firestore"
+	"fmt"
+	"github.com/google/uuid"
 	"github.com/navikt/datakatalogen/backend/database/gensql"
 	"github.com/navikt/datakatalogen/backend/openapi"
+	"net/url"
 
-	// Pin version of sqlc for cli
+	// Pin version of sqlc and goose for cli
 	_ "github.com/kyleconroy/sqlc"
-)
-
-const (
-	DeleteType = "delete"
-	GrantType  = "grant"
-	VerifyType = "verify"
+	_ "github.com/pressly/goose/v3"
 )
 
 type Repo struct {
 	querier gensql.Querier
-}
-
-type Dataproduct struct {
-	Name        string               `firestore:"name" json:"name,omitempty"`
-	Description string               `firestore:"description" json:"description,omitempty"`
-	Datastore   []map[string]string  `firestore:"datastore" json:"datastore,omitempty"`
-	Team        string               `firestore:"team" json:"team,omitempty"`
-	Access      map[string]time.Time `firestore:"access" json:"access,omitempty"`
-}
-
-type DataproductResponse struct {
-	ID          string                 `json:"id"`
-	Dataproduct Dataproduct            `json:"data_product"`
-	Updated     time.Time              `json:"updated"`
-	Created     time.Time              `json:"created"`
-	DocRef      *firestore.DocumentRef `json:"-"`
-}
-
-type AccessUpdate struct {
-	ProductID  string    `firestore:"dataproduct_id" json:"dataproduct_id"`
-	Author     string    `firestore:"author" json:"author"`
-	Subject    string    `firestore:"subject" json:"subject"`
-	Action     string    `firestore:"action" json:"action"`
-	UpdateTime time.Time `firestore:"time" json:"time"`
-	Expires    time.Time `firestore:"expires" json:"expires"`
 }
 
 func New(querier gensql.Querier) (*Repo, error) {
@@ -54,15 +23,15 @@ func New(querier gensql.Querier) (*Repo, error) {
 	}, nil
 }
 
-func (r *Repo) CreateDataproduct(ctx context.Context, dp openapi.Dataproduct) (*openapi.Dataproduct, error) {
-	slug := ""
-	if dp.Slug != nil {
-		slug = *dp.Slug
-	} else {
-		// TODO(thokra): Smartify this?
-		slug = url.PathEscape(dp.Name)
+func slugify(maybeslug *string, fallback string) string {
+	if maybeslug != nil {
+		return *maybeslug
 	}
+	// TODO(thokra): Smartify this?
+	return url.PathEscape(fallback)
+}
 
+func (r *Repo) CreateDataproduct(ctx context.Context, dp openapi.NewDataproduct) (*openapi.Dataproduct, error) {
 	var keywords []string
 	if dp.Keyword != nil {
 		keywords = *dp.Keyword
@@ -70,7 +39,7 @@ func (r *Repo) CreateDataproduct(ctx context.Context, dp openapi.Dataproduct) (*
 	res, err := r.querier.CreateDataproduct(ctx, gensql.CreateDataproductParams{
 		Name:        dp.Name,
 		Description: ptrToNullString(dp.Description),
-		Slug:        slug,
+		Slug:        slugify(dp.Slug, dp.Name),
 		Repo:        ptrToNullString(dp.Repo),
 		Team:        dp.Owner.Team,
 		Keywords:    keywords,
@@ -79,206 +48,85 @@ func (r *Repo) CreateDataproduct(ctx context.Context, dp openapi.Dataproduct) (*
 		return nil, err
 	}
 
-	id := res.ID.String()
-	return &openapi.Dataproduct{
-		Id:           &id,
-		Created:      &res.Created,
-		LastModified: &res.LastModified,
-		Description:  nullStringToPtr(res.Description),
-		Keyword:      &res.Keywords,
-		Name:         res.Name,
-		Owner: openapi.Owner{
-			Team: res.Team,
-		},
-		Repo: nullStringToPtr(res.Repo),
-		Slug: &res.Slug,
-	}, nil
+	return dataproductFromSQL(res), nil
 }
 
-// func (f *Repo) GetDataproduct(ctx context.Context, id string) (*DataproductResponse, error) {
-// 	doc, err := f.dataproducts.Doc(id).Get(ctx)
-// 	if err != nil {
-// 		log.Errorf("Getting dataproduct from collection: %v", err)
-// 		return nil, fmt.Errorf("getting dataproduct from collection: %w", err)
-// 	}
+func (r *Repo) GetDataproducts(ctx context.Context) ([]*openapi.Dataproduct, error) {
+	dataproducts := []*openapi.Dataproduct{}
 
-// 	return toResponse(doc)
-// }
+	res, err := r.querier.GetDataproducts(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("getting dataproducts from database: %w", err)
+	}
 
-// func (f *Repo) GetDataproducts(ctx context.Context) ([]*DataproductResponse, error) {
-// 	dataproducts := []*DataproductResponse{}
+	for _, entry := range res {
+		dataproducts = append(dataproducts, dataproductFromSQL(entry))
+	}
 
-// 	iter := f.dataproducts.Documents(ctx)
-// 	defer iter.Stop()
-// 	for {
-// 		document, err := iter.Next()
+	return dataproducts, nil
+}
 
-// 		if err == iterator.Done {
-// 			break
-// 		}
+func (r *Repo) GetDataproduct(ctx context.Context, id string) (*openapi.Dataproduct, error) {
+	uid, err := uuid.Parse(id)
+	if err != nil {
+		return nil, fmt.Errorf("parsing uuid: %w", err)
+	}
+	res, err := r.querier.GetDataproduct(ctx, uid)
+	if err != nil {
+		return nil, fmt.Errorf("getting dataproduct from database: %w", err)
+	}
 
-// 		if err != nil {
-// 			log.Errorf("Iterating documents: %v", err)
-// 			break
-// 		}
+	return dataproductFromSQL(res), nil
+}
 
-// 		dpr, err := toResponse(document)
-// 		if err != nil {
-// 			if status.Code(err) == codes.NotFound {
-// 				continue
-// 			}
-// 			log.Errorf("Creating DataproductResponse: %v", err)
-// 			return nil, fmt.Errorf("creating DataproductResponse: %w", err)
-// 		}
+func (r *Repo) DeleteDataproduct(ctx context.Context, id string) error {
+	uid, err := uuid.Parse(id)
+	if err != nil {
+		return fmt.Errorf("parsing uuid: %w", err)
+	}
 
-// 		dataproducts = append(dataproducts, dpr)
-// 	}
+	if err := r.querier.DeleteDataproduct(ctx, uid); err != nil {
+		return fmt.Errorf("deleting dataproduct from database: %w", err)
+	}
 
-// 	return dataproducts, nil
-// }
+	return nil
+}
 
-// func (f *Repo) UpdateDataproduct(ctx context.Context, id string, new Dataproduct) error {
-// 	old, err := f.GetDataproduct(ctx, id)
-// 	if err != nil {
-// 		return fmt.Errorf("getting dataproduct: %w", err)
-// 	}
+func (r *Repo) UpdateDataproduct(ctx context.Context, id string, new openapi.NewDataproduct) (*openapi.Dataproduct, error) {
+	uid, err := uuid.Parse(id)
+	if err != nil {
+		return nil, fmt.Errorf("parsing uuid: %w", err)
+	}
 
-// 	_, err = old.DocRef.Update(ctx, createUpdates(new, old.Dataproduct.Team, old.Dataproduct.Access))
-// 	if err != nil {
-// 		return fmt.Errorf("updating dataproduct document: %w", err)
-// 	}
+	res, err := r.querier.UpdateDataproduct(ctx, gensql.UpdateDataproductParams{
+		Name:        new.Name,
+		Description: ptrToNullString(new.Description),
+		Slug:        slugify(new.Slug, new.Name),
+		Repo:        ptrToNullString(new.Repo),
+		Team:        new.Owner.Team,
+		Keywords:    *new.Keyword,
+		ID:          uid,
+	})
 
-// 	log.Debugf("Updated dataproduct: %v", id)
+	if err != nil {
+		return nil, fmt.Errorf("updating dataproduct in database: %w", err)
+	}
 
-// 	return nil
-// }
+	return dataproductFromSQL(res), nil
+}
 
-// func (f *Repo) DeleteDataproduct(ctx context.Context, id string) error {
-// 	documentRef := f.dataproducts.Doc(id)
-
-// 	if _, err := documentRef.Delete(ctx); err != nil {
-// 		return fmt.Errorf("deleting firestore document: %w", err)
-// 	}
-
-// 	return nil
-// }
-
-// func (f *Repo) AddAccessUpdate(ctx context.Context, accessUpdate AccessUpdate) error {
-// 	if _, _, err := f.accessUpdates.Add(ctx, accessUpdate); err != nil {
-// 		return fmt.Errorf("adding access update: %w", err)
-// 	}
-// 	return nil
-// }
-
-// func (f *Repo) GetAccessUpdatesForDataproduct(ctx context.Context, id string) ([]AccessUpdate, error) {
-// 	var accessUpdates []AccessUpdate
-
-// 	query := f.accessUpdates.Where("dataproduct_id", "==", id).OrderBy("time", firestore.Desc)
-// 	iter := query.Documents(ctx)
-// 	defer iter.Stop()
-
-// 	for {
-// 		document, err := iter.Next()
-// 		if err == iterator.Done {
-// 			break
-// 		}
-// 		if err != nil {
-// 			log.Errorf("Iterating documents: %v", err)
-// 			break
-// 		}
-
-// 		var update AccessUpdate
-// 		if err := document.DataTo(&update); err != nil {
-// 			log.Errorf("Deserializing firestore document: %v", err)
-// 			return nil, fmt.Errorf("deserializing firestore document: %w", err)
-// 		}
-
-// 		accessUpdates = append(accessUpdates, update)
-// 	}
-
-// 	return accessUpdates, nil
-// }
-
-// func createUpdates(dp Dataproduct, currentTeam string, access map[string]time.Time) (updates []firestore.Update) {
-// 	if len(dp.Name) > 0 {
-// 		updates = append(updates, firestore.Update{
-// 			Path:  "name",
-// 			Value: dp.Name,
-// 		})
-// 	}
-// 	if len(dp.Description) > 0 {
-// 		updates = append(updates, firestore.Update{
-// 			Path:  "description",
-// 			Value: dp.Description,
-// 		})
-// 	}
-// 	if len(dp.Datastore) > 0 {
-// 		updates = append(updates, firestore.Update{
-// 			Path:  "datastore",
-// 			Value: dp.Datastore,
-// 		})
-// 	}
-// 	if len(dp.Team) > 0 {
-// 		updates = append(updates, firestore.Update{
-// 			Path:  "team",
-// 			Value: dp.Team,
-// 		})
-
-// 		delete(access, fmt.Sprintf("group:%v@nav.no", currentTeam))
-// 		access[fmt.Sprintf("group:%v@nav.no", dp.Team)] = time.Time{}
-// 		updates = append(updates, firestore.Update{
-// 			Path:  "access",
-// 			Value: access,
-// 		})
-// 	}
-
-// 	return
-// }
-
-// func toResponse(document *firestore.DocumentSnapshot) (*DataproductResponse, error) {
-// 	var dp Dataproduct
-
-// 	if err := document.DataTo(&dp); err != nil {
-// 		return nil, fmt.Errorf("populating fields in dataproduct struct: %w", err)
-// 	}
-
-// 	if len(dp.Name) == 0 { // empty/invalid dataproduct. This is known to happen during creation of Firestore collections
-// 		return nil, status.Errorf(codes.NotFound, "no valid dataproduct in path: %v", document.Ref.Path)
-// 	}
-
-// 	var dpr DataproductResponse
-// 	dpr.Dataproduct = dp
-// 	dpr.ID = document.Ref.ID
-// 	dpr.Updated = document.UpdateTime
-// 	dpr.Created = document.CreateTime
-// 	dpr.DocRef = document.Ref
-
-// 	return &dpr, nil
-// }
-
-// func Delete(author, productID, subject string) (au AccessUpdate) {
-// 	au.Action = DeleteType
-// 	au.UpdateTime = time.Now()
-// 	au.ProductID = productID
-// 	au.Subject = subject
-// 	au.Author = author
-// 	return
-// }
-
-// func Grant(author, productID, subject string, expiry time.Time) (au AccessUpdate) {
-// 	au.Action = GrantType
-// 	au.UpdateTime = time.Now()
-// 	au.Expires = expiry
-// 	au.ProductID = productID
-// 	au.Subject = subject
-// 	au.Author = author
-// 	return
-// }
-
-// func Verify(author, productID string) (au AccessUpdate) {
-// 	au.Action = VerifyType
-// 	au.UpdateTime = time.Now()
-// 	au.ProductID = productID
-// 	au.Author = author
-// 	return
-// }
+func dataproductFromSQL(dataproduct gensql.Dataproduct) *openapi.Dataproduct {
+	return &openapi.Dataproduct{
+		Id:           dataproduct.ID.String(),
+		Name:         dataproduct.Name,
+		Created:      dataproduct.Created,
+		LastModified: dataproduct.LastModified,
+		Description:  nullStringToPtr(dataproduct.Description),
+		Keyword:      &dataproduct.Keywords,
+		Owner: openapi.Owner{
+			Team: dataproduct.Team,
+		},
+		Repo: nullStringToPtr(dataproduct.Repo),
+		Slug: dataproduct.Slug,
+	}
+}

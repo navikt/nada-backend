@@ -71,6 +71,27 @@ func (q *Queries) DeleteDataproduct(ctx context.Context, id uuid.UUID) error {
 	return err
 }
 
+const getDataproduct = `-- name: GetDataproduct :one
+SELECT id, name, description, slug, repo, created, last_modified, team, keywords FROM dataproducts WHERE id = $1
+`
+
+func (q *Queries) GetDataproduct(ctx context.Context, id uuid.UUID) (Dataproduct, error) {
+	row := q.db.QueryRowContext(ctx, getDataproduct, id)
+	var i Dataproduct
+	err := row.Scan(
+		&i.ID,
+		&i.Name,
+		&i.Description,
+		&i.Slug,
+		&i.Repo,
+		&i.Created,
+		&i.LastModified,
+		&i.Team,
+		pq.Array(&i.Keywords),
+	)
+	return i, err
+}
+
 const getDataproducts = `-- name: GetDataproducts :many
 SELECT id, name, description, slug, repo, created, last_modified, team, keywords FROM dataproducts
 `

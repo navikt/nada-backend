@@ -21,6 +21,7 @@ require (
 	github.com/labstack/echo/v4 v4.2.1
 	github.com/leodido/go-urn v1.2.1 // indirect
 	github.com/lib/pq v1.10.3
+	github.com/pressly/goose/v3 v3.1.0 // indirect
 	github.com/prometheus/client_golang v1.10.0
 	github.com/sirupsen/logrus v1.8.1
 	github.com/spf13/pflag v1.0.5

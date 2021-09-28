@@ -6,6 +6,7 @@ services:
     restart: always
     environment:
       POSTGRES_PASSWORD: navikt
+      POSTGRES_DB: datakatalogen
     ports:
       - 5432:5432
 

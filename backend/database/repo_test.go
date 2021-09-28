@@ -18,7 +18,7 @@ func TestRepo(t *testing.T) {
 	}
 	repo, _ := New(gensql.New(db))
 
-	res, err := repo.CreateDataproduct(context.Background(), openapi.Dataproduct{
+	res, err := repo.CreateDataproduct(context.Background(), openapi.NewDataproduct{
 		Name: "Hello",
 		Owner: openapi.Owner{
 			Team: "asdf",

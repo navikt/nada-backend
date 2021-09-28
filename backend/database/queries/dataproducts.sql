@@ -1,3 +1,6 @@
+-- name: GetDataproduct :one
+SELECT * FROM dataproducts WHERE id = @id;
+
 -- name: GetDataproducts :many
 SELECT * FROM dataproducts;
 

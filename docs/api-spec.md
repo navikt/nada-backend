@@ -15,7 +15,7 @@ In the API, there are three "roles" a user can have.
     - [`GET /api/v1/dataproducts`](#get-apiv1dataproducts)
     - [`POST /api/v1/dataproducts`](#post-apiv1dataproducts)
     - [`GET /api/v1/dataproducts/{productID}`](#get-apiv1dataproductsproductid)
-    - [`PUT /api/v1/dataproducts/{productID}`](#put-apiv1dataproductsproductid)
+    - [`PUT /api/v1/dataproducts/{productID}`](#put-apiv0dataproductsproductid)
     - [`DELETE /api/v1/dataproduct/{productID}`](#delete-apiv1dataproductsproductid)
 - Access
     - [`GET /api/v1/access/{productID}`](#get-apiv1accessproductid)

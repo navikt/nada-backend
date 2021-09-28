@@ -42,8 +42,12 @@ components:
               type:
                 $ref: "#/components/schemas/DatasetType"
       required:
+        - id
         - name
+        - slug
         - owner
+        - created
+        - last_modified
 
     DatasetType:
       type: string
@@ -72,12 +76,7 @@ components:
         repo:
           type: string
         owner:
-          type: object
-          properties:
-            team:
-              type: string
-          required:
-            - team
+          $ref: "#/components/schemas/Owner"
         keyword:
           type: array
           items:
