@@ -42,6 +42,14 @@ local:
 	--log-level=debug \
 	--state=$(shell gcloud secrets versions access --secret datakatalogen-state latest --project aura-dev-d9f5 | cut -d= -f2)
 
+migrate:
+	go run github.com/pressly/goose/v3/cmd/goose -dir ./backend/database/schema postgres "user=postgres dbname=datakatalogen sslmode=disable password=navikt" up
+
+generate: 
+	cd backend && go run github.com/kyleconroy/sqlc/cmd/sqlc generate
+	mkdir -p backend/openapi
+	go run github.com/deepmap/oapi-codegen/cmd/oapi-codegen -package openapi ./spec-v1.0.yaml > ./backend/openapi/datakatalogen.gen.go
+
 linux-build:
 	go build -a -installsuffix cgo -o $(APP) -ldflags "-s $(LDFLAGS)" cmd/backend/main.go
 
@@ -51,4 +59,3 @@ docker-build:
 docker-push:
 	docker image push ghcr.io/navikt/$(APP):$(VERSION)
 	docker image push ghcr.io/navikt/$(APP):latest
-

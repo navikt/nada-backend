@@ -22,17 +22,12 @@ components:
           type: string
         last_modified:
           type: string
+          format: date-time
         created:
           type: string
+          format: date-time
         owner:
-          type: object
-          properties:
-            team:
-              type: string
-            teamkatalogen:
-              type: string
-          required:
-            - team
+          $ref: "#/components/schemas/Owner"
         keyword:
           type: array
           items:
@@ -49,10 +44,21 @@ components:
       required:
         - name
         - owner
+
     DatasetType:
       type: string
       enum:
         - bigquery
+
+    Owner:
+      type: object
+      properties:
+        team:
+          type: string
+        teamkatalogen:
+          type: string
+      required:
+        - team
 
     NewDataproduct:
       type: object
