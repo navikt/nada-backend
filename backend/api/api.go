@@ -1,6 +1,8 @@
 package api
 
 import (
+	"encoding/json"
+	"log"
 	"net/http"
 
 	"github.com/navikt/datakatalogen/backend/database"
@@ -8,10 +10,10 @@ import (
 )
 
 type Server struct {
-	repo database.Repo
+	repo *database.Repo
 }
 
-func New(repo database.Repo) *Server {
+func New(repo *database.Repo) *Server {
 	return &Server{
 		repo: repo,
 	}
@@ -19,6 +21,16 @@ func New(repo database.Repo) *Server {
 
 // (GET /dataproducts)
 func (s *Server) GetDataproducts(w http.ResponseWriter, r *http.Request) {
+	res, err := s.repo.GetDataproducts(r.Context())
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	w.Header().Add("Content-Type", "application/json")
+	err = json.NewEncoder(w).Encode(res)
+	if err != nil {
+		log.Println(err)
+	}
 }
 
 // (POST /dataproducts)
