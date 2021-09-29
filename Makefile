@@ -1,9 +1,16 @@
-.PHONY: test integration-test local-with-auth local linux-build docker-build docker-push run-local-firestore
+.PHONY: test integration-test local-with-auth local linux-build docker-build docker-push run-local-firestore install-sqlc
 DATE = $(shell date "+%Y-%m-%d")
 LAST_COMMIT = $(shell git --no-pager log -1 --pretty=%h)
 VERSION ?= $(DATE)-$(LAST_COMMIT)
 LDFLAGS := -X github.com/navikt/datakatalogen/backend/version.Revision=$(shell git rev-parse --short HEAD) -X github.com/navikt/datakatalogen/backend/version.Version=$(VERSION)
 APP = datakatalogen
+SQLC_VERSION ?= "v1.10.0"
+# Get the currently used golang install path (in GOPATH/bin, unless GOBIN is set)
+ifeq (,$(shell go env GOBIN))
+	GOBIN=$(shell go env GOPATH)/bin
+else
+	GOBIN=$(shell go env GOBIN)
+endif
 
 test:
 	go test ./... -count=1
@@ -46,7 +53,7 @@ migrate:
 	go run github.com/pressly/goose/v3/cmd/goose -dir ./backend/database/schema postgres "user=postgres dbname=datakatalogen sslmode=disable password=navikt" up
 
 generate: 
-	cd backend && go run github.com/kyleconroy/sqlc/cmd/sqlc generate
+	cd backend && $(GOBIN)/sqlc generate
 	mkdir -p backend/openapi
 	go run github.com/deepmap/oapi-codegen/cmd/oapi-codegen -package openapi ./spec-v1.0.yaml > ./backend/openapi/datakatalogen.gen.go
 
@@ -59,3 +66,6 @@ docker-build:
 docker-push:
 	docker image push ghcr.io/navikt/$(APP):$(VERSION)
 	docker image push ghcr.io/navikt/$(APP):latest
+
+install-sqlc:
+	go install github.com/kyleconroy/sqlc/cmd/sqlc@$(SQLC_VERSION)
