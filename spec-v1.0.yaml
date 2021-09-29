@@ -160,6 +160,7 @@ paths:
   /dataproducts:
     get:
       description: "List all dataproducts"
+      operationId: "getDataproducts"
       responses:
         "200":
           description: OK
@@ -171,6 +172,7 @@ paths:
                   $ref: "#/components/schemas/Dataproduct"
     post:
       description: "Create a new dataproduct"
+      operationId: "createDataproduct"
       requestBody:
         content:
           "application/json":
@@ -187,6 +189,7 @@ paths:
   /dataproducts/{dataproduct_id}:
     get:
       description: "List a dataproduct with datasets"
+      operationId: "getDataproduct"
       parameters:
         - in: path
           name: dataproduct_id
@@ -205,6 +208,7 @@ paths:
                   $ref: "#/components/schemas/Dataproduct"
     delete:
       description: "Delete a dataproduct"
+      operationId: "deleteDataproduct"
       parameters:
         - in: path
           name: dataproduct_id
@@ -217,6 +221,7 @@ paths:
           description: "Deleted OK"
     put:
       description: "Update a dataproduct"
+      operationId: "updateDataproduct"
       parameters:
         - in: path
           name: dataproduct_id
@@ -240,6 +245,7 @@ paths:
   /dataproducts/{dataproduct_id}/datasets:
     get:
       description: "List all datasets for a dataproduct"
+      operationId: "getDatasets"
       parameters:
         - in: path
           name: dataproduct_id
@@ -258,6 +264,7 @@ paths:
                   $ref: "#/components/schemas/Dataset"
     post:
       description: "Create a new dataset"
+      operationId: "createDataset"
       parameters:
         - in: path
           name: dataproduct_id
@@ -281,6 +288,7 @@ paths:
   /dataproducts/{dataproduct_id}/datasets/{dataset_id}:
     get:
       description: "Get dataset"
+      operationId: "getDataset"
       parameters:
         - in: path
           name: dataproduct_id
@@ -303,6 +311,7 @@ paths:
                 $ref: "#/components/schemas/Dataset"
     put:
       description: "Update a dataset"
+      operationId: "updateDataset"
       parameters:
         - in: path
           name: dataproduct_id
@@ -330,7 +339,7 @@ paths:
                 $ref: "#/components/schemas/Dataset"
     delete:
       description: "Delete a dataset"
-      operationId: deleteDataset
+      operationId: "deleteDataset"
       parameters:
         - in: path
           name: dataproduct_id
@@ -354,6 +363,8 @@ paths:
         schema:
           type: string
     get:
+      description: "Search in Datakatalog"
+      operationId: "search"
       responses:
         "200":
           description: Search result
