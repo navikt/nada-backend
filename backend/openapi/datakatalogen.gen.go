@@ -111,34 +111,34 @@ type SearchResultEntry struct {
 // SearchResultEntryType defines model for SearchResultEntry.Type.
 type SearchResultEntryType string
 
-// PostDataproductsJSONBody defines parameters for PostDataproducts.
-type PostDataproductsJSONBody NewDataproduct
+// CreateDataproductJSONBody defines parameters for CreateDataproduct.
+type CreateDataproductJSONBody NewDataproduct
 
-// PutDataproductsDataproductIdJSONBody defines parameters for PutDataproductsDataproductId.
-type PutDataproductsDataproductIdJSONBody NewDataproduct
+// UpdateDataproductJSONBody defines parameters for UpdateDataproduct.
+type UpdateDataproductJSONBody NewDataproduct
 
-// PostDataproductsDataproductIdDatasetsJSONBody defines parameters for PostDataproductsDataproductIdDatasets.
-type PostDataproductsDataproductIdDatasetsJSONBody NewDataset
+// CreateDatasetJSONBody defines parameters for CreateDataset.
+type CreateDatasetJSONBody NewDataset
 
-// PutDataproductsDataproductIdDatasetsDatasetIdJSONBody defines parameters for PutDataproductsDataproductIdDatasetsDatasetId.
-type PutDataproductsDataproductIdDatasetsDatasetIdJSONBody NewDataset
+// UpdateDatasetJSONBody defines parameters for UpdateDataset.
+type UpdateDatasetJSONBody NewDataset
 
-// GetSearchParams defines parameters for GetSearch.
-type GetSearchParams struct {
+// SearchParams defines parameters for Search.
+type SearchParams struct {
 	Q *string `json:"q,omitempty"`
 }
 
-// PostDataproductsJSONRequestBody defines body for PostDataproducts for application/json ContentType.
-type PostDataproductsJSONRequestBody PostDataproductsJSONBody
+// CreateDataproductJSONRequestBody defines body for CreateDataproduct for application/json ContentType.
+type CreateDataproductJSONRequestBody CreateDataproductJSONBody
 
-// PutDataproductsDataproductIdJSONRequestBody defines body for PutDataproductsDataproductId for application/json ContentType.
-type PutDataproductsDataproductIdJSONRequestBody PutDataproductsDataproductIdJSONBody
+// UpdateDataproductJSONRequestBody defines body for UpdateDataproduct for application/json ContentType.
+type UpdateDataproductJSONRequestBody UpdateDataproductJSONBody
 
-// PostDataproductsDataproductIdDatasetsJSONRequestBody defines body for PostDataproductsDataproductIdDatasets for application/json ContentType.
-type PostDataproductsDataproductIdDatasetsJSONRequestBody PostDataproductsDataproductIdDatasetsJSONBody
+// CreateDatasetJSONRequestBody defines body for CreateDataset for application/json ContentType.
+type CreateDatasetJSONRequestBody CreateDatasetJSONBody
 
-// PutDataproductsDataproductIdDatasetsDatasetIdJSONRequestBody defines body for PutDataproductsDataproductIdDatasetsDatasetId for application/json ContentType.
-type PutDataproductsDataproductIdDatasetsDatasetIdJSONRequestBody PutDataproductsDataproductIdDatasetsDatasetIdJSONBody
+// UpdateDatasetJSONRequestBody defines body for UpdateDataset for application/json ContentType.
+type UpdateDatasetJSONRequestBody UpdateDatasetJSONBody
 
 // RequestEditorFn  is the function signature for the RequestEditor callback function
 type RequestEditorFn func(ctx context.Context, req *http.Request) error
@@ -216,43 +216,43 @@ type ClientInterface interface {
 	// GetDataproducts request
 	GetDataproducts(ctx context.Context, reqEditors ...RequestEditorFn) (*http.Response, error)
 
-	// PostDataproducts request with any body
-	PostDataproductsWithBody(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
+	// CreateDataproduct request with any body
+	CreateDataproductWithBody(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
 
-	PostDataproducts(ctx context.Context, body PostDataproductsJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
+	CreateDataproduct(ctx context.Context, body CreateDataproductJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
 
-	// DeleteDataproductsDataproductId request
-	DeleteDataproductsDataproductId(ctx context.Context, dataproductId string, reqEditors ...RequestEditorFn) (*http.Response, error)
+	// DeleteDataproduct request
+	DeleteDataproduct(ctx context.Context, dataproductId string, reqEditors ...RequestEditorFn) (*http.Response, error)
 
-	// GetDataproductsDataproductId request
-	GetDataproductsDataproductId(ctx context.Context, dataproductId string, reqEditors ...RequestEditorFn) (*http.Response, error)
+	// GetDataproduct request
+	GetDataproduct(ctx context.Context, dataproductId string, reqEditors ...RequestEditorFn) (*http.Response, error)
 
-	// PutDataproductsDataproductId request with any body
-	PutDataproductsDataproductIdWithBody(ctx context.Context, dataproductId string, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
+	// UpdateDataproduct request with any body
+	UpdateDataproductWithBody(ctx context.Context, dataproductId string, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
 
-	PutDataproductsDataproductId(ctx context.Context, dataproductId string, body PutDataproductsDataproductIdJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
+	UpdateDataproduct(ctx context.Context, dataproductId string, body UpdateDataproductJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
 
-	// GetDataproductsDataproductIdDatasets request
-	GetDataproductsDataproductIdDatasets(ctx context.Context, dataproductId string, reqEditors ...RequestEditorFn) (*http.Response, error)
+	// GetDatasets request
+	GetDatasets(ctx context.Context, dataproductId string, reqEditors ...RequestEditorFn) (*http.Response, error)
 
-	// PostDataproductsDataproductIdDatasets request with any body
-	PostDataproductsDataproductIdDatasetsWithBody(ctx context.Context, dataproductId string, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
+	// CreateDataset request with any body
+	CreateDatasetWithBody(ctx context.Context, dataproductId string, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
 
-	PostDataproductsDataproductIdDatasets(ctx context.Context, dataproductId string, body PostDataproductsDataproductIdDatasetsJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
+	CreateDataset(ctx context.Context, dataproductId string, body CreateDatasetJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
 
 	// DeleteDataset request
 	DeleteDataset(ctx context.Context, dataproductId string, datasetId string, reqEditors ...RequestEditorFn) (*http.Response, error)
 
-	// GetDataproductsDataproductIdDatasetsDatasetId request
-	GetDataproductsDataproductIdDatasetsDatasetId(ctx context.Context, dataproductId string, datasetId string, reqEditors ...RequestEditorFn) (*http.Response, error)
+	// GetDataset request
+	GetDataset(ctx context.Context, dataproductId string, datasetId string, reqEditors ...RequestEditorFn) (*http.Response, error)
 
-	// PutDataproductsDataproductIdDatasetsDatasetId request with any body
-	PutDataproductsDataproductIdDatasetsDatasetIdWithBody(ctx context.Context, dataproductId string, datasetId string, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
+	// UpdateDataset request with any body
+	UpdateDatasetWithBody(ctx context.Context, dataproductId string, datasetId string, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
 
-	PutDataproductsDataproductIdDatasetsDatasetId(ctx context.Context, dataproductId string, datasetId string, body PutDataproductsDataproductIdDatasetsDatasetIdJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
+	UpdateDataset(ctx context.Context, dataproductId string, datasetId string, body UpdateDatasetJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
 
-	// GetSearch request
-	GetSearch(ctx context.Context, params *GetSearchParams, reqEditors ...RequestEditorFn) (*http.Response, error)
+	// Search request
+	Search(ctx context.Context, params *SearchParams, reqEditors ...RequestEditorFn) (*http.Response, error)
 }
 
 func (c *Client) GetDataproducts(ctx context.Context, reqEditors ...RequestEditorFn) (*http.Response, error) {
@@ -267,8 +267,8 @@ func (c *Client) GetDataproducts(ctx context.Context, reqEditors ...RequestEdito
 	return c.Client.Do(req)
 }
 
-func (c *Client) PostDataproductsWithBody(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error) {
-	req, err := NewPostDataproductsRequestWithBody(c.Server, contentType, body)
+func (c *Client) CreateDataproductWithBody(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewCreateDataproductRequestWithBody(c.Server, contentType, body)
 	if err != nil {
 		return nil, err
 	}
@@ -279,8 +279,8 @@ func (c *Client) PostDataproductsWithBody(ctx context.Context, contentType strin
 	return c.Client.Do(req)
 }
 
-func (c *Client) PostDataproducts(ctx context.Context, body PostDataproductsJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
-	req, err := NewPostDataproductsRequest(c.Server, body)
+func (c *Client) CreateDataproduct(ctx context.Context, body CreateDataproductJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewCreateDataproductRequest(c.Server, body)
 	if err != nil {
 		return nil, err
 	}
@@ -291,8 +291,8 @@ func (c *Client) PostDataproducts(ctx context.Context, body PostDataproductsJSON
 	return c.Client.Do(req)
 }
 
-func (c *Client) DeleteDataproductsDataproductId(ctx context.Context, dataproductId string, reqEditors ...RequestEditorFn) (*http.Response, error) {
-	req, err := NewDeleteDataproductsDataproductIdRequest(c.Server, dataproductId)
+func (c *Client) DeleteDataproduct(ctx context.Context, dataproductId string, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewDeleteDataproductRequest(c.Server, dataproductId)
 	if err != nil {
 		return nil, err
 	}
@@ -303,8 +303,8 @@ func (c *Client) DeleteDataproductsDataproductId(ctx context.Context, dataproduc
 	return c.Client.Do(req)
 }
 
-func (c *Client) GetDataproductsDataproductId(ctx context.Context, dataproductId string, reqEditors ...RequestEditorFn) (*http.Response, error) {
-	req, err := NewGetDataproductsDataproductIdRequest(c.Server, dataproductId)
+func (c *Client) GetDataproduct(ctx context.Context, dataproductId string, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewGetDataproductRequest(c.Server, dataproductId)
 	if err != nil {
 		return nil, err
 	}
@@ -315,8 +315,8 @@ func (c *Client) GetDataproductsDataproductId(ctx context.Context, dataproductId
 	return c.Client.Do(req)
 }
 
-func (c *Client) PutDataproductsDataproductIdWithBody(ctx context.Context, dataproductId string, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error) {
-	req, err := NewPutDataproductsDataproductIdRequestWithBody(c.Server, dataproductId, contentType, body)
+func (c *Client) UpdateDataproductWithBody(ctx context.Context, dataproductId string, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewUpdateDataproductRequestWithBody(c.Server, dataproductId, contentType, body)
 	if err != nil {
 		return nil, err
 	}
@@ -327,8 +327,8 @@ func (c *Client) PutDataproductsDataproductIdWithBody(ctx context.Context, datap
 	return c.Client.Do(req)
 }
 
-func (c *Client) PutDataproductsDataproductId(ctx context.Context, dataproductId string, body PutDataproductsDataproductIdJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
-	req, err := NewPutDataproductsDataproductIdRequest(c.Server, dataproductId, body)
+func (c *Client) UpdateDataproduct(ctx context.Context, dataproductId string, body UpdateDataproductJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewUpdateDataproductRequest(c.Server, dataproductId, body)
 	if err != nil {
 		return nil, err
 	}
@@ -339,8 +339,8 @@ func (c *Client) PutDataproductsDataproductId(ctx context.Context, dataproductId
 	return c.Client.Do(req)
 }
 
-func (c *Client) GetDataproductsDataproductIdDatasets(ctx context.Context, dataproductId string, reqEditors ...RequestEditorFn) (*http.Response, error) {
-	req, err := NewGetDataproductsDataproductIdDatasetsRequest(c.Server, dataproductId)
+func (c *Client) GetDatasets(ctx context.Context, dataproductId string, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewGetDatasetsRequest(c.Server, dataproductId)
 	if err != nil {
 		return nil, err
 	}
@@ -351,8 +351,8 @@ func (c *Client) GetDataproductsDataproductIdDatasets(ctx context.Context, datap
 	return c.Client.Do(req)
 }
 
-func (c *Client) PostDataproductsDataproductIdDatasetsWithBody(ctx context.Context, dataproductId string, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error) {
-	req, err := NewPostDataproductsDataproductIdDatasetsRequestWithBody(c.Server, dataproductId, contentType, body)
+func (c *Client) CreateDatasetWithBody(ctx context.Context, dataproductId string, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewCreateDatasetRequestWithBody(c.Server, dataproductId, contentType, body)
 	if err != nil {
 		return nil, err
 	}
@@ -363,8 +363,8 @@ func (c *Client) PostDataproductsDataproductIdDatasetsWithBody(ctx context.Conte
 	return c.Client.Do(req)
 }
 
-func (c *Client) PostDataproductsDataproductIdDatasets(ctx context.Context, dataproductId string, body PostDataproductsDataproductIdDatasetsJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
-	req, err := NewPostDataproductsDataproductIdDatasetsRequest(c.Server, dataproductId, body)
+func (c *Client) CreateDataset(ctx context.Context, dataproductId string, body CreateDatasetJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewCreateDatasetRequest(c.Server, dataproductId, body)
 	if err != nil {
 		return nil, err
 	}
@@ -387,8 +387,8 @@ func (c *Client) DeleteDataset(ctx context.Context, dataproductId string, datase
 	return c.Client.Do(req)
 }
 
-func (c *Client) GetDataproductsDataproductIdDatasetsDatasetId(ctx context.Context, dataproductId string, datasetId string, reqEditors ...RequestEditorFn) (*http.Response, error) {
-	req, err := NewGetDataproductsDataproductIdDatasetsDatasetIdRequest(c.Server, dataproductId, datasetId)
+func (c *Client) GetDataset(ctx context.Context, dataproductId string, datasetId string, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewGetDatasetRequest(c.Server, dataproductId, datasetId)
 	if err != nil {
 		return nil, err
 	}
@@ -399,8 +399,8 @@ func (c *Client) GetDataproductsDataproductIdDatasetsDatasetId(ctx context.Conte
 	return c.Client.Do(req)
 }
 
-func (c *Client) PutDataproductsDataproductIdDatasetsDatasetIdWithBody(ctx context.Context, dataproductId string, datasetId string, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error) {
-	req, err := NewPutDataproductsDataproductIdDatasetsDatasetIdRequestWithBody(c.Server, dataproductId, datasetId, contentType, body)
+func (c *Client) UpdateDatasetWithBody(ctx context.Context, dataproductId string, datasetId string, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewUpdateDatasetRequestWithBody(c.Server, dataproductId, datasetId, contentType, body)
 	if err != nil {
 		return nil, err
 	}
@@ -411,8 +411,8 @@ func (c *Client) PutDataproductsDataproductIdDatasetsDatasetIdWithBody(ctx conte
 	return c.Client.Do(req)
 }
 
-func (c *Client) PutDataproductsDataproductIdDatasetsDatasetId(ctx context.Context, dataproductId string, datasetId string, body PutDataproductsDataproductIdDatasetsDatasetIdJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
-	req, err := NewPutDataproductsDataproductIdDatasetsDatasetIdRequest(c.Server, dataproductId, datasetId, body)
+func (c *Client) UpdateDataset(ctx context.Context, dataproductId string, datasetId string, body UpdateDatasetJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewUpdateDatasetRequest(c.Server, dataproductId, datasetId, body)
 	if err != nil {
 		return nil, err
 	}
@@ -423,8 +423,8 @@ func (c *Client) PutDataproductsDataproductIdDatasetsDatasetId(ctx context.Conte
 	return c.Client.Do(req)
 }
 
-func (c *Client) GetSearch(ctx context.Context, params *GetSearchParams, reqEditors ...RequestEditorFn) (*http.Response, error) {
-	req, err := NewGetSearchRequest(c.Server, params)
+func (c *Client) Search(ctx context.Context, params *SearchParams, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewSearchRequest(c.Server, params)
 	if err != nil {
 		return nil, err
 	}
@@ -462,19 +462,19 @@ func NewGetDataproductsRequest(server string) (*http.Request, error) {
 	return req, nil
 }
 
-// NewPostDataproductsRequest calls the generic PostDataproducts builder with application/json body
-func NewPostDataproductsRequest(server string, body PostDataproductsJSONRequestBody) (*http.Request, error) {
+// NewCreateDataproductRequest calls the generic CreateDataproduct builder with application/json body
+func NewCreateDataproductRequest(server string, body CreateDataproductJSONRequestBody) (*http.Request, error) {
 	var bodyReader io.Reader
 	buf, err := json.Marshal(body)
 	if err != nil {
 		return nil, err
 	}
 	bodyReader = bytes.NewReader(buf)
-	return NewPostDataproductsRequestWithBody(server, "application/json", bodyReader)
+	return NewCreateDataproductRequestWithBody(server, "application/json", bodyReader)
 }
 
-// NewPostDataproductsRequestWithBody generates requests for PostDataproducts with any type of body
-func NewPostDataproductsRequestWithBody(server string, contentType string, body io.Reader) (*http.Request, error) {
+// NewCreateDataproductRequestWithBody generates requests for CreateDataproduct with any type of body
+func NewCreateDataproductRequestWithBody(server string, contentType string, body io.Reader) (*http.Request, error) {
 	var err error
 
 	serverURL, err := url.Parse(server)
@@ -502,8 +502,8 @@ func NewPostDataproductsRequestWithBody(server string, contentType string, body 
 	return req, nil
 }
 
-// NewDeleteDataproductsDataproductIdRequest generates requests for DeleteDataproductsDataproductId
-func NewDeleteDataproductsDataproductIdRequest(server string, dataproductId string) (*http.Request, error) {
+// NewDeleteDataproductRequest generates requests for DeleteDataproduct
+func NewDeleteDataproductRequest(server string, dataproductId string) (*http.Request, error) {
 	var err error
 
 	var pathParam0 string
@@ -536,8 +536,8 @@ func NewDeleteDataproductsDataproductIdRequest(server string, dataproductId stri
 	return req, nil
 }
 
-// NewGetDataproductsDataproductIdRequest generates requests for GetDataproductsDataproductId
-func NewGetDataproductsDataproductIdRequest(server string, dataproductId string) (*http.Request, error) {
+// NewGetDataproductRequest generates requests for GetDataproduct
+func NewGetDataproductRequest(server string, dataproductId string) (*http.Request, error) {
 	var err error
 
 	var pathParam0 string
@@ -570,19 +570,19 @@ func NewGetDataproductsDataproductIdRequest(server string, dataproductId string)
 	return req, nil
 }
 
-// NewPutDataproductsDataproductIdRequest calls the generic PutDataproductsDataproductId builder with application/json body
-func NewPutDataproductsDataproductIdRequest(server string, dataproductId string, body PutDataproductsDataproductIdJSONRequestBody) (*http.Request, error) {
+// NewUpdateDataproductRequest calls the generic UpdateDataproduct builder with application/json body
+func NewUpdateDataproductRequest(server string, dataproductId string, body UpdateDataproductJSONRequestBody) (*http.Request, error) {
 	var bodyReader io.Reader
 	buf, err := json.Marshal(body)
 	if err != nil {
 		return nil, err
 	}
 	bodyReader = bytes.NewReader(buf)
-	return NewPutDataproductsDataproductIdRequestWithBody(server, dataproductId, "application/json", bodyReader)
+	return NewUpdateDataproductRequestWithBody(server, dataproductId, "application/json", bodyReader)
 }
 
-// NewPutDataproductsDataproductIdRequestWithBody generates requests for PutDataproductsDataproductId with any type of body
-func NewPutDataproductsDataproductIdRequestWithBody(server string, dataproductId string, contentType string, body io.Reader) (*http.Request, error) {
+// NewUpdateDataproductRequestWithBody generates requests for UpdateDataproduct with any type of body
+func NewUpdateDataproductRequestWithBody(server string, dataproductId string, contentType string, body io.Reader) (*http.Request, error) {
 	var err error
 
 	var pathParam0 string
@@ -617,8 +617,8 @@ func NewPutDataproductsDataproductIdRequestWithBody(server string, dataproductId
 	return req, nil
 }
 
-// NewGetDataproductsDataproductIdDatasetsRequest generates requests for GetDataproductsDataproductIdDatasets
-func NewGetDataproductsDataproductIdDatasetsRequest(server string, dataproductId string) (*http.Request, error) {
+// NewGetDatasetsRequest generates requests for GetDatasets
+func NewGetDatasetsRequest(server string, dataproductId string) (*http.Request, error) {
 	var err error
 
 	var pathParam0 string
@@ -651,19 +651,19 @@ func NewGetDataproductsDataproductIdDatasetsRequest(server string, dataproductId
 	return req, nil
 }
 
-// NewPostDataproductsDataproductIdDatasetsRequest calls the generic PostDataproductsDataproductIdDatasets builder with application/json body
-func NewPostDataproductsDataproductIdDatasetsRequest(server string, dataproductId string, body PostDataproductsDataproductIdDatasetsJSONRequestBody) (*http.Request, error) {
+// NewCreateDatasetRequest calls the generic CreateDataset builder with application/json body
+func NewCreateDatasetRequest(server string, dataproductId string, body CreateDatasetJSONRequestBody) (*http.Request, error) {
 	var bodyReader io.Reader
 	buf, err := json.Marshal(body)
 	if err != nil {
 		return nil, err
 	}
 	bodyReader = bytes.NewReader(buf)
-	return NewPostDataproductsDataproductIdDatasetsRequestWithBody(server, dataproductId, "application/json", bodyReader)
+	return NewCreateDatasetRequestWithBody(server, dataproductId, "application/json", bodyReader)
 }
 
-// NewPostDataproductsDataproductIdDatasetsRequestWithBody generates requests for PostDataproductsDataproductIdDatasets with any type of body
-func NewPostDataproductsDataproductIdDatasetsRequestWithBody(server string, dataproductId string, contentType string, body io.Reader) (*http.Request, error) {
+// NewCreateDatasetRequestWithBody generates requests for CreateDataset with any type of body
+func NewCreateDatasetRequestWithBody(server string, dataproductId string, contentType string, body io.Reader) (*http.Request, error) {
 	var err error
 
 	var pathParam0 string
@@ -739,8 +739,8 @@ func NewDeleteDatasetRequest(server string, dataproductId string, datasetId stri
 	return req, nil
 }
 
-// NewGetDataproductsDataproductIdDatasetsDatasetIdRequest generates requests for GetDataproductsDataproductIdDatasetsDatasetId
-func NewGetDataproductsDataproductIdDatasetsDatasetIdRequest(server string, dataproductId string, datasetId string) (*http.Request, error) {
+// NewGetDatasetRequest generates requests for GetDataset
+func NewGetDatasetRequest(server string, dataproductId string, datasetId string) (*http.Request, error) {
 	var err error
 
 	var pathParam0 string
@@ -780,19 +780,19 @@ func NewGetDataproductsDataproductIdDatasetsDatasetIdRequest(server string, data
 	return req, nil
 }
 
-// NewPutDataproductsDataproductIdDatasetsDatasetIdRequest calls the generic PutDataproductsDataproductIdDatasetsDatasetId builder with application/json body
-func NewPutDataproductsDataproductIdDatasetsDatasetIdRequest(server string, dataproductId string, datasetId string, body PutDataproductsDataproductIdDatasetsDatasetIdJSONRequestBody) (*http.Request, error) {
+// NewUpdateDatasetRequest calls the generic UpdateDataset builder with application/json body
+func NewUpdateDatasetRequest(server string, dataproductId string, datasetId string, body UpdateDatasetJSONRequestBody) (*http.Request, error) {
 	var bodyReader io.Reader
 	buf, err := json.Marshal(body)
 	if err != nil {
 		return nil, err
 	}
 	bodyReader = bytes.NewReader(buf)
-	return NewPutDataproductsDataproductIdDatasetsDatasetIdRequestWithBody(server, dataproductId, datasetId, "application/json", bodyReader)
+	return NewUpdateDatasetRequestWithBody(server, dataproductId, datasetId, "application/json", bodyReader)
 }
 
-// NewPutDataproductsDataproductIdDatasetsDatasetIdRequestWithBody generates requests for PutDataproductsDataproductIdDatasetsDatasetId with any type of body
-func NewPutDataproductsDataproductIdDatasetsDatasetIdRequestWithBody(server string, dataproductId string, datasetId string, contentType string, body io.Reader) (*http.Request, error) {
+// NewUpdateDatasetRequestWithBody generates requests for UpdateDataset with any type of body
+func NewUpdateDatasetRequestWithBody(server string, dataproductId string, datasetId string, contentType string, body io.Reader) (*http.Request, error) {
 	var err error
 
 	var pathParam0 string
@@ -834,8 +834,8 @@ func NewPutDataproductsDataproductIdDatasetsDatasetIdRequestWithBody(server stri
 	return req, nil
 }
 
-// NewGetSearchRequest generates requests for GetSearch
-func NewGetSearchRequest(server string, params *GetSearchParams) (*http.Request, error) {
+// NewSearchRequest generates requests for Search
+func NewSearchRequest(server string, params *SearchParams) (*http.Request, error) {
 	var err error
 
 	serverURL, err := url.Parse(server)
@@ -927,43 +927,43 @@ type ClientWithResponsesInterface interface {
 	// GetDataproducts request
 	GetDataproductsWithResponse(ctx context.Context, reqEditors ...RequestEditorFn) (*GetDataproductsResponse, error)
 
-	// PostDataproducts request with any body
-	PostDataproductsWithBodyWithResponse(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*PostDataproductsResponse, error)
+	// CreateDataproduct request with any body
+	CreateDataproductWithBodyWithResponse(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*CreateDataproductResponse, error)
 
-	PostDataproductsWithResponse(ctx context.Context, body PostDataproductsJSONRequestBody, reqEditors ...RequestEditorFn) (*PostDataproductsResponse, error)
+	CreateDataproductWithResponse(ctx context.Context, body CreateDataproductJSONRequestBody, reqEditors ...RequestEditorFn) (*CreateDataproductResponse, error)
 
-	// DeleteDataproductsDataproductId request
-	DeleteDataproductsDataproductIdWithResponse(ctx context.Context, dataproductId string, reqEditors ...RequestEditorFn) (*DeleteDataproductsDataproductIdResponse, error)
+	// DeleteDataproduct request
+	DeleteDataproductWithResponse(ctx context.Context, dataproductId string, reqEditors ...RequestEditorFn) (*DeleteDataproductResponse, error)
 
-	// GetDataproductsDataproductId request
-	GetDataproductsDataproductIdWithResponse(ctx context.Context, dataproductId string, reqEditors ...RequestEditorFn) (*GetDataproductsDataproductIdResponse, error)
+	// GetDataproduct request
+	GetDataproductWithResponse(ctx context.Context, dataproductId string, reqEditors ...RequestEditorFn) (*GetDataproductResponse, error)
 
-	// PutDataproductsDataproductId request with any body
-	PutDataproductsDataproductIdWithBodyWithResponse(ctx context.Context, dataproductId string, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*PutDataproductsDataproductIdResponse, error)
+	// UpdateDataproduct request with any body
+	UpdateDataproductWithBodyWithResponse(ctx context.Context, dataproductId string, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*UpdateDataproductResponse, error)
 
-	PutDataproductsDataproductIdWithResponse(ctx context.Context, dataproductId string, body PutDataproductsDataproductIdJSONRequestBody, reqEditors ...RequestEditorFn) (*PutDataproductsDataproductIdResponse, error)
+	UpdateDataproductWithResponse(ctx context.Context, dataproductId string, body UpdateDataproductJSONRequestBody, reqEditors ...RequestEditorFn) (*UpdateDataproductResponse, error)
 
-	// GetDataproductsDataproductIdDatasets request
-	GetDataproductsDataproductIdDatasetsWithResponse(ctx context.Context, dataproductId string, reqEditors ...RequestEditorFn) (*GetDataproductsDataproductIdDatasetsResponse, error)
+	// GetDatasets request
+	GetDatasetsWithResponse(ctx context.Context, dataproductId string, reqEditors ...RequestEditorFn) (*GetDatasetsResponse, error)
 
-	// PostDataproductsDataproductIdDatasets request with any body
-	PostDataproductsDataproductIdDatasetsWithBodyWithResponse(ctx context.Context, dataproductId string, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*PostDataproductsDataproductIdDatasetsResponse, error)
+	// CreateDataset request with any body
+	CreateDatasetWithBodyWithResponse(ctx context.Context, dataproductId string, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*CreateDatasetResponse, error)
 
-	PostDataproductsDataproductIdDatasetsWithResponse(ctx context.Context, dataproductId string, body PostDataproductsDataproductIdDatasetsJSONRequestBody, reqEditors ...RequestEditorFn) (*PostDataproductsDataproductIdDatasetsResponse, error)
+	CreateDatasetWithResponse(ctx context.Context, dataproductId string, body CreateDatasetJSONRequestBody, reqEditors ...RequestEditorFn) (*CreateDatasetResponse, error)
 
 	// DeleteDataset request
 	DeleteDatasetWithResponse(ctx context.Context, dataproductId string, datasetId string, reqEditors ...RequestEditorFn) (*DeleteDatasetResponse, error)
 
-	// GetDataproductsDataproductIdDatasetsDatasetId request
-	GetDataproductsDataproductIdDatasetsDatasetIdWithResponse(ctx context.Context, dataproductId string, datasetId string, reqEditors ...RequestEditorFn) (*GetDataproductsDataproductIdDatasetsDatasetIdResponse, error)
+	// GetDataset request
+	GetDatasetWithResponse(ctx context.Context, dataproductId string, datasetId string, reqEditors ...RequestEditorFn) (*GetDatasetResponse, error)
 
-	// PutDataproductsDataproductIdDatasetsDatasetId request with any body
-	PutDataproductsDataproductIdDatasetsDatasetIdWithBodyWithResponse(ctx context.Context, dataproductId string, datasetId string, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*PutDataproductsDataproductIdDatasetsDatasetIdResponse, error)
+	// UpdateDataset request with any body
+	UpdateDatasetWithBodyWithResponse(ctx context.Context, dataproductId string, datasetId string, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*UpdateDatasetResponse, error)
 
-	PutDataproductsDataproductIdDatasetsDatasetIdWithResponse(ctx context.Context, dataproductId string, datasetId string, body PutDataproductsDataproductIdDatasetsDatasetIdJSONRequestBody, reqEditors ...RequestEditorFn) (*PutDataproductsDataproductIdDatasetsDatasetIdResponse, error)
+	UpdateDatasetWithResponse(ctx context.Context, dataproductId string, datasetId string, body UpdateDatasetJSONRequestBody, reqEditors ...RequestEditorFn) (*UpdateDatasetResponse, error)
 
-	// GetSearch request
-	GetSearchWithResponse(ctx context.Context, params *GetSearchParams, reqEditors ...RequestEditorFn) (*GetSearchResponse, error)
+	// Search request
+	SearchWithResponse(ctx context.Context, params *SearchParams, reqEditors ...RequestEditorFn) (*SearchResponse, error)
 }
 
 type GetDataproductsResponse struct {
@@ -988,14 +988,14 @@ func (r GetDataproductsResponse) StatusCode() int {
 	return 0
 }
 
-type PostDataproductsResponse struct {
+type CreateDataproductResponse struct {
 	Body         []byte
 	HTTPResponse *http.Response
 	JSON201      *Dataproduct
 }
 
 // Status returns HTTPResponse.Status
-func (r PostDataproductsResponse) Status() string {
+func (r CreateDataproductResponse) Status() string {
 	if r.HTTPResponse != nil {
 		return r.HTTPResponse.Status
 	}
@@ -1003,20 +1003,20 @@ func (r PostDataproductsResponse) Status() string {
 }
 
 // StatusCode returns HTTPResponse.StatusCode
-func (r PostDataproductsResponse) StatusCode() int {
+func (r CreateDataproductResponse) StatusCode() int {
 	if r.HTTPResponse != nil {
 		return r.HTTPResponse.StatusCode
 	}
 	return 0
 }
 
-type DeleteDataproductsDataproductIdResponse struct {
+type DeleteDataproductResponse struct {
 	Body         []byte
 	HTTPResponse *http.Response
 }
 
 // Status returns HTTPResponse.Status
-func (r DeleteDataproductsDataproductIdResponse) Status() string {
+func (r DeleteDataproductResponse) Status() string {
 	if r.HTTPResponse != nil {
 		return r.HTTPResponse.Status
 	}
@@ -1024,21 +1024,21 @@ func (r DeleteDataproductsDataproductIdResponse) Status() string {
 }
 
 // StatusCode returns HTTPResponse.StatusCode
-func (r DeleteDataproductsDataproductIdResponse) StatusCode() int {
+func (r DeleteDataproductResponse) StatusCode() int {
 	if r.HTTPResponse != nil {
 		return r.HTTPResponse.StatusCode
 	}
 	return 0
 }
 
-type GetDataproductsDataproductIdResponse struct {
+type GetDataproductResponse struct {
 	Body         []byte
 	HTTPResponse *http.Response
 	JSON200      *[]Dataproduct
 }
 
 // Status returns HTTPResponse.Status
-func (r GetDataproductsDataproductIdResponse) Status() string {
+func (r GetDataproductResponse) Status() string {
 	if r.HTTPResponse != nil {
 		return r.HTTPResponse.Status
 	}
@@ -1046,21 +1046,21 @@ func (r GetDataproductsDataproductIdResponse) Status() string {
 }
 
 // StatusCode returns HTTPResponse.StatusCode
-func (r GetDataproductsDataproductIdResponse) StatusCode() int {
+func (r GetDataproductResponse) StatusCode() int {
 	if r.HTTPResponse != nil {
 		return r.HTTPResponse.StatusCode
 	}
 	return 0
 }
 
-type PutDataproductsDataproductIdResponse struct {
+type UpdateDataproductResponse struct {
 	Body         []byte
 	HTTPResponse *http.Response
 	JSON200      *Dataproduct
 }
 
 // Status returns HTTPResponse.Status
-func (r PutDataproductsDataproductIdResponse) Status() string {
+func (r UpdateDataproductResponse) Status() string {
 	if r.HTTPResponse != nil {
 		return r.HTTPResponse.Status
 	}
@@ -1068,21 +1068,21 @@ func (r PutDataproductsDataproductIdResponse) Status() string {
 }
 
 // StatusCode returns HTTPResponse.StatusCode
-func (r PutDataproductsDataproductIdResponse) StatusCode() int {
+func (r UpdateDataproductResponse) StatusCode() int {
 	if r.HTTPResponse != nil {
 		return r.HTTPResponse.StatusCode
 	}
 	return 0
 }
 
-type GetDataproductsDataproductIdDatasetsResponse struct {
+type GetDatasetsResponse struct {
 	Body         []byte
 	HTTPResponse *http.Response
 	JSON200      *[]Dataset
 }
 
 // Status returns HTTPResponse.Status
-func (r GetDataproductsDataproductIdDatasetsResponse) Status() string {
+func (r GetDatasetsResponse) Status() string {
 	if r.HTTPResponse != nil {
 		return r.HTTPResponse.Status
 	}
@@ -1090,21 +1090,21 @@ func (r GetDataproductsDataproductIdDatasetsResponse) Status() string {
 }
 
 // StatusCode returns HTTPResponse.StatusCode
-func (r GetDataproductsDataproductIdDatasetsResponse) StatusCode() int {
+func (r GetDatasetsResponse) StatusCode() int {
 	if r.HTTPResponse != nil {
 		return r.HTTPResponse.StatusCode
 	}
 	return 0
 }
 
-type PostDataproductsDataproductIdDatasetsResponse struct {
+type CreateDatasetResponse struct {
 	Body         []byte
 	HTTPResponse *http.Response
 	JSON201      *Dataset
 }
 
 // Status returns HTTPResponse.Status
-func (r PostDataproductsDataproductIdDatasetsResponse) Status() string {
+func (r CreateDatasetResponse) Status() string {
 	if r.HTTPResponse != nil {
 		return r.HTTPResponse.Status
 	}
@@ -1112,7 +1112,7 @@ func (r PostDataproductsDataproductIdDatasetsResponse) Status() string {
 }
 
 // StatusCode returns HTTPResponse.StatusCode
-func (r PostDataproductsDataproductIdDatasetsResponse) StatusCode() int {
+func (r CreateDatasetResponse) StatusCode() int {
 	if r.HTTPResponse != nil {
 		return r.HTTPResponse.StatusCode
 	}
@@ -1140,14 +1140,14 @@ func (r DeleteDatasetResponse) StatusCode() int {
 	return 0
 }
 
-type GetDataproductsDataproductIdDatasetsDatasetIdResponse struct {
+type GetDatasetResponse struct {
 	Body         []byte
 	HTTPResponse *http.Response
 	JSON200      *Dataset
 }
 
 // Status returns HTTPResponse.Status
-func (r GetDataproductsDataproductIdDatasetsDatasetIdResponse) Status() string {
+func (r GetDatasetResponse) Status() string {
 	if r.HTTPResponse != nil {
 		return r.HTTPResponse.Status
 	}
@@ -1155,21 +1155,21 @@ func (r GetDataproductsDataproductIdDatasetsDatasetIdResponse) Status() string {
 }
 
 // StatusCode returns HTTPResponse.StatusCode
-func (r GetDataproductsDataproductIdDatasetsDatasetIdResponse) StatusCode() int {
+func (r GetDatasetResponse) StatusCode() int {
 	if r.HTTPResponse != nil {
 		return r.HTTPResponse.StatusCode
 	}
 	return 0
 }
 
-type PutDataproductsDataproductIdDatasetsDatasetIdResponse struct {
+type UpdateDatasetResponse struct {
 	Body         []byte
 	HTTPResponse *http.Response
 	JSON200      *Dataset
 }
 
 // Status returns HTTPResponse.Status
-func (r PutDataproductsDataproductIdDatasetsDatasetIdResponse) Status() string {
+func (r UpdateDatasetResponse) Status() string {
 	if r.HTTPResponse != nil {
 		return r.HTTPResponse.Status
 	}
@@ -1177,21 +1177,21 @@ func (r PutDataproductsDataproductIdDatasetsDatasetIdResponse) Status() string {
 }
 
 // StatusCode returns HTTPResponse.StatusCode
-func (r PutDataproductsDataproductIdDatasetsDatasetIdResponse) StatusCode() int {
+func (r UpdateDatasetResponse) StatusCode() int {
 	if r.HTTPResponse != nil {
 		return r.HTTPResponse.StatusCode
 	}
 	return 0
 }
 
-type GetSearchResponse struct {
+type SearchResponse struct {
 	Body         []byte
 	HTTPResponse *http.Response
 	JSON200      *[]SearchResultEntry
 }
 
 // Status returns HTTPResponse.Status
-func (r GetSearchResponse) Status() string {
+func (r SearchResponse) Status() string {
 	if r.HTTPResponse != nil {
 		return r.HTTPResponse.Status
 	}
@@ -1199,7 +1199,7 @@ func (r GetSearchResponse) Status() string {
 }
 
 // StatusCode returns HTTPResponse.StatusCode
-func (r GetSearchResponse) StatusCode() int {
+func (r SearchResponse) StatusCode() int {
 	if r.HTTPResponse != nil {
 		return r.HTTPResponse.StatusCode
 	}
@@ -1215,82 +1215,82 @@ func (c *ClientWithResponses) GetDataproductsWithResponse(ctx context.Context, r
 	return ParseGetDataproductsResponse(rsp)
 }
 
-// PostDataproductsWithBodyWithResponse request with arbitrary body returning *PostDataproductsResponse
-func (c *ClientWithResponses) PostDataproductsWithBodyWithResponse(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*PostDataproductsResponse, error) {
-	rsp, err := c.PostDataproductsWithBody(ctx, contentType, body, reqEditors...)
+// CreateDataproductWithBodyWithResponse request with arbitrary body returning *CreateDataproductResponse
+func (c *ClientWithResponses) CreateDataproductWithBodyWithResponse(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*CreateDataproductResponse, error) {
+	rsp, err := c.CreateDataproductWithBody(ctx, contentType, body, reqEditors...)
 	if err != nil {
 		return nil, err
 	}
-	return ParsePostDataproductsResponse(rsp)
+	return ParseCreateDataproductResponse(rsp)
 }
 
-func (c *ClientWithResponses) PostDataproductsWithResponse(ctx context.Context, body PostDataproductsJSONRequestBody, reqEditors ...RequestEditorFn) (*PostDataproductsResponse, error) {
-	rsp, err := c.PostDataproducts(ctx, body, reqEditors...)
+func (c *ClientWithResponses) CreateDataproductWithResponse(ctx context.Context, body CreateDataproductJSONRequestBody, reqEditors ...RequestEditorFn) (*CreateDataproductResponse, error) {
+	rsp, err := c.CreateDataproduct(ctx, body, reqEditors...)
 	if err != nil {
 		return nil, err
 	}
-	return ParsePostDataproductsResponse(rsp)
+	return ParseCreateDataproductResponse(rsp)
 }
 
-// DeleteDataproductsDataproductIdWithResponse request returning *DeleteDataproductsDataproductIdResponse
-func (c *ClientWithResponses) DeleteDataproductsDataproductIdWithResponse(ctx context.Context, dataproductId string, reqEditors ...RequestEditorFn) (*DeleteDataproductsDataproductIdResponse, error) {
-	rsp, err := c.DeleteDataproductsDataproductId(ctx, dataproductId, reqEditors...)
+// DeleteDataproductWithResponse request returning *DeleteDataproductResponse
+func (c *ClientWithResponses) DeleteDataproductWithResponse(ctx context.Context, dataproductId string, reqEditors ...RequestEditorFn) (*DeleteDataproductResponse, error) {
+	rsp, err := c.DeleteDataproduct(ctx, dataproductId, reqEditors...)
 	if err != nil {
 		return nil, err
 	}
-	return ParseDeleteDataproductsDataproductIdResponse(rsp)
+	return ParseDeleteDataproductResponse(rsp)
 }
 
-// GetDataproductsDataproductIdWithResponse request returning *GetDataproductsDataproductIdResponse
-func (c *ClientWithResponses) GetDataproductsDataproductIdWithResponse(ctx context.Context, dataproductId string, reqEditors ...RequestEditorFn) (*GetDataproductsDataproductIdResponse, error) {
-	rsp, err := c.GetDataproductsDataproductId(ctx, dataproductId, reqEditors...)
+// GetDataproductWithResponse request returning *GetDataproductResponse
+func (c *ClientWithResponses) GetDataproductWithResponse(ctx context.Context, dataproductId string, reqEditors ...RequestEditorFn) (*GetDataproductResponse, error) {
+	rsp, err := c.GetDataproduct(ctx, dataproductId, reqEditors...)
 	if err != nil {
 		return nil, err
 	}
-	return ParseGetDataproductsDataproductIdResponse(rsp)
+	return ParseGetDataproductResponse(rsp)
 }
 
-// PutDataproductsDataproductIdWithBodyWithResponse request with arbitrary body returning *PutDataproductsDataproductIdResponse
-func (c *ClientWithResponses) PutDataproductsDataproductIdWithBodyWithResponse(ctx context.Context, dataproductId string, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*PutDataproductsDataproductIdResponse, error) {
-	rsp, err := c.PutDataproductsDataproductIdWithBody(ctx, dataproductId, contentType, body, reqEditors...)
+// UpdateDataproductWithBodyWithResponse request with arbitrary body returning *UpdateDataproductResponse
+func (c *ClientWithResponses) UpdateDataproductWithBodyWithResponse(ctx context.Context, dataproductId string, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*UpdateDataproductResponse, error) {
+	rsp, err := c.UpdateDataproductWithBody(ctx, dataproductId, contentType, body, reqEditors...)
 	if err != nil {
 		return nil, err
 	}
-	return ParsePutDataproductsDataproductIdResponse(rsp)
+	return ParseUpdateDataproductResponse(rsp)
 }
 
-func (c *ClientWithResponses) PutDataproductsDataproductIdWithResponse(ctx context.Context, dataproductId string, body PutDataproductsDataproductIdJSONRequestBody, reqEditors ...RequestEditorFn) (*PutDataproductsDataproductIdResponse, error) {
-	rsp, err := c.PutDataproductsDataproductId(ctx, dataproductId, body, reqEditors...)
+func (c *ClientWithResponses) UpdateDataproductWithResponse(ctx context.Context, dataproductId string, body UpdateDataproductJSONRequestBody, reqEditors ...RequestEditorFn) (*UpdateDataproductResponse, error) {
+	rsp, err := c.UpdateDataproduct(ctx, dataproductId, body, reqEditors...)
 	if err != nil {
 		return nil, err
 	}
-	return ParsePutDataproductsDataproductIdResponse(rsp)
+	return ParseUpdateDataproductResponse(rsp)
 }
 
-// GetDataproductsDataproductIdDatasetsWithResponse request returning *GetDataproductsDataproductIdDatasetsResponse
-func (c *ClientWithResponses) GetDataproductsDataproductIdDatasetsWithResponse(ctx context.Context, dataproductId string, reqEditors ...RequestEditorFn) (*GetDataproductsDataproductIdDatasetsResponse, error) {
-	rsp, err := c.GetDataproductsDataproductIdDatasets(ctx, dataproductId, reqEditors...)
+// GetDatasetsWithResponse request returning *GetDatasetsResponse
+func (c *ClientWithResponses) GetDatasetsWithResponse(ctx context.Context, dataproductId string, reqEditors ...RequestEditorFn) (*GetDatasetsResponse, error) {
+	rsp, err := c.GetDatasets(ctx, dataproductId, reqEditors...)
 	if err != nil {
 		return nil, err
 	}
-	return ParseGetDataproductsDataproductIdDatasetsResponse(rsp)
+	return ParseGetDatasetsResponse(rsp)
 }
 
-// PostDataproductsDataproductIdDatasetsWithBodyWithResponse request with arbitrary body returning *PostDataproductsDataproductIdDatasetsResponse
-func (c *ClientWithResponses) PostDataproductsDataproductIdDatasetsWithBodyWithResponse(ctx context.Context, dataproductId string, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*PostDataproductsDataproductIdDatasetsResponse, error) {
-	rsp, err := c.PostDataproductsDataproductIdDatasetsWithBody(ctx, dataproductId, contentType, body, reqEditors...)
+// CreateDatasetWithBodyWithResponse request with arbitrary body returning *CreateDatasetResponse
+func (c *ClientWithResponses) CreateDatasetWithBodyWithResponse(ctx context.Context, dataproductId string, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*CreateDatasetResponse, error) {
+	rsp, err := c.CreateDatasetWithBody(ctx, dataproductId, contentType, body, reqEditors...)
 	if err != nil {
 		return nil, err
 	}
-	return ParsePostDataproductsDataproductIdDatasetsResponse(rsp)
+	return ParseCreateDatasetResponse(rsp)
 }
 
-func (c *ClientWithResponses) PostDataproductsDataproductIdDatasetsWithResponse(ctx context.Context, dataproductId string, body PostDataproductsDataproductIdDatasetsJSONRequestBody, reqEditors ...RequestEditorFn) (*PostDataproductsDataproductIdDatasetsResponse, error) {
-	rsp, err := c.PostDataproductsDataproductIdDatasets(ctx, dataproductId, body, reqEditors...)
+func (c *ClientWithResponses) CreateDatasetWithResponse(ctx context.Context, dataproductId string, body CreateDatasetJSONRequestBody, reqEditors ...RequestEditorFn) (*CreateDatasetResponse, error) {
+	rsp, err := c.CreateDataset(ctx, dataproductId, body, reqEditors...)
 	if err != nil {
 		return nil, err
 	}
-	return ParsePostDataproductsDataproductIdDatasetsResponse(rsp)
+	return ParseCreateDatasetResponse(rsp)
 }
 
 // DeleteDatasetWithResponse request returning *DeleteDatasetResponse
@@ -1302,39 +1302,39 @@ func (c *ClientWithResponses) DeleteDatasetWithResponse(ctx context.Context, dat
 	return ParseDeleteDatasetResponse(rsp)
 }
 
-// GetDataproductsDataproductIdDatasetsDatasetIdWithResponse request returning *GetDataproductsDataproductIdDatasetsDatasetIdResponse
-func (c *ClientWithResponses) GetDataproductsDataproductIdDatasetsDatasetIdWithResponse(ctx context.Context, dataproductId string, datasetId string, reqEditors ...RequestEditorFn) (*GetDataproductsDataproductIdDatasetsDatasetIdResponse, error) {
-	rsp, err := c.GetDataproductsDataproductIdDatasetsDatasetId(ctx, dataproductId, datasetId, reqEditors...)
+// GetDatasetWithResponse request returning *GetDatasetResponse
+func (c *ClientWithResponses) GetDatasetWithResponse(ctx context.Context, dataproductId string, datasetId string, reqEditors ...RequestEditorFn) (*GetDatasetResponse, error) {
+	rsp, err := c.GetDataset(ctx, dataproductId, datasetId, reqEditors...)
 	if err != nil {
 		return nil, err
 	}
-	return ParseGetDataproductsDataproductIdDatasetsDatasetIdResponse(rsp)
+	return ParseGetDatasetResponse(rsp)
 }
 
-// PutDataproductsDataproductIdDatasetsDatasetIdWithBodyWithResponse request with arbitrary body returning *PutDataproductsDataproductIdDatasetsDatasetIdResponse
-func (c *ClientWithResponses) PutDataproductsDataproductIdDatasetsDatasetIdWithBodyWithResponse(ctx context.Context, dataproductId string, datasetId string, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*PutDataproductsDataproductIdDatasetsDatasetIdResponse, error) {
-	rsp, err := c.PutDataproductsDataproductIdDatasetsDatasetIdWithBody(ctx, dataproductId, datasetId, contentType, body, reqEditors...)
+// UpdateDatasetWithBodyWithResponse request with arbitrary body returning *UpdateDatasetResponse
+func (c *ClientWithResponses) UpdateDatasetWithBodyWithResponse(ctx context.Context, dataproductId string, datasetId string, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*UpdateDatasetResponse, error) {
+	rsp, err := c.UpdateDatasetWithBody(ctx, dataproductId, datasetId, contentType, body, reqEditors...)
 	if err != nil {
 		return nil, err
 	}
-	return ParsePutDataproductsDataproductIdDatasetsDatasetIdResponse(rsp)
+	return ParseUpdateDatasetResponse(rsp)
 }
 
-func (c *ClientWithResponses) PutDataproductsDataproductIdDatasetsDatasetIdWithResponse(ctx context.Context, dataproductId string, datasetId string, body PutDataproductsDataproductIdDatasetsDatasetIdJSONRequestBody, reqEditors ...RequestEditorFn) (*PutDataproductsDataproductIdDatasetsDatasetIdResponse, error) {
-	rsp, err := c.PutDataproductsDataproductIdDatasetsDatasetId(ctx, dataproductId, datasetId, body, reqEditors...)
+func (c *ClientWithResponses) UpdateDatasetWithResponse(ctx context.Context, dataproductId string, datasetId string, body UpdateDatasetJSONRequestBody, reqEditors ...RequestEditorFn) (*UpdateDatasetResponse, error) {
+	rsp, err := c.UpdateDataset(ctx, dataproductId, datasetId, body, reqEditors...)
 	if err != nil {
 		return nil, err
 	}
-	return ParsePutDataproductsDataproductIdDatasetsDatasetIdResponse(rsp)
+	return ParseUpdateDatasetResponse(rsp)
 }
 
-// GetSearchWithResponse request returning *GetSearchResponse
-func (c *ClientWithResponses) GetSearchWithResponse(ctx context.Context, params *GetSearchParams, reqEditors ...RequestEditorFn) (*GetSearchResponse, error) {
-	rsp, err := c.GetSearch(ctx, params, reqEditors...)
+// SearchWithResponse request returning *SearchResponse
+func (c *ClientWithResponses) SearchWithResponse(ctx context.Context, params *SearchParams, reqEditors ...RequestEditorFn) (*SearchResponse, error) {
+	rsp, err := c.Search(ctx, params, reqEditors...)
 	if err != nil {
 		return nil, err
 	}
-	return ParseGetSearchResponse(rsp)
+	return ParseSearchResponse(rsp)
 }
 
 // ParseGetDataproductsResponse parses an HTTP response from a GetDataproductsWithResponse call
@@ -1363,15 +1363,15 @@ func ParseGetDataproductsResponse(rsp *http.Response) (*GetDataproductsResponse,
 	return response, nil
 }
 
-// ParsePostDataproductsResponse parses an HTTP response from a PostDataproductsWithResponse call
-func ParsePostDataproductsResponse(rsp *http.Response) (*PostDataproductsResponse, error) {
+// ParseCreateDataproductResponse parses an HTTP response from a CreateDataproductWithResponse call
+func ParseCreateDataproductResponse(rsp *http.Response) (*CreateDataproductResponse, error) {
 	bodyBytes, err := ioutil.ReadAll(rsp.Body)
 	defer rsp.Body.Close()
 	if err != nil {
 		return nil, err
 	}
 
-	response := &PostDataproductsResponse{
+	response := &CreateDataproductResponse{
 		Body:         bodyBytes,
 		HTTPResponse: rsp,
 	}
@@ -1389,15 +1389,15 @@ func ParsePostDataproductsResponse(rsp *http.Response) (*PostDataproductsRespons
 	return response, nil
 }
 
-// ParseDeleteDataproductsDataproductIdResponse parses an HTTP response from a DeleteDataproductsDataproductIdWithResponse call
-func ParseDeleteDataproductsDataproductIdResponse(rsp *http.Response) (*DeleteDataproductsDataproductIdResponse, error) {
+// ParseDeleteDataproductResponse parses an HTTP response from a DeleteDataproductWithResponse call
+func ParseDeleteDataproductResponse(rsp *http.Response) (*DeleteDataproductResponse, error) {
 	bodyBytes, err := ioutil.ReadAll(rsp.Body)
 	defer rsp.Body.Close()
 	if err != nil {
 		return nil, err
 	}
 
-	response := &DeleteDataproductsDataproductIdResponse{
+	response := &DeleteDataproductResponse{
 		Body:         bodyBytes,
 		HTTPResponse: rsp,
 	}
@@ -1405,15 +1405,15 @@ func ParseDeleteDataproductsDataproductIdResponse(rsp *http.Response) (*DeleteDa
 	return response, nil
 }
 
-// ParseGetDataproductsDataproductIdResponse parses an HTTP response from a GetDataproductsDataproductIdWithResponse call
-func ParseGetDataproductsDataproductIdResponse(rsp *http.Response) (*GetDataproductsDataproductIdResponse, error) {
+// ParseGetDataproductResponse parses an HTTP response from a GetDataproductWithResponse call
+func ParseGetDataproductResponse(rsp *http.Response) (*GetDataproductResponse, error) {
 	bodyBytes, err := ioutil.ReadAll(rsp.Body)
 	defer rsp.Body.Close()
 	if err != nil {
 		return nil, err
 	}
 
-	response := &GetDataproductsDataproductIdResponse{
+	response := &GetDataproductResponse{
 		Body:         bodyBytes,
 		HTTPResponse: rsp,
 	}
@@ -1431,15 +1431,15 @@ func ParseGetDataproductsDataproductIdResponse(rsp *http.Response) (*GetDataprod
 	return response, nil
 }
 
-// ParsePutDataproductsDataproductIdResponse parses an HTTP response from a PutDataproductsDataproductIdWithResponse call
-func ParsePutDataproductsDataproductIdResponse(rsp *http.Response) (*PutDataproductsDataproductIdResponse, error) {
+// ParseUpdateDataproductResponse parses an HTTP response from a UpdateDataproductWithResponse call
+func ParseUpdateDataproductResponse(rsp *http.Response) (*UpdateDataproductResponse, error) {
 	bodyBytes, err := ioutil.ReadAll(rsp.Body)
 	defer rsp.Body.Close()
 	if err != nil {
 		return nil, err
 	}
 
-	response := &PutDataproductsDataproductIdResponse{
+	response := &UpdateDataproductResponse{
 		Body:         bodyBytes,
 		HTTPResponse: rsp,
 	}
@@ -1457,15 +1457,15 @@ func ParsePutDataproductsDataproductIdResponse(rsp *http.Response) (*PutDataprod
 	return response, nil
 }
 
-// ParseGetDataproductsDataproductIdDatasetsResponse parses an HTTP response from a GetDataproductsDataproductIdDatasetsWithResponse call
-func ParseGetDataproductsDataproductIdDatasetsResponse(rsp *http.Response) (*GetDataproductsDataproductIdDatasetsResponse, error) {
+// ParseGetDatasetsResponse parses an HTTP response from a GetDatasetsWithResponse call
+func ParseGetDatasetsResponse(rsp *http.Response) (*GetDatasetsResponse, error) {
 	bodyBytes, err := ioutil.ReadAll(rsp.Body)
 	defer rsp.Body.Close()
 	if err != nil {
 		return nil, err
 	}
 
-	response := &GetDataproductsDataproductIdDatasetsResponse{
+	response := &GetDatasetsResponse{
 		Body:         bodyBytes,
 		HTTPResponse: rsp,
 	}
@@ -1483,15 +1483,15 @@ func ParseGetDataproductsDataproductIdDatasetsResponse(rsp *http.Response) (*Get
 	return response, nil
 }
 
-// ParsePostDataproductsDataproductIdDatasetsResponse parses an HTTP response from a PostDataproductsDataproductIdDatasetsWithResponse call
-func ParsePostDataproductsDataproductIdDatasetsResponse(rsp *http.Response) (*PostDataproductsDataproductIdDatasetsResponse, error) {
+// ParseCreateDatasetResponse parses an HTTP response from a CreateDatasetWithResponse call
+func ParseCreateDatasetResponse(rsp *http.Response) (*CreateDatasetResponse, error) {
 	bodyBytes, err := ioutil.ReadAll(rsp.Body)
 	defer rsp.Body.Close()
 	if err != nil {
 		return nil, err
 	}
 
-	response := &PostDataproductsDataproductIdDatasetsResponse{
+	response := &CreateDatasetResponse{
 		Body:         bodyBytes,
 		HTTPResponse: rsp,
 	}
@@ -1525,15 +1525,15 @@ func ParseDeleteDatasetResponse(rsp *http.Response) (*DeleteDatasetResponse, err
 	return response, nil
 }
 
-// ParseGetDataproductsDataproductIdDatasetsDatasetIdResponse parses an HTTP response from a GetDataproductsDataproductIdDatasetsDatasetIdWithResponse call
-func ParseGetDataproductsDataproductIdDatasetsDatasetIdResponse(rsp *http.Response) (*GetDataproductsDataproductIdDatasetsDatasetIdResponse, error) {
+// ParseGetDatasetResponse parses an HTTP response from a GetDatasetWithResponse call
+func ParseGetDatasetResponse(rsp *http.Response) (*GetDatasetResponse, error) {
 	bodyBytes, err := ioutil.ReadAll(rsp.Body)
 	defer rsp.Body.Close()
 	if err != nil {
 		return nil, err
 	}
 
-	response := &GetDataproductsDataproductIdDatasetsDatasetIdResponse{
+	response := &GetDatasetResponse{
 		Body:         bodyBytes,
 		HTTPResponse: rsp,
 	}
@@ -1551,15 +1551,15 @@ func ParseGetDataproductsDataproductIdDatasetsDatasetIdResponse(rsp *http.Respon
 	return response, nil
 }
 
-// ParsePutDataproductsDataproductIdDatasetsDatasetIdResponse parses an HTTP response from a PutDataproductsDataproductIdDatasetsDatasetIdWithResponse call
-func ParsePutDataproductsDataproductIdDatasetsDatasetIdResponse(rsp *http.Response) (*PutDataproductsDataproductIdDatasetsDatasetIdResponse, error) {
+// ParseUpdateDatasetResponse parses an HTTP response from a UpdateDatasetWithResponse call
+func ParseUpdateDatasetResponse(rsp *http.Response) (*UpdateDatasetResponse, error) {
 	bodyBytes, err := ioutil.ReadAll(rsp.Body)
 	defer rsp.Body.Close()
 	if err != nil {
 		return nil, err
 	}
 
-	response := &PutDataproductsDataproductIdDatasetsDatasetIdResponse{
+	response := &UpdateDatasetResponse{
 		Body:         bodyBytes,
 		HTTPResponse: rsp,
 	}
@@ -1577,15 +1577,15 @@ func ParsePutDataproductsDataproductIdDatasetsDatasetIdResponse(rsp *http.Respon
 	return response, nil
 }
 
-// ParseGetSearchResponse parses an HTTP response from a GetSearchWithResponse call
-func ParseGetSearchResponse(rsp *http.Response) (*GetSearchResponse, error) {
+// ParseSearchResponse parses an HTTP response from a SearchWithResponse call
+func ParseSearchResponse(rsp *http.Response) (*SearchResponse, error) {
 	bodyBytes, err := ioutil.ReadAll(rsp.Body)
 	defer rsp.Body.Close()
 	if err != nil {
 		return nil, err
 	}
 
-	response := &GetSearchResponse{
+	response := &SearchResponse{
 		Body:         bodyBytes,
 		HTTPResponse: rsp,
 	}
@@ -1610,34 +1610,34 @@ type ServerInterface interface {
 	GetDataproducts(ctx echo.Context) error
 
 	// (POST /dataproducts)
-	PostDataproducts(ctx echo.Context) error
+	CreateDataproduct(ctx echo.Context) error
 
 	// (DELETE /dataproducts/{dataproduct_id})
-	DeleteDataproductsDataproductId(ctx echo.Context, dataproductId string) error
+	DeleteDataproduct(ctx echo.Context, dataproductId string) error
 
 	// (GET /dataproducts/{dataproduct_id})
-	GetDataproductsDataproductId(ctx echo.Context, dataproductId string) error
+	GetDataproduct(ctx echo.Context, dataproductId string) error
 
 	// (PUT /dataproducts/{dataproduct_id})
-	PutDataproductsDataproductId(ctx echo.Context, dataproductId string) error
+	UpdateDataproduct(ctx echo.Context, dataproductId string) error
 
 	// (GET /dataproducts/{dataproduct_id}/datasets)
-	GetDataproductsDataproductIdDatasets(ctx echo.Context, dataproductId string) error
+	GetDatasets(ctx echo.Context, dataproductId string) error
 
 	// (POST /dataproducts/{dataproduct_id}/datasets)
-	PostDataproductsDataproductIdDatasets(ctx echo.Context, dataproductId string) error
+	CreateDataset(ctx echo.Context, dataproductId string) error
 
 	// (DELETE /dataproducts/{dataproduct_id}/datasets/{dataset_id})
 	DeleteDataset(ctx echo.Context, dataproductId string, datasetId string) error
 
 	// (GET /dataproducts/{dataproduct_id}/datasets/{dataset_id})
-	GetDataproductsDataproductIdDatasetsDatasetId(ctx echo.Context, dataproductId string, datasetId string) error
+	GetDataset(ctx echo.Context, dataproductId string, datasetId string) error
 
 	// (PUT /dataproducts/{dataproduct_id}/datasets/{dataset_id})
-	PutDataproductsDataproductIdDatasetsDatasetId(ctx echo.Context, dataproductId string, datasetId string) error
+	UpdateDataset(ctx echo.Context, dataproductId string, datasetId string) error
 
 	// (GET /search)
-	GetSearch(ctx echo.Context, params GetSearchParams) error
+	Search(ctx echo.Context, params SearchParams) error
 }
 
 // ServerInterfaceWrapper converts echo contexts to parameters.
@@ -1654,17 +1654,17 @@ func (w *ServerInterfaceWrapper) GetDataproducts(ctx echo.Context) error {
 	return err
 }
 
-// PostDataproducts converts echo context to params.
-func (w *ServerInterfaceWrapper) PostDataproducts(ctx echo.Context) error {
+// CreateDataproduct converts echo context to params.
+func (w *ServerInterfaceWrapper) CreateDataproduct(ctx echo.Context) error {
 	var err error
 
 	// Invoke the callback with all the unmarshalled arguments
-	err = w.Handler.PostDataproducts(ctx)
+	err = w.Handler.CreateDataproduct(ctx)
 	return err
 }
 
-// DeleteDataproductsDataproductId converts echo context to params.
-func (w *ServerInterfaceWrapper) DeleteDataproductsDataproductId(ctx echo.Context) error {
+// DeleteDataproduct converts echo context to params.
+func (w *ServerInterfaceWrapper) DeleteDataproduct(ctx echo.Context) error {
 	var err error
 	// ------------- Path parameter "dataproduct_id" -------------
 	var dataproductId string
@@ -1675,12 +1675,12 @@ func (w *ServerInterfaceWrapper) DeleteDataproductsDataproductId(ctx echo.Contex
 	}
 
 	// Invoke the callback with all the unmarshalled arguments
-	err = w.Handler.DeleteDataproductsDataproductId(ctx, dataproductId)
+	err = w.Handler.DeleteDataproduct(ctx, dataproductId)
 	return err
 }
 
-// GetDataproductsDataproductId converts echo context to params.
-func (w *ServerInterfaceWrapper) GetDataproductsDataproductId(ctx echo.Context) error {
+// GetDataproduct converts echo context to params.
+func (w *ServerInterfaceWrapper) GetDataproduct(ctx echo.Context) error {
 	var err error
 	// ------------- Path parameter "dataproduct_id" -------------
 	var dataproductId string
@@ -1691,12 +1691,12 @@ func (w *ServerInterfaceWrapper) GetDataproductsDataproductId(ctx echo.Context) 
 	}
 
 	// Invoke the callback with all the unmarshalled arguments
-	err = w.Handler.GetDataproductsDataproductId(ctx, dataproductId)
+	err = w.Handler.GetDataproduct(ctx, dataproductId)
 	return err
 }
 
-// PutDataproductsDataproductId converts echo context to params.
-func (w *ServerInterfaceWrapper) PutDataproductsDataproductId(ctx echo.Context) error {
+// UpdateDataproduct converts echo context to params.
+func (w *ServerInterfaceWrapper) UpdateDataproduct(ctx echo.Context) error {
 	var err error
 	// ------------- Path parameter "dataproduct_id" -------------
 	var dataproductId string
@@ -1707,12 +1707,12 @@ func (w *ServerInterfaceWrapper) PutDataproductsDataproductId(ctx echo.Context) 
 	}
 
 	// Invoke the callback with all the unmarshalled arguments
-	err = w.Handler.PutDataproductsDataproductId(ctx, dataproductId)
+	err = w.Handler.UpdateDataproduct(ctx, dataproductId)
 	return err
 }
 
-// GetDataproductsDataproductIdDatasets converts echo context to params.
-func (w *ServerInterfaceWrapper) GetDataproductsDataproductIdDatasets(ctx echo.Context) error {
+// GetDatasets converts echo context to params.
+func (w *ServerInterfaceWrapper) GetDatasets(ctx echo.Context) error {
 	var err error
 	// ------------- Path parameter "dataproduct_id" -------------
 	var dataproductId string
@@ -1723,12 +1723,12 @@ func (w *ServerInterfaceWrapper) GetDataproductsDataproductIdDatasets(ctx echo.C
 	}
 
 	// Invoke the callback with all the unmarshalled arguments
-	err = w.Handler.GetDataproductsDataproductIdDatasets(ctx, dataproductId)
+	err = w.Handler.GetDatasets(ctx, dataproductId)
 	return err
 }
 
-// PostDataproductsDataproductIdDatasets converts echo context to params.
-func (w *ServerInterfaceWrapper) PostDataproductsDataproductIdDatasets(ctx echo.Context) error {
+// CreateDataset converts echo context to params.
+func (w *ServerInterfaceWrapper) CreateDataset(ctx echo.Context) error {
 	var err error
 	// ------------- Path parameter "dataproduct_id" -------------
 	var dataproductId string
@@ -1739,7 +1739,7 @@ func (w *ServerInterfaceWrapper) PostDataproductsDataproductIdDatasets(ctx echo.
 	}
 
 	// Invoke the callback with all the unmarshalled arguments
-	err = w.Handler.PostDataproductsDataproductIdDatasets(ctx, dataproductId)
+	err = w.Handler.CreateDataset(ctx, dataproductId)
 	return err
 }
 
@@ -1767,8 +1767,8 @@ func (w *ServerInterfaceWrapper) DeleteDataset(ctx echo.Context) error {
 	return err
 }
 
-// GetDataproductsDataproductIdDatasetsDatasetId converts echo context to params.
-func (w *ServerInterfaceWrapper) GetDataproductsDataproductIdDatasetsDatasetId(ctx echo.Context) error {
+// GetDataset converts echo context to params.
+func (w *ServerInterfaceWrapper) GetDataset(ctx echo.Context) error {
 	var err error
 	// ------------- Path parameter "dataproduct_id" -------------
 	var dataproductId string
@@ -1787,12 +1787,12 @@ func (w *ServerInterfaceWrapper) GetDataproductsDataproductIdDatasetsDatasetId(c
 	}
 
 	// Invoke the callback with all the unmarshalled arguments
-	err = w.Handler.GetDataproductsDataproductIdDatasetsDatasetId(ctx, dataproductId, datasetId)
+	err = w.Handler.GetDataset(ctx, dataproductId, datasetId)
 	return err
 }
 
-// PutDataproductsDataproductIdDatasetsDatasetId converts echo context to params.
-func (w *ServerInterfaceWrapper) PutDataproductsDataproductIdDatasetsDatasetId(ctx echo.Context) error {
+// UpdateDataset converts echo context to params.
+func (w *ServerInterfaceWrapper) UpdateDataset(ctx echo.Context) error {
 	var err error
 	// ------------- Path parameter "dataproduct_id" -------------
 	var dataproductId string
@@ -1811,16 +1811,16 @@ func (w *ServerInterfaceWrapper) PutDataproductsDataproductIdDatasetsDatasetId(c
 	}
 
 	// Invoke the callback with all the unmarshalled arguments
-	err = w.Handler.PutDataproductsDataproductIdDatasetsDatasetId(ctx, dataproductId, datasetId)
+	err = w.Handler.UpdateDataset(ctx, dataproductId, datasetId)
 	return err
 }
 
-// GetSearch converts echo context to params.
-func (w *ServerInterfaceWrapper) GetSearch(ctx echo.Context) error {
+// Search converts echo context to params.
+func (w *ServerInterfaceWrapper) Search(ctx echo.Context) error {
 	var err error
 
 	// Parameter object where we will unmarshal all parameters from the context
-	var params GetSearchParams
+	var params SearchParams
 	// ------------- Optional query parameter "q" -------------
 
 	err = runtime.BindQueryParameter("form", true, false, "q", ctx.QueryParams(), &params.Q)
@@ -1829,7 +1829,7 @@ func (w *ServerInterfaceWrapper) GetSearch(ctx echo.Context) error {
 	}
 
 	// Invoke the callback with all the unmarshalled arguments
-	err = w.Handler.GetSearch(ctx, params)
+	err = w.Handler.Search(ctx, params)
 	return err
 }
 
@@ -1862,38 +1862,38 @@ func RegisterHandlersWithBaseURL(router EchoRouter, si ServerInterface, baseURL 
 	}
 
 	router.GET(baseURL+"/dataproducts", wrapper.GetDataproducts)
-	router.POST(baseURL+"/dataproducts", wrapper.PostDataproducts)
-	router.DELETE(baseURL+"/dataproducts/:dataproduct_id", wrapper.DeleteDataproductsDataproductId)
-	router.GET(baseURL+"/dataproducts/:dataproduct_id", wrapper.GetDataproductsDataproductId)
-	router.PUT(baseURL+"/dataproducts/:dataproduct_id", wrapper.PutDataproductsDataproductId)
-	router.GET(baseURL+"/dataproducts/:dataproduct_id/datasets", wrapper.GetDataproductsDataproductIdDatasets)
-	router.POST(baseURL+"/dataproducts/:dataproduct_id/datasets", wrapper.PostDataproductsDataproductIdDatasets)
+	router.POST(baseURL+"/dataproducts", wrapper.CreateDataproduct)
+	router.DELETE(baseURL+"/dataproducts/:dataproduct_id", wrapper.DeleteDataproduct)
+	router.GET(baseURL+"/dataproducts/:dataproduct_id", wrapper.GetDataproduct)
+	router.PUT(baseURL+"/dataproducts/:dataproduct_id", wrapper.UpdateDataproduct)
+	router.GET(baseURL+"/dataproducts/:dataproduct_id/datasets", wrapper.GetDatasets)
+	router.POST(baseURL+"/dataproducts/:dataproduct_id/datasets", wrapper.CreateDataset)
 	router.DELETE(baseURL+"/dataproducts/:dataproduct_id/datasets/:dataset_id", wrapper.DeleteDataset)
-	router.GET(baseURL+"/dataproducts/:dataproduct_id/datasets/:dataset_id", wrapper.GetDataproductsDataproductIdDatasetsDatasetId)
-	router.PUT(baseURL+"/dataproducts/:dataproduct_id/datasets/:dataset_id", wrapper.PutDataproductsDataproductIdDatasetsDatasetId)
-	router.GET(baseURL+"/search", wrapper.GetSearch)
+	router.GET(baseURL+"/dataproducts/:dataproduct_id/datasets/:dataset_id", wrapper.GetDataset)
+	router.PUT(baseURL+"/dataproducts/:dataproduct_id/datasets/:dataset_id", wrapper.UpdateDataset)
+	router.GET(baseURL+"/search", wrapper.Search)
 
 }
 
 // Base64 encoded, gzipped, json marshaled Swagger object
 var swaggerSpec = []string{
 
-	"H4sIAAAAAAAC/+xYTW/jNhD9K8K0R9Vytj3p1tbFImjRBO32tAgWjDS2uZFEhhzFNQz994KkZEkWLSVB",
-	"YhttT1FEcj7evDccaweJyKUosCAN8Q50ssac2ccFIyaVSMuEzL9SCYmKONrFRCEjTM3jUqicEcSQMsLv",
-	"iOcIIdBWIsSgSfFiBVVoFplG54QT5npok1tzg5PuxQ6+VbiEGL6J2oijOtxo4ax/Mlur/RkQ918xodYI",
-	"MKXY1oaDOlFcEheF1+mRWB5wuxEq7SVxJODWV8Y0fclFypf8JYgVLEevfbEpUE0hcmM3VSEolMJrRmfl",
-	"yrNgjzyWXJlYPxsg6lDqE43/cM+BwwzvPPjXBRoW/Z6vHktU2+FK2h4ZxC6VMJa/HKMMu89wOreOlT1B",
-	"oTntyyJtJXHM9SuJdbTYkvPO+3shMmSFn+NdEcQ7wKLMTZZ7hO88JPsdN6M6n0rnVYK4DGbXpHY+fdWu",
-	"sfkX0HaiiK8gnwdIszn0sa0N5Kapbx8yQpb7AUGWPzBimVhhMQ2MtePz+ycylaz/QF1m9EtBvrLh3wkq",
-	"SW+iWTpQYFujTgNp/mPJA1uhV5ylyvxJHyRoXvFi6cTAyXAIfry9Dj7Z5xCeUGlbe7iaza3OJBZMcojh",
-	"+9l89sEUj9Ha4hB1QrQvVo7LPQ7Bb1xTwLIs6O22hhUze65TiOEj0qK/rlBLUWgH+Yf53I4SoiAsrBMm",
-	"ZcYTayD6qh1bnex7DWZqEmgQHrSe6lAMcPOreyuF9qT5s73hAhYUuAn6tetneiv0MNXHEjX9JNLti7Ic",
-	"S+6gW1eVU0AP06s383bgKvSCkwa6TBLUellm2bYOqUeiaNe/NiuHc4aEQ8QX9n3ARtF2m7p4d56vU0tn",
-	"xXIkVBrizwMf7ebgegFGOxBbBTSjTnx403f7DKkSww6Eh/K8G5Tkh2N5pkHDvxGVdaEINpzWwX6WnhDc",
-	"ZaNyQeIvPeD/JVM2ycTb8rIBP08Lmp+qBbkaNSqabDxR90fo9L1mdgZLoSY4MCa6RavU/4T4zJTz9reu",
-	"m53Gb9yLhf3dJGixfv8JoHbzZrf/XoRuRePLZgIfF9p5wK2es+ahz5/GcV8OhDNNGR+RjiL7nN5W/z37",
-	"hXc+5OenENzzhxVvuyz/L+SFtOeTsGU4GWn7DaQz+QyU7r6SnORX+vCDzDOmBncoUPZULYY+TS033Oen",
-	"PTkeYZQDxopG9dSYsN9cYE0kdRxFTPKZW50RaoqerqC6q/4JAAD//4vGAY81GQAA",
+	"H4sIAAAAAAAC/+RYwW7jNhD9FWHaoxo52550a+tiEbRoinZ7WgQLRhrb3EgkQ47iGob+vSApWZJFWZsg",
+	"6wSbm0wOZzhv3iPH3EMmSyUFCjKQ7sFkGyyZ+1wyYkrLvMrI/lRaKtTE0U1mGhlhbj9XUpeMIIWcEf5A",
+	"vESIgXYKIQVDmos11LGdZAZ9EE5YmrFP7tyNVvqBPXyvcQUpfJd0O06a7SZL7/2DNa0Pa0DefsaMOifA",
+	"tGY7tx00meaKuBTBoBN7ucPdVup8kMTEhrtYBTP0qZQ5X/HHICZYiUH/citQzyFy7YzqGDQqGXRjimod",
+	"mHBL7iuu7V4/WiCarTQr2vjxgQPHGd4E8G8KNC76LV/fV6h345m8WzLau9LSev40RRl2W+B8bj0vB4JC",
+	"uzqURd5JYir0E4k1WWzFeW/8VsoCmQhzvC+CdA8oqtJmeUD4JkCyP3F7Uudz6TxJEK+D2Q2pfcxQtRts",
+	"vgHazhTxCeQLAGmN4xDbuo1ct/UdQkbIyjAgyMo7RqyQaxTzwDg/obj/INPZ5m80VUG/CQqVDf/LUCt6",
+	"Fs3SkQK7GvUOkPYXy+7YGoPirHQRTvooQTvExcqLgZPlEPz811X0wX3H8IDauNrD5cXC6UyhYIpDCj9e",
+	"LC7e2eIx2jgckt4W3cDac3nAIfiDG4pYUUQDa+dYM2tzlUMK75GWw3mNRklhPOTvFgvXSkhBKFwQplTB",
+	"M+cg+Ww8W73sBwfMXCfQIjw6eupjMcD1735USRNI81d3w0UsEriNhrUbZuoNlwMLy0w09IvMd49K81R2",
+	"R8d1XXsJDEC9fLZoR6HiIDp5ZKosQ2NWVVHsmi0NWJTsh/dm7YEukHAM+dKNR+wk3N5oCLdimpVIqA2k",
+	"H0deO9PoaglWLpA60rfdTXp8ufePFtIVxj3QjhV5MyrCT1OZ5VFLuRPC6icfbTltokP7fFpjrw6HV6Tw",
+	"KgD3vypns2zzRq8M5Zc5WxbnOls85q1YZk+UpP/3cv7GspbRSuqZwjfaanT3JoRl25TnvzZ98zN1ZfrZ",
+	"b1dRDtOvf1M3YZ7tlj5oys8YfNzdHap5d2+/fM3jUDyDp2N5EF6oN3iPNIlsd1S9WVgX51DTl3cToSp1",
+	"ncQbK9T5z9azsGHcpRj30jDZhfiHiIiLyHptnjZGNPFWZ/m7PH4Z+YLbv8lCu1WNHoZMdvTx70AH/tzD",
+	"SZpYLwb1Q+vCPX7AhkiZNEmY4hd+9oLQUPJwCfVN/X8AAAD//xVxwDK+GAAA",
 }
 
 // GetSwagger returns the content of the embedded swagger specification file
@@ -1967,3 +1967,4 @@ func GetSwagger() (swagger *openapi3.T, err error) {
 	}
 	return
 }
+
