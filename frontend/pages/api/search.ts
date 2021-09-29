@@ -18,6 +18,22 @@ const response: SearchResultEntry[] = [
     name: 'Andre',
     excerpt: 'Andre ',
   },
+
+  {
+    url: 'Shake',
+    type: 'dataset',
+    id: 'shake',
+    name: 'Strawberry',
+    excerpt: 'Strawberry ',
+  },
+
+  {
+    url: 'Cookie',
+    type: 'datapackage',
+    id: 'fakeCookie',
+    name: 'Oaths',
+    excerpt: 'Oaths ',
+  },
 ]
 
 export const handler = (req: NextApiRequest, res: NextApiResponse) => {
