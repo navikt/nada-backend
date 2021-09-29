@@ -31,6 +31,9 @@ func TestRepo(t *testing.T) {
 	t.Log("NEW ID:", res.Id)
 
 	getRes, err := repo.GetDataproduct(context.Background(), res.Id)
+	if err != nil {
+		t.Fatal(err)
+	}
 	if res.Name != getRes.Name {
 		t.Fatal("navnene er ikke like :/")
 	}
