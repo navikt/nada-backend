@@ -42,7 +42,7 @@ type Dataproduct struct {
 	} `json:"datasets,omitempty"`
 	Description  *string   `json:"description,omitempty"`
 	Id           string    `json:"id"`
-	Keyword      *[]string `json:"keyword,omitempty"`
+	Keywords     *[]string `json:"keywords,omitempty"`
 	LastModified time.Time `json:"last_modified"`
 	Name         string    `json:"name"`
 	Owner        Owner     `json:"owner"`
@@ -70,7 +70,7 @@ type DatasetType string
 // NewDataproduct defines model for NewDataproduct.
 type NewDataproduct struct {
 	Description *string   `json:"description,omitempty"`
-	Keyword     *[]string `json:"keyword,omitempty"`
+	Keywords    *[]string `json:"keywords,omitempty"`
 	Name        string    `json:"name"`
 	Owner       Owner     `json:"owner"`
 	Repo        *string   `json:"repo,omitempty"`
@@ -185,7 +185,7 @@ type MiddlewareFunc func(http.HandlerFunc) http.HandlerFunc
 func (siw *ServerInterfaceWrapper) GetDataproducts(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 
-	handler := func(w http.ResponseWriter, r *http.Request) {
+	var handler = func(w http.ResponseWriter, r *http.Request) {
 		siw.Handler.GetDataproducts(w, r)
 	}
 
@@ -200,7 +200,7 @@ func (siw *ServerInterfaceWrapper) GetDataproducts(w http.ResponseWriter, r *htt
 func (siw *ServerInterfaceWrapper) CreateDataproduct(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 
-	handler := func(w http.ResponseWriter, r *http.Request) {
+	var handler = func(w http.ResponseWriter, r *http.Request) {
 		siw.Handler.CreateDataproduct(w, r)
 	}
 
@@ -226,7 +226,7 @@ func (siw *ServerInterfaceWrapper) DeleteDataproduct(w http.ResponseWriter, r *h
 		return
 	}
 
-	handler := func(w http.ResponseWriter, r *http.Request) {
+	var handler = func(w http.ResponseWriter, r *http.Request) {
 		siw.Handler.DeleteDataproduct(w, r, dataproductId)
 	}
 
@@ -252,7 +252,7 @@ func (siw *ServerInterfaceWrapper) GetDataproduct(w http.ResponseWriter, r *http
 		return
 	}
 
-	handler := func(w http.ResponseWriter, r *http.Request) {
+	var handler = func(w http.ResponseWriter, r *http.Request) {
 		siw.Handler.GetDataproduct(w, r, dataproductId)
 	}
 
@@ -278,7 +278,7 @@ func (siw *ServerInterfaceWrapper) UpdateDataproduct(w http.ResponseWriter, r *h
 		return
 	}
 
-	handler := func(w http.ResponseWriter, r *http.Request) {
+	var handler = func(w http.ResponseWriter, r *http.Request) {
 		siw.Handler.UpdateDataproduct(w, r, dataproductId)
 	}
 
@@ -304,7 +304,7 @@ func (siw *ServerInterfaceWrapper) GetDatasets(w http.ResponseWriter, r *http.Re
 		return
 	}
 
-	handler := func(w http.ResponseWriter, r *http.Request) {
+	var handler = func(w http.ResponseWriter, r *http.Request) {
 		siw.Handler.GetDatasets(w, r, dataproductId)
 	}
 
@@ -330,7 +330,7 @@ func (siw *ServerInterfaceWrapper) CreateDataset(w http.ResponseWriter, r *http.
 		return
 	}
 
-	handler := func(w http.ResponseWriter, r *http.Request) {
+	var handler = func(w http.ResponseWriter, r *http.Request) {
 		siw.Handler.CreateDataset(w, r, dataproductId)
 	}
 
@@ -365,7 +365,7 @@ func (siw *ServerInterfaceWrapper) DeleteDataset(w http.ResponseWriter, r *http.
 		return
 	}
 
-	handler := func(w http.ResponseWriter, r *http.Request) {
+	var handler = func(w http.ResponseWriter, r *http.Request) {
 		siw.Handler.DeleteDataset(w, r, dataproductId, datasetId)
 	}
 
@@ -400,7 +400,7 @@ func (siw *ServerInterfaceWrapper) GetDataset(w http.ResponseWriter, r *http.Req
 		return
 	}
 
-	handler := func(w http.ResponseWriter, r *http.Request) {
+	var handler = func(w http.ResponseWriter, r *http.Request) {
 		siw.Handler.GetDataset(w, r, dataproductId, datasetId)
 	}
 
@@ -435,7 +435,7 @@ func (siw *ServerInterfaceWrapper) UpdateDataset(w http.ResponseWriter, r *http.
 		return
 	}
 
-	handler := func(w http.ResponseWriter, r *http.Request) {
+	var handler = func(w http.ResponseWriter, r *http.Request) {
 		siw.Handler.UpdateDataset(w, r, dataproductId, datasetId)
 	}
 
@@ -457,6 +457,7 @@ func (siw *ServerInterfaceWrapper) Search(w http.ResponseWriter, r *http.Request
 
 	// ------------- Optional query parameter "q" -------------
 	if paramValue := r.URL.Query().Get("q"); paramValue != "" {
+
 	}
 
 	err = runtime.BindQueryParameter("form", true, false, "q", r.URL.Query(), &params.Q)
@@ -465,7 +466,7 @@ func (siw *ServerInterfaceWrapper) Search(w http.ResponseWriter, r *http.Request
 		return
 	}
 
-	handler := func(w http.ResponseWriter, r *http.Request) {
+	var handler = func(w http.ResponseWriter, r *http.Request) {
 		siw.Handler.Search(w, r, params)
 	}
 
@@ -553,22 +554,22 @@ func HandlerWithOptions(si ServerInterface, options ChiServerOptions) http.Handl
 // Base64 encoded, gzipped, json marshaled Swagger object
 var swaggerSpec = []string{
 
-	"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",
+	"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",
 }
 
 // GetSwagger returns the content of the embedded swagger specification file
@@ -603,7 +604,7 @@ func decodeSpecCached() func() ([]byte, error) {
 
 // Constructs a synthetic filesystem for resolving external references when loading openapi specifications.
 func PathToRawSpec(pathToFile string) map[string]func() ([]byte, error) {
-	res := make(map[string]func() ([]byte, error))
+	var res = make(map[string]func() ([]byte, error))
 	if len(pathToFile) > 0 {
 		res[pathToFile] = rawSpec
 	}
@@ -617,12 +618,12 @@ func PathToRawSpec(pathToFile string) map[string]func() ([]byte, error) {
 // Externally referenced files must be embedded in the corresponding golang packages.
 // Urls can be supported but this task was out of the scope.
 func GetSwagger() (swagger *openapi3.T, err error) {
-	resolvePath := PathToRawSpec("")
+	var resolvePath = PathToRawSpec("")
 
 	loader := openapi3.NewLoader()
 	loader.IsExternalRefsAllowed = true
 	loader.ReadFromURIFunc = func(loader *openapi3.Loader, url *url.URL) ([]byte, error) {
-		pathToFile := url.String()
+		var pathToFile = url.String()
 		pathToFile = path.Clean(pathToFile)
 		getSpec, ok := resolvePath[pathToFile]
 		if !ok {

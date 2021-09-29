@@ -3,7 +3,7 @@ info:
   title: API Title
   version: "1.0"
 servers:
-  - url: "https://api.server.test/v1"
+  - url: "https://api.server.test/api"
 
 components:
   schemas:
@@ -28,7 +28,7 @@ components:
           format: date-time
         owner:
           $ref: "#/components/schemas/Owner"
-        keyword:
+        keywords:
           type: array
           items:
             type: string
@@ -77,7 +77,7 @@ components:
           type: string
         owner:
           $ref: "#/components/schemas/Owner"
-        keyword:
+        keywords:
           type: array
           items:
             type: string

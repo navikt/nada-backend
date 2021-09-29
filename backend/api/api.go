@@ -2,51 +2,107 @@ package api
 
 import (
 	"encoding/json"
-	"log"
 	"net/http"
 
 	"github.com/navikt/datakatalogen/backend/database"
 	"github.com/navikt/datakatalogen/backend/openapi"
+	"github.com/sirupsen/logrus"
 )
 
 type Server struct {
 	repo *database.Repo
+	log  *logrus.Entry
 }
 
-func New(repo *database.Repo) *Server {
+func New(repo *database.Repo, log *logrus.Entry) *Server {
 	return &Server{
 		repo: repo,
+		log:  log,
 	}
 }
 
-// (GET /dataproducts)
+// GetDataproducts (GET /dataproducts)
 func (s *Server) GetDataproducts(w http.ResponseWriter, r *http.Request) {
-	res, err := s.repo.GetDataproducts(r.Context())
+	dataproducts, err := s.repo.GetDataproducts(r.Context())
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		s.log.WithError(err).Error("Getting dataproducts")
+		http.Error(w, "uh oh", http.StatusInternalServerError)
 		return
 	}
+
 	w.Header().Add("Content-Type", "application/json")
-	err = json.NewEncoder(w).Encode(res)
-	if err != nil {
-		log.Println(err)
+	if err = json.NewEncoder(w).Encode(dataproducts); err != nil {
+		s.log.WithError(err).Error("Encoding dataproducts as JSON")
 	}
 }
 
-// (POST /dataproducts)
-func (s *Server) CreateDataproduct(w http.ResponseWriter, r *http.Request) {
-}
-
-// (DELETE /dataproducts/{dataproduct_id})
-func (s *Server) DeleteDataproduct(w http.ResponseWriter, r *http.Request, dataproductId string) {
-}
-
-// (GET /dataproducts/{dataproduct_id})
+// GetDataproduct (GET /dataproducts/{dataproduct_id})
 func (s *Server) GetDataproduct(w http.ResponseWriter, r *http.Request, dataproductId string) {
+	dataproduct, err := s.repo.GetDataproduct(r.Context(), dataproductId)
+	if err != nil {
+		s.log.WithError(err).Error("Getting dataproduct")
+		http.Error(w, "uh oh", http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Add("Content-Type", "application/json")
+	if err = json.NewEncoder(w).Encode(dataproduct); err != nil {
+		s.log.WithError(err).Error("Encoding dataproduct as JSON")
+	}
 }
 
-// (PUT /dataproducts/{dataproduct_id})
+// CreateDataproduct (POST /dataproducts)
+func (s *Server) CreateDataproduct(w http.ResponseWriter, r *http.Request) {
+	var newDataproduct openapi.NewDataproduct
+	if err := json.NewDecoder(r.Body).Decode(&newDataproduct); err != nil {
+		s.log.WithError(err).Info("Decoding newDataproduct")
+		http.Error(w, "invalid JSON object", http.StatusBadRequest)
+		return
+	}
+
+	dataproduct, err := s.repo.CreateDataproduct(r.Context(), newDataproduct)
+	if err != nil {
+		s.log.WithError(err).Error("Creating dataproduct")
+		http.Error(w, "uh oh", http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Add("Content-Type", "application/json")
+	if err = json.NewEncoder(w).Encode(dataproduct); err != nil {
+		s.log.WithError(err).Error("Encoding dataproduct as JSON")
+	}
+}
+
+// DeleteDataproduct (DELETE /dataproducts/{dataproduct_id})
+func (s *Server) DeleteDataproduct(w http.ResponseWriter, r *http.Request, dataproductId string) {
+	if err := s.repo.DeleteDataproduct(r.Context(), dataproductId); err != nil {
+		s.log.WithError(err).Error("Deleting dataproduct")
+		return
+	}
+
+	w.WriteHeader(http.StatusNoContent)
+}
+
+// UpdateDataproduct (PUT /dataproducts/{dataproduct_id})
 func (s *Server) UpdateDataproduct(w http.ResponseWriter, r *http.Request, dataproductId string) {
+	var newDataproduct openapi.NewDataproduct
+	if err := json.NewDecoder(r.Body).Decode(&newDataproduct); err != nil {
+		s.log.WithError(err).Info("Decoding newDataproduct")
+		http.Error(w, "invalid JSON object", http.StatusBadRequest)
+		return
+	}
+
+	dataproduct, err := s.repo.UpdateDataproduct(r.Context(), dataproductId, newDataproduct)
+	if err != nil {
+		s.log.WithError(err).Error("Updating dataproduct")
+		http.Error(w, "uh oh", http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Add("Content-Type", "application/json")
+	if err = json.NewEncoder(w).Encode(dataproduct); err != nil {
+		s.log.WithError(err).Error("Encoding dataproduct as JSON")
+	}
 }
 
 // (GET /dataproducts/{dataproduct_id}/datasets)

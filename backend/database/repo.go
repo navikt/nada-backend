@@ -3,10 +3,11 @@ package database
 import (
 	"context"
 	"fmt"
+	"net/url"
+
 	"github.com/google/uuid"
 	"github.com/navikt/datakatalogen/backend/database/gensql"
 	"github.com/navikt/datakatalogen/backend/openapi"
-	"net/url"
 
 	// Pin version of sqlc and goose for cli
 	_ "github.com/kyleconroy/sqlc"
@@ -33,8 +34,8 @@ func slugify(maybeslug *string, fallback string) string {
 
 func (r *Repo) CreateDataproduct(ctx context.Context, dp openapi.NewDataproduct) (*openapi.Dataproduct, error) {
 	var keywords []string
-	if dp.Keyword != nil {
-		keywords = *dp.Keyword
+	if dp.Keywords != nil {
+		keywords = *dp.Keywords
 	}
 	res, err := r.querier.CreateDataproduct(ctx, gensql.CreateDataproductParams{
 		Name:        dp.Name,
@@ -98,13 +99,18 @@ func (r *Repo) UpdateDataproduct(ctx context.Context, id string, new openapi.New
 		return nil, fmt.Errorf("parsing uuid: %w", err)
 	}
 
+	var keywords []string
+	if new.Keywords != nil {
+		keywords = *new.Keywords
+	}
+
 	res, err := r.querier.UpdateDataproduct(ctx, gensql.UpdateDataproductParams{
 		Name:        new.Name,
 		Description: ptrToNullString(new.Description),
 		Slug:        slugify(new.Slug, new.Name),
 		Repo:        ptrToNullString(new.Repo),
 		Team:        new.Owner.Team,
-		Keywords:    *new.Keyword,
+		Keywords:    keywords,
 		ID:          uid,
 	})
 
@@ -122,7 +128,7 @@ func dataproductFromSQL(dataproduct gensql.Dataproduct) *openapi.Dataproduct {
 		Created:      dataproduct.Created,
 		LastModified: dataproduct.LastModified,
 		Description:  nullStringToPtr(dataproduct.Description),
-		Keyword:      &dataproduct.Keywords,
+		Keywords:     &dataproduct.Keywords,
 		Owner: openapi.Owner{
 			Team: dataproduct.Team,
 		},
