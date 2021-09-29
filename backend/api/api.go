@@ -1,7 +1,8 @@
 package api
 
 import (
-	"github.com/labstack/echo/v4"
+	"net/http"
+
 	"github.com/navikt/datakatalogen/backend/database"
 	"github.com/navikt/datakatalogen/backend/openapi"
 )
@@ -17,56 +18,45 @@ func New(repo database.Repo) *Server {
 }
 
 // (GET /dataproducts)
-func (s *Server) GetDataproducts(ctx echo.Context) error {
-	return nil
+func (s *Server) GetDataproducts(w http.ResponseWriter, r *http.Request) {
 }
 
 // (POST /dataproducts)
-func (s *Server) CreateDataproduct(ctx echo.Context) error {
-	return nil
+func (s *Server) CreateDataproduct(w http.ResponseWriter, r *http.Request) {
 }
 
 // (DELETE /dataproducts/{dataproduct_id})
-func (s *Server) DeleteDataproduct(ctx echo.Context, dataproductId string) error {
-	return nil
+func (s *Server) DeleteDataproduct(w http.ResponseWriter, r *http.Request, dataproductId string) {
 }
 
 // (GET /dataproducts/{dataproduct_id})
-func (s *Server) GetDataproduct(ctx echo.Context, dataproductId string) error {
-	return nil
+func (s *Server) GetDataproduct(w http.ResponseWriter, r *http.Request, dataproductId string) {
 }
 
 // (PUT /dataproducts/{dataproduct_id})
-func (s *Server) UpdateDataproduct(ctx echo.Context, dataproductId string) error {
-	return nil
+func (s *Server) UpdateDataproduct(w http.ResponseWriter, r *http.Request, dataproductId string) {
 }
 
 // (GET /dataproducts/{dataproduct_id}/datasets)
-func (s *Server) GetDatasets(ctx echo.Context, dataproductId string) error {
-	return nil
+func (s *Server) GetDatasets(w http.ResponseWriter, r *http.Request, dataproductId string) {
 }
 
 // (POST /dataproducts/{dataproduct_id}/datasets)
-func (s *Server) CreateDataset(ctx echo.Context, dataproductId string) error {
-	return nil
+func (s *Server) CreateDataset(w http.ResponseWriter, r *http.Request, dataproductId string) {
 }
 
 // (DELETE /dataproducts/{dataproduct_id}/datasets/{dataset_id})
-func (s *Server) DeleteDataset(ctx echo.Context, dataproductId string, datasetId string) error {
-	return nil
+func (s *Server) DeleteDataset(w http.ResponseWriter, r *http.Request, dataproductId string, datasetId string) {
 }
 
 // (GET /dataproducts/{dataproduct_id}/datasets/{dataset_id})
-func (s *Server) GetDataset(ctx echo.Context, dataproductId string, datasetId string) error {
-	return nil
+func (s *Server) GetDataset(w http.ResponseWriter, r *http.Request, dataproductId string, datasetId string) {
 }
 
 // (PUT /dataproducts/{dataproduct_id}/datasets/{dataset_id})
-func (s *Server) UpdateDataset(ctx echo.Context, dataproductId string, datasetId string) error {
-	return nil
+func (s *Server) UpdateDataset(w http.ResponseWriter, r *http.Request, dataproductId string, datasetId string) {
 }
 
 // (GET /search)
-func (s *Server) Search(ctx echo.Context, params openapi.SearchParams) error {
-	return nil
+func (s *Server) Search(w http.ResponseWriter, r *http.Request, params openapi.SearchParams) {
 }
