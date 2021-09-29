@@ -11,9 +11,14 @@
   "dependencies": {
     "@navikt/ds-css": "^0.9.0",
     "@navikt/ds-react": "^0.10.0",
+    "classnames": "^2.3.1",
     "nav-frontend-core": "^6.0.1",
+    "nav-frontend-ikoner-assets": "^3.0.1",
+    "nav-frontend-spinner": "^3.0.1",
+    "nav-frontend-spinner-style": "^1.0.2",
     "next": "11.1.2",
-    "react": "17.0.2",
+    "prop-types": "^15.7.2",
+    "react": "^17.0.2",
     "react-dom": "17.0.2",
     "styled-components": "^5.3.1",
     "swr": "^1.0.1"
@@ -28,6 +33,7 @@
     "typescript": "4.4.3"
   },
   "prettier": {
-    "semi": false
+    "semi": false,
+    "singleQuote": true
   }
 }

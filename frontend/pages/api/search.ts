@@ -1,15 +1,24 @@
-import type { NextApiRequest, NextApiResponse } from "next"
-import {components} from "../../components/schema"
+import type { NextApiRequest, NextApiResponse } from 'next'
+import { components } from '../../lib/schema'
 
-type SearchResultEntry = components["schemas"]["SearchResultEntry"]
+type SearchResultEntry = components['schemas']['SearchResultEntry']
 
-const response: SearchResultEntry[] = [{
-  url: "banan",
-  type: "dataproduct",
-  id: "asdad",
-  name: "Yohhoo",
-  excerpt: "Første "
-}]
+const response: SearchResultEntry[] = [
+  {
+    url: 'banan',
+    type: 'dataproduct',
+    id: 'asdad',
+    name: 'Yohhoo',
+    excerpt: 'Første ',
+  },
+  {
+    url: 'kake',
+    type: 'dataproduct',
+    id: 'asdad',
+    name: 'Andre',
+    excerpt: 'Andre ',
+  },
+]
 
 export const handler = (req: NextApiRequest, res: NextApiResponse) => {
   res.status(200).json(response)

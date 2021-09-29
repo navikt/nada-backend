@@ -1,5 +1,7 @@
 import styled from "styled-components";
+import Link from 'next/link'
 import {navLysGra} from "../../styles/constants";
+import {components} from "../../lib/schema"
 
 const SearchResultDiv = styled.div`
     background-color: ${navLysGra};
@@ -11,19 +13,19 @@ const SearchResultDiv = styled.div`
     }
 `
 
-export type DataProduct = {
-    name: string,
-    description: string,
-}
+
+type SearchResultEntry = components["schemas"]["SearchResultEntry"]
 
 export interface SearchResultProps {
-    result: DataProduct // | DataPackage | DataSet
+    searchResultEntry: SearchResultEntry
 }
 
-export const SearchResult = ({result}: SearchResultProps) => (
+export const SearchResult = ({searchResultEntry}: SearchResultProps) => (
     <SearchResultDiv>
-        <h1>{result.name}</h1>
-        <p>{result.description}</p>
+        <Link href={`/dataproduct/${searchResultEntry.id}`}>
+            <h1>{searchResultEntry.name}</h1>
+        </Link>
+        <p>{searchResultEntry.excerpt}</p>
     </SearchResultDiv>
 )
 
