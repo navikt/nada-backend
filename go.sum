@@ -143,6 +143,7 @@ github.com/ghodss/yaml v1.0.0/go.mod h1:4dBDuWmgqj2HViK6kFavaiC9ZROes6MMH2rRYeME
 github.com/go-chi/chi v1.5.1/go.mod h1:REp24E+25iKvxgeTfHmdUoL5x15kBiDBlnIl5bCwe2k=
 github.com/go-chi/chi v4.1.2+incompatible h1:fGFk2Gmi/YKXk0OmGfBh0WgmN3XB8lVnEyNz34tQRec=
 github.com/go-chi/chi v4.1.2+incompatible/go.mod h1:eB3wogJHnLi3x/kFX2A+IbTBlXxmMeXJVKy9tTv1XzQ=
+github.com/go-chi/chi/v5 v5.0.0 h1:DBPx88FjZJH3FsICfDAfIfnb7XxKIYVGG6lOPlhENAg=
 github.com/go-chi/chi/v5 v5.0.0/go.mod h1:BBug9lr0cqtdAhsu6R4AAdvufI0/XBzAQSsUqJpoZOs=
 github.com/go-chi/jwtauth v1.2.0 h1:Z116SPpevIABBYsv8ih/AHYBHmd4EufKSKsLUnWdrTM=
 github.com/go-chi/jwtauth v1.2.0/go.mod h1:NTUpKoTQV6o25UwYE6w/VaLUu83hzrVKYTVo+lE6qDA=

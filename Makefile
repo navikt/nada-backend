@@ -55,7 +55,7 @@ migrate:
 generate: 
 	cd backend && $(GOBIN)/sqlc generate
 	mkdir -p backend/openapi
-	go run github.com/deepmap/oapi-codegen/cmd/oapi-codegen -package openapi ./spec-v1.0.yaml > ./backend/openapi/datakatalogen.gen.go
+	go run github.com/deepmap/oapi-codegen/cmd/oapi-codegen -package openapi --generate "types,chi-server,spec" ./spec-v1.0.yaml > ./backend/openapi/datakatalogen.gen.go
 
 linux-build:
 	go build -a -installsuffix cgo -o $(APP) -ldflags "-s $(LDFLAGS)" cmd/backend/main.go
