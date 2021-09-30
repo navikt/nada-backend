@@ -245,7 +245,7 @@ paths:
   /dataproducts/{dataproduct_id}/datasets:
     get:
       description: "List all datasets for a dataproduct"
-      operationId: "getDatasets"
+      operationId: "getDatasetsForDataproduct"
       parameters:
         - in: path
           name: dataproduct_id

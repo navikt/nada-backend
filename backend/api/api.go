@@ -100,18 +100,52 @@ func (s *Server) UpdateDataproduct(w http.ResponseWriter, r *http.Request, datap
 	}
 
 	w.Header().Add("Content-Type", "application/json")
-	if err = json.NewEncoder(w).Encode(dataproduct); err != nil {
+	if err := json.NewEncoder(w).Encode(dataproduct); err != nil {
 		s.log.WithError(err).Error("Encoding dataproduct as JSON")
+		http.Error(w, "uh oh", http.StatusInternalServerError)
+		return
 	}
 }
 
-// GetDatasets (GET /dataproducts/{dataproduct_id}/datasets)
-//func (s *Server) GetDatasets(w http.ResponseWriter, r *http.Request, dataproductId string) {
-//	datasets, err := s.repo.GetDatasets(r.Context(), dataproductId)
-//}
+// GetDatasetsForDataproduct (GET /dataproducts/{dataproduct_id}/datasets)
+func (s *Server) GetDatasetsForDataproduct(w http.ResponseWriter, r *http.Request, dataproductId string) {
+	datasets, err := s.repo.GetDatasetsForDataproduct(r.Context(), dataproductId)
+	if err != nil {
+		s.log.WithError(err).Error("Getting datasets for dataproduct")
+		http.Error(w, "uh oh", http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Add("Content-Type", "application/json")
+	if err := json.NewEncoder(w).Encode(datasets); err != nil {
+		s.log.WithError(err).Error("Encoding datasets as JSON")
+		http.Error(w, "uh oh", http.StatusInternalServerError)
+		return
+	}
+}
 
 // (POST /dataproducts/{dataproduct_id}/datasets)
 func (s *Server) CreateDataset(w http.ResponseWriter, r *http.Request, dataproductId string) {
+	var newDataset openapi.NewDataset
+	if err := json.NewDecoder(r.Body).Decode(&newDataset); err != nil {
+		s.log.WithError(err).Info("Decoding newDataset")
+		http.Error(w, "invalid JSON object", http.StatusBadRequest)
+		return
+	}
+
+	dataset, err := s.repo.CreateDataset(r.Context(), dataproductId, newDataset)
+	if err != nil {
+		s.log.WithError(err).Error("Creating dataset")
+		http.Error(w, "uh oh", http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Add("Content-Type", "application/json")
+	if err := json.NewEncoder(w).Encode(dataset); err != nil {
+		s.log.WithError(err).Error("Encoding dataset as JSON")
+		http.Error(w, "uh oh", http.StatusInternalServerError)
+		return
+	}
 }
 
 // (DELETE /dataproducts/{dataproduct_id}/datasets/{dataset_id})

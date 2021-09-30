@@ -1,7 +1,4 @@
--- name: GetDatasets :many
-SELECT * FROM datasets;
-
--- name: GetDatasetsForProduct :many
+-- name: GetDatasetsForDataproduct :many
 SELECT * FROM datasets WHERE dataproduct_id = @dataproduct_id;
 
 -- name: GetDataset :one

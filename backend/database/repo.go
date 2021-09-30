@@ -143,6 +143,26 @@ func (r *Repo) CreateDataset(ctx context.Context, dataproductID string, ds opena
 	return datasetFromSQL(res), nil
 }
 
+func (r *Repo) GetDatasetsForDataproduct(ctx context.Context, id string) ([]*openapi.Dataset, error) {
+	uid, err := uuid.Parse(id)
+	if err != nil {
+		return nil, fmt.Errorf("parsing uuid: %w", err)
+	}
+
+	res, err := r.querier.GetDatasetsForProduct(ctx, uid)
+	if err != nil {
+		return nil, err
+	}
+
+	var datasets []*openapi.Dataset
+
+	for _, entry := range res {
+		datasets = append(datasets, datasetFromSQL(entry))
+	}
+
+	return datasets, nil
+}
+
 func (r *Repo) GetDataset(ctx context.Context, id string) (*openapi.Dataset, error) {
 	uid, err := uuid.Parse(id)
 	if err != nil {
@@ -151,6 +171,31 @@ func (r *Repo) GetDataset(ctx context.Context, id string) (*openapi.Dataset, err
 	res, err := r.querier.GetDataset(ctx, uid)
 	if err != nil {
 		return nil, fmt.Errorf("getting dataset from database: %w", err)
+	}
+
+	return datasetFromSQL(res), nil
+}
+
+func (r *Repo) UpdateDataset(ctx context.Context, dataproductID string, id string, new openapi.NewDataset) (*openapi.Dataset, error) {
+	dpUid, err := uuid.Parse(dataproductID)
+	if err != nil {
+		return nil, err
+	}
+
+	uid, err := uuid.Parse(id)
+	if err != nil {
+		return nil, fmt.Errorf("parsing uuid: %w", err)
+	}
+
+	res, err := r.querier.UpdateDataset(ctx, gensql.UpdateDatasetParams{
+		Name:          new.Name,
+		Description:   ptrToNullString(new.Description),
+		ID:            uid,
+		DataproductID: dpUid,
+		Pii:           new.Pii,
+	})
+	if err != nil {
+		return nil, fmt.Errorf("updating dataproduct in database: %w", err)
 	}
 
 	return datasetFromSQL(res), nil

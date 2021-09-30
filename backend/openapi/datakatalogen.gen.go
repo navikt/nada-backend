@@ -154,7 +154,7 @@ type ServerInterface interface {
 	UpdateDataproduct(w http.ResponseWriter, r *http.Request, dataproductId string)
 
 	// (GET /dataproducts/{dataproduct_id}/datasets)
-	GetDatasets(w http.ResponseWriter, r *http.Request, dataproductId string)
+	GetDatasetsForDataproduct(w http.ResponseWriter, r *http.Request, dataproductId string)
 
 	// (POST /dataproducts/{dataproduct_id}/datasets)
 	CreateDataset(w http.ResponseWriter, r *http.Request, dataproductId string)
@@ -288,8 +288,8 @@ func (siw *ServerInterfaceWrapper) UpdateDataproduct(w http.ResponseWriter, r *h
 	handler(w, r.WithContext(ctx))
 }
 
-// GetDatasets operation middleware
-func (siw *ServerInterfaceWrapper) GetDatasets(w http.ResponseWriter, r *http.Request) {
+// GetDatasetsForDataproduct operation middleware
+func (siw *ServerInterfaceWrapper) GetDatasetsForDataproduct(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 
 	var err error
@@ -304,7 +304,7 @@ func (siw *ServerInterfaceWrapper) GetDatasets(w http.ResponseWriter, r *http.Re
 	}
 
 	var handler = func(w http.ResponseWriter, r *http.Request) {
-		siw.Handler.GetDatasets(w, r, dataproductId)
+		siw.Handler.GetDatasetsForDataproduct(w, r, dataproductId)
 	}
 
 	for _, middleware := range siw.HandlerMiddlewares {
@@ -529,7 +529,7 @@ func HandlerWithOptions(si ServerInterface, options ChiServerOptions) http.Handl
 		r.Put(options.BaseURL+"/dataproducts/{dataproduct_id}", wrapper.UpdateDataproduct)
 	})
 	r.Group(func(r chi.Router) {
-		r.Get(options.BaseURL+"/dataproducts/{dataproduct_id}/datasets", wrapper.GetDatasets)
+		r.Get(options.BaseURL+"/dataproducts/{dataproduct_id}/datasets", wrapper.GetDatasetsForDataproduct)
 	})
 	r.Group(func(r chi.Router) {
 		r.Post(options.BaseURL+"/dataproducts/{dataproduct_id}/datasets", wrapper.CreateDataset)
@@ -553,22 +553,22 @@ func HandlerWithOptions(si ServerInterface, options ChiServerOptions) http.Handl
 // Base64 encoded, gzipped, json marshaled Swagger object
 var swaggerSpec = []string{
 
-	"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",
+	"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",
 }
 
 // GetSwagger returns the content of the embedded swagger specification file
@@ -642,3 +642,4 @@ func GetSwagger() (swagger *openapi3.T, err error) {
 	}
 	return
 }
+
