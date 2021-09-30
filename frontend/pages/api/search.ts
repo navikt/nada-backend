@@ -7,14 +7,14 @@ const response: SearchResultEntry[] = [
   {
     url: 'banan',
     type: 'dataproduct',
-    id: 'asdad',
+    id: '1',
     name: 'Yohhoo',
     excerpt: 'Første ',
   },
   {
     url: 'kake',
     type: 'dataproduct',
-    id: 'asdad',
+    id: '2',
     name: 'Andre',
     excerpt: 'Andre ',
   },
@@ -22,7 +22,7 @@ const response: SearchResultEntry[] = [
   {
     url: 'Shake',
     type: 'dataset',
-    id: 'shake',
+    id: '3',
     name: 'Strawberry',
     excerpt: 'Strawberry ',
   },
@@ -30,7 +30,7 @@ const response: SearchResultEntry[] = [
   {
     url: 'Cookie',
     type: 'datapackage',
-    id: 'fakeCookie',
+    id: '4',
     name: 'Oaths',
     excerpt: 'Oaths ',
   },

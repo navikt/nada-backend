@@ -2,7 +2,7 @@ import React from 'react'
 import Link from 'next/link'
 import styled from 'styled-components'
 import User from './user'
-import { HeaderLogo } from '../lib/icons/HeaderLogo'
+import HeaderLogo from '../lib/icons/headerLogo'
 
 const HeaderBar = styled.header`
   display: flex;

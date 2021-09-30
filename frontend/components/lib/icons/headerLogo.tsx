@@ -72,3 +72,4 @@ export const HeaderLogo = () => (
     </svg>
   </IconBox>
 )
+export default HeaderLogo
