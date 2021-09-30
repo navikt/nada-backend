@@ -3,7 +3,8 @@ import Link from 'next/link'
 import { navGra20, navGra40 } from '../../styles/constants'
 import { components } from '../../lib/schema'
 import BigQueryLogo from '../lib/icons/bigQueryLogo'
-import DataPackageLogo from '../lib/icons/DataPackageLogo'
+import DataPackageLogo from '../lib/icons/dataPackageLogo'
+import DataProductLogo from '../lib/icons/dataProductLogo'
 
 
 const SearchResultDiv = styled.div`
@@ -49,7 +50,7 @@ export const SearchResult = ({ searchResultEntry }: SearchResultProps) => {
               <h1>{searchResultEntry.name}</h1>
               <p>{searchResultEntry.excerpt}</p>
             </div>
-            <SearchResultLogo>Test</SearchResultLogo>
+            <SearchResultLogo><DataProductLogo/></SearchResultLogo>
           </SearchResultContent>
         </Link>
       </SearchResultDiv>

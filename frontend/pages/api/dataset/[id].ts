@@ -2,9 +2,9 @@ import type { NextApiRequest, NextApiResponse } from 'next'
 import { DatasetSchema } from '../../../lib/schema_types'
 
 const response: DatasetSchema = {
-  id: 'test',
+  id: 'DS_1',
   dataproduct_id: '',
-  name: 'test',
+  name: 'DS 1',
   description: `## Lorem ipsum
   Dolor *sit* **amet**`,
   pii: false,

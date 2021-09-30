@@ -7,32 +7,44 @@ const response: SearchResultEntry[] = [
   {
     url: 'banan',
     type: 'dataproduct',
-    id: '1',
-    name: 'Yohhoo',
-    excerpt: 'Første ',
+    id: 'dp_1',
+    name: 'DP 1',
+    excerpt: 'Dette er en lang og fin beskrivelse av det første produktet, som stopper etter... ',
   },
   {
     url: 'kake',
     type: 'dataproduct',
-    id: '2',
-    name: 'Andre',
-    excerpt: 'Andre ',
+    id: 'dp_2',
+    name: 'DP 2',
+    excerpt: 'Dette er en lang og fin beskrivelse av det andre produktet, som stopper etter... ',
   },
-
   {
     url: 'Shake',
     type: 'dataset',
-    id: '3',
-    name: 'Strawberry',
-    excerpt: 'Strawberry ',
+    id: 'ds_1',
+    name: 'DS 1',
+    excerpt: 'Dette er en lang og fin beskrivelse av det første datasettet, som stopper etter... ',
   },
-
+  {
+    url: 'Shake',
+    type: 'dataset',
+    id: 'ds_2',
+    name: 'DS 2',
+    excerpt: 'Dette er en lang og fin beskrivelse av det første datasettet, som stopper etter... ',
+  },
   {
     url: 'Cookie',
     type: 'datapackage',
-    id: '4',
-    name: 'Oaths',
-    excerpt: 'Oaths ',
+    id: 'DPA_1',
+    name: 'DPA 1',
+    excerpt: 'Dette er en lang og fin beskrivelse av det første pakke, som stopper etter... ',
+  },
+  {
+    url: 'Cookie',
+    type: 'datapackage',
+    id: 'DPA_1',
+    name: 'DPA 1',
+    excerpt: 'Dette er en lang og fin beskrivelse av det første pakke, som stopper etter... ',
   },
 ]
 
