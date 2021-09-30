@@ -18,7 +18,7 @@ export default function SearchBox({ query, setQuery }: SearchBoxProps) {
   const [searchBox, setSearchBox] = React.useState("")
 
   return (
-    <SearchDiv>
+    <SearchDiv role="navigation">
       <form
         onSubmit={(e) => { e.preventDefault()
           setQuery(searchBox)

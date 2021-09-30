@@ -12,7 +12,7 @@ const Main = styled.main`
 export const PageLayout = ({children}: { children: React.ReactNode }) => (
     <Container>
         <Header/>
-        <Main>
+        <Main role="content">
             {children}
         </Main>
     </Container>

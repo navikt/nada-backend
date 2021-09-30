@@ -1,6 +1,8 @@
+import React from 'react'
+import Link from 'next/link'
 import styled from 'styled-components'
 import Logo from './logo'
-import User from "./user";
+import User from "./user"
 
 const HeaderBar = styled.header`
     display: flex;
@@ -8,5 +10,13 @@ const HeaderBar = styled.header`
     justify-content: space-between;
 `
 export default function Header() {
-    return (<HeaderBar><Logo/><User/></HeaderBar>)
+    return (
+        <HeaderBar role="banner">
+            <Link href="/">
+                <div>
+                    <Logo />
+                </div>
+            </Link>
+            <User />
+        </HeaderBar>)
 }
