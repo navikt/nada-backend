@@ -1,8 +1,7 @@
 import { useRouter } from 'next/router'
 import PageLayout from '../../components/pageLayout'
 import useSWR from 'swr'
-
-const fetcher = (url: string) => fetch(url).then((res) => res.json())
+import fetcher from '../../lib/fetcher'
 
 const DataPackage = () => {
   const router = useRouter()
