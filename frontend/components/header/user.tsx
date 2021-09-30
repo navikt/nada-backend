@@ -1,9 +1,7 @@
-import styled from "styled-components";
+import styled from 'styled-components'
 
+const UserBox = styled.div``
 
-const UserBox = styled.div`
-`
-
-export default function User(){
-    return (<UserBox>user</UserBox>)
+export default function User() {
+  return <UserBox>user</UserBox>
 }

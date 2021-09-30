@@ -10,8 +10,7 @@ import { parseISO, format } from 'date-fns'
 const fetcher = (url: string) => fetch(url).then((res) => res.json())
 import { nb } from 'date-fns/locale'
 import { GetServerSideProps } from 'next'
-import DataProductSpinner from "../../components/lib/spinner";
-
+import DataProductSpinner from '../../components/lib/spinner'
 
 export const getServerSideProps: GetServerSideProps = async (context) => {
   const id = context?.params?.id

@@ -1,7 +1,7 @@
-import styled from "styled-components"
-import { Button, TextField } from "@navikt/ds-react"
-import { Search } from "@navikt/ds-icons"
-import React from "react"
+import styled from 'styled-components'
+import { Button, TextField } from '@navikt/ds-react'
+import { Search } from '@navikt/ds-icons'
+import React from 'react'
 
 const SearchDiv = styled.div`
   border: 2px solid black;
@@ -15,18 +15,19 @@ export interface SearchBoxProps {
 }
 
 export default function SearchBox({ query, setQuery }: SearchBoxProps) {
-  const [searchBox, setSearchBox] = React.useState("")
+  const [searchBox, setSearchBox] = React.useState('')
 
   return (
     <SearchDiv role="navigation">
       <form
-        onSubmit={(e) => { e.preventDefault()
+        onSubmit={(e) => {
+          e.preventDefault()
           setQuery(searchBox)
         }}
       >
-        <TextField 
+        <TextField
           onChange={(event) => setSearchBox(event.target.value)}
-          label={""}
+          label={''}
         />
         <Button>
           <Search onClick={() => setQuery(searchBox)} /> Søk

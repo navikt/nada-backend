@@ -1,11 +1,9 @@
 interface errorMessageProps {
-    error: Error
+  error: Error
 }
 
 export const ErrorMessage = ({ error }: errorMessageProps) => {
-    return (
-        <h1>{error.message}</h1>
-    )
+  return <h1>{error.message}</h1>
 }
 
 export default ErrorMessage
