@@ -120,8 +120,8 @@ func (r *Repo) UpdateDataproduct(ctx context.Context, id string, new openapi.New
 	return dataproductFromSQL(res), nil
 }
 
-func (r *Repo) CreateDataset(ctx context.Context, dataproductID string, ds openapi.NewDataset) (*openapi.Dataset, error) {
-	uid, err := uuid.Parse(dataproductID)
+func (r *Repo) CreateDataset(ctx context.Context, ds openapi.NewDataset) (*openapi.Dataset, error) {
+	uid, err := uuid.Parse(ds.DataproductId)
 	if err != nil {
 		return nil, fmt.Errorf("parsing uuid: %w", err)
 	}
@@ -143,26 +143,6 @@ func (r *Repo) CreateDataset(ctx context.Context, dataproductID string, ds opena
 	return datasetFromSQL(res), nil
 }
 
-func (r *Repo) GetDatasetsForDataproduct(ctx context.Context, id string) ([]*openapi.Dataset, error) {
-	uid, err := uuid.Parse(id)
-	if err != nil {
-		return nil, fmt.Errorf("parsing uuid: %w", err)
-	}
-
-	res, err := r.querier.GetDatasetsForProduct(ctx, uid)
-	if err != nil {
-		return nil, err
-	}
-
-	var datasets []*openapi.Dataset
-
-	for _, entry := range res {
-		datasets = append(datasets, datasetFromSQL(entry))
-	}
-
-	return datasets, nil
-}
-
 func (r *Repo) GetDataset(ctx context.Context, id string) (*openapi.Dataset, error) {
 	uid, err := uuid.Parse(id)
 	if err != nil {
@@ -176,13 +156,13 @@ func (r *Repo) GetDataset(ctx context.Context, id string) (*openapi.Dataset, err
 	return datasetFromSQL(res), nil
 }
 
-func (r *Repo) UpdateDataset(ctx context.Context, dataproductID string, id string, new openapi.NewDataset) (*openapi.Dataset, error) {
-	dpUid, err := uuid.Parse(dataproductID)
+func (r *Repo) UpdateDataset(ctx context.Context, id string, new openapi.NewDataset) (*openapi.Dataset, error) {
+	uid, err := uuid.Parse(id)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("parsing uuid: %w", err)
 	}
 
-	uid, err := uuid.Parse(id)
+	dataproductUid, err := uuid.Parse(new.DataproductId)
 	if err != nil {
 		return nil, fmt.Errorf("parsing uuid: %w", err)
 	}
@@ -191,7 +171,7 @@ func (r *Repo) UpdateDataset(ctx context.Context, dataproductID string, id strin
 		Name:          new.Name,
 		Description:   ptrToNullString(new.Description),
 		ID:            uid,
-		DataproductID: dpUid,
+		DataproductID: dataproductUid,
 		Pii:           new.Pii,
 	})
 	if err != nil {

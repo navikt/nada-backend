@@ -1,4 +1,4 @@
-.PHONY: test integration-test local-with-auth local linux-build docker-build docker-push run-local-firestore install-sqlc
+.PHONY: test integration-test local-with-auth local linux-build docker-build docker-push run-postgres-test stop-postgres-test install-sqlc
 DATE = $(shell date "+%Y-%m-%d")
 LAST_COMMIT = $(shell git --no-pager log -1 --pretty=%h)
 VERSION ?= $(DATE)-$(LAST_COMMIT)
@@ -15,11 +15,16 @@ endif
 test:
 	go test ./... -count=1
 
-integration-test:
-	./hack/with_firebase_emulator.sh make test
+integration-test: stop-postgres-test run-postgres-test test
 
-run-local-firestore:
-	gcloud beta emulators firestore start --host-port=localhost:6969
+run-postgres-test:
+	docker run -e POSTGRES_PASSWORD=postgres -e POSTGRES_DB=datakatalogen --rm --name postgres-test -p 5433:5432 -d postgres:12
+
+stop-postgres-test:
+	docker stop postgres-test || echo "okidoki"
+
+run-integration-test:
+	go test ./... -count=1 -tags=integration_test
 
 local-with-auth:
 	go run cmd/backend/main.go \
@@ -50,7 +55,7 @@ local:
 	--state=$(shell gcloud secrets versions access --secret datakatalogen-state latest --project aura-dev-d9f5 | cut -d= -f2)
 
 migrate:
-	go run github.com/pressly/goose/v3/cmd/goose -dir ./backend/database/schema postgres "user=postgres dbname=datakatalogen sslmode=disable password=navikt" up
+	go run github.com/pressly/goose/v3/cmd/goose -dir ./backend/database/migrations postgres "user=postgres dbname=datakatalogen sslmode=disable password=navikt" up
 
 generate: 
 	cd backend && $(GOBIN)/sqlc generate

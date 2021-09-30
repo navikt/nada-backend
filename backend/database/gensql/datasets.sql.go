@@ -103,45 +103,6 @@ func (q *Queries) GetDataset(ctx context.Context, id uuid.UUID) (Dataset, error)
 	return i, err
 }
 
-const getDatasetsForProduct = `-- name: GetDatasetsForProduct :many
-SELECT id, dataproduct_id, name, description, pii, created, last_modified, project_id, dataset, table_name, type FROM datasets WHERE dataproduct_id = $1
-`
-
-func (q *Queries) GetDatasetsForProduct(ctx context.Context, dataproductID uuid.UUID) ([]Dataset, error) {
-	rows, err := q.db.QueryContext(ctx, getDatasetsForProduct, dataproductID)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-	items := []Dataset{}
-	for rows.Next() {
-		var i Dataset
-		if err := rows.Scan(
-			&i.ID,
-			&i.DataproductID,
-			&i.Name,
-			&i.Description,
-			&i.Pii,
-			&i.Created,
-			&i.LastModified,
-			&i.ProjectID,
-			&i.Dataset,
-			&i.TableName,
-			&i.Type,
-		); err != nil {
-			return nil, err
-		}
-		items = append(items, i)
-	}
-	if err := rows.Close(); err != nil {
-		return nil, err
-	}
-	if err := rows.Err(); err != nil {
-		return nil, err
-	}
-	return items, nil
-}
-
 const updateDataset = `-- name: UpdateDataset :one
 UPDATE datasets SET
 	"dataproduct_id" = $1,
