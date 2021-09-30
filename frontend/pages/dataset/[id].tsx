@@ -1,49 +1,54 @@
-import { useRouter } from 'next/router'
+import {useRouter} from 'next/router'
 import useSWR from "swr";
 import DataProductSpinner from "../../components/lib/spinner";
 import PageLayout from "../../components/pageLayout";
 import {DatasetSchema} from "../../lib/schema_types";
 import ReactMarkdown from "react-markdown";
+import ErrorMessage from "../../components/lib/error";
 
 const fetcher = (url: string) => fetch(url).then((res) => res.json())
 
 interface DatasetDetailProps {
-  data: DatasetSchema
+    data: DatasetSchema
+    error: Error
 }
 
-const DatasetDetail = ({data}: DatasetDetailProps) => {
+const DatasetDetail = ({data, error}: DatasetDetailProps) => {
 
-  if (!data) return <DataProductSpinner />
+    if (error) return <ErrorMessage error={error}/>
 
-  return (
-    <div>
-      <h1>{data.name}</h1>
+    if (!data) return <DataProductSpinner/>
 
-      <div>
-        <ReactMarkdown>
-          {data.description || '*ingen beskrivelse*'}
-        </ReactMarkdown>
-      </div>
-      <h3>{data.pii}</h3>
-      <p>
-        {data.bigquery?.project_id + '-' + data.bigquery?.dataset + '-' + data.bigquery?.table}
-      </p>
+    return (
+        <div>
+            <h1>{data.name}</h1>
 
-    </div>
-  )
+            <div>
+                <ReactMarkdown>
+                    {data.description || '*ingen beskrivelse*'}
+                </ReactMarkdown>
+            </div>
+            <h3>{data.pii}</h3>
+            <p>
+                {data.bigquery?.project_id + '-' + data.bigquery?.dataset + '-' + data.bigquery?.table}
+            </p>
+
+        </div>
+    )
 }
 
 const Dataset = () => {
-  const router = useRouter()
-  const { id } = router.query
+    const router = useRouter()
+    const {id} = router.query
 
-  const { data } = useSWR(id ?  `/api/dataset/${id}` : null, fetcher)
+    const {data, error} = useSWR(id ? `/api/dataset/${id}` : null, fetcher)
+    if (error) {console.log(error.toString());}
 
-  return (
-      <PageLayout>
-        <DatasetDetail data={data}/>
-      </PageLayout>
-  )
+    return (
+        <PageLayout>
+            <DatasetDetail data={data} error={error}/>
+        </PageLayout>
+    )
 
 }
 

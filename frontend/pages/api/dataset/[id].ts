@@ -17,7 +17,8 @@ const response: DatasetSchema = {
 }
 
 export const handler = (req: NextApiRequest, res: NextApiResponse) => {
-  res.status(200).json(response)
+  res.status(404)
+  res.send("not found")
 }
 
 export default handler
