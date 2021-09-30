@@ -1,23 +1,22 @@
-import {useRouter} from 'next/router'
-import useSWR from "swr";
-import DataProductSpinner from "../../components/lib/spinner";
-import PageLayout from "../../components/pageLayout";
-import {DatasetSchema} from "../../lib/schema_types";
-import ReactMarkdown from "react-markdown";
-import ErrorMessage from "../../components/lib/error";
-
-const fetcher = (url: string) => fetch(url).then((res) => res.json())
+import { useRouter } from 'next/router'
+import useSWR from "swr"
+import DataProductSpinner from "../../components/lib/spinner"
+import PageLayout from "../../components/pageLayout"
+import { DatasetSchema } from "../../lib/schema_types"
+import ReactMarkdown from "react-markdown"
+import ErrorMessage from "../../components/lib/error"
+import fetcher from '../../lib/fetcher'
 
 interface DatasetDetailProps {
     data: DatasetSchema
-    error: Error
+    error: Error | undefined
 }
 
-const DatasetDetail = ({data, error}: DatasetDetailProps) => {
+const DatasetDetail = ({ data, error }: DatasetDetailProps) => {
 
-    if (error) return <ErrorMessage error={error}/>
+    if (error) return <ErrorMessage error={error} />
 
-    if (!data) return <DataProductSpinner/>
+    if (!data) return <DataProductSpinner />
 
     return (
         <div>
@@ -39,14 +38,13 @@ const DatasetDetail = ({data, error}: DatasetDetailProps) => {
 
 const Dataset = () => {
     const router = useRouter()
-    const {id} = router.query
+    const { id } = router.query
 
-    const {data, error} = useSWR(id ? `/api/dataset/${id}` : null, fetcher)
-    if (error) {console.log(error.toString());}
+    const { data, error } = useSWR<any, Error>(id ? `/api/dataset/${id}` : null, fetcher)
 
     return (
         <PageLayout>
-            <DatasetDetail data={data} error={error}/>
+            <DatasetDetail data={data} error={error} />
         </PageLayout>
     )
 
