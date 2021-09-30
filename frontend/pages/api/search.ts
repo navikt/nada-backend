@@ -42,14 +42,17 @@ const response: SearchResultEntry[] = [
   {
     url: 'Cookie',
     type: 'datapackage',
-    id: 'DPA_1',
-    name: 'DPA 1',
-    excerpt: 'Dette er en lang og fin beskrivelse av det første pakke, som stopper etter... ',
+    id: 'DPA_2',
+    name: 'DPA 2',
+    excerpt: 'Dette er en lang og fin beskrivelse av den andre pakke, som stopper etter... ',
   },
 ]
 
 export const handler = (req: NextApiRequest, res: NextApiResponse) => {
-  res.status(200).json(response)
+  const query = req.query["q"]
+  let filteredResponse  = response.filter((r) => Object.values(r).join().toLowerCase().includes(query))
+
+  res.status(200).json(filteredResponse)
 }
 
 export default handler

@@ -9,7 +9,7 @@ const fetcher = (url: string) => fetch(url).then((res) => res.json())
 
 const SearchPage: NextPage = () => {
   const [query, setQuery] = useState('')
-  const { data, error } = useSWR('api/search', fetcher)
+  const { data, error } = useSWR(`api/search?q=${query}`, fetcher)
 
   return (
     <PageLayout>
