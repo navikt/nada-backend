@@ -19,3 +19,7 @@ func nullStringToPtr(ns sql.NullString) *string {
 
 	return &ns.String
 }
+
+func stringToPtr(s string) *string {
+	return &s
+}

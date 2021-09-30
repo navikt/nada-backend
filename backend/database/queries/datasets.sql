@@ -9,12 +9,20 @@ INSERT INTO datasets (
 	"dataproduct_id",
 	"name",
 	"description",
-	"pii"
+	"pii",
+	"project_id",
+	"dataset",
+	"table_name",
+	"type"
 ) VALUES (
 	@dataproduct_id,
 	@name,
 	@description,
-	@pii
+	@pii,
+	@project_id,
+	@dataset,
+	@table_name,
+	@type
 ) RETURNING *;
 
 -- name: UpdateDataset :one

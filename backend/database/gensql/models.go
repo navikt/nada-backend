@@ -29,4 +29,8 @@ type Dataset struct {
 	Pii           bool
 	Created       time.Time
 	LastModified  time.Time
+	ProjectID     string
+	Dataset       string
+	TableName     string
+	Type          string
 }

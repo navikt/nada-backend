@@ -113,12 +113,34 @@ func (r *Repo) UpdateDataproduct(ctx context.Context, id string, new openapi.New
 		Keywords:    keywords,
 		ID:          uid,
 	})
-
 	if err != nil {
 		return nil, fmt.Errorf("updating dataproduct in database: %w", err)
 	}
 
 	return dataproductFromSQL(res), nil
+}
+
+func (r *Repo) CreateDataset(ctx context.Context, dataproductID string, ds openapi.NewDataset) (*openapi.Dataset, error) {
+	uid, err := uuid.Parse(dataproductID)
+	if err != nil {
+		return nil, fmt.Errorf("parsing uuid: %w", err)
+	}
+
+	res, err := r.querier.CreateDataset(ctx, gensql.CreateDatasetParams{
+		Name:          ds.Name,
+		DataproductID: uid,
+		Description:   ptrToNullString(ds.Description),
+		Pii:           ds.Pii,
+		ProjectID:     ds.Bigquery.ProjectId,
+		Dataset:       ds.Bigquery.Dataset,
+		TableName:     ds.Bigquery.Table,
+		Type:          "bigquery",
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	return datasetFromSQL(res), nil
 }
 
 func dataproductFromSQL(dataproduct gensql.Dataproduct) *openapi.Dataproduct {
@@ -134,5 +156,20 @@ func dataproductFromSQL(dataproduct gensql.Dataproduct) *openapi.Dataproduct {
 		},
 		Repo: nullStringToPtr(dataproduct.Repo),
 		Slug: dataproduct.Slug,
+	}
+}
+
+func datasetFromSQL(dataset gensql.Dataset) *openapi.Dataset {
+	return &openapi.Dataset{
+		Id:            dataset.ID.String(),
+		DataproductId: dataset.DataproductID.String(),
+		Name:          dataset.Name,
+		Description:   nullStringToPtr(dataset.Description),
+		Pii:           dataset.Pii,
+		Bigquery: openapi.BigQuery{
+			ProjectId: dataset.ProjectID,
+			Dataset:   dataset.Dataset,
+			Table:     dataset.TableName,
+		},
 	}
 }

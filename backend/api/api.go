@@ -105,9 +105,10 @@ func (s *Server) UpdateDataproduct(w http.ResponseWriter, r *http.Request, datap
 	}
 }
 
-// (GET /dataproducts/{dataproduct_id}/datasets)
-func (s *Server) GetDatasets(w http.ResponseWriter, r *http.Request, dataproductId string) {
-}
+// GetDatasets (GET /dataproducts/{dataproduct_id}/datasets)
+//func (s *Server) GetDatasets(w http.ResponseWriter, r *http.Request, dataproductId string) {
+//	datasets, err := s.repo.GetDatasets(r.Context(), dataproductId)
+//}
 
 // (POST /dataproducts/{dataproduct_id}/datasets)
 func (s *Server) CreateDataset(w http.ResponseWriter, r *http.Request, dataproductId string) {

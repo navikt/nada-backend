@@ -64,6 +64,20 @@ components:
       required:
         - team
 
+    BigQuery:
+      type: object
+      properties:
+        project_id:
+          type: string
+        dataset:
+          type: string
+        table:
+          type: string
+      required:
+        - project_id
+        - dataset
+        - table
+
     NewDataproduct:
       type: object
       properties:
@@ -99,18 +113,13 @@ components:
         pii:
           type: boolean
         bigquery:
-          type: object
-          properties:
-            project_id:
-              type: string
-            dataset:
-              type: string
-            table:
-              type: string
-          required:
-            - project_id
-            - dataset
-            - table
+          $ref: "#/components/schemas/BigQuery"
+      required:
+        - id
+        - name
+        - pii
+        - dataproduct_id
+        - bigquery
 
     NewDataset:
       type: object
@@ -122,22 +131,13 @@ components:
         pii:
           type: boolean
         bigquery:
-          type: object
-          properties:
-            project_id:
-              type: string
-            dataset:
-              type: string
-            table:
-              type: string
-          required:
-            - project_id
-            - dataset
-            - table
+          $ref: "#/components/schemas/BigQuery"
       required:
         - name
         - pii
         - bigquery # Update this to a oneOf when we have more than bigquery
+
+
     SearchResultEntry:
       type: object
       properties:

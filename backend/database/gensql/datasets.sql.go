@@ -15,13 +15,21 @@ INSERT INTO datasets (
 	"dataproduct_id",
 	"name",
 	"description",
-	"pii"
+	"pii",
+	"project_id",
+	"dataset",
+	"table_name",
+	"type"
 ) VALUES (
 	$1,
 	$2,
 	$3,
-	$4
-) RETURNING id, dataproduct_id, name, description, pii, created, last_modified
+	$4,
+	$5,
+	$6,
+	$7,
+	$8
+) RETURNING id, dataproduct_id, name, description, pii, created, last_modified, project_id, dataset, table_name, type
 `
 
 type CreateDatasetParams struct {
@@ -29,6 +37,10 @@ type CreateDatasetParams struct {
 	Name          string
 	Description   sql.NullString
 	Pii           bool
+	ProjectID     string
+	Dataset       string
+	TableName     string
+	Type          string
 }
 
 func (q *Queries) CreateDataset(ctx context.Context, arg CreateDatasetParams) (Dataset, error) {
@@ -37,6 +49,10 @@ func (q *Queries) CreateDataset(ctx context.Context, arg CreateDatasetParams) (D
 		arg.Name,
 		arg.Description,
 		arg.Pii,
+		arg.ProjectID,
+		arg.Dataset,
+		arg.TableName,
+		arg.Type,
 	)
 	var i Dataset
 	err := row.Scan(
@@ -47,6 +63,10 @@ func (q *Queries) CreateDataset(ctx context.Context, arg CreateDatasetParams) (D
 		&i.Pii,
 		&i.Created,
 		&i.LastModified,
+		&i.ProjectID,
+		&i.Dataset,
+		&i.TableName,
+		&i.Type,
 	)
 	return i, err
 }
@@ -61,7 +81,7 @@ func (q *Queries) DeleteDataset(ctx context.Context, id uuid.UUID) error {
 }
 
 const getDatasets = `-- name: GetDatasets :many
-SELECT id, dataproduct_id, name, description, pii, created, last_modified FROM datasets WHERE dataproduct_id = $1
+SELECT id, dataproduct_id, name, description, pii, created, last_modified, project_id, dataset, table_name, type FROM datasets WHERE dataproduct_id = $1
 `
 
 func (q *Queries) GetDatasets(ctx context.Context, dataproductID uuid.UUID) ([]Dataset, error) {
@@ -81,6 +101,10 @@ func (q *Queries) GetDatasets(ctx context.Context, dataproductID uuid.UUID) ([]D
 			&i.Pii,
 			&i.Created,
 			&i.LastModified,
+			&i.ProjectID,
+			&i.Dataset,
+			&i.TableName,
+			&i.Type,
 		); err != nil {
 			return nil, err
 		}
@@ -102,7 +126,7 @@ UPDATE datasets SET
 	"description" = $3,
 	"pii" = $4
 WHERE id = $5
-RETURNING id, dataproduct_id, name, description, pii, created, last_modified
+RETURNING id, dataproduct_id, name, description, pii, created, last_modified, project_id, dataset, table_name, type
 `
 
 type UpdateDatasetParams struct {
@@ -130,6 +154,10 @@ func (q *Queries) UpdateDataset(ctx context.Context, arg UpdateDatasetParams) (D
 		&i.Pii,
 		&i.Created,
 		&i.LastModified,
+		&i.ProjectID,
+		&i.Dataset,
+		&i.TableName,
+		&i.Type,
 	)
 	return i, err
 }

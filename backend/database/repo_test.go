@@ -61,7 +61,7 @@ func TestRepo(t *testing.T) {
 		Name:        res.Name,
 		Description: &desc,
 		Owner:       res.Owner,
-		Keyword:     res.Keyword,
+		Keywords:    res.Keywords,
 		Repo:        res.Repo,
 	})
 	if err != nil {
@@ -75,6 +75,17 @@ func TestRepo(t *testing.T) {
 	if *updatedRes.Description != desc {
 		t.Fatal("desc ble ikke oppdatert")
 	}
+
+	dataset, err := repo.CreateDataset(context.Background(), updatedRes.Id, openapi.NewDataset{
+		Name:        "My dataset",
+		Description: stringToPtr("This is my dataset"),
+		Pii:         false,
+		Bigquery: openapi.BigQuery{
+			ProjectId: "dataplattform-dev-9da3",
+			Dataset:   "ereg",
+			Table:     "ereg",
+		},
+	})
 
 	if err = repo.DeleteDataproduct(context.Background(), res.Id); err != nil {
 		t.Fatal(err)

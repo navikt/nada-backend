@@ -7,6 +7,10 @@ CREATE TABLE datasets (
     "pii" BOOLEAN NOT NULL,
     "created" TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     "last_modified" TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    "project_id" TEXT NOT NULL,
+    "dataset" TEXT NOT NULL,
+    "table_name" TEXT NOT NULL,
+    "type" TEXT NOT NULL,
     PRIMARY KEY(id),
 		CONSTRAINT fk_dataproduct
 			FOREIGN KEY(dataproduct_id)
