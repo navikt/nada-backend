@@ -36,9 +36,9 @@ func (s *Server) GetDataproducts(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-// GetDataproduct (GET /dataproducts/{dataproduct_id})
-func (s *Server) GetDataproduct(w http.ResponseWriter, r *http.Request, dataproductId string) {
-	dataproduct, err := s.repo.GetDataproduct(r.Context(), dataproductId)
+// GetDataproduct (GET /dataproducts/{id})
+func (s *Server) GetDataproduct(w http.ResponseWriter, r *http.Request, id string) {
+	dataproduct, err := s.repo.GetDataproduct(r.Context(), id)
 	if err != nil {
 		s.log.WithError(err).Error("Getting dataproduct")
 		http.Error(w, "uh oh", http.StatusInternalServerError)
@@ -73,9 +73,9 @@ func (s *Server) CreateDataproduct(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-// DeleteDataproduct (DELETE /dataproducts/{dataproduct_id})
-func (s *Server) DeleteDataproduct(w http.ResponseWriter, r *http.Request, dataproductId string) {
-	if err := s.repo.DeleteDataproduct(r.Context(), dataproductId); err != nil {
+// DeleteDataproduct (DELETE /dataproducts/{id})
+func (s *Server) DeleteDataproduct(w http.ResponseWriter, r *http.Request, id string) {
+	if err := s.repo.DeleteDataproduct(r.Context(), id); err != nil {
 		s.log.WithError(err).Error("Deleting dataproduct")
 		return
 	}
@@ -83,8 +83,8 @@ func (s *Server) DeleteDataproduct(w http.ResponseWriter, r *http.Request, datap
 	w.WriteHeader(http.StatusNoContent)
 }
 
-// UpdateDataproduct (PUT /dataproducts/{dataproduct_id})
-func (s *Server) UpdateDataproduct(w http.ResponseWriter, r *http.Request, dataproductId string) {
+// UpdateDataproduct (PUT /dataproducts/{id})
+func (s *Server) UpdateDataproduct(w http.ResponseWriter, r *http.Request, id string) {
 	var newDataproduct openapi.NewDataproduct
 	if err := json.NewDecoder(r.Body).Decode(&newDataproduct); err != nil {
 		s.log.WithError(err).Info("Decoding newDataproduct")
@@ -92,7 +92,7 @@ func (s *Server) UpdateDataproduct(w http.ResponseWriter, r *http.Request, datap
 		return
 	}
 
-	dataproduct, err := s.repo.UpdateDataproduct(r.Context(), dataproductId, newDataproduct)
+	dataproduct, err := s.repo.UpdateDataproduct(r.Context(), id, newDataproduct)
 	if err != nil {
 		s.log.WithError(err).Error("Updating dataproduct")
 		http.Error(w, "uh oh", http.StatusInternalServerError)
@@ -107,25 +107,8 @@ func (s *Server) UpdateDataproduct(w http.ResponseWriter, r *http.Request, datap
 	}
 }
 
-// GetDatasetsForDataproduct (GET /dataproducts/{dataproduct_id}/datasets)
-func (s *Server) GetDatasetsForDataproduct(w http.ResponseWriter, r *http.Request, dataproductId string) {
-	datasets, err := s.repo.GetDatasetsForDataproduct(r.Context(), dataproductId)
-	if err != nil {
-		s.log.WithError(err).Error("Getting datasets for dataproduct")
-		http.Error(w, "uh oh", http.StatusInternalServerError)
-		return
-	}
-
-	w.Header().Add("Content-Type", "application/json")
-	if err := json.NewEncoder(w).Encode(datasets); err != nil {
-		s.log.WithError(err).Error("Encoding datasets as JSON")
-		http.Error(w, "uh oh", http.StatusInternalServerError)
-		return
-	}
-}
-
-// CreateDataset (POST /dataproducts/{dataproduct_id}/datasets)
-func (s *Server) CreateDataset(w http.ResponseWriter, r *http.Request, dataproductId string) {
+// CreateDataset (POST /datasets)
+func (s *Server) CreateDataset(w http.ResponseWriter, r *http.Request) {
 	var newDataset openapi.NewDataset
 	if err := json.NewDecoder(r.Body).Decode(&newDataset); err != nil {
 		s.log.WithError(err).Info("Decoding newDataset")
@@ -133,7 +116,7 @@ func (s *Server) CreateDataset(w http.ResponseWriter, r *http.Request, dataprodu
 		return
 	}
 
-	dataset, err := s.repo.CreateDataset(r.Context(), dataproductId, newDataset)
+	dataset, err := s.repo.CreateDataset(r.Context(), newDataset)
 	if err != nil {
 		s.log.WithError(err).Error("Creating dataset")
 		http.Error(w, "uh oh", http.StatusInternalServerError)
@@ -148,9 +131,9 @@ func (s *Server) CreateDataset(w http.ResponseWriter, r *http.Request, dataprodu
 	}
 }
 
-// DeleteDataset (DELETE /dataproducts/{dataproduct_id}/datasets/{dataset_id})
-func (s *Server) DeleteDataset(w http.ResponseWriter, r *http.Request, dataproductId string, datasetId string) {
-	if err := s.repo.DeleteDataset(r.Context(), datasetId); err != nil {
+// DeleteDataset (DELETE /datasets/{id})
+func (s *Server) DeleteDataset(w http.ResponseWriter, r *http.Request, id string) {
+	if err := s.repo.DeleteDataset(r.Context(), id); err != nil {
 		s.log.WithError(err).Error("Deleting dataset")
 		http.Error(w, "uh oh", http.StatusInternalServerError)
 		return
@@ -159,9 +142,9 @@ func (s *Server) DeleteDataset(w http.ResponseWriter, r *http.Request, dataprodu
 	w.WriteHeader(http.StatusNoContent)
 }
 
-// GetDataset (GET /dataproducts/{dataproduct_id}/datasets/{dataset_id})
-func (s *Server) GetDataset(w http.ResponseWriter, r *http.Request, dataproductId string, datasetId string) {
-	dataset, err := s.repo.GetDataset(r.Context(), datasetId)
+// GetDataset (GET /datasets/{id})
+func (s *Server) GetDataset(w http.ResponseWriter, r *http.Request, id string) {
+	dataset, err := s.repo.GetDataset(r.Context(), id)
 	if err != nil {
 		s.log.WithError(err).Error("Get dataset")
 		http.Error(w, "uh oh", http.StatusInternalServerError)
@@ -176,8 +159,8 @@ func (s *Server) GetDataset(w http.ResponseWriter, r *http.Request, dataproductI
 	}
 }
 
-// UpdateDataset (PUT /dataproducts/{dataproduct_id}/datasets/{dataset_id})
-func (s *Server) UpdateDataset(w http.ResponseWriter, r *http.Request, dataproductId string, datasetId string) {
+// UpdateDataset (PUT /datasets/{id})
+func (s *Server) UpdateDataset(w http.ResponseWriter, r *http.Request, id string) {
 	var newDataset openapi.NewDataset
 	if err := json.NewDecoder(r.Body).Decode(&newDataset); err != nil {
 		s.log.WithError(err).Info("Decoding newDataset")
@@ -185,7 +168,7 @@ func (s *Server) UpdateDataset(w http.ResponseWriter, r *http.Request, dataprodu
 		return
 	}
 
-	dataset, err := s.repo.UpdateDataset(r.Context(), dataproductId, datasetId, newDataset)
+	dataset, err := s.repo.UpdateDataset(r.Context(), id, newDataset)
 	if err != nil {
 		s.log.WithError(err).Error("Updating dataset")
 		http.Error(w, "uh oh", http.StatusInternalServerError)

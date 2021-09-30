@@ -128,12 +128,15 @@ components:
           type: string
         description:
           type: string
+        dataproduct_id:
+          type: string
         pii:
           type: boolean
         bigquery:
           $ref: "#/components/schemas/BigQuery"
       required:
         - name
+        - dataproduct_id
         - pii
         - bigquery # Update this to a oneOf when we have more than bigquery
 
@@ -186,13 +189,13 @@ paths:
               schema:
                 $ref: "#/components/schemas/Dataproduct"
 
-  /dataproducts/{dataproduct_id}:
+  /dataproducts/{id}:
     get:
       description: "List a dataproduct with datasets"
       operationId: "getDataproduct"
       parameters:
         - in: path
-          name: dataproduct_id
+          name: id
           description: Dataproduct ID
           required: true
           schema:
@@ -211,7 +214,7 @@ paths:
       operationId: "deleteDataproduct"
       parameters:
         - in: path
-          name: dataproduct_id
+          name: id
           description: Dataproduct ID
           required: true
           schema:
@@ -224,7 +227,7 @@ paths:
       operationId: "updateDataproduct"
       parameters:
         - in: path
-          name: dataproduct_id
+          name: id
           description: Dataproduct ID
           required: true
           schema:
@@ -241,37 +244,11 @@ paths:
             "application/json":
               schema:
                 $ref: "#/components/schemas/Dataproduct"
-
-  /dataproducts/{dataproduct_id}/datasets:
-    get:
-      description: "List all datasets for a dataproduct"
-      operationId: "getDatasetsForDataproduct"
-      parameters:
-        - in: path
-          name: dataproduct_id
-          description: Dataproduct ID
-          required: true
-          schema:
-            type: string
-      responses:
-        "200":
-          description: OK
-          content:
-            "application/json":
-              schema:
-                type: array
-                items:
-                  $ref: "#/components/schemas/Dataset"
+  
+  /datasets:
     post:
       description: "Create a new dataset"
       operationId: "createDataset"
-      parameters:
-        - in: path
-          name: dataproduct_id
-          description: Dataproduct ID
-          required: true
-          schema:
-            type: string
       requestBody:
         content:
           "application/json":
@@ -285,19 +262,13 @@ paths:
               schema:
                 $ref: "#/components/schemas/Dataset"
 
-  /dataproducts/{dataproduct_id}/datasets/{dataset_id}:
+  /datasets/{id}:
     get:
       description: "Get dataset"
       operationId: "getDataset"
       parameters:
         - in: path
-          name: dataproduct_id
-          description: Dataproduct ID
-          required: true
-          schema:
-            type: string
-        - in: path
-          name: dataset_id
+          name: id
           description: Dataset ID
           required: true
           schema:
@@ -314,13 +285,7 @@ paths:
       operationId: "updateDataset"
       parameters:
         - in: path
-          name: dataproduct_id
-          description: Dataproduct ID
-          required: true
-          schema:
-            type: string
-        - in: path
-          name: dataset_id
+          name: id
           description: Dataset ID
           required: true
           schema:
@@ -342,13 +307,7 @@ paths:
       operationId: "deleteDataset"
       parameters:
         - in: path
-          name: dataproduct_id
-          description: Dataproduct ID
-          required: true
-          schema:
-            type: string
-        - in: path
-          name: dataset_id
+          name: id
           description: Dataset ID
           required: true
           schema:

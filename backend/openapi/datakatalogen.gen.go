@@ -82,10 +82,11 @@ type NewDataproduct struct {
 
 // NewDataset defines model for NewDataset.
 type NewDataset struct {
-	Bigquery    BigQuery `json:"bigquery"`
-	Description *string  `json:"description,omitempty"`
-	Name        string   `json:"name"`
-	Pii         bool     `json:"pii"`
+	Bigquery      BigQuery `json:"bigquery"`
+	DataproductId string   `json:"dataproduct_id"`
+	Description   *string  `json:"description,omitempty"`
+	Name          string   `json:"name"`
+	Pii           bool     `json:"pii"`
 }
 
 // Owner defines model for Owner.
@@ -144,29 +145,26 @@ type ServerInterface interface {
 	// (POST /dataproducts)
 	CreateDataproduct(w http.ResponseWriter, r *http.Request)
 
-	// (DELETE /dataproducts/{dataproduct_id})
-	DeleteDataproduct(w http.ResponseWriter, r *http.Request, dataproductId string)
+	// (DELETE /dataproducts/{id})
+	DeleteDataproduct(w http.ResponseWriter, r *http.Request, id string)
 
-	// (GET /dataproducts/{dataproduct_id})
-	GetDataproduct(w http.ResponseWriter, r *http.Request, dataproductId string)
+	// (GET /dataproducts/{id})
+	GetDataproduct(w http.ResponseWriter, r *http.Request, id string)
 
-	// (PUT /dataproducts/{dataproduct_id})
-	UpdateDataproduct(w http.ResponseWriter, r *http.Request, dataproductId string)
+	// (PUT /dataproducts/{id})
+	UpdateDataproduct(w http.ResponseWriter, r *http.Request, id string)
 
-	// (GET /dataproducts/{dataproduct_id}/datasets)
-	GetDatasetsForDataproduct(w http.ResponseWriter, r *http.Request, dataproductId string)
+	// (POST /datasets)
+	CreateDataset(w http.ResponseWriter, r *http.Request)
 
-	// (POST /dataproducts/{dataproduct_id}/datasets)
-	CreateDataset(w http.ResponseWriter, r *http.Request, dataproductId string)
+	// (DELETE /datasets/{id})
+	DeleteDataset(w http.ResponseWriter, r *http.Request, id string)
 
-	// (DELETE /dataproducts/{dataproduct_id}/datasets/{dataset_id})
-	DeleteDataset(w http.ResponseWriter, r *http.Request, dataproductId string, datasetId string)
+	// (GET /datasets/{id})
+	GetDataset(w http.ResponseWriter, r *http.Request, id string)
 
-	// (GET /dataproducts/{dataproduct_id}/datasets/{dataset_id})
-	GetDataset(w http.ResponseWriter, r *http.Request, dataproductId string, datasetId string)
-
-	// (PUT /dataproducts/{dataproduct_id}/datasets/{dataset_id})
-	UpdateDataset(w http.ResponseWriter, r *http.Request, dataproductId string, datasetId string)
+	// (PUT /datasets/{id})
+	UpdateDataset(w http.ResponseWriter, r *http.Request, id string)
 
 	// (GET /search)
 	Search(w http.ResponseWriter, r *http.Request, params SearchParams)
@@ -216,17 +214,17 @@ func (siw *ServerInterfaceWrapper) DeleteDataproduct(w http.ResponseWriter, r *h
 
 	var err error
 
-	// ------------- Path parameter "dataproduct_id" -------------
-	var dataproductId string
+	// ------------- Path parameter "id" -------------
+	var id string
 
-	err = runtime.BindStyledParameter("simple", false, "dataproduct_id", chi.URLParam(r, "dataproduct_id"), &dataproductId)
+	err = runtime.BindStyledParameter("simple", false, "id", chi.URLParam(r, "id"), &id)
 	if err != nil {
-		http.Error(w, fmt.Sprintf("Invalid format for parameter dataproduct_id: %s", err), http.StatusBadRequest)
+		http.Error(w, fmt.Sprintf("Invalid format for parameter id: %s", err), http.StatusBadRequest)
 		return
 	}
 
 	var handler = func(w http.ResponseWriter, r *http.Request) {
-		siw.Handler.DeleteDataproduct(w, r, dataproductId)
+		siw.Handler.DeleteDataproduct(w, r, id)
 	}
 
 	for _, middleware := range siw.HandlerMiddlewares {
@@ -242,17 +240,17 @@ func (siw *ServerInterfaceWrapper) GetDataproduct(w http.ResponseWriter, r *http
 
 	var err error
 
-	// ------------- Path parameter "dataproduct_id" -------------
-	var dataproductId string
+	// ------------- Path parameter "id" -------------
+	var id string
 
-	err = runtime.BindStyledParameter("simple", false, "dataproduct_id", chi.URLParam(r, "dataproduct_id"), &dataproductId)
+	err = runtime.BindStyledParameter("simple", false, "id", chi.URLParam(r, "id"), &id)
 	if err != nil {
-		http.Error(w, fmt.Sprintf("Invalid format for parameter dataproduct_id: %s", err), http.StatusBadRequest)
+		http.Error(w, fmt.Sprintf("Invalid format for parameter id: %s", err), http.StatusBadRequest)
 		return
 	}
 
 	var handler = func(w http.ResponseWriter, r *http.Request) {
-		siw.Handler.GetDataproduct(w, r, dataproductId)
+		siw.Handler.GetDataproduct(w, r, id)
 	}
 
 	for _, middleware := range siw.HandlerMiddlewares {
@@ -268,43 +266,17 @@ func (siw *ServerInterfaceWrapper) UpdateDataproduct(w http.ResponseWriter, r *h
 
 	var err error
 
-	// ------------- Path parameter "dataproduct_id" -------------
-	var dataproductId string
+	// ------------- Path parameter "id" -------------
+	var id string
 
-	err = runtime.BindStyledParameter("simple", false, "dataproduct_id", chi.URLParam(r, "dataproduct_id"), &dataproductId)
+	err = runtime.BindStyledParameter("simple", false, "id", chi.URLParam(r, "id"), &id)
 	if err != nil {
-		http.Error(w, fmt.Sprintf("Invalid format for parameter dataproduct_id: %s", err), http.StatusBadRequest)
+		http.Error(w, fmt.Sprintf("Invalid format for parameter id: %s", err), http.StatusBadRequest)
 		return
 	}
 
 	var handler = func(w http.ResponseWriter, r *http.Request) {
-		siw.Handler.UpdateDataproduct(w, r, dataproductId)
-	}
-
-	for _, middleware := range siw.HandlerMiddlewares {
-		handler = middleware(handler)
-	}
-
-	handler(w, r.WithContext(ctx))
-}
-
-// GetDatasetsForDataproduct operation middleware
-func (siw *ServerInterfaceWrapper) GetDatasetsForDataproduct(w http.ResponseWriter, r *http.Request) {
-	ctx := r.Context()
-
-	var err error
-
-	// ------------- Path parameter "dataproduct_id" -------------
-	var dataproductId string
-
-	err = runtime.BindStyledParameter("simple", false, "dataproduct_id", chi.URLParam(r, "dataproduct_id"), &dataproductId)
-	if err != nil {
-		http.Error(w, fmt.Sprintf("Invalid format for parameter dataproduct_id: %s", err), http.StatusBadRequest)
-		return
-	}
-
-	var handler = func(w http.ResponseWriter, r *http.Request) {
-		siw.Handler.GetDatasetsForDataproduct(w, r, dataproductId)
+		siw.Handler.UpdateDataproduct(w, r, id)
 	}
 
 	for _, middleware := range siw.HandlerMiddlewares {
@@ -318,19 +290,8 @@ func (siw *ServerInterfaceWrapper) GetDatasetsForDataproduct(w http.ResponseWrit
 func (siw *ServerInterfaceWrapper) CreateDataset(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 
-	var err error
-
-	// ------------- Path parameter "dataproduct_id" -------------
-	var dataproductId string
-
-	err = runtime.BindStyledParameter("simple", false, "dataproduct_id", chi.URLParam(r, "dataproduct_id"), &dataproductId)
-	if err != nil {
-		http.Error(w, fmt.Sprintf("Invalid format for parameter dataproduct_id: %s", err), http.StatusBadRequest)
-		return
-	}
-
 	var handler = func(w http.ResponseWriter, r *http.Request) {
-		siw.Handler.CreateDataset(w, r, dataproductId)
+		siw.Handler.CreateDataset(w, r)
 	}
 
 	for _, middleware := range siw.HandlerMiddlewares {
@@ -346,26 +307,17 @@ func (siw *ServerInterfaceWrapper) DeleteDataset(w http.ResponseWriter, r *http.
 
 	var err error
 
-	// ------------- Path parameter "dataproduct_id" -------------
-	var dataproductId string
+	// ------------- Path parameter "id" -------------
+	var id string
 
-	err = runtime.BindStyledParameter("simple", false, "dataproduct_id", chi.URLParam(r, "dataproduct_id"), &dataproductId)
+	err = runtime.BindStyledParameter("simple", false, "id", chi.URLParam(r, "id"), &id)
 	if err != nil {
-		http.Error(w, fmt.Sprintf("Invalid format for parameter dataproduct_id: %s", err), http.StatusBadRequest)
-		return
-	}
-
-	// ------------- Path parameter "dataset_id" -------------
-	var datasetId string
-
-	err = runtime.BindStyledParameter("simple", false, "dataset_id", chi.URLParam(r, "dataset_id"), &datasetId)
-	if err != nil {
-		http.Error(w, fmt.Sprintf("Invalid format for parameter dataset_id: %s", err), http.StatusBadRequest)
+		http.Error(w, fmt.Sprintf("Invalid format for parameter id: %s", err), http.StatusBadRequest)
 		return
 	}
 
 	var handler = func(w http.ResponseWriter, r *http.Request) {
-		siw.Handler.DeleteDataset(w, r, dataproductId, datasetId)
+		siw.Handler.DeleteDataset(w, r, id)
 	}
 
 	for _, middleware := range siw.HandlerMiddlewares {
@@ -381,26 +333,17 @@ func (siw *ServerInterfaceWrapper) GetDataset(w http.ResponseWriter, r *http.Req
 
 	var err error
 
-	// ------------- Path parameter "dataproduct_id" -------------
-	var dataproductId string
+	// ------------- Path parameter "id" -------------
+	var id string
 
-	err = runtime.BindStyledParameter("simple", false, "dataproduct_id", chi.URLParam(r, "dataproduct_id"), &dataproductId)
+	err = runtime.BindStyledParameter("simple", false, "id", chi.URLParam(r, "id"), &id)
 	if err != nil {
-		http.Error(w, fmt.Sprintf("Invalid format for parameter dataproduct_id: %s", err), http.StatusBadRequest)
-		return
-	}
-
-	// ------------- Path parameter "dataset_id" -------------
-	var datasetId string
-
-	err = runtime.BindStyledParameter("simple", false, "dataset_id", chi.URLParam(r, "dataset_id"), &datasetId)
-	if err != nil {
-		http.Error(w, fmt.Sprintf("Invalid format for parameter dataset_id: %s", err), http.StatusBadRequest)
+		http.Error(w, fmt.Sprintf("Invalid format for parameter id: %s", err), http.StatusBadRequest)
 		return
 	}
 
 	var handler = func(w http.ResponseWriter, r *http.Request) {
-		siw.Handler.GetDataset(w, r, dataproductId, datasetId)
+		siw.Handler.GetDataset(w, r, id)
 	}
 
 	for _, middleware := range siw.HandlerMiddlewares {
@@ -416,26 +359,17 @@ func (siw *ServerInterfaceWrapper) UpdateDataset(w http.ResponseWriter, r *http.
 
 	var err error
 
-	// ------------- Path parameter "dataproduct_id" -------------
-	var dataproductId string
+	// ------------- Path parameter "id" -------------
+	var id string
 
-	err = runtime.BindStyledParameter("simple", false, "dataproduct_id", chi.URLParam(r, "dataproduct_id"), &dataproductId)
+	err = runtime.BindStyledParameter("simple", false, "id", chi.URLParam(r, "id"), &id)
 	if err != nil {
-		http.Error(w, fmt.Sprintf("Invalid format for parameter dataproduct_id: %s", err), http.StatusBadRequest)
-		return
-	}
-
-	// ------------- Path parameter "dataset_id" -------------
-	var datasetId string
-
-	err = runtime.BindStyledParameter("simple", false, "dataset_id", chi.URLParam(r, "dataset_id"), &datasetId)
-	if err != nil {
-		http.Error(w, fmt.Sprintf("Invalid format for parameter dataset_id: %s", err), http.StatusBadRequest)
+		http.Error(w, fmt.Sprintf("Invalid format for parameter id: %s", err), http.StatusBadRequest)
 		return
 	}
 
 	var handler = func(w http.ResponseWriter, r *http.Request) {
-		siw.Handler.UpdateDataset(w, r, dataproductId, datasetId)
+		siw.Handler.UpdateDataset(w, r, id)
 	}
 
 	for _, middleware := range siw.HandlerMiddlewares {
@@ -520,28 +454,25 @@ func HandlerWithOptions(si ServerInterface, options ChiServerOptions) http.Handl
 		r.Post(options.BaseURL+"/dataproducts", wrapper.CreateDataproduct)
 	})
 	r.Group(func(r chi.Router) {
-		r.Delete(options.BaseURL+"/dataproducts/{dataproduct_id}", wrapper.DeleteDataproduct)
+		r.Delete(options.BaseURL+"/dataproducts/{id}", wrapper.DeleteDataproduct)
 	})
 	r.Group(func(r chi.Router) {
-		r.Get(options.BaseURL+"/dataproducts/{dataproduct_id}", wrapper.GetDataproduct)
+		r.Get(options.BaseURL+"/dataproducts/{id}", wrapper.GetDataproduct)
 	})
 	r.Group(func(r chi.Router) {
-		r.Put(options.BaseURL+"/dataproducts/{dataproduct_id}", wrapper.UpdateDataproduct)
+		r.Put(options.BaseURL+"/dataproducts/{id}", wrapper.UpdateDataproduct)
 	})
 	r.Group(func(r chi.Router) {
-		r.Get(options.BaseURL+"/dataproducts/{dataproduct_id}/datasets", wrapper.GetDatasetsForDataproduct)
+		r.Post(options.BaseURL+"/datasets", wrapper.CreateDataset)
 	})
 	r.Group(func(r chi.Router) {
-		r.Post(options.BaseURL+"/dataproducts/{dataproduct_id}/datasets", wrapper.CreateDataset)
+		r.Delete(options.BaseURL+"/datasets/{id}", wrapper.DeleteDataset)
 	})
 	r.Group(func(r chi.Router) {
-		r.Delete(options.BaseURL+"/dataproducts/{dataproduct_id}/datasets/{dataset_id}", wrapper.DeleteDataset)
+		r.Get(options.BaseURL+"/datasets/{id}", wrapper.GetDataset)
 	})
 	r.Group(func(r chi.Router) {
-		r.Get(options.BaseURL+"/dataproducts/{dataproduct_id}/datasets/{dataset_id}", wrapper.GetDataset)
-	})
-	r.Group(func(r chi.Router) {
-		r.Put(options.BaseURL+"/dataproducts/{dataproduct_id}/datasets/{dataset_id}", wrapper.UpdateDataset)
+		r.Put(options.BaseURL+"/datasets/{id}", wrapper.UpdateDataset)
 	})
 	r.Group(func(r chi.Router) {
 		r.Get(options.BaseURL+"/search", wrapper.Search)
@@ -553,22 +484,22 @@ func HandlerWithOptions(si ServerInterface, options ChiServerOptions) http.Handl
 // Base64 encoded, gzipped, json marshaled Swagger object
 var swaggerSpec = []string{
 
-	"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",
+	"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",
+	"0Gh+k/qh/jcAAP//uthZOiUVAAA=",
 }
 
 // GetSwagger returns the content of the embedded swagger specification file
