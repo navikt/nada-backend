@@ -46,7 +46,7 @@ func (s *Server) GetDataproduct(w http.ResponseWriter, r *http.Request, dataprod
 	}
 
 	w.Header().Add("Content-Type", "application/json")
-	if err = json.NewEncoder(w).Encode(dataproduct); err != nil {
+	if err := json.NewEncoder(w).Encode(dataproduct); err != nil {
 		s.log.WithError(err).Error("Encoding dataproduct as JSON")
 	}
 }
@@ -68,7 +68,7 @@ func (s *Server) CreateDataproduct(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.Header().Add("Content-Type", "application/json")
-	if err = json.NewEncoder(w).Encode(dataproduct); err != nil {
+	if err := json.NewEncoder(w).Encode(dataproduct); err != nil {
 		s.log.WithError(err).Error("Encoding dataproduct as JSON")
 	}
 }
@@ -124,7 +124,7 @@ func (s *Server) GetDatasetsForDataproduct(w http.ResponseWriter, r *http.Reques
 	}
 }
 
-// (POST /dataproducts/{dataproduct_id}/datasets)
+// CreateDataset (POST /dataproducts/{dataproduct_id}/datasets)
 func (s *Server) CreateDataset(w http.ResponseWriter, r *http.Request, dataproductId string) {
 	var newDataset openapi.NewDataset
 	if err := json.NewDecoder(r.Body).Decode(&newDataset); err != nil {
@@ -148,16 +148,56 @@ func (s *Server) CreateDataset(w http.ResponseWriter, r *http.Request, dataprodu
 	}
 }
 
-// (DELETE /dataproducts/{dataproduct_id}/datasets/{dataset_id})
+// DeleteDataset (DELETE /dataproducts/{dataproduct_id}/datasets/{dataset_id})
 func (s *Server) DeleteDataset(w http.ResponseWriter, r *http.Request, dataproductId string, datasetId string) {
+	if err := s.repo.DeleteDataset(r.Context(), datasetId); err != nil {
+		s.log.WithError(err).Error("Deleting dataset")
+		http.Error(w, "uh oh", http.StatusInternalServerError)
+		return
+	}
+
+	w.WriteHeader(http.StatusNoContent)
 }
 
-// (GET /dataproducts/{dataproduct_id}/datasets/{dataset_id})
+// GetDataset (GET /dataproducts/{dataproduct_id}/datasets/{dataset_id})
 func (s *Server) GetDataset(w http.ResponseWriter, r *http.Request, dataproductId string, datasetId string) {
+	dataset, err := s.repo.GetDataset(r.Context(), datasetId)
+	if err != nil {
+		s.log.WithError(err).Error("Get dataset")
+		http.Error(w, "uh oh", http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Add("Content-Type", "application/json")
+	if err := json.NewEncoder(w).Encode(dataset); err != nil {
+		s.log.WithError(err).Error("Encoding dataset as JSON")
+		http.Error(w, "uh oh", http.StatusInternalServerError)
+		return
+	}
 }
 
-// (PUT /dataproducts/{dataproduct_id}/datasets/{dataset_id})
+// UpdateDataset (PUT /dataproducts/{dataproduct_id}/datasets/{dataset_id})
 func (s *Server) UpdateDataset(w http.ResponseWriter, r *http.Request, dataproductId string, datasetId string) {
+	var newDataset openapi.NewDataset
+	if err := json.NewDecoder(r.Body).Decode(&newDataset); err != nil {
+		s.log.WithError(err).Info("Decoding newDataset")
+		http.Error(w, "invalid JSON object", http.StatusBadRequest)
+		return
+	}
+
+	dataset, err := s.repo.UpdateDataset(r.Context(), dataproductId, datasetId, newDataset)
+	if err != nil {
+		s.log.WithError(err).Error("Updating dataset")
+		http.Error(w, "uh oh", http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Add("Content-Type", "application/json")
+	if err := json.NewEncoder(w).Encode(dataset); err != nil {
+		s.log.WithError(err).Error("Encoding dataset as JSON")
+		http.Error(w, "uh oh", http.StatusInternalServerError)
+		return
+	}
 }
 
 // (GET /search)
