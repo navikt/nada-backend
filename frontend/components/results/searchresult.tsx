@@ -2,6 +2,9 @@ import styled from 'styled-components'
 import Link from 'next/link'
 import { navGra20, navGra40 } from '../../styles/constants'
 import { components } from '../../lib/schema'
+import BigQueryLogo from '../lib/icons/bigQueryLogo'
+import DataPackageLogo from '../lib/icons/DataPackageLogo'
+
 
 const SearchResultDiv = styled.div`
   background-color: ${navGra20};
@@ -60,7 +63,7 @@ export const SearchResult = ({ searchResultEntry }: SearchResultProps) => {
               <h1>{searchResultEntry.name}</h1>
               <p>{searchResultEntry.excerpt}</p>
             </div>
-            <SearchResultLogo>Test</SearchResultLogo>
+            <SearchResultLogo><DataPackageLogo /></SearchResultLogo>
           </SearchResultContent>
         </Link>
       </SearchResultDiv>
@@ -75,7 +78,7 @@ export const SearchResult = ({ searchResultEntry }: SearchResultProps) => {
             <h1>{searchResultEntry.name}</h1>
             <p>{searchResultEntry.excerpt}</p>
           </div>
-          <SearchResultLogo>Test</SearchResultLogo>
+          <SearchResultLogo><BigQueryLogo /></SearchResultLogo>
         </SearchResultContent>
       </Link>
     </SearchResultDiv>
