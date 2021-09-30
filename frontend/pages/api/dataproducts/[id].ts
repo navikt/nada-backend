@@ -1,7 +1,7 @@
 import type { NextApiRequest, NextApiResponse } from 'next'
-import { Dataproduct } from '../../../lib/schema_types'
+import { DataproductSchema } from '../../../lib/schema_types'
 
-const response: Dataproduct = {
+const response: DataproductSchema = {
   id: 'test',
   name: 'test',
   description: `## Lorem ipsum
