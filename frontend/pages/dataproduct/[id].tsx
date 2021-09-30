@@ -3,23 +3,15 @@ import PageLayout from '../../components/pageLayout'
 import useSWR, { SWRConfig } from 'swr'
 import { Loader } from '@navikt/ds-react'
 import styled from 'styled-components'
-import { Dataproduct } from '../../lib/schema_types'
+import { DataproductSchema } from '../../lib/schema_types'
 import ReactMarkdown from 'react-markdown'
 import { parseISO, format } from 'date-fns'
 
 const fetcher = (url: string) => fetch(url).then((res) => res.json())
 import { nb } from 'date-fns/locale'
 import { GetServerSideProps } from 'next'
+import DataProductSpinner from "../../components/lib/spinner";
 
-const CenteredSpinner = styled.div`
-  margin: 10% auto;
-`
-
-const DataProductSpinner = () => (
-  <CenteredSpinner>
-    <Loader size="2xlarge" transparent />
-  </CenteredSpinner>
-)
 
 export const getServerSideProps: GetServerSideProps = async (context) => {
   const id = context?.params?.id
@@ -37,7 +29,7 @@ export const getServerSideProps: GetServerSideProps = async (context) => {
 }
 
 interface DataProductProps {
-  fallback?: Dataproduct
+  fallback?: DataproductSchema
 }
 
 interface DataProductDetailProps {
@@ -45,7 +37,7 @@ interface DataProductDetailProps {
 }
 
 const DataProductDetail = ({ id }: DataProductDetailProps) => {
-  const { data, error } = useSWR<Dataproduct>(
+  const { data, error } = useSWR<DataproductSchema>(
     `/api/dataproducts/${id}`,
     fetcher
   )
