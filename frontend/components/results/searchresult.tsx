@@ -1,15 +1,19 @@
 import styled from "styled-components";
 import Link from 'next/link'
-import { navLysGra } from "../../styles/constants";
+import { navGra20, navGra40 } from "../../styles/constants";
 import { components } from "../../lib/schema"
 
 const SearchResultDiv = styled.div`
-    background-color: ${navLysGra};
+    background-color: ${navGra20};
     padding: 5px;
     margin-bottom: 5px;
     h1 {
         font-size: 1.5em;
         margin: 0;
+    }
+    cursor: pointer;
+    :hover {
+        background-color: ${navGra40};
     }
 `
 
