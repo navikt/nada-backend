@@ -143,6 +143,32 @@ func (r *Repo) CreateDataset(ctx context.Context, dataproductID string, ds opena
 	return datasetFromSQL(res), nil
 }
 
+func (r *Repo) GetDataset(ctx context.Context, id string) (*openapi.Dataset, error) {
+	uid, err := uuid.Parse(id)
+	if err != nil {
+		return nil, fmt.Errorf("parsing uuid: %w", err)
+	}
+	res, err := r.querier.GetDataset(ctx, uid)
+	if err != nil {
+		return nil, fmt.Errorf("getting dataset from database: %w", err)
+	}
+
+	return datasetFromSQL(res), nil
+}
+
+func (r *Repo) DeleteDataset(ctx context.Context, id string) error {
+	uid, err := uuid.Parse(id)
+	if err != nil {
+		return fmt.Errorf("parsing uuid: %w", err)
+	}
+
+	if err := r.querier.DeleteDataset(ctx, uid); err != nil {
+		return fmt.Errorf("deleting dataset from database: %w", err)
+	}
+
+	return nil
+}
+
 func dataproductFromSQL(dataproduct gensql.Dataproduct) *openapi.Dataproduct {
 	return &openapi.Dataproduct{
 		Id:           dataproduct.ID.String(),

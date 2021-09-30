@@ -72,11 +72,12 @@ func TestRepo(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+
 	if *updatedRes.Description != desc {
 		t.Fatal("desc ble ikke oppdatert")
 	}
 
-	dataset, err := repo.CreateDataset(context.Background(), updatedRes.Id, openapi.NewDataset{
+	createdDataset, err := repo.CreateDataset(context.Background(), updatedRes.Id, openapi.NewDataset{
 		Name:        "My dataset",
 		Description: stringToPtr("This is my dataset"),
 		Pii:         false,
@@ -86,6 +87,19 @@ func TestRepo(t *testing.T) {
 			Table:     "ereg",
 		},
 	})
+
+	fetchedDataset, err := repo.GetDataset(context.Background(), createdDataset.Id)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if createdDataset.Name != fetchedDataset.Name {
+		t.Fatal("names do not match")
+	}
+
+	if err := repo.DeleteDataset(context.Background(), fetchedDataset.Id); err != nil {
+		t.Fatal(err)
+	}
 
 	if err = repo.DeleteDataproduct(context.Background(), res.Id); err != nil {
 		t.Fatal(err)

@@ -80,12 +80,74 @@ func (q *Queries) DeleteDataset(ctx context.Context, id uuid.UUID) error {
 	return err
 }
 
+const getDataset = `-- name: GetDataset :one
+SELECT id, dataproduct_id, name, description, pii, created, last_modified, project_id, dataset, table_name, type FROM datasets WHERE id = $1
+`
+
+func (q *Queries) GetDataset(ctx context.Context, id uuid.UUID) (Dataset, error) {
+	row := q.db.QueryRowContext(ctx, getDataset, id)
+	var i Dataset
+	err := row.Scan(
+		&i.ID,
+		&i.DataproductID,
+		&i.Name,
+		&i.Description,
+		&i.Pii,
+		&i.Created,
+		&i.LastModified,
+		&i.ProjectID,
+		&i.Dataset,
+		&i.TableName,
+		&i.Type,
+	)
+	return i, err
+}
+
 const getDatasets = `-- name: GetDatasets :many
+SELECT id, dataproduct_id, name, description, pii, created, last_modified, project_id, dataset, table_name, type FROM datasets
+`
+
+func (q *Queries) GetDatasets(ctx context.Context) ([]Dataset, error) {
+	rows, err := q.db.QueryContext(ctx, getDatasets)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []Dataset{}
+	for rows.Next() {
+		var i Dataset
+		if err := rows.Scan(
+			&i.ID,
+			&i.DataproductID,
+			&i.Name,
+			&i.Description,
+			&i.Pii,
+			&i.Created,
+			&i.LastModified,
+			&i.ProjectID,
+			&i.Dataset,
+			&i.TableName,
+			&i.Type,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const getDatasetsForProduct = `-- name: GetDatasetsForProduct :many
 SELECT id, dataproduct_id, name, description, pii, created, last_modified, project_id, dataset, table_name, type FROM datasets WHERE dataproduct_id = $1
 `
 
-func (q *Queries) GetDatasets(ctx context.Context, dataproductID uuid.UUID) ([]Dataset, error) {
-	rows, err := q.db.QueryContext(ctx, getDatasets, dataproductID)
+func (q *Queries) GetDatasetsForProduct(ctx context.Context, dataproductID uuid.UUID) ([]Dataset, error) {
+	rows, err := q.db.QueryContext(ctx, getDatasetsForProduct, dataproductID)
 	if err != nil {
 		return nil, err
 	}

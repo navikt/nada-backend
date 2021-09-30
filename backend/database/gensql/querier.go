@@ -15,7 +15,9 @@ type Querier interface {
 	DeleteDataset(ctx context.Context, id uuid.UUID) error
 	GetDataproduct(ctx context.Context, id uuid.UUID) (Dataproduct, error)
 	GetDataproducts(ctx context.Context) ([]Dataproduct, error)
-	GetDatasets(ctx context.Context, dataproductID uuid.UUID) ([]Dataset, error)
+	GetDataset(ctx context.Context, id uuid.UUID) (Dataset, error)
+	GetDatasets(ctx context.Context) ([]Dataset, error)
+	GetDatasetsForProduct(ctx context.Context, dataproductID uuid.UUID) ([]Dataset, error)
 	UpdateDataproduct(ctx context.Context, arg UpdateDataproductParams) (Dataproduct, error)
 	UpdateDataset(ctx context.Context, arg UpdateDatasetParams) (Dataset, error)
 }
