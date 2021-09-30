@@ -15,7 +15,7 @@ endif
 test:
 	go test ./... -count=1
 
-integration-test: stop-postgres-test run-postgres-test test
+integration-test: stop-postgres-test run-postgres-test run-integration-test stop-postgres-test
 
 run-postgres-test:
 	docker run -e POSTGRES_PASSWORD=postgres -e POSTGRES_DB=datakatalogen --rm --name postgres-test -p 5433:5432 -d postgres:12
