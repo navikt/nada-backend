@@ -77,7 +77,6 @@ func TestRepo(t *testing.T) {
 		dataproductWithUpdate := newDataproduct
 		dataproductWithUpdate.Name = "updated"
 		updatedDataproduct, err := repo.UpdateDataproduct(context.Background(), createdDataproduct.Id, dataproductWithUpdate)
-
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -87,98 +86,101 @@ func TestRepo(t *testing.T) {
 		}
 	})
 
-	//_, err = repo.CreateDataproduct(context.Background(), openapi.NewDataproduct{
-	//	Name: "Hello again",
-	//	Owner: openapi.Owner{
-	//		Team: "asdf",
-	//	},
-	//})
-	//if err != nil {
-	//	t.Fatal(err)
-	//}
-	//
-	//allRes, err := repo.GetDataproducts(context.Background())
-	//if err != nil {
-	//	t.Fatal(err)
-	//}
-	//if len(allRes) < 1 {
-	//	t.Fatal("ingen dataprodukter i databasen :thinking:")
-	//}
-	//
-	//desc := "best description"
-	//_, err = repo.UpdateDataproduct(context.Background(), res.Id, openapi.NewDataproduct{
-	//	Name:        res.Name,
-	//	Description: &desc,
-	//	Owner:       res.Owner,
-	//	Keywords:    res.Keywords,
-	//	Repo:        res.Repo,
-	//})
-	//if err != nil {
-	//	t.Fatal(err)
-	//}
-	//
-	//updatedRes, err := repo.GetDataproduct(context.Background(), res.Id)
-	//if err != nil {
-	//	t.Fatal(err)
-	//}
-	//
-	//if *updatedRes.Description != desc + "banan" {
-	//	t.Fatal("desc ble ikke oppdatert")
-	//}
-	//
-	//createdDataset, err := repo.CreateDataset(context.Background(), openapi.NewDataset{
-	//	Name:        "My dataset",
-	//	DataproductId: updatedRes.Id,
-	//	Description: stringToPtr("This is my dataset"),
-	//	Pii:         false,
-	//	Bigquery: openapi.BigQuery{
-	//		ProjectId: "dataplattform-dev-9da3",
-	//		Dataset:   "ereg",
-	//		Table:     "ereg",
-	//	},
-	//})
-	//if err != nil {
-	//	t.Fatal(err)
-	//}
-	//
-	//fetchedDataset, err := repo.GetDataset(context.Background(), createdDataset.Id)
-	//if err != nil {
-	//	t.Fatal(err)
-	//}
-	//
-	//if createdDataset.Name != fetchedDataset.Name {
-	//	t.Fatal("names do not match")
-	//}
-	//
-	//updatedDataset, err := repo.UpdateDataset(context.Background(), createdDataset.Id, openapi.NewDataset{
-	//	Name:        "My updated dataset",
-	//	DataproductId: updatedRes.Id,
-	//	Description: stringToPtr("This is my updated dataset"),
-	//	Pii:         false,
-	//	Bigquery: openapi.BigQuery{
-	//		ProjectId: "dataplattform-dev-9da3",
-	//		Dataset:   "ereg",
-	//		Table:     "ereg",
-	//	},
-	//})
-	//if err != nil {
-	//	t.Fatal(err)
-	//}
-	//
-	//newFetchedDataset, err := repo.GetDataset(context.Background(), createdDataset.Id)
-	//if err != nil {
-	//	t.Fatal(err)
-	//}
-	//
-	//if updatedDataset.Name != newFetchedDataset.Name {
-	//	t.Fatal("names do not match after updating dataset")
-	//}
-	//
-	//if err := repo.DeleteDataset(context.Background(), fetchedDataset.Id); err != nil {
-	//	t.Fatal(err)
-	//}
-	//
-	//if err = repo.DeleteDataproduct(context.Background(), res.Id); err != nil {
-	//	t.Fatal(err)
-	//}
+	t.Run("deletes dataproducts", func(t *testing.T) {
+		createdDataproduct, err := repo.CreateDataproduct(context.Background(), newDataproduct)
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		if err := repo.DeleteDataproduct(context.Background(), createdDataproduct.Id); err != nil {
+			t.Fatal(err)
+		}
+
+		dataproduct, err := repo.GetDataproduct(context.Background(), createdDataproduct.Id)
+
+		if dataproduct != nil {
+			t.Fatal("dataproduct should not exist")
+		}
+	})
+
+	createdDataproduct, err := repo.CreateDataproduct(context.Background(), newDataproduct)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	newDataset := openapi.NewDataset{
+		Name:          "new_dataset",
+		DataproductId: createdDataproduct.Id,
+		Pii:           false,
+		Bigquery: openapi.BigQuery{
+			ProjectId: "project",
+			Dataset:   "dataset",
+			Table:     "table",
+		},
+	}
+
+	t.Run("creates datasets", func(t *testing.T) {
+		createdDataset, err := repo.CreateDataset(context.Background(), newDataset)
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		if createdDataset.Id == "" {
+			t.Fatal("returned dataset should contain ID")
+		}
+
+		if newDataset.Name != createdDataset.Name {
+			t.Fatal("returned name should match provided name")
+		}
+	})
+
+	t.Run("serves datasets", func(t *testing.T) {
+		createdDataset, err := repo.CreateDataset(context.Background(), newDataset)
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		fetchedDataset, err := repo.GetDataset(context.Background(), createdDataset.Id)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if newDataset.Name != fetchedDataset.Name {
+			t.Fatal("fetched name should match provided name")
+		}
+	})
+
+	t.Run("update datasets", func(t *testing.T) {
+		createdDataset, err := repo.CreateDataset(context.Background(), newDataset)
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		datasetWithUpdate := newDataset
+		datasetWithUpdate.Name = "updated"
+		updatedDataset, err := repo.UpdateDataset(context.Background(), createdDataset.Id, datasetWithUpdate)
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		if updatedDataset.Name != datasetWithUpdate.Name {
+			t.Fatal("returned name should match updated name")
+		}
+	})
+
+	t.Run("deletes datasets", func(t *testing.T) {
+		createdDataset, err := repo.CreateDataset(context.Background(), newDataset)
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		if err := repo.DeleteDataset(context.Background(), createdDataset.Id); err != nil {
+			t.Fatal(err)
+		}
+
+		dataset, err := repo.GetDataset(context.Background(), createdDataset.Id)
+
+		if dataset != nil {
+			t.Fatal("dataset should not exist")
+		}
+	})
 }
