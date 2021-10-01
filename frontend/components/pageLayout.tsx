@@ -6,7 +6,7 @@ const Container = styled.div`
   margin: 0 auto;
 `
 const Main = styled.main`
-  display: flex;
+  display: block;
   min-width: 100%;
 `
 export const PageLayout = ({ children }: { children: React.ReactNode }) => (
