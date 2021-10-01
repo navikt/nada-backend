@@ -22,6 +22,6 @@ func main() {
 	repo, _ := database.New(gensql.New(db))
 	srv := api.New(repo, log.WithField("subsystem", "api"))
 	router := openapi.HandlerWithOptions(srv, openapi.ChiServerOptions{BaseURL: "/api"})
-	log.Info("Listening on :3000")
-	log.Fatal(http.ListenAndServe("127.0.0.1:3000", router))
+	log.Info("Listening on :8080")
+	log.Fatal(http.ListenAndServe(":8080", router))
 }

@@ -1,10 +1,10 @@
 apiVersion: "nais.io/v1alpha1"
 kind: "Application"
 metadata:
-  name: datakatalogen
-  namespace: aura
+  name: nada-backend
+  namespace: dataplattform
   labels:
-    team: aura
+    team: dataplattform
 spec:
   image: {{ image }}
   port: 8080
@@ -14,18 +14,14 @@ spec:
       tenant: nav.no
       replyURLs:
         - "http://localhost:8080/oauth2/callback"
-        - "https://datakatalogen.dev.intern.nav.no/oauth2/callback"
-  envFrom:
-    - secret: github-read-token
-    - secret: datakatalogen-state
+        - "https://nada.dev.intern.nav.no/oauth2/callback"
   ingresses:
-    - "https://datakatalogen.dev.intern.nav.no/"
+    - "https://nada.dev.intern.nav.no/api"
   env:
-    - name: DATAPRODUCTS_COLLECTION
-      value: datakatalogen
-    - name: ACCESS_UPDATES_COLLECTION
-      value: datakatalogen-updates
-    - name: FIRESTORE_GOOGLE_PROJECT_ID
-      value: aura-dev-d9f5
     - name: HOSTNAME
-      value: "datakatalogen.dev.intern.nav.no"
+      value: "nada.dev.intern.nav.no"
+  gcp:
+    sqlInstances:
+      - type: POSTGRES_12
+        databases:
+          - name: nada
