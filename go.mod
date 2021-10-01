@@ -18,6 +18,7 @@ require (
 	github.com/pressly/goose/v3 v3.1.0
 	github.com/prometheus/client_golang v1.10.0
 	github.com/sirupsen/logrus v1.8.1
+	github.com/spf13/pflag v1.0.5 // indirect
 	github.com/stretchr/testify v1.7.0
 	golang.org/x/oauth2 v0.0.0-20210427180440-81ed05c6b58c
 	google.golang.org/api v0.46.0 // indirect

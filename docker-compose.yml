@@ -5,8 +5,8 @@ services:
     image: postgres
     restart: always
     environment:
-      POSTGRES_PASSWORD: navikt
-      POSTGRES_DB: datakatalogen
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: nada
     ports:
       - 5432:5432
 
@@ -14,4 +14,4 @@ services:
     image: adminer
     restart: always
     ports:
-      - 8080:8080
+      - 8081:8080

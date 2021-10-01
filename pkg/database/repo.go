@@ -2,6 +2,8 @@ package database
 
 import (
 	"context"
+	"database/sql"
+	"embed"
 	"fmt"
 	"net/url"
 
@@ -11,16 +13,31 @@ import (
 
 	// Pin version of sqlc and goose for cli
 	_ "github.com/kyleconroy/sqlc"
+	"github.com/pressly/goose/v3"
 	_ "github.com/pressly/goose/v3"
 )
+
+//go:embed migrations/*.sql
+var embedMigrations embed.FS
 
 type Repo struct {
 	querier gensql.Querier
 }
 
-func New(querier gensql.Querier) (*Repo, error) {
+func New(dbConnDSN string) (*Repo, error) {
+	db, err := sql.Open("postgres", dbConnDSN)
+	if err != nil {
+		return nil, fmt.Errorf("open sql connection: %w", err)
+	}
+
+	goose.SetBaseFS(embedMigrations)
+
+	if err := goose.Up(db, "migrations"); err != nil {
+		return nil, fmt.Errorf("goose up: %w", err)
+	}
+
 	return &Repo{
-		querier: querier,
+		querier: gensql.New(db),
 	}, nil
 }
 
