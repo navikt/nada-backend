@@ -34,7 +34,6 @@ local-with-auth:
 	--oauth2-client-id=$(shell kubectl get --context=dev-gcp --namespace=aura `kubectl get secret --context=dev-gcp --namespace=aura --sort-by='{.metadata.creationTimestamp}' -l app=datakatalogen,type=azurerator.nais.io -o name | tail -1` -o jsonpath='{.data.AZURE_APP_CLIENT_ID}' | base64 -d) \
 	--oauth2-tenant-id=62366534-1ec3-4962-8869-9b5535279d0b \
 	--bind-address=127.0.0.1:8080 \
-	--firestore-google-project-id=aura-dev-d9f5 \
 	--dataproducts-collection=new-access-format \
 	--access-updates-collection=access-updates \
 	--hostname=localhost \
@@ -47,7 +46,6 @@ local:
 	--teams-token=$(shell gcloud secrets versions access --secret github-read-token latest --project aura-dev-d9f5 | cut -d= -f2) \
 	--development-mode=true \
 	--bind-address=127.0.0.1:8080 \
-	--firestore-google-project-id=aura-dev-d9f5 \
 	--dataproducts-collection=new-access-format \
 	--access-updates-collection=access-updates \
 	--hostname=localhost \
