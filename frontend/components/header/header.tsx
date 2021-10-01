@@ -1,4 +1,4 @@
-import React from 'react'
+import React, {useState} from 'react'
 import Link from 'next/link'
 import styled from 'styled-components'
 import User from './user'
@@ -9,7 +9,13 @@ const HeaderBar = styled.header`
   margin: 40px 0;
   justify-content: space-between;
 `
+export interface UserData {
+    name: string,
+    teams: string[]
+}
+
 export default function Header() {
+    const [userData, setUserData] = useState({})
   return (
     <HeaderBar role="banner">
       <Link href="/">
@@ -17,7 +23,7 @@ export default function Header() {
           <HeaderLogo />
         </div>
       </Link>
-      <User />
+      <User user={userData}/>
     </HeaderBar>
   )
 }

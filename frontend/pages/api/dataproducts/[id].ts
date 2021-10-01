@@ -17,7 +17,7 @@ const response: DataproductSchema = {
   keyword: ['lorem ipsum', 'sorryyy'],
   datasets: [
     {
-      id: 'test dataset',
+      id: 'DS_1',
       type: 'bigquery',
     },
   ],

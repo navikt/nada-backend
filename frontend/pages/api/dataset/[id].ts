@@ -3,7 +3,7 @@ import { DatasetSchema } from '../../../lib/schema_types'
 
 const response: DatasetSchema = {
   id: 'DS_1',
-  dataproduct_id: '',
+  dataproduct_id: 'DP_1',
   name: 'DS 1',
   description: `## Lorem ipsum
   Dolor *sit* **amet**`,
