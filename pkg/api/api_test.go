@@ -3,8 +3,8 @@ package api
 import (
 	"testing"
 
-	"github.com/navikt/datakatalogen/backend/database"
-	"github.com/navikt/datakatalogen/backend/openapi"
+	"github.com/navikt/nada-backend/pkg/database"
+	"github.com/navikt/nada-backend/pkg/openapi"
 	"github.com/sirupsen/logrus"
 )
 

@@ -3,13 +3,14 @@ package teamprojectsupdater_test
 import (
 	"context"
 	"fmt"
-	"github.com/navikt/datakatalogen/backend/config"
-	"github.com/navikt/datakatalogen/backend/teamprojectsupdater"
-	"github.com/stretchr/testify/assert"
 	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
 	"testing"
+
+	"github.com/navikt/nada-backend/pkg/config"
+	"github.com/navikt/nada-backend/pkg/teamprojectsupdater"
+	"github.com/stretchr/testify/assert"
 )
 
 func TestTeamProjectsUpdater(t *testing.T) {

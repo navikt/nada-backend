@@ -8,7 +8,7 @@ import (
 
 	"github.com/dgrijalva/jwt-go"
 	"github.com/go-chi/jwtauth"
-	"github.com/navikt/datakatalogen/backend/auth"
+	"github.com/navikt/nada-backend/pkg/auth"
 	log "github.com/sirupsen/logrus"
 )
 

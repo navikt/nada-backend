@@ -10,7 +10,7 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/navikt/datakatalogen/backend/config"
+	"github.com/navikt/nada-backend/pkg/config"
 	log "github.com/sirupsen/logrus"
 	"golang.org/x/oauth2"
 	"golang.org/x/oauth2/endpoints"

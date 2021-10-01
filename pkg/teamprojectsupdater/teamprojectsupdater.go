@@ -4,10 +4,11 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"github.com/navikt/datakatalogen/backend/config"
-	log "github.com/sirupsen/logrus"
 	"net/http"
 	"time"
+
+	"github.com/navikt/nada-backend/pkg/config"
+	log "github.com/sirupsen/logrus"
 )
 
 type OutputFile struct {

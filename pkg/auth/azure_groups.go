@@ -12,7 +12,7 @@ import (
 	log "github.com/sirupsen/logrus"
 	"golang.org/x/oauth2/endpoints"
 
-	"github.com/navikt/datakatalogen/backend/config"
+	"github.com/navikt/nada-backend/pkg/config"
 )
 
 const (
@@ -88,7 +88,6 @@ func (a *AzureGroups) GetGroupsForUser(ctx context.Context, token, email string)
 }
 
 func (a *AzureGroups) getBearerTokenOnBehalfOfUser(ctx context.Context, token string) (string, error) {
-
 	form := url.Values{}
 	form.Add("client_id", a.Config.OAuth2.ClientID)
 	form.Add("client_secret", a.Config.OAuth2.ClientSecret)

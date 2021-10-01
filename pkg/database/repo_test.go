@@ -12,8 +12,8 @@ import (
 	_ "github.com/lib/pq"
 	"github.com/pressly/goose/v3"
 
-	"github.com/navikt/datakatalogen/backend/database/gensql"
-	"github.com/navikt/datakatalogen/backend/openapi"
+	"github.com/navikt/nada-backend/pkg/database/gensql"
+	"github.com/navikt/nada-backend/pkg/openapi"
 )
 
 //go:embed migrations/*.sql

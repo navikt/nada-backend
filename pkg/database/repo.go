@@ -6,8 +6,8 @@ import (
 	"net/url"
 
 	"github.com/google/uuid"
-	"github.com/navikt/datakatalogen/backend/database/gensql"
-	"github.com/navikt/datakatalogen/backend/openapi"
+	"github.com/navikt/nada-backend/pkg/database/gensql"
+	"github.com/navikt/nada-backend/pkg/openapi"
 
 	// Pin version of sqlc and goose for cli
 	_ "github.com/kyleconroy/sqlc"

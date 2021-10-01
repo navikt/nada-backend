@@ -5,8 +5,8 @@ package accessensurer
 	"fmt"
 	"time"
 
-	"github.com/navikt/datakatalogen/backend/config"
-	"github.com/navikt/datakatalogen/backend/iam"
+	"github.com/navikt/nada-backend/pkg/config"
+	"github.com/navikt/nada-backend/pkg/iam"
 	log "github.com/sirupsen/logrus"
 )
 

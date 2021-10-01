@@ -2,8 +2,8 @@
 DATE = $(shell date "+%Y-%m-%d")
 LAST_COMMIT = $(shell git --no-pager log -1 --pretty=%h)
 VERSION ?= $(DATE)-$(LAST_COMMIT)
-LDFLAGS := -X github.com/navikt/datakatalogen/backend/version.Revision=$(shell git rev-parse --short HEAD) -X github.com/navikt/datakatalogen/backend/version.Version=$(VERSION)
-APP = datakatalogen
+LDFLAGS := -X github.com/navikt/nada-backend/backend/version.Revision=$(shell git rev-parse --short HEAD) -X github.com/navikt/nada-backend/backend/version.Version=$(VERSION)
+APP = nada-backend
 SQLC_VERSION ?= "v1.10.0"
 # Get the currently used golang install path (in GOPATH/bin, unless GOBIN is set)
 ifeq (,$(shell go env GOBIN))
@@ -18,7 +18,7 @@ test:
 integration-test: stop-postgres-test run-postgres-test run-integration-test stop-postgres-test
 
 run-postgres-test:
-	docker run -e POSTGRES_PASSWORD=postgres -e POSTGRES_DB=datakatalogen --rm --name postgres-test -p 5433:5432 -d postgres:12
+	docker run -e POSTGRES_PASSWORD=postgres -e POSTGRES_DB=nada --rm --name postgres-test -p 5433:5432 -d postgres:12
 
 stop-postgres-test:
 	docker stop postgres-test || echo "okidoki"
@@ -53,15 +53,15 @@ local:
 	--state=$(shell gcloud secrets versions access --secret datakatalogen-state latest --project aura-dev-d9f5 | cut -d= -f2)
 
 migrate:
-	go run github.com/pressly/goose/v3/cmd/goose -dir ./backend/database/migrations postgres "user=postgres dbname=datakatalogen sslmode=disable password=navikt" up
+	go run github.com/pressly/goose/v3/cmd/goose -dir ./pkg/database/migrations postgres "user=postgres dbname=nada sslmode=disable password=navikt" up
 
 generate: 
-	cd backend && $(GOBIN)/sqlc generate
-	mkdir -p backend/openapi
-	go run github.com/deepmap/oapi-codegen/cmd/oapi-codegen -package openapi --generate "types,chi-server,spec" ./spec-v1.0.yaml > ./backend/openapi/datakatalogen.gen.go
+	cd pkg && $(GOBIN)/sqlc generate
+	mkdir -p pkg/openapi
+	go run github.com/deepmap/oapi-codegen/cmd/oapi-codegen -package openapi --generate "types,chi-server,spec" ./spec-v1.0.yaml > ./pkg/openapi/nada.gen.go
 
 linux-build:
-	go build -a -installsuffix cgo -o $(APP) -ldflags "-s $(LDFLAGS)" cmd/backend/main.go
+	go build -a -installsuffix cgo -o $(APP) -ldflags "-s $(LDFLAGS)" cmd/nada-backend/main.go
 
 docker-build:
 	docker image build -t ghcr.io/navikt/$(APP):$(VERSION) -t ghcr.io/navikt/$(APP):latest .

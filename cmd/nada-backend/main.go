@@ -4,10 +4,10 @@ import (
 	"database/sql"
 	"net/http"
 
-	"github.com/navikt/datakatalogen/backend/api"
-	"github.com/navikt/datakatalogen/backend/database"
-	"github.com/navikt/datakatalogen/backend/database/gensql"
-	"github.com/navikt/datakatalogen/backend/openapi"
+	"github.com/navikt/nada-backend/pkg/api"
+	"github.com/navikt/nada-backend/pkg/database"
+	"github.com/navikt/nada-backend/pkg/database/gensql"
+	"github.com/navikt/nada-backend/pkg/openapi"
 	"github.com/sirupsen/logrus"
 )
 
