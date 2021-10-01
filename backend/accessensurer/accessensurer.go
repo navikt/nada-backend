@@ -1,12 +1,9 @@
 package accessensurer
 
-import (
+/* import (
 	"context"
 	"fmt"
 	"time"
-
-	googlefirestore "cloud.google.com/go/firestore"
-	"github.com/navikt/datakatalogen/backend/firestore"
 
 	"github.com/navikt/datakatalogen/backend/config"
 	"github.com/navikt/datakatalogen/backend/iam"
@@ -32,6 +29,7 @@ func New(ctx context.Context, cfg config.Config, firestore *firestore.Firestore,
 		updateFrequency: updateFrequency,
 	}
 }
+
 func (a *AccessEnsurer) Run() {
 	ticker := time.NewTicker(1 * time.Second)
 	defer ticker.Stop()
@@ -142,3 +140,4 @@ func (a *AccessEnsurer) ensureAccess(dataproductID string, datastore map[string]
 	}
 	return nil
 }
+*/
