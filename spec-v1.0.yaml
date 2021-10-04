@@ -109,6 +109,18 @@ components:
         - name
         - owner
 
+    UserInfo:
+      type: object
+      properties:
+        name:
+          type: string
+        email:
+          type: string
+        teams:
+          type: array
+          items:
+            type: string
+
     Dataset:
       type: object
       properties:
@@ -178,6 +190,18 @@ components:
         - datapackage
 
 paths:
+  /userinfo:
+    get:
+      description: "get user info"
+      operationId: "getUserInfo"
+      responses:
+        "200":
+          description: OK
+          content:
+            "application/json":
+              schema:
+                $ref: "#/components/schemas/UserInfo"
+
   /dataproducts:
     get:
       description: "List all dataproducts"
@@ -262,7 +286,7 @@ paths:
             "application/json":
               schema:
                 $ref: "#/components/schemas/Dataproduct"
-
+  
   /datasets:
     post:
       description: "Create a new dataset"
