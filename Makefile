@@ -53,7 +53,7 @@ local:
 	--state=$(shell gcloud secrets versions access --secret datakatalogen-state latest --project aura-dev-d9f5 | cut -d= -f2)
 
 migrate:
-	go run github.com/pressly/goose/v3/cmd/goose -dir ./pkg/database/migrations postgres "user=postgres dbname=nada sslmode=disable password=navikt" up
+	go run github.com/pressly/goose/v3/cmd/goose -dir ./pkg/database/migrations postgres "user=postgres dbname=nada sslmode=disable password=postgres" up
 
 generate: 
 	cd pkg && $(GOBIN)/sqlc generate
