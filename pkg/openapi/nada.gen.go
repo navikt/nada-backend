@@ -111,6 +111,13 @@ type SearchResultEntry struct {
 // SearchResultType defines model for SearchResultType.
 type SearchResultType string
 
+// UserInfo defines model for UserInfo.
+type UserInfo struct {
+	Email *string   `json:"email,omitempty"`
+	Name  *string   `json:"name,omitempty"`
+	Teams *[]string `json:"teams,omitempty"`
+}
+
 // CreateDataproductJSONBody defines parameters for CreateDataproduct.
 type CreateDataproductJSONBody NewDataproduct
 
@@ -172,6 +179,9 @@ type ServerInterface interface {
 
 	// (GET /search)
 	Search(w http.ResponseWriter, r *http.Request, params SearchParams)
+
+	// (GET /userinfo)
+	GetUserInfo(w http.ResponseWriter, r *http.Request)
 }
 
 // ServerInterfaceWrapper converts contexts to parameters.
@@ -417,6 +427,21 @@ func (siw *ServerInterfaceWrapper) Search(w http.ResponseWriter, r *http.Request
 	handler(w, r.WithContext(ctx))
 }
 
+// GetUserInfo operation middleware
+func (siw *ServerInterfaceWrapper) GetUserInfo(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+
+	var handler = func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.GetUserInfo(w, r)
+	}
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler(w, r.WithContext(ctx))
+}
+
 // Handler creates http.Handler with routing matching OpenAPI spec.
 func Handler(si ServerInterface) http.Handler {
 	return HandlerWithOptions(si, ChiServerOptions{})
@@ -484,6 +509,9 @@ func HandlerWithOptions(si ServerInterface, options ChiServerOptions) http.Handl
 	r.Group(func(r chi.Router) {
 		r.Get(options.BaseURL+"/search", wrapper.Search)
 	})
+	r.Group(func(r chi.Router) {
+		r.Get(options.BaseURL+"/userinfo", wrapper.GetUserInfo)
+	})
 
 	return r
 }
@@ -491,22 +519,23 @@ func HandlerWithOptions(si ServerInterface, options ChiServerOptions) http.Handl
 // Base64 encoded, gzipped, json marshaled Swagger object
 var swaggerSpec = []string{
 
-	"H4sIAAAAAAAC/8xXTY/bNhD9KwLbo2o7aU+6NXURLFp022Z7ChbBWBrbzEoklxzFNRb+7wU/ZFsWJdlp",
-	"4vgmk8P5ePPemHxhuayUFCjIsOyFmXyNFbjPN3z1V416a7+Vlgo1cXQ7BRAYJPtJW4UsY4Y0Fyu2S63l",
-	"R8zpAy+i2wSLEiM7u5RpfK65xoJl74+9pPtwzenHtDktF9bK+p0DgdKyqHPq5ptrBEKX0FLqCohl1in+",
-	"QLxClnazDBHdYU5YuY/vNS5Zxr6bHhCbBrimc3/gXV1VoLeuUO8TtAb3u0CTa66ISxEFpgevJ9xupC7a",
-	"mXRRPQlWgqEPlSz4kl9StoAKo/7lRqAew+DeGblGKhl1Y8p6Nd5713OXSjjRxE/3jTyt8KhjfeQIfG0T",
-	"Y8FXzw3Fh0rbSyFwIzCtj+Sf2ete+BXnR+sLKUsEMYibPdFJNT3UO4BSw+EOWJdm7RfO0s2DNR2qx/ka",
-	"SPohxEJRV/ZspNBDYn/gZnBcjLXv8zR5G+IKePqYMUADOLckl/+pi1ByRwxeI4OSuG9a08aBEKp4zxGq",
-	"JyAo5QrFeDOcn1jcdwg6X/+Npi7pV0ExNeK/OWpFX2S+nKPU45S8XFNW63K8SGsUQqQtTTcVjAFwqu3D",
-	"deCopc0vyJ9ghRHZ27S4WHrtcLKXEPbzn3fJg/tO2SfUxhGQvZrMnCwVClCcZezHyWzy2hIGaO2wnx4F",
-	"dgsrr5YWkdnv3FACZZm0rJ1jDdbmrmAZe4s0b+9rNEoK49v8ejZzNxgpCIULAkqVPHcOph+Nl4xv0kW3",
-	"lQa3zqTanSqS3f/mV5U0kTJ/cf/JCSQCN0m7I+1KveG8ZWGJgobeyGJ7UZlD1Z2M993OM7IF6qsvFu0k",
-	"VBpFp0hMnedozLIuy21IqcWi6Qsvdh7cEgm7MM/degKDEHujNsQKNFRIqA3L3ne8HkyTu7kVqF21RG90",
-	"mnnNHhRNusb0CJxTnT12wP6pr5oiaag1IKDjgpMNp3Wyv+sNa+kmar8h9dYRiP9RBYyyyhvdALLfZlbM",
-	"rjUrPM6NKJoJ0bxDz5y+/p+xb/L63a+IpA1whYkbwlw6bS2Wl03aGJyHKet3R7Vg8Aan61uk3grDIL2F",
-	"8mbX4M35MzKG1mE+fiPArq/mq3SlOw+Nexb03rj9qyHhIrFew0Os0y5vdZWLdvcdd8YfdqhCu1OBl21G",
-	"Odr4V+ueN8+X0cZ6Nag/NS7dU46tiZTJplNQfOJ3J4SG7G+2e9z9FwAA//8AVoP2LRYAAA==",
+	"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",
 }
 
 // GetSwagger returns the content of the embedded swagger specification file
@@ -580,4 +609,3 @@ func GetSwagger() (swagger *openapi3.T, err error) {
 	}
 	return
 }
-

@@ -5,6 +5,7 @@ VERSION ?= $(DATE)-$(LAST_COMMIT)
 LDFLAGS := -X github.com/navikt/nada-backend/backend/version.Revision=$(shell git rev-parse --short HEAD) -X github.com/navikt/nada-backend/backend/version.Version=$(VERSION)
 APP = nada-backend
 SQLC_VERSION ?= "v1.10.0"
+OAPI_CODEGEN_VERSION ?= "v1.8.2"
 # Get the currently used golang install path (in GOPATH/bin, unless GOBIN is set)
 ifeq (,$(shell go env GOBIN))
 	GOBIN=$(shell go env GOPATH)/bin
@@ -50,7 +51,7 @@ migrate:
 generate: 
 	cd pkg && $(GOBIN)/sqlc generate
 	mkdir -p pkg/openapi
-	oapi-codegen -package openapi --generate "types,chi-server,spec" ./spec-v1.0.yaml > ./pkg/openapi/nada.gen.go
+	$(GOBIN)/oapi-codegen -package openapi --generate "types,chi-server,spec" ./spec-v1.0.yaml > ./pkg/openapi/nada.gen.go
 
 linux-build:
 	go build -a -installsuffix cgo -o $(APP) -ldflags "-s $(LDFLAGS)" cmd/nada-backend/main.go
@@ -61,6 +62,9 @@ docker-build:
 docker-push:
 	docker image push ghcr.io/navikt/$(APP):$(VERSION)
 	docker image push ghcr.io/navikt/$(APP):latest
+
+install-oapi-codegen:
+	go install github.com/deepmap/oapi-codegen/cmd/oapi-codegen@$(OAPI_CODEGEN_VERSION)
 
 install-sqlc:
 	go install github.com/kyleconroy/sqlc/cmd/sqlc@$(SQLC_VERSION)
