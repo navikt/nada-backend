@@ -4,15 +4,57 @@ package database
 
 import (
 	"context"
+	"database/sql"
+	"log"
+	"os"
 	"testing"
 
 	_ "github.com/lib/pq"
 
 	"github.com/navikt/nada-backend/pkg/openapi"
+	"github.com/ory/dockertest/v3"
 )
 
+var dbString string
+
+func TestMain(m *testing.M) {
+	// uses a sensible default on windows (tcp/http) and linux/osx (socket)
+	pool, err := dockertest.NewPool("")
+	if err != nil {
+		log.Fatalf("Could not connect to docker: %s", err)
+	}
+
+	// pulls an image, creates a container based on it and runs it
+	resource, err := pool.Run("postgres", "12", []string{"POSTGRES_PASSWORD=postgres", "POSTGRES_DB=nada"})
+	if err != nil {
+		log.Fatalf("Could not start resource: %s", err)
+	}
+
+	// exponential backoff-retry, because the application in the container might not be ready to accept connections yet
+	if err := pool.Retry(func() error {
+		var err error
+		dbString = "user=postgres dbname=nada sslmode=disable password=postgres host=localhost port=" + resource.GetPort("5432/tcp")
+		db, err := sql.Open("postgres", dbString)
+		if err != nil {
+			return err
+		}
+		return db.Ping()
+	}); err != nil {
+		log.Fatalf("Could not connect to docker: %s", err)
+	}
+
+	code := m.Run()
+
+	// You can't defer this because os.Exit doesn't care for defer
+	if err := pool.Purge(resource); err != nil {
+		log.Fatalf("Could not purge resource: %s", err)
+	}
+
+	os.Exit(code)
+}
+
 func TestRepo(t *testing.T) {
-	repo, err := New("user=postgres dbname=nada sslmode=disable password=postgres port=5433")
+	repo, err := New(dbString)
 	if err != nil {
 		t.Fatal(err)
 	}

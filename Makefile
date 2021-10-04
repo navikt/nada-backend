@@ -15,15 +15,7 @@ endif
 test:
 	go test ./... -count=1
 
-integration-test: stop-postgres-test run-postgres-test run-integration-test stop-postgres-test
-
-run-postgres-test:
-	docker run -e POSTGRES_PASSWORD=postgres -e POSTGRES_DB=nada --rm --name postgres-test -p 5433:5432 -d postgres:12
-
-stop-postgres-test:
-	docker stop postgres-test || echo "okidoki"
-
-run-integration-test:
+integration-test:
 	go test ./... -count=1 -tags=integration_test
 
 local-with-auth:
