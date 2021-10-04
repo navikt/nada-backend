@@ -17,6 +17,8 @@ type Querier interface {
 	GetDataproducts(ctx context.Context) ([]Dataproduct, error)
 	GetDataset(ctx context.Context, id uuid.UUID) (Dataset, error)
 	GetDatasetsForDataproduct(ctx context.Context, dataproductID uuid.UUID) ([]GetDatasetsForDataproductRow, error)
+	SearchDataproducts(ctx context.Context, query string) ([]Dataproduct, error)
+	SearchDatasets(ctx context.Context, query string) ([]Dataset, error)
 	UpdateDataproduct(ctx context.Context, arg UpdateDataproductParams) (Dataproduct, error)
 	UpdateDataset(ctx context.Context, arg UpdateDatasetParams) (Dataset, error)
 }

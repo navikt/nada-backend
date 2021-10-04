@@ -5,6 +5,7 @@ package database
 import (
 	"context"
 	"database/sql"
+	"errors"
 	"log"
 	"os"
 	"testing"
@@ -204,7 +205,7 @@ func TestRepo(t *testing.T) {
 		}
 
 		dataproduct, err := repo.GetDataproduct(context.Background(), createdDataproduct.Id)
-		if err != nil {
+		if err != nil && !errors.Is(err, sql.ErrNoRows) {
 			t.Fatal(err)
 		}
 
@@ -288,12 +289,65 @@ func TestRepo(t *testing.T) {
 		}
 
 		dataset, err := repo.GetDataset(context.Background(), createdDataset.Id)
-		if err != nil {
+		if err != nil && !errors.Is(err, sql.ErrNoRows) {
 			t.Fatal(err)
 		}
 
 		if dataset != nil {
 			t.Fatal("dataset should not exist")
+		}
+	})
+
+	t.Run("search datasets and products", func(t *testing.T) {
+		tests := map[string]struct {
+			query      string
+			numResults int
+		}{
+			"empty":         {query: "nonexistent", numResults: 0},
+			"1 dataproduct": {query: "uniquedataproduct", numResults: 1},
+			"1 dataset":     {query: "uniquedataset", numResults: 1},
+			"2 results":     {query: "uniquestring", numResults: 2},
+		}
+
+		newDataproduct := openapi.NewDataproduct{
+			Name:        "new_dataproduct",
+			Description: nullStringToPtr(sql.NullString{Valid: true, String: "Uniquestring uniqueDataproduct"}),
+			Owner: openapi.Owner{
+				Team: "team",
+			},
+		}
+		createdDataproduct, err := repo.CreateDataproduct(context.Background(), newDataproduct)
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		newDataset := openapi.NewDataset{
+			Name:          "new_dataset",
+			Description:   nullStringToPtr(sql.NullString{Valid: true, String: "Uniquestring uniqueDataset"}),
+			DataproductId: createdDataproduct.Id,
+			Pii:           false,
+			Bigquery: openapi.BigQuery{
+				ProjectId: "project",
+				Dataset:   "dataset",
+				Table:     "table",
+			},
+		}
+
+		_, err = repo.CreateDataset(context.Background(), newDataset)
+		if err != nil {
+			t.Fatal(err)
+		}
+		for name, tc := range tests {
+			t.Run(name, func(t *testing.T) {
+				results, err := repo.Search(context.Background(), tc.query)
+				if err != nil {
+					t.Fatal(err)
+				}
+
+				if len(results) != tc.numResults {
+					t.Errorf("expected %v results, got %v", tc.numResults, len(results))
+				}
+			})
 		}
 	})
 }

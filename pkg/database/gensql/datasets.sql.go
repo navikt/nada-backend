@@ -29,7 +29,7 @@ INSERT INTO datasets (
 	$6,
 	$7,
 	$8
-) RETURNING id, dataproduct_id, name, description, pii, created, last_modified, project_id, dataset, table_name, type
+) RETURNING id, dataproduct_id, name, description, pii, created, last_modified, project_id, dataset, table_name, type, tsv_document
 `
 
 type CreateDatasetParams struct {
@@ -67,6 +67,7 @@ func (q *Queries) CreateDataset(ctx context.Context, arg CreateDatasetParams) (D
 		&i.Dataset,
 		&i.TableName,
 		&i.Type,
+		&i.TsvDocument,
 	)
 	return i, err
 }
@@ -81,7 +82,7 @@ func (q *Queries) DeleteDataset(ctx context.Context, id uuid.UUID) error {
 }
 
 const getDataset = `-- name: GetDataset :one
-SELECT id, dataproduct_id, name, description, pii, created, last_modified, project_id, dataset, table_name, type FROM datasets WHERE id = $1
+SELECT id, dataproduct_id, name, description, pii, created, last_modified, project_id, dataset, table_name, type, tsv_document FROM datasets WHERE id = $1
 `
 
 func (q *Queries) GetDataset(ctx context.Context, id uuid.UUID) (Dataset, error) {
@@ -99,6 +100,7 @@ func (q *Queries) GetDataset(ctx context.Context, id uuid.UUID) (Dataset, error)
 		&i.Dataset,
 		&i.TableName,
 		&i.Type,
+		&i.TsvDocument,
 	)
 	return i, err
 }
@@ -143,7 +145,7 @@ UPDATE datasets SET
 	"description" = $3,
 	"pii" = $4
 WHERE id = $5
-RETURNING id, dataproduct_id, name, description, pii, created, last_modified, project_id, dataset, table_name, type
+RETURNING id, dataproduct_id, name, description, pii, created, last_modified, project_id, dataset, table_name, type, tsv_document
 `
 
 type UpdateDatasetParams struct {
@@ -175,6 +177,7 @@ func (q *Queries) UpdateDataset(ctx context.Context, arg UpdateDatasetParams) (D
 		&i.Dataset,
 		&i.TableName,
 		&i.Type,
+		&i.TsvDocument,
 	)
 	return i, err
 }

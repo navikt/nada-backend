@@ -235,6 +235,46 @@ func (r *Repo) DeleteDataset(ctx context.Context, id string) error {
 	return nil
 }
 
+func (r *Repo) Search(ctx context.Context, query string) ([]*openapi.SearchResultEntry, error) {
+	results := []*openapi.SearchResultEntry{}
+	makeExcerpt := func(s sql.NullString) string {
+		if s.Valid {
+			return s.String
+		}
+		return "No description"
+	}
+
+	dataproducts, err := r.querier.SearchDataproducts(ctx, query)
+	if err != nil {
+		return nil, err
+	}
+	for _, r := range dataproducts {
+		results = append(results, &openapi.SearchResultEntry{
+			Id:      r.ID.String(),
+			Name:    r.Name,
+			Type:    openapi.SearchResultTypeDataproduct,
+			Excerpt: makeExcerpt(r.Description),
+			Url:     "/api/dataproducts/" + r.ID.String(),
+		})
+	}
+
+	datasets, err := r.querier.SearchDatasets(ctx, query)
+	if err != nil {
+		return nil, err
+	}
+	for _, r := range datasets {
+		results = append(results, &openapi.SearchResultEntry{
+			Id:      r.ID.String(),
+			Name:    r.Name,
+			Type:    openapi.SearchResultTypeDataproduct,
+			Excerpt: makeExcerpt(r.Description),
+			Url:     "/api/datasets/" + r.ID.String(),
+		})
+	}
+
+	return results, nil
+}
+
 func dataproductFromSQL(dataproduct gensql.Dataproduct) *openapi.Dataproduct {
 	return &openapi.Dataproduct{
 		Id:           dataproduct.ID.String(),

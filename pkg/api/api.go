@@ -185,4 +185,17 @@ func (s *Server) UpdateDataset(w http.ResponseWriter, r *http.Request, id string
 
 // (GET /search)
 func (s *Server) Search(w http.ResponseWriter, r *http.Request, params openapi.SearchParams) {
+	results, err := s.repo.Search(r.Context(), params.Q)
+	if err != nil {
+		s.log.WithError(err).Error("Search")
+		http.Error(w, "uh oh", http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Add("Content-Type", "application/json")
+	if err := json.NewEncoder(w).Encode(results); err != nil {
+		s.log.WithError(err).Error("Encoding search result as JSON")
+		http.Error(w, "uh oh", http.StatusInternalServerError)
+		return
+	}
 }

@@ -150,24 +150,32 @@ components:
         - pii
         - bigquery # Update this to a oneOf when we have more than bigquery
 
-
     SearchResultEntry:
       type: object
       properties:
         url:
           type: string
         type:
-          type: string
-          enum:
-            - dataset
-            - dataproduct
-            - datapackage
+          $ref: "#/components/schemas/SearchResultType"
         id:
           type: string
         name:
           type: string
         excerpt:
           type: string
+      required:
+        - url
+        - type
+        - id
+        - name
+        - excerpt
+
+    SearchResultType:
+      type: string
+      enum:
+        - dataset
+        - dataproduct
+        - datapackage
 
 paths:
   /dataproducts:
@@ -328,9 +336,11 @@ paths:
   /search:
     parameters:
       - in: query
+        required: true
         name: q
         schema:
           type: string
+
     get:
       description: "Search in Datakatalog"
       operationId: "search"

@@ -19,6 +19,7 @@ type Dataproduct struct {
 	LastModified time.Time
 	Team         string
 	Keywords     []string
+	TsvDocument  interface{}
 }
 
 type Dataset struct {
@@ -33,4 +34,5 @@ type Dataset struct {
 	Dataset       string
 	TableName     string
 	Type          string
+	TsvDocument   interface{}
 }

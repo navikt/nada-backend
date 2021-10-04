@@ -26,7 +26,7 @@ INSERT INTO dataproducts (
 	$4,
 	$5,
 	$6
-) RETURNING id, name, description, slug, repo, created, last_modified, team, keywords
+) RETURNING id, name, description, slug, repo, created, last_modified, team, keywords, tsv_document
 `
 
 type CreateDataproductParams struct {
@@ -58,6 +58,7 @@ func (q *Queries) CreateDataproduct(ctx context.Context, arg CreateDataproductPa
 		&i.LastModified,
 		&i.Team,
 		pq.Array(&i.Keywords),
+		&i.TsvDocument,
 	)
 	return i, err
 }
@@ -72,7 +73,7 @@ func (q *Queries) DeleteDataproduct(ctx context.Context, id uuid.UUID) error {
 }
 
 const getDataproduct = `-- name: GetDataproduct :one
-SELECT id, name, description, slug, repo, created, last_modified, team, keywords FROM dataproducts WHERE id = $1
+SELECT id, name, description, slug, repo, created, last_modified, team, keywords, tsv_document FROM dataproducts WHERE id = $1
 `
 
 func (q *Queries) GetDataproduct(ctx context.Context, id uuid.UUID) (Dataproduct, error) {
@@ -88,12 +89,13 @@ func (q *Queries) GetDataproduct(ctx context.Context, id uuid.UUID) (Dataproduct
 		&i.LastModified,
 		&i.Team,
 		pq.Array(&i.Keywords),
+		&i.TsvDocument,
 	)
 	return i, err
 }
 
 const getDataproducts = `-- name: GetDataproducts :many
-SELECT id, name, description, slug, repo, created, last_modified, team, keywords FROM dataproducts
+SELECT id, name, description, slug, repo, created, last_modified, team, keywords, tsv_document FROM dataproducts
 `
 
 func (q *Queries) GetDataproducts(ctx context.Context) ([]Dataproduct, error) {
@@ -115,6 +117,7 @@ func (q *Queries) GetDataproducts(ctx context.Context) ([]Dataproduct, error) {
 			&i.LastModified,
 			&i.Team,
 			pq.Array(&i.Keywords),
+			&i.TsvDocument,
 		); err != nil {
 			return nil, err
 		}
@@ -138,7 +141,7 @@ UPDATE dataproducts SET
 	"team" = $5,
 	"keywords" = $6
 WHERE id = $7
-RETURNING id, name, description, slug, repo, created, last_modified, team, keywords
+RETURNING id, name, description, slug, repo, created, last_modified, team, keywords, tsv_document
 `
 
 type UpdateDataproductParams struct {
@@ -172,6 +175,7 @@ func (q *Queries) UpdateDataproduct(ctx context.Context, arg UpdateDataproductPa
 		&i.LastModified,
 		&i.Team,
 		pq.Array(&i.Keywords),
+		&i.TsvDocument,
 	)
 	return i, err
 }

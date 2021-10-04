@@ -24,13 +24,13 @@ const (
 	DatasetTypeBigquery DatasetType = "bigquery"
 )
 
-// Defines values for SearchResultEntryType.
+// Defines values for SearchResultType.
 const (
-	SearchResultEntryTypeDatapackage SearchResultEntryType = "datapackage"
+	SearchResultTypeDatapackage SearchResultType = "datapackage"
 
-	SearchResultEntryTypeDataproduct SearchResultEntryType = "dataproduct"
+	SearchResultTypeDataproduct SearchResultType = "dataproduct"
 
-	SearchResultEntryTypeDataset SearchResultEntryType = "dataset"
+	SearchResultTypeDataset SearchResultType = "dataset"
 )
 
 // BigQuery defines model for BigQuery.
@@ -101,15 +101,15 @@ type Owner struct {
 
 // SearchResultEntry defines model for SearchResultEntry.
 type SearchResultEntry struct {
-	Excerpt *string                `json:"excerpt,omitempty"`
-	Id      *string                `json:"id,omitempty"`
-	Name    *string                `json:"name,omitempty"`
-	Type    *SearchResultEntryType `json:"type,omitempty"`
-	Url     *string                `json:"url,omitempty"`
+	Excerpt string           `json:"excerpt"`
+	Id      string           `json:"id"`
+	Name    string           `json:"name"`
+	Type    SearchResultType `json:"type"`
+	Url     string           `json:"url"`
 }
 
-// SearchResultEntryType defines model for SearchResultEntry.Type.
-type SearchResultEntryType string
+// SearchResultType defines model for SearchResultType.
+type SearchResultType string
 
 // CreateDataproductJSONBody defines parameters for CreateDataproduct.
 type CreateDataproductJSONBody NewDataproduct
@@ -125,7 +125,7 @@ type UpdateDatasetJSONBody NewDataset
 
 // SearchParams defines parameters for Search.
 type SearchParams struct {
-	Q *string `json:"q,omitempty"`
+	Q string `json:"q"`
 }
 
 // CreateDataproductJSONRequestBody defines body for CreateDataproduct for application/json ContentType.
@@ -392,12 +392,15 @@ func (siw *ServerInterfaceWrapper) Search(w http.ResponseWriter, r *http.Request
 	// Parameter object where we will unmarshal all parameters from the context
 	var params SearchParams
 
-	// ------------- Optional query parameter "q" -------------
+	// ------------- Required query parameter "q" -------------
 	if paramValue := r.URL.Query().Get("q"); paramValue != "" {
 
+	} else {
+		http.Error(w, "Query argument q is required, but not found", http.StatusBadRequest)
+		return
 	}
 
-	err = runtime.BindQueryParameter("form", true, false, "q", r.URL.Query(), &params.Q)
+	err = runtime.BindQueryParameter("form", true, true, "q", r.URL.Query(), &params.Q)
 	if err != nil {
 		http.Error(w, fmt.Sprintf("Invalid format for parameter q: %s", err), http.StatusBadRequest)
 		return
@@ -488,22 +491,22 @@ func HandlerWithOptions(si ServerInterface, options ChiServerOptions) http.Handl
 // Base64 encoded, gzipped, json marshaled Swagger object
 var swaggerSpec = []string{
 
-	"H4sIAAAAAAAC/8xXTY/bNhD9KwLbo2o7aU+6NXURLFp022Z7ChbBrDS2mZVILjmKayz83wt+yLIkSl6n",
-	"ieObRA5nOG/eG5LPLJeVkgIFGZY9M5NvsAL3+Yav/6pR7+y30lKhJo5upgACg2Q/aaeQZcyQ5mLN9qm1",
-	"/Ig5feBFdJrgocTIzD5lGp9qrrFg2ftjL+khXLP6Pm1WywdrZf0ugUBpWdQ5DfebawRCt6GV1BUQy6xT",
-	"/IF4hSwd7jJEdIs5YeU+vte4Yhn7bt4iNg9wzZd+wbu6qkDvXKLeJ2gN7r9Ak2uuiEsRBWYEr0fcbaUu",
-	"ujsZotoLVoKhD5Us+Iqfk7aACqP+5VagPoXBrTNyhVQy6saU9fp07V3N3VbCiiZ+eihkP8Ojio2RI/C1",
-	"S4wHvn5qKD6V2kEKgRuBaWMk/8xaj8KvOD8af5CyRBCTuNkVg62mbb4TKDUcHoB17q79wIt0c2dNp/Jx",
-	"viY2fRdioagruzaSaLuxP3A72S5Ole/zNHkd4gp4+pgxQAM41ySX/6mLkPJADF4jk5K4bUrTxYEQqnjN",
-	"EapHICjlGsXpYjg/sbjvEHS++RtNXdKvgmJqxH9z1Iq+SH+hnnraA/cItOYP8kdYY1RYtS7jSfcStENc",
-	"rDyPOdkLAfv5z5vkzn2n7BNq48jAXs0WTiIKBSjOMvbjbDF7bYsHtHE4zI+26AbWnrkdUrHfuaEEyjLp",
-	"WDvHGqzNTcEy9hZp2Z3XaJQUxkP+erFwtwkpCIULAkqVPHcO5h+Np68XwVk3hwbhQdfY99XBbn/zo0qa",
-	"SJq/uPMxgUTgNunWrpupN1x2LCwz0dAbWezOSnMqu16r3e+9BDqgvvpi0Xqh0ig6RWLqPEdjVnVZ7sKW",
-	"OiyaP/Ni78EtkXAI89KNJzAJsTfqQqxAQ4WE2rDs/cBra5rcLJmVCMsc0ZtzMPNnYttCSNeYHoHTV979",
-	"AOyfxrIpkoZaEwI6TjjZctokh3vXtJauIvcrUm8dgfgfVcBJVnmjK0D22/SKxaV6hce5EUXTIZo34Qu7",
-	"rz9Dxzqvn/2KSNoAF+i4Icy53dZieV6njcHZdlk/e1ILBq+wu75FGs0wNNJrSG9xCd68vEfG0Gr74zcC",
-	"7PJqvkhVhv3QuDfK6I3bP2ESLhLrNTyKBuXyVhe5aA/fVC84sEMW2q0KvOwyytHGvyAPvHlikzSxXgzq",
-	"T40L92xiGyJlsvkcFJ/52RmhIfvP9vf7/wIAAP//2KpZCqkVAAA=",
+	"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",
 }
 
 // GetSwagger returns the content of the embedded swagger specification file
