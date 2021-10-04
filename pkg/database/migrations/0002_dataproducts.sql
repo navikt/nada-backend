@@ -12,10 +12,14 @@ CREATE TABLE dataproducts (
     PRIMARY KEY(id)
 );
 
+CREATE OR REPLACE FUNCTION update_modified_timestamp() RETURNS TRIGGER AS
+$$ BEGIN NEW.last_modified = NOW(); RETURN NEW; END; $$
+LANGUAGE plpgsql;
+
 CREATE TRIGGER dataproducts_set_modified
 BEFORE UPDATE ON dataproducts
 FOR EACH ROW
-EXECUTE PROCEDURE moddatetime(last_modified);
+EXECUTE PROCEDURE update_modified_timestamp();
 
 -- +goose Down
 DROP TABLE dataproducts;
