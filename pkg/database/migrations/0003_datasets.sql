@@ -20,7 +20,7 @@ CREATE TABLE datasets (
 CREATE TRIGGER datasets_set_modified
 BEFORE UPDATE ON datasets
 FOR EACH ROW
-EXECUTE PROCEDURE moddatetime(last_modified);
+EXECUTE PROCEDURE update_modified_timestamp();
 
 -- +goose Down
 DROP TABLE datasets;
