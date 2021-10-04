@@ -77,6 +77,9 @@ func TestRepo(t *testing.T) {
 		if newDataproduct.Name != createdDataproduct.Name {
 			t.Fatal("returned name should match provided name")
 		}
+		if len(createdDataproduct.Datasets) > 0 {
+			t.Fatal("returned dataproduct datasets should be empty")
+		}
 	})
 
 	t.Run("serves dataproducts", func(t *testing.T) {
@@ -92,6 +95,34 @@ func TestRepo(t *testing.T) {
 		if newDataproduct.Name != fetchedDataproduct.Name {
 			t.Fatal("fetched name should match provided name")
 		}
+	})
+
+	t.Run("serves dataproducts with dataset", func(t *testing.T) {
+		createdDataproduct, err := repo.CreateDataproduct(context.Background(), newDataproduct)
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		newDataset := openapi.NewDataset{
+			Name:          "new_dataset",
+			DataproductId: createdDataproduct.Id,
+			Pii:           false,
+			Bigquery: openapi.BigQuery{
+				ProjectId: "project",
+				Dataset:   "dataset",
+				Table:     "table",
+			},
+		}
+
+		createdDataset, err := repo.CreateDataset(context.Background(), newDataset)
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		dataproducts, err := repo.GetDataproducts(context.Background())
+
+		
+
 	})
 
 	t.Run("updates dataproducts", func(t *testing.T) {

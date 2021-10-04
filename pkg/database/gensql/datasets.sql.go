@@ -103,6 +103,39 @@ func (q *Queries) GetDataset(ctx context.Context, id uuid.UUID) (Dataset, error)
 	return i, err
 }
 
+const getDatasetsForDataproduct = `-- name: GetDatasetsForDataproduct :many
+SELECT id, name, type FROM datasets WHERE dataproduct_id = $1
+`
+
+type GetDatasetsForDataproductRow struct {
+	ID   uuid.UUID
+	Name string
+	Type string
+}
+
+func (q *Queries) GetDatasetsForDataproduct(ctx context.Context, dataproductID uuid.UUID) ([]GetDatasetsForDataproductRow, error) {
+	rows, err := q.db.QueryContext(ctx, getDatasetsForDataproduct, dataproductID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []GetDatasetsForDataproductRow{}
+	for rows.Next() {
+		var i GetDatasetsForDataproductRow
+		if err := rows.Scan(&i.ID, &i.Name, &i.Type); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const updateDataset = `-- name: UpdateDataset :one
 UPDATE datasets SET
 	"dataproduct_id" = $1,

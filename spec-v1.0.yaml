@@ -35,12 +35,7 @@ components:
         datasets:
           type: array
           items:
-            type: object
-            properties:
-              id:
-                type: string
-              type:
-                $ref: "#/components/schemas/DatasetType"
+            $ref: "#/components/schemas/DatasetSummary"
       required:
         - id
         - name
@@ -48,6 +43,21 @@ components:
         - owner
         - created
         - last_modified
+        - datasets
+
+    DatasetSummary:
+      type: object
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        type:
+          $ref: "#/components/schemas/DatasetType"
+      required:
+        - id
+        - name
+        - type
 
     DatasetType:
       type: string
@@ -244,7 +254,7 @@ paths:
             "application/json":
               schema:
                 $ref: "#/components/schemas/Dataproduct"
-  
+
   /datasets:
     post:
       description: "Create a new dataset"

@@ -77,7 +77,20 @@ func (r *Repo) GetDataproducts(ctx context.Context) ([]*openapi.Dataproduct, err
 	}
 
 	for _, entry := range res {
-		dataproducts = append(dataproducts, dataproductFromSQL(entry))
+		dataproduct := dataproductFromSQL(entry)
+		datasets, err := r.querier.GetDatasetsForDataproduct(ctx, entry.ID)
+		if err != nil {
+			return nil, fmt.Errorf("getting datasets for dataproduct: %w", err)
+		}
+
+		for _, v := range datasets {
+			dataproduct.Datasets = append(dataproduct.Datasets, openapi.DatasetSummary{
+				Id:   v.ID.String(),
+				Name: v.Name,
+				Type: openapi.DatasetType(v.Type),
+			})
+		}
+		dataproducts = append(dataproducts, dataproduct)
 	}
 
 	return dataproducts, nil
