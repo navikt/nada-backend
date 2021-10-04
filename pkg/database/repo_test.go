@@ -77,6 +77,9 @@ func TestRepo(t *testing.T) {
 		if newDataproduct.Name != createdDataproduct.Name {
 			t.Fatal("returned name should match provided name")
 		}
+		if len(createdDataproduct.Datasets) > 0 {
+			t.Fatal("returned dataproduct datasets should be empty")
+		}
 	})
 
 	t.Run("serves dataproducts", func(t *testing.T) {
@@ -91,6 +94,84 @@ func TestRepo(t *testing.T) {
 		}
 		if newDataproduct.Name != fetchedDataproduct.Name {
 			t.Fatal("fetched name should match provided name")
+		}
+	})
+
+	t.Run("serves dataproducts with dataset", func(t *testing.T) {
+		createdDataproduct, err := repo.CreateDataproduct(context.Background(), newDataproduct)
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		newDataset := openapi.NewDataset{
+			Name:          "new_dataset",
+			DataproductId: createdDataproduct.Id,
+			Pii:           false,
+			Bigquery: openapi.BigQuery{
+				ProjectId: "project",
+				Dataset:   "dataset",
+				Table:     "table",
+			},
+		}
+
+		createdDataset, err := repo.CreateDataset(context.Background(), newDataset)
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		dataproducts, err := repo.GetDataproducts(context.Background())
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		for _, dp := range dataproducts {
+			if dp.Id != createdDataproduct.Id {
+				continue
+			}
+
+			if len(dp.Datasets) == 0 {
+				t.Fatal("Expected dataset to be at least of size 1")
+			}
+
+			if dp.Datasets[0].Name != createdDataset.Name {
+				t.Fatal("Dataset names doesn't match")
+			}
+		}
+	})
+
+	t.Run("serves dataproduct with dataset", func(t *testing.T) {
+		createdDataproduct, err := repo.CreateDataproduct(context.Background(), newDataproduct)
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		newDataset := openapi.NewDataset{
+			Name:          "new_dataset",
+			DataproductId: createdDataproduct.Id,
+			Pii:           false,
+			Bigquery: openapi.BigQuery{
+				ProjectId: "project",
+				Dataset:   "dataset",
+				Table:     "table",
+			},
+		}
+
+		createdDataset, err := repo.CreateDataset(context.Background(), newDataset)
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		dataproducts, err := repo.GetDataproduct(context.Background(), createdDataproduct.Id)
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		if len(dataproducts.Datasets) == 0 {
+			t.Fatal("Expected dataset to be at least of size 1")
+		}
+
+		if dataproducts.Datasets[0].Name != createdDataset.Name {
+			t.Fatal("Dataset names doesn't match")
 		}
 	})
 
@@ -123,6 +204,9 @@ func TestRepo(t *testing.T) {
 		}
 
 		dataproduct, err := repo.GetDataproduct(context.Background(), createdDataproduct.Id)
+		if err != nil {
+			t.Fatal(err)
+		}
 
 		if dataproduct != nil {
 			t.Fatal("dataproduct should not exist")
@@ -204,6 +288,9 @@ func TestRepo(t *testing.T) {
 		}
 
 		dataset, err := repo.GetDataset(context.Background(), createdDataset.Id)
+		if err != nil {
+			t.Fatal(err)
+		}
 
 		if dataset != nil {
 			t.Fatal("dataset should not exist")

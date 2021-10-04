@@ -42,19 +42,16 @@ type BigQuery struct {
 
 // Dataproduct defines model for Dataproduct.
 type Dataproduct struct {
-	Created  time.Time `json:"created"`
-	Datasets *[]struct {
-		Id   *string      `json:"id,omitempty"`
-		Type *DatasetType `json:"type,omitempty"`
-	} `json:"datasets,omitempty"`
-	Description  *string   `json:"description,omitempty"`
-	Id           string    `json:"id"`
-	Keywords     *[]string `json:"keywords,omitempty"`
-	LastModified time.Time `json:"last_modified"`
-	Name         string    `json:"name"`
-	Owner        Owner     `json:"owner"`
-	Repo         *string   `json:"repo,omitempty"`
-	Slug         string    `json:"slug"`
+	Created      time.Time        `json:"created"`
+	Datasets     []DatasetSummary `json:"datasets"`
+	Description  *string          `json:"description,omitempty"`
+	Id           string           `json:"id"`
+	Keywords     *[]string        `json:"keywords,omitempty"`
+	LastModified time.Time        `json:"last_modified"`
+	Name         string           `json:"name"`
+	Owner        Owner            `json:"owner"`
+	Repo         *string          `json:"repo,omitempty"`
+	Slug         string           `json:"slug"`
 }
 
 // Dataset defines model for Dataset.
@@ -65,6 +62,13 @@ type Dataset struct {
 	Id            string   `json:"id"`
 	Name          string   `json:"name"`
 	Pii           bool     `json:"pii"`
+}
+
+// DatasetSummary defines model for DatasetSummary.
+type DatasetSummary struct {
+	Id   string      `json:"id"`
+	Name string      `json:"name"`
+	Type DatasetType `json:"type"`
 }
 
 // DatasetType defines model for DatasetType.
@@ -484,22 +488,22 @@ func HandlerWithOptions(si ServerInterface, options ChiServerOptions) http.Handl
 // Base64 encoded, gzipped, json marshaled Swagger object
 var swaggerSpec = []string{
 
-	"H4sIAAAAAAAC/8xXy27rNhD9FYHtUrV8b7vSrqmLIGjR9JGugiCgpbHNRCIZchTXMPTvBR+yLIuS4zR1",
-	"vJPJ4TwOz5kxtyQTpRQcOGqSbonOVlBS+3nFln9UoDbmWyohQSEDu5NTpBrQfOJGAkmJRsX4ktSxsXyC",
-	"DB9ZHtxGOi8gsFPHRMFLxRTkJL3f9xLvwjWnH+LmtJgbK+N3RpFKJfIqw36+mQKKYBNaCFVSJKlxCt8h",
-	"K4HE/Sx9RHuYIZS673OoPruwJd8qWJCUfJO08CYe22TmvN8Z07oOFOMXqFJ0Y9MBnSkmkQkeDDqQyzNs",
-	"1kLl3SoGMm6DFVTjYylytmCnQMZpCUH/Ys1BHYPk1hpZEkgRdKOLanmcN5YvNhV/ookf70hwWOEQmzzB",
-	"u7c+Z8uXRhNj9ey048nkqTmkinde8CDmkrG99bkQBVA+CpY50Us1busdQenOUx54VRq3gTNtZr/BelSq",
-	"x5B4H6cvg5weahczBKgH55KY9x8p5kvu8crRbZRdt83VdHFAoGX4zoGWzxRpIZbAj1+G9ROK+xdQla3+",
-	"BF0V+DPH0PyDfzJQEj9EqnignnbY7YHW/KLZM11CUFiVKsJFHxRolhhfOB4zNMOY/Pj7TXRnv2PyCkpb",
-	"MpAvk6mViAROJSMp+X4ynXw1l0dxZXFI9lK0C0vH3A6pyK9MY0SLIupYW8eKGpubnKTkGnDW3VegpeDa",
-	"Qf51OrWTXHAEboNQKQuWWQfJk3b0dSLo9IZjg7hBuNc16kN1kNtf3KoUOlDmT3a+RDTisI66d9et1BnO",
-	"OhaGmaDxSuSbk8ocq+6g1da1k0AH1C8fFu0gVBxEJ490lWWg9aIqio1PqcOiZMvy2oFbAEIf5pldj+go",
-	"xM6oC7GkipaAoDRJ73teW9PoZkaMREhqid6MyNSNy7aFoKog3gPnUHkPPbB/GKomjxpqjQhov+BozXAV",
-	"7f6ljmvpImq/IPVWAYj/ljk9yipndAHIfk6vmJ6rVzicG1E0HaJ5j72x+7oZOtR53e7/iKQJcIaO68Oc",
-	"2m0Nlqd12hCcbZd1u0e1oOECu+s14GCFvpFeQnnTc/Dm7T0yhFbbHz8JsPOr+Sy30u+H2r5RBv9xuydM",
-	"xHhkvPpHUe+6nNVZ/mj331RvGNi+CmVPeV52GWVp416QO968kFGaGC8a1Gvjwj6byApR6jRJqGQTtztB",
-	"0Gh+k/qh/jcAAP//uthZOiUVAAA=",
+	"H4sIAAAAAAAC/8xXTY/bNhD9KwLbo2o7aU+6NXURLFp022Z7ChbBrDS2mZVILjmKayz83wt+yLIkSl6n",
+	"ieObRA5nOG/eG5LPLJeVkgIFGZY9M5NvsAL3+Yav/6pR7+y30lKhJo5upgACg2Q/aaeQZcyQ5mLN9qm1",
+	"/Ig5feBFdJrgocTIzD5lGp9qrrFg2ftjL+khXLP6Pm1WywdrZf0ugUBpWdQ5DfebawRCt6GV1BUQy6xT",
+	"/IF4hSwd7jJEdIs5YeU+vte4Yhn7bt4iNg9wzZd+wbu6qkDvXKLeJ2gN7r9Ak2uuiEsRBWYEr0fcbaUu",
+	"ujsZotoLVoKhD5Us+Iqfk7aACqP+5VagPoXBrTNyhVQy6saU9fp07V3N3VbCiiZ+eihkP8Ojio2RI/C1",
+	"S4wHvn5qKD6V2kEKgRuBaWMk/8xaj8KvOD8af5CyRBCTuNkVg62mbb4TKDUcHoB17q79wIt0c2dNp/Jx",
+	"viY2fRdioagruzaSaLuxP3A72S5Ole/zNHkd4gp4+pgxQAM41ySX/6mLkPJADF4jk5K4bUrTxYEQqnjN",
+	"EapHICjlGsXpYjg/sbjvEHS++RtNXdKvgmJqxH9z1Iq+SH+hnnraA/cItOYP8kdYY1RYtS7jSfcStENc",
+	"rDyPOdkLAfv5z5vkzn2n7BNq48jAXs0WTiIKBSjOMvbjbDF7bYsHtHE4zI+26AbWnrkdUrHfuaEEyjLp",
+	"WDvHGqzNTcEy9hZp2Z3XaJQUxkP+erFwtwkpCIULAkqVPHcO5h+Np68XwVk3hwbhQdfY99XBbn/zo0qa",
+	"SJq/uPMxgUTgNunWrpupN1x2LCwz0dAbWezOSnMqu16r3e+9BDqgvvpi0Xqh0ig6RWLqPEdjVnVZ7sKW",
+	"OiyaP/Ni78EtkXAI89KNJzAJsTfqQqxAQ4WE2rDs/cBra5rcLJmVCMsc0ZtzMPNnYttCSNeYHoHTV979",
+	"AOyfxrIpkoZaEwI6TjjZctokh3vXtJauIvcrUm8dgfgfVcBJVnmjK0D22/SKxaV6hce5EUXTIZo34Qu7",
+	"rz9Dxzqvn/2KSNoAF+i4Icy53dZieV6njcHZdlk/e1ILBq+wu75FGs0wNNJrSG9xCd68vEfG0Gr74zcC",
+	"7PJqvkhVhv3QuDfK6I3bP2ESLhLrNTyKBuXyVhe5aA/fVC84sEMW2q0KvOwyytHGvyAPvHlikzSxXgzq",
+	"T40L92xiGyJlsvkcFJ/52RmhIfvP9vf7/wIAAP//2KpZCqkVAAA=",
 }
 
 // GetSwagger returns the content of the embedded swagger specification file

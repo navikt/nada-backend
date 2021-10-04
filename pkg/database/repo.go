@@ -77,10 +77,30 @@ func (r *Repo) GetDataproducts(ctx context.Context) ([]*openapi.Dataproduct, err
 	}
 
 	for _, entry := range res {
-		dataproducts = append(dataproducts, dataproductFromSQL(entry))
+		dataproduct := dataproductFromSQL(entry)
+		if err := r.enrichDataproduct(ctx, entry.ID, dataproduct); err != nil {
+			return nil, err
+		}
+		dataproducts = append(dataproducts, dataproduct)
 	}
 
 	return dataproducts, nil
+}
+
+func (r *Repo) enrichDataproduct(ctx context.Context, id uuid.UUID, dp *openapi.Dataproduct) error {
+	datasets, err := r.querier.GetDatasetsForDataproduct(ctx, id)
+	if err != nil {
+		return fmt.Errorf("getting datasets for enriching dataproduct: %w", err)
+	}
+
+	for _, v := range datasets {
+		dp.Datasets = append(dp.Datasets, openapi.DatasetSummary{
+			Id:   v.ID.String(),
+			Name: v.Name,
+			Type: openapi.DatasetType(v.Type),
+		})
+	}
+	return nil
 }
 
 func (r *Repo) GetDataproduct(ctx context.Context, id string) (*openapi.Dataproduct, error) {
@@ -93,7 +113,12 @@ func (r *Repo) GetDataproduct(ctx context.Context, id string) (*openapi.Dataprod
 		return nil, fmt.Errorf("getting dataproduct from database: %w", err)
 	}
 
-	return dataproductFromSQL(res), nil
+	dp := dataproductFromSQL(res)
+	if err := r.enrichDataproduct(ctx, uid, dp); err != nil {
+		return nil, err
+	}
+
+	return dp, nil
 }
 
 func (r *Repo) DeleteDataproduct(ctx context.Context, id string) error {

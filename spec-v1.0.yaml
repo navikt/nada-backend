@@ -35,14 +35,7 @@ components:
         datasets:
           type: array
           items:
-            type: object
-            properties:
-              id:
-                type: string
-              type:
-                $ref: "#/components/schemas/DatasetType"
-              name:
-                type: string
+            $ref: "#/components/schemas/DatasetSummary"
       required:
         - id
         - name
@@ -50,6 +43,21 @@ components:
         - owner
         - created
         - last_modified
+        - datasets
+
+    DatasetSummary:
+      type: object
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        type:
+          $ref: "#/components/schemas/DatasetType"
+      required:
+        - id
+        - name
+        - type
 
     DatasetType:
       type: string

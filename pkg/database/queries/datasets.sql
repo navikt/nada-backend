@@ -1,6 +1,9 @@
 -- name: GetDataset :one
 SELECT * FROM datasets WHERE id = @id;
 
+-- name: GetDatasetsForDataproduct :many
+SELECT id, name, type FROM datasets WHERE dataproduct_id = @dataproduct_id;
+
 -- name: DeleteDataset :exec
 DELETE FROM datasets WHERE id = @id;
 
