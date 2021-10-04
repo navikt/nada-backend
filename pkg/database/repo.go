@@ -14,7 +14,6 @@ import (
 	// Pin version of sqlc and goose for cli
 	_ "github.com/kyleconroy/sqlc"
 	"github.com/pressly/goose/v3"
-	_ "github.com/pressly/goose/v3"
 )
 
 //go:embed migrations/*.sql

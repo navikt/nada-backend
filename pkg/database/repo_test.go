@@ -1,37 +1,21 @@
 //go:build integration_test
-// +build integration_test
 
 package database
 
 import (
 	"context"
-	"database/sql"
-	"embed"
 	"testing"
 
 	_ "github.com/lib/pq"
-	"github.com/pressly/goose/v3"
 
-	"github.com/navikt/nada-backend/pkg/database/gensql"
 	"github.com/navikt/nada-backend/pkg/openapi"
 )
 
-//go:embed migrations/*.sql
-var embedMigrations embed.FS
-
 func TestRepo(t *testing.T) {
-	db, err := sql.Open("postgres", "user=postgres dbname=datakatalogen sslmode=disable password=postgres port=5433")
+	repo, err := New("user=postgres dbname=nada sslmode=disable password=postgres port=5433")
 	if err != nil {
 		t.Fatal(err)
 	}
-
-	goose.SetBaseFS(embedMigrations)
-
-	if err := goose.Up(db, "migrations"); err != nil {
-		t.Fatalf("goose up: %v", err)
-	}
-
-	repo, _ := New(gensql.New(db))
 
 	newDataproduct := openapi.NewDataproduct{
 		Name: "new_dataproduct",
