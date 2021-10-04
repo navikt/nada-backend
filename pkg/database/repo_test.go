@@ -204,6 +204,9 @@ func TestRepo(t *testing.T) {
 		}
 
 		dataproduct, err := repo.GetDataproduct(context.Background(), createdDataproduct.Id)
+		if err != nil {
+			t.Fatal(err)
+		}
 
 		if dataproduct != nil {
 			t.Fatal("dataproduct should not exist")
@@ -285,6 +288,9 @@ func TestRepo(t *testing.T) {
 		}
 
 		dataset, err := repo.GetDataset(context.Background(), createdDataset.Id)
+		if err != nil {
+			t.Fatal(err)
+		}
 
 		if dataset != nil {
 			t.Fatal("dataset should not exist")
