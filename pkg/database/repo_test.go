@@ -120,7 +120,7 @@ func TestRepo(t *testing.T) {
 			t.Fatal(err)
 		}
 
-		dataproducts, err := repo.GetDataproducts(context.Background())
+		dataproducts, err := repo.GetDataproducts(context.Background(), 10, 0)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -339,7 +339,7 @@ func TestRepo(t *testing.T) {
 		}
 		for name, tc := range tests {
 			t.Run(name, func(t *testing.T) {
-				results, err := repo.Search(context.Background(), tc.query)
+				results, err := repo.Search(context.Background(), tc.query, 15, 0)
 				if err != nil {
 					t.Fatal(err)
 				}

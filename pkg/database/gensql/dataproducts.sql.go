@@ -95,11 +95,16 @@ func (q *Queries) GetDataproduct(ctx context.Context, id uuid.UUID) (Dataproduct
 }
 
 const getDataproducts = `-- name: GetDataproducts :many
-SELECT id, name, description, slug, repo, created, last_modified, team, keywords, tsv_document FROM dataproducts
+SELECT id, name, description, slug, repo, created, last_modified, team, keywords, tsv_document FROM dataproducts ORDER BY last_modified DESC LIMIT $2 OFFSET $1
 `
 
-func (q *Queries) GetDataproducts(ctx context.Context) ([]Dataproduct, error) {
-	rows, err := q.db.QueryContext(ctx, getDataproducts)
+type GetDataproductsParams struct {
+	Offset int32
+	Limit  int32
+}
+
+func (q *Queries) GetDataproducts(ctx context.Context, arg GetDataproductsParams) ([]Dataproduct, error) {
+	rows, err := q.db.QueryContext(ctx, getDataproducts, arg.Offset, arg.Limit)
 	if err != nil {
 		return nil, err
 	}

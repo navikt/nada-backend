@@ -123,6 +123,12 @@ type UserInfo struct {
 	Teams *[]string `json:"teams,omitempty"`
 }
 
+// GetDataproductsParams defines parameters for GetDataproducts.
+type GetDataproductsParams struct {
+	Limit  *int `json:"limit,omitempty"`
+	Offset *int `json:"offset,omitempty"`
+}
+
 // CreateDataproductJSONBody defines parameters for CreateDataproduct.
 type CreateDataproductJSONBody NewDataproduct
 
@@ -137,7 +143,9 @@ type UpdateDatasetJSONBody NewDataset
 
 // SearchParams defines parameters for Search.
 type SearchParams struct {
-	Q string `json:"q"`
+	Q      string `json:"q"`
+	Limit  *int   `json:"limit,omitempty"`
+	Offset *int   `json:"offset,omitempty"`
 }
 
 // CreateDataproductJSONRequestBody defines body for CreateDataproduct for application/json ContentType.
@@ -156,7 +164,7 @@ type UpdateDatasetJSONRequestBody UpdateDatasetJSONBody
 type ServerInterface interface {
 
 	// (GET /dataproducts)
-	GetDataproducts(w http.ResponseWriter, r *http.Request)
+	GetDataproducts(w http.ResponseWriter, r *http.Request, params GetDataproductsParams)
 
 	// (POST /dataproducts)
 	CreateDataproduct(w http.ResponseWriter, r *http.Request)
@@ -201,8 +209,35 @@ type MiddlewareFunc func(http.HandlerFunc) http.HandlerFunc
 func (siw *ServerInterfaceWrapper) GetDataproducts(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 
+	var err error
+
+	// Parameter object where we will unmarshal all parameters from the context
+	var params GetDataproductsParams
+
+	// ------------- Optional query parameter "limit" -------------
+	if paramValue := r.URL.Query().Get("limit"); paramValue != "" {
+
+	}
+
+	err = runtime.BindQueryParameter("form", true, false, "limit", r.URL.Query(), &params.Limit)
+	if err != nil {
+		http.Error(w, fmt.Sprintf("Invalid format for parameter limit: %s", err), http.StatusBadRequest)
+		return
+	}
+
+	// ------------- Optional query parameter "offset" -------------
+	if paramValue := r.URL.Query().Get("offset"); paramValue != "" {
+
+	}
+
+	err = runtime.BindQueryParameter("form", true, false, "offset", r.URL.Query(), &params.Offset)
+	if err != nil {
+		http.Error(w, fmt.Sprintf("Invalid format for parameter offset: %s", err), http.StatusBadRequest)
+		return
+	}
+
 	var handler = func(w http.ResponseWriter, r *http.Request) {
-		siw.Handler.GetDataproducts(w, r)
+		siw.Handler.GetDataproducts(w, r, params)
 	}
 
 	for _, middleware := range siw.HandlerMiddlewares {
@@ -433,6 +468,28 @@ func (siw *ServerInterfaceWrapper) Search(w http.ResponseWriter, r *http.Request
 		return
 	}
 
+	// ------------- Optional query parameter "limit" -------------
+	if paramValue := r.URL.Query().Get("limit"); paramValue != "" {
+
+	}
+
+	err = runtime.BindQueryParameter("form", true, false, "limit", r.URL.Query(), &params.Limit)
+	if err != nil {
+		http.Error(w, fmt.Sprintf("Invalid format for parameter limit: %s", err), http.StatusBadRequest)
+		return
+	}
+
+	// ------------- Optional query parameter "offset" -------------
+	if paramValue := r.URL.Query().Get("offset"); paramValue != "" {
+
+	}
+
+	err = runtime.BindQueryParameter("form", true, false, "offset", r.URL.Query(), &params.Offset)
+	if err != nil {
+		http.Error(w, fmt.Sprintf("Invalid format for parameter offset: %s", err), http.StatusBadRequest)
+		return
+	}
+
 	var handler = func(w http.ResponseWriter, r *http.Request) {
 		siw.Handler.Search(w, r, params)
 	}
@@ -538,24 +595,25 @@ func HandlerWithOptions(si ServerInterface, options ChiServerOptions) http.Handl
 // Base64 encoded, gzipped, json marshaled Swagger object
 var swaggerSpec = []string{
 
-	"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",
+	"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",
+	"oNG8k2pW/RcAAP//r+BUbNUZAAA=",
 }
 
 // GetSwagger returns the content of the embedded swagger specification file
@@ -629,3 +687,4 @@ func GetSwagger() (swagger *openapi3.T, err error) {
 	}
 	return
 }
+

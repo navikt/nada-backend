@@ -27,8 +27,8 @@ func New(repo *database.Repo, oauth2Config oauth2.Config, log *logrus.Entry) *Se
 }
 
 // GetDataproducts (GET /dataproducts)
-func (s *Server) GetDataproducts(w http.ResponseWriter, r *http.Request) {
-	dataproducts, err := s.repo.GetDataproducts(r.Context())
+func (s *Server) GetDataproducts(w http.ResponseWriter, r *http.Request, params openapi.GetDataproductsParams) {
+	dataproducts, err := s.repo.GetDataproducts(r.Context(), defaultInt(params.Limit, 15), defaultInt(params.Offset, 0))
 	if err != nil {
 		s.log.WithError(err).Error("Getting dataproducts")
 		http.Error(w, "uh oh", http.StatusInternalServerError)
@@ -190,7 +190,7 @@ func (s *Server) UpdateDataset(w http.ResponseWriter, r *http.Request, id string
 
 // (GET /search)
 func (s *Server) Search(w http.ResponseWriter, r *http.Request, params openapi.SearchParams) {
-	results, err := s.repo.Search(r.Context(), params.Q)
+	results, err := s.repo.Search(r.Context(), params.Q, defaultInt(params.Limit, 15), defaultInt(params.Offset, 0))
 	if err != nil {
 		s.log.WithError(err).Error("Search")
 		http.Error(w, "uh oh", http.StatusInternalServerError)
@@ -207,7 +207,6 @@ func (s *Server) Search(w http.ResponseWriter, r *http.Request, params openapi.S
 
 // (GET /userinfo)
 func (s *Server) GetUserInfo(w http.ResponseWriter, r *http.Request) {
-
 }
 
 func (s *Server) Login(w http.ResponseWriter, r *http.Request) {
@@ -253,4 +252,11 @@ func (s *Server) Callback(w http.ResponseWriter, r *http.Request) {
 	}
 
 	http.Redirect(w, r, loginPage, http.StatusFound)
+}
+
+func defaultInt(i *int, def int) int {
+	if i != nil {
+		return *i
+	}
+	return def
 }

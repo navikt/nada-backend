@@ -213,6 +213,17 @@ paths:
     get:
       description: "List all dataproducts"
       operationId: "getDataproducts"
+      parameters: 
+        - in: "query"
+          name: "limit"
+          schema:
+            type: "integer"
+            default: 15
+        - in: "query"
+          name: "offset"
+          schema:
+            type: "integer"
+            default: 0
       responses:
         "200":
           description: OK
@@ -383,6 +394,16 @@ paths:
         name: q
         schema:
           type: string
+      - in: "query"
+        name: "limit"
+        schema:
+          type: "integer"
+          default: 15
+      - in: "query"
+        name: "offset"
+        schema:
+          type: "integer"
+          default: 0
 
     get:
       description: "Search in NADA"

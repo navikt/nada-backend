@@ -14,11 +14,11 @@ type Querier interface {
 	DeleteDataproduct(ctx context.Context, id uuid.UUID) error
 	DeleteDataset(ctx context.Context, id uuid.UUID) error
 	GetDataproduct(ctx context.Context, id uuid.UUID) (Dataproduct, error)
-	GetDataproducts(ctx context.Context) ([]Dataproduct, error)
+	GetDataproducts(ctx context.Context, arg GetDataproductsParams) ([]Dataproduct, error)
 	GetDataset(ctx context.Context, id uuid.UUID) (Dataset, error)
 	GetDatasetsForDataproduct(ctx context.Context, dataproductID uuid.UUID) ([]GetDatasetsForDataproductRow, error)
-	SearchDataproducts(ctx context.Context, query string) ([]Dataproduct, error)
-	SearchDatasets(ctx context.Context, query string) ([]Dataset, error)
+	SearchDataproducts(ctx context.Context, arg SearchDataproductsParams) ([]Dataproduct, error)
+	SearchDatasets(ctx context.Context, arg SearchDatasetsParams) ([]Dataset, error)
 	UpdateDataproduct(ctx context.Context, arg UpdateDataproductParams) (Dataproduct, error)
 	UpdateDataset(ctx context.Context, arg UpdateDatasetParams) (Dataset, error)
 }

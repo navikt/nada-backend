@@ -2,7 +2,7 @@
 SELECT * FROM dataproducts WHERE id = @id;
 
 -- name: GetDataproducts :many
-SELECT * FROM dataproducts;
+SELECT * FROM dataproducts ORDER BY last_modified DESC LIMIT sqlc.arg('limit') OFFSET sqlc.arg('offset');
 
 -- name: DeleteDataproduct :exec
 DELETE FROM dataproducts WHERE id = @id;

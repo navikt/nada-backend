@@ -68,10 +68,10 @@ func (r *Repo) CreateDataproduct(ctx context.Context, dp openapi.NewDataproduct)
 	return dataproductFromSQL(res), nil
 }
 
-func (r *Repo) GetDataproducts(ctx context.Context) ([]*openapi.Dataproduct, error) {
+func (r *Repo) GetDataproducts(ctx context.Context, limit, offset int) ([]*openapi.Dataproduct, error) {
 	dataproducts := []*openapi.Dataproduct{}
 
-	res, err := r.querier.GetDataproducts(ctx)
+	res, err := r.querier.GetDataproducts(ctx, gensql.GetDataproductsParams{Limit: int32(limit), Offset: int32(offset)})
 	if err != nil {
 		return nil, fmt.Errorf("getting dataproducts from database: %w", err)
 	}
@@ -235,7 +235,7 @@ func (r *Repo) DeleteDataset(ctx context.Context, id string) error {
 	return nil
 }
 
-func (r *Repo) Search(ctx context.Context, query string) ([]*openapi.SearchResultEntry, error) {
+func (r *Repo) Search(ctx context.Context, query string, limit, offset int) ([]*openapi.SearchResultEntry, error) {
 	results := []*openapi.SearchResultEntry{}
 	makeExcerpt := func(s sql.NullString) string {
 		if s.Valid {
@@ -244,7 +244,7 @@ func (r *Repo) Search(ctx context.Context, query string) ([]*openapi.SearchResul
 		return "No description"
 	}
 
-	dataproducts, err := r.querier.SearchDataproducts(ctx, query)
+	dataproducts, err := r.querier.SearchDataproducts(ctx, gensql.SearchDataproductsParams{Query: query, Limit: int32(limit), Offset: int32(offset)})
 	if err != nil {
 		return nil, err
 	}
@@ -258,7 +258,7 @@ func (r *Repo) Search(ctx context.Context, query string) ([]*openapi.SearchResul
 		})
 	}
 
-	datasets, err := r.querier.SearchDatasets(ctx, query)
+	datasets, err := r.querier.SearchDatasets(ctx, gensql.SearchDatasetsParams{Query: query, Limit: int32(limit), Offset: int32(offset)})
 	if err != nil {
 		return nil, err
 	}

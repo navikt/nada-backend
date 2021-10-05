@@ -10,11 +10,17 @@ import (
 )
 
 const searchDataproducts = `-- name: SearchDataproducts :many
-SELECT id, name, description, slug, repo, created, last_modified, team, keywords, tsv_document FROM "dataproducts" WHERE "tsv_document" @@ websearch_to_tsquery('norwegian', $1)
+SELECT id, name, description, slug, repo, created, last_modified, team, keywords, tsv_document FROM "dataproducts" WHERE "tsv_document" @@ websearch_to_tsquery('norwegian', $1) LIMIT $3 OFFSET $2
 `
 
-func (q *Queries) SearchDataproducts(ctx context.Context, query string) ([]Dataproduct, error) {
-	rows, err := q.db.QueryContext(ctx, searchDataproducts, query)
+type SearchDataproductsParams struct {
+	Query  string
+	Offset int32
+	Limit  int32
+}
+
+func (q *Queries) SearchDataproducts(ctx context.Context, arg SearchDataproductsParams) ([]Dataproduct, error) {
+	rows, err := q.db.QueryContext(ctx, searchDataproducts, arg.Query, arg.Offset, arg.Limit)
 	if err != nil {
 		return nil, err
 	}
@@ -48,11 +54,17 @@ func (q *Queries) SearchDataproducts(ctx context.Context, query string) ([]Datap
 }
 
 const searchDatasets = `-- name: SearchDatasets :many
-SELECT id, dataproduct_id, name, description, pii, created, last_modified, project_id, dataset, table_name, type, tsv_document FROM "datasets" WHERE "tsv_document" @@ websearch_to_tsquery('norwegian', $1)
+SELECT id, dataproduct_id, name, description, pii, created, last_modified, project_id, dataset, table_name, type, tsv_document FROM "datasets" WHERE "tsv_document" @@ websearch_to_tsquery('norwegian', $1) LIMIT $3 OFFSET $2
 `
 
-func (q *Queries) SearchDatasets(ctx context.Context, query string) ([]Dataset, error) {
-	rows, err := q.db.QueryContext(ctx, searchDatasets, query)
+type SearchDatasetsParams struct {
+	Query  string
+	Offset int32
+	Limit  int32
+}
+
+func (q *Queries) SearchDatasets(ctx context.Context, arg SearchDatasetsParams) ([]Dataset, error) {
+	rows, err := q.db.QueryContext(ctx, searchDatasets, arg.Query, arg.Offset, arg.Limit)
 	if err != nil {
 		return nil, err
 	}
