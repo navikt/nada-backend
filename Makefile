@@ -36,6 +36,7 @@ local:
 	--teams-token=$(shell kubectl get secret --context=dev-gcp --namespace=dataplattform github-read-token -o jsonpath='{.data.GITHUB_READ_TOKEN}' | base64 -d) \
 	--bind-address=127.0.0.1:8080 \
 	--hostname=localhost \
+	--mock-auth \
 	--log-level=debug
 
 migrate:

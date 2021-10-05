@@ -13,8 +13,8 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-func mockJWTValidatorMiddleware() func(next http.Handler) http.Handler {
-	return func(next http.Handler) http.Handler {
+func MockJWTValidatorMiddleware() openapi.MiddlewareFunc {
+	return func(next http.HandlerFunc) http.HandlerFunc {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			teams := []string{
 				"team",

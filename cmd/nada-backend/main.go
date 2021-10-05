@@ -40,6 +40,7 @@ func init() {
 	flag.StringVar(&cfg.TeamsToken, "teams-token", os.Getenv("GITHUB_READ_TOKEN"), "Token for accessing teams json")
 	flag.StringVar(&cfg.LogLevel, "log-level", "info", "which log level to output")
 	flag.StringVar(&cfg.CookieSecret, "cookie-secret", "", "Secret used when encrypting cookies")
+	flag.BoolVar(&cfg.MockAuth, "mock-auth", false, "Use mock authentication")
 }
 
 func main() {
@@ -62,17 +63,21 @@ func main() {
 		log.WithError(err).Fatal("setting up database")
 	}
 
-	teamUUIDs := make(map[string]string)
-	go auth.UpdateTeams(ctx, teamUUIDs, cfg.TeamsURL, cfg.TeamsToken, TeamsUpdateFrequency)
+	authenticatorMiddleware := middleware.MockJWTValidatorMiddleware()
+	if !cfg.MockAuth {
+		teamUUIDs := make(map[string]string)
+		go auth.UpdateTeams(ctx, teamUUIDs, cfg.TeamsURL, cfg.TeamsToken, TeamsUpdateFrequency)
 
-	teamProjectsMapping := make(map[string][]string)
-	go teamprojectsupdater.New(ctx, teamProjectsMapping, cfg.DevTeamProjectsOutputURL, cfg.ProdTeamProjectsOutputURL, cfg.TeamsToken, TeamProjectsUpdateFrequency, nil).Run()
+		teamProjectsMapping := make(map[string][]string)
+		go teamprojectsupdater.New(ctx, teamProjectsMapping, cfg.DevTeamProjectsOutputURL, cfg.ProdTeamProjectsOutputURL, cfg.TeamsToken, TeamProjectsUpdateFrequency, nil).Run()
 
-	//iam := iam.New(ctx)
-	//go accessensurer.New(ctx, cfg, firestore, iam, EnsureAccessUpdateFrequency).Run()
+		// iam := iam.New(ctx)
+		// go accessensurer.New(ctx, cfg, firestore, iam, EnsureAccessUpdateFrequency).Run()
 
-	azureGroups := auth.NewAzureGroups(http.DefaultClient, cfg.OAuth2.ClientID, cfg.OAuth2.ClientSecret, cfg.OAuth2.TenantID)
-	authenticatorMiddleware := middleware.JWTValidatorMiddleware(auth.KeyDiscoveryURL(cfg.OAuth2.TenantID), cfg.OAuth2.ClientID, false, azureGroups, teamUUIDs)
+		azureGroups := auth.NewAzureGroups(http.DefaultClient, cfg.OAuth2.ClientID, cfg.OAuth2.ClientSecret, cfg.OAuth2.TenantID)
+		authenticatorMiddleware = middleware.JWTValidatorMiddleware(auth.KeyDiscoveryURL(cfg.OAuth2.TenantID), cfg.OAuth2.ClientID, false, azureGroups, teamUUIDs)
+	}
+
 	corsMW := cors.Handler(cors.Options{
 		AllowedOrigins:   []string{"https://*", "http://*"},
 		AllowedMethods:   []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},

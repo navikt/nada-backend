@@ -11,6 +11,7 @@ type Config struct {
 	TeamsToken                string
 	Hostname                  string
 	CookieSecret              string
+	MockAuth                  bool
 }
 
 type OAuth2Config struct {
