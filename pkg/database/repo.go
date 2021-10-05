@@ -244,7 +244,17 @@ func (r *Repo) Search(ctx context.Context, query string, limit, offset int) ([]*
 		return "No description"
 	}
 
-	dataproducts, err := r.querier.SearchDataproducts(ctx, gensql.SearchDataproductsParams{Query: query, Limit: int32(limit), Offset: int32(offset)})
+	// If query is empty, the search result is empty. So we do a regular SELECT * instead
+	var (
+		dataproducts []gensql.Dataproduct
+		datasets     []gensql.Dataset
+		err          error
+	)
+	if query == "" {
+		dataproducts, err = r.querier.GetDataproducts(ctx, gensql.GetDataproductsParams{Limit: int32(limit), Offset: int32(offset)})
+	} else {
+		dataproducts, err = r.querier.SearchDataproducts(ctx, gensql.SearchDataproductsParams{Query: query, Limit: int32(limit), Offset: int32(offset)})
+	}
 	if err != nil {
 		return nil, err
 	}
@@ -258,7 +268,12 @@ func (r *Repo) Search(ctx context.Context, query string, limit, offset int) ([]*
 		})
 	}
 
-	datasets, err := r.querier.SearchDatasets(ctx, gensql.SearchDatasetsParams{Query: query, Limit: int32(limit), Offset: int32(offset)})
+	// If query is empty, the search result is empty. So we do a regular SELECT * instead
+	if query == "" {
+		datasets, err = r.querier.GetDatasets(ctx, gensql.GetDatasetsParams{Limit: int32(limit), Offset: int32(offset)})
+	} else {
+		datasets, err = r.querier.SearchDatasets(ctx, gensql.SearchDatasetsParams{Query: query, Limit: int32(limit), Offset: int32(offset)})
+	}
 	if err != nil {
 		return nil, err
 	}

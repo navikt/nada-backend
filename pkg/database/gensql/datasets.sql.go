@@ -105,6 +105,51 @@ func (q *Queries) GetDataset(ctx context.Context, id uuid.UUID) (Dataset, error)
 	return i, err
 }
 
+const getDatasets = `-- name: GetDatasets :many
+SELECT id, dataproduct_id, name, description, pii, created, last_modified, project_id, dataset, table_name, type, tsv_document FROM datasets ORDER BY last_modified DESC LIMIT $2 OFFSET $1
+`
+
+type GetDatasetsParams struct {
+	Offset int32
+	Limit  int32
+}
+
+func (q *Queries) GetDatasets(ctx context.Context, arg GetDatasetsParams) ([]Dataset, error) {
+	rows, err := q.db.QueryContext(ctx, getDatasets, arg.Offset, arg.Limit)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []Dataset{}
+	for rows.Next() {
+		var i Dataset
+		if err := rows.Scan(
+			&i.ID,
+			&i.DataproductID,
+			&i.Name,
+			&i.Description,
+			&i.Pii,
+			&i.Created,
+			&i.LastModified,
+			&i.ProjectID,
+			&i.Dataset,
+			&i.TableName,
+			&i.Type,
+			&i.TsvDocument,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const getDatasetsForDataproduct = `-- name: GetDatasetsForDataproduct :many
 SELECT id, name, type FROM datasets WHERE dataproduct_id = $1
 `

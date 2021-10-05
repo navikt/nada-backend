@@ -213,7 +213,7 @@ paths:
     get:
       description: "List all dataproducts"
       operationId: "getDataproducts"
-      parameters: 
+      parameters:
         - in: "query"
           name: "limit"
           schema:
@@ -310,7 +310,7 @@ paths:
             "application/json":
               schema:
                 $ref: "#/components/schemas/Dataproduct"
-  
+
   /datasets:
     post:
       security:
@@ -390,7 +390,6 @@ paths:
   /search:
     parameters:
       - in: query
-        required: true
         name: q
         schema:
           type: string

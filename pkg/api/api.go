@@ -190,7 +190,11 @@ func (s *Server) UpdateDataset(w http.ResponseWriter, r *http.Request, id string
 
 // (GET /search)
 func (s *Server) Search(w http.ResponseWriter, r *http.Request, params openapi.SearchParams) {
-	results, err := s.repo.Search(r.Context(), params.Q, defaultInt(params.Limit, 15), defaultInt(params.Offset, 0))
+	q := ""
+	if params.Q != nil {
+		q = *params.Q
+	}
+	results, err := s.repo.Search(r.Context(), q, defaultInt(params.Limit, 15), defaultInt(params.Offset, 0))
 	if err != nil {
 		s.log.WithError(err).Error("Search")
 		http.Error(w, "uh oh", http.StatusInternalServerError)
