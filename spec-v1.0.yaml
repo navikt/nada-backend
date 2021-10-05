@@ -6,6 +6,11 @@ servers:
   - url: "https://api.server.test/api"
 
 components:
+  securitySchemes:
+    cookieAuth:
+      type: token
+      in: cookie
+      name: jwt
   schemas:
     Dataproduct:
       type: object
@@ -192,6 +197,8 @@ components:
 paths:
   /userinfo:
     get:
+      security:
+        - cookieAuth: []
       description: "get user info"
       operationId: "getUserInfo"
       responses:
@@ -216,6 +223,8 @@ paths:
                 items:
                   $ref: "#/components/schemas/Dataproduct"
     post:
+      security:
+        - cookieAuth: []
       description: "Create a new dataproduct"
       operationId: "createDataproduct"
       requestBody:
@@ -252,6 +261,8 @@ paths:
                 items:
                   $ref: "#/components/schemas/Dataproduct"
     delete:
+      security:
+        - cookieAuth: []
       description: "Delete a dataproduct"
       operationId: "deleteDataproduct"
       parameters:
@@ -265,6 +276,8 @@ paths:
         "204":
           description: "Deleted OK"
     put:
+      security:
+        - cookieAuth: []
       description: "Update a dataproduct"
       operationId: "updateDataproduct"
       parameters:
@@ -289,6 +302,8 @@ paths:
   
   /datasets:
     post:
+      security:
+        - cookieAuth: []
       description: "Create a new dataset"
       operationId: "createDataset"
       requestBody:
@@ -323,6 +338,8 @@ paths:
               schema:
                 $ref: "#/components/schemas/Dataset"
     put:
+      security:
+        - cookieAuth: []
       description: "Update a dataset"
       operationId: "updateDataset"
       parameters:
@@ -345,6 +362,8 @@ paths:
               schema:
                 $ref: "#/components/schemas/Dataset"
     delete:
+      security:
+        - cookieAuth: []
       description: "Delete a dataset"
       operationId: "deleteDataset"
       parameters:
@@ -366,7 +385,7 @@ paths:
           type: string
 
     get:
-      description: "Search in Datakatalog"
+      description: "Search in NADA"
       operationId: "search"
       responses:
         "200":

@@ -7,7 +7,6 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/navikt/nada-backend/pkg/config"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -20,24 +19,28 @@ type OutputVariable struct {
 }
 
 type TeamProjectsUpdater struct {
-	ctx             context.Context
-	teamProjects    map[string][]string
-	cfg             config.Config
-	updateFrequency time.Duration
-	httpClient      *http.Client
+	ctx                 context.Context
+	teamProjects        map[string][]string
+	devTeamProjectsURL  string
+	prodTeamProjectsURL string
+	teamsToken          string
+	updateFrequency     time.Duration
+	httpClient          *http.Client
 }
 
-func New(c context.Context, teamProjects map[string][]string, config config.Config, updateFrequency time.Duration, httpClient *http.Client) *TeamProjectsUpdater {
+func New(c context.Context, teamProjects map[string][]string, devTeamProjectsURL, prodTeamProjectsURL, teamsToken string, updateFrequency time.Duration, httpClient *http.Client) *TeamProjectsUpdater {
 	if httpClient == nil {
 		httpClient = http.DefaultClient
 	}
 
 	return &TeamProjectsUpdater{
-		ctx:             c,
-		teamProjects:    teamProjects,
-		cfg:             config,
-		updateFrequency: updateFrequency,
-		httpClient:      httpClient,
+		ctx:                 c,
+		teamProjects:        teamProjects,
+		devTeamProjectsURL:  devTeamProjectsURL,
+		prodTeamProjectsURL: prodTeamProjectsURL,
+		teamsToken:          teamsToken,
+		updateFrequency:     updateFrequency,
+		httpClient:          httpClient,
 	}
 }
 
@@ -48,8 +51,8 @@ func (t *TeamProjectsUpdater) Run() {
 	for {
 		select {
 		case <-ticker.C:
-			if err := FetchTeamGoogleProjectsMapping(t.ctx, t.teamProjects, t.cfg); err != nil {
-				log.Errorf("Fetching teams from url: %v: %v", t.cfg.ProdTeamProjectsOutputURL, err)
+			if err := t.FetchTeamGoogleProjectsMapping(); err != nil {
+				log.WithError(err).Errorf("Fetching teams")
 			}
 
 			log.Infof("Updated team GCP projects map for %v teams", len(t.teamProjects))
@@ -60,17 +63,17 @@ func (t *TeamProjectsUpdater) Run() {
 	}
 }
 
-func FetchTeamGoogleProjectsMapping(c context.Context, teamProjects map[string][]string, config config.Config) error {
-	devOutputFile, err := getOutputFile(c, config.DevTeamProjectsOutputURL, config.TeamsToken)
+func (t *TeamProjectsUpdater) FetchTeamGoogleProjectsMapping() error {
+	devOutputFile, err := getOutputFile(t.ctx, t.devTeamProjectsURL, t.teamsToken)
 	if err != nil {
 		return err
 	}
-	prodOutputFile, err := getOutputFile(c, config.ProdTeamProjectsOutputURL, config.TeamsToken)
+	prodOutputFile, err := getOutputFile(t.ctx, t.prodTeamProjectsURL, t.teamsToken)
 	if err != nil {
 		return err
 	}
 
-	mergeInto(teamProjects, devOutputFile.TeamProjectIdMapping.Value, prodOutputFile.TeamProjectIdMapping.Value)
+	mergeInto(t.teamProjects, devOutputFile.TeamProjectIdMapping.Value, prodOutputFile.TeamProjectIdMapping.Value)
 
 	return nil
 }

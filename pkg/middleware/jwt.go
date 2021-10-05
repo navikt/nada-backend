@@ -9,6 +9,7 @@ import (
 	"github.com/dgrijalva/jwt-go"
 	"github.com/go-chi/jwtauth"
 	"github.com/navikt/nada-backend/pkg/auth"
+	"github.com/navikt/nada-backend/pkg/openapi"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -29,22 +30,20 @@ func mockJWTValidatorMiddleware() func(next http.Handler) http.Handler {
 	}
 }
 
-func JWTValidatorMiddleware(discoveryURL, clientID string, mock bool, azureGroups auth.AzureGroups, teamUUIDs map[string]string) func(http.Handler) http.Handler {
-	if mock {
-		return mockJWTValidatorMiddleware()
-	}
+func JWTValidatorMiddleware(discoveryURL, clientID string, mock bool, azureGroups *auth.AzureGroups, teamUUIDs map[string]string) openapi.MiddlewareFunc {
 	certificates, err := auth.FetchCertificates(discoveryURL)
 	if err != nil {
 		log.Fatalf("Fetching signing certificates from IDP: %v", err)
 	}
-	validator := JWTValidator(certificates, clientID)
+	jwtValidator := JWTValidator(certificates, clientID)
 
-	return TokenValidatorMiddleware(validator, azureGroups, teamUUIDs)
-}
+	return func(next http.HandlerFunc) http.HandlerFunc {
+		return func(w http.ResponseWriter, r *http.Request) {
+			if r.Context().Value(openapi.CookieAuthScopes) == nil {
+				next.ServeHTTP(w, r)
+				return
+			}
 
-func TokenValidatorMiddleware(jwtValidator jwt.Keyfunc, azureGroups auth.AzureGroups, teamUUIDs map[string]string) func(next http.Handler) http.Handler {
-	return func(next http.Handler) http.Handler {
-		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			var claims jwt.MapClaims
 
 			token := jwtauth.TokenFromCookie(r)
@@ -63,11 +62,12 @@ func TokenValidatorMiddleware(jwtValidator jwt.Keyfunc, azureGroups auth.AzureGr
 			email := strings.ToLower(claims["preferred_username"].(string))
 			exp := int(claims["exp"].(float64))
 
-			r = r.WithContext(context.WithValue(r.Context(), "preferred_username", email))
-			r = r.WithContext(context.WithValue(r.Context(), "token_expiry", exp))
-			r = r.WithContext(context.WithValue(r.Context(), "member_name", "user:"+email))
+			ctx := r.Context()
+			ctx = context.WithValue(ctx, "preferred_username", email)
+			ctx = context.WithValue(ctx, "token_expiry", exp)
+			ctx = context.WithValue(ctx, "member_name", "user:"+email)
 
-			groups, err := azureGroups.GetGroupsForUser(r.Context(), token, email)
+			groups, err := azureGroups.GetGroupsForUser(ctx, token, email)
 			if err != nil {
 				log.Errorf("getting groups for user: %v", err)
 				w.WriteHeader(http.StatusInternalServerError)
@@ -85,10 +85,11 @@ func TokenValidatorMiddleware(jwtValidator jwt.Keyfunc, azureGroups auth.AzureGr
 					teams = append(teams, teamUUIDs[uuid])
 				}
 			}
-			r = r.WithContext(context.WithValue(r.Context(), "teams", teams))
+
+			r = r.WithContext(context.WithValue(ctx, "teams", teams))
 
 			next.ServeHTTP(w, r)
-		})
+		}
 	}
 }
 

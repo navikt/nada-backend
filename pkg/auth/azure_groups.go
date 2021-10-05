@@ -11,8 +11,6 @@ import (
 
 	log "github.com/sirupsen/logrus"
 	"golang.org/x/oauth2/endpoints"
-
-	"github.com/navikt/nada-backend/pkg/config"
 )
 
 const (
@@ -26,9 +24,11 @@ type CacheEntry struct {
 }
 
 type AzureGroups struct {
-	Cache  map[string]CacheEntry
-	Client *http.Client
-	Config config.Config
+	Cache             map[string]CacheEntry
+	Client            *http.Client
+	OAuthClientID     string
+	OAuthClientSecret string
+	OAuthTenantID     string
 }
 
 type TokenResponse struct {
@@ -41,6 +41,16 @@ type MemberOfResponse struct {
 
 type MemberOfGroup struct {
 	Id string `json:"id"`
+}
+
+func NewAzureGroups(client *http.Client, clientID, clientSecret, tenantID string) *AzureGroups {
+	return &AzureGroups{
+		Cache:             make(map[string]CacheEntry),
+		Client:            client,
+		OAuthClientID:     clientID,
+		OAuthClientSecret: clientSecret,
+		OAuthTenantID:     tenantID,
+	}
 }
 
 func (a *AzureGroups) GetGroupsForUser(ctx context.Context, token, email string) ([]string, error) {
@@ -89,14 +99,14 @@ func (a *AzureGroups) GetGroupsForUser(ctx context.Context, token, email string)
 
 func (a *AzureGroups) getBearerTokenOnBehalfOfUser(ctx context.Context, token string) (string, error) {
 	form := url.Values{}
-	form.Add("client_id", a.Config.OAuth2.ClientID)
-	form.Add("client_secret", a.Config.OAuth2.ClientSecret)
+	form.Add("client_id", a.OAuthClientID)
+	form.Add("client_secret", a.OAuthClientSecret)
 	form.Add("scope", "https://graph.microsoft.com/.default")
 	form.Add("grant_type", "urn:ietf:params:oauth:grant-type:jwt-bearer")
 	form.Add("requested_token_use", "on_behalf_of")
 	form.Add("assertion", token)
 
-	req, err := http.NewRequestWithContext(ctx, http.MethodPost, endpoints.AzureAD(a.Config.OAuth2.TenantID).TokenURL, strings.NewReader(form.Encode()))
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, endpoints.AzureAD(a.OAuthTenantID).TokenURL, strings.NewReader(form.Encode()))
 	if err != nil {
 		return "", err
 	}

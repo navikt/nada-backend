@@ -8,7 +8,6 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	"github.com/navikt/nada-backend/pkg/config"
 	"github.com/navikt/nada-backend/pkg/teamprojectsupdater"
 	"github.com/stretchr/testify/assert"
 )
@@ -24,12 +23,9 @@ func TestTeamProjectsUpdater(t *testing.T) {
 		fmt.Fprintln(writer, string(file))
 	}))
 
-	cfg := config.Config{
-		DevTeamProjectsOutputURL:  server.URL + "/prod-output.json", // filename in ./testdata
-		ProdTeamProjectsOutputURL: server.URL + "/dev-output.json",  // filename in ./testdata
-	}
+	tup := teamprojectsupdater.New(ctx, teamProjects, server.URL+"/dev-output.json", server.URL+"/prod-output.json", "token", 0, server.Client())
 
-	err := teamprojectsupdater.FetchTeamGoogleProjectsMapping(ctx, teamProjects, cfg)
+	err := tup.FetchTeamGoogleProjectsMapping()
 
 	assert.NoError(t, err)
 

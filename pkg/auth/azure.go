@@ -10,7 +10,6 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/navikt/nada-backend/pkg/config"
 	log "github.com/sirupsen/logrus"
 	"golang.org/x/oauth2"
 	"golang.org/x/oauth2/endpoints"
@@ -22,20 +21,20 @@ func KeyDiscoveryURL(tenantID string) string {
 	return fmt.Sprintf("https://login.microsoftonline.com/%s/discovery/v2.0/keys", tenantID)
 }
 
-func CreateOAuth2Config(config config.Config) oauth2.Config {
+func CreateOAuth2Config(clientID, clientSecret, tenantID, hostname string) oauth2.Config {
 	var callbackURL string
-	if config.Hostname == "localhost" {
+	if hostname == "localhost" {
 		callbackURL = fmt.Sprintf("http://localhost:8080/oauth2/callback")
 	} else {
-		callbackURL = fmt.Sprintf("https://%v/oauth2/callback", config.Hostname)
+		callbackURL = fmt.Sprintf("https://%v/oauth2/callback", hostname)
 	}
 
 	return oauth2.Config{
-		ClientID:     config.OAuth2.ClientID,
-		ClientSecret: config.OAuth2.ClientSecret,
-		Endpoint:     endpoints.AzureAD(config.OAuth2.TenantID),
+		ClientID:     clientID,
+		ClientSecret: clientSecret,
+		Endpoint:     endpoints.AzureAD(tenantID),
 		RedirectURL:  callbackURL,
-		Scopes:       []string{"openid", fmt.Sprintf("%s/.default", config.OAuth2.ClientID)},
+		Scopes:       []string{"openid", fmt.Sprintf("%s/.default", clientID)},
 	}
 }
 
@@ -54,7 +53,7 @@ func FetchCertificates(discoveryURL string) (map[string]CertificateList, error) 
 	return azureCertificates, nil
 }
 
-// Transform a KeyDiscovery object into a dictionary with "kid" as key
+// Map transform a KeyDiscovery object into a dictionary with "kid" as key
 // and lists of decoded X509 certificates as values.
 //
 // Returns an error if any certificate does not decode.

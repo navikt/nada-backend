@@ -6,6 +6,7 @@ package openapi
 import (
 	"bytes"
 	"compress/gzip"
+	"context"
 	"encoding/base64"
 	"fmt"
 	"net/http"
@@ -17,6 +18,10 @@ import (
 	"github.com/deepmap/oapi-codegen/pkg/runtime"
 	"github.com/getkin/kin-openapi/openapi3"
 	"github.com/go-chi/chi/v5"
+)
+
+const (
+	CookieAuthScopes = "cookieAuth.Scopes"
 )
 
 // Defines values for DatasetType.
@@ -211,6 +216,8 @@ func (siw *ServerInterfaceWrapper) GetDataproducts(w http.ResponseWriter, r *htt
 func (siw *ServerInterfaceWrapper) CreateDataproduct(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 
+	ctx = context.WithValue(ctx, CookieAuthScopes, []string{""})
+
 	var handler = func(w http.ResponseWriter, r *http.Request) {
 		siw.Handler.CreateDataproduct(w, r)
 	}
@@ -236,6 +243,8 @@ func (siw *ServerInterfaceWrapper) DeleteDataproduct(w http.ResponseWriter, r *h
 		http.Error(w, fmt.Sprintf("Invalid format for parameter id: %s", err), http.StatusBadRequest)
 		return
 	}
+
+	ctx = context.WithValue(ctx, CookieAuthScopes, []string{""})
 
 	var handler = func(w http.ResponseWriter, r *http.Request) {
 		siw.Handler.DeleteDataproduct(w, r, id)
@@ -289,6 +298,8 @@ func (siw *ServerInterfaceWrapper) UpdateDataproduct(w http.ResponseWriter, r *h
 		return
 	}
 
+	ctx = context.WithValue(ctx, CookieAuthScopes, []string{""})
+
 	var handler = func(w http.ResponseWriter, r *http.Request) {
 		siw.Handler.UpdateDataproduct(w, r, id)
 	}
@@ -303,6 +314,8 @@ func (siw *ServerInterfaceWrapper) UpdateDataproduct(w http.ResponseWriter, r *h
 // CreateDataset operation middleware
 func (siw *ServerInterfaceWrapper) CreateDataset(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
+
+	ctx = context.WithValue(ctx, CookieAuthScopes, []string{""})
 
 	var handler = func(w http.ResponseWriter, r *http.Request) {
 		siw.Handler.CreateDataset(w, r)
@@ -329,6 +342,8 @@ func (siw *ServerInterfaceWrapper) DeleteDataset(w http.ResponseWriter, r *http.
 		http.Error(w, fmt.Sprintf("Invalid format for parameter id: %s", err), http.StatusBadRequest)
 		return
 	}
+
+	ctx = context.WithValue(ctx, CookieAuthScopes, []string{""})
 
 	var handler = func(w http.ResponseWriter, r *http.Request) {
 		siw.Handler.DeleteDataset(w, r, id)
@@ -382,6 +397,8 @@ func (siw *ServerInterfaceWrapper) UpdateDataset(w http.ResponseWriter, r *http.
 		return
 	}
 
+	ctx = context.WithValue(ctx, CookieAuthScopes, []string{""})
+
 	var handler = func(w http.ResponseWriter, r *http.Request) {
 		siw.Handler.UpdateDataset(w, r, id)
 	}
@@ -430,6 +447,8 @@ func (siw *ServerInterfaceWrapper) Search(w http.ResponseWriter, r *http.Request
 // GetUserInfo operation middleware
 func (siw *ServerInterfaceWrapper) GetUserInfo(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
+
+	ctx = context.WithValue(ctx, CookieAuthScopes, []string{""})
 
 	var handler = func(w http.ResponseWriter, r *http.Request) {
 		siw.Handler.GetUserInfo(w, r)
@@ -519,23 +538,24 @@ func HandlerWithOptions(si ServerInterface, options ChiServerOptions) http.Handl
 // Base64 encoded, gzipped, json marshaled Swagger object
 var swaggerSpec = []string{
 
-	"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",
+	"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",
 }
 
 // GetSwagger returns the content of the embedded swagger specification file

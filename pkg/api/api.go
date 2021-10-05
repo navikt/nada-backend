@@ -2,22 +2,27 @@ package api
 
 import (
 	"encoding/json"
+	"fmt"
 	"net/http"
+	"strings"
 
 	"github.com/navikt/nada-backend/pkg/database"
 	"github.com/navikt/nada-backend/pkg/openapi"
 	"github.com/sirupsen/logrus"
+	"golang.org/x/oauth2"
 )
 
 type Server struct {
-	repo *database.Repo
-	log  *logrus.Entry
+	repo         *database.Repo
+	log          *logrus.Entry
+	oauth2Config oauth2.Config
 }
 
-func New(repo *database.Repo, log *logrus.Entry) *Server {
+func New(repo *database.Repo, oauth2Config oauth2.Config, log *logrus.Entry) *Server {
 	return &Server{
-		repo: repo,
-		log:  log,
+		repo:         repo,
+		log:          log,
+		oauth2Config: oauth2Config,
 	}
 }
 
@@ -198,4 +203,54 @@ func (s *Server) Search(w http.ResponseWriter, r *http.Request, params openapi.S
 		http.Error(w, "uh oh", http.StatusInternalServerError)
 		return
 	}
+}
+
+// (GET /userinfo)
+func (s *Server) GetUserInfo(w http.ResponseWriter, r *http.Request) {
+
+}
+
+func (s *Server) Login(w http.ResponseWriter, r *http.Request) {
+	consentUrl := s.oauth2Config.AuthCodeURL("banan", oauth2.SetAuthURLParam("redirect_uri", s.oauth2Config.RedirectURL))
+	http.Redirect(w, r, consentUrl, http.StatusFound)
+}
+
+func (s *Server) Callback(w http.ResponseWriter, r *http.Request) {
+	code := r.URL.Query().Get("code")
+	if len(code) == 0 {
+		http.Error(w, "No code in query params", http.StatusForbidden)
+		return
+	}
+
+	state := r.URL.Query().Get("state")
+	if state != "banan" {
+		s.log.Info("Incoming state does not match local state")
+		http.Error(w, "uh oh", http.StatusForbidden)
+		return
+	}
+
+	tokens, err := s.oauth2Config.Exchange(r.Context(), code)
+	if err != nil {
+		s.log.Errorf("Exchanging authorization code for tokens: %v", err)
+		http.Error(w, "uh oh", http.StatusForbidden)
+		return
+	}
+
+	var domain string
+	if strings.Contains(r.URL.Host, "dev.intern.nav.no") {
+		domain = "dev.intern.nav.no"
+	} else if strings.Contains(r.URL.Host, "intern.nav.no") {
+		domain = "intern.nav.no"
+	}
+
+	w.Header().Set("Set-Cookie", fmt.Sprintf("jwt=%v;HttpOnly;Secure;Max-Age=86400;Path=/;Domain=%v", tokens.AccessToken, domain))
+
+	var loginPage string
+	if strings.HasPrefix(r.URL.Host, "localhost") {
+		loginPage = "http://localhost:3000/"
+	} else {
+		loginPage = fmt.Sprintf("https://%v", r.URL.Host)
+	}
+
+	http.Redirect(w, r, loginPage, http.StatusFound)
 }
