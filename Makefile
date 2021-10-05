@@ -54,7 +54,7 @@ generate:
 	$(GOBIN)/oapi-codegen -package openapi --generate "types,chi-server,spec" ./spec-v1.0.yaml > ./pkg/openapi/nada.gen.go
 
 linux-build:
-	go build -a -installsuffix cgo -o $(APP) -ldflags "-s $(LDFLAGS)" cmd/nada-backend/main.go
+	go build -a -installsuffix cgo -o $(APP) -ldflags "-s $(LDFLAGS)" ./cmd/nada-backend
 
 docker-build:
 	docker image build -t ghcr.io/navikt/$(APP):$(VERSION) -t ghcr.io/navikt/$(APP):latest .
