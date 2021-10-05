@@ -6,7 +6,7 @@ metadata:
   labels:
     team: dataplattform
 spec:
-  image: {{ image }}
+  image: "{{ image }}"
   port: 8080
   azure:
     application:
@@ -16,6 +16,8 @@ spec:
         - "https://nada.intern.nav.no/api/oauth2/callback"
   ingresses:
     - "https://nada.intern.nav.no/api"
+  envFrom:
+    - secret: github-read-token
   env:
     - name: HOSTNAME
       value: "nada.intern.nav.no"

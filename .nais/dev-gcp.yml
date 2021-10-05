@@ -1,12 +1,12 @@
-apiVersion: "nais.io/v1alpha1"
 kind: "Application"
+apiVersion: "nais.io/v1alpha1"
 metadata:
   name: nada-backend
   namespace: dataplattform
   labels:
     team: dataplattform
 spec:
-  image: {{ image }}
+  image: "{{ image }}"
   port: 8080
   azure:
     application:
@@ -17,6 +17,8 @@ spec:
         - "https://nada.dev.intern.nav.no/api/oauth2/callback"
   ingresses:
     - "https://nada.dev.intern.nav.no/api"
+  envFrom:
+    - secret: github-read-token
   env:
     - name: HOSTNAME
       value: "nada.dev.intern.nav.no"
