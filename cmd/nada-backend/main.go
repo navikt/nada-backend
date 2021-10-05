@@ -81,13 +81,15 @@ func main() {
 
 	oauth2Config := auth.CreateOAuth2Config(cfg.OAuth2.ClientID, cfg.OAuth2.ClientSecret, cfg.OAuth2.TenantID, cfg.Hostname)
 	srv := api.New(repo, oauth2Config, log.WithField("subsystem", "api"))
+
 	baseRouter := chi.NewRouter()
-	baseRouter.Get("/login", srv.Login)
-	baseRouter.Get("/oauth2/callback", srv.Callback)
+	baseRouter.Use(corsMW)
+	baseRouter.Get("/api/login", srv.Login)
+	baseRouter.Get("/api/oauth2/callback", srv.Callback)
 
 	router := openapi.HandlerWithOptions(srv, openapi.ChiServerOptions{BaseRouter: baseRouter, BaseURL: "/api", Middlewares: []openapi.MiddlewareFunc{authenticatorMiddleware}})
 	log.Info("Listening on :8080")
-	log.Fatal(http.ListenAndServe(":8080", corsMW(router)))
+	log.Fatal(http.ListenAndServe(":8080", router))
 }
 
 func getEnv(key, fallback string) string {

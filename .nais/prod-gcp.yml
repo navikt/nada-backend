@@ -13,7 +13,7 @@ spec:
       enabled: true
       tenant: nav.no
       replyURLs:
-        - "https://nada.intern.nav.no/oauth2/callback"
+        - "https://nada.intern.nav.no/api/oauth2/callback"
   ingresses:
     - "https://nada.intern.nav.no/api"
   env:
