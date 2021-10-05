@@ -1,4 +1,4 @@
-package middleware
+package auth
 
 import (
 	"context"
@@ -8,7 +8,6 @@ import (
 
 	"github.com/dgrijalva/jwt-go"
 	"github.com/go-chi/jwtauth"
-	"github.com/navikt/nada-backend/pkg/auth"
 	"github.com/navikt/nada-backend/pkg/openapi"
 	log "github.com/sirupsen/logrus"
 )
@@ -30,8 +29,12 @@ func MockJWTValidatorMiddleware() openapi.MiddlewareFunc {
 	}
 }
 
-func JWTValidatorMiddleware(discoveryURL, clientID string, mock bool, azureGroups *auth.AzureGroups, teamUUIDs map[string]string) openapi.MiddlewareFunc {
-	certificates, err := auth.FetchCertificates(discoveryURL)
+type teamsCache interface {
+	Get(uuid string) (string, bool)
+}
+
+func JWTValidatorMiddleware(discoveryURL, clientID string, azureGroups *AzureGroups, teamUUIDs teamsCache) openapi.MiddlewareFunc {
+	certificates, err := FetchCertificates(discoveryURL)
 	if err != nil {
 		log.Fatalf("Fetching signing certificates from IDP: %v", err)
 	}
@@ -81,8 +84,8 @@ func JWTValidatorMiddleware(discoveryURL, clientID string, mock bool, azureGroup
 			teams := make([]string, 0)
 
 			for _, uuid := range groups {
-				if _, found := teamUUIDs[uuid]; found {
-					teams = append(teams, teamUUIDs[uuid])
+				if uid, found := teamUUIDs.Get(uuid); found {
+					teams = append(teams, uid)
 				}
 			}
 
@@ -93,9 +96,9 @@ func JWTValidatorMiddleware(discoveryURL, clientID string, mock bool, azureGroup
 	}
 }
 
-func JWTValidator(certificates map[string]auth.CertificateList, audience string) jwt.Keyfunc {
+func JWTValidator(certificates map[string]CertificateList, audience string) jwt.Keyfunc {
 	return func(token *jwt.Token) (interface{}, error) {
-		var certificateList auth.CertificateList
+		var certificateList CertificateList
 		var kid string
 		var ok bool
 

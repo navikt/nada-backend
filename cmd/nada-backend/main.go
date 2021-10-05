@@ -5,18 +5,16 @@ import (
 	"fmt"
 	"net/http"
 	"os"
+	"os/signal"
+	"syscall"
 	"time"
 
-	"github.com/go-chi/chi/v5"
-	"github.com/go-chi/cors"
 	"github.com/navikt/nada-backend/pkg/api"
 	"github.com/navikt/nada-backend/pkg/auth"
 	"github.com/navikt/nada-backend/pkg/database"
-	"github.com/navikt/nada-backend/pkg/middleware"
-	"github.com/navikt/nada-backend/pkg/openapi"
-	"github.com/navikt/nada-backend/pkg/teamprojectsupdater"
 	"github.com/sirupsen/logrus"
 	flag "github.com/spf13/pflag"
+	"golang.org/x/oauth2"
 )
 
 var cfg = DefaultConfig()
@@ -46,9 +44,45 @@ func init() {
 func main() {
 	flag.Parse()
 
-	ctx, cancel := context.WithCancel(context.Background())
+	ctx, cancel := signal.NotifyContext(context.Background(), syscall.SIGHUP, syscall.SIGINT, syscall.SIGTERM, syscall.SIGQUIT)
 	defer cancel()
 
+	log := newLogger()
+
+	repo, err := database.New(cfg.DBConnectionDSN)
+	if err != nil {
+		log.WithError(err).Fatal("setting up database")
+	}
+
+	authenticatorMiddleware := auth.MockJWTValidatorMiddleware()
+	oauth2Config := oauth2.Config{}
+	if !cfg.MockAuth {
+		teamsCache := auth.NewTeamsCache(cfg.TeamsURL, cfg.TeamsToken)
+		go teamsCache.Run(ctx, TeamsUpdateFrequency)
+
+		azure := auth.NewAzure(cfg.OAuth2.ClientID, cfg.OAuth2.ClientSecret, cfg.OAuth2.TenantID, cfg.Hostname)
+		authenticatorMiddleware = azure.Middleware(teamsCache)
+		oauth2Config = azure.OAuth2Config()
+	}
+
+	router := api.NewRouter(repo, oauth2Config, log.WithField("subsystem", "api"), authenticatorMiddleware)
+	log.Info("Listening on :8080")
+
+	server := http.Server{
+		Addr:    cfg.BindAddress,
+		Handler: router,
+	}
+	go server.ListenAndServe()
+	<-ctx.Done()
+
+	shutdownCtx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+	if err := server.Shutdown(shutdownCtx); err != nil {
+		log.WithError(err).Warn("Shutdown error")
+	}
+}
+
+func newLogger() *logrus.Logger {
 	log := logrus.StandardLogger()
 	log.SetFormatter(&logrus.JSONFormatter{})
 
@@ -57,44 +91,7 @@ func main() {
 		log.Fatal(err)
 	}
 	log.SetLevel(l)
-
-	repo, err := database.New(cfg.DBConnectionDSN)
-	if err != nil {
-		log.WithError(err).Fatal("setting up database")
-	}
-
-	authenticatorMiddleware := middleware.MockJWTValidatorMiddleware()
-	if !cfg.MockAuth {
-		teamUUIDs := make(map[string]string)
-		go auth.UpdateTeams(ctx, teamUUIDs, cfg.TeamsURL, cfg.TeamsToken, TeamsUpdateFrequency)
-
-		teamProjectsMapping := make(map[string][]string)
-		go teamprojectsupdater.New(ctx, teamProjectsMapping, cfg.DevTeamProjectsOutputURL, cfg.ProdTeamProjectsOutputURL, cfg.TeamsToken, TeamProjectsUpdateFrequency, nil).Run()
-
-		// iam := iam.New(ctx)
-		// go accessensurer.New(ctx, cfg, firestore, iam, EnsureAccessUpdateFrequency).Run()
-
-		azureGroups := auth.NewAzureGroups(http.DefaultClient, cfg.OAuth2.ClientID, cfg.OAuth2.ClientSecret, cfg.OAuth2.TenantID)
-		authenticatorMiddleware = middleware.JWTValidatorMiddleware(auth.KeyDiscoveryURL(cfg.OAuth2.TenantID), cfg.OAuth2.ClientID, false, azureGroups, teamUUIDs)
-	}
-
-	corsMW := cors.Handler(cors.Options{
-		AllowedOrigins:   []string{"https://*", "http://*"},
-		AllowedMethods:   []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
-		AllowCredentials: true,
-	})
-
-	oauth2Config := auth.CreateOAuth2Config(cfg.OAuth2.ClientID, cfg.OAuth2.ClientSecret, cfg.OAuth2.TenantID, cfg.Hostname)
-	srv := api.New(repo, oauth2Config, log.WithField("subsystem", "api"))
-
-	baseRouter := chi.NewRouter()
-	baseRouter.Use(corsMW)
-	baseRouter.Get("/api/login", srv.Login)
-	baseRouter.Get("/api/oauth2/callback", srv.Callback)
-
-	router := openapi.HandlerWithOptions(srv, openapi.ChiServerOptions{BaseRouter: baseRouter, BaseURL: "/api", Middlewares: []openapi.MiddlewareFunc{authenticatorMiddleware}})
-	log.Info("Listening on :8080")
-	log.Fatal(http.ListenAndServe(":8080", router))
+	return log
 }
 
 func getEnv(key, fallback string) string {

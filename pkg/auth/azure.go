@@ -10,33 +10,60 @@ import (
 	"net/http"
 	"strings"
 
+	"github.com/navikt/nada-backend/pkg/openapi"
 	log "github.com/sirupsen/logrus"
 	"golang.org/x/oauth2"
 	"golang.org/x/oauth2/endpoints"
 )
 
-type CertificateList []*x509.Certificate
+type Azure struct {
+	clientID     string
+	clientSecret string
+	tenantID     string
+	hostname     string
 
-func KeyDiscoveryURL(tenantID string) string {
-	return fmt.Sprintf("https://login.microsoftonline.com/%s/discovery/v2.0/keys", tenantID)
+	// teamUUIDs map[string]string
 }
 
-func CreateOAuth2Config(clientID, clientSecret, tenantID, hostname string) oauth2.Config {
+func NewAzure(clientID, clientSecret, tenantID, hostname string) *Azure {
+	return &Azure{
+		clientID:     clientID,
+		clientSecret: clientSecret,
+		tenantID:     tenantID,
+		hostname:     hostname,
+	}
+}
+
+func (a *Azure) KeyDiscoveryURL() string {
+	return fmt.Sprintf("https://login.microsoftonline.com/%s/discovery/v2.0/keys", a.tenantID)
+}
+
+func (a *Azure) OAuth2Config() oauth2.Config {
 	var callbackURL string
-	if hostname == "localhost" {
-		callbackURL = fmt.Sprintf("http://localhost:8080/oauth2/callback")
+	if a.hostname == "localhost" {
+		callbackURL = "http://localhost:8080/oauth2/callback"
 	} else {
-		callbackURL = fmt.Sprintf("https://%v/oauth2/callback", hostname)
+		callbackURL = fmt.Sprintf("https://%v/oauth2/callback", a.hostname)
 	}
 
 	return oauth2.Config{
-		ClientID:     clientID,
-		ClientSecret: clientSecret,
-		Endpoint:     endpoints.AzureAD(tenantID),
+		ClientID:     a.clientID,
+		ClientSecret: a.clientSecret,
+		Endpoint:     endpoints.AzureAD(a.tenantID),
 		RedirectURL:  callbackURL,
-		Scopes:       []string{"openid", fmt.Sprintf("%s/.default", clientID)},
+		Scopes:       []string{"openid", fmt.Sprintf("%s/.default", a.clientID)},
 	}
 }
+
+func (a *Azure) Groups(client *http.Client) *AzureGroups {
+	return NewAzureGroups(client, a.clientID, a.clientSecret, a.tenantID)
+}
+
+func (a *Azure) Middleware(teamsCache teamsCache) openapi.MiddlewareFunc {
+	return JWTValidatorMiddleware(a.KeyDiscoveryURL(), a.clientID, a.Groups(http.DefaultClient), teamsCache)
+}
+
+type CertificateList []*x509.Certificate
 
 func FetchCertificates(discoveryURL string) (map[string]CertificateList, error) {
 	log.Infof("Discover Microsoft signing certificates from %s", discoveryURL)
