@@ -1,9 +1,11 @@
 openapi: 3.0.2
 info:
-  title: API Title
+  title: NADA
   version: "1.0"
 servers:
-  - url: "https://api.server.test/api"
+  - url: "https://localhost:8080/api"
+  - url: "https://nada.dev.intern.nav.no/api"
+  - url: "https://nada.intern.nav.no/api"
 
 components:
   securitySchemes:
