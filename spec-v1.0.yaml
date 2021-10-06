@@ -127,6 +127,10 @@ components:
           type: array
           items:
             type: string
+      required:
+        - name
+        - email
+        - teams
 
     Dataset:
       type: object

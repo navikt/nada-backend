@@ -62,13 +62,17 @@ func JWTValidatorMiddleware(discoveryURL, clientID string, azureGroups *AzureGro
 				return
 			}
 
+			fmt.Printf("%#v", claims)
+
 			email := strings.ToLower(claims["preferred_username"].(string))
+			name := claims["name"].(string)
 			exp := int(claims["exp"].(float64))
 
 			ctx := r.Context()
 			ctx = context.WithValue(ctx, "preferred_username", email)
 			ctx = context.WithValue(ctx, "token_expiry", exp)
 			ctx = context.WithValue(ctx, "member_name", "user:"+email)
+			ctx = context.WithValue(ctx, "name", name)
 
 			groups, err := azureGroups.GetGroupsForUser(ctx, token, email)
 			if err != nil {

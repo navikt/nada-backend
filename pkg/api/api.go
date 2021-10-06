@@ -211,6 +211,18 @@ func (s *Server) Search(w http.ResponseWriter, r *http.Request, params openapi.S
 
 // (GET /userinfo)
 func (s *Server) GetUserInfo(w http.ResponseWriter, r *http.Request) {
+	userInfo := openapi.UserInfo{
+		Email: r.Context().Value("preferred_username").(string),
+		Name:  r.Context().Value("name").(string),
+		Teams: r.Context().Value("teams").([]string),
+	}
+
+	w.Header().Add("Content-Type", "application/json")
+	if err := json.NewEncoder(w).Encode(userInfo); err != nil {
+		s.log.WithError(err).Error("Encoding userinfo as JSON")
+		http.Error(w, "uh oh", http.StatusInternalServerError)
+		return
+	}
 }
 
 func (s *Server) Login(w http.ResponseWriter, r *http.Request) {
