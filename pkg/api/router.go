@@ -3,7 +3,6 @@ package api
 import (
 	"embed"
 	"encoding/json"
-	"io/fs"
 	"net/http"
 
 	"github.com/go-chi/chi/v5"
@@ -42,11 +41,7 @@ func NewRouter(repo *database.Repo, oauth2Config oauth2.Config, log *logrus.Entr
 		_ = json.NewEncoder(rw).Encode(spec)
 	})
 
-	swaggerFS, err := fs.Sub(swagger, "swagger")
-	if err != nil {
-		panic(err)
-	}
-	baseRouter.Handle("/api/*", http.StripPrefix("/api/", http.FileServer(http.FS(swaggerFS))))
+	baseRouter.Handle("/api/*", http.StripPrefix("/api/", http.FileServer(http.FS(swagger))))
 
 	router := openapi.HandlerWithOptions(srv, openapi.ChiServerOptions{BaseRouter: baseRouter, BaseURL: "/api", Middlewares: middlewares})
 	return router
