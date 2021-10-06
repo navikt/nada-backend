@@ -239,22 +239,14 @@ func (s *Server) Callback(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	var domain string
-	if strings.Contains(r.URL.Host, "dev.intern.nav.no") {
-		domain = "dev.intern.nav.no"
-	} else if strings.Contains(r.URL.Host, "intern.nav.no") {
-		domain = "intern.nav.no"
-	}
-
-	w.Header().Set("Set-Cookie", fmt.Sprintf("jwt=%v;HttpOnly;Secure;Max-Age=86400;Path=/;Domain=%v", tokens.AccessToken, domain))
+	w.Header().Set("Set-Cookie", fmt.Sprintf("jwt=%v;HttpOnly;Secure;Max-Age=86400;Path=/;Domain=%v", tokens.AccessToken, r.Host))
 
 	var loginPage string
-	if strings.HasPrefix(r.URL.Host, "localhost") {
+	if strings.HasPrefix(r.Host, "localhost") {
 		loginPage = "http://localhost:3000/"
 	} else {
-		loginPage = fmt.Sprintf("https://%v", r.URL.Host)
+		loginPage = "/"
 	}
-
 	http.Redirect(w, r, loginPage, http.StatusFound)
 }
 
