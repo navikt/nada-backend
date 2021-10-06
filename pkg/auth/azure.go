@@ -41,9 +41,9 @@ func (a *Azure) KeyDiscoveryURL() string {
 func (a *Azure) OAuth2Config() oauth2.Config {
 	var callbackURL string
 	if a.hostname == "localhost" {
-		callbackURL = "http://localhost:8080/oauth2/callback"
+		callbackURL = "http://localhost:8080/api/oauth2/callback"
 	} else {
-		callbackURL = fmt.Sprintf("https://%v/oauth2/callback", a.hostname)
+		callbackURL = fmt.Sprintf("https://%v/api/oauth2/callback", a.hostname)
 	}
 
 	return oauth2.Config{
