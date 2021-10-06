@@ -2,7 +2,6 @@ package api
 
 import (
 	"encoding/json"
-	"fmt"
 	"net/http"
 	"strings"
 
@@ -251,7 +250,15 @@ func (s *Server) Callback(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	w.Header().Set("Set-Cookie", fmt.Sprintf("jwt=%v;HttpOnly;Secure;Max-Age=86400;Path=/;Domain=%v", tokens.AccessToken, r.Host))
+	http.SetCookie(w, &http.Cookie{
+		Name:     "jwt",
+		Value:    tokens.AccessToken,
+		Path:     "/",
+		Domain:   r.Host,
+		MaxAge:   86400,
+		Secure:   true,
+		HttpOnly: true,
+	})
 
 	var loginPage string
 	if strings.HasPrefix(r.Host, "localhost") {
