@@ -3,8 +3,7 @@
 package api
 
 import (
-	"bytes"
-	"encoding/json"
+	"context"
 	"net/http"
 	"testing"
 
@@ -13,17 +12,12 @@ import (
 )
 
 func TestCreateDataproduct(t *testing.T) {
-	client := server.Client()
-
-	body := &bytes.Buffer{}
-	json.NewEncoder(body).Encode(openapi.NewDataproduct{
+	resp, err := client.CreateDataproduct(context.Background(), openapi.CreateDataproductJSONRequestBody{
 		Name: "new dataproduct",
 		Owner: openapi.Owner{
 			Team: auth.MockUser.Teams[0],
 		},
 	})
-
-	resp, err := client.Post(server.URL+"/api/dataproducts", "application/json", body)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -36,17 +30,12 @@ func TestCreateDataproduct(t *testing.T) {
 }
 
 func TestCreateDataproductUnauthorized(t *testing.T) {
-	client := server.Client()
-
-	body := &bytes.Buffer{}
-	json.NewEncoder(body).Encode(openapi.NewDataproduct{
+	resp, err := client.CreateDataproduct(context.Background(), openapi.CreateDataproductJSONRequestBody{
 		Name: "new dataproduct",
 		Owner: openapi.Owner{
 			Team: "invalid-team",
 		},
 	})
-
-	resp, err := client.Post(server.URL+"/api/dataproducts", "application/json", body)
 	if err != nil {
 		t.Fatal(err)
 	}

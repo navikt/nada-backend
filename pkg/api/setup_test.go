@@ -11,12 +11,14 @@ import (
 
 	"github.com/navikt/nada-backend/pkg/auth"
 	"github.com/navikt/nada-backend/pkg/database"
+	"github.com/navikt/nada-backend/pkg/openapi"
 	"github.com/ory/dockertest/v3"
 	"github.com/sirupsen/logrus"
 	"golang.org/x/oauth2"
 )
 
 var server *httptest.Server
+var client *openapi.Client
 
 func TestMain(m *testing.M) {
 	// uses a sensible default on windows (tcp/http) and linux/osx (socket)
@@ -66,4 +68,9 @@ func startServer(connString string) {
 
 	router := NewRouter(repo, oauth2.Config{}, logrus.StandardLogger().WithField("", ""), auth.MockJWTValidatorMiddleware())
 	server = httptest.NewServer(router)
+
+	client, err = openapi.NewClient(server.URL + "/api")
+	if err != nil {
+		log.Fatal(err)
+	}
 }

@@ -45,7 +45,7 @@ migrate:
 generate: 
 	cd pkg && $(GOBIN)/sqlc generate
 	mkdir -p pkg/openapi
-	$(GOBIN)/oapi-codegen -package openapi --generate "types,chi-server,spec" ./spec-v1.0.yaml > ./pkg/openapi/nada.gen.go
+	$(GOBIN)/oapi-codegen -package openapi --generate "types,chi-server,spec,client" ./spec-v1.0.yaml > ./pkg/openapi/nada.gen.go
 
 linux-build:
 	go build -a -installsuffix cgo -o $(APP) -ldflags "-s $(LDFLAGS)" ./cmd/nada-backend
