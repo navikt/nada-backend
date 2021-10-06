@@ -12,6 +12,16 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
+type contextKey int
+
+const contextUserKey contextKey = 1
+
+type User struct {
+	Name  string
+	Email string
+	Teams []string
+}
+
 func MockJWTValidatorMiddleware() openapi.MiddlewareFunc {
 	return func(next http.HandlerFunc) http.HandlerFunc {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -21,9 +31,15 @@ func MockJWTValidatorMiddleware() openapi.MiddlewareFunc {
 			if mockTeam := r.Header.Get("X-Mock-Team"); mockTeam != "" {
 				teams[0] = mockTeam
 			}
-			ctx := context.WithValue(r.Context(), "teams", teams)
-			ctx = context.WithValue(ctx, "member_name", "mock_mockerson")
-			r = r.WithContext(context.WithValue(ctx, "preferred_username", "mockuser"))
+
+			user := &User{
+				Name:  "mock_anderson",
+				Email: "mock.anderson@email.com",
+				Teams: teams,
+			}
+
+			ctx := context.WithValue(r.Context(), contextUserKey, user)
+			r = r.WithContext(ctx)
 			next.ServeHTTP(w, r)
 		})
 	}
@@ -63,14 +79,7 @@ func JWTValidatorMiddleware(discoveryURL, clientID string, azureGroups *AzureGro
 			}
 
 			email := strings.ToLower(claims["preferred_username"].(string))
-			name := claims["name"].(string)
-			exp := int(claims["exp"].(float64))
-
 			ctx := r.Context()
-			ctx = context.WithValue(ctx, "preferred_username", email)
-			ctx = context.WithValue(ctx, "token_expiry", exp)
-			ctx = context.WithValue(ctx, "member_name", "user:"+email)
-			ctx = context.WithValue(ctx, "name", name)
 
 			groups, err := azureGroups.GetGroupsForUser(ctx, token, email)
 			if err != nil {
@@ -91,7 +100,13 @@ func JWTValidatorMiddleware(discoveryURL, clientID string, azureGroups *AzureGro
 				}
 			}
 
-			r = r.WithContext(context.WithValue(ctx, "teams", teams))
+			user := &User{
+				Name:  claims["name"].(string),
+				Email: email,
+				Teams: teams,
+			}
+
+			r = r.WithContext(context.WithValue(ctx, contextUserKey, user))
 
 			next.ServeHTTP(w, r)
 		}
@@ -130,4 +145,8 @@ func JWTValidator(certificates map[string]CertificateList, audience string) jwt.
 
 		return nil, fmt.Errorf("no certificate candidates for kid '%s'", kid)
 	}
+}
+
+func GetUser(ctx context.Context) *User {
+	return ctx.Value(contextUserKey).(*User)
 }

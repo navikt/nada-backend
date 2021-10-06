@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"strings"
 
+	"github.com/navikt/nada-backend/pkg/auth"
 	"github.com/navikt/nada-backend/pkg/database"
 	"github.com/navikt/nada-backend/pkg/openapi"
 	"github.com/sirupsen/logrus"
@@ -63,6 +64,13 @@ func (s *Server) CreateDataproduct(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "invalid JSON object", http.StatusBadRequest)
 		return
 	}
+	user := auth.GetUser(r.Context())
+
+	if !contains(newDataproduct.Owner.Team, user.Teams) {
+		s.log.Infof("Creating dataproduct: User %v is not member of team %v", user.Email, newDataproduct.Owner.Team)
+		http.Error(w, "unauthorized", http.StatusUnauthorized)
+		return
+	}
 
 	dataproduct, err := s.repo.CreateDataproduct(r.Context(), newDataproduct)
 	if err != nil {
@@ -79,6 +87,21 @@ func (s *Server) CreateDataproduct(w http.ResponseWriter, r *http.Request) {
 
 // DeleteDataproduct (DELETE /dataproducts/{id})
 func (s *Server) DeleteDataproduct(w http.ResponseWriter, r *http.Request, id string) {
+	user := auth.GetUser(r.Context())
+
+	dataproduct, err := s.repo.GetDataproduct(r.Context(), id)
+	if err != nil {
+		s.log.WithError(err).Error("Getting dataproduct for deletion")
+		http.Error(w, "uh oh", http.StatusInternalServerError)
+		return
+	}
+
+	if !contains(dataproduct.Owner.Team, user.Teams) {
+		s.log.Infof("Delete dataproduct: User %v is not member of team %v", user.Email, dataproduct.Owner.Team)
+		http.Error(w, "unauthorized", http.StatusUnauthorized)
+		return
+	}
+
 	if err := s.repo.DeleteDataproduct(r.Context(), id); err != nil {
 		s.log.WithError(err).Error("Deleting dataproduct")
 		return
@@ -93,6 +116,14 @@ func (s *Server) UpdateDataproduct(w http.ResponseWriter, r *http.Request, id st
 	if err := json.NewDecoder(r.Body).Decode(&newDataproduct); err != nil {
 		s.log.WithError(err).Info("Decoding newDataproduct")
 		http.Error(w, "invalid JSON object", http.StatusBadRequest)
+		return
+	}
+
+	user := auth.GetUser(r.Context())
+
+	if !contains(newDataproduct.Owner.Team, user.Teams) {
+		s.log.Infof("Update dataproduct: User %v is not member of team %v", user.Email, newDataproduct.Owner.Team)
+		http.Error(w, "unauthorized", http.StatusUnauthorized)
 		return
 	}
 
@@ -120,6 +151,21 @@ func (s *Server) CreateDataset(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	user := auth.GetUser(r.Context())
+
+	dataproduct, err := s.repo.GetDataproduct(r.Context(), newDataset.DataproductId)
+	if err != nil {
+		s.log.WithError(err).Error("Getting dataproduct for checking permissions on create dataset")
+		http.Error(w, "uh oh", http.StatusInternalServerError)
+		return
+	}
+
+	if !contains(dataproduct.Owner.Team, user.Teams) {
+		s.log.Infof("Creating dataset: User %v is not member of team %v", user.Email, dataproduct.Owner.Team)
+		http.Error(w, "unauthorized", http.StatusUnauthorized)
+		return
+	}
+
 	dataset, err := s.repo.CreateDataset(r.Context(), newDataset)
 	if err != nil {
 		s.log.WithError(err).Error("Creating dataset")
@@ -137,6 +183,28 @@ func (s *Server) CreateDataset(w http.ResponseWriter, r *http.Request) {
 
 // DeleteDataset (DELETE /datasets/{id})
 func (s *Server) DeleteDataset(w http.ResponseWriter, r *http.Request, id string) {
+	user := auth.GetUser(r.Context())
+
+	dataset, err := s.repo.GetDataset(r.Context(), id)
+	if err != nil {
+		s.log.WithError(err).Error("Get dataset for checking permissions on delete dataset")
+		http.Error(w, "uh oh", http.StatusInternalServerError)
+		return
+	}
+
+	dataproduct, err := s.repo.GetDataproduct(r.Context(), dataset.DataproductId)
+	if err != nil {
+		s.log.WithError(err).Error("Getting dataproduct for checking permissions on delete dataset")
+		http.Error(w, "uh oh", http.StatusInternalServerError)
+		return
+	}
+
+	if !contains(dataproduct.Owner.Team, user.Teams) {
+		s.log.Infof("Deleting dataset: User %v is not member of team %v", user.Email, dataproduct.Owner.Team)
+		http.Error(w, "unauthorized", http.StatusUnauthorized)
+		return
+	}
+
 	if err := s.repo.DeleteDataset(r.Context(), id); err != nil {
 		s.log.WithError(err).Error("Deleting dataset")
 		http.Error(w, "uh oh", http.StatusInternalServerError)
@@ -169,6 +237,21 @@ func (s *Server) UpdateDataset(w http.ResponseWriter, r *http.Request, id string
 	if err := json.NewDecoder(r.Body).Decode(&newDataset); err != nil {
 		s.log.WithError(err).Info("Decoding newDataset")
 		http.Error(w, "invalid JSON object", http.StatusBadRequest)
+		return
+	}
+
+	user := auth.GetUser(r.Context())
+
+	dataproduct, err := s.repo.GetDataproduct(r.Context(), newDataset.DataproductId)
+	if err != nil {
+		s.log.WithError(err).Error("Getting dataproduct for checking permissions on update dataset")
+		http.Error(w, "uh oh", http.StatusInternalServerError)
+		return
+	}
+
+	if !contains(dataproduct.Owner.Team, user.Teams) {
+		s.log.Infof("Updating dataset: User %v is not member of team %v", user.Email, dataproduct.Owner.Team)
+		http.Error(w, "unauthorized", http.StatusUnauthorized)
 		return
 	}
 
@@ -210,10 +293,12 @@ func (s *Server) Search(w http.ResponseWriter, r *http.Request, params openapi.S
 
 // (GET /userinfo)
 func (s *Server) GetUserInfo(w http.ResponseWriter, r *http.Request) {
+	user := auth.GetUser(r.Context())
+
 	userInfo := openapi.UserInfo{
-		Email: r.Context().Value("preferred_username").(string),
-		Name:  r.Context().Value("name").(string),
-		Teams: r.Context().Value("teams").([]string),
+		Email: user.Email,
+		Name:  user.Name,
+		Teams: user.Teams,
 	}
 
 	w.Header().Add("Content-Type", "application/json")
@@ -274,4 +359,13 @@ func defaultInt(i *int, def int) int {
 		return *i
 	}
 	return def
+}
+
+func contains(elem string, list []string) bool {
+	for _, entry := range list {
+		if entry == elem {
+			return true
+		}
+	}
+	return false
 }
