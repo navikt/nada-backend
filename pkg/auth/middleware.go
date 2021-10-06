@@ -62,8 +62,6 @@ func JWTValidatorMiddleware(discoveryURL, clientID string, azureGroups *AzureGro
 				return
 			}
 
-			fmt.Printf("%#v", claims)
-
 			email := strings.ToLower(claims["preferred_username"].(string))
 			name := claims["name"].(string)
 			exp := int(claims["exp"].(float64))
