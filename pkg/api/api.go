@@ -80,6 +80,7 @@ func (s *Server) CreateDataproduct(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.Header().Add("Content-Type", "application/json")
+	w.WriteHeader(http.StatusCreated)
 	if err := json.NewEncoder(w).Encode(dataproduct); err != nil {
 		s.log.WithError(err).Error("Encoding dataproduct as JSON")
 	}

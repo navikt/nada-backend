@@ -22,29 +22,6 @@ type User struct {
 	Teams []string
 }
 
-func MockJWTValidatorMiddleware() openapi.MiddlewareFunc {
-	return func(next http.HandlerFunc) http.HandlerFunc {
-		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			teams := []string{
-				"team",
-			}
-			if mockTeam := r.Header.Get("X-Mock-Team"); mockTeam != "" {
-				teams[0] = mockTeam
-			}
-
-			user := &User{
-				Name:  "mock_anderson",
-				Email: "mock.anderson@email.com",
-				Teams: teams,
-			}
-
-			ctx := context.WithValue(r.Context(), contextUserKey, user)
-			r = r.WithContext(ctx)
-			next.ServeHTTP(w, r)
-		})
-	}
-}
-
 type teamsCache interface {
 	Get(uuid string) (string, bool)
 }
