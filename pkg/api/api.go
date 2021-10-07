@@ -79,6 +79,8 @@ func (s *Server) CreateDataproduct(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	s.log.Infof("Created dataproduct: %v", dataproduct.Name)
+
 	w.Header().Add("Content-Type", "application/json")
 	w.WriteHeader(http.StatusCreated)
 	if err := json.NewEncoder(w).Encode(dataproduct); err != nil {
@@ -108,6 +110,7 @@ func (s *Server) DeleteDataproduct(w http.ResponseWriter, r *http.Request, id st
 		return
 	}
 
+	s.log.Infof("Deleted dataproduct: %v", dataproduct.Name)
 	w.WriteHeader(http.StatusNoContent)
 }
 
@@ -134,6 +137,8 @@ func (s *Server) UpdateDataproduct(w http.ResponseWriter, r *http.Request, id st
 		http.Error(w, "uh oh", http.StatusInternalServerError)
 		return
 	}
+
+	s.log.Infof("Updated dataproduct: %v", dataproduct.Name)
 
 	w.Header().Add("Content-Type", "application/json")
 	if err := json.NewEncoder(w).Encode(dataproduct); err != nil {
@@ -174,6 +179,8 @@ func (s *Server) CreateDataset(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	s.log.Infof("Created dataset: %v", dataset.Name)
+
 	w.Header().Add("Content-Type", "application/json")
 	if err := json.NewEncoder(w).Encode(dataset); err != nil {
 		s.log.WithError(err).Error("Encoding dataset as JSON")
@@ -211,6 +218,8 @@ func (s *Server) DeleteDataset(w http.ResponseWriter, r *http.Request, id string
 		http.Error(w, "uh oh", http.StatusInternalServerError)
 		return
 	}
+
+	s.log.Infof("Deleted dataset: %v", dataset.Name)
 
 	w.WriteHeader(http.StatusNoContent)
 }
@@ -262,6 +271,8 @@ func (s *Server) UpdateDataset(w http.ResponseWriter, r *http.Request, id string
 		http.Error(w, "uh oh", http.StatusInternalServerError)
 		return
 	}
+
+	s.log.Infof("Updated dataset: %v", dataset.Name)
 
 	w.Header().Add("Content-Type", "application/json")
 	if err := json.NewEncoder(w).Encode(dataset); err != nil {
