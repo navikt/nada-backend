@@ -281,7 +281,7 @@ func (r *Repo) Search(ctx context.Context, query string, limit, offset int) ([]*
 		results = append(results, &openapi.SearchResultEntry{
 			Id:      r.ID.String(),
 			Name:    r.Name,
-			Type:    openapi.SearchResultTypeDataproduct,
+			Type:    openapi.SearchResultTypeDataset,
 			Excerpt: makeExcerpt(r.Description),
 			Url:     "/api/datasets/" + r.ID.String(),
 		})
