@@ -9,6 +9,7 @@ import (
 	"github.com/go-chi/cors"
 	"github.com/navikt/nada-backend/pkg/database"
 	"github.com/navikt/nada-backend/pkg/openapi"
+	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/sirupsen/logrus"
 	"golang.org/x/oauth2"
 )
@@ -25,12 +26,18 @@ func NewRouter(repo *database.Repo, oauth2Config oauth2.Config, log *logrus.Entr
 
 	srv := New(repo, oauth2Config, log.WithField("subsystem", "api"))
 
+	latencyHistBuckets := []float64{.001, .005, .01, .025, .05, .1, .5, 1, 3, 5}
+	prometheusMiddleware := PrometheusMiddleware("backend", latencyHistBuckets...)
+	prometheusMiddleware.Initialize("/api/v1/", http.MethodGet, http.StatusOK)
+
 	baseRouter := chi.NewRouter()
+	baseRouter.Use(prometheusMiddleware.Handler())
 	baseRouter.Use(corsMW)
 	baseRouter.Get("/api/login", srv.Login)
 	baseRouter.Get("/api/oauth2/callback", srv.Callback)
 	baseRouter.Get("/internal/isalive", func(rw http.ResponseWriter, r *http.Request) {})
 	baseRouter.Get("/internal/isready", func(rw http.ResponseWriter, r *http.Request) {})
+	baseRouter.Get("/internal/metrics", promhttp.Handler().(http.HandlerFunc))
 	baseRouter.Get("/api/spec", func(rw http.ResponseWriter, r *http.Request) {
 		spec, err := openapi.GetSwagger()
 		if err != nil {

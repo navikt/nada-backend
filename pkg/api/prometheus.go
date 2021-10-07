@@ -1,7 +1,7 @@
 // This code was originally written by Rene Zbinden and modified by Vladimir Konovalov.
 // Copied from https://github.com/766b/chi-prometheus and further adapted.
 
-package middleware
+package api
 
 import (
 	"net/http"
@@ -12,9 +12,7 @@ import (
 	"github.com/prometheus/client_golang/prometheus"
 )
 
-var (
-	defaultBuckets = []float64{.001, .01, .05, .1, .5, 1, 1.5, 2, 2.5, 3, 3.5, 4, 4.5, 5}
-)
+var defaultBuckets = []float64{.001, .01, .05, .1, .5, 1, 1.5, 2, 2.5, 3, 3.5, 4, 4.5, 5}
 
 const (
 	reqsName    = "requests_total"
