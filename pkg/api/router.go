@@ -19,7 +19,7 @@ var swagger embed.FS
 
 func NewRouter(repo *database.Repo, oauth2Config oauth2.Config, log *logrus.Entry, middlewares ...openapi.MiddlewareFunc) http.Handler {
 	corsMW := cors.Handler(cors.Options{
-		AllowedOrigins:   []string{"*"},
+		AllowedOrigins:   []string{"https://*", "http://*"},
 		AllowedMethods:   []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
 		AllowCredentials: true,
 	})
