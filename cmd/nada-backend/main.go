@@ -60,6 +60,9 @@ func main() {
 		teamsCache := auth.NewTeamsCache(cfg.TeamsURL, cfg.TeamsToken)
 		go teamsCache.Run(ctx, TeamsUpdateFrequency)
 
+		teamProjectsMapping := auth.NewTeamProjectsUpdater(cfg.DevTeamProjectsOutputURL, cfg.ProdTeamProjectsOutputURL, cfg.TeamsToken, http.DefaultClient)
+		go teamProjectsMapping.Run(ctx, TeamProjectsUpdateFrequency)
+
 		azure := auth.NewAzure(cfg.OAuth2.ClientID, cfg.OAuth2.ClientSecret, cfg.OAuth2.TenantID, cfg.Hostname)
 		authenticatorMiddleware = azure.Middleware(teamsCache)
 		oauth2Config = azure.OAuth2Config()

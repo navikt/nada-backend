@@ -1,10 +1,11 @@
-package teamprojectsupdater
+package auth
 
 import (
 	"context"
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"sync"
 	"time"
 
 	log "github.com/sirupsen/logrus"
@@ -19,61 +20,62 @@ type OutputVariable struct {
 }
 
 type TeamProjectsUpdater struct {
-	ctx                 context.Context
+	lock                sync.RWMutex
 	teamProjects        map[string][]string
 	devTeamProjectsURL  string
 	prodTeamProjectsURL string
 	teamsToken          string
-	updateFrequency     time.Duration
 	httpClient          *http.Client
 }
 
-func New(c context.Context, teamProjects map[string][]string, devTeamProjectsURL, prodTeamProjectsURL, teamsToken string, updateFrequency time.Duration, httpClient *http.Client) *TeamProjectsUpdater {
-	if httpClient == nil {
-		httpClient = http.DefaultClient
-	}
-
+func NewTeamProjectsUpdater(devTeamProjectsURL, prodTeamProjectsURL, teamsToken string, httpClient *http.Client) *TeamProjectsUpdater {
 	return &TeamProjectsUpdater{
-		ctx:                 c,
-		teamProjects:        teamProjects,
+		teamProjects:        make(map[string][]string),
 		devTeamProjectsURL:  devTeamProjectsURL,
 		prodTeamProjectsURL: prodTeamProjectsURL,
 		teamsToken:          teamsToken,
-		updateFrequency:     updateFrequency,
 		httpClient:          httpClient,
 	}
 }
 
-func (t *TeamProjectsUpdater) Run() {
-	ticker := time.NewTicker(1 * time.Second)
+func (t *TeamProjectsUpdater) Run(ctx context.Context, frequency time.Duration) {
+	ticker := time.NewTicker(frequency)
 	defer ticker.Stop()
 
 	for {
+		if err := t.FetchTeamGoogleProjectsMapping(ctx); err != nil {
+			log.WithError(err).Errorf("Fetching teams")
+		}
+
 		select {
 		case <-ticker.C:
-			if err := t.FetchTeamGoogleProjectsMapping(); err != nil {
-				log.WithError(err).Errorf("Fetching teams")
-			}
-
-			log.Infof("Updated team GCP projects map for %v teams", len(t.teamProjects))
-			ticker.Reset(t.updateFrequency)
-		case <-t.ctx.Done():
+		case <-ctx.Done():
 			return
 		}
 	}
 }
 
-func (t *TeamProjectsUpdater) FetchTeamGoogleProjectsMapping() error {
-	devOutputFile, err := getOutputFile(t.ctx, t.devTeamProjectsURL, t.teamsToken)
+func (t *TeamProjectsUpdater) Get(team string) ([]string, bool) {
+	t.lock.RLock()
+	defer t.lock.RUnlock()
+	projects, ok := t.teamProjects[team]
+	return projects, ok
+}
+
+func (t *TeamProjectsUpdater) FetchTeamGoogleProjectsMapping(ctx context.Context) error {
+	devOutputFile, err := getOutputFile(ctx, t.devTeamProjectsURL, t.teamsToken)
 	if err != nil {
 		return err
 	}
-	prodOutputFile, err := getOutputFile(t.ctx, t.prodTeamProjectsURL, t.teamsToken)
+	prodOutputFile, err := getOutputFile(ctx, t.prodTeamProjectsURL, t.teamsToken)
 	if err != nil {
 		return err
 	}
 
+	t.lock.Lock()
+	defer t.lock.Unlock()
 	mergeInto(t.teamProjects, devOutputFile.TeamProjectIdMapping.Value, prodOutputFile.TeamProjectIdMapping.Value)
+	log.Infof("Updated team projects mapping: %v teams", len(t.teamProjects))
 
 	return nil
 }
@@ -86,7 +88,6 @@ func getOutputFile(ctx context.Context, url, token string) (*OutputFile, error) 
 	request.Header.Add("Authorization", fmt.Sprintf("Bearer %v", token))
 	client := http.Client{}
 	response, err := client.Do(request)
-
 	if err != nil {
 		return nil, fmt.Errorf("performing http request, URL: %v: %w", url, err)
 	}
