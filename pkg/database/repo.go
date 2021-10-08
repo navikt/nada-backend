@@ -68,6 +68,20 @@ func (r *Repo) CreateDataproduct(ctx context.Context, dp openapi.NewDataproduct)
 	return dataproductFromSQL(res), nil
 }
 
+func (r *Repo) GetDatasets(ctx context.Context, limit, offset int) ([]*openapi.Dataset, error) {
+	datasets := []*openapi.Dataset{}
+
+	res, err := r.querier.GetDatasets(ctx, gensql.GetDatasetsParams{Limit: int32(limit), Offset: int32(offset)})
+	if err != nil {
+		return nil, fmt.Errorf("getting datasets from database: %w", err)
+	}
+
+	for _, entry := range res {
+		datasets = append(datasets, datasetFromSQL(entry))
+	}
+
+	return datasets, nil
+}
 func (r *Repo) GetDataproducts(ctx context.Context, limit, offset int) ([]*openapi.Dataproduct, error) {
 	dataproducts := []*openapi.Dataproduct{}
 

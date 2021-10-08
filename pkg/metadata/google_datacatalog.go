@@ -9,6 +9,11 @@ import (
 	datacatalogpb "google.golang.org/genproto/googleapis/cloud/datacatalog/v1"
 )
 
+//type CatalogClient interface {
+//	GetSchema() (Schema, error)
+//	GetUserBQAssets(user string) struct{}
+//}
+
 type Client struct{}
 
 type Schema struct {
@@ -25,19 +30,21 @@ type Column struct {
 func (c *Client) GetDatasetSchema(ds openapi.BigQuery) (Schema, error) {
 	client, err := datacatalog.NewClient(context.Background())
 	if err != nil {
-		return Schema{}, err
+		return Schema{}, fmt.Errorf("instantiating datacatalog client: %w", err)
 	}
 	defer client.Close()
 
+	resourceURI := fmt.Sprintf("//bigquery.googleapis.com/projects/%v/datasets/%v/tables/%v", ds.ProjectId, ds.Dataset, ds.Table)
+	fmt.Println("resource uri", resourceURI)
 	req := &datacatalogpb.LookupEntryRequest{
 		TargetName: &datacatalogpb.LookupEntryRequest_LinkedResource{
-			LinkedResource: fmt.Sprintf("//bigquery.googleapis.com/projects/%v/datasets/%v/tables/%v", ds.ProjectId, ds.Dataset, ds.Table),
+			LinkedResource: resourceURI,
 		},
 	}
 
 	resp, err := client.LookupEntry(context.Background(), req)
 	if err != nil {
-		return Schema{}, err
+		return Schema{}, fmt.Errorf("looking up entry: %w", err)
 	}
 
 	schema := Schema{}
