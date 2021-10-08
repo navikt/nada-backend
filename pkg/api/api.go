@@ -3,7 +3,6 @@ package api
 import (
 	"context"
 	"encoding/json"
-
 	"net/http"
 	"strings"
 
@@ -141,11 +140,7 @@ func (s *Server) UpdateDataproduct(w http.ResponseWriter, r *http.Request, id st
 		return
 	}
 
-	updatedDataproduct := openapi.UpdateDataproduct{
-		Name: in.Name,
-	}
-
-	updated, err := s.repo.UpdateDataproduct(r.Context(), id, updatedDataproduct)
+	updated, err := s.repo.UpdateDataproduct(r.Context(), id, in)
 	if err != nil {
 		s.log.WithError(err).Error("Updating dataproduct")
 		http.Error(w, "uh oh", http.StatusInternalServerError)
