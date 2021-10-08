@@ -93,6 +93,9 @@ func (r *Repo) enrichDataproduct(ctx context.Context, id uuid.UUID, dp *openapi.
 		return fmt.Errorf("getting datasets for enriching dataproduct: %w", err)
 	}
 
+	// Initialize list to avoid JSON marshalling as "null"
+	dp.Datasets = make([]openapi.DatasetSummary, 0)
+
 	for _, v := range datasets {
 		dp.Datasets = append(dp.Datasets, openapi.DatasetSummary{
 			Id:   v.ID.String(),
