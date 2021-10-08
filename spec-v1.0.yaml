@@ -163,11 +163,14 @@ components:
           type: string
         pii:
           type: boolean
+        type:
+          $ref: "#/components/schemas/DatasetType"
         bigquery:
           $ref: "#/components/schemas/BigQuery"
       required:
         - id
         - name
+        - type
         - pii
         - dataproduct_id
         - bigquery
