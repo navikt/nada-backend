@@ -55,12 +55,13 @@ func main() {
 	}
 
 	authenticatorMiddleware := auth.MockJWTValidatorMiddleware()
+	teamProjectsMapping := &auth.MockTeamProjectsUpdater
 	oauth2Config := oauth2.Config{}
 	if !cfg.MockAuth {
 		teamsCache := auth.NewTeamsCache(cfg.TeamsURL, cfg.TeamsToken)
 		go teamsCache.Run(ctx, TeamsUpdateFrequency)
 
-		teamProjectsMapping := auth.NewTeamProjectsUpdater(cfg.DevTeamProjectsOutputURL, cfg.ProdTeamProjectsOutputURL, cfg.TeamsToken, http.DefaultClient)
+		teamProjectsMapping = auth.NewTeamProjectsUpdater(cfg.DevTeamProjectsOutputURL, cfg.ProdTeamProjectsOutputURL, cfg.TeamsToken, http.DefaultClient)
 		go teamProjectsMapping.Run(ctx, TeamProjectsUpdateFrequency)
 
 		azure := auth.NewAzure(cfg.OAuth2.ClientID, cfg.OAuth2.ClientSecret, cfg.OAuth2.TenantID, cfg.Hostname)
@@ -68,7 +69,7 @@ func main() {
 		oauth2Config = azure.OAuth2Config()
 	}
 
-	router := api.NewRouter(repo, oauth2Config, log.WithField("subsystem", "api"), authenticatorMiddleware)
+	router := api.NewRouter(repo, oauth2Config, log.WithField("subsystem", "api"), teamProjectsMapping, authenticatorMiddleware)
 	log.Info("Listening on :8080")
 
 	server := http.Server{

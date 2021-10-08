@@ -182,14 +182,23 @@ func TestRepo(t *testing.T) {
 			t.Fatal(err)
 		}
 
-		dataproductWithUpdate := newDataproduct
-		dataproductWithUpdate.Name = "updated"
-		updatedDataproduct, err := repo.UpdateDataproduct(context.Background(), createdDataproduct.Id, dataproductWithUpdate)
+		updated := openapi.UpdateDataproduct{
+			Name: "updated",
+		}
 		if err != nil {
 			t.Fatal(err)
 		}
 
-		if updatedDataproduct.Name != dataproductWithUpdate.Name {
+		updatedDataproduct, err := repo.UpdateDataproduct(context.Background(), createdDataproduct.Id, updated)
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		if updatedDataproduct.Id != createdDataproduct.Id {
+			t.Fatal("updating dataproduct should not alter dataproduct ID")
+		}
+
+		if updatedDataproduct.Name != updated.Name {
 			t.Fatal("returned name should match updated name")
 		}
 	})

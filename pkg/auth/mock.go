@@ -13,6 +13,14 @@ var MockUser = User{
 	Teams: []string{"team"},
 }
 
+var MockProjectIDs = []string{"team-dev", "team-prod"}
+
+var MockTeamProjectsUpdater = TeamProjectsUpdater{
+	teamProjects: map[string][]string{
+		"team": MockProjectIDs,
+	},
+}
+
 func MockJWTValidatorMiddleware() openapi.MiddlewareFunc {
 	return func(next http.HandlerFunc) http.HandlerFunc {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {

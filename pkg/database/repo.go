@@ -134,7 +134,7 @@ func (r *Repo) DeleteDataproduct(ctx context.Context, id string) error {
 	return nil
 }
 
-func (r *Repo) UpdateDataproduct(ctx context.Context, id string, new openapi.NewDataproduct) (*openapi.Dataproduct, error) {
+func (r *Repo) UpdateDataproduct(ctx context.Context, id string, new openapi.UpdateDataproduct) (*openapi.Dataproduct, error) {
 	uid, err := uuid.Parse(id)
 	if err != nil {
 		return nil, fmt.Errorf("parsing uuid: %w", err)
@@ -150,7 +150,6 @@ func (r *Repo) UpdateDataproduct(ctx context.Context, id string, new openapi.New
 		Description: ptrToNullString(new.Description),
 		Slug:        slugify(new.Slug, new.Name),
 		Repo:        ptrToNullString(new.Repo),
-		Team:        new.Owner.Team,
 		Keywords:    keywords,
 		ID:          uid,
 	})

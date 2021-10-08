@@ -13,14 +13,13 @@ import (
 	"github.com/navikt/nada-backend/pkg/openapi"
 )
 
-func TestCreateDataproduct(t *testing.T) {
+func TestCreating_dataproduct(t *testing.T) {
 	in := newDataproduct()
 
 	resp, err := client.CreateDataproduct(context.Background(), in)
 	if err != nil {
 		t.Fatal(err)
 	}
-
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusCreated {
@@ -45,14 +44,14 @@ func TestCreateDataproduct(t *testing.T) {
 	}
 }
 
-func TestCreateDataproduct_Unauthorized(t *testing.T) {
+func TestCreating_dataproduct_for_other_team_is_not_authorized(t *testing.T) {
 	in := newDataproduct()
-	in.Owner.Team = "invalid-team"
+	in.Owner.Team = "other-team"
+
 	resp, err := client.CreateDataproduct(context.Background(), in)
 	if err != nil {
 		t.Fatal(err)
 	}
-
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusUnauthorized {
@@ -60,18 +59,19 @@ func TestCreateDataproduct_Unauthorized(t *testing.T) {
 	}
 }
 
-func TestGetDataproduct(t *testing.T) {
+func TestGetting_dataproduct(t *testing.T) {
 	existing := createDataproduct(newDataproduct())
 
 	resp, err := client.GetDataproduct(context.Background(), existing.Id)
 	if err != nil {
 		t.Fatal(err)
 	}
-
 	defer resp.Body.Close()
 
 	var dp openapi.Dataproduct
-	json.NewDecoder(resp.Body).Decode(&dp)
+	if err := json.NewDecoder(resp.Body).Decode(&dp); err != nil {
+		t.Fatal(err)
+	}
 
 	if dp.Id != existing.Id {
 		t.Errorf("Got id %q, want %q", dp.Id, existing.Id)
@@ -86,7 +86,7 @@ func TestGetDataproduct(t *testing.T) {
 	}
 }
 
-func TestGetDataproducts(t *testing.T) {
+func TestGetting_dataproducts(t *testing.T) {
 	existing := createDataproduct(newDataproduct())
 
 	resp, err := client.GetDataproducts(context.Background(), &openapi.GetDataproductsParams{
@@ -96,7 +96,6 @@ func TestGetDataproducts(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-
 	defer resp.Body.Close()
 
 	var dps []openapi.Dataproduct
@@ -123,14 +122,11 @@ func TestGetDataproducts(t *testing.T) {
 	}
 }
 
-func TestUpdateDataproduct(t *testing.T) {
+func TestUpdating_dataproduct(t *testing.T) {
 	existing := createDataproduct(newDataproduct())
 
 	dp := openapi.UpdateDataproductJSONRequestBody{
 		Name: "new name",
-		Owner: openapi.Owner{
-			Team: "team",
-		},
 	}
 
 	resp, err := client.UpdateDataproduct(context.Background(), existing.Id, dp)
@@ -150,6 +146,232 @@ func TestUpdateDataproduct(t *testing.T) {
 	}
 }
 
+func TestUpdating_dataproduct_for_other_team_is_not_authorized(t *testing.T) {
+	existing, err := repo.CreateDataproduct(context.Background(), openapi.NewDataproduct{
+		Name: "dataproduct",
+		Owner: openapi.Owner{
+			Team: "other-team",
+		},
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	update := openapi.UpdateDataproductJSONRequestBody{
+		Name: "update",
+	}
+
+	resp, err := client.UpdateDataproduct(context.Background(), existing.Id, update)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusUnauthorized {
+		t.Fatalf("Expected status code %v, got %v", http.StatusUnauthorized, resp.StatusCode)
+	}
+}
+
+func TestDeleting_dataproduct(t *testing.T) {
+	existing := createDataproduct(newDataproduct())
+
+	resp, err := client.DeleteDataproduct(context.Background(), existing.Id)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusNoContent {
+		t.Fatalf("Expected status code %v, got %v", http.StatusNoContent, resp.StatusCode)
+	}
+}
+
+func TestDeleting_other_teams_dataproduct_is_not_authorized(t *testing.T) {
+	existing, err := repo.CreateDataproduct(context.Background(), openapi.NewDataproduct{
+		Name: "dataproduct",
+		Owner: openapi.Owner{
+			Team: "other-team",
+		},
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	resp, err := client.DeleteDataproduct(context.Background(), existing.Id)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusUnauthorized {
+		t.Fatalf("Expected status code %v, got %v", http.StatusUnauthorized, resp.StatusCode)
+	}
+}
+
+func TestCreating_dataset(t *testing.T) {
+	existingDp := createDataproduct(newDataproduct())
+	ds := newDataset(existingDp.Id)
+
+	resp, err := client.CreateDataset(context.Background(), ds)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusCreated {
+		t.Errorf("Expected status code %v, got %v", http.StatusCreated, resp.StatusCode)
+	}
+
+	var created openapi.Dataset
+	if err := json.NewDecoder(resp.Body).Decode(&created); err != nil {
+		t.Fatal(err)
+	}
+
+	if created.Name != ds.Name {
+		t.Errorf("Got name %q, want %q", created.Name, ds.Name)
+	}
+
+	if created.Bigquery != ds.Bigquery {
+		t.Errorf("Got bigquery %q, want %q", created.Name, ds.Name)
+	}
+}
+
+func TestCreating_other_teams_dataset_is_not_authorized(t *testing.T) {
+	existingDp := createDataproduct(newDataproduct())
+
+	ds := openapi.CreateDatasetJSONRequestBody{
+		Name:          "My dataset",
+		DataproductId: existingDp.Id,
+		Bigquery: openapi.BigQuery{
+			ProjectId: "other-team-project-id",
+			Dataset:   "dataset",
+			Table:     "table",
+		},
+	}
+
+	resp, err := client.CreateDataset(context.Background(), ds)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusUnauthorized {
+		t.Errorf("Expected status code %v, got %v", http.StatusUnauthorized, resp.StatusCode)
+	}
+}
+
+func TestUpdating_dataset(t *testing.T) {
+	existingDp := createDataproduct(newDataproduct())
+	ds := newDataset(existingDp.Id)
+	existingDs := createDataset(ds)
+
+	updatedReq := openapi.UpdateDatasetJSONRequestBody{
+		Name:          "updated name",
+		DataproductId: existingDs.DataproductId,
+		Bigquery: openapi.BigQuery{
+			ProjectId: ds.Bigquery.ProjectId,
+			Dataset:   ds.Bigquery.Dataset,
+			Table:     ds.Bigquery.Table,
+		},
+	}
+
+	resp, err := client.UpdateDataset(context.Background(), existingDs.Id, updatedReq)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		t.Errorf("Expected status code %v, got %v", http.StatusOK, resp.StatusCode)
+	}
+
+	var updated openapi.Dataset
+	if err := json.NewDecoder(resp.Body).Decode(&updated); err != nil {
+		t.Fatal(err)
+	}
+
+	if updated.Name != updatedReq.Name {
+		t.Errorf("Got name %q, want %q", updated.Name, ds.Name)
+	}
+}
+
+func TestUpdating_other_teams_dataset_is_not_authorized(t *testing.T) {
+	existingDp := createDataproduct(newDataproduct())
+	ds := newDataset(existingDp.Id)
+	existingDs := createDataset(ds)
+
+	updatedReq := openapi.UpdateDatasetJSONRequestBody{
+		Name:          ds.Name,
+		DataproductId: existingDs.DataproductId,
+		Bigquery: openapi.BigQuery{
+			ProjectId: "other-team-project-id",
+			Dataset:   ds.Bigquery.Dataset,
+			Table:     ds.Bigquery.Table,
+		},
+	}
+
+	resp, err := client.UpdateDataset(context.Background(), existingDs.Id, updatedReq)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusUnauthorized {
+		t.Errorf("Expected status code %v, got %v", http.StatusUnauthorized, resp.StatusCode)
+	}
+}
+
+func TestDeleting_dataset(t *testing.T) {
+	existingDp := createDataproduct(newDataproduct())
+	ds := newDataset(existingDp.Id)
+	existingDs := createDataset(ds)
+
+	resp, err := client.DeleteDataset(context.Background(), existingDs.Id)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusNoContent {
+		t.Errorf("Expected status code %v, got %v", http.StatusNoContent, resp.StatusCode)
+	}
+}
+
+func TestDeleting_other_teams_dataset_is_not_authorized(t *testing.T) {
+	existingDp, err := repo.CreateDataproduct(context.Background(), openapi.NewDataproduct{
+		Name: "dataproduct",
+		Owner: openapi.Owner{
+			Team: "other-team",
+		},
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	ds, err := repo.CreateDataset(context.Background(), openapi.NewDataset{
+		Name:          "dataset",
+		DataproductId: existingDp.Id,
+		Bigquery: openapi.BigQuery{
+			ProjectId: "other-teams-project-id",
+			Dataset:   "dataset",
+			Table:     "table",
+		},
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	resp, err := client.DeleteDataset(context.Background(), ds.Id)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusUnauthorized {
+		t.Errorf("Expected status code %v, got %v", http.StatusNoContent, resp.StatusCode)
+	}
+}
+
 func newDataproduct() openapi.CreateDataproductJSONRequestBody {
 	return openapi.CreateDataproductJSONRequestBody{
 		Name: "new dataproduct",
@@ -157,6 +379,34 @@ func newDataproduct() openapi.CreateDataproductJSONRequestBody {
 			Team: auth.MockUser.Teams[0],
 		},
 	}
+}
+
+func newDataset(dpID string) openapi.CreateDatasetJSONRequestBody {
+	return openapi.CreateDatasetJSONRequestBody{
+		Name:          "My dataset",
+		DataproductId: dpID,
+		Bigquery: openapi.BigQuery{
+			ProjectId: auth.MockProjectIDs[0],
+			Dataset:   "dataset",
+			Table:     "table",
+		},
+	}
+}
+
+func createDataset(in openapi.CreateDatasetJSONRequestBody) openapi.Dataset {
+	resp, err := client.CreateDataset(context.Background(), in)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	defer resp.Body.Close()
+
+	var ret openapi.Dataset
+	if err := json.NewDecoder(resp.Body).Decode(&ret); err != nil {
+		log.Fatal(err)
+	}
+
+	return ret
 }
 
 func createDataproduct(in openapi.CreateDataproductJSONRequestBody) openapi.Dataproduct {

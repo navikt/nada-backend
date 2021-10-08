@@ -116,6 +116,24 @@ components:
         - name
         - owner
 
+    UpdateDataproduct:
+      type: object
+      properties:
+        name:
+          type: string
+        description:
+          type: string
+        slug:
+          type: string
+        repo:
+          type: string
+        keywords:
+          type: array
+          items:
+            type: string
+      required:
+        - name
+
     UserInfo:
       type: object
       properties:
@@ -308,7 +326,7 @@ paths:
         content:
           "application/json":
             schema:
-              $ref: "#/components/schemas/NewDataproduct"
+              $ref: "#/components/schemas/UpdateDataproduct"
       responses:
         "200":
           description: "Updated OK"

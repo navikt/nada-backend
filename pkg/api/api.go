@@ -1,7 +1,9 @@
 package api
 
 import (
+	"context"
 	"encoding/json"
+
 	"net/http"
 	"strings"
 
@@ -13,16 +15,18 @@ import (
 )
 
 type Server struct {
-	repo         *database.Repo
-	log          *logrus.Entry
-	oauth2Config oauth2.Config
+	repo            *database.Repo
+	log             *logrus.Entry
+	oauth2Config    oauth2.Config
+	projectsMapping *auth.TeamProjectsUpdater
 }
 
-func New(repo *database.Repo, oauth2Config oauth2.Config, log *logrus.Entry) *Server {
+func New(repo *database.Repo, oauth2Config oauth2.Config, log *logrus.Entry, projectsMapping *auth.TeamProjectsUpdater) *Server {
 	return &Server{
-		repo:         repo,
-		log:          log,
-		oauth2Config: oauth2Config,
+		repo:            repo,
+		log:             log,
+		oauth2Config:    oauth2Config,
+		projectsMapping: projectsMapping,
 	}
 }
 
@@ -116,32 +120,42 @@ func (s *Server) DeleteDataproduct(w http.ResponseWriter, r *http.Request, id st
 
 // UpdateDataproduct (PUT /dataproducts/{id})
 func (s *Server) UpdateDataproduct(w http.ResponseWriter, r *http.Request, id string) {
-	var newDataproduct openapi.NewDataproduct
-	if err := json.NewDecoder(r.Body).Decode(&newDataproduct); err != nil {
-		s.log.WithError(err).Info("Decoding newDataproduct")
+	var in openapi.UpdateDataproduct
+	if err := json.NewDecoder(r.Body).Decode(&in); err != nil {
+		s.log.WithError(err).Info("Decoding updatedDataproduct")
 		http.Error(w, "invalid JSON object", http.StatusBadRequest)
 		return
 	}
 
-	user := auth.GetUser(r.Context())
+	existing, err := s.repo.GetDataproduct(context.Background(), id)
+	if err != nil {
+		s.log.WithError(err).Info("Update dataproduct")
+		http.Error(w, "uh oh", http.StatusBadRequest)
+		return
+	}
 
-	if !contains(newDataproduct.Owner.Team, user.Teams) {
-		s.log.Infof("Update dataproduct: User %v is not member of team %v", user.Email, newDataproduct.Owner.Team)
+	user := auth.GetUser(r.Context())
+	if !contains(existing.Owner.Team, user.Teams) {
+		s.log.Infof("Update dataproduct: User %v is not member of team %v", user.Email, existing.Owner.Team)
 		http.Error(w, "unauthorized", http.StatusUnauthorized)
 		return
 	}
 
-	dataproduct, err := s.repo.UpdateDataproduct(r.Context(), id, newDataproduct)
+	updatedDataproduct := openapi.UpdateDataproduct{
+		Name: in.Name,
+	}
+
+	updated, err := s.repo.UpdateDataproduct(r.Context(), id, updatedDataproduct)
 	if err != nil {
 		s.log.WithError(err).Error("Updating dataproduct")
 		http.Error(w, "uh oh", http.StatusInternalServerError)
 		return
 	}
 
-	s.log.Infof("Updated dataproduct: %v", dataproduct.Name)
+	s.log.Infof("Updated dataproduct: %v", updated.Name)
 
 	w.Header().Add("Content-Type", "application/json")
-	if err := json.NewEncoder(w).Encode(dataproduct); err != nil {
+	if err := json.NewEncoder(w).Encode(updated); err != nil {
 		s.log.WithError(err).Error("Encoding dataproduct as JSON")
 		http.Error(w, "uh oh", http.StatusInternalServerError)
 		return
@@ -166,6 +180,12 @@ func (s *Server) CreateDataset(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	if !s.projectsMapping.OwnsProject(dataproduct.Owner.Team, newDataset.Bigquery.ProjectId) {
+		s.log.Infof("Creating dataset: BigQuery project %v is not owned by team %v", newDataset.Bigquery.ProjectId, dataproduct.Owner.Team)
+		http.Error(w, "unauthorized", http.StatusUnauthorized)
+		return
+	}
+
 	if !contains(dataproduct.Owner.Team, user.Teams) {
 		s.log.Infof("Creating dataset: User %v is not member of team %v", user.Email, dataproduct.Owner.Team)
 		http.Error(w, "unauthorized", http.StatusUnauthorized)
@@ -182,6 +202,7 @@ func (s *Server) CreateDataset(w http.ResponseWriter, r *http.Request) {
 	s.log.Infof("Created dataset: %v", dataset.Name)
 
 	w.Header().Add("Content-Type", "application/json")
+	w.WriteHeader(http.StatusCreated)
 	if err := json.NewEncoder(w).Encode(dataset); err != nil {
 		s.log.WithError(err).Error("Encoding dataset as JSON")
 		http.Error(w, "uh oh", http.StatusInternalServerError)
@@ -259,6 +280,12 @@ func (s *Server) UpdateDataset(w http.ResponseWriter, r *http.Request, id string
 		return
 	}
 
+	if !s.projectsMapping.OwnsProject(dataproduct.Owner.Team, newDataset.Bigquery.ProjectId) {
+		s.log.Infof("Creating dataset: BigQuery project %v is not owned by team %v", newDataset.Bigquery.ProjectId, dataproduct.Owner.Team)
+		http.Error(w, "unauthorized", http.StatusUnauthorized)
+		return
+	}
+
 	if !contains(dataproduct.Owner.Team, user.Teams) {
 		s.log.Infof("Updating dataset: User %v is not member of team %v", user.Email, dataproduct.Owner.Team)
 		http.Error(w, "unauthorized", http.StatusUnauthorized)
@@ -282,7 +309,7 @@ func (s *Server) UpdateDataset(w http.ResponseWriter, r *http.Request, id string
 	}
 }
 
-// (GET /search)
+// Search (GET /search)
 func (s *Server) Search(w http.ResponseWriter, r *http.Request, params openapi.SearchParams) {
 	q := ""
 	if params.Q != nil {
@@ -303,7 +330,7 @@ func (s *Server) Search(w http.ResponseWriter, r *http.Request, params openapi.S
 	}
 }
 
-// (GET /userinfo)
+// UserInfo (GET /userinfo)
 func (s *Server) GetUserInfo(w http.ResponseWriter, r *http.Request) {
 	user := auth.GetUser(r.Context())
 

@@ -62,6 +62,25 @@ func (t *TeamProjectsUpdater) Get(team string) ([]string, bool) {
 	return projects, ok
 }
 
+func (t *TeamProjectsUpdater) OwnsProject(team, project string) bool {
+	t.lock.RLock()
+	defer t.lock.RUnlock()
+	projects, ok := t.teamProjects[team]
+	if !ok {
+		return false
+	}
+	return contains(project, projects)
+}
+
+func contains(elem string, list []string) bool {
+	for _, entry := range list {
+		if entry == elem {
+			return true
+		}
+	}
+	return false
+}
+
 func (t *TeamProjectsUpdater) FetchTeamGoogleProjectsMapping(ctx context.Context) error {
 	devOutputFile, err := getOutputFile(ctx, t.devTeamProjectsURL, t.teamsToken)
 	if err != nil {

@@ -30,7 +30,7 @@ UPDATE dataproducts SET
 	"description" = @description,
 	"slug" = @slug,
 	"repo" = @repo,
-	"team" = @team,
+	"team" = (SELECT team FROM dataproducts dp WHERE dp.id = @id),
 	"keywords" = @keywords
 WHERE id = @id
 RETURNING *;

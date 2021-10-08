@@ -17,8 +17,11 @@ import (
 	"golang.org/x/oauth2"
 )
 
-var server *httptest.Server
-var client *openapi.Client
+var (
+	server *httptest.Server
+	client *openapi.Client
+	repo   *database.Repo
+)
 
 func TestMain(m *testing.M) {
 	// uses a sensible default on windows (tcp/http) and linux/osx (socket)
@@ -61,12 +64,13 @@ func TestMain(m *testing.M) {
 }
 
 func startServer(connString string) {
-	repo, err := database.New(connString)
+	var err error
+	repo, err = database.New(connString)
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	router := NewRouter(repo, oauth2.Config{}, logrus.StandardLogger().WithField("", ""), auth.MockJWTValidatorMiddleware())
+	router := NewRouter(repo, oauth2.Config{}, logrus.StandardLogger().WithField("", ""), &auth.MockTeamProjectsUpdater, auth.MockJWTValidatorMiddleware())
 	server = httptest.NewServer(router)
 
 	client, err = openapi.NewClient(server.URL + "/api")

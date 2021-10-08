@@ -143,9 +143,9 @@ UPDATE dataproducts SET
 	"description" = $2,
 	"slug" = $3,
 	"repo" = $4,
-	"team" = $5,
+	"team" = (SELECT team FROM dataproducts dp WHERE dp.id = $5),
 	"keywords" = $6
-WHERE id = $7
+WHERE id = $5
 RETURNING id, name, description, slug, repo, created, last_modified, team, keywords, tsv_document
 `
 
@@ -154,9 +154,8 @@ type UpdateDataproductParams struct {
 	Description sql.NullString
 	Slug        string
 	Repo        sql.NullString
-	Team        string
-	Keywords    []string
 	ID          uuid.UUID
+	Keywords    []string
 }
 
 func (q *Queries) UpdateDataproduct(ctx context.Context, arg UpdateDataproductParams) (Dataproduct, error) {
@@ -165,9 +164,8 @@ func (q *Queries) UpdateDataproduct(ctx context.Context, arg UpdateDataproductPa
 		arg.Description,
 		arg.Slug,
 		arg.Repo,
-		arg.Team,
-		pq.Array(arg.Keywords),
 		arg.ID,
+		pq.Array(arg.Keywords),
 	)
 	var i Dataproduct
 	err := row.Scan(
