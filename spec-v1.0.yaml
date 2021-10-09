@@ -214,8 +214,6 @@ components:
     DatasetMetadata:
       type: object
       properties:
-        id:
-          type: string
         dataset_id:
           type: string
         schema:

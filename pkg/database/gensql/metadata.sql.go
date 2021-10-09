@@ -37,7 +37,7 @@ INSERT INTO dataset_metadata (
 ON CONFLICT (dataset_id) DO UPDATE
 SET
     "dataset_id" = $1,
-	"schema" = $2
+    "schema" = $2
 RETURNING dataset_id, created, last_modified, schema
 `
 
