@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"embed"
+	"encoding/json"
 	"fmt"
 	"net/url"
 
@@ -82,6 +83,7 @@ func (r *Repo) GetDatasets(ctx context.Context, limit, offset int) ([]*openapi.D
 
 	return datasets, nil
 }
+
 func (r *Repo) GetDataproducts(ctx context.Context, limit, offset int) ([]*openapi.Dataproduct, error) {
 	dataproducts := []*openapi.Dataproduct{}
 
@@ -251,6 +253,34 @@ func (r *Repo) DeleteDataset(ctx context.Context, id string) error {
 	return nil
 }
 
+func (r *Repo) GetDatasetMetadata(ctx context.Context, dataset_id string) (*openapi.DatasetMetadata, error) {
+	uid, err := uuid.Parse(dataset_id)
+	if err != nil {
+		return nil, fmt.Errorf("parsing uuid: %w", err)
+	}
+
+	metadata, err := r.querier.GetDatasetMetadata(ctx, uid)
+	if err != nil {
+		return nil, fmt.Errorf("getting dataset metadata from database: %w", err)
+	}
+
+	return datasetMetadataFromSQL(metadata)
+}
+
+func (r *Repo) WriteDatasetMetadata(ctx context.Context, dataset_id string, schema json.RawMessage) error {
+	uid, err := uuid.Parse(dataset_id)
+	if err != nil {
+		return fmt.Errorf("parsing uuid: %w", err)
+	}
+
+	_, err = r.querier.WriteDatasetMetadata(ctx, gensql.WriteDatasetMetadataParams{DatasetID: uid, Schema: schema})
+	if err != nil {
+		return fmt.Errorf("writing dataset metadata: %w", err)
+	}
+
+	return nil
+}
+
 func (r *Repo) Search(ctx context.Context, query string, limit, offset int) ([]*openapi.SearchResultEntry, error) {
 	results := []*openapi.SearchResultEntry{}
 	makeExcerpt := func(s sql.NullString) string {
@@ -335,4 +365,17 @@ func datasetFromSQL(dataset gensql.Dataset) *openapi.Dataset {
 			Table:     dataset.TableName,
 		},
 	}
+}
+
+func datasetMetadataFromSQL(dataset gensql.DatasetMetadatum) (*openapi.DatasetMetadata, error) {
+	var schema []openapi.TableColumn
+	err := json.Unmarshal(dataset.Schema, &schema)
+	if err != nil {
+		return nil, err
+	}
+
+	return &openapi.DatasetMetadata{
+		DatasetId: dataset.DatasetID.String(),
+		Schema:    schema,
+	}, nil
 }

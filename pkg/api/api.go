@@ -304,6 +304,22 @@ func (s *Server) UpdateDataset(w http.ResponseWriter, r *http.Request, id string
 	}
 }
 
+func (s *Server) GetDatasetMetadata(w http.ResponseWriter, r *http.Request, id string) {
+	metadata, err := s.repo.GetDatasetMetadata(r.Context(), id)
+	if err != nil {
+		s.log.WithError(err).Error("Getting dataset metadata")
+		http.Error(w, "uh oh", http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Add("Content-Type", "application/json")
+	if err := json.NewEncoder(w).Encode(metadata); err != nil {
+		s.log.WithError(err).Error("Encoding datasetmetadata as JSON")
+		http.Error(w, "uh oh", http.StatusInternalServerError)
+		return
+	}
+}
+
 // Search (GET /search)
 func (s *Server) Search(w http.ResponseWriter, r *http.Request, params openapi.SearchParams) {
 	q := ""

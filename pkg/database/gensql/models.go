@@ -4,6 +4,7 @@ package gensql
 
 import (
 	"database/sql"
+	"encoding/json"
 	"time"
 
 	"github.com/google/uuid"
@@ -35,4 +36,11 @@ type Dataset struct {
 	TableName     string
 	Type          string
 	TsvDocument   interface{}
+}
+
+type DatasetMetadatum struct {
+	DatasetID    uuid.UUID
+	Created      time.Time
+	LastModified time.Time
+	Schema       json.RawMessage
 }

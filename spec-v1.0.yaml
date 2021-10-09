@@ -194,6 +194,39 @@ components:
         - pii
         - bigquery # Update this to a oneOf when we have more than bigquery
 
+    TableColumn:
+      type: object
+      properties:
+        name:
+          type: string
+        type:
+          type: string
+        mode:
+          type: string
+        description:
+          type: string
+      required:
+        - name
+        - type
+        - mode
+        - description
+
+    DatasetMetadata:
+      type: object
+      properties:
+        id:
+          type: string
+        dataset_id:
+          type: string
+        schema:
+          type: array
+          items:
+            $ref: "#/components/schemas/TableColumn"
+      required:
+        - id
+        - dataset_id
+        - schema
+
     SearchResultEntry:
       type: object
       properties:
@@ -414,6 +447,26 @@ paths:
       responses:
         "204":
           description: "Deleted OK"
+
+  /datasets/{id}/metadata:
+    get:
+      description: "Get dataset"
+      operationId: "getDatasetMetadata"
+      parameters:
+        - in: path
+          name: id
+          description: Dataset ID
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: OK
+          content:
+            "application/json":
+              schema:
+                $ref: "#/components/schemas/DatasetMetadata"
+
   /search:
     parameters:
       - in: query

@@ -64,12 +64,20 @@ type Dataproduct struct {
 
 // Dataset defines model for Dataset.
 type Dataset struct {
-	Bigquery      BigQuery `json:"bigquery"`
-	DataproductId string   `json:"dataproduct_id"`
-	Description   *string  `json:"description,omitempty"`
-	Id            string   `json:"id"`
-	Name          string   `json:"name"`
-	Pii           bool     `json:"pii"`
+	Bigquery      BigQuery    `json:"bigquery"`
+	DataproductId string      `json:"dataproduct_id"`
+	Description   *string     `json:"description,omitempty"`
+	Id            string      `json:"id"`
+	Name          string      `json:"name"`
+	Pii           bool        `json:"pii"`
+	Type          DatasetType `json:"type"`
+}
+
+// DatasetMetadata defines model for DatasetMetadata.
+type DatasetMetadata struct {
+	DatasetId string        `json:"dataset_id"`
+	Id        string        `json:"id"`
+	Schema    []TableColumn `json:"schema"`
 }
 
 // DatasetSummary defines model for DatasetSummary.
@@ -118,6 +126,14 @@ type SearchResultEntry struct {
 
 // SearchResultType defines model for SearchResultType.
 type SearchResultType string
+
+// TableColumn defines model for TableColumn.
+type TableColumn struct {
+	Description string `json:"description"`
+	Mode        string `json:"mode"`
+	Name        string `json:"name"`
+	Type        string `json:"type"`
+}
 
 // UpdateDataproduct defines model for UpdateDataproduct.
 type UpdateDataproduct struct {
@@ -280,6 +296,9 @@ type ClientInterface interface {
 
 	UpdateDataset(ctx context.Context, id string, body UpdateDatasetJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
 
+	// GetDatasetMetadata request
+	GetDatasetMetadata(ctx context.Context, id string, reqEditors ...RequestEditorFn) (*http.Response, error)
+
 	// Search request
 	Search(ctx context.Context, params *SearchParams, reqEditors ...RequestEditorFn) (*http.Response, error)
 
@@ -433,6 +452,18 @@ func (c *Client) UpdateDatasetWithBody(ctx context.Context, id string, contentTy
 
 func (c *Client) UpdateDataset(ctx context.Context, id string, body UpdateDatasetJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
 	req, err := NewUpdateDatasetRequest(c.Server, id, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) GetDatasetMetadata(ctx context.Context, id string, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewGetDatasetMetadataRequest(c.Server, id)
 	if err != nil {
 		return nil, err
 	}
@@ -840,6 +871,40 @@ func NewUpdateDatasetRequestWithBody(server string, id string, contentType strin
 	return req, nil
 }
 
+// NewGetDatasetMetadataRequest generates requests for GetDatasetMetadata
+func NewGetDatasetMetadataRequest(server string, id string) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithLocation("simple", false, "id", runtime.ParamLocationPath, id)
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/datasets/%s/metadata", pathParam0)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest("GET", queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
+}
+
 // NewSearchRequest generates requests for Search
 func NewSearchRequest(server string, params *SearchParams) (*http.Request, error) {
 	var err error
@@ -1023,6 +1088,9 @@ type ClientWithResponsesInterface interface {
 	UpdateDatasetWithBodyWithResponse(ctx context.Context, id string, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*UpdateDatasetResponse, error)
 
 	UpdateDatasetWithResponse(ctx context.Context, id string, body UpdateDatasetJSONRequestBody, reqEditors ...RequestEditorFn) (*UpdateDatasetResponse, error)
+
+	// GetDatasetMetadata request
+	GetDatasetMetadataWithResponse(ctx context.Context, id string, reqEditors ...RequestEditorFn) (*GetDatasetMetadataResponse, error)
 
 	// Search request
 	SearchWithResponse(ctx context.Context, params *SearchParams, reqEditors ...RequestEditorFn) (*SearchResponse, error)
@@ -1227,6 +1295,28 @@ func (r UpdateDatasetResponse) StatusCode() int {
 	return 0
 }
 
+type GetDatasetMetadataResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	JSON200      *DatasetMetadata
+}
+
+// Status returns HTTPResponse.Status
+func (r GetDatasetMetadataResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r GetDatasetMetadataResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
 type SearchResponse struct {
 	Body         []byte
 	HTTPResponse *http.Response
@@ -1382,6 +1472,15 @@ func (c *ClientWithResponses) UpdateDatasetWithResponse(ctx context.Context, id 
 		return nil, err
 	}
 	return ParseUpdateDatasetResponse(rsp)
+}
+
+// GetDatasetMetadataWithResponse request returning *GetDatasetMetadataResponse
+func (c *ClientWithResponses) GetDatasetMetadataWithResponse(ctx context.Context, id string, reqEditors ...RequestEditorFn) (*GetDatasetMetadataResponse, error) {
+	rsp, err := c.GetDatasetMetadata(ctx, id, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseGetDatasetMetadataResponse(rsp)
 }
 
 // SearchWithResponse request returning *SearchResponse
@@ -1616,6 +1715,32 @@ func ParseUpdateDatasetResponse(rsp *http.Response) (*UpdateDatasetResponse, err
 	return response, nil
 }
 
+// ParseGetDatasetMetadataResponse parses an HTTP response from a GetDatasetMetadataWithResponse call
+func ParseGetDatasetMetadataResponse(rsp *http.Response) (*GetDatasetMetadataResponse, error) {
+	bodyBytes, err := ioutil.ReadAll(rsp.Body)
+	defer rsp.Body.Close()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &GetDatasetMetadataResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest DatasetMetadata
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	}
+
+	return response, nil
+}
+
 // ParseSearchResponse parses an HTTP response from a SearchWithResponse call
 func ParseSearchResponse(rsp *http.Response) (*SearchResponse, error) {
 	bodyBytes, err := ioutil.ReadAll(rsp.Body)
@@ -1697,6 +1822,9 @@ type ServerInterface interface {
 
 	// (PUT /datasets/{id})
 	UpdateDataset(w http.ResponseWriter, r *http.Request, id string)
+
+	// (GET /datasets/{id}/metadata)
+	GetDatasetMetadata(w http.ResponseWriter, r *http.Request, id string)
 
 	// (GET /search)
 	Search(w http.ResponseWriter, r *http.Request, params SearchParams)
@@ -1953,6 +2081,32 @@ func (siw *ServerInterfaceWrapper) UpdateDataset(w http.ResponseWriter, r *http.
 	handler(w, r.WithContext(ctx))
 }
 
+// GetDatasetMetadata operation middleware
+func (siw *ServerInterfaceWrapper) GetDatasetMetadata(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+
+	var err error
+
+	// ------------- Path parameter "id" -------------
+	var id string
+
+	err = runtime.BindStyledParameter("simple", false, "id", chi.URLParam(r, "id"), &id)
+	if err != nil {
+		http.Error(w, fmt.Sprintf("Invalid format for parameter id: %s", err), http.StatusBadRequest)
+		return
+	}
+
+	var handler = func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.GetDatasetMetadata(w, r, id)
+	}
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler(w, r.WithContext(ctx))
+}
+
 // Search operation middleware
 func (siw *ServerInterfaceWrapper) Search(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
@@ -2088,6 +2242,9 @@ func HandlerWithOptions(si ServerInterface, options ChiServerOptions) http.Handl
 		r.Put(options.BaseURL+"/datasets/{id}", wrapper.UpdateDataset)
 	})
 	r.Group(func(r chi.Router) {
+		r.Get(options.BaseURL+"/datasets/{id}/metadata", wrapper.GetDatasetMetadata)
+	})
+	r.Group(func(r chi.Router) {
 		r.Get(options.BaseURL+"/search", wrapper.Search)
 	})
 	r.Group(func(r chi.Router) {
@@ -2100,26 +2257,27 @@ func HandlerWithOptions(si ServerInterface, options ChiServerOptions) http.Handl
 // Base64 encoded, gzipped, json marshaled Swagger object
 var swaggerSpec = []string{
 
-	"H4sIAAAAAAAC/9RY32/bNhD+VwRuj5rtdhtQ6C2dhyLY0GBL+xQExUU620wkUiFP8YzA//vAH7Isi5bs",
-	"znW9N1s63o/v7vtI6pWlsiilQEGaJa9MpwsswP58z+d/VahW5nepZImKONo3GRBoJPOTViWyhGlSXMzZ",
-	"OjaWj5jSF54FXxM85Bh4s46ZwueKK8xYcrftJd6Eq1ffx/Vq+WCsjN8pEJRKZlVK3XxThUBoE5pJVQCx",
-	"xDjFn4gXyOJulj6iXcwJC/vjR4UzlrAfxg1iYw/XeOoW3FZFAWplC3U+QSmw/zPUqeIlcSmCwOzB6wlX",
-	"S6mydiZdVHeC5aDpSyEzPuPHlC2gwKB/uRSohjC4sUa2kaUMutF5NR/uve25TcWvqOPHm0buVrjVsX3D",
-	"4ee1PRgPfP5cj3hfaRsq+Nnwk7ZvyL+y13vhLznfev4gZY4genEzKzqpxk29PSjVM9wB69is3YODePPJ",
-	"mPbVY331JP3Jx0JRFWZtoNAmsY+47JWLofZ9HScvg1weTxczBKgH55Lo8h954UvukMFxpJcSN3Vr2jgQ",
-	"QhHuOULxBAS5nKMYbob1E4p7i6DSxd+oq5x+FxRiI/6ToirpJPpyCFO3U3J0jVml8uEijZEPEbc4XVcw",
-	"BMAut5vjwFZL63+QPsEcg7T/XJrN75KYfwouh9D7rFFdi5kMTE0BPD9yOBCKowoO089Frt11szZVY1op",
-	"TqtbM3L+5CblE8erihY2A8ES/6geo4Q9Lqk5y5B8QqMAhgQeAOJkTpzs49X0isXsBZW27WVvRhMrvyUK",
-	"KDlL2M+jyeitEQaghY0+3how+2DuVLE1JuxPrimCPI9a1taxAmNznbGEfUCatt+XoKBAQqVZcueLc1K0",
-	"qS3nBTfVORK60DOocmLJm183RXNBODe7wzoOu5GzmSNMwM8k4ObedFCXUmjXhbeTiWuGIBQWASjLnKe2",
-	"uvGjdmxpnB98ZK6J2J2h3W2B3fzhnpZSB3rwmz0YRhAJXEZtWWi3wRlOWxZmWlHTe5mtjiqzr7qdM8Z6",
-	"7WjRAvXNyaLthIqD6GSRrtIUtZ5Veb5qMc4O4DbX7u7X98agxYDxK8/WDvscCbtdmNrnEfR2wBm1O7BD",
-	"hR2vjWl0PTWbiHlqSNpMuN1XGtUhVeH2tO/qaHfAf9lXTRbZyRvCKu7Thm08oiWnRbS5rvTLxEVAc0Hc",
-	"rwIQu219YOi6e/93Qvb0StMtLSg2k3OJjcvnQNrUElN/bDlQ3d1utk/Z3dtvqOomwBkU3Yc5sZobqI9T",
-	"8hDajYq7t4Nk0vj/U+8PSHsB8EJ9CdVPzjF1h2twCK1GpL4TYOfXgrN05Wix1fZivfcu4+7dEReRvy61",
-	"2+hes3McEbqfQA44KPj0lV3l53X4lvXM+sYnvqyrmWlipVHV19tgG+dIkTGKrFVAujZfCL7h2G5i7FOT",
-	"wXm1Fuql7p393MQWRKVOxuNcppAvpKbk3eTdZGyu8AbktpGADEYZvowMgkqMBLyMhOwzDhjer/8NAAD/",
-	"/4pL0WomGwAA",
+	"H4sIAAAAAAAC/9xYTW/jNhD9KwLbo2o52xZY6JZdF4ug7QZt0lNgLBhpbDOWSIUcxTUC//eCpD4tSrJT",
+	"r9ftzZaGHM578x4pvpJIpJngwFGR8JWoaAUpNT8/sOUfOcit/p1JkYFEBuZNTJEqQP0TtxmQkCiUjC/J",
+	"zteRTxDhFxY7XyN9TMDxZucTCc85kxCT8KE5i1+lK0fP/XK0eNRRet4ZRZpJEecRdtcbSaAIZkELIVOK",
+	"JNSTwg/IUiB+d5VFRjOYIaTmx/cSFiQk3wU1YkEBVzCzA+7yNKVyawq1c1Ipqfkfg4oky5AJ7gSmB681",
+	"bDdCxu2VdFHdS5ZQhV9SEbMFO6ZsTlNwzi82HOQYBrcmyBCZCec0KsmX49wbzs1SihFlfr8icr/CBmN9",
+	"zVH0a7sxHtnyuWzxodIqKRS9UXRaX5O/kete+DPGGs8fhUiA8pr3g1rzXocOQW3msrk6Rfo1UgP4/g5I",
+	"9cBew+jDq+exreBgDd5rc/gokjzlXU24Cm+sqko2UF4p7k51x9J5ctYGFn1f5AKep3qsg8d6YZ9hM+ij",
+	"Y339NrO6DNcp8LQ5XYAW4FySjxxrGO6SO1q3FjCo+NuSmjYOCDR1cw40XVOkiVgCHyfDzOPKewdURqs/",
+	"QeUJ/sLRpUb4OwKZ4UmM9xClNpdk5eqTXCbjReqgynabmi4rGANgX9v1OalBafmPRmu6BKfsm8Z5tOZT",
+	"EcPbQD1IjwU8JktbEC50/sr0+eaSPOwUruSsVIG84Qvh6P+UsuRIRoCmRxXs5spmLqfrrlpXDVEuGW7v",
+	"tHiKw7kQawbXOa7MCjgJi0elIELytMH6uIpiDdrLtJwLAJCh/qggn69n18QnLyCVoZdcTaZmI8mA04yR",
+	"kPw4mU7eaYujuDLZg4ZUzIOl9fdWm5DfmEKPJonXijYTS6pjbmISkk+As/b7jEqaAoJUJHwoirOmWtWW",
+	"sJQhaR52YljQPEESXv1cFc04wlLvczvfPY1YLKz0HfNMHdPMNYMqE1xZFt5Np5YMjsANAjTLEhaZ6oIn",
+	"ZdVy5ImsKcRuD+1vcOT2V/s0E8rBwUdz9veox2HjtQ2uTYMNnLUidLeCwg8i3h5V5lB1e6el3c7KogXq",
+	"1cmy7aXynejEnsqjCJRa5EmybSnONGBTaw/z3VwHtBQQvLJ4Z7FPAKHLwsw89+ggAzaozcCeFPZmrUO9",
+	"m5neDvVTLdK6w80OWbsOyhya3b7vo90G/6mvmtgznTeGlT/kDU08vA3DlVd9kQ7bxEVAc0Hazx0Q2219",
+	"pOm6e/83Qvb0TtMtzWk203OZjV3PgbIpLaa8TzvQ3e1u1ufs9u1XdHWd4AyOXqQ5sZtrqI9zchfatYvb",
+	"t6NiUvDfc+9PgL0AFEZ9CdVPz9F1h3uwC63apL4RYOf3grOw8mazNQ4QpI1L2X+hgOpu93+nhKqyXkVo",
+	"UJW5d+kF0V7LeIx7xTdoG0f7mpzj3NW9ITvg9FUsX5pRhQmMf7o+kyHq/Mv63tUk5gpkeWfgpHEJ6Okg",
+	"z0Q51FBdu3zFvqxy9DXkqAmYCPlScmduI8kKMVNhECQioslKKAzfT99PA5oxokFuB3Ea00kMLxONoOQT",
+	"Tl8mXAwFOwLnu38CAAD///F4o3JeHgAA",
 }
 
 // GetSwagger returns the content of the embedded swagger specification file

@@ -2,9 +2,11 @@ package metadata
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
-	"github.com/navikt/nada-backend/pkg/database"
 	"math"
+
+	"github.com/navikt/nada-backend/pkg/database"
 )
 
 type DatasetEnricher struct {
@@ -18,15 +20,22 @@ func (d *DatasetEnricher) SyncMetadata(ctx context.Context) error {
 		return fmt.Errorf("getting datasets: %w", err)
 	}
 
-	fmt.Println("datasets:", datasets)
-
 	for _, ds := range datasets {
+		fmt.Println("dataset:", ds)
 		schema, err := d.datacatalogClient.GetDatasetSchema(ds.Bigquery)
 		if err != nil {
 			return fmt.Errorf("getting dataset schema: %w", err)
 		}
-		fmt.Println(schema)
-		// write to database
+		fmt.Println(schema.Columns)
+
+		schemaJSON, err := json.Marshal(schema.Columns)
+		if err != nil {
+			return fmt.Errorf("getting dataset schema: %w", err)
+		}
+
+		if err := d.repo.WriteDatasetMetadata(ctx, ds.Id, schemaJSON); err != nil {
+			return fmt.Errorf("writing dataset schema to database: %w", err)
+		}
 	}
 	return nil
 }
