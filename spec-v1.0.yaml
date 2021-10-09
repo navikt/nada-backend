@@ -450,7 +450,7 @@ paths:
 
   /datasets/{id}/metadata:
     get:
-      description: "Get dataset"
+      description: "Get dataset metadata"
       operationId: "getDatasetMetadata"
       parameters:
         - in: path

@@ -12,5 +12,5 @@ INSERT INTO dataset_metadata (
 ON CONFLICT (dataset_id) DO UPDATE
 SET
     "dataset_id" = @dataset_id,
-	"schema" = @schema
+    "schema" = @schema
 RETURNING *;

@@ -30,7 +30,7 @@ func (d *DatasetEnricher) SyncMetadata(ctx context.Context) error {
 
 		schemaJSON, err := json.Marshal(schema.Columns)
 		if err != nil {
-			return fmt.Errorf("getting dataset schema: %w", err)
+			return fmt.Errorf("marshalling schema: %w", err)
 		}
 
 		if err := d.repo.WriteDatasetMetadata(ctx, ds.Id, schemaJSON); err != nil {
