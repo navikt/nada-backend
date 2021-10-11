@@ -12,6 +12,7 @@ import (
 	"github.com/navikt/nada-backend/pkg/api"
 	"github.com/navikt/nada-backend/pkg/auth"
 	"github.com/navikt/nada-backend/pkg/database"
+	"github.com/navikt/nada-backend/pkg/metadata"
 	"github.com/sirupsen/logrus"
 	flag "github.com/spf13/pflag"
 	"golang.org/x/oauth2"
@@ -23,6 +24,7 @@ const (
 	TeamsUpdateFrequency        = 5 * time.Minute
 	EnsureAccessUpdateFrequency = 5 * time.Minute
 	TeamProjectsUpdateFrequency = 5 * time.Minute
+	DatasetMetadataUpdateFrequency = 5 * time.Minute
 )
 
 func init() {
@@ -39,6 +41,7 @@ func init() {
 	flag.StringVar(&cfg.LogLevel, "log-level", "info", "which log level to output")
 	flag.StringVar(&cfg.CookieSecret, "cookie-secret", "", "Secret used when encrypting cookies")
 	flag.BoolVar(&cfg.MockAuth, "mock-auth", false, "Use mock authentication")
+	flag.BoolVar(&cfg.SkipMetadataSync, "skip-metadata-sync", false, "Skip metadata sync")
 }
 
 func main() {
@@ -67,6 +70,15 @@ func main() {
 		azure := auth.NewAzure(cfg.OAuth2.ClientID, cfg.OAuth2.ClientSecret, cfg.OAuth2.TenantID, cfg.Hostname)
 		authenticatorMiddleware = azure.Middleware(teamsCache)
 		oauth2Config = azure.OAuth2Config()
+	}
+
+	if !cfg.SkipMetadataSync {
+		datacatalogClient, err := metadata.NewDatacatalog(ctx)
+		if err != nil {
+			log.WithError(err).Fatal("creating datacatalog client")
+		}
+		datasetEnricher := metadata.New(datacatalogClient, repo, log.WithField("subsystem", "datasetenricher"))
+		go datasetEnricher.Run(ctx, DatasetMetadataUpdateFrequency)
 	}
 
 	router := api.NewRouter(repo, oauth2Config, log.WithField("subsystem", "api"), teamProjectsMapping, authenticatorMiddleware)

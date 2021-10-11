@@ -12,6 +12,7 @@ type Config struct {
 	Hostname                  string
 	CookieSecret              string
 	MockAuth                  bool
+	SkipMetadataSync          bool
 }
 
 type OAuth2Config struct {

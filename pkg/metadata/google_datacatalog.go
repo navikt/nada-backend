@@ -14,7 +14,9 @@ import (
 //	GetUserBQAssets(user string) struct{}
 //}
 
-type Client struct{}
+type Datacatalog struct {
+	client *datacatalog.Client
+}
 
 type Schema struct {
 	Columns []Column
@@ -27,22 +29,27 @@ type Column struct {
 	Description string
 }
 
-func (c *Client) GetDatasetSchema(ds openapi.BigQuery) (Schema, error) {
-	client, err := datacatalog.NewClient(context.Background())
+func NewDatacatalog(ctx context.Context) (*Datacatalog, error) {
+	client, err := datacatalog.NewClient(ctx)
 	if err != nil {
-		return Schema{}, fmt.Errorf("instantiating datacatalog client: %w", err)
+		return nil, fmt.Errorf("instantiating datacatalog client: %w", err)
 	}
-	defer client.Close()
+	return &Datacatalog{client: client}, nil
+}
 
+func (c *Datacatalog) Close() error {
+	return c.client.Close()
+}
+
+func (c *Datacatalog) GetDatasetSchema(ctx context.Context, ds openapi.BigQuery) (Schema, error) {
 	resourceURI := fmt.Sprintf("//bigquery.googleapis.com/projects/%v/datasets/%v/tables/%v", ds.ProjectId, ds.Dataset, ds.Table)
-	fmt.Println("resource uri", resourceURI)
 	req := &datacatalogpb.LookupEntryRequest{
 		TargetName: &datacatalogpb.LookupEntryRequest_LinkedResource{
 			LinkedResource: resourceURI,
 		},
 	}
 
-	resp, err := client.LookupEntry(context.Background(), req)
+	resp, err := c.client.LookupEntry(ctx, req)
 	if err != nil {
 		return Schema{}, fmt.Errorf("looking up entry: %w", err)
 	}

@@ -12,7 +12,7 @@ func TestName(t *testing.T) {
 		t.Fatal(err)
 	}
 	de := DatasetEnricher{
-		datacatalogClient: Client{},
+		datacatalogClient: Datacatalog{},
 		repo:              repo,
 	}
 
