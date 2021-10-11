@@ -2,7 +2,9 @@ package api
 
 import (
 	"context"
+	"database/sql"
 	"encoding/json"
+	"errors"
 	"net/http"
 	"strings"
 
@@ -48,6 +50,11 @@ func (s *Server) GetDataproducts(w http.ResponseWriter, r *http.Request, params 
 func (s *Server) GetDataproduct(w http.ResponseWriter, r *http.Request, id string) {
 	dataproduct, err := s.repo.GetDataproduct(r.Context(), id)
 	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			http.Error(w, "No dataproduct", http.StatusNotFound)
+			return
+		}
+
 		s.log.WithError(err).Error("Getting dataproduct")
 		http.Error(w, "uh oh", http.StatusInternalServerError)
 		return
