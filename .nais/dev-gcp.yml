@@ -2,9 +2,9 @@ kind: "Application"
 apiVersion: "nais.io/v1alpha1"
 metadata:
   name: nada-backend
-  namespace: dataplattform
+  namespace: nada
   labels:
-    team: dataplattform
+    team: nada
 spec:
   image: "{{ image }}"
   port: 8080
