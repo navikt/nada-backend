@@ -6,8 +6,8 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/dgrijalva/jwt-go"
 	"github.com/go-chi/jwtauth"
+	"github.com/golang-jwt/jwt/v4"
 	"github.com/navikt/nada-backend/pkg/openapi"
 	log "github.com/sirupsen/logrus"
 )

@@ -7,7 +7,6 @@ require (
 	cloud.google.com/go/bigquery v1.17.0
 	cloud.google.com/go/storage v1.10.0
 	github.com/deepmap/oapi-codegen v1.8.2
-	github.com/dgrijalva/jwt-go v3.2.0+incompatible
 	github.com/getkin/kin-openapi v0.61.0
 	github.com/go-chi/chi v4.1.2+incompatible
 	github.com/go-chi/chi/v5 v5.0.0
@@ -45,6 +44,7 @@ require (
 	github.com/go-openapi/swag v0.19.5 // indirect
 	github.com/goccy/go-json v0.3.5 // indirect
 	github.com/gogo/protobuf v1.3.2 // indirect
+	github.com/golang-jwt/jwt/v4 v4.1.0
 	github.com/golang/groupcache v0.0.0-20200121045136-8c9f03a8e57e // indirect
 	github.com/golang/protobuf v1.5.2 // indirect
 	github.com/google/go-cmp v0.5.6 // indirect
