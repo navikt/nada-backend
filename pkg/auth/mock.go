@@ -10,20 +10,22 @@ import (
 var MockUser = User{
 	Name:  "Anderson, Mock",
 	Email: "mock.anderson@email.com",
-	Teams: []string{"team"},
+	Teams: []string{"team", "dataplattform", "aura"},
 }
 
 var MockProjectIDs = []string{"team-dev", "team-prod"}
 
 var MockTeamProjectsUpdater = TeamProjectsUpdater{
 	teamProjects: map[string][]string{
-		"team": MockProjectIDs,
+		"team":          MockProjectIDs,
+		"dataplattform": {"dataplattform-dev-9da3"},
+		"aura":          {"aura-dev-d9f5"},
 	},
 }
 
 func MockJWTValidatorMiddleware() openapi.MiddlewareFunc {
 	return func(next http.HandlerFunc) http.HandlerFunc {
-		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		return func(w http.ResponseWriter, r *http.Request) {
 			teams := []string{
 				"team",
 			}
@@ -34,6 +36,6 @@ func MockJWTValidatorMiddleware() openapi.MiddlewareFunc {
 			ctx := context.WithValue(r.Context(), contextUserKey, &MockUser)
 			r = r.WithContext(ctx)
 			next.ServeHTTP(w, r)
-		})
+		}
 	}
 }
