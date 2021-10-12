@@ -21,9 +21,9 @@ import (
 var cfg = DefaultConfig()
 
 const (
-	TeamsUpdateFrequency        = 5 * time.Minute
-	EnsureAccessUpdateFrequency = 5 * time.Minute
-	TeamProjectsUpdateFrequency = 5 * time.Minute
+	TeamsUpdateFrequency           = 5 * time.Minute
+	EnsureAccessUpdateFrequency    = 5 * time.Minute
+	TeamProjectsUpdateFrequency    = 5 * time.Minute
 	DatasetMetadataUpdateFrequency = 5 * time.Minute
 )
 
@@ -72,16 +72,18 @@ func main() {
 		oauth2Config = azure.OAuth2Config()
 	}
 
+	var gcp api.GCP
 	if !cfg.SkipMetadataSync {
 		datacatalogClient, err := metadata.NewDatacatalog(ctx)
 		if err != nil {
 			log.WithError(err).Fatal("creating datacatalog client")
 		}
+		gcp = datacatalogClient
 		datasetEnricher := metadata.New(datacatalogClient, repo, log.WithField("subsystem", "datasetenricher"))
 		go datasetEnricher.Run(ctx, DatasetMetadataUpdateFrequency)
 	}
 
-	router := api.NewRouter(repo, oauth2Config, log.WithField("subsystem", "api"), teamProjectsMapping, authenticatorMiddleware)
+	router := api.NewRouter(repo, oauth2Config, log.WithField("subsystem", "api"), teamProjectsMapping, gcp, authenticatorMiddleware)
 	log.Info("Listening on :8080")
 
 	server := http.Server{

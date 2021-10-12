@@ -18,14 +18,14 @@ import (
 //go:embed swagger/*
 var swagger embed.FS
 
-func NewRouter(repo *database.Repo, oauth2Config oauth2.Config, log *logrus.Entry, projectsMapping *auth.TeamProjectsUpdater, middlewares ...openapi.MiddlewareFunc) http.Handler {
+func NewRouter(repo *database.Repo, oauth2Config oauth2.Config, log *logrus.Entry, projectsMapping *auth.TeamProjectsUpdater, gcp GCP, middlewares ...openapi.MiddlewareFunc) http.Handler {
 	corsMW := cors.Handler(cors.Options{
 		AllowedOrigins:   []string{"https://*", "http://*"},
 		AllowedMethods:   []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
 		AllowCredentials: true,
 	})
 
-	srv := New(repo, oauth2Config, log.WithField("subsystem", "api"), projectsMapping)
+	srv := New(repo, oauth2Config, log.WithField("subsystem", "api"), projectsMapping, gcp)
 
 	latencyHistBuckets := []float64{.001, .005, .01, .025, .05, .1, .5, 1, 3, 5}
 	prometheusMiddleware := PrometheusMiddleware("backend", latencyHistBuckets...)

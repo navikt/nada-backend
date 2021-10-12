@@ -3,9 +3,9 @@ package metadata
 import (
 	"context"
 	"fmt"
+	"strings"
 
 	datacatalog "cloud.google.com/go/datacatalog/apiv1"
-	"github.com/davecgh/go-spew/spew"
 	"github.com/navikt/nada-backend/pkg/openapi"
 	"google.golang.org/api/iterator"
 	datacatalogpb "google.golang.org/genproto/googleapis/cloud/datacatalog/v1"
@@ -50,6 +50,9 @@ func (c *Datacatalog) GetDatasets(ctx context.Context, projectID string) ([]open
 		},
 		Query: "system=BIGQUERY",
 	})
+
+	ret := []openapi.BigQuery{}
+
 	for {
 		eg, err := egi.Next()
 		if err == iterator.Done {
@@ -59,12 +62,20 @@ func (c *Datacatalog) GetDatasets(ctx context.Context, projectID string) ([]open
 		if err != nil {
 			return nil, err
 		}
-		fmt.Println("Spew")
-		spew.Dump(eg)
-		break
+		parts := strings.Split(eg.GetLinkedResource(), "/")
+		if len(parts) != 9 {
+			continue
+		}
+		dataset := parts[6]
+		table := parts[8]
+		ret = append(ret, openapi.BigQuery{
+			ProjectId: projectID,
+			Dataset:   dataset,
+			Table:     table,
+		})
 	}
 
-	return nil, nil
+	return ret, nil
 }
 
 func (c *Datacatalog) GetDatasetSchema(ctx context.Context, ds openapi.BigQuery) (Schema, error) {
