@@ -8,13 +8,13 @@ import (
 	"math"
 	"time"
 
-	"github.com/navikt/nada-backend/pkg/database"
+	"github.com/navikt/nada-backend/pkg/openapi"
 	"github.com/sirupsen/logrus"
 )
 
 type DatasetEnricher struct {
-	datacatalogClient *Datacatalog
-	repo              *database.Repo
+	datacatalogClient Datacataloger
+	repo              Metadatastorer
 	log               *logrus.Entry
 }
 
@@ -27,7 +27,16 @@ func (e errorList) Error() string {
 	return fmt.Sprintf("%+v", []error(e))
 }
 
-func New(datacatalogClient *Datacatalog, repo *database.Repo, log *logrus.Entry) *DatasetEnricher {
+type Datacataloger interface {
+	GetDatasetSchema(ctx context.Context, ds openapi.BigQuery) (Schema, error)
+}
+
+type Metadatastorer interface {
+	GetDatasets(ctx context.Context, limit int, offset int) ([]*openapi.Dataset, error)
+	WriteDatasetMetadata(ctx context.Context, dataset_id string, schema json.RawMessage) error
+}
+
+func New(datacatalogClient Datacataloger, repo Metadatastorer, log *logrus.Entry) *DatasetEnricher {
 	return &DatasetEnricher{
 		datacatalogClient: datacatalogClient,
 		repo:              repo,
@@ -84,6 +93,9 @@ func (d *DatasetEnricher) syncMetadata(ctx context.Context) error {
 			errs = append(errs, fmt.Errorf("writing metadata to database: %w", err))
 			continue
 		}
+	}
+	if len(errs) == 0 {
+		return nil
 	}
 	return errs
 }
