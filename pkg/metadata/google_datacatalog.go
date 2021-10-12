@@ -17,7 +17,7 @@ import (
 //}
 
 type Datacatalog struct {
-	client *datacatalog.Client
+	client datacatalogwrapper
 }
 
 type Schema struct {
@@ -36,7 +36,7 @@ func NewDatacatalog(ctx context.Context) (*Datacatalog, error) {
 	if err != nil {
 		return nil, fmt.Errorf("instantiating datacatalog client: %w", err)
 	}
-	return &Datacatalog{client: client}, nil
+	return &Datacatalog{client: &catalogWrapper{client: client}}, nil
 }
 
 func (c *Datacatalog) Close() error {
@@ -44,25 +44,20 @@ func (c *Datacatalog) Close() error {
 }
 
 func (c *Datacatalog) GetDatasets(ctx context.Context, projectID string) ([]openapi.BigQuery, error) {
-	egi := c.client.SearchCatalog(ctx, &datacatalogpb.SearchCatalogRequest{
+	results, err := c.client.SearchCatalog(ctx, &datacatalogpb.SearchCatalogRequest{
 		Scope: &datacatalogpb.SearchCatalogRequest_Scope{
 			IncludeProjectIds: []string{projectID},
 		},
 		Query: "system=BIGQUERY",
 	})
+	if err != nil {
+		return nil, err
+	}
 
 	ret := []openapi.BigQuery{}
 
-	for {
-		eg, err := egi.Next()
-		if err == iterator.Done {
-			fmt.Println("done")
-			break
-		}
-		if err != nil {
-			return nil, err
-		}
-		parts := strings.Split(eg.GetLinkedResource(), "/")
+	for _, result := range results {
+		parts := strings.Split(result.GetLinkedResource(), "/")
 		if len(parts) != 9 {
 			continue
 		}
@@ -103,4 +98,40 @@ func (c *Datacatalog) GetDatasetSchema(ctx context.Context, ds openapi.BigQuery)
 	}
 
 	return schema, err
+}
+
+type datacatalogwrapper interface {
+	Close() error
+	SearchCatalog(ctx context.Context, req *datacatalogpb.SearchCatalogRequest) ([]*datacatalogpb.SearchCatalogResult, error)
+	LookupEntry(ctx context.Context, req *datacatalogpb.LookupEntryRequest) (*datacatalogpb.Entry, error)
+}
+
+type catalogWrapper struct {
+	client *datacatalog.Client
+}
+
+func (c *catalogWrapper) SearchCatalog(ctx context.Context, req *datacatalogpb.SearchCatalogRequest) ([]*datacatalogpb.SearchCatalogResult, error) {
+	it := c.client.SearchCatalog(ctx, req)
+
+	ret := []*datacatalogpb.SearchCatalogResult{}
+	for {
+		el, err := it.Next()
+		if err == iterator.Done {
+			break
+		}
+		if err != nil {
+			return nil, err
+		}
+		ret = append(ret, el)
+	}
+
+	return ret, nil
+}
+
+func (c *catalogWrapper) LookupEntry(ctx context.Context, req *datacatalogpb.LookupEntryRequest) (*datacatalogpb.Entry, error) {
+	return c.client.LookupEntry(ctx, req)
+}
+
+func (c *catalogWrapper) Close() error {
+	return c.client.Close()
 }

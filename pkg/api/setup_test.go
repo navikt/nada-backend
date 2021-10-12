@@ -70,7 +70,7 @@ func startServer(connString string) {
 		log.Fatal(err)
 	}
 
-	router := NewRouter(repo, oauth2.Config{}, logrus.StandardLogger().WithField("", ""), &auth.MockTeamProjectsUpdater, auth.MockJWTValidatorMiddleware())
+	router := NewRouter(repo, oauth2.Config{}, logrus.StandardLogger().WithField("", ""), &auth.MockTeamProjectsUpdater, nil, auth.MockJWTValidatorMiddleware())
 	server = httptest.NewServer(router)
 
 	client, err = openapi.NewClient(server.URL + "/api")
