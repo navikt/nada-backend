@@ -5,7 +5,9 @@ import (
 	"fmt"
 
 	datacatalog "cloud.google.com/go/datacatalog/apiv1"
+	"github.com/davecgh/go-spew/spew"
 	"github.com/navikt/nada-backend/pkg/openapi"
+	"google.golang.org/api/iterator"
 	datacatalogpb "google.golang.org/genproto/googleapis/cloud/datacatalog/v1"
 )
 
@@ -39,6 +41,30 @@ func NewDatacatalog(ctx context.Context) (*Datacatalog, error) {
 
 func (c *Datacatalog) Close() error {
 	return c.client.Close()
+}
+
+func (c *Datacatalog) GetDatasets(ctx context.Context, projectID string) ([]openapi.BigQuery, error) {
+	egi := c.client.SearchCatalog(ctx, &datacatalogpb.SearchCatalogRequest{
+		Scope: &datacatalogpb.SearchCatalogRequest_Scope{
+			IncludeProjectIds: []string{projectID},
+		},
+		Query: "system=BIGQUERY",
+	})
+	for {
+		eg, err := egi.Next()
+		if err == iterator.Done {
+			fmt.Println("done")
+			break
+		}
+		if err != nil {
+			return nil, err
+		}
+		fmt.Println("Spew")
+		spew.Dump(eg)
+		break
+	}
+
+	return nil, nil
 }
 
 func (c *Datacatalog) GetDatasetSchema(ctx context.Context, ds openapi.BigQuery) (Schema, error) {
