@@ -267,6 +267,28 @@ paths:
               schema:
                 $ref: "#/components/schemas/UserInfo"
 
+  /team/{id}/gcp_projects:
+    parameters:
+      - in: path
+        name: id
+        description: Team ID
+        required: true
+        schema:
+          type: string
+
+    get:
+      description: "Query and return all GCP projects for the team"
+      operationId: "getGCPProjects"
+      responses:
+        "200":
+          description: OK
+          content:
+            "application/json":
+              schema:
+                type: "array"
+                items:
+                  type: "string"
+
   /dataproducts:
     get:
       description: "List all dataproducts"

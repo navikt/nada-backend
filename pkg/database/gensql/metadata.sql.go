@@ -26,7 +26,7 @@ func (q *Queries) GetDatasetMetadata(ctx context.Context, datasetID uuid.UUID) (
 	return i, err
 }
 
-const writeDatasetMetadata = `-- name: WriteDatasetMetadata :one
+const writeDatasetMetadata = `-- name: WriteDatasetMetadata :exec
 INSERT INTO dataset_metadata (
 	"dataset_id",
 	"schema"
@@ -38,7 +38,6 @@ ON CONFLICT (dataset_id) DO UPDATE
 SET
     "dataset_id" = $1,
     "schema" = $2
-RETURNING dataset_id, created, last_modified, schema
 `
 
 type WriteDatasetMetadataParams struct {
@@ -46,14 +45,7 @@ type WriteDatasetMetadataParams struct {
 	Schema    json.RawMessage
 }
 
-func (q *Queries) WriteDatasetMetadata(ctx context.Context, arg WriteDatasetMetadataParams) (DatasetMetadatum, error) {
-	row := q.db.QueryRowContext(ctx, writeDatasetMetadata, arg.DatasetID, arg.Schema)
-	var i DatasetMetadatum
-	err := row.Scan(
-		&i.DatasetID,
-		&i.Created,
-		&i.LastModified,
-		&i.Schema,
-	)
-	return i, err
+func (q *Queries) WriteDatasetMetadata(ctx context.Context, arg WriteDatasetMetadataParams) error {
+	_, err := q.db.ExecContext(ctx, writeDatasetMetadata, arg.DatasetID, arg.Schema)
+	return err
 }

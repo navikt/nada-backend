@@ -301,6 +301,9 @@ type ClientInterface interface {
 	// Search request
 	Search(ctx context.Context, params *SearchParams, reqEditors ...RequestEditorFn) (*http.Response, error)
 
+	// GetGCPProjects request
+	GetGCPProjects(ctx context.Context, id string, reqEditors ...RequestEditorFn) (*http.Response, error)
+
 	// GetUserInfo request
 	GetUserInfo(ctx context.Context, reqEditors ...RequestEditorFn) (*http.Response, error)
 }
@@ -475,6 +478,18 @@ func (c *Client) GetDatasetMetadata(ctx context.Context, id string, reqEditors .
 
 func (c *Client) Search(ctx context.Context, params *SearchParams, reqEditors ...RequestEditorFn) (*http.Response, error) {
 	req, err := NewSearchRequest(c.Server, params)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) GetGCPProjects(ctx context.Context, id string, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewGetGCPProjectsRequest(c.Server, id)
 	if err != nil {
 		return nil, err
 	}
@@ -983,6 +998,40 @@ func NewSearchRequest(server string, params *SearchParams) (*http.Request, error
 	return req, nil
 }
 
+// NewGetGCPProjectsRequest generates requests for GetGCPProjects
+func NewGetGCPProjectsRequest(server string, id string) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithLocation("simple", false, "id", runtime.ParamLocationPath, id)
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/team/%s/gcp_projects", pathParam0)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest("GET", queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
+}
+
 // NewGetUserInfoRequest generates requests for GetUserInfo
 func NewGetUserInfoRequest(server string) (*http.Request, error) {
 	var err error
@@ -1093,6 +1142,9 @@ type ClientWithResponsesInterface interface {
 
 	// Search request
 	SearchWithResponse(ctx context.Context, params *SearchParams, reqEditors ...RequestEditorFn) (*SearchResponse, error)
+
+	// GetGCPProjects request
+	GetGCPProjectsWithResponse(ctx context.Context, id string, reqEditors ...RequestEditorFn) (*GetGCPProjectsResponse, error)
 
 	// GetUserInfo request
 	GetUserInfoWithResponse(ctx context.Context, reqEditors ...RequestEditorFn) (*GetUserInfoResponse, error)
@@ -1338,6 +1390,28 @@ func (r SearchResponse) StatusCode() int {
 	return 0
 }
 
+type GetGCPProjectsResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	JSON200      *[]string
+}
+
+// Status returns HTTPResponse.Status
+func (r GetGCPProjectsResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r GetGCPProjectsResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
 type GetUserInfoResponse struct {
 	Body         []byte
 	HTTPResponse *http.Response
@@ -1489,6 +1563,15 @@ func (c *ClientWithResponses) SearchWithResponse(ctx context.Context, params *Se
 		return nil, err
 	}
 	return ParseSearchResponse(rsp)
+}
+
+// GetGCPProjectsWithResponse request returning *GetGCPProjectsResponse
+func (c *ClientWithResponses) GetGCPProjectsWithResponse(ctx context.Context, id string, reqEditors ...RequestEditorFn) (*GetGCPProjectsResponse, error) {
+	rsp, err := c.GetGCPProjects(ctx, id, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseGetGCPProjectsResponse(rsp)
 }
 
 // GetUserInfoWithResponse request returning *GetUserInfoResponse
@@ -1766,6 +1849,32 @@ func ParseSearchResponse(rsp *http.Response) (*SearchResponse, error) {
 	return response, nil
 }
 
+// ParseGetGCPProjectsResponse parses an HTTP response from a GetGCPProjectsWithResponse call
+func ParseGetGCPProjectsResponse(rsp *http.Response) (*GetGCPProjectsResponse, error) {
+	bodyBytes, err := ioutil.ReadAll(rsp.Body)
+	defer rsp.Body.Close()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &GetGCPProjectsResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest []string
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	}
+
+	return response, nil
+}
+
 // ParseGetUserInfoResponse parses an HTTP response from a GetUserInfoWithResponse call
 func ParseGetUserInfoResponse(rsp *http.Response) (*GetUserInfoResponse, error) {
 	bodyBytes, err := ioutil.ReadAll(rsp.Body)
@@ -1827,6 +1936,9 @@ type ServerInterface interface {
 
 	// (GET /search)
 	Search(w http.ResponseWriter, r *http.Request, params SearchParams)
+
+	// (GET /team/{id}/gcp_projects)
+	GetGCPProjects(w http.ResponseWriter, r *http.Request, id string)
 
 	// (GET /userinfo)
 	GetUserInfo(w http.ResponseWriter, r *http.Request)
@@ -2159,6 +2271,32 @@ func (siw *ServerInterfaceWrapper) Search(w http.ResponseWriter, r *http.Request
 	handler(w, r.WithContext(ctx))
 }
 
+// GetGCPProjects operation middleware
+func (siw *ServerInterfaceWrapper) GetGCPProjects(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+
+	var err error
+
+	// ------------- Path parameter "id" -------------
+	var id string
+
+	err = runtime.BindStyledParameter("simple", false, "id", chi.URLParam(r, "id"), &id)
+	if err != nil {
+		http.Error(w, fmt.Sprintf("Invalid format for parameter id: %s", err), http.StatusBadRequest)
+		return
+	}
+
+	var handler = func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.GetGCPProjects(w, r, id)
+	}
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler(w, r.WithContext(ctx))
+}
+
 // GetUserInfo operation middleware
 func (siw *ServerInterfaceWrapper) GetUserInfo(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
@@ -2247,6 +2385,9 @@ func HandlerWithOptions(si ServerInterface, options ChiServerOptions) http.Handl
 		r.Get(options.BaseURL+"/search", wrapper.Search)
 	})
 	r.Group(func(r chi.Router) {
+		r.Get(options.BaseURL+"/team/{id}/gcp_projects", wrapper.GetGCPProjects)
+	})
+	r.Group(func(r chi.Router) {
 		r.Get(options.BaseURL+"/userinfo", wrapper.GetUserInfo)
 	})
 
@@ -2256,27 +2397,28 @@ func HandlerWithOptions(si ServerInterface, options ChiServerOptions) http.Handl
 // Base64 encoded, gzipped, json marshaled Swagger object
 var swaggerSpec = []string{
 
-	"H4sIAAAAAAAC/9xYXW/bNhT9KwK3R81yug0o9JbWQxFsbbAlewqMgpGubcYSqZBX8YzA/30gqU+LkuzA",
-	"db292dIlL+859xxSfCWRSDPBgaMi4StR0QpSan5+YMs/c5Bb/TuTIgOJDMybmCJVgPonbjMgIVEoGV+S",
-	"na8jnyDCryx2vkb6mIDjzc4nEp5zJiEm4UNzFr9KV46e++Vo8aij9LwzijSTIs4j7K43kkARzIIWQqYU",
-	"SagnhZ+QpUD87iqLjGYwQ0jNjx8lLEhIfghqxIICrmBmB9zlaUrl1hRq56RSUvM/BhVJliET3AlMD15r",
-	"2G6EjNsr6aK6lyyhCr+mImYLdkzZnKbgnF9sOMgxDG5NkCEyE85pVJIvx7k3nJulFCPK/H5F5H6FDcb6",
-	"mqPo13ZjPLLlc9niQ6VVUih6o+i0viZ/I9e98GeMNZ4/CpEA5TXvB7XmvQ4dgtrMZXN1ivRrpAbw/QxI",
-	"9cBew+jDyy71YLHdaxf4KJI85d3md1XYSF8lG6ijVHGnjGN5Ozk9A4u+L3IBz1M91kFYvbAvsBk0zLEG",
-	"fpsrXYa9FHjanC5AC3AuyTCOdQZ3yR1RW60PSvu2pKaNAwJN3ZwDTdcUaSKWwMfJMPO48t4BldHqL1B5",
-	"gr9xdKkR/olAZngShz1Eqc0lWbn6JJfJeJE6qPLXpqbLCsYA2Nd2fSBqUFr+o9GaLsEp+6ZxHq35VMTw",
-	"NlAP0mMBj8nSFoQLnb8zfZC5JA87hSs5K1Ugb/hCOPo/pSw5khGg6VEFu7mymcvpuqvWVUOUS4bbOy2e",
-	"4hQuxJrBdY4rswJOwuJRKYiQPG2wPpeiWIP2Mi3nAgBkqL8eyJfr2TXxyQtIZeglV5Op2Ugy4DRjJCQ/",
-	"T6aTd9riKK5M9qAhFfNgaf291SbkD6bQo0nitaLNxJLqmJuYhOQT4Kz9PqOSpoAgFQkfiuKsqVa1JSxl",
-	"SJqHnRgWNE+QhFe/VkUzjrDU+9zOd08jFgsrfcc8U8c0c82gygRXloV306klgyNwgwDNsoRFprrgSVm1",
-	"HHkiawqx20P7Gxy5/d0+zYRycPDRHPI96nHYeG2Da9NgA2etCN2toPCDiLdHlTlU3d5pabezsmiBenWy",
-	"bHupfCc6safyKAKlFnmSbFuKMw3Y1NrDfDfXAS0FBK8s3lnsE0DosjAzzz06yIANajOwJ4W9WetQ72am",
-	"t0P9VIu07nCzQ9augzKHZrfv+2i3wX/pqyb2TOeNYeUPeUMTD2/DcOVVn57DNnER0FyQ9nMHxHZbH2m6",
-	"7t7/nZA9vdN0S3OazfRcZmPXc6BsSospL84OdHe7m/U5u337DV1dJziDoxdpTuzmGurjnNyFdu3i9u2o",
-	"mBT899z7E2AvAIVRX0L103N03eEe7EKrNqnvBNj5veAsrLzZbI0DBGnj9nVMAV4V3C+Fz3XI/0wSVWW9",
-	"0tDoKnMB04umvZ/xGPeKj9E2jvY1OccBrHtVdsAxrFi+NKMKNxj/hn0mQ9T5l/Xhq0nMFcjy8sBJ4xLQ",
-	"00GeiXKoobp/+YZ9WeXoa8hRNzAR8qXkzlxLkhVipsIgSEREk5VQGL6fvp8GNGNEg9wO4jSmkxheJhpB",
-	"ySecvky4GAp2BM53/wYAAP//pD9StVAeAAA=",
+	"H4sIAAAAAAAC/9xZTW/jNhD9KwTbo2p7ty2w0G03LoJFux9t0lMQBIw0tplIpEKO4hqB/3tBUp8WJdmB",
+	"1+v25khDDue9eY8U80IjmWZSgEBNwxeqoxWkzP78wJd/5qA25nemZAYKOdg3MUOmAc1P3GRAQ6pRcbGk",
+	"28BEPkCEdzz2vkZ2n4DnzTagCp5yriCm4U1zlqBKV46+DcrR8t5EmXnnDFmmZJxH2F1vpIAh2AUtpEoZ",
+	"0tBMCj8hT4EG3VUWGe1gjpDaHz8qWNCQ/jCtEZsWcE3nbsBVnqZMbWyhbk6mFLN/x6AjxTPkUniB6cHr",
+	"ETZrqeL2Srqo7iRLmMa7VMZ8wQ8pW7AUvPPLtQA1hsEXG2SJzKR3Gp3ky3HuLed2KcWIMn9QEblbYYOx",
+	"vuYo+rXdGPd8+VS2+FBplRSK3ig6ra/JX8l1L/wZ543n91ImwETN+16teW1Ch6C2c7lcnSKDGqkBfD8B",
+	"MjOw1zD68HJL3Vts18YFLmSSp6Lb/L4KG+mrZAN1lCrulHEob0enZ2DR10UuEHlqxnoIqxf2GdaDhjnW",
+	"wK9zpfOwlwJPl9MHaAHOORnGoc7gL7kjaqf1QWl/Kalp44DAUj/nwNJHhiyRSxDjZNh5fHmvgKlo9Rfo",
+	"PMHfBPrUCP9EoDI8isPuo9TmkpxcA5qrZLxIE1T5a1PTZQVjAOxquz4QNSgt/2LRI1uCV/ZN4zxY86mM",
+	"4XWg7qXHAh6bpS0IHzp/Z+Ygc04edgxX8laqQX0UC+np/5Tx5EBGgKUHFeznymUup+uu2lQNUa44bq6M",
+	"eIpTuJSPHN7nuLIrEDQsHpWCCOnDGutzKcpHMF5m5FwAgBzN1wP9/H7+ngb0GZS29NI3k5ndSDIQLOM0",
+	"pD9PZpO3xuIYrmz2aUMq9sHS+XurTegfXCNhSUJa0XZixUzMx5iG9BJw3n6fMcVSQFCahjdFcc5Uq9oS",
+	"nnKkzcNODAuWJ0jDN79WRXOBsDT73DbwTyMXCyd9zzwzzzS3hkGdSaEdC29nM0eGQBAWAZZlCY9sddMH",
+	"7dRy4ImsKcRuD+1ucPTL7+5pJrWHgwt7yCeMCFiTtsG1aXCB81aE6VbQ+EHGm4PKHKpu57S03TpZtEB9",
+	"c7RsO6kCLzox0XkUgdaLPEk2LcXZBmxq7eZ2e2sCWgqYvvB467BPAKHLwtw+J2yQARfUZmBHCjuz1qHk",
+	"49xsh+apEWnd4XaHrF0HVQ7Nbt/10W6D/9JXTUxs541hFQx5QxMPsua4ItWn57BNnAU0Z6T93AOx29ZH",
+	"mq67938nZI/vNN3SvGYzO5XZuPXsKZvSYsqLsz3d3e1mfc7u3n5DVzcJTuDoRZoju7mB+jAn96Fdu7h7",
+	"OyomDf89974E7AWgMOpzqH52iq7b34N9aNUm9Z0AO70XnISVV5utdYBp2rh9HVMAqYL7pfCpDvmfSaKq",
+	"rFcaBl1tL2B60XT3M4QLUnyMtnF0r+kpDmDdq7I9jmHF8pUdVbjB+DfsEx2iLjivD19DIgJLnTyWUXZX",
+	"/Fex//Pf3tkSJmKiAHMl7FXA5cVXUo4kC6kIroDYi0uPeC4vvn4tsxyL/LE7mn5/H9LtNbD0aKI1WOca",
+	"VHlR40V3CUhMELFRHvCqu65v6AFVjj7cRp3XRqjnElV7BUxXiJkOp9NERixZSY3hu9m72ZRlnJqGbgcJ",
+	"FrNJDM8T061KTAR7ngg5FOwJvN3+GwAA////sEIGvB8AAA==",
 }
 
 // GetSwagger returns the content of the embedded swagger specification file

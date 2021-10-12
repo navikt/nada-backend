@@ -273,7 +273,7 @@ func (r *Repo) WriteDatasetMetadata(ctx context.Context, dataset_id string, sche
 		return fmt.Errorf("parsing uuid: %w", err)
 	}
 
-	_, err = r.querier.WriteDatasetMetadata(ctx, gensql.WriteDatasetMetadataParams{DatasetID: uid, Schema: schema})
+	err = r.querier.WriteDatasetMetadata(ctx, gensql.WriteDatasetMetadataParams{DatasetID: uid, Schema: schema})
 	if err != nil {
 		return fmt.Errorf("writing dataset metadata: %w", err)
 	}

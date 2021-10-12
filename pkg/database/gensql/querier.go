@@ -23,7 +23,7 @@ type Querier interface {
 	SearchDatasets(ctx context.Context, arg SearchDatasetsParams) ([]Dataset, error)
 	UpdateDataproduct(ctx context.Context, arg UpdateDataproductParams) (Dataproduct, error)
 	UpdateDataset(ctx context.Context, arg UpdateDatasetParams) (Dataset, error)
-	WriteDatasetMetadata(ctx context.Context, arg WriteDatasetMetadataParams) (DatasetMetadatum, error)
+	WriteDatasetMetadata(ctx context.Context, arg WriteDatasetMetadataParams) error
 }
 
 var _ Querier = (*Queries)(nil)
