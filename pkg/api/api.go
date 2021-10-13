@@ -15,19 +15,25 @@ import (
 	"golang.org/x/oauth2"
 )
 
+type GCP interface {
+	GetDatasets(ctx context.Context, projectID string) ([]openapi.BigQuery, error)
+}
+
 type Server struct {
 	repo            *database.Repo
 	log             *logrus.Entry
 	oauth2Config    oauth2.Config
 	projectsMapping *auth.TeamProjectsUpdater
+	gcp             GCP
 }
 
-func New(repo *database.Repo, oauth2Config oauth2.Config, log *logrus.Entry, projectsMapping *auth.TeamProjectsUpdater) *Server {
+func New(repo *database.Repo, oauth2Config oauth2.Config, log *logrus.Entry, projectsMapping *auth.TeamProjectsUpdater, gcp GCP) *Server {
 	return &Server{
 		repo:            repo,
 		log:             log,
 		oauth2Config:    oauth2Config,
 		projectsMapping: projectsMapping,
+		gcp:             gcp,
 	}
 }
 
@@ -322,6 +328,22 @@ func (s *Server) GetDatasetMetadata(w http.ResponseWriter, r *http.Request, id s
 	w.Header().Add("Content-Type", "application/json")
 	if err := json.NewEncoder(w).Encode(metadata); err != nil {
 		s.log.WithError(err).Error("Encoding datasetmetadata as JSON")
+		http.Error(w, "uh oh", http.StatusInternalServerError)
+		return
+	}
+}
+
+func (s *Server) GetBigQueryTables(w http.ResponseWriter, r *http.Request, id string) {
+	ret, err := s.gcp.GetDatasets(r.Context(), id)
+	if err != nil {
+		s.log.WithError(err).Error("Getting BigQuery tables")
+		http.Error(w, "uh oh", http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Add("Content-Type", "application/json")
+	if err := json.NewEncoder(w).Encode(ret); err != nil {
+		s.log.WithError(err).Error("Encoding bigquery tables as JSON")
 		http.Error(w, "uh oh", http.StatusInternalServerError)
 		return
 	}

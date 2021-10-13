@@ -298,6 +298,9 @@ type ClientInterface interface {
 	// GetDatasetMetadata request
 	GetDatasetMetadata(ctx context.Context, id string, reqEditors ...RequestEditorFn) (*http.Response, error)
 
+	// GetBigQueryTables request
+	GetBigQueryTables(ctx context.Context, id string, reqEditors ...RequestEditorFn) (*http.Response, error)
+
 	// Search request
 	Search(ctx context.Context, params *SearchParams, reqEditors ...RequestEditorFn) (*http.Response, error)
 
@@ -466,6 +469,18 @@ func (c *Client) UpdateDataset(ctx context.Context, id string, body UpdateDatase
 
 func (c *Client) GetDatasetMetadata(ctx context.Context, id string, reqEditors ...RequestEditorFn) (*http.Response, error) {
 	req, err := NewGetDatasetMetadataRequest(c.Server, id)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) GetBigQueryTables(ctx context.Context, id string, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewGetBigQueryTablesRequest(c.Server, id)
 	if err != nil {
 		return nil, err
 	}
@@ -919,6 +934,40 @@ func NewGetDatasetMetadataRequest(server string, id string) (*http.Request, erro
 	return req, nil
 }
 
+// NewGetBigQueryTablesRequest generates requests for GetBigQueryTables
+func NewGetBigQueryTablesRequest(server string, id string) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithLocation("simple", false, "id", runtime.ParamLocationPath, id)
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/gcp/%s/tables", pathParam0)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest("GET", queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
+}
+
 // NewSearchRequest generates requests for Search
 func NewSearchRequest(server string, params *SearchParams) (*http.Request, error) {
 	var err error
@@ -1139,6 +1188,9 @@ type ClientWithResponsesInterface interface {
 
 	// GetDatasetMetadata request
 	GetDatasetMetadataWithResponse(ctx context.Context, id string, reqEditors ...RequestEditorFn) (*GetDatasetMetadataResponse, error)
+
+	// GetBigQueryTables request
+	GetBigQueryTablesWithResponse(ctx context.Context, id string, reqEditors ...RequestEditorFn) (*GetBigQueryTablesResponse, error)
 
 	// Search request
 	SearchWithResponse(ctx context.Context, params *SearchParams, reqEditors ...RequestEditorFn) (*SearchResponse, error)
@@ -1368,6 +1420,28 @@ func (r GetDatasetMetadataResponse) StatusCode() int {
 	return 0
 }
 
+type GetBigQueryTablesResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	JSON200      *[]BigQuery
+}
+
+// Status returns HTTPResponse.Status
+func (r GetBigQueryTablesResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r GetBigQueryTablesResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
 type SearchResponse struct {
 	Body         []byte
 	HTTPResponse *http.Response
@@ -1554,6 +1628,15 @@ func (c *ClientWithResponses) GetDatasetMetadataWithResponse(ctx context.Context
 		return nil, err
 	}
 	return ParseGetDatasetMetadataResponse(rsp)
+}
+
+// GetBigQueryTablesWithResponse request returning *GetBigQueryTablesResponse
+func (c *ClientWithResponses) GetBigQueryTablesWithResponse(ctx context.Context, id string, reqEditors ...RequestEditorFn) (*GetBigQueryTablesResponse, error) {
+	rsp, err := c.GetBigQueryTables(ctx, id, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseGetBigQueryTablesResponse(rsp)
 }
 
 // SearchWithResponse request returning *SearchResponse
@@ -1823,6 +1906,32 @@ func ParseGetDatasetMetadataResponse(rsp *http.Response) (*GetDatasetMetadataRes
 	return response, nil
 }
 
+// ParseGetBigQueryTablesResponse parses an HTTP response from a GetBigQueryTablesWithResponse call
+func ParseGetBigQueryTablesResponse(rsp *http.Response) (*GetBigQueryTablesResponse, error) {
+	bodyBytes, err := ioutil.ReadAll(rsp.Body)
+	defer rsp.Body.Close()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &GetBigQueryTablesResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest []BigQuery
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	}
+
+	return response, nil
+}
+
 // ParseSearchResponse parses an HTTP response from a SearchWithResponse call
 func ParseSearchResponse(rsp *http.Response) (*SearchResponse, error) {
 	bodyBytes, err := ioutil.ReadAll(rsp.Body)
@@ -1933,6 +2042,9 @@ type ServerInterface interface {
 
 	// (GET /datasets/{id}/metadata)
 	GetDatasetMetadata(w http.ResponseWriter, r *http.Request, id string)
+
+	// (GET /gcp/{id}/tables)
+	GetBigQueryTables(w http.ResponseWriter, r *http.Request, id string)
 
 	// (GET /search)
 	Search(w http.ResponseWriter, r *http.Request, params SearchParams)
@@ -2218,6 +2330,34 @@ func (siw *ServerInterfaceWrapper) GetDatasetMetadata(w http.ResponseWriter, r *
 	handler(w, r.WithContext(ctx))
 }
 
+// GetBigQueryTables operation middleware
+func (siw *ServerInterfaceWrapper) GetBigQueryTables(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+
+	var err error
+
+	// ------------- Path parameter "id" -------------
+	var id string
+
+	err = runtime.BindStyledParameter("simple", false, "id", chi.URLParam(r, "id"), &id)
+	if err != nil {
+		http.Error(w, fmt.Sprintf("Invalid format for parameter id: %s", err), http.StatusBadRequest)
+		return
+	}
+
+	ctx = context.WithValue(ctx, CookieAuthScopes, []string{""})
+
+	var handler = func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.GetBigQueryTables(w, r, id)
+	}
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler(w, r.WithContext(ctx))
+}
+
 // Search operation middleware
 func (siw *ServerInterfaceWrapper) Search(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
@@ -2285,6 +2425,8 @@ func (siw *ServerInterfaceWrapper) GetGCPProjects(w http.ResponseWriter, r *http
 		http.Error(w, fmt.Sprintf("Invalid format for parameter id: %s", err), http.StatusBadRequest)
 		return
 	}
+
+	ctx = context.WithValue(ctx, CookieAuthScopes, []string{""})
 
 	var handler = func(w http.ResponseWriter, r *http.Request) {
 		siw.Handler.GetGCPProjects(w, r, id)
@@ -2382,6 +2524,9 @@ func HandlerWithOptions(si ServerInterface, options ChiServerOptions) http.Handl
 		r.Get(options.BaseURL+"/datasets/{id}/metadata", wrapper.GetDatasetMetadata)
 	})
 	r.Group(func(r chi.Router) {
+		r.Get(options.BaseURL+"/gcp/{id}/tables", wrapper.GetBigQueryTables)
+	})
+	r.Group(func(r chi.Router) {
 		r.Get(options.BaseURL+"/search", wrapper.Search)
 	})
 	r.Group(func(r chi.Router) {
@@ -2397,28 +2542,29 @@ func HandlerWithOptions(si ServerInterface, options ChiServerOptions) http.Handl
 // Base64 encoded, gzipped, json marshaled Swagger object
 var swaggerSpec = []string{
 
-	"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",
+	"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",
+	"oWBH4N3mnwAAAP//ya6NNnshAAA=",
 }
 
 // GetSwagger returns the content of the embedded swagger specification file
