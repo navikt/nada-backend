@@ -93,7 +93,8 @@ func (t *TeamProjectsUpdater) FetchTeamGoogleProjectsMapping(ctx context.Context
 
 	t.lock.Lock()
 	defer t.lock.Unlock()
-	mergeInto(t.teamProjects, devOutputFile.TeamProjectIdMapping.Value, prodOutputFile.TeamProjectIdMapping.Value)
+	mergeInto(t.teamProjects, devOutputFile.TeamProjectIdMapping.Value)
+	mergeInto(t.teamProjects, prodOutputFile.TeamProjectIdMapping.Value)
 	log.Infof("Updated team projects mapping: %v teams", len(t.teamProjects))
 
 	return nil
@@ -120,15 +121,14 @@ func getOutputFile(ctx context.Context, url, token string) (*OutputFile, error) 
 	return &outputFile, nil
 }
 
-func mergeInto(result map[string][]string, first []map[string]string, second []map[string]string) {
-	for _, item := range first {
-		for key, value := range item {
-			result[key] = append(result[key], value)
-		}
-	}
-	for _, item := range second {
-		for key, value := range item {
-			result[key] = append(result[key], value)
+// Take a list of maps of teamName -> projectID, merges into map[teamName] = []gcpProjects.
+// FIXME: If a GCP project is removed from a team, this will not update result.
+func mergeInto(result map[string][]string, source []map[string]string) {
+	for _, item := range source {
+		for teamName, projectID := range item {
+			if !contains(projectID, result[teamName]) {
+				result[teamName] = append(result[teamName], projectID)
+			}
 		}
 	}
 }

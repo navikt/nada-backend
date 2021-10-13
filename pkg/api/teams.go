@@ -10,6 +10,7 @@ import (
 func (s *Server) GetGCPProjects(w http.ResponseWriter, r *http.Request, teamID string) {
 	user := auth.GetUser(r.Context())
 
+	// Determine whether user is in team; return Unauthorized if not.
 	found := false
 	for _, t := range user.Teams {
 		if t == teamID {
