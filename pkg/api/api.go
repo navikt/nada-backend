@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"strings"
 
+	"github.com/coreos/go-oidc/v3/oidc"
 	"github.com/navikt/nada-backend/pkg/auth"
 	"github.com/navikt/nada-backend/pkg/database"
 	"github.com/navikt/nada-backend/pkg/openapi"
@@ -19,15 +20,21 @@ type GCP interface {
 	GetDatasets(ctx context.Context, projectID string) ([]openapi.BigQuery, error)
 }
 
+type OAuth2 interface {
+	Exchange(ctx context.Context, code string, opts ...oauth2.AuthCodeOption) (*oauth2.Token, error)
+	AuthCodeURL(state string, opts ...oauth2.AuthCodeOption) string
+	Verify(ctx context.Context, rawIDToken string) (*oidc.IDToken, error)
+}
+
 type Server struct {
 	repo            *database.Repo
 	log             *logrus.Entry
-	oauth2Config    oauth2.Config
+	oauth2Config    OAuth2
 	projectsMapping *auth.TeamProjectsUpdater
 	gcp             GCP
 }
 
-func New(repo *database.Repo, oauth2Config oauth2.Config, log *logrus.Entry, projectsMapping *auth.TeamProjectsUpdater, gcp GCP) *Server {
+func New(repo *database.Repo, oauth2Config OAuth2, log *logrus.Entry, projectsMapping *auth.TeamProjectsUpdater, gcp GCP) *Server {
 	return &Server{
 		repo:            repo,
 		log:             log,
@@ -389,7 +396,7 @@ func (s *Server) GetUserInfo(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) Login(w http.ResponseWriter, r *http.Request) {
-	consentUrl := s.oauth2Config.AuthCodeURL("banan", oauth2.SetAuthURLParam("redirect_uri", s.oauth2Config.RedirectURL))
+	consentUrl := s.oauth2Config.AuthCodeURL("banan")
 	http.Redirect(w, r, consentUrl, http.StatusFound)
 }
 
@@ -400,6 +407,7 @@ func (s *Server) Callback(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// TODO(thokra): Introduce varying state
 	state := r.URL.Query().Get("state")
 	if state != "banan" {
 		s.log.Info("Incoming state does not match local state")
@@ -414,12 +422,28 @@ func (s *Server) Callback(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	rawIDToken, ok := tokens.Extra("id_token").(string)
+	if !ok {
+		s.log.Info("Missing id_token")
+		http.Error(w, "uh oh", http.StatusForbidden)
+		return
+	}
+
+	// Parse and verify ID Token payload.
+	_, err = s.oauth2Config.Verify(r.Context(), rawIDToken)
+	if err != nil {
+		s.log.Info("Invalid id_token")
+		http.Error(w, "uh oh", http.StatusForbidden)
+		return
+	}
+
+	// TODO(thokra): Use secure cookie
 	http.SetCookie(w, &http.Cookie{
 		Name:     "jwt",
-		Value:    tokens.AccessToken,
+		Value:    tokens.AccessToken + "|" + rawIDToken,
 		Path:     "/",
 		Domain:   r.Host,
-		MaxAge:   86400,
+		Expires:  tokens.Expiry,
 		Secure:   true,
 		HttpOnly: true,
 	})

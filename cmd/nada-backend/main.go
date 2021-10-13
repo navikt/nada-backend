@@ -15,7 +15,6 @@ import (
 	"github.com/navikt/nada-backend/pkg/metadata"
 	"github.com/sirupsen/logrus"
 	flag "github.com/spf13/pflag"
-	"golang.org/x/oauth2"
 )
 
 var cfg = DefaultConfig()
@@ -59,7 +58,7 @@ func main() {
 
 	authenticatorMiddleware := auth.MockJWTValidatorMiddleware()
 	teamProjectsMapping := &auth.MockTeamProjectsUpdater
-	oauth2Config := oauth2.Config{}
+	var oauth2Config api.OAuth2
 	if !cfg.MockAuth {
 		teamsCache := auth.NewTeamsCache(cfg.TeamsURL, cfg.TeamsToken)
 		go teamsCache.Run(ctx, TeamsUpdateFrequency)
@@ -67,9 +66,9 @@ func main() {
 		teamProjectsMapping = auth.NewTeamProjectsUpdater(cfg.DevTeamProjectsOutputURL, cfg.ProdTeamProjectsOutputURL, cfg.TeamsToken, http.DefaultClient)
 		go teamProjectsMapping.Run(ctx, TeamProjectsUpdateFrequency)
 
-		azure := auth.NewAzure(cfg.OAuth2.ClientID, cfg.OAuth2.ClientSecret, cfg.OAuth2.TenantID, cfg.Hostname)
-		authenticatorMiddleware = azure.Middleware(teamsCache)
-		oauth2Config = azure.OAuth2Config()
+		gauth := auth.NewGoogle(cfg.OAuth2.ClientID, cfg.OAuth2.ClientSecret, cfg.Hostname)
+		oauth2Config = gauth
+		authenticatorMiddleware = gauth.Middleware(teamsCache)
 	}
 
 	var gcp api.GCP
