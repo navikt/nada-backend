@@ -18,11 +18,13 @@ WHERE id = @id;
 INSERT INTO dataproducts ("name",
                           "description",
                           "pii",
-                          "type")
+                          "type",
+                          "group")
 VALUES (@name,
         @description,
         @pii,
-        @type)
+        @type,
+        @owner_group)
 RETURNING *;
 
 -- name: UpdateDataproduct :one

@@ -7,13 +7,13 @@ CREATE TABLE dataproduct_collections (
     "repo" TEXT,
     "created" TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     "last_modified" TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-    "team" TEXT not null,
+    "group" TEXT not null,
     "keywords" TEXT[],
     "tsv_document"  tsvector GENERATED ALWAYS AS (
                     to_tsvector('norwegian', "name")
                     || to_tsvector('norwegian', coalesce("description", ''))
                 || to_tsvector('norwegian', coalesce(f_arr2text("keywords"), ''))
-            || to_tsvector('norwegian', coalesce("team", ''))
+            || to_tsvector('norwegian', coalesce("group", ''))
         ) STORED,
     PRIMARY KEY(id)
 );

@@ -12,6 +12,8 @@ import (
 
 	_ "github.com/lib/pq"
 
+	"github.com/google/go-cmp/cmp"
+	"github.com/navikt/nada-backend/pkg/auth"
 	"github.com/navikt/nada-backend/pkg/openapi"
 	"github.com/ory/dockertest/v3"
 )
@@ -60,130 +62,96 @@ func TestRepo(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	newDataproduct := openapi.NewDataproduct{
+	newCollection := openapi.NewDataproductCollection{
 		Name: "new_dataproduct",
 		Owner: openapi.Owner{
-			Team: "team",
+			Group: "team",
 		},
 	}
 
-	t.Run("creates dataproducts", func(t *testing.T) {
-		createdDataproduct, err := repo.CreateDataproduct(context.Background(), newDataproduct)
+	newDataproduct := openapi.NewDataproduct{
+		Name: "test-product",
+		Datasource: openapi.Bigquery{
+			Dataset:   "dataset",
+			ProjectId: "projectid",
+			Table:     "table",
+		},
+		Owner: openapi.Owner{
+			Group: auth.MockUser.Groups[0],
+		},
+	}
+
+	t.Run("creates collections", func(t *testing.T) {
+		collection, err := repo.CreateDataproductCollection(context.Background(), newCollection)
 		if err != nil {
 			t.Fatal(err)
 		}
-		if createdDataproduct.Id == "" {
-			t.Fatal("returned dataproducts should contain ID")
+		if collection.Id == "" {
+			t.Fatal("returned collection should contain ID")
 		}
-		if newDataproduct.Name != createdDataproduct.Name {
+		if newCollection.Name != collection.Name {
 			t.Fatal("returned name should match provided name")
-		}
-		if len(createdDataproduct.Datasets) > 0 {
-			t.Fatal("returned dataproduct datasets should be empty")
 		}
 	})
 
-	t.Run("serves dataproducts", func(t *testing.T) {
-		createdDataproduct, err := repo.CreateDataproduct(context.Background(), newDataproduct)
+	t.Run("serves collections", func(t *testing.T) {
+		collection, err := repo.CreateDataproductCollection(context.Background(), newCollection)
 		if err != nil {
 			t.Fatal(err)
 		}
 
-		fetchedDataproduct, err := repo.GetDataproduct(context.Background(), createdDataproduct.Id)
+		fetchedCollection, err := repo.GetDataproductCollection(context.Background(), collection.Id)
 		if err != nil {
 			t.Fatal(err)
 		}
-		if newDataproduct.Name != fetchedDataproduct.Name {
+		if newCollection.Name != fetchedCollection.Name {
 			t.Fatal("fetched name should match provided name")
 		}
 	})
 
-	t.Run("serves dataproducts with dataset", func(t *testing.T) {
-		createdDataproduct, err := repo.CreateDataproduct(context.Background(), newDataproduct)
+	t.Run("create and retrieve dataproduct", func(t *testing.T) {
+		data := newDataproduct
+		createdDataproduct, err := repo.CreateDataproduct(context.Background(), data)
 		if err != nil {
 			t.Fatal(err)
 		}
 
-		newDataset := openapi.NewDataset{
-			Name:          "new_dataset",
-			DataproductId: createdDataproduct.Id,
-			Pii:           false,
-			Bigquery: openapi.BigQuery{
-				ProjectId: "project",
-				Dataset:   "dataset",
-				Table:     "table",
-			},
-		}
-
-		createdDataset, err := repo.CreateDataset(context.Background(), newDataset)
+		dataproduct, err := repo.GetDataproduct(context.Background(), createdDataproduct.Id)
 		if err != nil {
 			t.Fatal(err)
 		}
 
-		dataproducts, err := repo.GetDataproducts(context.Background(), 10, 0)
-		if err != nil {
-			t.Fatal(err)
+		if dataproduct.Datasource == nil {
+			t.Fatal("Expected datasource to be set")
 		}
 
-		for _, dp := range dataproducts {
-			if dp.Id != createdDataproduct.Id {
-				continue
-			}
-
-			if len(dp.Datasets) == 0 {
-				t.Fatal("Expected dataset to be at least of size 1")
-			}
-
-			if dp.Datasets[0].Name != createdDataset.Name {
-				t.Fatal("Dataset names doesn't match")
-			}
-		}
-	})
-
-	t.Run("serves dataproduct with dataset", func(t *testing.T) {
-		createdDataproduct, err := repo.CreateDataproduct(context.Background(), newDataproduct)
-		if err != nil {
-			t.Fatal(err)
+		bq, ok := dataproduct.Datasource.(openapi.Bigquery)
+		if !ok {
+			t.Fatalf("Expected datasource to be openapi.Bigquery, got %T", dataproduct.Datasource)
 		}
 
-		newDataset := openapi.NewDataset{
-			Name:          "new_dataset",
-			DataproductId: createdDataproduct.Id,
-			Pii:           false,
-			Bigquery: openapi.BigQuery{
-				ProjectId: "project",
-				Dataset:   "dataset",
-				Table:     "table",
-			},
-		}
-
-		createdDataset, err := repo.CreateDataset(context.Background(), newDataset)
-		if err != nil {
-			t.Fatal(err)
-		}
-
-		dataproducts, err := repo.GetDataproduct(context.Background(), createdDataproduct.Id)
-		if err != nil {
-			t.Fatal(err)
-		}
-
-		if len(dataproducts.Datasets) == 0 {
-			t.Fatal("Expected dataset to be at least of size 1")
-		}
-
-		if dataproducts.Datasets[0].Name != createdDataset.Name {
-			t.Fatal("Dataset names doesn't match")
+		if !cmp.Equal(bq, data.Datasource) {
+			t.Error(cmp.Diff(bq, data.Datasource))
 		}
 	})
 
 	t.Run("updates dataproducts", func(t *testing.T) {
-		createdDataproduct, err := repo.CreateDataproduct(context.Background(), newDataproduct)
+		data := openapi.NewDataproduct{
+			Name: "test-product",
+			Datasource: openapi.Bigquery{
+				Dataset:   "dataset",
+				ProjectId: "projectid",
+				Table:     "table",
+			},
+		}
+		createdDataproduct, err := repo.CreateDataproduct(context.Background(), data)
 		if err != nil {
 			t.Fatal(err)
 		}
 
 		updated := openapi.UpdateDataproduct{
 			Name: "updated",
+			Pii:  false,
 		}
 		if err != nil {
 			t.Fatal(err)
@@ -223,129 +191,43 @@ func TestRepo(t *testing.T) {
 		}
 	})
 
-	createdDataproduct, err := repo.CreateDataproduct(context.Background(), newDataproduct)
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	newDataset := openapi.NewDataset{
-		Name:          "new_dataset",
-		DataproductId: createdDataproduct.Id,
-		Pii:           false,
-		Bigquery: openapi.BigQuery{
-			ProjectId: "project",
-			Dataset:   "dataset",
-			Table:     "table",
-		},
-	}
-
-	t.Run("creates datasets", func(t *testing.T) {
-		createdDataset, err := repo.CreateDataset(context.Background(), newDataset)
-		if err != nil {
-			t.Fatal(err)
-		}
-
-		if createdDataset.Id == "" {
-			t.Fatal("returned dataset should contain ID")
-		}
-
-		if newDataset.Name != createdDataset.Name {
-			t.Fatal("returned name should match provided name")
-		}
-	})
-
-	t.Run("serves datasets", func(t *testing.T) {
-		createdDataset, err := repo.CreateDataset(context.Background(), newDataset)
-		if err != nil {
-			t.Fatal(err)
-		}
-
-		fetchedDataset, err := repo.GetDataset(context.Background(), createdDataset.Id)
-		if err != nil {
-			t.Fatal(err)
-		}
-		if newDataset.Name != fetchedDataset.Name {
-			t.Fatal("fetched name should match provided name")
-		}
-	})
-
-	t.Run("update datasets", func(t *testing.T) {
-		createdDataset, err := repo.CreateDataset(context.Background(), newDataset)
-		if err != nil {
-			t.Fatal(err)
-		}
-
-		datasetWithUpdate := newDataset
-		datasetWithUpdate.Name = "updated"
-		updatedDataset, err := repo.UpdateDataset(context.Background(), createdDataset.Id, datasetWithUpdate)
-		if err != nil {
-			t.Fatal(err)
-		}
-
-		if updatedDataset.Name != datasetWithUpdate.Name {
-			t.Fatal("returned name should match updated name")
-		}
-	})
-
-	t.Run("deletes datasets", func(t *testing.T) {
-		createdDataset, err := repo.CreateDataset(context.Background(), newDataset)
-		if err != nil {
-			t.Fatal(err)
-		}
-
-		if err := repo.DeleteDataset(context.Background(), createdDataset.Id); err != nil {
-			t.Fatal(err)
-		}
-
-		dataset, err := repo.GetDataset(context.Background(), createdDataset.Id)
-		if err != nil && !errors.Is(err, sql.ErrNoRows) {
-			t.Fatal(err)
-		}
-
-		if dataset != nil {
-			t.Fatal("dataset should not exist")
-		}
-	})
-
 	t.Run("search datasets and products", func(t *testing.T) {
 		tests := map[string]struct {
 			query      string
 			numResults int
 		}{
-			"empty":         {query: "nonexistent", numResults: 0},
-			"1 dataproduct": {query: "uniquedataproduct", numResults: 1},
-			"1 dataset":     {query: "uniquedataset", numResults: 1},
-			"2 results":     {query: "uniquestring", numResults: 2},
+			"empty":            {query: "nonexistent", numResults: 0},
+			"1 dataproduct":    {query: "uniquedataproduct", numResults: 1},
+			"1 datacollection": {query: "uniquedataproductcollection", numResults: 1},
+			"2 results":        {query: "uniquestring", numResults: 2},
 		}
 
-		newDataproduct := openapi.NewDataproduct{
+		dataproduct := openapi.NewDataproduct{
 			Name:        "new_dataproduct",
-			Description: nullStringToPtr(sql.NullString{Valid: true, String: "Uniquestring uniqueDataproduct"}),
-			Owner: openapi.Owner{
-				Team: "team",
-			},
-		}
-		createdDataproduct, err := repo.CreateDataproduct(context.Background(), newDataproduct)
-		if err != nil {
-			t.Fatal(err)
-		}
-
-		newDataset := openapi.NewDataset{
-			Name:          "new_dataset",
-			Description:   nullStringToPtr(sql.NullString{Valid: true, String: "Uniquestring uniqueDataset"}),
-			DataproductId: createdDataproduct.Id,
-			Pii:           false,
-			Bigquery: openapi.BigQuery{
+			Description: nullStringToPtr(sql.NullString{Valid: true, String: "Uniquestring uniquedataproduct"}),
+			Pii:         false,
+			Datasource: openapi.Bigquery{
 				ProjectId: "project",
 				Dataset:   "dataset",
 				Table:     "table",
 			},
 		}
 
-		_, err = repo.CreateDataset(context.Background(), newDataset)
+		_, err = repo.CreateDataproduct(context.Background(), dataproduct)
 		if err != nil {
 			t.Fatal(err)
 		}
+
+		collection := openapi.NewDataproductCollection{
+			Name:        "new_collection",
+			Description: nullStringToPtr(sql.NullString{Valid: true, String: "Uniquestring uniquedataproductcollection"}),
+		}
+
+		_, err = repo.CreateDataproductCollection(context.Background(), collection)
+		if err != nil {
+			t.Fatal(err)
+		}
+
 		for name, tc := range tests {
 			t.Run(name, func(t *testing.T) {
 				results, err := repo.Search(context.Background(), tc.query, 15, 0)

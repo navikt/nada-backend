@@ -17,7 +17,7 @@ INSERT INTO dataproduct_collections (
 	"description",
 	"slug",
 	"repo",
-	"team",
+	"group",
 	"keywords"
 ) VALUES (
 	$1,
@@ -26,7 +26,7 @@ INSERT INTO dataproduct_collections (
 	$4,
 	$5,
 	$6
-) RETURNING id, name, description, slug, repo, created, last_modified, team, keywords, tsv_document
+) RETURNING id, name, description, slug, repo, created, last_modified, "group", keywords, tsv_document
 `
 
 type CreateDataproductCollectionParams struct {
@@ -34,7 +34,7 @@ type CreateDataproductCollectionParams struct {
 	Description sql.NullString
 	Slug        string
 	Repo        sql.NullString
-	Team        string
+	OwnerGroup  string
 	Keywords    []string
 }
 
@@ -44,7 +44,7 @@ func (q *Queries) CreateDataproductCollection(ctx context.Context, arg CreateDat
 		arg.Description,
 		arg.Slug,
 		arg.Repo,
-		arg.Team,
+		arg.OwnerGroup,
 		pq.Array(arg.Keywords),
 	)
 	var i DataproductCollection
@@ -56,7 +56,7 @@ func (q *Queries) CreateDataproductCollection(ctx context.Context, arg CreateDat
 		&i.Repo,
 		&i.Created,
 		&i.LastModified,
-		&i.Team,
+		&i.Group,
 		pq.Array(&i.Keywords),
 		&i.TsvDocument,
 	)
@@ -73,7 +73,7 @@ func (q *Queries) DeleteDataproductCollection(ctx context.Context, id uuid.UUID)
 }
 
 const getDataproductCollection = `-- name: GetDataproductCollection :one
-SELECT id, name, description, slug, repo, created, last_modified, team, keywords, tsv_document FROM dataproduct_collections WHERE id = $1
+SELECT id, name, description, slug, repo, created, last_modified, "group", keywords, tsv_document FROM dataproduct_collections WHERE id = $1
 `
 
 func (q *Queries) GetDataproductCollection(ctx context.Context, id uuid.UUID) (DataproductCollection, error) {
@@ -87,7 +87,7 @@ func (q *Queries) GetDataproductCollection(ctx context.Context, id uuid.UUID) (D
 		&i.Repo,
 		&i.Created,
 		&i.LastModified,
-		&i.Team,
+		&i.Group,
 		pq.Array(&i.Keywords),
 		&i.TsvDocument,
 	)
@@ -95,7 +95,7 @@ func (q *Queries) GetDataproductCollection(ctx context.Context, id uuid.UUID) (D
 }
 
 const getDataproductCollections = `-- name: GetDataproductCollections :many
-SELECT id, name, description, slug, repo, created, last_modified, team, keywords, tsv_document FROM dataproduct_collections ORDER BY last_modified DESC LIMIT $2 OFFSET $1
+SELECT id, name, description, slug, repo, created, last_modified, "group", keywords, tsv_document FROM dataproduct_collections ORDER BY last_modified DESC LIMIT $2 OFFSET $1
 `
 
 type GetDataproductCollectionsParams struct {
@@ -120,7 +120,7 @@ func (q *Queries) GetDataproductCollections(ctx context.Context, arg GetDataprod
 			&i.Repo,
 			&i.Created,
 			&i.LastModified,
-			&i.Team,
+			&i.Group,
 			pq.Array(&i.Keywords),
 			&i.TsvDocument,
 		); err != nil {
@@ -143,10 +143,9 @@ UPDATE dataproduct_collections SET
 	"description" = $2,
 	"slug" = $3,
 	"repo" = $4,
-	"team" = (SELECT team FROM dataproduct_collections dp WHERE dp.id = $5),
-	"keywords" = $6
-WHERE id = $5
-RETURNING id, name, description, slug, repo, created, last_modified, team, keywords, tsv_document
+	"keywords" = $5
+WHERE id = $6
+RETURNING id, name, description, slug, repo, created, last_modified, "group", keywords, tsv_document
 `
 
 type UpdateDataproductCollectionParams struct {
@@ -154,8 +153,8 @@ type UpdateDataproductCollectionParams struct {
 	Description sql.NullString
 	Slug        string
 	Repo        sql.NullString
-	ID          uuid.UUID
 	Keywords    []string
+	ID          uuid.UUID
 }
 
 func (q *Queries) UpdateDataproductCollection(ctx context.Context, arg UpdateDataproductCollectionParams) (DataproductCollection, error) {
@@ -164,8 +163,8 @@ func (q *Queries) UpdateDataproductCollection(ctx context.Context, arg UpdateDat
 		arg.Description,
 		arg.Slug,
 		arg.Repo,
-		arg.ID,
 		pq.Array(arg.Keywords),
+		arg.ID,
 	)
 	var i DataproductCollection
 	err := row.Scan(
@@ -176,7 +175,7 @@ func (q *Queries) UpdateDataproductCollection(ctx context.Context, arg UpdateDat
 		&i.Repo,
 		&i.Created,
 		&i.LastModified,
-		&i.Team,
+		&i.Group,
 		pq.Array(&i.Keywords),
 		&i.TsvDocument,
 	)

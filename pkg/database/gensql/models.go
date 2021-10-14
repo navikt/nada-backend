@@ -4,11 +4,11 @@ package gensql
 
 import (
 	"database/sql"
-	"encoding/json"
 	"fmt"
 	"time"
 
 	"github.com/google/uuid"
+	"github.com/tabbed/pqtype"
 )
 
 type DatasourceType string
@@ -33,6 +33,7 @@ type Dataproduct struct {
 	ID           uuid.UUID
 	Name         string
 	Description  sql.NullString
+	Group        string
 	Pii          bool
 	Created      time.Time
 	LastModified time.Time
@@ -48,7 +49,7 @@ type DataproductCollection struct {
 	Repo         sql.NullString
 	Created      time.Time
 	LastModified time.Time
-	Team         string
+	Group        string
 	Keywords     []string
 	TsvDocument  interface{}
 }
@@ -58,5 +59,5 @@ type DatasourceBigquery struct {
 	ProjectID     string
 	Dataset       string
 	TableName     string
-	Schema        json.RawMessage
+	Schema        pqtype.NullRawMessage
 }

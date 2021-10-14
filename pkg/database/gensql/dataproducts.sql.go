@@ -6,9 +6,9 @@ package gensql
 import (
 	"context"
 	"database/sql"
-	"encoding/json"
 
 	"github.com/google/uuid"
+	"github.com/tabbed/pqtype"
 )
 
 const createBigqueryDatasource = `-- name: CreateBigqueryDatasource :one
@@ -52,12 +52,14 @@ const createDataproduct = `-- name: CreateDataproduct :one
 INSERT INTO dataproducts ("name",
                           "description",
                           "pii",
-                          "type")
+                          "type",
+                          "group")
 VALUES ($1,
         $2,
         $3,
-        $4)
-RETURNING id, name, description, pii, created, last_modified, type, tsv_document
+        $4,
+        $5)
+RETURNING id, name, description, "group", pii, created, last_modified, type, tsv_document
 `
 
 type CreateDataproductParams struct {
@@ -65,6 +67,7 @@ type CreateDataproductParams struct {
 	Description sql.NullString
 	Pii         bool
 	Type        DatasourceType
+	OwnerGroup  string
 }
 
 func (q *Queries) CreateDataproduct(ctx context.Context, arg CreateDataproductParams) (Dataproduct, error) {
@@ -73,12 +76,14 @@ func (q *Queries) CreateDataproduct(ctx context.Context, arg CreateDataproductPa
 		arg.Description,
 		arg.Pii,
 		arg.Type,
+		arg.OwnerGroup,
 	)
 	var i Dataproduct
 	err := row.Scan(
 		&i.ID,
 		&i.Name,
 		&i.Description,
+		&i.Group,
 		&i.Pii,
 		&i.Created,
 		&i.LastModified,
@@ -153,7 +158,7 @@ func (q *Queries) GetBigqueryDatasources(ctx context.Context) ([]DatasourceBigqu
 }
 
 const getDataproduct = `-- name: GetDataproduct :one
-SELECT id, name, description, pii, created, last_modified, type, tsv_document
+SELECT id, name, description, "group", pii, created, last_modified, type, tsv_document
 FROM dataproducts
 WHERE id = $1
 `
@@ -165,6 +170,7 @@ func (q *Queries) GetDataproduct(ctx context.Context, id uuid.UUID) (Dataproduct
 		&i.ID,
 		&i.Name,
 		&i.Description,
+		&i.Group,
 		&i.Pii,
 		&i.Created,
 		&i.LastModified,
@@ -175,7 +181,7 @@ func (q *Queries) GetDataproduct(ctx context.Context, id uuid.UUID) (Dataproduct
 }
 
 const getDataproducts = `-- name: GetDataproducts :many
-SELECT id, name, description, pii, created, last_modified, type, tsv_document
+SELECT id, name, description, "group", pii, created, last_modified, type, tsv_document
 FROM dataproducts
 ORDER BY last_modified DESC
 LIMIT $2 OFFSET $1
@@ -199,6 +205,7 @@ func (q *Queries) GetDataproducts(ctx context.Context, arg GetDataproductsParams
 			&i.ID,
 			&i.Name,
 			&i.Description,
+			&i.Group,
 			&i.Pii,
 			&i.Created,
 			&i.LastModified,
@@ -225,7 +232,7 @@ WHERE dataproduct_id = $2
 `
 
 type UpdateBigqueryDatasourceSchemaParams struct {
-	Schema        json.RawMessage
+	Schema        pqtype.NullRawMessage
 	DataproductID uuid.UUID
 }
 
@@ -240,7 +247,7 @@ SET "name"        = $1,
     "description" = $2,
     "pii"         = $3
 WHERE id = $4
-RETURNING id, name, description, pii, created, last_modified, type, tsv_document
+RETURNING id, name, description, "group", pii, created, last_modified, type, tsv_document
 `
 
 type UpdateDataproductParams struct {
@@ -262,6 +269,7 @@ func (q *Queries) UpdateDataproduct(ctx context.Context, arg UpdateDataproductPa
 		&i.ID,
 		&i.Name,
 		&i.Description,
+		&i.Group,
 		&i.Pii,
 		&i.Created,
 		&i.LastModified,

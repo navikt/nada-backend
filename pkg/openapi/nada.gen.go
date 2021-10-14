@@ -50,7 +50,7 @@ type Bigquery struct {
 
 // Dataproduct defines model for Dataproduct.
 type Dataproduct struct {
-	DataSource  *interface{}    `json:"dataSource,omitempty"`
+	Datasource  Datasource      `json:"datasource"`
 	Description *string         `json:"description,omitempty"`
 	Id          string          `json:"id"`
 	Name        string          `json:"name"`
@@ -91,13 +91,18 @@ type DataproductSummary struct {
 // DataproductType defines model for DataproductType.
 type DataproductType string
 
+// Datasource defines model for Datasource.
+type Datasource interface{}
+
 // NewDataproduct defines model for NewDataproduct.
 type NewDataproduct struct {
-	Bigquery    Bigquery `json:"bigquery"`
-	Description *string  `json:"description,omitempty"`
-	Name        string   `json:"name"`
-	Owner       Owner    `json:"owner"`
-	Pii         bool     `json:"pii"`
+	Datasource  Datasource `json:"datasource"`
+	Description *string    `json:"description,omitempty"`
+	Name        string     `json:"name"`
+	Owner       Owner      `json:"owner"`
+	Pii         bool       `json:"pii"`
+	Repo        *string    `json:"repo,omitempty"`
+	Slug        *string    `json:"slug,omitempty"`
 }
 
 // NewDataproductCollection defines model for NewDataproductCollection.
@@ -112,7 +117,7 @@ type NewDataproductCollection struct {
 
 // Owner defines model for Owner.
 type Owner struct {
-	Team          string  `json:"team"`
+	Group         string  `json:"group"`
 	Teamkatalogen *string `json:"teamkatalogen,omitempty"`
 }
 
@@ -136,6 +141,15 @@ type TableColumn struct {
 	Type        string `json:"type"`
 }
 
+// UpdateDataproduct defines model for UpdateDataproduct.
+type UpdateDataproduct struct {
+	Description *string `json:"description,omitempty"`
+	Name        string  `json:"name"`
+	Pii         bool    `json:"pii"`
+	Repo        *string `json:"repo,omitempty"`
+	Slug        *string `json:"slug,omitempty"`
+}
+
 // UpdateDataproductCollection defines model for UpdateDataproductCollection.
 type UpdateDataproductCollection struct {
 	Description *string   `json:"description,omitempty"`
@@ -147,9 +161,9 @@ type UpdateDataproductCollection struct {
 
 // UserInfo defines model for UserInfo.
 type UserInfo struct {
-	Email string   `json:"email"`
-	Name  string   `json:"name"`
-	Teams []string `json:"teams"`
+	Email  string   `json:"email"`
+	Groups []string `json:"groups"`
+	Name   string   `json:"name"`
 }
 
 // GetDataproductCollectionsParams defines parameters for GetDataproductCollections.
@@ -164,11 +178,17 @@ type CreateDataproductCollectionJSONBody NewDataproductCollection
 // UpdateDataproductCollectionJSONBody defines parameters for UpdateDataproductCollection.
 type UpdateDataproductCollectionJSONBody UpdateDataproductCollection
 
+// GetDataproductsParams defines parameters for GetDataproducts.
+type GetDataproductsParams struct {
+	Limit  *int `json:"limit,omitempty"`
+	Offset *int `json:"offset,omitempty"`
+}
+
 // CreateDataproductJSONBody defines parameters for CreateDataproduct.
 type CreateDataproductJSONBody NewDataproduct
 
 // UpdateDataproductJSONBody defines parameters for UpdateDataproduct.
-type UpdateDataproductJSONBody NewDataproduct
+type UpdateDataproductJSONBody UpdateDataproduct
 
 // SearchParams defines parameters for Search.
 type SearchParams struct {
@@ -281,6 +301,9 @@ type ClientInterface interface {
 
 	UpdateDataproductCollection(ctx context.Context, id string, body UpdateDataproductCollectionJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
 
+	// GetDataproducts request
+	GetDataproducts(ctx context.Context, params *GetDataproductsParams, reqEditors ...RequestEditorFn) (*http.Response, error)
+
 	// CreateDataproduct request with any body
 	CreateDataproductWithBody(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
 
@@ -303,11 +326,11 @@ type ClientInterface interface {
 	// GetBigqueryTables request
 	GetBigqueryTables(ctx context.Context, id string, reqEditors ...RequestEditorFn) (*http.Response, error)
 
-	// Search request
-	Search(ctx context.Context, params *SearchParams, reqEditors ...RequestEditorFn) (*http.Response, error)
-
 	// GetGCPProjects request
 	GetGCPProjects(ctx context.Context, id string, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// Search request
+	Search(ctx context.Context, params *SearchParams, reqEditors ...RequestEditorFn) (*http.Response, error)
 
 	// GetUserInfo request
 	GetUserInfo(ctx context.Context, reqEditors ...RequestEditorFn) (*http.Response, error)
@@ -387,6 +410,18 @@ func (c *Client) UpdateDataproductCollectionWithBody(ctx context.Context, id str
 
 func (c *Client) UpdateDataproductCollection(ctx context.Context, id string, body UpdateDataproductCollectionJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
 	req, err := NewUpdateDataproductCollectionRequest(c.Server, id, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) GetDataproducts(ctx context.Context, params *GetDataproductsParams, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewGetDataproductsRequest(c.Server, params)
 	if err != nil {
 		return nil, err
 	}
@@ -493,8 +528,8 @@ func (c *Client) GetBigqueryTables(ctx context.Context, id string, reqEditors ..
 	return c.Client.Do(req)
 }
 
-func (c *Client) Search(ctx context.Context, params *SearchParams, reqEditors ...RequestEditorFn) (*http.Response, error) {
-	req, err := NewSearchRequest(c.Server, params)
+func (c *Client) GetGCPProjects(ctx context.Context, id string, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewGetGCPProjectsRequest(c.Server, id)
 	if err != nil {
 		return nil, err
 	}
@@ -505,8 +540,8 @@ func (c *Client) Search(ctx context.Context, params *SearchParams, reqEditors ..
 	return c.Client.Do(req)
 }
 
-func (c *Client) GetGCPProjects(ctx context.Context, id string, reqEditors ...RequestEditorFn) (*http.Response, error) {
-	req, err := NewGetGCPProjectsRequest(c.Server, id)
+func (c *Client) Search(ctx context.Context, params *SearchParams, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewSearchRequest(c.Server, params)
 	if err != nil {
 		return nil, err
 	}
@@ -747,6 +782,69 @@ func NewUpdateDataproductCollectionRequestWithBody(server string, id string, con
 	return req, nil
 }
 
+// NewGetDataproductsRequest generates requests for GetDataproducts
+func NewGetDataproductsRequest(server string, params *GetDataproductsParams) (*http.Request, error) {
+	var err error
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/dataproducts")
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	queryValues := queryURL.Query()
+
+	if params.Limit != nil {
+
+		if queryFrag, err := runtime.StyleParamWithLocation("form", true, "limit", runtime.ParamLocationQuery, *params.Limit); err != nil {
+			return nil, err
+		} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
+			return nil, err
+		} else {
+			for k, v := range parsed {
+				for _, v2 := range v {
+					queryValues.Add(k, v2)
+				}
+			}
+		}
+
+	}
+
+	if params.Offset != nil {
+
+		if queryFrag, err := runtime.StyleParamWithLocation("form", true, "offset", runtime.ParamLocationQuery, *params.Offset); err != nil {
+			return nil, err
+		} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
+			return nil, err
+		} else {
+			for k, v := range parsed {
+				for _, v2 := range v {
+					queryValues.Add(k, v2)
+				}
+			}
+		}
+
+	}
+
+	queryURL.RawQuery = queryValues.Encode()
+
+	req, err := http.NewRequest("GET", queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
+}
+
 // NewCreateDataproductRequest calls the generic CreateDataproduct builder with application/json body
 func NewCreateDataproductRequest(server string, body CreateDataproductJSONRequestBody) (*http.Request, error) {
 	var bodyReader io.Reader
@@ -970,6 +1068,40 @@ func NewGetBigqueryTablesRequest(server string, id string) (*http.Request, error
 	return req, nil
 }
 
+// NewGetGCPProjectsRequest generates requests for GetGCPProjects
+func NewGetGCPProjectsRequest(server string, id string) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithLocation("simple", false, "id", runtime.ParamLocationPath, id)
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/groups/%s/gcp_projects", pathParam0)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest("GET", queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
+}
+
 // NewSearchRequest generates requests for Search
 func NewSearchRequest(server string, params *SearchParams) (*http.Request, error) {
 	var err error
@@ -1040,40 +1172,6 @@ func NewSearchRequest(server string, params *SearchParams) (*http.Request, error
 	}
 
 	queryURL.RawQuery = queryValues.Encode()
-
-	req, err := http.NewRequest("GET", queryURL.String(), nil)
-	if err != nil {
-		return nil, err
-	}
-
-	return req, nil
-}
-
-// NewGetGCPProjectsRequest generates requests for GetGCPProjects
-func NewGetGCPProjectsRequest(server string, id string) (*http.Request, error) {
-	var err error
-
-	var pathParam0 string
-
-	pathParam0, err = runtime.StyleParamWithLocation("simple", false, "id", runtime.ParamLocationPath, id)
-	if err != nil {
-		return nil, err
-	}
-
-	serverURL, err := url.Parse(server)
-	if err != nil {
-		return nil, err
-	}
-
-	operationPath := fmt.Sprintf("/teams/%s/gcp_projects", pathParam0)
-	if operationPath[0] == '/' {
-		operationPath = "." + operationPath
-	}
-
-	queryURL, err := serverURL.Parse(operationPath)
-	if err != nil {
-		return nil, err
-	}
 
 	req, err := http.NewRequest("GET", queryURL.String(), nil)
 	if err != nil {
@@ -1172,6 +1270,9 @@ type ClientWithResponsesInterface interface {
 
 	UpdateDataproductCollectionWithResponse(ctx context.Context, id string, body UpdateDataproductCollectionJSONRequestBody, reqEditors ...RequestEditorFn) (*UpdateDataproductCollectionResponse, error)
 
+	// GetDataproducts request
+	GetDataproductsWithResponse(ctx context.Context, params *GetDataproductsParams, reqEditors ...RequestEditorFn) (*GetDataproductsResponse, error)
+
 	// CreateDataproduct request with any body
 	CreateDataproductWithBodyWithResponse(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*CreateDataproductResponse, error)
 
@@ -1194,11 +1295,11 @@ type ClientWithResponsesInterface interface {
 	// GetBigqueryTables request
 	GetBigqueryTablesWithResponse(ctx context.Context, id string, reqEditors ...RequestEditorFn) (*GetBigqueryTablesResponse, error)
 
-	// Search request
-	SearchWithResponse(ctx context.Context, params *SearchParams, reqEditors ...RequestEditorFn) (*SearchResponse, error)
-
 	// GetGCPProjects request
 	GetGCPProjectsWithResponse(ctx context.Context, id string, reqEditors ...RequestEditorFn) (*GetGCPProjectsResponse, error)
+
+	// Search request
+	SearchWithResponse(ctx context.Context, params *SearchParams, reqEditors ...RequestEditorFn) (*SearchResponse, error)
 
 	// GetUserInfo request
 	GetUserInfoWithResponse(ctx context.Context, reqEditors ...RequestEditorFn) (*GetUserInfoResponse, error)
@@ -1307,6 +1408,28 @@ func (r UpdateDataproductCollectionResponse) Status() string {
 
 // StatusCode returns HTTPResponse.StatusCode
 func (r UpdateDataproductCollectionResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+type GetDataproductsResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	JSON200      *[]Dataproduct
+}
+
+// Status returns HTTPResponse.Status
+func (r GetDataproductsResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r GetDataproductsResponse) StatusCode() int {
 	if r.HTTPResponse != nil {
 		return r.HTTPResponse.StatusCode
 	}
@@ -1444,28 +1567,6 @@ func (r GetBigqueryTablesResponse) StatusCode() int {
 	return 0
 }
 
-type SearchResponse struct {
-	Body         []byte
-	HTTPResponse *http.Response
-	JSON200      *[]SearchResultEntry
-}
-
-// Status returns HTTPResponse.Status
-func (r SearchResponse) Status() string {
-	if r.HTTPResponse != nil {
-		return r.HTTPResponse.Status
-	}
-	return http.StatusText(0)
-}
-
-// StatusCode returns HTTPResponse.StatusCode
-func (r SearchResponse) StatusCode() int {
-	if r.HTTPResponse != nil {
-		return r.HTTPResponse.StatusCode
-	}
-	return 0
-}
-
 type GetGCPProjectsResponse struct {
 	Body         []byte
 	HTTPResponse *http.Response
@@ -1482,6 +1583,28 @@ func (r GetGCPProjectsResponse) Status() string {
 
 // StatusCode returns HTTPResponse.StatusCode
 func (r GetGCPProjectsResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+type SearchResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	JSON200      *[]SearchResultEntry
+}
+
+// Status returns HTTPResponse.Status
+func (r SearchResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r SearchResponse) StatusCode() int {
 	if r.HTTPResponse != nil {
 		return r.HTTPResponse.StatusCode
 	}
@@ -1571,6 +1694,15 @@ func (c *ClientWithResponses) UpdateDataproductCollectionWithResponse(ctx contex
 	return ParseUpdateDataproductCollectionResponse(rsp)
 }
 
+// GetDataproductsWithResponse request returning *GetDataproductsResponse
+func (c *ClientWithResponses) GetDataproductsWithResponse(ctx context.Context, params *GetDataproductsParams, reqEditors ...RequestEditorFn) (*GetDataproductsResponse, error) {
+	rsp, err := c.GetDataproducts(ctx, params, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseGetDataproductsResponse(rsp)
+}
+
 // CreateDataproductWithBodyWithResponse request with arbitrary body returning *CreateDataproductResponse
 func (c *ClientWithResponses) CreateDataproductWithBodyWithResponse(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*CreateDataproductResponse, error) {
 	rsp, err := c.CreateDataproductWithBody(ctx, contentType, body, reqEditors...)
@@ -1641,15 +1773,6 @@ func (c *ClientWithResponses) GetBigqueryTablesWithResponse(ctx context.Context,
 	return ParseGetBigqueryTablesResponse(rsp)
 }
 
-// SearchWithResponse request returning *SearchResponse
-func (c *ClientWithResponses) SearchWithResponse(ctx context.Context, params *SearchParams, reqEditors ...RequestEditorFn) (*SearchResponse, error) {
-	rsp, err := c.Search(ctx, params, reqEditors...)
-	if err != nil {
-		return nil, err
-	}
-	return ParseSearchResponse(rsp)
-}
-
 // GetGCPProjectsWithResponse request returning *GetGCPProjectsResponse
 func (c *ClientWithResponses) GetGCPProjectsWithResponse(ctx context.Context, id string, reqEditors ...RequestEditorFn) (*GetGCPProjectsResponse, error) {
 	rsp, err := c.GetGCPProjects(ctx, id, reqEditors...)
@@ -1657,6 +1780,15 @@ func (c *ClientWithResponses) GetGCPProjectsWithResponse(ctx context.Context, id
 		return nil, err
 	}
 	return ParseGetGCPProjectsResponse(rsp)
+}
+
+// SearchWithResponse request returning *SearchResponse
+func (c *ClientWithResponses) SearchWithResponse(ctx context.Context, params *SearchParams, reqEditors ...RequestEditorFn) (*SearchResponse, error) {
+	rsp, err := c.Search(ctx, params, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseSearchResponse(rsp)
 }
 
 // GetUserInfoWithResponse request returning *GetUserInfoResponse
@@ -1778,6 +1910,32 @@ func ParseUpdateDataproductCollectionResponse(rsp *http.Response) (*UpdateDatapr
 	switch {
 	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
 		var dest DataproductCollection
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParseGetDataproductsResponse parses an HTTP response from a GetDataproductsWithResponse call
+func ParseGetDataproductsResponse(rsp *http.Response) (*GetDataproductsResponse, error) {
+	bodyBytes, err := ioutil.ReadAll(rsp.Body)
+	defer rsp.Body.Close()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &GetDataproductsResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest []Dataproduct
 		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
 			return nil, err
 		}
@@ -1934,32 +2092,6 @@ func ParseGetBigqueryTablesResponse(rsp *http.Response) (*GetBigqueryTablesRespo
 	return response, nil
 }
 
-// ParseSearchResponse parses an HTTP response from a SearchWithResponse call
-func ParseSearchResponse(rsp *http.Response) (*SearchResponse, error) {
-	bodyBytes, err := ioutil.ReadAll(rsp.Body)
-	defer rsp.Body.Close()
-	if err != nil {
-		return nil, err
-	}
-
-	response := &SearchResponse{
-		Body:         bodyBytes,
-		HTTPResponse: rsp,
-	}
-
-	switch {
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
-		var dest []SearchResultEntry
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.JSON200 = &dest
-
-	}
-
-	return response, nil
-}
-
 // ParseGetGCPProjectsResponse parses an HTTP response from a GetGCPProjectsWithResponse call
 func ParseGetGCPProjectsResponse(rsp *http.Response) (*GetGCPProjectsResponse, error) {
 	bodyBytes, err := ioutil.ReadAll(rsp.Body)
@@ -1976,6 +2108,32 @@ func ParseGetGCPProjectsResponse(rsp *http.Response) (*GetGCPProjectsResponse, e
 	switch {
 	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
 		var dest []string
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParseSearchResponse parses an HTTP response from a SearchWithResponse call
+func ParseSearchResponse(rsp *http.Response) (*SearchResponse, error) {
+	bodyBytes, err := ioutil.ReadAll(rsp.Body)
+	defer rsp.Body.Close()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &SearchResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest []SearchResultEntry
 		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
 			return nil, err
 		}
@@ -2030,6 +2188,9 @@ type ServerInterface interface {
 	// (PUT /collections/{id})
 	UpdateDataproductCollection(w http.ResponseWriter, r *http.Request, id string)
 
+	// (GET /dataproducts)
+	GetDataproducts(w http.ResponseWriter, r *http.Request, params GetDataproductsParams)
+
 	// (POST /dataproducts)
 	CreateDataproduct(w http.ResponseWriter, r *http.Request)
 
@@ -2048,11 +2209,11 @@ type ServerInterface interface {
 	// (GET /gcp/{id}/tables)
 	GetBigqueryTables(w http.ResponseWriter, r *http.Request, id string)
 
+	// (GET /groups/{id}/gcp_projects)
+	GetGCPProjects(w http.ResponseWriter, r *http.Request, id string)
+
 	// (GET /search)
 	Search(w http.ResponseWriter, r *http.Request, params SearchParams)
-
-	// (GET /teams/{id}/gcp_projects)
-	GetGCPProjects(w http.ResponseWriter, r *http.Request, id string)
 
 	// (GET /userinfo)
 	GetUserInfo(w http.ResponseWriter, r *http.Request)
@@ -2198,6 +2359,48 @@ func (siw *ServerInterfaceWrapper) UpdateDataproductCollection(w http.ResponseWr
 
 	var handler = func(w http.ResponseWriter, r *http.Request) {
 		siw.Handler.UpdateDataproductCollection(w, r, id)
+	}
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler(w, r.WithContext(ctx))
+}
+
+// GetDataproducts operation middleware
+func (siw *ServerInterfaceWrapper) GetDataproducts(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+
+	var err error
+
+	// Parameter object where we will unmarshal all parameters from the context
+	var params GetDataproductsParams
+
+	// ------------- Optional query parameter "limit" -------------
+	if paramValue := r.URL.Query().Get("limit"); paramValue != "" {
+
+	}
+
+	err = runtime.BindQueryParameter("form", true, false, "limit", r.URL.Query(), &params.Limit)
+	if err != nil {
+		http.Error(w, fmt.Sprintf("Invalid format for parameter limit: %s", err), http.StatusBadRequest)
+		return
+	}
+
+	// ------------- Optional query parameter "offset" -------------
+	if paramValue := r.URL.Query().Get("offset"); paramValue != "" {
+
+	}
+
+	err = runtime.BindQueryParameter("form", true, false, "offset", r.URL.Query(), &params.Offset)
+	if err != nil {
+		http.Error(w, fmt.Sprintf("Invalid format for parameter offset: %s", err), http.StatusBadRequest)
+		return
+	}
+
+	var handler = func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.GetDataproducts(w, r, params)
 	}
 
 	for _, middleware := range siw.HandlerMiddlewares {
@@ -2360,6 +2563,34 @@ func (siw *ServerInterfaceWrapper) GetBigqueryTables(w http.ResponseWriter, r *h
 	handler(w, r.WithContext(ctx))
 }
 
+// GetGCPProjects operation middleware
+func (siw *ServerInterfaceWrapper) GetGCPProjects(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+
+	var err error
+
+	// ------------- Path parameter "id" -------------
+	var id string
+
+	err = runtime.BindStyledParameter("simple", false, "id", chi.URLParam(r, "id"), &id)
+	if err != nil {
+		http.Error(w, fmt.Sprintf("Invalid format for parameter id: %s", err), http.StatusBadRequest)
+		return
+	}
+
+	ctx = context.WithValue(ctx, CookieAuthScopes, []string{""})
+
+	var handler = func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.GetGCPProjects(w, r, id)
+	}
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler(w, r.WithContext(ctx))
+}
+
 // Search operation middleware
 func (siw *ServerInterfaceWrapper) Search(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
@@ -2404,34 +2635,6 @@ func (siw *ServerInterfaceWrapper) Search(w http.ResponseWriter, r *http.Request
 
 	var handler = func(w http.ResponseWriter, r *http.Request) {
 		siw.Handler.Search(w, r, params)
-	}
-
-	for _, middleware := range siw.HandlerMiddlewares {
-		handler = middleware(handler)
-	}
-
-	handler(w, r.WithContext(ctx))
-}
-
-// GetGCPProjects operation middleware
-func (siw *ServerInterfaceWrapper) GetGCPProjects(w http.ResponseWriter, r *http.Request) {
-	ctx := r.Context()
-
-	var err error
-
-	// ------------- Path parameter "id" -------------
-	var id string
-
-	err = runtime.BindStyledParameter("simple", false, "id", chi.URLParam(r, "id"), &id)
-	if err != nil {
-		http.Error(w, fmt.Sprintf("Invalid format for parameter id: %s", err), http.StatusBadRequest)
-		return
-	}
-
-	ctx = context.WithValue(ctx, CookieAuthScopes, []string{""})
-
-	var handler = func(w http.ResponseWriter, r *http.Request) {
-		siw.Handler.GetGCPProjects(w, r, id)
 	}
 
 	for _, middleware := range siw.HandlerMiddlewares {
@@ -2511,6 +2714,9 @@ func HandlerWithOptions(si ServerInterface, options ChiServerOptions) http.Handl
 		r.Put(options.BaseURL+"/collections/{id}", wrapper.UpdateDataproductCollection)
 	})
 	r.Group(func(r chi.Router) {
+		r.Get(options.BaseURL+"/dataproducts", wrapper.GetDataproducts)
+	})
+	r.Group(func(r chi.Router) {
 		r.Post(options.BaseURL+"/dataproducts", wrapper.CreateDataproduct)
 	})
 	r.Group(func(r chi.Router) {
@@ -2529,10 +2735,10 @@ func HandlerWithOptions(si ServerInterface, options ChiServerOptions) http.Handl
 		r.Get(options.BaseURL+"/gcp/{id}/tables", wrapper.GetBigqueryTables)
 	})
 	r.Group(func(r chi.Router) {
-		r.Get(options.BaseURL+"/search", wrapper.Search)
+		r.Get(options.BaseURL+"/groups/{id}/gcp_projects", wrapper.GetGCPProjects)
 	})
 	r.Group(func(r chi.Router) {
-		r.Get(options.BaseURL+"/teams/{id}/gcp_projects", wrapper.GetGCPProjects)
+		r.Get(options.BaseURL+"/search", wrapper.Search)
 	})
 	r.Group(func(r chi.Router) {
 		r.Get(options.BaseURL+"/userinfo", wrapper.GetUserInfo)
@@ -2544,29 +2750,30 @@ func HandlerWithOptions(si ServerInterface, options ChiServerOptions) http.Handl
 // Base64 encoded, gzipped, json marshaled Swagger object
 var swaggerSpec = []string{
 
-	"H4sIAAAAAAAC/9xZ3W7jNhN9FYHfd6na3m0LLHS3mxTBYrub7Sa9CoyAkcYyE4lUyFFcI/C7FyQlWZKp",
-	"H6eO4/bOtoYczpk5Z6jxMwlFmgkOHBUJnokKl5BS8/ETix9zkGv9OZMiA4kMzJOIIlWA+iOuMyABUSgZ",
-	"j8nG15b3EOIti5yPkd4l4Hiy8YmEx5xJiEhwU9/Fr9yVq+d+uVrcaSu97zlFmkkR5SG6z3slchkaz4LD",
-	"5YIEN8/k/xIWJCD/m24xmBYATKvoN/ONTyJQoWQZMsGdYXVEy2kKzgdixUHqJ31HuDRGGlPGarvcCZEA",
-	"5cRAlgnn/irJYzf+5od+vzUsr7V5OzkmKSa0Yj97wjIqn9yV2A1k6kwkCYQlqM2chRIogoF1IWRKkQQ6",
-	"j/ATsq3jemTRdl+zAUNI1R6hXuVpSnW+q72plNR8f2H2H2C9EjJqnqYjI1tnCVV4m4qILdg+4R+o1Pat",
-	"qJ7SMCu2RVEmtB1hK3MDJfMVkGp7N8kLoy7xsdGOLo5rrTZnIslTvpuoVuAt75WvgXDKotuJZl9BeRVe",
-	"Dxz+uvAJPE/1egfttwf8Bqtejb6rdZtxujzMy9eV3xZ6BXB7KGETkj4xHAr0ZUpzGpJR4GZ9umC6LE/T",
-	"xASBpu4wgaYPFGkiYuDD/s0+Lr9XQGW4/AEqT/A3ji6Wwl8hyAwPciUYw+D6kSyFfZLLZDhIbVQ16zrP",
-	"ywiGAGhzvaZ3pKunF8pOwwcag1MU6gq7d9GnIoKXQTyqIAuwjJem1Liw+jPT3fk06XwIgjpjViA/84Vw",
-	"8CKlLNkzN0DTvQJ2Z816LrfbPbWOGsJcMlxfaVIVl00hHhh8zHFpTsBJUPxUEiUg9yvcXrtoxr6APoPm",
-	"eYEAMtRvNuTbx/OPxCdPIJXJL3k3mRlRzYDTjJGA/DyZTd7rVkFxadxPw6pYzPfYvls1yoT8zhR6NEk8",
-	"Z5EpYjxIqr98jkhALgA7LTMqaQoIUpn3IBOw7VNVvAlLGZL6nSmCBc0TJMG7XysgGEeIdRvY+O5txGJh",
-	"X90c+8wc28x1VlUmuLKZeT+b2QRxBG5QoVmWsNDEOb1XlkF7XuzcNN2tsPYVg1x+sb9mQjkydGZuuB71",
-	"OKy8LklsJsku6bLV9Q0KP4lovRcIfbF3Xjo2G0upBvjvDua306nvRDHyVB6GoNQiT5J1g7emZOuMvZlv",
-	"5tqgTqPpM4s2NkUJIOwm69z87tGRibLmXbYtPrU8uRZ5n891J9bPtQxsCWOa81bYUOZQJ09bqnf58ktX",
-	"rJFnyncISL9PftxoeSuGS6/xGjdWjU4MvJMUm9yRDnvfGF2+fdeTN8/A4UWuL1ynzs2Or3P2jCNJqdWt",
-	"PeAa0YSat/SB1nOUhnPENnPg5lKHf3x36cvATk/Zg4r/uv5xAdgLRrNBnAQSs2NV5Til70NvR/DeCsC3",
-	"0Y+jZeofibZRjWlam2CPYYpXLeinzNet2X+UOlWEnRTSiMdhZoE2fxZ2v0//AMwlN2/Un1j8h35t9ewS",
-	"j3EvDjOv+BPShXs5hb62Po5xj6wPvkddHYeFurdOLs6+lwgcrE50fpSZKnamxQ4ddQqKQUoTe/v4KIDv",
-	"zn9HIF8cX5pVhaoPD1seSR9s/mlNaHQSzXjN0iwOs9uiTrrJZulFeeTJLe1qFaa8hZAeLsEz43gH4y7O",
-	"vn8vvRwq+0MTxlfh1TXQ9KCEyhXIcgjpBD8G9LSRZ6wc2FaD3FfU8crHS2G1FvKpRNX870GWiJkKptNE",
-	"hDRZCoXBh9mH2ZRmjOiCbxpxGtFJBE8TXc2STzh9mnDRZ+wwnG/+DgAA//+zvM2INCMAAA==",
+	"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",
+	"AAD//2PL68EBJgAA",
 }
 
 // GetSwagger returns the content of the embedded swagger specification file
@@ -2640,3 +2847,4 @@ func GetSwagger() (swagger *openapi3.T, err error) {
 	}
 	return
 }
+
