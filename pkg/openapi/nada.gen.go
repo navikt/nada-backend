@@ -41,8 +41,8 @@ const (
 	SearchResultTypeDataproductCollection SearchResultType = "DataproductCollection"
 )
 
-// BigQuery defines model for BigQuery.
-type BigQuery struct {
+// Bigquery defines model for Bigquery.
+type Bigquery struct {
 	Dataproduct string `json:"dataproduct"`
 	ProjectId   string `json:"project_id"`
 	Table       string `json:"table"`
@@ -93,7 +93,7 @@ type DataproductType string
 
 // NewDataproduct defines model for NewDataproduct.
 type NewDataproduct struct {
-	Bigquery    BigQuery `json:"bigquery"`
+	Bigquery    Bigquery `json:"bigquery"`
 	Description *string  `json:"description,omitempty"`
 	Name        string   `json:"name"`
 	Owner       Owner    `json:"owner"`
@@ -300,8 +300,8 @@ type ClientInterface interface {
 	// GetDataproductMetadata request
 	GetDataproductMetadata(ctx context.Context, id string, reqEditors ...RequestEditorFn) (*http.Response, error)
 
-	// GetBigQueryTables request
-	GetBigQueryTables(ctx context.Context, id string, reqEditors ...RequestEditorFn) (*http.Response, error)
+	// GetBigqueryTables request
+	GetBigqueryTables(ctx context.Context, id string, reqEditors ...RequestEditorFn) (*http.Response, error)
 
 	// Search request
 	Search(ctx context.Context, params *SearchParams, reqEditors ...RequestEditorFn) (*http.Response, error)
@@ -481,8 +481,8 @@ func (c *Client) GetDataproductMetadata(ctx context.Context, id string, reqEdito
 	return c.Client.Do(req)
 }
 
-func (c *Client) GetBigQueryTables(ctx context.Context, id string, reqEditors ...RequestEditorFn) (*http.Response, error) {
-	req, err := NewGetBigQueryTablesRequest(c.Server, id)
+func (c *Client) GetBigqueryTables(ctx context.Context, id string, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewGetBigqueryTablesRequest(c.Server, id)
 	if err != nil {
 		return nil, err
 	}
@@ -936,8 +936,8 @@ func NewGetDataproductMetadataRequest(server string, id string) (*http.Request, 
 	return req, nil
 }
 
-// NewGetBigQueryTablesRequest generates requests for GetBigQueryTables
-func NewGetBigQueryTablesRequest(server string, id string) (*http.Request, error) {
+// NewGetBigqueryTablesRequest generates requests for GetBigqueryTables
+func NewGetBigqueryTablesRequest(server string, id string) (*http.Request, error) {
 	var err error
 
 	var pathParam0 string
@@ -1191,8 +1191,8 @@ type ClientWithResponsesInterface interface {
 	// GetDataproductMetadata request
 	GetDataproductMetadataWithResponse(ctx context.Context, id string, reqEditors ...RequestEditorFn) (*GetDataproductMetadataResponse, error)
 
-	// GetBigQueryTables request
-	GetBigQueryTablesWithResponse(ctx context.Context, id string, reqEditors ...RequestEditorFn) (*GetBigQueryTablesResponse, error)
+	// GetBigqueryTables request
+	GetBigqueryTablesWithResponse(ctx context.Context, id string, reqEditors ...RequestEditorFn) (*GetBigqueryTablesResponse, error)
 
 	// Search request
 	SearchWithResponse(ctx context.Context, params *SearchParams, reqEditors ...RequestEditorFn) (*SearchResponse, error)
@@ -1422,14 +1422,14 @@ func (r GetDataproductMetadataResponse) StatusCode() int {
 	return 0
 }
 
-type GetBigQueryTablesResponse struct {
+type GetBigqueryTablesResponse struct {
 	Body         []byte
 	HTTPResponse *http.Response
-	JSON200      *[]BigQuery
+	JSON200      *[]Bigquery
 }
 
 // Status returns HTTPResponse.Status
-func (r GetBigQueryTablesResponse) Status() string {
+func (r GetBigqueryTablesResponse) Status() string {
 	if r.HTTPResponse != nil {
 		return r.HTTPResponse.Status
 	}
@@ -1437,7 +1437,7 @@ func (r GetBigQueryTablesResponse) Status() string {
 }
 
 // StatusCode returns HTTPResponse.StatusCode
-func (r GetBigQueryTablesResponse) StatusCode() int {
+func (r GetBigqueryTablesResponse) StatusCode() int {
 	if r.HTTPResponse != nil {
 		return r.HTTPResponse.StatusCode
 	}
@@ -1632,13 +1632,13 @@ func (c *ClientWithResponses) GetDataproductMetadataWithResponse(ctx context.Con
 	return ParseGetDataproductMetadataResponse(rsp)
 }
 
-// GetBigQueryTablesWithResponse request returning *GetBigQueryTablesResponse
-func (c *ClientWithResponses) GetBigQueryTablesWithResponse(ctx context.Context, id string, reqEditors ...RequestEditorFn) (*GetBigQueryTablesResponse, error) {
-	rsp, err := c.GetBigQueryTables(ctx, id, reqEditors...)
+// GetBigqueryTablesWithResponse request returning *GetBigqueryTablesResponse
+func (c *ClientWithResponses) GetBigqueryTablesWithResponse(ctx context.Context, id string, reqEditors ...RequestEditorFn) (*GetBigqueryTablesResponse, error) {
+	rsp, err := c.GetBigqueryTables(ctx, id, reqEditors...)
 	if err != nil {
 		return nil, err
 	}
-	return ParseGetBigQueryTablesResponse(rsp)
+	return ParseGetBigqueryTablesResponse(rsp)
 }
 
 // SearchWithResponse request returning *SearchResponse
@@ -1908,22 +1908,22 @@ func ParseGetDataproductMetadataResponse(rsp *http.Response) (*GetDataproductMet
 	return response, nil
 }
 
-// ParseGetBigQueryTablesResponse parses an HTTP response from a GetBigQueryTablesWithResponse call
-func ParseGetBigQueryTablesResponse(rsp *http.Response) (*GetBigQueryTablesResponse, error) {
+// ParseGetBigqueryTablesResponse parses an HTTP response from a GetBigqueryTablesWithResponse call
+func ParseGetBigqueryTablesResponse(rsp *http.Response) (*GetBigqueryTablesResponse, error) {
 	bodyBytes, err := ioutil.ReadAll(rsp.Body)
 	defer rsp.Body.Close()
 	if err != nil {
 		return nil, err
 	}
 
-	response := &GetBigQueryTablesResponse{
+	response := &GetBigqueryTablesResponse{
 		Body:         bodyBytes,
 		HTTPResponse: rsp,
 	}
 
 	switch {
 	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
-		var dest []BigQuery
+		var dest []Bigquery
 		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
 			return nil, err
 		}
@@ -2046,7 +2046,7 @@ type ServerInterface interface {
 	GetDataproductMetadata(w http.ResponseWriter, r *http.Request, id string)
 
 	// (GET /gcp/{id}/tables)
-	GetBigQueryTables(w http.ResponseWriter, r *http.Request, id string)
+	GetBigqueryTables(w http.ResponseWriter, r *http.Request, id string)
 
 	// (GET /search)
 	Search(w http.ResponseWriter, r *http.Request, params SearchParams)
@@ -2332,8 +2332,8 @@ func (siw *ServerInterfaceWrapper) GetDataproductMetadata(w http.ResponseWriter,
 	handler(w, r.WithContext(ctx))
 }
 
-// GetBigQueryTables operation middleware
-func (siw *ServerInterfaceWrapper) GetBigQueryTables(w http.ResponseWriter, r *http.Request) {
+// GetBigqueryTables operation middleware
+func (siw *ServerInterfaceWrapper) GetBigqueryTables(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 
 	var err error
@@ -2350,7 +2350,7 @@ func (siw *ServerInterfaceWrapper) GetBigQueryTables(w http.ResponseWriter, r *h
 	ctx = context.WithValue(ctx, CookieAuthScopes, []string{""})
 
 	var handler = func(w http.ResponseWriter, r *http.Request) {
-		siw.Handler.GetBigQueryTables(w, r, id)
+		siw.Handler.GetBigqueryTables(w, r, id)
 	}
 
 	for _, middleware := range siw.HandlerMiddlewares {
@@ -2526,7 +2526,7 @@ func HandlerWithOptions(si ServerInterface, options ChiServerOptions) http.Handl
 		r.Get(options.BaseURL+"/dataproducts/{id}/metadata", wrapper.GetDataproductMetadata)
 	})
 	r.Group(func(r chi.Router) {
-		r.Get(options.BaseURL+"/gcp/{id}/tables", wrapper.GetBigQueryTables)
+		r.Get(options.BaseURL+"/gcp/{id}/tables", wrapper.GetBigqueryTables)
 	})
 	r.Group(func(r chi.Router) {
 		r.Get(options.BaseURL+"/search", wrapper.Search)
@@ -2544,29 +2544,29 @@ func HandlerWithOptions(si ServerInterface, options ChiServerOptions) http.Handl
 // Base64 encoded, gzipped, json marshaled Swagger object
 var swaggerSpec = []string{
 
-	"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",
+	"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",
 }
 
 // GetSwagger returns the content of the embedded swagger specification file
@@ -2640,4 +2640,3 @@ func GetSwagger() (swagger *openapi3.T, err error) {
 	}
 	return
 }
-

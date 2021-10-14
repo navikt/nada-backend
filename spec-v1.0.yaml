@@ -112,7 +112,7 @@ components:
           $ref: "#/components/schemas/DataproductType"
         dataSource:
           oneOf:
-            - $ref: "#/components/schemas/BigQuery"
+            - $ref: "#/components/schemas/Bigquery"
       required:
         - id
         - name
@@ -133,7 +133,7 @@ components:
         owner:
           $ref: "#/components/schemas/Owner"
         bigquery:
-          $ref: "#/components/schemas/BigQuery"
+          $ref: "#/components/schemas/Bigquery"
       required:
         - name
         - pii
@@ -169,7 +169,7 @@ components:
       required:
         - team
 
-    BigQuery:
+    Bigquery:
       type: object
       properties:
         project_id:
@@ -306,7 +306,7 @@ paths:
       security:
         - cookieAuth: []
       description: "Return all BigQuery tables in gcp project"
-      operationId: "getBigQueryTables"
+      operationId: "getBigqueryTables"
       responses:
         "200":
           description: OK
@@ -315,7 +315,7 @@ paths:
               schema:
                 type: "array"
                 items:
-                  $ref: "#/components/schemas/BigQuery"
+                  $ref: "#/components/schemas/Bigquery"
 
   /collections:
     get:

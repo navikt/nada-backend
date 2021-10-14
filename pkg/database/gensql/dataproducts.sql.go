@@ -6,65 +6,92 @@ package gensql
 import (
 	"context"
 	"database/sql"
+	"encoding/json"
 
 	"github.com/google/uuid"
-	"github.com/lib/pq"
 )
 
 const createDataproduct = `-- name: CreateDataproduct :one
-INSERT INTO dataproducts (
-	"name",
-	"description",
-	"slug",
-	"repo",
-	"team",
-	"keywords"
-) VALUES (
-	$1,
-	$2,
-	$3,
-	$4,
-	$5,
-	$6
-) RETURNING id, name, description, slug, repo, created, last_modified, team, keywords, tsv_document
+INSERT INTO dataproducts ("name",
+                          "description",
+                          "pii",
+                          "type")
+VALUES ($1,
+        $2,
+        $3,
+        $4)
+RETURNING id, name, description, pii, created, last_modified, type, tsv_document
 `
 
 type CreateDataproductParams struct {
 	Name        string
 	Description sql.NullString
-	Slug        string
-	Repo        sql.NullString
-	Team        string
-	Keywords    []string
+	Pii         bool
+	Type        Datasource
 }
 
 func (q *Queries) CreateDataproduct(ctx context.Context, arg CreateDataproductParams) (Dataproduct, error) {
 	row := q.db.QueryRowContext(ctx, createDataproduct,
 		arg.Name,
 		arg.Description,
-		arg.Slug,
-		arg.Repo,
-		arg.Team,
-		pq.Array(arg.Keywords),
+		arg.Pii,
+		arg.Type,
 	)
 	var i Dataproduct
 	err := row.Scan(
 		&i.ID,
 		&i.Name,
 		&i.Description,
-		&i.Slug,
-		&i.Repo,
+		&i.Pii,
 		&i.Created,
 		&i.LastModified,
-		&i.Team,
-		pq.Array(&i.Keywords),
+		&i.Type,
 		&i.TsvDocument,
 	)
 	return i, err
 }
 
+const createDatasourceBigquery = `-- name: CreateDatasourceBigquery :one
+INSERT INTO datasource_bigquery ("dataproduct_id",
+                                 "project_id",
+                                 "dataset",
+                                 "table_name")
+VALUES ($1,
+        $2,
+        $3,
+        $4)
+RETURNING dataproduct_id, project_id, dataset, table_name, schema
+`
+
+type CreateDatasourceBigqueryParams struct {
+	DataproductID uuid.UUID
+	ProjectID     string
+	Dataset       string
+	TableName     string
+}
+
+func (q *Queries) CreateDatasourceBigquery(ctx context.Context, arg CreateDatasourceBigqueryParams) (DatasourceBigquery, error) {
+	row := q.db.QueryRowContext(ctx, createDatasourceBigquery,
+		arg.DataproductID,
+		arg.ProjectID,
+		arg.Dataset,
+		arg.TableName,
+	)
+	var i DatasourceBigquery
+	err := row.Scan(
+		&i.DataproductID,
+		&i.ProjectID,
+		&i.Dataset,
+		&i.TableName,
+		&i.Schema,
+	)
+	return i, err
+}
+
 const deleteDataproduct = `-- name: DeleteDataproduct :exec
-DELETE FROM dataproducts WHERE id = $1
+DELETE
+FROM dataproducts
+WHERE id = $1
 `
 
 func (q *Queries) DeleteDataproduct(ctx context.Context, id uuid.UUID) error {
@@ -73,7 +100,9 @@ func (q *Queries) DeleteDataproduct(ctx context.Context, id uuid.UUID) error {
 }
 
 const getDataproduct = `-- name: GetDataproduct :one
-SELECT id, name, description, slug, repo, created, last_modified, team, keywords, tsv_document FROM dataproducts WHERE id = $1
+SELECT id, name, description, pii, created, last_modified, type, tsv_document
+FROM dataproducts
+WHERE id = $1
 `
 
 func (q *Queries) GetDataproduct(ctx context.Context, id uuid.UUID) (Dataproduct, error) {
@@ -83,19 +112,20 @@ func (q *Queries) GetDataproduct(ctx context.Context, id uuid.UUID) (Dataproduct
 		&i.ID,
 		&i.Name,
 		&i.Description,
-		&i.Slug,
-		&i.Repo,
+		&i.Pii,
 		&i.Created,
 		&i.LastModified,
-		&i.Team,
-		pq.Array(&i.Keywords),
+		&i.Type,
 		&i.TsvDocument,
 	)
 	return i, err
 }
 
 const getDataproducts = `-- name: GetDataproducts :many
-SELECT id, name, description, slug, repo, created, last_modified, team, keywords, tsv_document FROM dataproducts ORDER BY last_modified DESC LIMIT $2 OFFSET $1
+SELECT id, name, description, pii, created, last_modified, type, tsv_document
+FROM dataproducts
+ORDER BY last_modified DESC
+LIMIT $2 OFFSET $1
 `
 
 type GetDataproductsParams struct {
@@ -116,12 +146,10 @@ func (q *Queries) GetDataproducts(ctx context.Context, arg GetDataproductsParams
 			&i.ID,
 			&i.Name,
 			&i.Description,
-			&i.Slug,
-			&i.Repo,
+			&i.Pii,
 			&i.Created,
 			&i.LastModified,
-			&i.Team,
-			pq.Array(&i.Keywords),
+			&i.Type,
 			&i.TsvDocument,
 		); err != nil {
 			return nil, err
@@ -137,48 +165,74 @@ func (q *Queries) GetDataproducts(ctx context.Context, arg GetDataproductsParams
 	return items, nil
 }
 
+const getDatasourceBigquery = `-- name: GetDatasourceBigquery :one
+SELECT dataproduct_id, project_id, dataset, table_name, schema
+FROM datasource_bigquery
+WHERE dataproduct_id = $1
+`
+
+func (q *Queries) GetDatasourceBigquery(ctx context.Context, dataproductID uuid.UUID) (DatasourceBigquery, error) {
+	row := q.db.QueryRowContext(ctx, getDatasourceBigquery, dataproductID)
+	var i DatasourceBigquery
+	err := row.Scan(
+		&i.DataproductID,
+		&i.ProjectID,
+		&i.Dataset,
+		&i.TableName,
+		&i.Schema,
+	)
+	return i, err
+}
+
 const updateDataproduct = `-- name: UpdateDataproduct :one
-UPDATE dataproducts SET
-	"name" = $1,
-	"description" = $2,
-	"slug" = $3,
-	"repo" = $4,
-	"team" = (SELECT team FROM dataproducts dp WHERE dp.id = $5),
-	"keywords" = $6
-WHERE id = $5
-RETURNING id, name, description, slug, repo, created, last_modified, team, keywords, tsv_document
+UPDATE dataproducts
+SET "name"        = $1,
+    "description" = $2,
+    "pii"         = $3
+WHERE id = $4
+RETURNING id, name, description, pii, created, last_modified, type, tsv_document
 `
 
 type UpdateDataproductParams struct {
 	Name        string
 	Description sql.NullString
-	Slug        string
-	Repo        sql.NullString
+	Pii         bool
 	ID          uuid.UUID
-	Keywords    []string
 }
 
 func (q *Queries) UpdateDataproduct(ctx context.Context, arg UpdateDataproductParams) (Dataproduct, error) {
 	row := q.db.QueryRowContext(ctx, updateDataproduct,
 		arg.Name,
 		arg.Description,
-		arg.Slug,
-		arg.Repo,
+		arg.Pii,
 		arg.ID,
-		pq.Array(arg.Keywords),
 	)
 	var i Dataproduct
 	err := row.Scan(
 		&i.ID,
 		&i.Name,
 		&i.Description,
-		&i.Slug,
-		&i.Repo,
+		&i.Pii,
 		&i.Created,
 		&i.LastModified,
-		&i.Team,
-		pq.Array(&i.Keywords),
+		&i.Type,
 		&i.TsvDocument,
 	)
 	return i, err
+}
+
+const updateDatasourceBigquerySchema = `-- name: UpdateDatasourceBigquerySchema :exec
+UPDATE datasource_bigquery
+SET "schema" = $1
+WHERE dataproduct_id = $2
+`
+
+type UpdateDatasourceBigquerySchemaParams struct {
+	Schema        json.RawMessage
+	DataproductID uuid.UUID
+}
+
+func (q *Queries) UpdateDatasourceBigquerySchema(ctx context.Context, arg UpdateDatasourceBigquerySchemaParams) error {
+	_, err := q.db.ExecContext(ctx, updateDatasourceBigquerySchema, arg.Schema, arg.DataproductID)
+	return err
 }

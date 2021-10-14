@@ -5,12 +5,42 @@ package gensql
 import (
 	"database/sql"
 	"encoding/json"
+	"fmt"
 	"time"
 
 	"github.com/google/uuid"
 )
 
+type Datasource string
+
+const (
+	DatasourceBigquery Datasource = "bigquery"
+)
+
+func (e *Datasource) Scan(src interface{}) error {
+	switch s := src.(type) {
+	case []byte:
+		*e = Datasource(s)
+	case string:
+		*e = Datasource(s)
+	default:
+		return fmt.Errorf("unsupported scan type for Datasource: %T", src)
+	}
+	return nil
+}
+
 type Dataproduct struct {
+	ID           uuid.UUID
+	Name         string
+	Description  sql.NullString
+	Pii          bool
+	Created      time.Time
+	LastModified time.Time
+	Type         Datasource
+	TsvDocument  interface{}
+}
+
+type DataproductCollection struct {
 	ID           uuid.UUID
 	Name         string
 	Description  sql.NullString
@@ -23,24 +53,10 @@ type Dataproduct struct {
 	TsvDocument  interface{}
 }
 
-type Dataset struct {
-	ID            uuid.UUID
+type DatasourceBigquery struct {
 	DataproductID uuid.UUID
-	Name          string
-	Description   sql.NullString
-	Pii           bool
-	Created       time.Time
-	LastModified  time.Time
 	ProjectID     string
 	Dataset       string
 	TableName     string
-	Type          string
-	TsvDocument   interface{}
-}
-
-type DatasetMetadatum struct {
-	DatasetID    uuid.UUID
-	Created      time.Time
-	LastModified time.Time
-	Schema       json.RawMessage
+	Schema        json.RawMessage
 }

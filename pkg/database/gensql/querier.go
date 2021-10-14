@@ -10,20 +10,20 @@ import (
 
 type Querier interface {
 	CreateDataproduct(ctx context.Context, arg CreateDataproductParams) (Dataproduct, error)
-	CreateDataset(ctx context.Context, arg CreateDatasetParams) (Dataset, error)
+	CreateDataproductCollection(ctx context.Context, arg CreateDataproductCollectionParams) (DataproductCollection, error)
+	CreateDatasourceBigquery(ctx context.Context, arg CreateDatasourceBigqueryParams) (DatasourceBigquery, error)
 	DeleteDataproduct(ctx context.Context, id uuid.UUID) error
-	DeleteDataset(ctx context.Context, id uuid.UUID) error
+	DeleteDataproductCollection(ctx context.Context, id uuid.UUID) error
 	GetDataproduct(ctx context.Context, id uuid.UUID) (Dataproduct, error)
+	GetDataproductCollection(ctx context.Context, id uuid.UUID) (DataproductCollection, error)
+	GetDataproductCollections(ctx context.Context, arg GetDataproductCollectionsParams) ([]DataproductCollection, error)
 	GetDataproducts(ctx context.Context, arg GetDataproductsParams) ([]Dataproduct, error)
-	GetDataset(ctx context.Context, id uuid.UUID) (Dataset, error)
-	GetDatasetMetadata(ctx context.Context, datasetID uuid.UUID) (DatasetMetadatum, error)
-	GetDatasets(ctx context.Context, arg GetDatasetsParams) ([]Dataset, error)
-	GetDatasetsForDataproduct(ctx context.Context, dataproductID uuid.UUID) ([]GetDatasetsForDataproductRow, error)
+	GetDatasourceBigquery(ctx context.Context, dataproductID uuid.UUID) (DatasourceBigquery, error)
+	SearchDataproductCollections(ctx context.Context, arg SearchDataproductCollectionsParams) ([]DataproductCollection, error)
 	SearchDataproducts(ctx context.Context, arg SearchDataproductsParams) ([]Dataproduct, error)
-	SearchDatasets(ctx context.Context, arg SearchDatasetsParams) ([]Dataset, error)
 	UpdateDataproduct(ctx context.Context, arg UpdateDataproductParams) (Dataproduct, error)
-	UpdateDataset(ctx context.Context, arg UpdateDatasetParams) (Dataset, error)
-	WriteDatasetMetadata(ctx context.Context, arg WriteDatasetMetadataParams) error
+	UpdateDataproductCollection(ctx context.Context, arg UpdateDataproductCollectionParams) (DataproductCollection, error)
+	UpdateDatasourceBigquerySchema(ctx context.Context, arg UpdateDatasourceBigquerySchemaParams) error
 }
 
 var _ Querier = (*Queries)(nil)

@@ -9,25 +9,25 @@ import (
 	"github.com/lib/pq"
 )
 
-const searchDataproducts = `-- name: SearchDataproducts :many
-SELECT id, name, description, slug, repo, created, last_modified, team, keywords, tsv_document FROM "dataproducts" WHERE "tsv_document" @@ websearch_to_tsquery('norwegian', $1) LIMIT $3 OFFSET $2
+const searchDataproductCollections = `-- name: SearchDataproductCollections :many
+SELECT id, name, description, slug, repo, created, last_modified, team, keywords, tsv_document FROM "dataproduct_collections" WHERE "tsv_document" @@ websearch_to_tsquery('norwegian', $1) LIMIT $3 OFFSET $2
 `
 
-type SearchDataproductsParams struct {
+type SearchDataproductCollectionsParams struct {
 	Query  string
 	Offset int32
 	Limit  int32
 }
 
-func (q *Queries) SearchDataproducts(ctx context.Context, arg SearchDataproductsParams) ([]Dataproduct, error) {
-	rows, err := q.db.QueryContext(ctx, searchDataproducts, arg.Query, arg.Offset, arg.Limit)
+func (q *Queries) SearchDataproductCollections(ctx context.Context, arg SearchDataproductCollectionsParams) ([]DataproductCollection, error) {
+	rows, err := q.db.QueryContext(ctx, searchDataproductCollections, arg.Query, arg.Offset, arg.Limit)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
-	items := []Dataproduct{}
+	items := []DataproductCollection{}
 	for rows.Next() {
-		var i Dataproduct
+		var i DataproductCollection
 		if err := rows.Scan(
 			&i.ID,
 			&i.Name,
@@ -53,36 +53,32 @@ func (q *Queries) SearchDataproducts(ctx context.Context, arg SearchDataproducts
 	return items, nil
 }
 
-const searchDatasets = `-- name: SearchDatasets :many
-SELECT id, dataproduct_id, name, description, pii, created, last_modified, project_id, dataset, table_name, type, tsv_document FROM "datasets" WHERE "tsv_document" @@ websearch_to_tsquery('norwegian', $1) LIMIT $3 OFFSET $2
+const searchDataproducts = `-- name: SearchDataproducts :many
+SELECT id, name, description, pii, created, last_modified, type, tsv_document FROM "dataproducts" WHERE "tsv_document" @@ websearch_to_tsquery('norwegian', $1) LIMIT $3 OFFSET $2
 `
 
-type SearchDatasetsParams struct {
+type SearchDataproductsParams struct {
 	Query  string
 	Offset int32
 	Limit  int32
 }
 
-func (q *Queries) SearchDatasets(ctx context.Context, arg SearchDatasetsParams) ([]Dataset, error) {
-	rows, err := q.db.QueryContext(ctx, searchDatasets, arg.Query, arg.Offset, arg.Limit)
+func (q *Queries) SearchDataproducts(ctx context.Context, arg SearchDataproductsParams) ([]Dataproduct, error) {
+	rows, err := q.db.QueryContext(ctx, searchDataproducts, arg.Query, arg.Offset, arg.Limit)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
-	items := []Dataset{}
+	items := []Dataproduct{}
 	for rows.Next() {
-		var i Dataset
+		var i Dataproduct
 		if err := rows.Scan(
 			&i.ID,
-			&i.DataproductID,
 			&i.Name,
 			&i.Description,
 			&i.Pii,
 			&i.Created,
 			&i.LastModified,
-			&i.ProjectID,
-			&i.Dataset,
-			&i.TableName,
 			&i.Type,
 			&i.TsvDocument,
 		); err != nil {
