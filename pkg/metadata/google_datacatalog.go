@@ -3,18 +3,13 @@ package metadata
 import (
 	"context"
 	"fmt"
+	"github.com/navikt/nada-backend/pkg/database/gensql"
 	"strings"
 
 	datacatalog "cloud.google.com/go/datacatalog/apiv1"
-	"github.com/navikt/nada-backend/pkg/openapi"
 	"google.golang.org/api/iterator"
 	datacatalogpb "google.golang.org/genproto/googleapis/cloud/datacatalog/v1"
 )
-
-//type CatalogClient interface {
-//	GetSchema() (Schema, error)
-//	GetUserBQAssets(user string) struct{}
-//}
 
 type Datacatalog struct {
 	client datacatalogwrapper
@@ -43,7 +38,7 @@ func (c *Datacatalog) Close() error {
 	return c.client.Close()
 }
 
-func (c *Datacatalog) GetDatasets(ctx context.Context, projectID string) ([]openapi.BigQuery, error) {
+func (c *Datacatalog) GetDatasets(ctx context.Context, projectID string) ([]gensql.DatasourceBigquery, error) {
 	results, err := c.client.SearchCatalog(ctx, &datacatalogpb.SearchCatalogRequest{
 		Scope: &datacatalogpb.SearchCatalogRequest_Scope{
 			IncludeProjectIds: []string{projectID},
@@ -54,7 +49,7 @@ func (c *Datacatalog) GetDatasets(ctx context.Context, projectID string) ([]open
 		return nil, err
 	}
 
-	ret := []openapi.BigQuery{}
+	ret := []gensql.DatasourceBigquery{}
 
 	for _, result := range results {
 		parts := strings.Split(result.GetLinkedResource(), "/")
@@ -63,18 +58,18 @@ func (c *Datacatalog) GetDatasets(ctx context.Context, projectID string) ([]open
 		}
 		dataset := parts[6]
 		table := parts[8]
-		ret = append(ret, openapi.BigQuery{
-			ProjectId: projectID,
+		ret = append(ret, gensql.DatasourceBigquery{
+			ProjectID: projectID,
 			Dataset:   dataset,
-			Table:     table,
+			TableName: table,
 		})
 	}
 
 	return ret, nil
 }
 
-func (c *Datacatalog) GetDatasetSchema(ctx context.Context, ds openapi.BigQuery) (Schema, error) {
-	resourceURI := fmt.Sprintf("//bigquery.googleapis.com/projects/%v/datasets/%v/tables/%v", ds.ProjectId, ds.Dataset, ds.Table)
+func (c *Datacatalog) GetDatasetSchema(ctx context.Context, ds gensql.DatasourceBigquery) (Schema, error) {
+	resourceURI := fmt.Sprintf("//bigquery.googleapis.com/projects/%v/datasets/%v/tables/%v", ds.ProjectID, ds.Dataset, ds.TableName)
 	req := &datacatalogpb.LookupEntryRequest{
 		TargetName: &datacatalogpb.LookupEntryRequest_LinkedResource{
 			LinkedResource: resourceURI,

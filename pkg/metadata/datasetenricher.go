@@ -5,10 +5,10 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"math"
+	"github.com/google/uuid"
+	"github.com/navikt/nada-backend/pkg/database/gensql"
 	"time"
 
-	"github.com/navikt/nada-backend/pkg/openapi"
 	"github.com/sirupsen/logrus"
 )
 
@@ -28,12 +28,12 @@ func (e errorList) Error() string {
 }
 
 type Datacataloger interface {
-	GetDatasetSchema(ctx context.Context, ds openapi.BigQuery) (Schema, error)
+	GetDatasetSchema(ctx context.Context, ds gensql.DatasourceBigquery) (Schema, error)
 }
 
 type Metadatastorer interface {
-	GetDatasets(ctx context.Context, limit int, offset int) ([]*openapi.Dataset, error)
-	WriteDatasetMetadata(ctx context.Context, dataset_id string, schema json.RawMessage) error
+	GetBigqueryDatasources(ctx context.Context) ([]gensql.DatasourceBigquery, error)
+	UpdateBigqueryDatasource(ctx context.Context, id uuid.UUID, schema json.RawMessage) error
 }
 
 func New(datacatalogClient Datacataloger, repo Metadatastorer, log *logrus.Entry) *DatasetEnricher {
@@ -69,7 +69,7 @@ func (d *DatasetEnricher) Run(ctx context.Context, frequency time.Duration) {
 }
 
 func (d *DatasetEnricher) syncMetadata(ctx context.Context) error {
-	datasets, err := d.repo.GetDatasets(ctx, math.MaxInt32, 0)
+	datasets, err := d.repo.GetBigqueryDatasources(ctx)
 	if err != nil {
 		return fmt.Errorf("getting datasets: %w", err)
 	}
@@ -77,7 +77,7 @@ func (d *DatasetEnricher) syncMetadata(ctx context.Context) error {
 	var errs errorList
 
 	for _, ds := range datasets {
-		schema, err := d.datacatalogClient.GetDatasetSchema(ctx, ds.Bigquery)
+		schema, err := d.datacatalogClient.GetDatasetSchema(ctx, ds)
 		if err != nil {
 			errs = append(errs, fmt.Errorf("getting dataset schema: %w", err))
 			continue
@@ -89,7 +89,7 @@ func (d *DatasetEnricher) syncMetadata(ctx context.Context) error {
 			continue
 		}
 
-		if err := d.repo.WriteDatasetMetadata(ctx, ds.Id, schemaJSON); err != nil {
+		if err := d.repo.UpdateBigqueryDatasource(ctx, ds.DataproductID, schemaJSON); err != nil {
 			errs = append(errs, fmt.Errorf("writing metadata to database: %w", err))
 			continue
 		}

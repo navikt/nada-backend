@@ -174,13 +174,13 @@ components:
       properties:
         project_id:
           type: string
-        dataproduct:
+        dataset:
           type: string
         table:
           type: string
       required:
         - project_id
-        - dataproduct
+        - dataset
         - table
 
     UserInfo:

@@ -14,7 +14,6 @@ DELETE
 FROM dataproducts
 WHERE id = @id;
 
-
 -- name: CreateDataproduct :one
 INSERT INTO dataproducts ("name",
                           "description",
@@ -34,12 +33,16 @@ SET "name"        = @name,
 WHERE id = @id
 RETURNING *;
 
--- name: GetDatasourceBigquery :one
+-- name: GetBigqueryDatasource :one
 SELECT *
 FROM datasource_bigquery
 WHERE dataproduct_id = @dataproduct_id;
 
--- name: CreateDatasourceBigquery :one
+-- name: GetBigqueryDatasources :many
+SELECT *
+FROM datasource_bigquery;
+
+-- name: CreateBigqueryDatasource :one
 INSERT INTO datasource_bigquery ("dataproduct_id",
                                  "project_id",
                                  "dataset",
@@ -50,7 +53,7 @@ VALUES (@dataproduct_id,
         @table_name)
 RETURNING *;
 
--- name: UpdateDatasourceBigquerySchema :exec
+-- name: UpdateBigqueryDatasourceSchema :exec
 UPDATE datasource_bigquery
 SET "schema" = @schema
 WHERE dataproduct_id = @dataproduct_id;

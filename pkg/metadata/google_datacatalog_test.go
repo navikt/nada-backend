@@ -2,19 +2,19 @@ package metadata
 
 import (
 	"context"
+	"github.com/navikt/nada-backend/pkg/database/gensql"
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
-	"github.com/navikt/nada-backend/pkg/openapi"
 	datacatalogpb "google.golang.org/genproto/googleapis/cloud/datacatalog/v1"
 )
 
 func TestGoogleDatacatalog(t *testing.T) {
-	expected := []openapi.BigQuery{
+	expected := []gensql.DatasourceBigquery{
 		{
-			ProjectId: "project_id",
+			ProjectID: "project_id",
 			Dataset:   "mydataset",
-			Table:     "mytable",
+			TableName: "mytable",
 		},
 	}
 	dcc := &googleMockClient{

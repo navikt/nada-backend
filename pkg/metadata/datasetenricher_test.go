@@ -3,21 +3,24 @@ package metadata
 import (
 	"context"
 	"encoding/json"
+	"github.com/google/uuid"
+	"github.com/navikt/nada-backend/pkg/database/gensql"
 	"io/ioutil"
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
-	"github.com/navikt/nada-backend/pkg/openapi"
 	"github.com/sirupsen/logrus"
 )
 
 func TestDatasetEnricher(t *testing.T) {
+	expectedUpdates := []uuid.UUID{uuid.New(), uuid.New(), uuid.New(), uuid.New()}
+
 	datastorer := &metadatastorer{
-		datasets: []*openapi.Dataset{
-			{Id: "dataset_1"},
-			{Id: "dataset_2"},
-			{Id: "dataset_3"},
-			{Id: "dataset_4"},
+		ds: []gensql.DatasourceBigquery{
+			{DataproductID: expectedUpdates[0]},
+			{DataproductID: expectedUpdates[1]},
+			{DataproductID: expectedUpdates[2]},
+			{DataproductID: expectedUpdates[3]},
 		},
 	}
 	datacatalog := &datacatalogMock{}
@@ -28,7 +31,6 @@ func TestDatasetEnricher(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	expectedUpdates := []string{"dataset_1", "dataset_2", "dataset_3", "dataset_4"}
 	if !cmp.Equal(datastorer.writtenIDs, expectedUpdates) {
 		t.Error(cmp.Diff(datastorer.writtenIDs, expectedUpdates))
 	}
@@ -39,7 +41,7 @@ type datacatalogMock struct {
 	err    error
 }
 
-func (d *datacatalogMock) GetDatasetSchema(ctx context.Context, ds openapi.BigQuery) (Schema, error) {
+func (d *datacatalogMock) GetDatasetSchema(ctx context.Context, ds gensql.DatasourceBigquery) (Schema, error) {
 	if d.err != nil {
 		return Schema{}, d.err
 	}
@@ -47,15 +49,15 @@ func (d *datacatalogMock) GetDatasetSchema(ctx context.Context, ds openapi.BigQu
 }
 
 type metadatastorer struct {
-	datasets   []*openapi.Dataset
-	writtenIDs []string
+	ds         []gensql.DatasourceBigquery
+	writtenIDs []uuid.UUID
 }
 
-func (m *metadatastorer) GetDatasets(ctx context.Context, limit int, offset int) ([]*openapi.Dataset, error) {
-	return m.datasets, nil
+func (m *metadatastorer) GetBigqueryDatasources(ctx context.Context) ([]gensql.DatasourceBigquery, error) {
+	return m.ds, nil
 }
 
-func (m *metadatastorer) WriteDatasetMetadata(ctx context.Context, datasetID string, schema json.RawMessage) error {
-	m.writtenIDs = append(m.writtenIDs, datasetID)
+func (m *metadatastorer) UpdateBigqueryDatasource(ctx context.Context, id uuid.UUID, schema json.RawMessage) error {
+	m.writtenIDs = append(m.writtenIDs, id)
 	return nil
 }

@@ -1,5 +1,5 @@
 -- +goose Up
-CREATE TYPE datasource AS ENUM ('bigquery');
+CREATE TYPE datasource_type AS ENUM ('bigquery');
 
 CREATE TABLE dataproducts
 (
@@ -9,7 +9,7 @@ CREATE TABLE dataproducts
     "pii"           BOOLEAN     NOT NULL,
     "created"       TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     "last_modified" TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-    "type"          datasource  NOT NULL,
+    "type"          datasource_type  NOT NULL,
     "tsv_document"  tsvector GENERATED ALWAYS AS (
                                 to_tsvector('norwegian', "name")
                                 || to_tsvector('norwegian', coalesce("description", ''))
