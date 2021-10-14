@@ -10,11 +10,11 @@ servers:
 components:
   securitySchemes:
     cookieAuth:
-      type: token
+      type: apiKey
       in: cookie
       name: jwt
   schemas:
-    Dataproduct:
+    DataproductCollection:
       type: object
       properties:
         id:
@@ -39,10 +39,10 @@ components:
           type: array
           items:
             type: string
-        datasets:
+        dataproducts:
           type: array
           items:
-            $ref: "#/components/schemas/DatasetSummary"
+            $ref: "#/components/schemas/DataproductSummary"
       required:
         - id
         - name
@@ -50,52 +50,9 @@ components:
         - owner
         - created
         - last_modified
-        - datasets
+        - dataproducts
 
-    DatasetSummary:
-      type: object
-      properties:
-        id:
-          type: string
-        name:
-          type: string
-        type:
-          $ref: "#/components/schemas/DatasetType"
-      required:
-        - id
-        - name
-        - type
-
-    DatasetType:
-      type: string
-      enum:
-        - bigquery
-
-    Owner:
-      type: object
-      properties:
-        team:
-          type: string
-        teamkatalogen:
-          type: string
-      required:
-        - team
-
-    BigQuery:
-      type: object
-      properties:
-        project_id:
-          type: string
-        dataset:
-          type: string
-        table:
-          type: string
-      required:
-        - project_id
-        - dataset
-        - table
-
-    NewDataproduct:
+    NewDataproductCollection:
       type: object
       properties:
         name:
@@ -116,7 +73,7 @@ components:
         - name
         - owner
 
-    UpdateDataproduct:
+    UpdateDataproductCollection:
       type: object
       properties:
         name:
@@ -134,6 +91,98 @@ components:
       required:
         - name
 
+    Dataproduct:
+      type: object
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        description:
+          type: string
+        slug:
+          type: string
+        repo:
+          type: string
+        pii:
+          type: boolean
+        owner:
+          $ref: "#/components/schemas/Owner"
+        type:
+          $ref: "#/components/schemas/DataproductType"
+        dataSource:
+          oneOf:
+            - $ref: "#/components/schemas/BigQuery"
+      required:
+        - id
+        - name
+        - type
+        - pii
+        - owner
+        - bigquery
+
+    NewDataproduct:
+      type: object
+      properties:
+        name:
+          type: string
+        description:
+          type: string
+        pii:
+          type: boolean
+        owner:
+          $ref: "#/components/schemas/Owner"
+        bigquery:
+          $ref: "#/components/schemas/BigQuery"
+      required:
+        - name
+        - pii
+        - owner
+        - bigquery # Update this to a oneOf when we have more than bigquery
+
+    DataproductSummary:
+      type: object
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        type:
+          $ref: "#/components/schemas/DataproductType"
+      required:
+        - id
+        - name
+        - type
+
+    DataproductType:
+      type: string
+      enum:
+        - bigquery
+
+    Owner:
+      type: object
+      properties:
+        team:
+          type: string
+        teamkatalogen:
+          type: string
+      required:
+        - team
+
+    BigQuery:
+      type: object
+      properties:
+        project_id:
+          type: string
+        dataproduct:
+          type: string
+        table:
+          type: string
+      required:
+        - project_id
+        - dataproduct
+        - table
+
     UserInfo:
       type: object
       properties:
@@ -149,50 +198,6 @@ components:
         - name
         - email
         - teams
-
-    Dataset:
-      type: object
-      properties:
-        id:
-          type: string
-        dataproduct_id:
-          type: string
-        name:
-          type: string
-        description:
-          type: string
-        pii:
-          type: boolean
-        type:
-          $ref: "#/components/schemas/DatasetType"
-        bigquery:
-          $ref: "#/components/schemas/BigQuery"
-      required:
-        - id
-        - name
-        - type
-        - pii
-        - dataproduct_id
-        - bigquery
-
-    NewDataset:
-      type: object
-      properties:
-        name:
-          type: string
-        description:
-          type: string
-        dataproduct_id:
-          type: string
-        pii:
-          type: boolean
-        bigquery:
-          $ref: "#/components/schemas/BigQuery"
-      required:
-        - name
-        - dataproduct_id
-        - pii
-        - bigquery # Update this to a oneOf when we have more than bigquery
 
     TableColumn:
       type: object
@@ -211,18 +216,17 @@ components:
         - mode
         - description
 
-    DatasetMetadata:
+    DataproductMetadata:
       type: object
       properties:
-        dataset_id:
+        dataproduct_id:
           type: string
         schema:
           type: array
           items:
             $ref: "#/components/schemas/TableColumn"
       required:
-        - id
-        - dataset_id
+        - dataproduct_id
         - schema
 
     SearchResultEntry:
@@ -248,8 +252,8 @@ components:
     SearchResultType:
       type: string
       enum:
-        - dataset
         - dataproduct
+        - DataproductCollection
         - datapackage
 
 paths:
@@ -267,7 +271,7 @@ paths:
               schema:
                 $ref: "#/components/schemas/UserInfo"
 
-  /team/{id}/gcp_projects:
+  /teams/{id}/gcp_projects:
     parameters:
       - in: path
         name: id
@@ -313,10 +317,10 @@ paths:
                 items:
                   $ref: "#/components/schemas/BigQuery"
 
-  /dataproducts:
+  /collections:
     get:
-      description: "List all dataproducts"
-      operationId: "getDataproducts"
+      description: "List all DataproductCollections"
+      operationId: "getDataproductCollections"
       parameters:
         - in: "query"
           name: "limit"
@@ -336,7 +340,86 @@ paths:
               schema:
                 type: array
                 items:
-                  $ref: "#/components/schemas/Dataproduct"
+                  $ref: "#/components/schemas/DataproductCollection"
+    post:
+      security:
+        - cookieAuth: []
+      description: "Create a new DataproductCollection"
+      operationId: "createDataproductCollection"
+      requestBody:
+        content:
+          "application/json":
+            schema:
+              $ref: "#/components/schemas/NewDataproductCollection"
+      responses:
+        "201":
+          description: "Created successfully"
+          content:
+            "application/json":
+              schema:
+                $ref: "#/components/schemas/DataproductCollection"
+
+  /collections/{id}:
+    get:
+      description: "List a DataproductCollection with dataproducts"
+      operationId: "getDataproductCollection"
+      parameters:
+        - in: path
+          name: id
+          description: DataproductCollection ID
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: OK
+          content:
+            "application/json":
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/DataproductCollection"
+    delete:
+      security:
+        - cookieAuth: []
+      description: "Delete a DataproductCollection"
+      operationId: "deleteDataproductCollection"
+      parameters:
+        - in: path
+          name: id
+          description: DataproductCollection ID
+          required: true
+          schema:
+            type: string
+      responses:
+        "204":
+          description: "Deleted OK"
+    put:
+      security:
+        - cookieAuth: []
+      description: "Update a DataproductCollection"
+      operationId: "updateDataproductCollection"
+      parameters:
+        - in: path
+          name: id
+          description: DataproductCollection ID
+          required: true
+          schema:
+            type: string
+      requestBody:
+        content:
+          "application/json":
+            schema:
+              $ref: "#/components/schemas/UpdateDataproductCollection"
+      responses:
+        "200":
+          description: "Updated OK"
+          content:
+            "application/json":
+              schema:
+                $ref: "#/components/schemas/DataproductCollection"
+
+  /dataproducts:
     post:
       security:
         - cookieAuth: []
@@ -357,7 +440,7 @@ paths:
 
   /dataproducts/{id}:
     get:
-      description: "List a dataproduct with datasets"
+      description: "Get dataproduct"
       operationId: "getDataproduct"
       parameters:
         - in: path
@@ -372,24 +455,7 @@ paths:
           content:
             "application/json":
               schema:
-                type: array
-                items:
-                  $ref: "#/components/schemas/Dataproduct"
-    delete:
-      security:
-        - cookieAuth: []
-      description: "Delete a dataproduct"
-      operationId: "deleteDataproduct"
-      parameters:
-        - in: path
-          name: id
-          description: Dataproduct ID
-          required: true
-          schema:
-            type: string
-      responses:
-        "204":
-          description: "Deleted OK"
+                $ref: "#/components/schemas/Dataproduct"
     put:
       security:
         - cookieAuth: []
@@ -406,7 +472,7 @@ paths:
         content:
           "application/json":
             schema:
-              $ref: "#/components/schemas/UpdateDataproduct"
+              $ref: "#/components/schemas/NewDataproduct"
       responses:
         "200":
           description: "Updated OK"
@@ -414,77 +480,15 @@ paths:
             "application/json":
               schema:
                 $ref: "#/components/schemas/Dataproduct"
-
-  /datasets:
-    post:
-      security:
-        - cookieAuth: []
-      description: "Create a new dataset"
-      operationId: "createDataset"
-      requestBody:
-        content:
-          "application/json":
-            schema:
-              $ref: "#/components/schemas/NewDataset"
-      responses:
-        "201":
-          description: "Created successfully"
-          content:
-            "application/json":
-              schema:
-                $ref: "#/components/schemas/Dataset"
-
-  /datasets/{id}:
-    get:
-      description: "Get dataset"
-      operationId: "getDataset"
-      parameters:
-        - in: path
-          name: id
-          description: Dataset ID
-          required: true
-          schema:
-            type: string
-      responses:
-        "200":
-          description: OK
-          content:
-            "application/json":
-              schema:
-                $ref: "#/components/schemas/Dataset"
-    put:
-      security:
-        - cookieAuth: []
-      description: "Update a dataset"
-      operationId: "updateDataset"
-      parameters:
-        - in: path
-          name: id
-          description: Dataset ID
-          required: true
-          schema:
-            type: string
-      requestBody:
-        content:
-          "application/json":
-            schema:
-              $ref: "#/components/schemas/NewDataset"
-      responses:
-        "200":
-          description: "Updated OK"
-          content:
-            "application/json":
-              schema:
-                $ref: "#/components/schemas/Dataset"
     delete:
       security:
         - cookieAuth: []
-      description: "Delete a dataset"
-      operationId: "deleteDataset"
+      description: "Delete a dataproduct"
+      operationId: "deleteDataproduct"
       parameters:
         - in: path
           name: id
-          description: Dataset ID
+          description: Dataproduct ID
           required: true
           schema:
             type: string
@@ -492,14 +496,14 @@ paths:
         "204":
           description: "Deleted OK"
 
-  /datasets/{id}/metadata:
+  /dataproducts/{id}/metadata:
     get:
-      description: "Get dataset metadata"
-      operationId: "getDatasetMetadata"
+      description: "Get dataproduct metadata"
+      operationId: "getDataproductMetadata"
       parameters:
         - in: path
           name: id
-          description: Dataset ID
+          description: Dataproduct ID
           required: true
           schema:
             type: string
@@ -509,7 +513,7 @@ paths:
           content:
             "application/json":
               schema:
-                $ref: "#/components/schemas/DatasetMetadata"
+                $ref: "#/components/schemas/DataproductMetadata"
 
   /search:
     parameters:
