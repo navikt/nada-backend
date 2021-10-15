@@ -11,7 +11,7 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-type OutputFile struct {
+type TeamProjectIdMappingFile struct {
 	TeamProjectIdMapping OutputVariable `json:"team_projectid_mapping"`
 }
 
@@ -82,25 +82,27 @@ func contains(elem string, list []string) bool {
 }
 
 func (t *TeamProjectsUpdater) FetchTeamGoogleProjectsMapping(ctx context.Context) error {
-	devOutputFile, err := getOutputFile(ctx, t.devTeamProjectsURL, t.teamsToken)
+	devOutputFile, err := gcpFetchProjectMappings(ctx, t.devTeamProjectsURL, t.teamsToken)
 	if err != nil {
 		return err
 	}
-	prodOutputFile, err := getOutputFile(ctx, t.prodTeamProjectsURL, t.teamsToken)
+	prodOutputFile, err := gcpFetchProjectMappings(ctx, t.prodTeamProjectsURL, t.teamsToken)
 	if err != nil {
 		return err
 	}
 
 	t.lock.Lock()
 	defer t.lock.Unlock()
-	mergeInto(t.teamProjects, devOutputFile.TeamProjectIdMapping.Value)
-	mergeInto(t.teamProjects, prodOutputFile.TeamProjectIdMapping.Value)
+	newProjectsList := make(map[string][]string, 0)
+	loadTeamMappings(newProjectsList, devOutputFile.TeamProjectIdMapping.Value)
+	loadTeamMappings(newProjectsList, prodOutputFile.TeamProjectIdMapping.Value)
+	t.teamProjects = newProjectsList
 	log.Infof("Updated team projects mapping: %v teams", len(t.teamProjects))
 
 	return nil
 }
 
-func getOutputFile(ctx context.Context, url, token string) (*OutputFile, error) {
+func gcpFetchProjectMappings(ctx context.Context, url, token string) (*TeamProjectIdMappingFile, error) {
 	request, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
 	if err != nil {
 		return nil, fmt.Errorf("creating http request for getting terraform output file: %w", err)
@@ -112,18 +114,19 @@ func getOutputFile(ctx context.Context, url, token string) (*OutputFile, error) 
 		return nil, fmt.Errorf("performing http request, URL: %v: %w", url, err)
 	}
 
-	var outputFile OutputFile
+	var outputFile TeamProjectIdMappingFile
 
 	if err := json.NewDecoder(response.Body).Decode(&outputFile); err != nil {
-		return nil, fmt.Errorf("unmarshalling terraform output file: %w", err)
+		return nil, fmt.Errorf("unmarshalling output file: %w", err)
 	}
 
 	return &outputFile, nil
 }
 
-// Take a list of maps of teamName -> projectID, merges into map[teamName] = []gcpProjects.
-// FIXME: If a GCP project is removed from a team, this will not update result.
-func mergeInto(result map[string][]string, source []map[string]string) {
+// loadTeamMappings converts GCP format team/project mappings to our format.
+// It receives a list of maps of teamName -> projectID.
+// It merges and collates the list into a map[teamName] = []gcpProjects.
+func loadTeamMappings(result map[string][]string, source []map[string]string) {
 	for _, item := range source {
 		for teamName, projectID := range item {
 			if !contains(projectID, result[teamName]) {
