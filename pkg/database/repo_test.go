@@ -77,7 +77,7 @@ func TestRepo(t *testing.T) {
 			Table:     "table",
 		},
 		Owner: openapi.Owner{
-			Group: auth.MockUser.Groups[0],
+			Group: auth.MockUser.Groups[0].Name,
 		},
 	}
 

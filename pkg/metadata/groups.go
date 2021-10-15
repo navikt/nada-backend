@@ -5,19 +5,16 @@ import (
 	"fmt"
 	"io/ioutil"
 
-	"golang.org/x/oauth2"
 	"golang.org/x/oauth2/google"
 	admin "google.golang.org/api/admin/directory/v1"
-	"google.golang.org/api/cloudresourcemanager/v1"
-	"google.golang.org/api/option"
 )
 
 type GoogleGroups struct {
 	service *admin.Service
 }
 
-func NewGoogleGroups(ctx context.Context) (*GoogleGroups, error) {
-	jsonCredentials, err := ioutil.ReadFile("../../test-sa.json")
+func NewGoogleGroups(ctx context.Context, credentailFile, subject string) (*GoogleGroups, error) {
+	jsonCredentials, err := ioutil.ReadFile(credentailFile)
 	if err != nil {
 		return nil, fmt.Errorf("unable to read service account key file %s", err)
 	}
@@ -27,7 +24,7 @@ func NewGoogleGroups(ctx context.Context) (*GoogleGroups, error) {
 		return nil, fmt.Errorf("unable to parse service account key file to config: %s", err)
 	}
 
-	config.Subject = "johnny.horvi@nav.no"
+	config.Subject = subject
 	client := config.Client(ctx)
 
 	service, err := admin.New(client)
@@ -45,42 +42,31 @@ func NewGoogleGroups(ctx context.Context) (*GoogleGroups, error) {
 	}, nil
 }
 
-func (g *GoogleGroups) ForUser(ctx context.Context, email string) {
-	groups := []*admin.Group{}
-	err := g.service.Groups.List().UserKey(email).Pages(ctx, func(g *admin.Groups) error {
-		groups = append(groups, g.Groups...)
-		return nil
-	})
-	if err != nil {
-		panic(err)
-	}
-
-	for _, g := range groups {
-		fmt.Println(g.Name, g.Email)
-	}
+type Group struct {
+	Name  string
+	Email string
 }
 
-func (g *GoogleGroups) Projects(ctx context.Context, accessToken string) {
-	creds := &google.Credentials{
-		TokenSource: oauth2.StaticTokenSource(&oauth2.Token{
-			AccessToken: accessToken,
-			TokenType:   "Bearer",
-		}),
-	}
-	client, err := cloudresourcemanager.NewService(ctx, option.WithCredentials(creds))
-	if err != nil {
-		panic(err)
-	}
+type Groups []Group
 
-	fmt.Println("LIST PROJECTS")
+func (g Groups) Names() []string {
+	names := []string{}
+	for _, g := range g {
+		names = append(names, g.Name)
+	}
+	return names
+}
 
-	err = client.Projects.List().Pages(ctx, func(lpr *cloudresourcemanager.ListProjectsResponse) error {
-		for _, p := range lpr.Projects {
-			fmt.Println(p.Name)
+func (g *GoogleGroups) GroupsForUser(ctx context.Context, email string) (groups Groups, err error) {
+	err = g.service.Groups.List().UserKey(email).Pages(ctx, func(g *admin.Groups) error {
+		for _, grp := range g.Groups {
+			groups = append(groups, Group{
+				Name:  grp.Name,
+				Email: grp.Email,
+			})
 		}
 		return nil
 	})
-	if err != nil {
-		panic(err)
-	}
+
+	return groups, err
 }

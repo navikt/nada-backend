@@ -5,7 +5,6 @@ type Config struct {
 	DBConnectionDSN           string
 	LogLevel                  string
 	OAuth2                    OAuth2Config
-	TeamsURL                  string
 	DevTeamProjectsOutputURL  string
 	ProdTeamProjectsOutputURL string
 	TeamsToken                string
@@ -13,19 +12,19 @@ type Config struct {
 	CookieSecret              string
 	MockAuth                  bool
 	SkipMetadataSync          bool
+	ServiceAccountFile        string
+	GoogleAdminSubject        string
 }
 
 type OAuth2Config struct {
 	ClientID     string
 	ClientSecret string
-	TenantID     string
 }
 
 func DefaultConfig() Config {
 	return Config{
 		BindAddress:               ":8080",
 		LogLevel:                  "info",
-		TeamsURL:                  "https://raw.githubusercontent.com/navikt/teams/main/teams.json",
 		DevTeamProjectsOutputURL:  "https://raw.githubusercontent.com/nais/teams/master/gcp-projects/dev-output.json",
 		ProdTeamProjectsOutputURL: "https://raw.githubusercontent.com/nais/teams/master/gcp-projects/prod-output.json",
 	}

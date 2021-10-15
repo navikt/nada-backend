@@ -57,8 +57,8 @@ func (g *Google) Verify(ctx context.Context, rawIDToken string) (*oidc.IDToken, 
 	return g.provider.Verifier(&oidc.Config{ClientID: g.clientID}).Verify(ctx, rawIDToken)
 }
 
-func (g *Google) Middleware(teamsCache teamsCache) openapi.MiddlewareFunc {
-	return JWTValidatorMiddleware(g.provider.Verifier(&oidc.Config{ClientID: g.clientID}))
+func (g *Google) Middleware(groupsLister GroupsLister) openapi.MiddlewareFunc {
+	return newMiddleware(g.provider.Verifier(&oidc.Config{ClientID: g.clientID}), groupsLister).handle
 }
 
 // func (a *Google) Groups(client *http.Client) *GoogleGroups {

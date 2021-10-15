@@ -29,11 +29,9 @@ const (
 func init() {
 	flag.StringVar(&cfg.BindAddress, "bind-address", cfg.BindAddress, "Bind address")
 	flag.StringVar(&cfg.DBConnectionDSN, "db-connection-dsn", fmt.Sprintf("%v?sslmode=disable", getEnv("NAIS_DATABASE_NADA_BACKEND_NADA_URL", "postgres://postgres:postgres@127.0.0.1:5432/nada")), "database connection DSN")
+	flag.StringVar(&cfg.Hostname, "hostname", os.Getenv("HOSTNAME"), "Hostname the application is served from")
 	flag.StringVar(&cfg.OAuth2.ClientID, "oauth2-client-id", os.Getenv("AZURE_APP_CLIENT_ID"), "OAuth2 client ID")
 	flag.StringVar(&cfg.OAuth2.ClientSecret, "oauth2-client-secret", os.Getenv("AZURE_APP_CLIENT_SECRET"), "OAuth2 client secret")
-	flag.StringVar(&cfg.OAuth2.TenantID, "oauth2-tenant-id", os.Getenv("AZURE_APP_TENANT_ID"), "Azure tenant id")
-	flag.StringVar(&cfg.Hostname, "hostname", os.Getenv("HOSTNAME"), "Hostname the application is served from")
-	flag.StringVar(&cfg.TeamsURL, "teams-url", cfg.TeamsURL, "URL for json containing teams and UUIDs")
 	flag.StringVar(&cfg.ProdTeamProjectsOutputURL, "prod-team-projects-url", cfg.ProdTeamProjectsOutputURL, "URL for json containing prod team projects")
 	flag.StringVar(&cfg.DevTeamProjectsOutputURL, "dev-team-projects-url", cfg.DevTeamProjectsOutputURL, "URL for json containing dev team projects")
 	flag.StringVar(&cfg.TeamsToken, "teams-token", os.Getenv("GITHUB_READ_TOKEN"), "Token for accessing teams json")
@@ -41,6 +39,8 @@ func init() {
 	flag.StringVar(&cfg.CookieSecret, "cookie-secret", "", "Secret used when encrypting cookies")
 	flag.BoolVar(&cfg.MockAuth, "mock-auth", false, "Use mock authentication")
 	flag.BoolVar(&cfg.SkipMetadataSync, "skip-metadata-sync", false, "Skip metadata sync")
+	flag.StringVar(&cfg.GoogleAdminSubject, "google-admin-subject", "", "Subject to impersonate when accessing google admin apis")
+	flag.StringVar(&cfg.ServiceAccountFile, "service-account-file", "", "Service account file for accessing google admin apis")
 }
 
 func main() {
@@ -60,15 +60,17 @@ func main() {
 	teamProjectsMapping := &auth.MockTeamProjectsUpdater
 	var oauth2Config api.OAuth2
 	if !cfg.MockAuth {
-		teamsCache := auth.NewTeamsCache(cfg.TeamsURL, cfg.TeamsToken)
-		go teamsCache.Run(ctx, TeamsUpdateFrequency)
-
 		teamProjectsMapping = auth.NewTeamProjectsUpdater(cfg.DevTeamProjectsOutputURL, cfg.ProdTeamProjectsOutputURL, cfg.TeamsToken, http.DefaultClient)
 		go teamProjectsMapping.Run(ctx, TeamProjectsUpdateFrequency)
 
+		googleGroups, err := metadata.NewGoogleGroups(ctx, "./test-sa.json", "johnny.horvi@nav.no")
+		if err != nil {
+			log.Fatal(err)
+		}
+
 		gauth := auth.NewGoogle(cfg.OAuth2.ClientID, cfg.OAuth2.ClientSecret, cfg.Hostname)
 		oauth2Config = gauth
-		authenticatorMiddleware = gauth.Middleware(teamsCache)
+		authenticatorMiddleware = gauth.Middleware(googleGroups)
 	}
 
 	var gcp api.GCP

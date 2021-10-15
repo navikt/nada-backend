@@ -12,7 +12,7 @@ func (s *Server) GetGCPProjects(w http.ResponseWriter, r *http.Request, teamID s
 
 	found := false
 	for _, t := range user.Groups {
-		if t == teamID {
+		if t.Name == teamID {
 			found = true
 			break
 		}
