@@ -8,6 +8,9 @@ import (
 	"fmt"
 	"net/url"
 
+	log "github.com/sirupsen/logrus"
+	"github.com/tabbed/pqtype"
+
 	"github.com/google/uuid"
 	"github.com/navikt/nada-backend/pkg/database/gensql"
 	"github.com/navikt/nada-backend/pkg/openapi"
@@ -21,7 +24,13 @@ import (
 var embedMigrations embed.FS
 
 type Repo struct {
-	querier gensql.Querier
+	querier Querier
+	db      *sql.DB
+}
+
+type Querier interface {
+	gensql.Querier
+	WithTx(tx *sql.Tx) *gensql.Queries
 }
 
 func New(dbConnDSN string) (*Repo, error) {
@@ -38,6 +47,7 @@ func New(dbConnDSN string) (*Repo, error) {
 
 	return &Repo{
 		querier: gensql.New(db),
+		db:      db,
 	}, nil
 }
 
@@ -49,93 +59,68 @@ func slugify(maybeslug *string, fallback string) string {
 	return url.PathEscape(fallback)
 }
 
-func (r *Repo) CreateDataproduct(ctx context.Context, dp openapi.NewDataproduct) (*openapi.Dataproduct, error) {
+func (r *Repo) CreateDataproductCollection(ctx context.Context, dp openapi.NewDataproductCollection) (*openapi.DataproductCollection, error) {
 	var keywords []string
 	if dp.Keywords != nil {
 		keywords = *dp.Keywords
 	}
-	res, err := r.querier.CreateDataproduct(ctx, gensql.CreateDataproductParams{
+	res, err := r.querier.CreateDataproductCollection(ctx, gensql.CreateDataproductCollectionParams{
 		Name:        dp.Name,
 		Description: ptrToNullString(dp.Description),
 		Slug:        slugify(dp.Slug, dp.Name),
 		Repo:        ptrToNullString(dp.Repo),
-		Team:        dp.Owner.Team,
+		OwnerGroup:  dp.Owner.Group,
 		Keywords:    keywords,
 	})
 	if err != nil {
 		return nil, err
 	}
 
-	return dataproductFromSQL(res), nil
+	return dataproductCollectionFromSQL(res), nil
 }
 
-func (r *Repo) GetDatasets(ctx context.Context, limit, offset int) ([]*openapi.Dataset, error) {
-	datasets := []*openapi.Dataset{}
+func (r *Repo) GetDataproducts(ctx context.Context, limit, offset int) ([]*openapi.Dataproduct, error) {
+	datasets := []*openapi.Dataproduct{}
 
-	res, err := r.querier.GetDatasets(ctx, gensql.GetDatasetsParams{Limit: int32(limit), Offset: int32(offset)})
+	res, err := r.querier.GetDataproducts(ctx, gensql.GetDataproductsParams{Limit: int32(limit), Offset: int32(offset)})
 	if err != nil {
 		return nil, fmt.Errorf("getting datasets from database: %w", err)
 	}
 
 	for _, entry := range res {
-		datasets = append(datasets, datasetFromSQL(entry))
+		datasets = append(datasets, dataproductFromSQL(entry))
 	}
 
 	return datasets, nil
 }
 
-func (r *Repo) GetDataproducts(ctx context.Context, limit, offset int) ([]*openapi.Dataproduct, error) {
-	dataproducts := []*openapi.Dataproduct{}
+func (r *Repo) GetDataproductCollections(ctx context.Context, limit, offset int) ([]*openapi.DataproductCollection, error) {
+	dataproducts := []*openapi.DataproductCollection{}
 
-	res, err := r.querier.GetDataproducts(ctx, gensql.GetDataproductsParams{Limit: int32(limit), Offset: int32(offset)})
+	res, err := r.querier.GetDataproductCollections(ctx, gensql.GetDataproductCollectionsParams{Limit: int32(limit), Offset: int32(offset)})
 	if err != nil {
 		return nil, fmt.Errorf("getting dataproducts from database: %w", err)
 	}
 
 	for _, entry := range res {
-		dataproduct := dataproductFromSQL(entry)
-		if err := r.enrichDataproduct(ctx, entry.ID, dataproduct); err != nil {
-			return nil, err
-		}
+		dataproduct := dataproductCollectionFromSQL(entry)
 		dataproducts = append(dataproducts, dataproduct)
 	}
 
 	return dataproducts, nil
 }
 
-func (r *Repo) enrichDataproduct(ctx context.Context, id uuid.UUID, dp *openapi.Dataproduct) error {
-	datasets, err := r.querier.GetDatasetsForDataproduct(ctx, id)
-	if err != nil {
-		return fmt.Errorf("getting datasets for enriching dataproduct: %w", err)
-	}
-
-	// Initialize list to avoid JSON marshalling as "null"
-	dp.Datasets = make([]openapi.DatasetSummary, 0)
-
-	for _, v := range datasets {
-		dp.Datasets = append(dp.Datasets, openapi.DatasetSummary{
-			Id:   v.ID.String(),
-			Name: v.Name,
-			Type: openapi.DatasetType(v.Type),
-		})
-	}
-	return nil
-}
-
-func (r *Repo) GetDataproduct(ctx context.Context, id string) (*openapi.Dataproduct, error) {
+func (r *Repo) GetDataproductCollection(ctx context.Context, id string) (*openapi.DataproductCollection, error) {
 	uid, err := uuid.Parse(id)
 	if err != nil {
 		return nil, fmt.Errorf("parsing uuid: %w", err)
 	}
-	res, err := r.querier.GetDataproduct(ctx, uid)
+	res, err := r.querier.GetDataproductCollection(ctx, uid)
 	if err != nil {
 		return nil, fmt.Errorf("getting dataproduct from database: %w", err)
 	}
 
-	dp := dataproductFromSQL(res)
-	if err := r.enrichDataproduct(ctx, uid, dp); err != nil {
-		return nil, err
-	}
+	dp := dataproductCollectionFromSQL(res)
 
 	return dp, nil
 }
@@ -153,7 +138,11 @@ func (r *Repo) DeleteDataproduct(ctx context.Context, id string) error {
 	return nil
 }
 
-func (r *Repo) UpdateDataproduct(ctx context.Context, id string, new openapi.UpdateDataproduct) (*openapi.Dataproduct, error) {
+func (r *Repo) GetBigqueryDatasources(ctx context.Context) ([]gensql.DatasourceBigquery, error) {
+	return r.querier.GetBigqueryDatasources(ctx)
+}
+
+func (r *Repo) UpdateDataproductCollection(ctx context.Context, id string, new openapi.UpdateDataproductCollection) (*openapi.DataproductCollection, error) {
 	uid, err := uuid.Parse(id)
 	if err != nil {
 		return nil, fmt.Errorf("parsing uuid: %w", err)
@@ -164,13 +153,99 @@ func (r *Repo) UpdateDataproduct(ctx context.Context, id string, new openapi.Upd
 		keywords = *new.Keywords
 	}
 
+	res, err := r.querier.UpdateDataproductCollection(ctx, gensql.UpdateDataproductCollectionParams{
+		Name:        new.Name,
+		Description: ptrToNullString(new.Description),
+		ID:          uid,
+		Keywords:    keywords,
+	})
+	if err != nil {
+		return nil, fmt.Errorf("updating dataproduct in database: %w", err)
+	}
+
+	return dataproductCollectionFromSQL(res), nil
+}
+
+func (r *Repo) CreateDataproduct(ctx context.Context, dp openapi.NewDataproduct) (*openapi.Dataproduct, error) {
+	tx, err := r.db.Begin()
+	if err != nil {
+		return nil, err
+	}
+	querier := r.querier.WithTx(tx)
+	created, err := querier.CreateDataproduct(ctx, gensql.CreateDataproductParams{
+		Name:        dp.Name,
+		Description: ptrToNullString(dp.Description),
+		Pii:         dp.Pii,
+		Type:        "bigquery",
+		OwnerGroup:  dp.Owner.Group,
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	datasource, err := MapDatasource(dp.Datasource)
+	if err != nil {
+		return nil, err
+	}
+
+	_, err = querier.CreateBigqueryDatasource(ctx, gensql.CreateBigqueryDatasourceParams{
+		DataproductID: created.ID,
+		ProjectID:     datasource.ProjectId,
+		Dataset:       datasource.Dataset,
+		TableName:     datasource.Table,
+	})
+	if err != nil {
+		if err := tx.Rollback(); err != nil {
+			log.WithError(err).Error("Rolling back dataproduct and datasource_bigquery transaction")
+		}
+		return nil, err
+	}
+
+	if err := tx.Commit(); err != nil {
+		return nil, err
+	}
+
+	ret := dataproductFromSQL(created)
+	ret.Datasource = datasource
+	return ret, nil
+}
+
+func (r *Repo) GetDataproduct(ctx context.Context, id string) (*openapi.Dataproduct, error) {
+	uid, err := uuid.Parse(id)
+	if err != nil {
+		return nil, fmt.Errorf("parsing uuid: %w", err)
+	}
+	res, err := r.querier.GetDataproduct(ctx, uid)
+	if err != nil {
+		return nil, fmt.Errorf("getting dataproduct from database: %w", err)
+	}
+
+	bq, err := r.querier.GetBigqueryDatasource(ctx, res.ID)
+	if err != nil {
+		return nil, fmt.Errorf("getting bigquery datasource from database: %w", err)
+	}
+
+	ret := dataproductFromSQL(res)
+	ret.Datasource = openapi.Bigquery{
+		Dataset:   bq.Dataset,
+		ProjectId: bq.ProjectID,
+		Table:     bq.TableName,
+	}
+
+	return ret, nil
+}
+
+func (r *Repo) UpdateDataproduct(ctx context.Context, id string, new openapi.UpdateDataproduct) (*openapi.Dataproduct, error) {
+	uid, err := uuid.Parse(id)
+	if err != nil {
+		return nil, fmt.Errorf("parsing uuid: %w", err)
+	}
+
 	res, err := r.querier.UpdateDataproduct(ctx, gensql.UpdateDataproductParams{
 		Name:        new.Name,
 		Description: ptrToNullString(new.Description),
-		Slug:        slugify(new.Slug, new.Name),
-		Repo:        ptrToNullString(new.Repo),
-		Keywords:    keywords,
 		ID:          uid,
+		Pii:         new.Pii,
 	})
 	if err != nil {
 		return nil, fmt.Errorf("updating dataproduct in database: %w", err)
@@ -179,103 +254,53 @@ func (r *Repo) UpdateDataproduct(ctx context.Context, id string, new openapi.Upd
 	return dataproductFromSQL(res), nil
 }
 
-func (r *Repo) CreateDataset(ctx context.Context, ds openapi.NewDataset) (*openapi.Dataset, error) {
-	uid, err := uuid.Parse(ds.DataproductId)
-	if err != nil {
-		return nil, fmt.Errorf("parsing uuid: %w", err)
-	}
-
-	res, err := r.querier.CreateDataset(ctx, gensql.CreateDatasetParams{
-		Name:          ds.Name,
-		DataproductID: uid,
-		Description:   ptrToNullString(ds.Description),
-		Pii:           ds.Pii,
-		ProjectID:     ds.Bigquery.ProjectId,
-		Dataset:       ds.Bigquery.Dataset,
-		TableName:     ds.Bigquery.Table,
-		Type:          "bigquery",
-	})
-	if err != nil {
-		return nil, err
-	}
-
-	return datasetFromSQL(res), nil
-}
-
-func (r *Repo) GetDataset(ctx context.Context, id string) (*openapi.Dataset, error) {
-	uid, err := uuid.Parse(id)
-	if err != nil {
-		return nil, fmt.Errorf("parsing uuid: %w", err)
-	}
-	res, err := r.querier.GetDataset(ctx, uid)
-	if err != nil {
-		return nil, fmt.Errorf("getting dataset from database: %w", err)
-	}
-
-	return datasetFromSQL(res), nil
-}
-
-func (r *Repo) UpdateDataset(ctx context.Context, id string, new openapi.NewDataset) (*openapi.Dataset, error) {
-	uid, err := uuid.Parse(id)
-	if err != nil {
-		return nil, fmt.Errorf("parsing uuid: %w", err)
-	}
-
-	dataproductUid, err := uuid.Parse(new.DataproductId)
-	if err != nil {
-		return nil, fmt.Errorf("parsing uuid: %w", err)
-	}
-
-	res, err := r.querier.UpdateDataset(ctx, gensql.UpdateDatasetParams{
-		Name:          new.Name,
-		Description:   ptrToNullString(new.Description),
-		ID:            uid,
-		DataproductID: dataproductUid,
-		Pii:           new.Pii,
-	})
-	if err != nil {
-		return nil, fmt.Errorf("updating dataproduct in database: %w", err)
-	}
-
-	return datasetFromSQL(res), nil
-}
-
-func (r *Repo) DeleteDataset(ctx context.Context, id string) error {
+func (r *Repo) DeleteDataproductCollection(ctx context.Context, id string) error {
 	uid, err := uuid.Parse(id)
 	if err != nil {
 		return fmt.Errorf("parsing uuid: %w", err)
 	}
 
-	if err := r.querier.DeleteDataset(ctx, uid); err != nil {
-		return fmt.Errorf("deleting dataset from database: %w", err)
+	if err := r.querier.DeleteDataproductCollection(ctx, uid); err != nil {
+		return fmt.Errorf("deleting dataproduct_collection from database: %w", err)
 	}
 
 	return nil
 }
 
-func (r *Repo) GetDatasetMetadata(ctx context.Context, dataset_id string) (*openapi.DatasetMetadata, error) {
-	uid, err := uuid.Parse(dataset_id)
+func (r *Repo) GetDataproductMetadata(ctx context.Context, id string) (*openapi.DataproductMetadata, error) {
+	uid, err := uuid.Parse(id)
 	if err != nil {
 		return nil, fmt.Errorf("parsing uuid: %w", err)
 	}
 
-	metadata, err := r.querier.GetDatasetMetadata(ctx, uid)
+	ds, err := r.querier.GetBigqueryDatasource(ctx, uid)
 	if err != nil {
-		return nil, fmt.Errorf("getting dataset metadata from database: %w", err)
+		return nil, fmt.Errorf("getting bigquery datasource from database: %w", err)
 	}
 
-	return datasetMetadataFromSQL(metadata)
+	var schema []openapi.TableColumn
+	if ds.Schema.Valid {
+		if err := json.Unmarshal(ds.Schema.RawMessage, &schema); err != nil {
+			return nil, fmt.Errorf("unmarshalling schema: %w", err)
+		}
+	}
+
+	return &openapi.DataproductMetadata{
+		DataproductId: ds.DataproductID.String(),
+		Schema:        schema,
+	}, nil
 }
 
-func (r *Repo) WriteDatasetMetadata(ctx context.Context, dataset_id string, schema json.RawMessage) error {
-	uid, err := uuid.Parse(dataset_id)
+func (r *Repo) UpdateBigqueryDatasource(ctx context.Context, id uuid.UUID, schema json.RawMessage) error {
+	err := r.querier.UpdateBigqueryDatasourceSchema(ctx, gensql.UpdateBigqueryDatasourceSchemaParams{
+		DataproductID: id,
+		Schema: pqtype.NullRawMessage{
+			RawMessage: schema,
+			Valid:      true,
+		},
+	})
 	if err != nil {
-		return fmt.Errorf("parsing uuid: %w", err)
-	}
-
-	err = r.querier.WriteDatasetMetadata(ctx, gensql.WriteDatasetMetadataParams{DatasetID: uid, Schema: schema})
-	if err != nil {
-		return fmt.Errorf("writing dataset metadata: %w", err)
+		return fmt.Errorf("updating datasource_bigquery schema: %w", err)
 	}
 
 	return nil
@@ -293,7 +318,7 @@ func (r *Repo) Search(ctx context.Context, query string, limit, offset int) ([]*
 	// If query is empty, the search result is empty. So we do a regular SELECT * instead
 	var (
 		dataproducts []gensql.Dataproduct
-		datasets     []gensql.Dataset
+		collections  []gensql.DataproductCollection
 		err          error
 	)
 	if query == "" {
@@ -316,28 +341,28 @@ func (r *Repo) Search(ctx context.Context, query string, limit, offset int) ([]*
 
 	// If query is empty, the search result is empty. So we do a regular SELECT * instead
 	if query == "" {
-		datasets, err = r.querier.GetDatasets(ctx, gensql.GetDatasetsParams{Limit: int32(limit), Offset: int32(offset)})
+		collections, err = r.querier.GetDataproductCollections(ctx, gensql.GetDataproductCollectionsParams{Limit: int32(limit), Offset: int32(offset)})
 	} else {
-		datasets, err = r.querier.SearchDatasets(ctx, gensql.SearchDatasetsParams{Query: query, Limit: int32(limit), Offset: int32(offset)})
+		collections, err = r.querier.SearchDataproductCollections(ctx, gensql.SearchDataproductCollectionsParams{Query: query, Limit: int32(limit), Offset: int32(offset)})
 	}
 	if err != nil {
 		return nil, err
 	}
-	for _, r := range datasets {
+	for _, r := range collections {
 		results = append(results, &openapi.SearchResultEntry{
 			Id:      r.ID.String(),
 			Name:    r.Name,
-			Type:    openapi.SearchResultTypeDataset,
+			Type:    openapi.SearchResultTypeDataproductCollection,
 			Excerpt: makeExcerpt(r.Description),
-			Url:     "/api/datasets/" + r.ID.String(),
+			Url:     "/api/collections/" + r.ID.String(),
 		})
 	}
 
 	return results, nil
 }
 
-func dataproductFromSQL(dataproduct gensql.Dataproduct) *openapi.Dataproduct {
-	return &openapi.Dataproduct{
+func dataproductCollectionFromSQL(dataproduct gensql.DataproductCollection) *openapi.DataproductCollection {
+	return &openapi.DataproductCollection{
 		Id:           dataproduct.ID.String(),
 		Name:         dataproduct.Name,
 		Created:      dataproduct.Created,
@@ -345,37 +370,34 @@ func dataproductFromSQL(dataproduct gensql.Dataproduct) *openapi.Dataproduct {
 		Description:  nullStringToPtr(dataproduct.Description),
 		Keywords:     &dataproduct.Keywords,
 		Owner: openapi.Owner{
-			Team: dataproduct.Team,
+			Group: dataproduct.Group,
 		},
 		Repo: nullStringToPtr(dataproduct.Repo),
 		Slug: dataproduct.Slug,
 	}
 }
 
-func datasetFromSQL(dataset gensql.Dataset) *openapi.Dataset {
-	return &openapi.Dataset{
-		Id:            dataset.ID.String(),
-		DataproductId: dataset.DataproductID.String(),
-		Name:          dataset.Name,
-		Description:   nullStringToPtr(dataset.Description),
-		Pii:           dataset.Pii,
-		Bigquery: openapi.BigQuery{
-			ProjectId: dataset.ProjectID,
-			Dataset:   dataset.Dataset,
-			Table:     dataset.TableName,
+func dataproductFromSQL(dataset gensql.Dataproduct) *openapi.Dataproduct {
+	return &openapi.Dataproduct{
+		Id:          dataset.ID.String(),
+		Name:        dataset.Name,
+		Description: nullStringToPtr(dataset.Description),
+		Pii:         dataset.Pii,
+		Owner: openapi.Owner{
+			Group: dataset.Group,
 		},
 	}
 }
 
-func datasetMetadataFromSQL(dataset gensql.DatasetMetadatum) (*openapi.DatasetMetadata, error) {
-	var schema []openapi.TableColumn
-	err := json.Unmarshal(dataset.Schema, &schema)
+func MapDatasource(source openapi.Datasource) (openapi.Bigquery, error) {
+	b, err := json.Marshal(source)
 	if err != nil {
-		return nil, err
+		return openapi.Bigquery{}, err
 	}
 
-	return &openapi.DatasetMetadata{
-		DatasetId: dataset.DatasetID.String(),
-		Schema:    schema,
-	}, nil
+	var ds openapi.Bigquery
+	if err := json.Unmarshal(b, &ds); err != nil {
+		return ds, err
+	}
+	return ds, nil
 }

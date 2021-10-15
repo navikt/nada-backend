@@ -11,7 +11,7 @@ func (s *Server) GetGCPProjects(w http.ResponseWriter, r *http.Request, teamID s
 	user := auth.GetUser(r.Context())
 
 	userInTeam := false
-	for _, t := range user.Teams {
+	for _, t := range user.Groups {
 		if t == teamID {
 			userInTeam = true
 			break
