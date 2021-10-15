@@ -13,14 +13,14 @@ INSERT INTO dataproduct_collections (
 	"description",
 	"slug",
 	"repo",
-	"team",
+	"group",
 	"keywords"
 ) VALUES (
 	@name,
 	@description,
 	@slug,
 	@repo,
-	@team,
+	@owner_group,
 	@keywords
 ) RETURNING *;
 
@@ -30,7 +30,6 @@ UPDATE dataproduct_collections SET
 	"description" = @description,
 	"slug" = @slug,
 	"repo" = @repo,
-	"team" = (SELECT team FROM dataproduct_collections dp WHERE dp.id = @id),
 	"keywords" = @keywords
 WHERE id = @id
 RETURNING *;

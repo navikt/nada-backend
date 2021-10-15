@@ -5,9 +5,10 @@ import (
 	"database/sql"
 	"encoding/json"
 	"errors"
-	"github.com/navikt/nada-backend/pkg/database/gensql"
 	"net/http"
 	"strings"
+
+	"github.com/navikt/nada-backend/pkg/database/gensql"
 
 	"github.com/navikt/nada-backend/pkg/auth"
 	"github.com/navikt/nada-backend/pkg/database"
@@ -83,8 +84,8 @@ func (s *Server) CreateDataproductCollection(w http.ResponseWriter, r *http.Requ
 	}
 	user := auth.GetUser(r.Context())
 
-	if !contains(newCollection.Owner.Team, user.Teams) {
-		s.log.Infof("Creating collection: User %v is not member of team %v", user.Email, newCollection.Owner.Team)
+	if !contains(newCollection.Owner.Group, user.Groups) {
+		s.log.Infof("Creating collection: User %v is not member of Group %v", user.Email, newCollection.Owner.Group)
 		http.Error(w, "unauthorized", http.StatusUnauthorized)
 		return
 	}
@@ -116,8 +117,8 @@ func (s *Server) DeleteDataproductCollection(w http.ResponseWriter, r *http.Requ
 		return
 	}
 
-	if !contains(collection.Owner.Team, user.Teams) {
-		s.log.Infof("Delete collection: User %v is not member of team %v", user.Email, collection.Owner.Team)
+	if !contains(collection.Owner.Group, user.Groups) {
+		s.log.Infof("Delete collection: User %v is not member of Group %v", user.Email, collection.Owner.Group)
 		http.Error(w, "unauthorized", http.StatusUnauthorized)
 		return
 	}
@@ -148,8 +149,8 @@ func (s *Server) UpdateDataproductCollection(w http.ResponseWriter, r *http.Requ
 	}
 
 	user := auth.GetUser(r.Context())
-	if !contains(existing.Owner.Team, user.Teams) {
-		s.log.Infof("Update collection: User %v is not member of team %v", user.Email, existing.Owner.Team)
+	if !contains(existing.Owner.Group, user.Groups) {
+		s.log.Infof("Update collection: User %v is not member of Group %v", user.Email, existing.Owner.Group)
 		http.Error(w, "unauthorized", http.StatusUnauthorized)
 		return
 	}
@@ -182,14 +183,21 @@ func (s *Server) CreateDataproduct(w http.ResponseWriter, r *http.Request) {
 
 	user := auth.GetUser(r.Context())
 
-	if !s.projectsMapping.OwnsProject(input.Owner.Team, input.Bigquery.ProjectId) {
-		s.log.Infof("Creating created: BigQuery project %v is not owned by team %v", input.Bigquery.ProjectId, input.Owner.Team)
+	datasource, err := database.MapDatasource(input.Datasource)
+	if err != nil {
+		s.log.WithError(err).Info("Decoding datasource")
+		http.Error(w, "invalid JSON object", http.StatusBadRequest)
+		return
+	}
+
+	if !s.projectsMapping.OwnsProject(input.Owner.Group, datasource.ProjectId) {
+		s.log.Infof("Creating created: BigQuery project %v is not owned by Group %v", datasource.ProjectId, input.Owner.Group)
 		http.Error(w, "unauthorized", http.StatusUnauthorized)
 		return
 	}
 
-	if !contains(input.Owner.Team, user.Teams) {
-		s.log.Infof("Creating created: User %v is not member of team %v", user.Email, input.Owner.Team)
+	if !contains(input.Owner.Group, user.Groups) {
+		s.log.Infof("Creating created: User %v is not member of Group %v", user.Email, input.Owner.Group)
 		http.Error(w, "unauthorized", http.StatusUnauthorized)
 		return
 	}
@@ -223,8 +231,8 @@ func (s *Server) DeleteDataproduct(w http.ResponseWriter, r *http.Request, id st
 		return
 	}
 
-	if !contains(dp.Owner.Team, user.Teams) {
-		s.log.Infof("Deleting dataproduct: User %v is not member of team %v", user.Email, dp.Owner.Team)
+	if !contains(dp.Owner.Group, user.Groups) {
+		s.log.Infof("Deleting dataproduct: User %v is not member of Group %v", user.Email, dp.Owner.Group)
 		http.Error(w, "unauthorized", http.StatusUnauthorized)
 		return
 	}
@@ -238,6 +246,23 @@ func (s *Server) DeleteDataproduct(w http.ResponseWriter, r *http.Request, id st
 	s.log.Infof("Deleted dataproduct: %v", dp.Name)
 
 	w.WriteHeader(http.StatusNoContent)
+}
+
+// GetDataproducts (GET /dataproductss/)
+func (s *Server) GetDataproducts(w http.ResponseWriter, r *http.Request, params openapi.GetDataproductsParams) {
+	dp, err := s.repo.GetDataproducts(r.Context(), defaultInt(params.Limit, 15), defaultInt(params.Offset, 0))
+	if err != nil {
+		s.log.WithError(err).Error("Get dataproducts")
+		http.Error(w, "uh oh", http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Add("Content-Type", "application/json")
+	if err := json.NewEncoder(w).Encode(dp); err != nil {
+		s.log.WithError(err).Error("Encoding dataproducts as JSON")
+		http.Error(w, "uh oh", http.StatusInternalServerError)
+		return
+	}
 }
 
 // GetDataproduct (GET /dataproducts/{id})
@@ -259,7 +284,7 @@ func (s *Server) GetDataproduct(w http.ResponseWriter, r *http.Request, id strin
 
 // UpdateDataproduct (PUT /dataproducts/{id})
 func (s *Server) UpdateDataproduct(w http.ResponseWriter, r *http.Request, id string) {
-	var input openapi.NewDataproduct
+	var input openapi.UpdateDataproduct
 	if err := json.NewDecoder(r.Body).Decode(&input); err != nil {
 		s.log.WithError(err).Info("Decoding dataproduct")
 		http.Error(w, "invalid JSON object", http.StatusBadRequest)
@@ -275,14 +300,15 @@ func (s *Server) UpdateDataproduct(w http.ResponseWriter, r *http.Request, id st
 		return
 	}
 
-	if !s.projectsMapping.OwnsProject(existing.Owner.Team, input.Bigquery.ProjectId) {
-		s.log.Infof("Creating dataproduct: BigQuery project %v is not owned by team %v", input.Bigquery.ProjectId, existing.Owner.Team)
+	datasource := existing.Datasource.(openapi.Bigquery)
+	if !s.projectsMapping.OwnsProject(existing.Owner.Group, datasource.ProjectId) {
+		s.log.Infof("Creating dataproduct: BigQuery project %v is not owned by Group %v", datasource.ProjectId, existing.Owner.Group)
 		http.Error(w, "unauthorized", http.StatusUnauthorized)
 		return
 	}
 
-	if !contains(existing.Owner.Team, user.Teams) {
-		s.log.Infof("Updating dataproduct: User %v is not member of team %v", user.Email, existing.Owner.Team)
+	if !contains(existing.Owner.Group, user.Groups) {
+		s.log.Infof("Updating dataproduct: User %v is not member of Group %v", user.Email, existing.Owner.Group)
 		http.Error(w, "unauthorized", http.StatusUnauthorized)
 		return
 	}
@@ -362,9 +388,9 @@ func (s *Server) GetUserInfo(w http.ResponseWriter, r *http.Request) {
 	user := auth.GetUser(r.Context())
 
 	userInfo := openapi.UserInfo{
-		Email: user.Email,
-		Name:  user.Name,
-		Teams: user.Teams,
+		Email:  user.Email,
+		Name:   user.Name,
+		Groups: user.Groups,
 	}
 
 	w.Header().Add("Content-Type", "application/json")

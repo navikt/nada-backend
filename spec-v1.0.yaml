@@ -110,16 +110,19 @@ components:
           $ref: "#/components/schemas/Owner"
         type:
           $ref: "#/components/schemas/DataproductType"
-        dataSource:
-          oneOf:
-            - $ref: "#/components/schemas/Bigquery"
+        datasource:
+          $ref: "#/components/schemas/Datasource"
       required:
         - id
         - name
         - type
         - pii
         - owner
-        - bigquery
+        - datasource
+
+    Datasource:
+      oneOf:
+        - $ref: "#/components/schemas/Bigquery"
 
     NewDataproduct:
       type: object
@@ -128,17 +131,38 @@ components:
           type: string
         description:
           type: string
+        slug:
+          type: string
+        repo:
+          type: string
         pii:
           type: boolean
         owner:
           $ref: "#/components/schemas/Owner"
-        bigquery:
-          $ref: "#/components/schemas/Bigquery"
+        datasource:
+          $ref: "#/components/schemas/Datasource"
       required:
         - name
         - pii
         - owner
-        - bigquery # Update this to a oneOf when we have more than bigquery
+        - datasource
+
+    UpdateDataproduct:
+      type: object
+      properties:
+        name:
+          type: string
+        description:
+          type: string
+        slug:
+          type: string
+        repo:
+          type: string
+        pii:
+          type: boolean
+      required:
+        - name
+        - pii
 
     DataproductSummary:
       type: object
@@ -162,12 +186,12 @@ components:
     Owner:
       type: object
       properties:
-        team:
+        group:
           type: string
         teamkatalogen:
           type: string
       required:
-        - team
+        - group
 
     Bigquery:
       type: object
@@ -190,14 +214,14 @@ components:
           type: string
         email:
           type: string
-        teams:
+        groups:
           type: array
           items:
             type: string
       required:
         - name
         - email
-        - teams
+        - groups
 
     TableColumn:
       type: object
@@ -271,18 +295,18 @@ paths:
               schema:
                 $ref: "#/components/schemas/UserInfo"
 
-  /teams/{id}/gcp_projects:
+  /groups/{id}/gcp_projects:
     parameters:
       - in: path
         name: id
-        description: Team ID
+        description: Group ID
         required: true
         schema:
           type: string
     get:
       security:
         - cookieAuth: []
-      description: "Query and return all GCP projects for the team"
+      description: "Query and return all GCP projects for the group"
       operationId: "getGCPProjects"
       responses:
         "200":
@@ -420,6 +444,29 @@ paths:
                 $ref: "#/components/schemas/DataproductCollection"
 
   /dataproducts:
+    get:
+      description: "Get dataproducts"
+      parameters:
+        - in: "query"
+          name: "limit"
+          schema:
+            type: "integer"
+            default: 15
+        - in: "query"
+          name: "offset"
+          schema:
+            type: "integer"
+            default: 0
+      operationId: "getDataproducts"
+      responses:
+        "200":
+          description: OK
+          content:
+            "application/json":
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Dataproduct"
     post:
       security:
         - cookieAuth: []
@@ -472,7 +519,7 @@ paths:
         content:
           "application/json":
             schema:
-              $ref: "#/components/schemas/NewDataproduct"
+              $ref: "#/components/schemas/UpdateDataproduct"
       responses:
         "200":
           description: "Updated OK"

@@ -6,8 +6,10 @@ import (
 	"embed"
 	"encoding/json"
 	"fmt"
-	log "github.com/sirupsen/logrus"
 	"net/url"
+
+	log "github.com/sirupsen/logrus"
+	"github.com/tabbed/pqtype"
 
 	"github.com/google/uuid"
 	"github.com/navikt/nada-backend/pkg/database/gensql"
@@ -67,7 +69,7 @@ func (r *Repo) CreateDataproductCollection(ctx context.Context, dp openapi.NewDa
 		Description: ptrToNullString(dp.Description),
 		Slug:        slugify(dp.Slug, dp.Name),
 		Repo:        ptrToNullString(dp.Repo),
-		Team:        dp.Owner.Team,
+		OwnerGroup:  dp.Owner.Group,
 		Keywords:    keywords,
 	})
 	if err != nil {
@@ -175,16 +177,22 @@ func (r *Repo) CreateDataproduct(ctx context.Context, dp openapi.NewDataproduct)
 		Description: ptrToNullString(dp.Description),
 		Pii:         dp.Pii,
 		Type:        "bigquery",
+		OwnerGroup:  dp.Owner.Group,
 	})
+	if err != nil {
+		return nil, err
+	}
+
+	datasource, err := MapDatasource(dp.Datasource)
 	if err != nil {
 		return nil, err
 	}
 
 	_, err = querier.CreateBigqueryDatasource(ctx, gensql.CreateBigqueryDatasourceParams{
 		DataproductID: created.ID,
-		ProjectID:     dp.Bigquery.ProjectId,
-		Dataset:       dp.Bigquery.Dataset,
-		TableName:     dp.Bigquery.Table,
+		ProjectID:     datasource.ProjectId,
+		Dataset:       datasource.Dataset,
+		TableName:     datasource.Table,
 	})
 	if err != nil {
 		if err := tx.Rollback(); err != nil {
@@ -197,7 +205,9 @@ func (r *Repo) CreateDataproduct(ctx context.Context, dp openapi.NewDataproduct)
 		return nil, err
 	}
 
-	return dataproductFromSQL(created), nil
+	ret := dataproductFromSQL(created)
+	ret.Datasource = datasource
+	return ret, nil
 }
 
 func (r *Repo) GetDataproduct(ctx context.Context, id string) (*openapi.Dataproduct, error) {
@@ -210,12 +220,22 @@ func (r *Repo) GetDataproduct(ctx context.Context, id string) (*openapi.Dataprod
 		return nil, fmt.Errorf("getting dataproduct from database: %w", err)
 	}
 
-	//TODO(jhrv): include datasource
+	bq, err := r.querier.GetBigqueryDatasource(ctx, res.ID)
+	if err != nil {
+		return nil, fmt.Errorf("getting bigquery datasource from database: %w", err)
+	}
 
-	return dataproductFromSQL(res), nil
+	ret := dataproductFromSQL(res)
+	ret.Datasource = openapi.Bigquery{
+		Dataset:   bq.Dataset,
+		ProjectId: bq.ProjectID,
+		Table:     bq.TableName,
+	}
+
+	return ret, nil
 }
 
-func (r *Repo) UpdateDataproduct(ctx context.Context, id string, new openapi.NewDataproduct) (*openapi.Dataproduct, error) {
+func (r *Repo) UpdateDataproduct(ctx context.Context, id string, new openapi.UpdateDataproduct) (*openapi.Dataproduct, error) {
 	uid, err := uuid.Parse(id)
 	if err != nil {
 		return nil, fmt.Errorf("parsing uuid: %w", err)
@@ -246,6 +266,7 @@ func (r *Repo) DeleteDataproductCollection(ctx context.Context, id string) error
 
 	return nil
 }
+
 func (r *Repo) GetDataproductMetadata(ctx context.Context, id string) (*openapi.DataproductMetadata, error) {
 	uid, err := uuid.Parse(id)
 	if err != nil {
@@ -258,8 +279,10 @@ func (r *Repo) GetDataproductMetadata(ctx context.Context, id string) (*openapi.
 	}
 
 	var schema []openapi.TableColumn
-	if err := json.Unmarshal(ds.Schema, &schema); err != nil {
-		return nil, fmt.Errorf("unmarshalling schema: %w", err)
+	if ds.Schema.Valid {
+		if err := json.Unmarshal(ds.Schema.RawMessage, &schema); err != nil {
+			return nil, fmt.Errorf("unmarshalling schema: %w", err)
+		}
 	}
 
 	return &openapi.DataproductMetadata{
@@ -269,7 +292,14 @@ func (r *Repo) GetDataproductMetadata(ctx context.Context, id string) (*openapi.
 }
 
 func (r *Repo) UpdateBigqueryDatasource(ctx context.Context, id uuid.UUID, schema json.RawMessage) error {
-	if err := r.querier.UpdateBigqueryDatasourceSchema(ctx, gensql.UpdateBigqueryDatasourceSchemaParams{DataproductID: id, Schema: schema}); err != nil {
+	err := r.querier.UpdateBigqueryDatasourceSchema(ctx, gensql.UpdateBigqueryDatasourceSchemaParams{
+		DataproductID: id,
+		Schema: pqtype.NullRawMessage{
+			RawMessage: schema,
+			Valid:      true,
+		},
+	})
+	if err != nil {
 		return fmt.Errorf("updating datasource_bigquery schema: %w", err)
 	}
 
@@ -340,7 +370,7 @@ func dataproductCollectionFromSQL(dataproduct gensql.DataproductCollection) *ope
 		Description:  nullStringToPtr(dataproduct.Description),
 		Keywords:     &dataproduct.Keywords,
 		Owner: openapi.Owner{
-			Team: dataproduct.Team,
+			Group: dataproduct.Group,
 		},
 		Repo: nullStringToPtr(dataproduct.Repo),
 		Slug: dataproduct.Slug,
@@ -353,5 +383,21 @@ func dataproductFromSQL(dataset gensql.Dataproduct) *openapi.Dataproduct {
 		Name:        dataset.Name,
 		Description: nullStringToPtr(dataset.Description),
 		Pii:         dataset.Pii,
+		Owner: openapi.Owner{
+			Group: dataset.Group,
+		},
 	}
+}
+
+func MapDatasource(source openapi.Datasource) (openapi.Bigquery, error) {
+	b, err := json.Marshal(source)
+	if err != nil {
+		return openapi.Bigquery{}, err
+	}
+
+	var ds openapi.Bigquery
+	if err := json.Unmarshal(b, &ds); err != nil {
+		return ds, err
+	}
+	return ds, nil
 }

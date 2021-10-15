@@ -6,6 +6,7 @@ CREATE TABLE dataproducts
     "id"            uuid                 DEFAULT uuid_generate_v4(),
     "name"          TEXT        NOT NULL,
     "description"   TEXT,
+    "group"         TEXT        NOT NULL,
     "pii"           BOOLEAN     NOT NULL,
     "created"       TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     "last_modified" TIMESTAMPTZ NOT NULL DEFAULT NOW(),
@@ -13,7 +14,6 @@ CREATE TABLE dataproducts
     "tsv_document"  tsvector GENERATED ALWAYS AS (
                                 to_tsvector('norwegian', "name")
                                 || to_tsvector('norwegian', coalesce("description", ''))
-                            || to_tsvector('norwegian', coalesce("type", ''))
                         ) STORED,
     PRIMARY KEY (id)
 );
@@ -32,22 +32,16 @@ CREATE TABLE datasource_bigquery
     "project_id"     TEXT  NOT NULL,
     "dataset"        TEXT  NOT NULL,
     "table_name"     TEXT  NOT NULL,
-    "schema"         JSONB NOT NULL,
+    "schema"         JSONB,
     PRIMARY KEY (dataproduct_id),
     CONSTRAINT fk_bigquery_dataproduct
         FOREIGN KEY (dataproduct_id)
-            REFERENCES dataproducts (id)
+            REFERENCES dataproducts (id) ON DELETE CASCADE
 );
 
 CREATE OR REPLACE FUNCTION update_dataproduct_modified_timestamp() RETURNS TRIGGER AS
-$$
-BEGIN
-    UPDATE dataproducts
-    SET last_modified = now()
-    WHERE id = NEW.id;
-END;
-$$
-    LANGUAGE plpgsql;
+$$ BEGIN UPDATE dataproducts SET last_modified = now() WHERE id = NEW.id; END; $$
+LANGUAGE plpgsql;
 
 CREATE TRIGGER datasource_bigquery_set_modified
     BEFORE UPDATE

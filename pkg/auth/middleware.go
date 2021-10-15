@@ -17,9 +17,9 @@ type contextKey int
 const contextUserKey contextKey = 1
 
 type User struct {
-	Name  string
-	Email string
-	Teams []string
+	Name   string
+	Email  string
+	Groups []string
 }
 
 type teamsCache interface {
@@ -78,9 +78,9 @@ func JWTValidatorMiddleware(discoveryURL, clientID string, azureGroups *AzureGro
 			}
 
 			user := &User{
-				Name:  claims["name"].(string),
-				Email: email,
-				Teams: teams,
+				Name:   claims["name"].(string),
+				Email:  email,
+				Groups: teams,
 			}
 
 			r = r.WithContext(context.WithValue(ctx, contextUserKey, user))

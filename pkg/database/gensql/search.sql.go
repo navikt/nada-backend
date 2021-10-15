@@ -10,7 +10,7 @@ import (
 )
 
 const searchDataproductCollections = `-- name: SearchDataproductCollections :many
-SELECT id, name, description, slug, repo, created, last_modified, team, keywords, tsv_document FROM "dataproduct_collections" WHERE "tsv_document" @@ websearch_to_tsquery('norwegian', $1) LIMIT $3 OFFSET $2
+SELECT id, name, description, slug, repo, created, last_modified, "group", keywords, tsv_document FROM "dataproduct_collections" WHERE "tsv_document" @@ websearch_to_tsquery('norwegian', $1) LIMIT $3 OFFSET $2
 `
 
 type SearchDataproductCollectionsParams struct {
@@ -36,7 +36,7 @@ func (q *Queries) SearchDataproductCollections(ctx context.Context, arg SearchDa
 			&i.Repo,
 			&i.Created,
 			&i.LastModified,
-			&i.Team,
+			&i.Group,
 			pq.Array(&i.Keywords),
 			&i.TsvDocument,
 		); err != nil {
@@ -54,7 +54,7 @@ func (q *Queries) SearchDataproductCollections(ctx context.Context, arg SearchDa
 }
 
 const searchDataproducts = `-- name: SearchDataproducts :many
-SELECT id, name, description, pii, created, last_modified, type, tsv_document FROM "dataproducts" WHERE "tsv_document" @@ websearch_to_tsquery('norwegian', $1) LIMIT $3 OFFSET $2
+SELECT id, name, description, "group", pii, created, last_modified, type, tsv_document FROM "dataproducts" WHERE "tsv_document" @@ websearch_to_tsquery('norwegian', $1) LIMIT $3 OFFSET $2
 `
 
 type SearchDataproductsParams struct {
@@ -76,6 +76,7 @@ func (q *Queries) SearchDataproducts(ctx context.Context, arg SearchDataproducts
 			&i.ID,
 			&i.Name,
 			&i.Description,
+			&i.Group,
 			&i.Pii,
 			&i.Created,
 			&i.LastModified,
