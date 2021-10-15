@@ -49,7 +49,7 @@ func (a *Google) setupOAuth2() {
 		ClientSecret: a.clientSecret,
 		Endpoint:     a.provider.Endpoint(),
 		RedirectURL:  callbackURL,
-		Scopes:       []string{oidc.ScopeOpenID, "profile", "email"},
+		Scopes:       []string{oidc.ScopeOpenID, "profile", "email", "https://www.googleapis.com/auth/cloudplatformprojects.readonly"},
 	}
 }
 

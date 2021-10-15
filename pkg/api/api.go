@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"net/http"
 	"strings"
 
@@ -448,6 +449,8 @@ func (s *Server) Callback(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "uh oh", http.StatusForbidden)
 		return
 	}
+
+	fmt.Println("ACCESSTOKEN", tokens.AccessToken)
 
 	// TODO(thokra): Use secure cookie
 	http.SetCookie(w, &http.Cookie{

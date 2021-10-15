@@ -5,8 +5,11 @@ import (
 	"fmt"
 	"io/ioutil"
 
+	"golang.org/x/oauth2"
 	"golang.org/x/oauth2/google"
 	admin "google.golang.org/api/admin/directory/v1"
+	"google.golang.org/api/cloudresourcemanager/v1"
+	"google.golang.org/api/option"
 )
 
 type GoogleGroups struct {
@@ -54,5 +57,30 @@ func (g *GoogleGroups) ForUser(ctx context.Context, email string) {
 
 	for _, g := range groups {
 		fmt.Println(g.Name, g.Email)
+	}
+}
+
+func (g *GoogleGroups) Projects(ctx context.Context, accessToken string) {
+	creds := &google.Credentials{
+		TokenSource: oauth2.StaticTokenSource(&oauth2.Token{
+			AccessToken: accessToken,
+			TokenType:   "Bearer",
+		}),
+	}
+	client, err := cloudresourcemanager.NewService(ctx, option.WithCredentials(creds))
+	if err != nil {
+		panic(err)
+	}
+
+	fmt.Println("LIST PROJECTS")
+
+	err = client.Projects.List().Pages(ctx, func(lpr *cloudresourcemanager.ListProjectsResponse) error {
+		for _, p := range lpr.Projects {
+			fmt.Println(p.Name)
+		}
+		return nil
+	})
+	if err != nil {
+		panic(err)
 	}
 }
