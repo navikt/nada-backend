@@ -93,6 +93,7 @@ func (t *TeamProjectsUpdater) FetchTeamGoogleProjectsMapping(ctx context.Context
 
 	t.lock.Lock()
 	defer t.lock.Unlock()
+	t.teamProjects = map[string][]string{}
 	mergeInto(t.teamProjects, devOutputFile.TeamProjectIdMapping.Value, prodOutputFile.TeamProjectIdMapping.Value)
 	log.Infof("Updated team projects mapping: %v teams", len(t.teamProjects))
 
