@@ -8,9 +8,9 @@ import (
 )
 
 var MockUser = User{
-	Name:  "Anderson, Mock",
-	Email: "mock.anderson@email.com",
-	Teams: []string{"team", "dataplattform", "aura"},
+	Name:   "Anderson, Mock",
+	Email:  "mock.anderson@email.com",
+	Groups: []string{"team", "dataplattform", "aura"},
 }
 
 var MockProjectIDs = []string{"team-dev", "team-prod"}

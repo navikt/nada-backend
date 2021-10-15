@@ -17,7 +17,7 @@ const contextUserKey contextKey = 1
 type User struct {
 	Name        string `json:"name"`
 	Email       string `json:"email"`
-	Teams       []string
+	Groups      []string
 	AccessToken string `json:"-"`
 }
 

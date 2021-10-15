@@ -27,9 +27,9 @@ const (
 	CookieAuthScopes = "cookieAuth.Scopes"
 )
 
-// Defines values for DatasetType.
+// Defines values for DataproductType.
 const (
-	DatasetTypeBigquery DatasetType = "bigquery"
+	DataproductTypeBigquery DataproductType = "bigquery"
 )
 
 // Defines values for SearchResultType.
@@ -38,11 +38,11 @@ const (
 
 	SearchResultTypeDataproduct SearchResultType = "dataproduct"
 
-	SearchResultTypeDataset SearchResultType = "dataset"
+	SearchResultTypeDataproductCollection SearchResultType = "DataproductCollection"
 )
 
-// BigQuery defines model for BigQuery.
-type BigQuery struct {
+// Bigquery defines model for Bigquery.
+type Bigquery struct {
 	Dataset   string `json:"dataset"`
 	ProjectId string `json:"project_id"`
 	Table     string `json:"table"`
@@ -50,47 +50,63 @@ type BigQuery struct {
 
 // Dataproduct defines model for Dataproduct.
 type Dataproduct struct {
-	Created      time.Time        `json:"created"`
-	Datasets     []DatasetSummary `json:"datasets"`
-	Description  *string          `json:"description,omitempty"`
-	Id           string           `json:"id"`
-	Keywords     *[]string        `json:"keywords,omitempty"`
-	LastModified time.Time        `json:"last_modified"`
-	Name         string           `json:"name"`
-	Owner        Owner            `json:"owner"`
-	Repo         *string          `json:"repo,omitempty"`
-	Slug         string           `json:"slug"`
+	Datasource  Datasource      `json:"datasource"`
+	Description *string         `json:"description,omitempty"`
+	Id          string          `json:"id"`
+	Name        string          `json:"name"`
+	Owner       Owner           `json:"owner"`
+	Pii         bool            `json:"pii"`
+	Repo        *string         `json:"repo,omitempty"`
+	Slug        *string         `json:"slug,omitempty"`
+	Type        DataproductType `json:"type"`
 }
 
-// Dataset defines model for Dataset.
-type Dataset struct {
-	Bigquery      BigQuery    `json:"bigquery"`
-	DataproductId string      `json:"dataproduct_id"`
-	Description   *string     `json:"description,omitempty"`
-	Id            string      `json:"id"`
-	Name          string      `json:"name"`
-	Pii           bool        `json:"pii"`
-	Type          DatasetType `json:"type"`
+// DataproductCollection defines model for DataproductCollection.
+type DataproductCollection struct {
+	Created      time.Time            `json:"created"`
+	Dataproducts []DataproductSummary `json:"dataproducts"`
+	Description  *string              `json:"description,omitempty"`
+	Id           string               `json:"id"`
+	Keywords     *[]string            `json:"keywords,omitempty"`
+	LastModified time.Time            `json:"last_modified"`
+	Name         string               `json:"name"`
+	Owner        Owner                `json:"owner"`
+	Repo         *string              `json:"repo,omitempty"`
+	Slug         string               `json:"slug"`
 }
 
-// DatasetMetadata defines model for DatasetMetadata.
-type DatasetMetadata struct {
-	DatasetId string        `json:"dataset_id"`
-	Schema    []TableColumn `json:"schema"`
+// DataproductMetadata defines model for DataproductMetadata.
+type DataproductMetadata struct {
+	DataproductId string        `json:"dataproduct_id"`
+	Schema        []TableColumn `json:"schema"`
 }
 
-// DatasetSummary defines model for DatasetSummary.
-type DatasetSummary struct {
-	Id   string      `json:"id"`
-	Name string      `json:"name"`
-	Type DatasetType `json:"type"`
+// DataproductSummary defines model for DataproductSummary.
+type DataproductSummary struct {
+	Id   string          `json:"id"`
+	Name string          `json:"name"`
+	Type DataproductType `json:"type"`
 }
 
-// DatasetType defines model for DatasetType.
-type DatasetType string
+// DataproductType defines model for DataproductType.
+type DataproductType string
+
+// Datasource defines model for Datasource.
+type Datasource interface{}
 
 // NewDataproduct defines model for NewDataproduct.
 type NewDataproduct struct {
+	Datasource  Datasource `json:"datasource"`
+	Description *string    `json:"description,omitempty"`
+	Name        string     `json:"name"`
+	Owner       Owner      `json:"owner"`
+	Pii         bool       `json:"pii"`
+	Repo        *string    `json:"repo,omitempty"`
+	Slug        *string    `json:"slug,omitempty"`
+}
+
+// NewDataproductCollection defines model for NewDataproductCollection.
+type NewDataproductCollection struct {
 	Description *string   `json:"description,omitempty"`
 	Keywords    *[]string `json:"keywords,omitempty"`
 	Name        string    `json:"name"`
@@ -99,18 +115,9 @@ type NewDataproduct struct {
 	Slug        *string   `json:"slug,omitempty"`
 }
 
-// NewDataset defines model for NewDataset.
-type NewDataset struct {
-	Bigquery      BigQuery `json:"bigquery"`
-	DataproductId string   `json:"dataproduct_id"`
-	Description   *string  `json:"description,omitempty"`
-	Name          string   `json:"name"`
-	Pii           bool     `json:"pii"`
-}
-
 // Owner defines model for Owner.
 type Owner struct {
-	Team          string  `json:"team"`
+	Group         string  `json:"group"`
 	Teamkatalogen *string `json:"teamkatalogen,omitempty"`
 }
 
@@ -136,6 +143,15 @@ type TableColumn struct {
 
 // UpdateDataproduct defines model for UpdateDataproduct.
 type UpdateDataproduct struct {
+	Description *string `json:"description,omitempty"`
+	Name        string  `json:"name"`
+	Pii         bool    `json:"pii"`
+	Repo        *string `json:"repo,omitempty"`
+	Slug        *string `json:"slug,omitempty"`
+}
+
+// UpdateDataproductCollection defines model for UpdateDataproductCollection.
+type UpdateDataproductCollection struct {
 	Description *string   `json:"description,omitempty"`
 	Keywords    *[]string `json:"keywords,omitempty"`
 	Name        string    `json:"name"`
@@ -145,10 +161,22 @@ type UpdateDataproduct struct {
 
 // UserInfo defines model for UserInfo.
 type UserInfo struct {
-	Email string   `json:"email"`
-	Name  string   `json:"name"`
-	Teams []string `json:"teams"`
+	Email  string   `json:"email"`
+	Groups []string `json:"groups"`
+	Name   string   `json:"name"`
 }
+
+// GetDataproductCollectionsParams defines parameters for GetDataproductCollections.
+type GetDataproductCollectionsParams struct {
+	Limit  *int `json:"limit,omitempty"`
+	Offset *int `json:"offset,omitempty"`
+}
+
+// CreateDataproductCollectionJSONBody defines parameters for CreateDataproductCollection.
+type CreateDataproductCollectionJSONBody NewDataproductCollection
+
+// UpdateDataproductCollectionJSONBody defines parameters for UpdateDataproductCollection.
+type UpdateDataproductCollectionJSONBody UpdateDataproductCollection
 
 // GetDataproductsParams defines parameters for GetDataproducts.
 type GetDataproductsParams struct {
@@ -162,12 +190,6 @@ type CreateDataproductJSONBody NewDataproduct
 // UpdateDataproductJSONBody defines parameters for UpdateDataproduct.
 type UpdateDataproductJSONBody UpdateDataproduct
 
-// CreateDatasetJSONBody defines parameters for CreateDataset.
-type CreateDatasetJSONBody NewDataset
-
-// UpdateDatasetJSONBody defines parameters for UpdateDataset.
-type UpdateDatasetJSONBody NewDataset
-
 // SearchParams defines parameters for Search.
 type SearchParams struct {
 	Q      *string `json:"q,omitempty"`
@@ -175,17 +197,17 @@ type SearchParams struct {
 	Offset *int    `json:"offset,omitempty"`
 }
 
+// CreateDataproductCollectionJSONRequestBody defines body for CreateDataproductCollection for application/json ContentType.
+type CreateDataproductCollectionJSONRequestBody CreateDataproductCollectionJSONBody
+
+// UpdateDataproductCollectionJSONRequestBody defines body for UpdateDataproductCollection for application/json ContentType.
+type UpdateDataproductCollectionJSONRequestBody UpdateDataproductCollectionJSONBody
+
 // CreateDataproductJSONRequestBody defines body for CreateDataproduct for application/json ContentType.
 type CreateDataproductJSONRequestBody CreateDataproductJSONBody
 
 // UpdateDataproductJSONRequestBody defines body for UpdateDataproduct for application/json ContentType.
 type UpdateDataproductJSONRequestBody UpdateDataproductJSONBody
-
-// CreateDatasetJSONRequestBody defines body for CreateDataset for application/json ContentType.
-type CreateDatasetJSONRequestBody CreateDatasetJSONBody
-
-// UpdateDatasetJSONRequestBody defines body for UpdateDataset for application/json ContentType.
-type UpdateDatasetJSONRequestBody UpdateDatasetJSONBody
 
 // RequestEditorFn  is the function signature for the RequestEditor callback function
 type RequestEditorFn func(ctx context.Context, req *http.Request) error
@@ -260,6 +282,25 @@ func WithRequestEditorFn(fn RequestEditorFn) ClientOption {
 
 // The interface specification for the client above.
 type ClientInterface interface {
+	// GetDataproductCollections request
+	GetDataproductCollections(ctx context.Context, params *GetDataproductCollectionsParams, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// CreateDataproductCollection request with any body
+	CreateDataproductCollectionWithBody(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	CreateDataproductCollection(ctx context.Context, body CreateDataproductCollectionJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// DeleteDataproductCollection request
+	DeleteDataproductCollection(ctx context.Context, id string, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// GetDataproductCollection request
+	GetDataproductCollection(ctx context.Context, id string, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// UpdateDataproductCollection request with any body
+	UpdateDataproductCollectionWithBody(ctx context.Context, id string, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	UpdateDataproductCollection(ctx context.Context, id string, body UpdateDataproductCollectionJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
+
 	// GetDataproducts request
 	GetDataproducts(ctx context.Context, params *GetDataproductsParams, reqEditors ...RequestEditorFn) (*http.Response, error)
 
@@ -279,36 +320,104 @@ type ClientInterface interface {
 
 	UpdateDataproduct(ctx context.Context, id string, body UpdateDataproductJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
 
-	// CreateDataset request with any body
-	CreateDatasetWithBody(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
+	// GetDataproductMetadata request
+	GetDataproductMetadata(ctx context.Context, id string, reqEditors ...RequestEditorFn) (*http.Response, error)
 
-	CreateDataset(ctx context.Context, body CreateDatasetJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
-
-	// DeleteDataset request
-	DeleteDataset(ctx context.Context, id string, reqEditors ...RequestEditorFn) (*http.Response, error)
-
-	// GetDataset request
-	GetDataset(ctx context.Context, id string, reqEditors ...RequestEditorFn) (*http.Response, error)
-
-	// UpdateDataset request with any body
-	UpdateDatasetWithBody(ctx context.Context, id string, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
-
-	UpdateDataset(ctx context.Context, id string, body UpdateDatasetJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
-
-	// GetDatasetMetadata request
-	GetDatasetMetadata(ctx context.Context, id string, reqEditors ...RequestEditorFn) (*http.Response, error)
-
-	// GetBigQueryTables request
-	GetBigQueryTables(ctx context.Context, id string, reqEditors ...RequestEditorFn) (*http.Response, error)
-
-	// Search request
-	Search(ctx context.Context, params *SearchParams, reqEditors ...RequestEditorFn) (*http.Response, error)
+	// GetBigqueryTables request
+	GetBigqueryTables(ctx context.Context, id string, reqEditors ...RequestEditorFn) (*http.Response, error)
 
 	// GetGCPProjects request
 	GetGCPProjects(ctx context.Context, id string, reqEditors ...RequestEditorFn) (*http.Response, error)
 
+	// Search request
+	Search(ctx context.Context, params *SearchParams, reqEditors ...RequestEditorFn) (*http.Response, error)
+
 	// GetUserInfo request
 	GetUserInfo(ctx context.Context, reqEditors ...RequestEditorFn) (*http.Response, error)
+}
+
+func (c *Client) GetDataproductCollections(ctx context.Context, params *GetDataproductCollectionsParams, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewGetDataproductCollectionsRequest(c.Server, params)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) CreateDataproductCollectionWithBody(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewCreateDataproductCollectionRequestWithBody(c.Server, contentType, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) CreateDataproductCollection(ctx context.Context, body CreateDataproductCollectionJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewCreateDataproductCollectionRequest(c.Server, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) DeleteDataproductCollection(ctx context.Context, id string, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewDeleteDataproductCollectionRequest(c.Server, id)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) GetDataproductCollection(ctx context.Context, id string, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewGetDataproductCollectionRequest(c.Server, id)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) UpdateDataproductCollectionWithBody(ctx context.Context, id string, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewUpdateDataproductCollectionRequestWithBody(c.Server, id, contentType, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) UpdateDataproductCollection(ctx context.Context, id string, body UpdateDataproductCollectionJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewUpdateDataproductCollectionRequest(c.Server, id, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
 }
 
 func (c *Client) GetDataproducts(ctx context.Context, params *GetDataproductsParams, reqEditors ...RequestEditorFn) (*http.Response, error) {
@@ -395,8 +504,8 @@ func (c *Client) UpdateDataproduct(ctx context.Context, id string, body UpdateDa
 	return c.Client.Do(req)
 }
 
-func (c *Client) CreateDatasetWithBody(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error) {
-	req, err := NewCreateDatasetRequestWithBody(c.Server, contentType, body)
+func (c *Client) GetDataproductMetadata(ctx context.Context, id string, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewGetDataproductMetadataRequest(c.Server, id)
 	if err != nil {
 		return nil, err
 	}
@@ -407,92 +516,8 @@ func (c *Client) CreateDatasetWithBody(ctx context.Context, contentType string, 
 	return c.Client.Do(req)
 }
 
-func (c *Client) CreateDataset(ctx context.Context, body CreateDatasetJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
-	req, err := NewCreateDatasetRequest(c.Server, body)
-	if err != nil {
-		return nil, err
-	}
-	req = req.WithContext(ctx)
-	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
-		return nil, err
-	}
-	return c.Client.Do(req)
-}
-
-func (c *Client) DeleteDataset(ctx context.Context, id string, reqEditors ...RequestEditorFn) (*http.Response, error) {
-	req, err := NewDeleteDatasetRequest(c.Server, id)
-	if err != nil {
-		return nil, err
-	}
-	req = req.WithContext(ctx)
-	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
-		return nil, err
-	}
-	return c.Client.Do(req)
-}
-
-func (c *Client) GetDataset(ctx context.Context, id string, reqEditors ...RequestEditorFn) (*http.Response, error) {
-	req, err := NewGetDatasetRequest(c.Server, id)
-	if err != nil {
-		return nil, err
-	}
-	req = req.WithContext(ctx)
-	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
-		return nil, err
-	}
-	return c.Client.Do(req)
-}
-
-func (c *Client) UpdateDatasetWithBody(ctx context.Context, id string, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error) {
-	req, err := NewUpdateDatasetRequestWithBody(c.Server, id, contentType, body)
-	if err != nil {
-		return nil, err
-	}
-	req = req.WithContext(ctx)
-	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
-		return nil, err
-	}
-	return c.Client.Do(req)
-}
-
-func (c *Client) UpdateDataset(ctx context.Context, id string, body UpdateDatasetJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
-	req, err := NewUpdateDatasetRequest(c.Server, id, body)
-	if err != nil {
-		return nil, err
-	}
-	req = req.WithContext(ctx)
-	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
-		return nil, err
-	}
-	return c.Client.Do(req)
-}
-
-func (c *Client) GetDatasetMetadata(ctx context.Context, id string, reqEditors ...RequestEditorFn) (*http.Response, error) {
-	req, err := NewGetDatasetMetadataRequest(c.Server, id)
-	if err != nil {
-		return nil, err
-	}
-	req = req.WithContext(ctx)
-	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
-		return nil, err
-	}
-	return c.Client.Do(req)
-}
-
-func (c *Client) GetBigQueryTables(ctx context.Context, id string, reqEditors ...RequestEditorFn) (*http.Response, error) {
-	req, err := NewGetBigQueryTablesRequest(c.Server, id)
-	if err != nil {
-		return nil, err
-	}
-	req = req.WithContext(ctx)
-	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
-		return nil, err
-	}
-	return c.Client.Do(req)
-}
-
-func (c *Client) Search(ctx context.Context, params *SearchParams, reqEditors ...RequestEditorFn) (*http.Response, error) {
-	req, err := NewSearchRequest(c.Server, params)
+func (c *Client) GetBigqueryTables(ctx context.Context, id string, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewGetBigqueryTablesRequest(c.Server, id)
 	if err != nil {
 		return nil, err
 	}
@@ -515,6 +540,18 @@ func (c *Client) GetGCPProjects(ctx context.Context, id string, reqEditors ...Re
 	return c.Client.Do(req)
 }
 
+func (c *Client) Search(ctx context.Context, params *SearchParams, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewSearchRequest(c.Server, params)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
 func (c *Client) GetUserInfo(ctx context.Context, reqEditors ...RequestEditorFn) (*http.Response, error) {
 	req, err := NewGetUserInfoRequest(c.Server)
 	if err != nil {
@@ -525,6 +562,224 @@ func (c *Client) GetUserInfo(ctx context.Context, reqEditors ...RequestEditorFn)
 		return nil, err
 	}
 	return c.Client.Do(req)
+}
+
+// NewGetDataproductCollectionsRequest generates requests for GetDataproductCollections
+func NewGetDataproductCollectionsRequest(server string, params *GetDataproductCollectionsParams) (*http.Request, error) {
+	var err error
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/collections")
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	queryValues := queryURL.Query()
+
+	if params.Limit != nil {
+
+		if queryFrag, err := runtime.StyleParamWithLocation("form", true, "limit", runtime.ParamLocationQuery, *params.Limit); err != nil {
+			return nil, err
+		} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
+			return nil, err
+		} else {
+			for k, v := range parsed {
+				for _, v2 := range v {
+					queryValues.Add(k, v2)
+				}
+			}
+		}
+
+	}
+
+	if params.Offset != nil {
+
+		if queryFrag, err := runtime.StyleParamWithLocation("form", true, "offset", runtime.ParamLocationQuery, *params.Offset); err != nil {
+			return nil, err
+		} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
+			return nil, err
+		} else {
+			for k, v := range parsed {
+				for _, v2 := range v {
+					queryValues.Add(k, v2)
+				}
+			}
+		}
+
+	}
+
+	queryURL.RawQuery = queryValues.Encode()
+
+	req, err := http.NewRequest("GET", queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
+}
+
+// NewCreateDataproductCollectionRequest calls the generic CreateDataproductCollection builder with application/json body
+func NewCreateDataproductCollectionRequest(server string, body CreateDataproductCollectionJSONRequestBody) (*http.Request, error) {
+	var bodyReader io.Reader
+	buf, err := json.Marshal(body)
+	if err != nil {
+		return nil, err
+	}
+	bodyReader = bytes.NewReader(buf)
+	return NewCreateDataproductCollectionRequestWithBody(server, "application/json", bodyReader)
+}
+
+// NewCreateDataproductCollectionRequestWithBody generates requests for CreateDataproductCollection with any type of body
+func NewCreateDataproductCollectionRequestWithBody(server string, contentType string, body io.Reader) (*http.Request, error) {
+	var err error
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/collections")
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest("POST", queryURL.String(), body)
+	if err != nil {
+		return nil, err
+	}
+
+	req.Header.Add("Content-Type", contentType)
+
+	return req, nil
+}
+
+// NewDeleteDataproductCollectionRequest generates requests for DeleteDataproductCollection
+func NewDeleteDataproductCollectionRequest(server string, id string) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithLocation("simple", false, "id", runtime.ParamLocationPath, id)
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/collections/%s", pathParam0)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest("DELETE", queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
+}
+
+// NewGetDataproductCollectionRequest generates requests for GetDataproductCollection
+func NewGetDataproductCollectionRequest(server string, id string) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithLocation("simple", false, "id", runtime.ParamLocationPath, id)
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/collections/%s", pathParam0)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest("GET", queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
+}
+
+// NewUpdateDataproductCollectionRequest calls the generic UpdateDataproductCollection builder with application/json body
+func NewUpdateDataproductCollectionRequest(server string, id string, body UpdateDataproductCollectionJSONRequestBody) (*http.Request, error) {
+	var bodyReader io.Reader
+	buf, err := json.Marshal(body)
+	if err != nil {
+		return nil, err
+	}
+	bodyReader = bytes.NewReader(buf)
+	return NewUpdateDataproductCollectionRequestWithBody(server, id, "application/json", bodyReader)
+}
+
+// NewUpdateDataproductCollectionRequestWithBody generates requests for UpdateDataproductCollection with any type of body
+func NewUpdateDataproductCollectionRequestWithBody(server string, id string, contentType string, body io.Reader) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithLocation("simple", false, "id", runtime.ParamLocationPath, id)
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/collections/%s", pathParam0)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest("PUT", queryURL.String(), body)
+	if err != nil {
+		return nil, err
+	}
+
+	req.Header.Add("Content-Type", contentType)
+
+	return req, nil
 }
 
 // NewGetDataproductsRequest generates requests for GetDataproducts
@@ -745,48 +1000,8 @@ func NewUpdateDataproductRequestWithBody(server string, id string, contentType s
 	return req, nil
 }
 
-// NewCreateDatasetRequest calls the generic CreateDataset builder with application/json body
-func NewCreateDatasetRequest(server string, body CreateDatasetJSONRequestBody) (*http.Request, error) {
-	var bodyReader io.Reader
-	buf, err := json.Marshal(body)
-	if err != nil {
-		return nil, err
-	}
-	bodyReader = bytes.NewReader(buf)
-	return NewCreateDatasetRequestWithBody(server, "application/json", bodyReader)
-}
-
-// NewCreateDatasetRequestWithBody generates requests for CreateDataset with any type of body
-func NewCreateDatasetRequestWithBody(server string, contentType string, body io.Reader) (*http.Request, error) {
-	var err error
-
-	serverURL, err := url.Parse(server)
-	if err != nil {
-		return nil, err
-	}
-
-	operationPath := fmt.Sprintf("/datasets")
-	if operationPath[0] == '/' {
-		operationPath = "." + operationPath
-	}
-
-	queryURL, err := serverURL.Parse(operationPath)
-	if err != nil {
-		return nil, err
-	}
-
-	req, err := http.NewRequest("POST", queryURL.String(), body)
-	if err != nil {
-		return nil, err
-	}
-
-	req.Header.Add("Content-Type", contentType)
-
-	return req, nil
-}
-
-// NewDeleteDatasetRequest generates requests for DeleteDataset
-func NewDeleteDatasetRequest(server string, id string) (*http.Request, error) {
+// NewGetDataproductMetadataRequest generates requests for GetDataproductMetadata
+func NewGetDataproductMetadataRequest(server string, id string) (*http.Request, error) {
 	var err error
 
 	var pathParam0 string
@@ -801,41 +1016,7 @@ func NewDeleteDatasetRequest(server string, id string) (*http.Request, error) {
 		return nil, err
 	}
 
-	operationPath := fmt.Sprintf("/datasets/%s", pathParam0)
-	if operationPath[0] == '/' {
-		operationPath = "." + operationPath
-	}
-
-	queryURL, err := serverURL.Parse(operationPath)
-	if err != nil {
-		return nil, err
-	}
-
-	req, err := http.NewRequest("DELETE", queryURL.String(), nil)
-	if err != nil {
-		return nil, err
-	}
-
-	return req, nil
-}
-
-// NewGetDatasetRequest generates requests for GetDataset
-func NewGetDatasetRequest(server string, id string) (*http.Request, error) {
-	var err error
-
-	var pathParam0 string
-
-	pathParam0, err = runtime.StyleParamWithLocation("simple", false, "id", runtime.ParamLocationPath, id)
-	if err != nil {
-		return nil, err
-	}
-
-	serverURL, err := url.Parse(server)
-	if err != nil {
-		return nil, err
-	}
-
-	operationPath := fmt.Sprintf("/datasets/%s", pathParam0)
+	operationPath := fmt.Sprintf("/dataproducts/%s/metadata", pathParam0)
 	if operationPath[0] == '/' {
 		operationPath = "." + operationPath
 	}
@@ -853,89 +1034,8 @@ func NewGetDatasetRequest(server string, id string) (*http.Request, error) {
 	return req, nil
 }
 
-// NewUpdateDatasetRequest calls the generic UpdateDataset builder with application/json body
-func NewUpdateDatasetRequest(server string, id string, body UpdateDatasetJSONRequestBody) (*http.Request, error) {
-	var bodyReader io.Reader
-	buf, err := json.Marshal(body)
-	if err != nil {
-		return nil, err
-	}
-	bodyReader = bytes.NewReader(buf)
-	return NewUpdateDatasetRequestWithBody(server, id, "application/json", bodyReader)
-}
-
-// NewUpdateDatasetRequestWithBody generates requests for UpdateDataset with any type of body
-func NewUpdateDatasetRequestWithBody(server string, id string, contentType string, body io.Reader) (*http.Request, error) {
-	var err error
-
-	var pathParam0 string
-
-	pathParam0, err = runtime.StyleParamWithLocation("simple", false, "id", runtime.ParamLocationPath, id)
-	if err != nil {
-		return nil, err
-	}
-
-	serverURL, err := url.Parse(server)
-	if err != nil {
-		return nil, err
-	}
-
-	operationPath := fmt.Sprintf("/datasets/%s", pathParam0)
-	if operationPath[0] == '/' {
-		operationPath = "." + operationPath
-	}
-
-	queryURL, err := serverURL.Parse(operationPath)
-	if err != nil {
-		return nil, err
-	}
-
-	req, err := http.NewRequest("PUT", queryURL.String(), body)
-	if err != nil {
-		return nil, err
-	}
-
-	req.Header.Add("Content-Type", contentType)
-
-	return req, nil
-}
-
-// NewGetDatasetMetadataRequest generates requests for GetDatasetMetadata
-func NewGetDatasetMetadataRequest(server string, id string) (*http.Request, error) {
-	var err error
-
-	var pathParam0 string
-
-	pathParam0, err = runtime.StyleParamWithLocation("simple", false, "id", runtime.ParamLocationPath, id)
-	if err != nil {
-		return nil, err
-	}
-
-	serverURL, err := url.Parse(server)
-	if err != nil {
-		return nil, err
-	}
-
-	operationPath := fmt.Sprintf("/datasets/%s/metadata", pathParam0)
-	if operationPath[0] == '/' {
-		operationPath = "." + operationPath
-	}
-
-	queryURL, err := serverURL.Parse(operationPath)
-	if err != nil {
-		return nil, err
-	}
-
-	req, err := http.NewRequest("GET", queryURL.String(), nil)
-	if err != nil {
-		return nil, err
-	}
-
-	return req, nil
-}
-
-// NewGetBigQueryTablesRequest generates requests for GetBigQueryTables
-func NewGetBigQueryTablesRequest(server string, id string) (*http.Request, error) {
+// NewGetBigqueryTablesRequest generates requests for GetBigqueryTables
+func NewGetBigqueryTablesRequest(server string, id string) (*http.Request, error) {
 	var err error
 
 	var pathParam0 string
@@ -951,6 +1051,40 @@ func NewGetBigQueryTablesRequest(server string, id string) (*http.Request, error
 	}
 
 	operationPath := fmt.Sprintf("/gcp/%s/tables", pathParam0)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest("GET", queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
+}
+
+// NewGetGCPProjectsRequest generates requests for GetGCPProjects
+func NewGetGCPProjectsRequest(server string, id string) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithLocation("simple", false, "id", runtime.ParamLocationPath, id)
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/groups/%s/gcp_projects", pathParam0)
 	if operationPath[0] == '/' {
 		operationPath = "." + operationPath
 	}
@@ -1047,40 +1181,6 @@ func NewSearchRequest(server string, params *SearchParams) (*http.Request, error
 	return req, nil
 }
 
-// NewGetGCPProjectsRequest generates requests for GetGCPProjects
-func NewGetGCPProjectsRequest(server string, id string) (*http.Request, error) {
-	var err error
-
-	var pathParam0 string
-
-	pathParam0, err = runtime.StyleParamWithLocation("simple", false, "id", runtime.ParamLocationPath, id)
-	if err != nil {
-		return nil, err
-	}
-
-	serverURL, err := url.Parse(server)
-	if err != nil {
-		return nil, err
-	}
-
-	operationPath := fmt.Sprintf("/team/%s/gcp_projects", pathParam0)
-	if operationPath[0] == '/' {
-		operationPath = "." + operationPath
-	}
-
-	queryURL, err := serverURL.Parse(operationPath)
-	if err != nil {
-		return nil, err
-	}
-
-	req, err := http.NewRequest("GET", queryURL.String(), nil)
-	if err != nil {
-		return nil, err
-	}
-
-	return req, nil
-}
-
 // NewGetUserInfoRequest generates requests for GetUserInfo
 func NewGetUserInfoRequest(server string) (*http.Request, error) {
 	var err error
@@ -1151,6 +1251,25 @@ func WithBaseURL(baseURL string) ClientOption {
 
 // ClientWithResponsesInterface is the interface specification for the client with responses above.
 type ClientWithResponsesInterface interface {
+	// GetDataproductCollections request
+	GetDataproductCollectionsWithResponse(ctx context.Context, params *GetDataproductCollectionsParams, reqEditors ...RequestEditorFn) (*GetDataproductCollectionsResponse, error)
+
+	// CreateDataproductCollection request with any body
+	CreateDataproductCollectionWithBodyWithResponse(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*CreateDataproductCollectionResponse, error)
+
+	CreateDataproductCollectionWithResponse(ctx context.Context, body CreateDataproductCollectionJSONRequestBody, reqEditors ...RequestEditorFn) (*CreateDataproductCollectionResponse, error)
+
+	// DeleteDataproductCollection request
+	DeleteDataproductCollectionWithResponse(ctx context.Context, id string, reqEditors ...RequestEditorFn) (*DeleteDataproductCollectionResponse, error)
+
+	// GetDataproductCollection request
+	GetDataproductCollectionWithResponse(ctx context.Context, id string, reqEditors ...RequestEditorFn) (*GetDataproductCollectionResponse, error)
+
+	// UpdateDataproductCollection request with any body
+	UpdateDataproductCollectionWithBodyWithResponse(ctx context.Context, id string, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*UpdateDataproductCollectionResponse, error)
+
+	UpdateDataproductCollectionWithResponse(ctx context.Context, id string, body UpdateDataproductCollectionJSONRequestBody, reqEditors ...RequestEditorFn) (*UpdateDataproductCollectionResponse, error)
+
 	// GetDataproducts request
 	GetDataproductsWithResponse(ctx context.Context, params *GetDataproductsParams, reqEditors ...RequestEditorFn) (*GetDataproductsResponse, error)
 
@@ -1170,36 +1289,129 @@ type ClientWithResponsesInterface interface {
 
 	UpdateDataproductWithResponse(ctx context.Context, id string, body UpdateDataproductJSONRequestBody, reqEditors ...RequestEditorFn) (*UpdateDataproductResponse, error)
 
-	// CreateDataset request with any body
-	CreateDatasetWithBodyWithResponse(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*CreateDatasetResponse, error)
+	// GetDataproductMetadata request
+	GetDataproductMetadataWithResponse(ctx context.Context, id string, reqEditors ...RequestEditorFn) (*GetDataproductMetadataResponse, error)
 
-	CreateDatasetWithResponse(ctx context.Context, body CreateDatasetJSONRequestBody, reqEditors ...RequestEditorFn) (*CreateDatasetResponse, error)
-
-	// DeleteDataset request
-	DeleteDatasetWithResponse(ctx context.Context, id string, reqEditors ...RequestEditorFn) (*DeleteDatasetResponse, error)
-
-	// GetDataset request
-	GetDatasetWithResponse(ctx context.Context, id string, reqEditors ...RequestEditorFn) (*GetDatasetResponse, error)
-
-	// UpdateDataset request with any body
-	UpdateDatasetWithBodyWithResponse(ctx context.Context, id string, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*UpdateDatasetResponse, error)
-
-	UpdateDatasetWithResponse(ctx context.Context, id string, body UpdateDatasetJSONRequestBody, reqEditors ...RequestEditorFn) (*UpdateDatasetResponse, error)
-
-	// GetDatasetMetadata request
-	GetDatasetMetadataWithResponse(ctx context.Context, id string, reqEditors ...RequestEditorFn) (*GetDatasetMetadataResponse, error)
-
-	// GetBigQueryTables request
-	GetBigQueryTablesWithResponse(ctx context.Context, id string, reqEditors ...RequestEditorFn) (*GetBigQueryTablesResponse, error)
-
-	// Search request
-	SearchWithResponse(ctx context.Context, params *SearchParams, reqEditors ...RequestEditorFn) (*SearchResponse, error)
+	// GetBigqueryTables request
+	GetBigqueryTablesWithResponse(ctx context.Context, id string, reqEditors ...RequestEditorFn) (*GetBigqueryTablesResponse, error)
 
 	// GetGCPProjects request
 	GetGCPProjectsWithResponse(ctx context.Context, id string, reqEditors ...RequestEditorFn) (*GetGCPProjectsResponse, error)
 
+	// Search request
+	SearchWithResponse(ctx context.Context, params *SearchParams, reqEditors ...RequestEditorFn) (*SearchResponse, error)
+
 	// GetUserInfo request
 	GetUserInfoWithResponse(ctx context.Context, reqEditors ...RequestEditorFn) (*GetUserInfoResponse, error)
+}
+
+type GetDataproductCollectionsResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	JSON200      *[]DataproductCollection
+}
+
+// Status returns HTTPResponse.Status
+func (r GetDataproductCollectionsResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r GetDataproductCollectionsResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+type CreateDataproductCollectionResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	JSON201      *DataproductCollection
+}
+
+// Status returns HTTPResponse.Status
+func (r CreateDataproductCollectionResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r CreateDataproductCollectionResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+type DeleteDataproductCollectionResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+}
+
+// Status returns HTTPResponse.Status
+func (r DeleteDataproductCollectionResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r DeleteDataproductCollectionResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+type GetDataproductCollectionResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	JSON200      *[]DataproductCollection
+}
+
+// Status returns HTTPResponse.Status
+func (r GetDataproductCollectionResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r GetDataproductCollectionResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+type UpdateDataproductCollectionResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	JSON200      *DataproductCollection
+}
+
+// Status returns HTTPResponse.Status
+func (r UpdateDataproductCollectionResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r UpdateDataproductCollectionResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
 }
 
 type GetDataproductsResponse struct {
@@ -1270,7 +1482,7 @@ func (r DeleteDataproductResponse) StatusCode() int {
 type GetDataproductResponse struct {
 	Body         []byte
 	HTTPResponse *http.Response
-	JSON200      *[]Dataproduct
+	JSON200      *Dataproduct
 }
 
 // Status returns HTTPResponse.Status
@@ -1311,14 +1523,14 @@ func (r UpdateDataproductResponse) StatusCode() int {
 	return 0
 }
 
-type CreateDatasetResponse struct {
+type GetDataproductMetadataResponse struct {
 	Body         []byte
 	HTTPResponse *http.Response
-	JSON201      *Dataset
+	JSON200      *DataproductMetadata
 }
 
 // Status returns HTTPResponse.Status
-func (r CreateDatasetResponse) Status() string {
+func (r GetDataproductMetadataResponse) Status() string {
 	if r.HTTPResponse != nil {
 		return r.HTTPResponse.Status
 	}
@@ -1326,20 +1538,21 @@ func (r CreateDatasetResponse) Status() string {
 }
 
 // StatusCode returns HTTPResponse.StatusCode
-func (r CreateDatasetResponse) StatusCode() int {
+func (r GetDataproductMetadataResponse) StatusCode() int {
 	if r.HTTPResponse != nil {
 		return r.HTTPResponse.StatusCode
 	}
 	return 0
 }
 
-type DeleteDatasetResponse struct {
+type GetBigqueryTablesResponse struct {
 	Body         []byte
 	HTTPResponse *http.Response
+	JSON200      *[]Bigquery
 }
 
 // Status returns HTTPResponse.Status
-func (r DeleteDatasetResponse) Status() string {
+func (r GetBigqueryTablesResponse) Status() string {
 	if r.HTTPResponse != nil {
 		return r.HTTPResponse.Status
 	}
@@ -1347,117 +1560,7 @@ func (r DeleteDatasetResponse) Status() string {
 }
 
 // StatusCode returns HTTPResponse.StatusCode
-func (r DeleteDatasetResponse) StatusCode() int {
-	if r.HTTPResponse != nil {
-		return r.HTTPResponse.StatusCode
-	}
-	return 0
-}
-
-type GetDatasetResponse struct {
-	Body         []byte
-	HTTPResponse *http.Response
-	JSON200      *Dataset
-}
-
-// Status returns HTTPResponse.Status
-func (r GetDatasetResponse) Status() string {
-	if r.HTTPResponse != nil {
-		return r.HTTPResponse.Status
-	}
-	return http.StatusText(0)
-}
-
-// StatusCode returns HTTPResponse.StatusCode
-func (r GetDatasetResponse) StatusCode() int {
-	if r.HTTPResponse != nil {
-		return r.HTTPResponse.StatusCode
-	}
-	return 0
-}
-
-type UpdateDatasetResponse struct {
-	Body         []byte
-	HTTPResponse *http.Response
-	JSON200      *Dataset
-}
-
-// Status returns HTTPResponse.Status
-func (r UpdateDatasetResponse) Status() string {
-	if r.HTTPResponse != nil {
-		return r.HTTPResponse.Status
-	}
-	return http.StatusText(0)
-}
-
-// StatusCode returns HTTPResponse.StatusCode
-func (r UpdateDatasetResponse) StatusCode() int {
-	if r.HTTPResponse != nil {
-		return r.HTTPResponse.StatusCode
-	}
-	return 0
-}
-
-type GetDatasetMetadataResponse struct {
-	Body         []byte
-	HTTPResponse *http.Response
-	JSON200      *DatasetMetadata
-}
-
-// Status returns HTTPResponse.Status
-func (r GetDatasetMetadataResponse) Status() string {
-	if r.HTTPResponse != nil {
-		return r.HTTPResponse.Status
-	}
-	return http.StatusText(0)
-}
-
-// StatusCode returns HTTPResponse.StatusCode
-func (r GetDatasetMetadataResponse) StatusCode() int {
-	if r.HTTPResponse != nil {
-		return r.HTTPResponse.StatusCode
-	}
-	return 0
-}
-
-type GetBigQueryTablesResponse struct {
-	Body         []byte
-	HTTPResponse *http.Response
-	JSON200      *[]BigQuery
-}
-
-// Status returns HTTPResponse.Status
-func (r GetBigQueryTablesResponse) Status() string {
-	if r.HTTPResponse != nil {
-		return r.HTTPResponse.Status
-	}
-	return http.StatusText(0)
-}
-
-// StatusCode returns HTTPResponse.StatusCode
-func (r GetBigQueryTablesResponse) StatusCode() int {
-	if r.HTTPResponse != nil {
-		return r.HTTPResponse.StatusCode
-	}
-	return 0
-}
-
-type SearchResponse struct {
-	Body         []byte
-	HTTPResponse *http.Response
-	JSON200      *[]SearchResultEntry
-}
-
-// Status returns HTTPResponse.Status
-func (r SearchResponse) Status() string {
-	if r.HTTPResponse != nil {
-		return r.HTTPResponse.Status
-	}
-	return http.StatusText(0)
-}
-
-// StatusCode returns HTTPResponse.StatusCode
-func (r SearchResponse) StatusCode() int {
+func (r GetBigqueryTablesResponse) StatusCode() int {
 	if r.HTTPResponse != nil {
 		return r.HTTPResponse.StatusCode
 	}
@@ -1486,6 +1589,28 @@ func (r GetGCPProjectsResponse) StatusCode() int {
 	return 0
 }
 
+type SearchResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	JSON200      *[]SearchResultEntry
+}
+
+// Status returns HTTPResponse.Status
+func (r SearchResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r SearchResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
 type GetUserInfoResponse struct {
 	Body         []byte
 	HTTPResponse *http.Response
@@ -1506,6 +1631,67 @@ func (r GetUserInfoResponse) StatusCode() int {
 		return r.HTTPResponse.StatusCode
 	}
 	return 0
+}
+
+// GetDataproductCollectionsWithResponse request returning *GetDataproductCollectionsResponse
+func (c *ClientWithResponses) GetDataproductCollectionsWithResponse(ctx context.Context, params *GetDataproductCollectionsParams, reqEditors ...RequestEditorFn) (*GetDataproductCollectionsResponse, error) {
+	rsp, err := c.GetDataproductCollections(ctx, params, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseGetDataproductCollectionsResponse(rsp)
+}
+
+// CreateDataproductCollectionWithBodyWithResponse request with arbitrary body returning *CreateDataproductCollectionResponse
+func (c *ClientWithResponses) CreateDataproductCollectionWithBodyWithResponse(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*CreateDataproductCollectionResponse, error) {
+	rsp, err := c.CreateDataproductCollectionWithBody(ctx, contentType, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseCreateDataproductCollectionResponse(rsp)
+}
+
+func (c *ClientWithResponses) CreateDataproductCollectionWithResponse(ctx context.Context, body CreateDataproductCollectionJSONRequestBody, reqEditors ...RequestEditorFn) (*CreateDataproductCollectionResponse, error) {
+	rsp, err := c.CreateDataproductCollection(ctx, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseCreateDataproductCollectionResponse(rsp)
+}
+
+// DeleteDataproductCollectionWithResponse request returning *DeleteDataproductCollectionResponse
+func (c *ClientWithResponses) DeleteDataproductCollectionWithResponse(ctx context.Context, id string, reqEditors ...RequestEditorFn) (*DeleteDataproductCollectionResponse, error) {
+	rsp, err := c.DeleteDataproductCollection(ctx, id, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseDeleteDataproductCollectionResponse(rsp)
+}
+
+// GetDataproductCollectionWithResponse request returning *GetDataproductCollectionResponse
+func (c *ClientWithResponses) GetDataproductCollectionWithResponse(ctx context.Context, id string, reqEditors ...RequestEditorFn) (*GetDataproductCollectionResponse, error) {
+	rsp, err := c.GetDataproductCollection(ctx, id, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseGetDataproductCollectionResponse(rsp)
+}
+
+// UpdateDataproductCollectionWithBodyWithResponse request with arbitrary body returning *UpdateDataproductCollectionResponse
+func (c *ClientWithResponses) UpdateDataproductCollectionWithBodyWithResponse(ctx context.Context, id string, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*UpdateDataproductCollectionResponse, error) {
+	rsp, err := c.UpdateDataproductCollectionWithBody(ctx, id, contentType, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseUpdateDataproductCollectionResponse(rsp)
+}
+
+func (c *ClientWithResponses) UpdateDataproductCollectionWithResponse(ctx context.Context, id string, body UpdateDataproductCollectionJSONRequestBody, reqEditors ...RequestEditorFn) (*UpdateDataproductCollectionResponse, error) {
+	rsp, err := c.UpdateDataproductCollection(ctx, id, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseUpdateDataproductCollectionResponse(rsp)
 }
 
 // GetDataproductsWithResponse request returning *GetDataproductsResponse
@@ -1569,83 +1755,22 @@ func (c *ClientWithResponses) UpdateDataproductWithResponse(ctx context.Context,
 	return ParseUpdateDataproductResponse(rsp)
 }
 
-// CreateDatasetWithBodyWithResponse request with arbitrary body returning *CreateDatasetResponse
-func (c *ClientWithResponses) CreateDatasetWithBodyWithResponse(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*CreateDatasetResponse, error) {
-	rsp, err := c.CreateDatasetWithBody(ctx, contentType, body, reqEditors...)
+// GetDataproductMetadataWithResponse request returning *GetDataproductMetadataResponse
+func (c *ClientWithResponses) GetDataproductMetadataWithResponse(ctx context.Context, id string, reqEditors ...RequestEditorFn) (*GetDataproductMetadataResponse, error) {
+	rsp, err := c.GetDataproductMetadata(ctx, id, reqEditors...)
 	if err != nil {
 		return nil, err
 	}
-	return ParseCreateDatasetResponse(rsp)
+	return ParseGetDataproductMetadataResponse(rsp)
 }
 
-func (c *ClientWithResponses) CreateDatasetWithResponse(ctx context.Context, body CreateDatasetJSONRequestBody, reqEditors ...RequestEditorFn) (*CreateDatasetResponse, error) {
-	rsp, err := c.CreateDataset(ctx, body, reqEditors...)
+// GetBigqueryTablesWithResponse request returning *GetBigqueryTablesResponse
+func (c *ClientWithResponses) GetBigqueryTablesWithResponse(ctx context.Context, id string, reqEditors ...RequestEditorFn) (*GetBigqueryTablesResponse, error) {
+	rsp, err := c.GetBigqueryTables(ctx, id, reqEditors...)
 	if err != nil {
 		return nil, err
 	}
-	return ParseCreateDatasetResponse(rsp)
-}
-
-// DeleteDatasetWithResponse request returning *DeleteDatasetResponse
-func (c *ClientWithResponses) DeleteDatasetWithResponse(ctx context.Context, id string, reqEditors ...RequestEditorFn) (*DeleteDatasetResponse, error) {
-	rsp, err := c.DeleteDataset(ctx, id, reqEditors...)
-	if err != nil {
-		return nil, err
-	}
-	return ParseDeleteDatasetResponse(rsp)
-}
-
-// GetDatasetWithResponse request returning *GetDatasetResponse
-func (c *ClientWithResponses) GetDatasetWithResponse(ctx context.Context, id string, reqEditors ...RequestEditorFn) (*GetDatasetResponse, error) {
-	rsp, err := c.GetDataset(ctx, id, reqEditors...)
-	if err != nil {
-		return nil, err
-	}
-	return ParseGetDatasetResponse(rsp)
-}
-
-// UpdateDatasetWithBodyWithResponse request with arbitrary body returning *UpdateDatasetResponse
-func (c *ClientWithResponses) UpdateDatasetWithBodyWithResponse(ctx context.Context, id string, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*UpdateDatasetResponse, error) {
-	rsp, err := c.UpdateDatasetWithBody(ctx, id, contentType, body, reqEditors...)
-	if err != nil {
-		return nil, err
-	}
-	return ParseUpdateDatasetResponse(rsp)
-}
-
-func (c *ClientWithResponses) UpdateDatasetWithResponse(ctx context.Context, id string, body UpdateDatasetJSONRequestBody, reqEditors ...RequestEditorFn) (*UpdateDatasetResponse, error) {
-	rsp, err := c.UpdateDataset(ctx, id, body, reqEditors...)
-	if err != nil {
-		return nil, err
-	}
-	return ParseUpdateDatasetResponse(rsp)
-}
-
-// GetDatasetMetadataWithResponse request returning *GetDatasetMetadataResponse
-func (c *ClientWithResponses) GetDatasetMetadataWithResponse(ctx context.Context, id string, reqEditors ...RequestEditorFn) (*GetDatasetMetadataResponse, error) {
-	rsp, err := c.GetDatasetMetadata(ctx, id, reqEditors...)
-	if err != nil {
-		return nil, err
-	}
-	return ParseGetDatasetMetadataResponse(rsp)
-}
-
-// GetBigQueryTablesWithResponse request returning *GetBigQueryTablesResponse
-func (c *ClientWithResponses) GetBigQueryTablesWithResponse(ctx context.Context, id string, reqEditors ...RequestEditorFn) (*GetBigQueryTablesResponse, error) {
-	rsp, err := c.GetBigQueryTables(ctx, id, reqEditors...)
-	if err != nil {
-		return nil, err
-	}
-	return ParseGetBigQueryTablesResponse(rsp)
-}
-
-// SearchWithResponse request returning *SearchResponse
-func (c *ClientWithResponses) SearchWithResponse(ctx context.Context, params *SearchParams, reqEditors ...RequestEditorFn) (*SearchResponse, error) {
-	rsp, err := c.Search(ctx, params, reqEditors...)
-	if err != nil {
-		return nil, err
-	}
-	return ParseSearchResponse(rsp)
+	return ParseGetBigqueryTablesResponse(rsp)
 }
 
 // GetGCPProjectsWithResponse request returning *GetGCPProjectsResponse
@@ -1657,6 +1782,15 @@ func (c *ClientWithResponses) GetGCPProjectsWithResponse(ctx context.Context, id
 	return ParseGetGCPProjectsResponse(rsp)
 }
 
+// SearchWithResponse request returning *SearchResponse
+func (c *ClientWithResponses) SearchWithResponse(ctx context.Context, params *SearchParams, reqEditors ...RequestEditorFn) (*SearchResponse, error) {
+	rsp, err := c.Search(ctx, params, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseSearchResponse(rsp)
+}
+
 // GetUserInfoWithResponse request returning *GetUserInfoResponse
 func (c *ClientWithResponses) GetUserInfoWithResponse(ctx context.Context, reqEditors ...RequestEditorFn) (*GetUserInfoResponse, error) {
 	rsp, err := c.GetUserInfo(ctx, reqEditors...)
@@ -1664,6 +1798,126 @@ func (c *ClientWithResponses) GetUserInfoWithResponse(ctx context.Context, reqEd
 		return nil, err
 	}
 	return ParseGetUserInfoResponse(rsp)
+}
+
+// ParseGetDataproductCollectionsResponse parses an HTTP response from a GetDataproductCollectionsWithResponse call
+func ParseGetDataproductCollectionsResponse(rsp *http.Response) (*GetDataproductCollectionsResponse, error) {
+	bodyBytes, err := ioutil.ReadAll(rsp.Body)
+	defer rsp.Body.Close()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &GetDataproductCollectionsResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest []DataproductCollection
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParseCreateDataproductCollectionResponse parses an HTTP response from a CreateDataproductCollectionWithResponse call
+func ParseCreateDataproductCollectionResponse(rsp *http.Response) (*CreateDataproductCollectionResponse, error) {
+	bodyBytes, err := ioutil.ReadAll(rsp.Body)
+	defer rsp.Body.Close()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &CreateDataproductCollectionResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 201:
+		var dest DataproductCollection
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON201 = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParseDeleteDataproductCollectionResponse parses an HTTP response from a DeleteDataproductCollectionWithResponse call
+func ParseDeleteDataproductCollectionResponse(rsp *http.Response) (*DeleteDataproductCollectionResponse, error) {
+	bodyBytes, err := ioutil.ReadAll(rsp.Body)
+	defer rsp.Body.Close()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &DeleteDataproductCollectionResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	return response, nil
+}
+
+// ParseGetDataproductCollectionResponse parses an HTTP response from a GetDataproductCollectionWithResponse call
+func ParseGetDataproductCollectionResponse(rsp *http.Response) (*GetDataproductCollectionResponse, error) {
+	bodyBytes, err := ioutil.ReadAll(rsp.Body)
+	defer rsp.Body.Close()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &GetDataproductCollectionResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest []DataproductCollection
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParseUpdateDataproductCollectionResponse parses an HTTP response from a UpdateDataproductCollectionWithResponse call
+func ParseUpdateDataproductCollectionResponse(rsp *http.Response) (*UpdateDataproductCollectionResponse, error) {
+	bodyBytes, err := ioutil.ReadAll(rsp.Body)
+	defer rsp.Body.Close()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &UpdateDataproductCollectionResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest DataproductCollection
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	}
+
+	return response, nil
 }
 
 // ParseGetDataproductsResponse parses an HTTP response from a GetDataproductsWithResponse call
@@ -1749,7 +2003,7 @@ func ParseGetDataproductResponse(rsp *http.Response) (*GetDataproductResponse, e
 
 	switch {
 	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
-		var dest []Dataproduct
+		var dest Dataproduct
 		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
 			return nil, err
 		}
@@ -1786,64 +2040,22 @@ func ParseUpdateDataproductResponse(rsp *http.Response) (*UpdateDataproductRespo
 	return response, nil
 }
 
-// ParseCreateDatasetResponse parses an HTTP response from a CreateDatasetWithResponse call
-func ParseCreateDatasetResponse(rsp *http.Response) (*CreateDatasetResponse, error) {
+// ParseGetDataproductMetadataResponse parses an HTTP response from a GetDataproductMetadataWithResponse call
+func ParseGetDataproductMetadataResponse(rsp *http.Response) (*GetDataproductMetadataResponse, error) {
 	bodyBytes, err := ioutil.ReadAll(rsp.Body)
 	defer rsp.Body.Close()
 	if err != nil {
 		return nil, err
 	}
 
-	response := &CreateDatasetResponse{
-		Body:         bodyBytes,
-		HTTPResponse: rsp,
-	}
-
-	switch {
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 201:
-		var dest Dataset
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.JSON201 = &dest
-
-	}
-
-	return response, nil
-}
-
-// ParseDeleteDatasetResponse parses an HTTP response from a DeleteDatasetWithResponse call
-func ParseDeleteDatasetResponse(rsp *http.Response) (*DeleteDatasetResponse, error) {
-	bodyBytes, err := ioutil.ReadAll(rsp.Body)
-	defer rsp.Body.Close()
-	if err != nil {
-		return nil, err
-	}
-
-	response := &DeleteDatasetResponse{
-		Body:         bodyBytes,
-		HTTPResponse: rsp,
-	}
-
-	return response, nil
-}
-
-// ParseGetDatasetResponse parses an HTTP response from a GetDatasetWithResponse call
-func ParseGetDatasetResponse(rsp *http.Response) (*GetDatasetResponse, error) {
-	bodyBytes, err := ioutil.ReadAll(rsp.Body)
-	defer rsp.Body.Close()
-	if err != nil {
-		return nil, err
-	}
-
-	response := &GetDatasetResponse{
+	response := &GetDataproductMetadataResponse{
 		Body:         bodyBytes,
 		HTTPResponse: rsp,
 	}
 
 	switch {
 	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
-		var dest Dataset
+		var dest DataproductMetadata
 		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
 			return nil, err
 		}
@@ -1854,100 +2066,22 @@ func ParseGetDatasetResponse(rsp *http.Response) (*GetDatasetResponse, error) {
 	return response, nil
 }
 
-// ParseUpdateDatasetResponse parses an HTTP response from a UpdateDatasetWithResponse call
-func ParseUpdateDatasetResponse(rsp *http.Response) (*UpdateDatasetResponse, error) {
+// ParseGetBigqueryTablesResponse parses an HTTP response from a GetBigqueryTablesWithResponse call
+func ParseGetBigqueryTablesResponse(rsp *http.Response) (*GetBigqueryTablesResponse, error) {
 	bodyBytes, err := ioutil.ReadAll(rsp.Body)
 	defer rsp.Body.Close()
 	if err != nil {
 		return nil, err
 	}
 
-	response := &UpdateDatasetResponse{
+	response := &GetBigqueryTablesResponse{
 		Body:         bodyBytes,
 		HTTPResponse: rsp,
 	}
 
 	switch {
 	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
-		var dest Dataset
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.JSON200 = &dest
-
-	}
-
-	return response, nil
-}
-
-// ParseGetDatasetMetadataResponse parses an HTTP response from a GetDatasetMetadataWithResponse call
-func ParseGetDatasetMetadataResponse(rsp *http.Response) (*GetDatasetMetadataResponse, error) {
-	bodyBytes, err := ioutil.ReadAll(rsp.Body)
-	defer rsp.Body.Close()
-	if err != nil {
-		return nil, err
-	}
-
-	response := &GetDatasetMetadataResponse{
-		Body:         bodyBytes,
-		HTTPResponse: rsp,
-	}
-
-	switch {
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
-		var dest DatasetMetadata
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.JSON200 = &dest
-
-	}
-
-	return response, nil
-}
-
-// ParseGetBigQueryTablesResponse parses an HTTP response from a GetBigQueryTablesWithResponse call
-func ParseGetBigQueryTablesResponse(rsp *http.Response) (*GetBigQueryTablesResponse, error) {
-	bodyBytes, err := ioutil.ReadAll(rsp.Body)
-	defer rsp.Body.Close()
-	if err != nil {
-		return nil, err
-	}
-
-	response := &GetBigQueryTablesResponse{
-		Body:         bodyBytes,
-		HTTPResponse: rsp,
-	}
-
-	switch {
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
-		var dest []BigQuery
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.JSON200 = &dest
-
-	}
-
-	return response, nil
-}
-
-// ParseSearchResponse parses an HTTP response from a SearchWithResponse call
-func ParseSearchResponse(rsp *http.Response) (*SearchResponse, error) {
-	bodyBytes, err := ioutil.ReadAll(rsp.Body)
-	defer rsp.Body.Close()
-	if err != nil {
-		return nil, err
-	}
-
-	response := &SearchResponse{
-		Body:         bodyBytes,
-		HTTPResponse: rsp,
-	}
-
-	switch {
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
-		var dest []SearchResultEntry
+		var dest []Bigquery
 		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
 			return nil, err
 		}
@@ -1974,6 +2108,32 @@ func ParseGetGCPProjectsResponse(rsp *http.Response) (*GetGCPProjectsResponse, e
 	switch {
 	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
 		var dest []string
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParseSearchResponse parses an HTTP response from a SearchWithResponse call
+func ParseSearchResponse(rsp *http.Response) (*SearchResponse, error) {
+	bodyBytes, err := ioutil.ReadAll(rsp.Body)
+	defer rsp.Body.Close()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &SearchResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest []SearchResultEntry
 		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
 			return nil, err
 		}
@@ -2013,6 +2173,21 @@ func ParseGetUserInfoResponse(rsp *http.Response) (*GetUserInfoResponse, error) 
 // ServerInterface represents all server handlers.
 type ServerInterface interface {
 
+	// (GET /collections)
+	GetDataproductCollections(w http.ResponseWriter, r *http.Request, params GetDataproductCollectionsParams)
+
+	// (POST /collections)
+	CreateDataproductCollection(w http.ResponseWriter, r *http.Request)
+
+	// (DELETE /collections/{id})
+	DeleteDataproductCollection(w http.ResponseWriter, r *http.Request, id string)
+
+	// (GET /collections/{id})
+	GetDataproductCollection(w http.ResponseWriter, r *http.Request, id string)
+
+	// (PUT /collections/{id})
+	UpdateDataproductCollection(w http.ResponseWriter, r *http.Request, id string)
+
 	// (GET /dataproducts)
 	GetDataproducts(w http.ResponseWriter, r *http.Request, params GetDataproductsParams)
 
@@ -2028,29 +2203,17 @@ type ServerInterface interface {
 	// (PUT /dataproducts/{id})
 	UpdateDataproduct(w http.ResponseWriter, r *http.Request, id string)
 
-	// (POST /datasets)
-	CreateDataset(w http.ResponseWriter, r *http.Request)
-
-	// (DELETE /datasets/{id})
-	DeleteDataset(w http.ResponseWriter, r *http.Request, id string)
-
-	// (GET /datasets/{id})
-	GetDataset(w http.ResponseWriter, r *http.Request, id string)
-
-	// (PUT /datasets/{id})
-	UpdateDataset(w http.ResponseWriter, r *http.Request, id string)
-
-	// (GET /datasets/{id}/metadata)
-	GetDatasetMetadata(w http.ResponseWriter, r *http.Request, id string)
+	// (GET /dataproducts/{id}/metadata)
+	GetDataproductMetadata(w http.ResponseWriter, r *http.Request, id string)
 
 	// (GET /gcp/{id}/tables)
-	GetBigQueryTables(w http.ResponseWriter, r *http.Request, id string)
+	GetBigqueryTables(w http.ResponseWriter, r *http.Request, id string)
+
+	// (GET /groups/{id}/gcp_projects)
+	GetGCPProjects(w http.ResponseWriter, r *http.Request, id string)
 
 	// (GET /search)
 	Search(w http.ResponseWriter, r *http.Request, params SearchParams)
-
-	// (GET /team/{id}/gcp_projects)
-	GetGCPProjects(w http.ResponseWriter, r *http.Request, id string)
 
 	// (GET /userinfo)
 	GetUserInfo(w http.ResponseWriter, r *http.Request)
@@ -2063,6 +2226,147 @@ type ServerInterfaceWrapper struct {
 }
 
 type MiddlewareFunc func(http.HandlerFunc) http.HandlerFunc
+
+// GetDataproductCollections operation middleware
+func (siw *ServerInterfaceWrapper) GetDataproductCollections(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+
+	var err error
+
+	// Parameter object where we will unmarshal all parameters from the context
+	var params GetDataproductCollectionsParams
+
+	// ------------- Optional query parameter "limit" -------------
+	if paramValue := r.URL.Query().Get("limit"); paramValue != "" {
+
+	}
+
+	err = runtime.BindQueryParameter("form", true, false, "limit", r.URL.Query(), &params.Limit)
+	if err != nil {
+		http.Error(w, fmt.Sprintf("Invalid format for parameter limit: %s", err), http.StatusBadRequest)
+		return
+	}
+
+	// ------------- Optional query parameter "offset" -------------
+	if paramValue := r.URL.Query().Get("offset"); paramValue != "" {
+
+	}
+
+	err = runtime.BindQueryParameter("form", true, false, "offset", r.URL.Query(), &params.Offset)
+	if err != nil {
+		http.Error(w, fmt.Sprintf("Invalid format for parameter offset: %s", err), http.StatusBadRequest)
+		return
+	}
+
+	var handler = func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.GetDataproductCollections(w, r, params)
+	}
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler(w, r.WithContext(ctx))
+}
+
+// CreateDataproductCollection operation middleware
+func (siw *ServerInterfaceWrapper) CreateDataproductCollection(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+
+	ctx = context.WithValue(ctx, CookieAuthScopes, []string{""})
+
+	var handler = func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.CreateDataproductCollection(w, r)
+	}
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler(w, r.WithContext(ctx))
+}
+
+// DeleteDataproductCollection operation middleware
+func (siw *ServerInterfaceWrapper) DeleteDataproductCollection(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+
+	var err error
+
+	// ------------- Path parameter "id" -------------
+	var id string
+
+	err = runtime.BindStyledParameter("simple", false, "id", chi.URLParam(r, "id"), &id)
+	if err != nil {
+		http.Error(w, fmt.Sprintf("Invalid format for parameter id: %s", err), http.StatusBadRequest)
+		return
+	}
+
+	ctx = context.WithValue(ctx, CookieAuthScopes, []string{""})
+
+	var handler = func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.DeleteDataproductCollection(w, r, id)
+	}
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler(w, r.WithContext(ctx))
+}
+
+// GetDataproductCollection operation middleware
+func (siw *ServerInterfaceWrapper) GetDataproductCollection(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+
+	var err error
+
+	// ------------- Path parameter "id" -------------
+	var id string
+
+	err = runtime.BindStyledParameter("simple", false, "id", chi.URLParam(r, "id"), &id)
+	if err != nil {
+		http.Error(w, fmt.Sprintf("Invalid format for parameter id: %s", err), http.StatusBadRequest)
+		return
+	}
+
+	var handler = func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.GetDataproductCollection(w, r, id)
+	}
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler(w, r.WithContext(ctx))
+}
+
+// UpdateDataproductCollection operation middleware
+func (siw *ServerInterfaceWrapper) UpdateDataproductCollection(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+
+	var err error
+
+	// ------------- Path parameter "id" -------------
+	var id string
+
+	err = runtime.BindStyledParameter("simple", false, "id", chi.URLParam(r, "id"), &id)
+	if err != nil {
+		http.Error(w, fmt.Sprintf("Invalid format for parameter id: %s", err), http.StatusBadRequest)
+		return
+	}
+
+	ctx = context.WithValue(ctx, CookieAuthScopes, []string{""})
+
+	var handler = func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.UpdateDataproductCollection(w, r, id)
+	}
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler(w, r.WithContext(ctx))
+}
 
 // GetDataproducts operation middleware
 func (siw *ServerInterfaceWrapper) GetDataproducts(w http.ResponseWriter, r *http.Request) {
@@ -2205,14 +2509,23 @@ func (siw *ServerInterfaceWrapper) UpdateDataproduct(w http.ResponseWriter, r *h
 	handler(w, r.WithContext(ctx))
 }
 
-// CreateDataset operation middleware
-func (siw *ServerInterfaceWrapper) CreateDataset(w http.ResponseWriter, r *http.Request) {
+// GetDataproductMetadata operation middleware
+func (siw *ServerInterfaceWrapper) GetDataproductMetadata(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 
-	ctx = context.WithValue(ctx, CookieAuthScopes, []string{""})
+	var err error
+
+	// ------------- Path parameter "id" -------------
+	var id string
+
+	err = runtime.BindStyledParameter("simple", false, "id", chi.URLParam(r, "id"), &id)
+	if err != nil {
+		http.Error(w, fmt.Sprintf("Invalid format for parameter id: %s", err), http.StatusBadRequest)
+		return
+	}
 
 	var handler = func(w http.ResponseWriter, r *http.Request) {
-		siw.Handler.CreateDataset(w, r)
+		siw.Handler.GetDataproductMetadata(w, r, id)
 	}
 
 	for _, middleware := range siw.HandlerMiddlewares {
@@ -2222,8 +2535,8 @@ func (siw *ServerInterfaceWrapper) CreateDataset(w http.ResponseWriter, r *http.
 	handler(w, r.WithContext(ctx))
 }
 
-// DeleteDataset operation middleware
-func (siw *ServerInterfaceWrapper) DeleteDataset(w http.ResponseWriter, r *http.Request) {
+// GetBigqueryTables operation middleware
+func (siw *ServerInterfaceWrapper) GetBigqueryTables(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 
 	var err error
@@ -2240,7 +2553,7 @@ func (siw *ServerInterfaceWrapper) DeleteDataset(w http.ResponseWriter, r *http.
 	ctx = context.WithValue(ctx, CookieAuthScopes, []string{""})
 
 	var handler = func(w http.ResponseWriter, r *http.Request) {
-		siw.Handler.DeleteDataset(w, r, id)
+		siw.Handler.GetBigqueryTables(w, r, id)
 	}
 
 	for _, middleware := range siw.HandlerMiddlewares {
@@ -2250,34 +2563,8 @@ func (siw *ServerInterfaceWrapper) DeleteDataset(w http.ResponseWriter, r *http.
 	handler(w, r.WithContext(ctx))
 }
 
-// GetDataset operation middleware
-func (siw *ServerInterfaceWrapper) GetDataset(w http.ResponseWriter, r *http.Request) {
-	ctx := r.Context()
-
-	var err error
-
-	// ------------- Path parameter "id" -------------
-	var id string
-
-	err = runtime.BindStyledParameter("simple", false, "id", chi.URLParam(r, "id"), &id)
-	if err != nil {
-		http.Error(w, fmt.Sprintf("Invalid format for parameter id: %s", err), http.StatusBadRequest)
-		return
-	}
-
-	var handler = func(w http.ResponseWriter, r *http.Request) {
-		siw.Handler.GetDataset(w, r, id)
-	}
-
-	for _, middleware := range siw.HandlerMiddlewares {
-		handler = middleware(handler)
-	}
-
-	handler(w, r.WithContext(ctx))
-}
-
-// UpdateDataset operation middleware
-func (siw *ServerInterfaceWrapper) UpdateDataset(w http.ResponseWriter, r *http.Request) {
+// GetGCPProjects operation middleware
+func (siw *ServerInterfaceWrapper) GetGCPProjects(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 
 	var err error
@@ -2294,61 +2581,7 @@ func (siw *ServerInterfaceWrapper) UpdateDataset(w http.ResponseWriter, r *http.
 	ctx = context.WithValue(ctx, CookieAuthScopes, []string{""})
 
 	var handler = func(w http.ResponseWriter, r *http.Request) {
-		siw.Handler.UpdateDataset(w, r, id)
-	}
-
-	for _, middleware := range siw.HandlerMiddlewares {
-		handler = middleware(handler)
-	}
-
-	handler(w, r.WithContext(ctx))
-}
-
-// GetDatasetMetadata operation middleware
-func (siw *ServerInterfaceWrapper) GetDatasetMetadata(w http.ResponseWriter, r *http.Request) {
-	ctx := r.Context()
-
-	var err error
-
-	// ------------- Path parameter "id" -------------
-	var id string
-
-	err = runtime.BindStyledParameter("simple", false, "id", chi.URLParam(r, "id"), &id)
-	if err != nil {
-		http.Error(w, fmt.Sprintf("Invalid format for parameter id: %s", err), http.StatusBadRequest)
-		return
-	}
-
-	var handler = func(w http.ResponseWriter, r *http.Request) {
-		siw.Handler.GetDatasetMetadata(w, r, id)
-	}
-
-	for _, middleware := range siw.HandlerMiddlewares {
-		handler = middleware(handler)
-	}
-
-	handler(w, r.WithContext(ctx))
-}
-
-// GetBigQueryTables operation middleware
-func (siw *ServerInterfaceWrapper) GetBigQueryTables(w http.ResponseWriter, r *http.Request) {
-	ctx := r.Context()
-
-	var err error
-
-	// ------------- Path parameter "id" -------------
-	var id string
-
-	err = runtime.BindStyledParameter("simple", false, "id", chi.URLParam(r, "id"), &id)
-	if err != nil {
-		http.Error(w, fmt.Sprintf("Invalid format for parameter id: %s", err), http.StatusBadRequest)
-		return
-	}
-
-	ctx = context.WithValue(ctx, CookieAuthScopes, []string{""})
-
-	var handler = func(w http.ResponseWriter, r *http.Request) {
-		siw.Handler.GetBigQueryTables(w, r, id)
+		siw.Handler.GetGCPProjects(w, r, id)
 	}
 
 	for _, middleware := range siw.HandlerMiddlewares {
@@ -2402,34 +2635,6 @@ func (siw *ServerInterfaceWrapper) Search(w http.ResponseWriter, r *http.Request
 
 	var handler = func(w http.ResponseWriter, r *http.Request) {
 		siw.Handler.Search(w, r, params)
-	}
-
-	for _, middleware := range siw.HandlerMiddlewares {
-		handler = middleware(handler)
-	}
-
-	handler(w, r.WithContext(ctx))
-}
-
-// GetGCPProjects operation middleware
-func (siw *ServerInterfaceWrapper) GetGCPProjects(w http.ResponseWriter, r *http.Request) {
-	ctx := r.Context()
-
-	var err error
-
-	// ------------- Path parameter "id" -------------
-	var id string
-
-	err = runtime.BindStyledParameter("simple", false, "id", chi.URLParam(r, "id"), &id)
-	if err != nil {
-		http.Error(w, fmt.Sprintf("Invalid format for parameter id: %s", err), http.StatusBadRequest)
-		return
-	}
-
-	ctx = context.WithValue(ctx, CookieAuthScopes, []string{""})
-
-	var handler = func(w http.ResponseWriter, r *http.Request) {
-		siw.Handler.GetGCPProjects(w, r, id)
 	}
 
 	for _, middleware := range siw.HandlerMiddlewares {
@@ -2494,6 +2699,21 @@ func HandlerWithOptions(si ServerInterface, options ChiServerOptions) http.Handl
 	}
 
 	r.Group(func(r chi.Router) {
+		r.Get(options.BaseURL+"/collections", wrapper.GetDataproductCollections)
+	})
+	r.Group(func(r chi.Router) {
+		r.Post(options.BaseURL+"/collections", wrapper.CreateDataproductCollection)
+	})
+	r.Group(func(r chi.Router) {
+		r.Delete(options.BaseURL+"/collections/{id}", wrapper.DeleteDataproductCollection)
+	})
+	r.Group(func(r chi.Router) {
+		r.Get(options.BaseURL+"/collections/{id}", wrapper.GetDataproductCollection)
+	})
+	r.Group(func(r chi.Router) {
+		r.Put(options.BaseURL+"/collections/{id}", wrapper.UpdateDataproductCollection)
+	})
+	r.Group(func(r chi.Router) {
 		r.Get(options.BaseURL+"/dataproducts", wrapper.GetDataproducts)
 	})
 	r.Group(func(r chi.Router) {
@@ -2509,28 +2729,16 @@ func HandlerWithOptions(si ServerInterface, options ChiServerOptions) http.Handl
 		r.Put(options.BaseURL+"/dataproducts/{id}", wrapper.UpdateDataproduct)
 	})
 	r.Group(func(r chi.Router) {
-		r.Post(options.BaseURL+"/datasets", wrapper.CreateDataset)
+		r.Get(options.BaseURL+"/dataproducts/{id}/metadata", wrapper.GetDataproductMetadata)
 	})
 	r.Group(func(r chi.Router) {
-		r.Delete(options.BaseURL+"/datasets/{id}", wrapper.DeleteDataset)
+		r.Get(options.BaseURL+"/gcp/{id}/tables", wrapper.GetBigqueryTables)
 	})
 	r.Group(func(r chi.Router) {
-		r.Get(options.BaseURL+"/datasets/{id}", wrapper.GetDataset)
-	})
-	r.Group(func(r chi.Router) {
-		r.Put(options.BaseURL+"/datasets/{id}", wrapper.UpdateDataset)
-	})
-	r.Group(func(r chi.Router) {
-		r.Get(options.BaseURL+"/datasets/{id}/metadata", wrapper.GetDatasetMetadata)
-	})
-	r.Group(func(r chi.Router) {
-		r.Get(options.BaseURL+"/gcp/{id}/tables", wrapper.GetBigQueryTables)
+		r.Get(options.BaseURL+"/groups/{id}/gcp_projects", wrapper.GetGCPProjects)
 	})
 	r.Group(func(r chi.Router) {
 		r.Get(options.BaseURL+"/search", wrapper.Search)
-	})
-	r.Group(func(r chi.Router) {
-		r.Get(options.BaseURL+"/team/{id}/gcp_projects", wrapper.GetGCPProjects)
 	})
 	r.Group(func(r chi.Router) {
 		r.Get(options.BaseURL+"/userinfo", wrapper.GetUserInfo)
@@ -2542,29 +2750,30 @@ func HandlerWithOptions(si ServerInterface, options ChiServerOptions) http.Handl
 // Base64 encoded, gzipped, json marshaled Swagger object
 var swaggerSpec = []string{
 
-	"H4sIAAAAAAAC/9xZ3W7jNhN9FYHfd6na3m0LLHS3GxdB0O4m3aRXQRAw0lhmIpEKOYprBH73gqR+LUqy",
-	"A8fr9s6RhhzOOXMOKeaVhCLNBAeOigSvRIVLSKn5+YXFf+Yg1/p3JkUGEhmYNxFFqgD1T1xnQAKiUDIe",
-	"k42vIx8hxHsWOV8jfUjA8WbjEwnPOZMQkeC2OYtfpStH3/nlaPGgo/S8c4o0kyLKQ+yuN5RAEcyCFkKm",
-	"FEmgJ4WfkKVA/O4qi4xmMENIzY//S1iQgPxvWiM2LeCazu2A6zxNqVybQu2cVEpq/o5AhZJlyAR3AtOD",
-	"1xOsV0JG7ZV0Ud1KllCF96mI2ILtUzanKTjnFysOcgyDSxNkiMyEcxqV5PE494Zzs5RiRJnfr4jcrrDB",
-	"WF9zFP3abowHFj+XLT5UWiWFojeKTutr8jdy3Qt/xljj+YMQCVBe875Ta97o0CGozVw2V6dIv0ZqAN+v",
-	"gFQP7DWMPrzsUncW2412gTOR5CnvNr+rwkb6KtlAHaWKO2Xsy9vB6RlY9E2RC3ie6rEOwuqFfYPVoGGO",
-	"NfDbXOk07KXA0+Z0AVqAc0qGsa8zuEvuiNpqfVDalyU1bRwQaOrmHGj6RJEmIgY+ToaZx5X3GqgMl99B",
-	"5Qn+xtGlRvg7BJnhQRx2F6U2l2Tl6pNcJuNF6qDKX5uaLisYA2Bb2/WBqEFp+RcNn2gMTtk3jXNvzaci",
-	"greBupMeC3hMlrYgXOj8lemDzCl52CFcyVmpAnnBF8LR/yllyZ6MAE33KtjNlc1cTtddta4awlwyXF9r",
-	"8RSncCGeGHzOcWlWwElQPCoFEZDHFdbnUhRPoL1My7kAABnqrwfy7fP8M/HJC0hl6CUfJjOzkWTAacZI",
-	"QH6ezCYftcVRXJrs04ZUzIPY+nurTcgfTKFHk8RrRZuJJdUxFxEJyDngvP0+o5KmgCAVCW6L4qypVrUl",
-	"LGVImoedCBY0T5AEH36timYcIdb73MZ3TyMWCyt9xzwzxzR3mkGVCa4sCx9nM0sGR+AGAZplCQtNddNH",
-	"ZdWy54msKcRuD21vcOTyd/s0E8rBwZk55HvU47Dy2gbXpsEGzlsRultB4RcRrfcqc6i6rdPSZmNl0QL1",
-	"w8GybaXynehEnsrDEJRa5EmybinONGBTa7d3mzsd0FLA9JVFG4t9AghdFubmuUcHGbBBbQa2pLA1ax3q",
-	"Xcz1dqifapHWHW52yNp1UObQ7PZtH+02+C991USe6bwxrPwhb2ji4a0YLr3q03PYJk4CmhPSfu6A2G7r",
-	"I03X3ft/ELKHd5puaU6zmR3LbOx6dpRNaTHlxdmO7m53sz5nt2/f0dV1giM4epHmwG6uod7PyV1o1y5u",
-	"346KScG/z73PAXsBKIz6FKqfHaPrdvdgF1q1Sf0gwI7vBUdh5c1maxxgmjZuX8cU4FXB/VL4Wof8xyRR",
-	"VdYrDY1uHGYWWPNPp/5Pxu+AueTmo7G89fPsEI9xLw4zr/hnlgvrcsSNzXGM81rzanKnw9q44Q72x/nZ",
-	"VYnAwXpE86PMBVkvLfb+TFNQXBa0sbevjwJ49ypzB+SL5UszqnDr8TuGZzIEm39aFxOaRASaWpXFYXZf",
-	"tEm/1qy6KI88Wauu0WDKWwjp4RI8c7HsENz52dVVmeVQ5I/dob2LrG6ApgfVU65AlvdsTvBjQE8HeSbK",
-	"gW11VfmOFl7leCusNkK+lKiaG3yyRMxUMJ0mIqTJUigMPs0+zaY0Y0T3ezuI04hOIniZ6GaWfMLpy4SL",
-	"oWBH4N3mnwAAAP//ya6NNnshAAA=",
+	"H4sIAAAAAAAC/+xZTW/jNhD9KwLbo2o72xZY6JbERRBsd5Nu0lNgBIw0lplIpEJScY3A/70gqW9TH04V",
+	"xy16S6whh/PezJuR+Ip8FieMApUCea9I+CuIsf7zjITPKfCN+jvhLAEuCegnAZZYgFR/yk0CyENCckJD",
+	"tHWV5SP48p4E1scSP0RgebJ1EYfnlHAIkHdX3cUt3OWrF26+mj0oK7XvHEuccBakvmw5L0u5rz3/yGGJ",
+	"PPTDtIx8moU9nZeWWxcFIHxOEkkYtQbTEiPFMVgfsDUF3neEK22kkCSksssDYxFgijRQCbPuL6I0tKOu",
+	"f+gPPUPwVpk3KdFU6NCy/cwJ86jcKso9DJ2zKAI/h7XOlc8BS9DALhmPsUSe2hl+kqR0XY0tKPfVGxAJ",
+	"sdgj2Js0jjHflDAhzDne/AP+n2CzZjyon6aFk9JZhIW8j1lAlmSf8EdKtn1zqiM59IoyLXJCmxE2mOtJ",
+	"ma8gsbK3F3dm1CY6JtrByXGrVOacRWlMd4lqBN7wXvjqCSdPup1o9pWUd6nsnsPfZj6BprFa/5A3ioUl",
+	"P+c17WUUrpbIu+s+cNF5touti77B+kPU/dhkvMFaRtheGlyHskuG+8B5m8Ydh1hlyBmfNpiu8tPUMQk5",
+	"SxN7nIDjJyxxxEKg/QcwG9k83wDm/uo7iDSSv1FpUwj4yweeyFEGkiHqUT2SkQ8XpTzqj1IZFaNCVWPy",
+	"CPoAaOpMRWtR2zyRdRXsP+EQrIJUVfe90z5mAbwN4kEpmYGlvdQFyobVn4maDLq18a0adwDVGhTSEWnU",
+	"GJFbYxbAL+mSWUo9xiSyutQKMk5gdoKM68LR7rlV3OCnnMjNjVKKbHpn7InAaSpX+mwUedlPefV76HEt",
+	"yzkWJ+QLqKlKiVeGgSRSvSKib6fzU+SiF+BCM4xOJjPdKxKgOCHIQz9PZpNPKpuwXGn3U79IF6PY5iW1",
+	"lijodyKkg6PIsaaZQNoDx+qfywB56AJkq2WCOY5BAhd6qNEBm9GliDciMZGoOoQGsMRpJJF38msBBKES",
+	"QtXdtq59G7Zcmndgyz4zyzYLRatIGBWGmU+zmSGISqAaFZwkEfF1nNNHYWpoz0nZXqi7M3Nz2kJXX8yv",
+	"CRMWhs71K4ODHQprp03n6ySZJW22KsFByDMWbPYCoSv21llquzU1VQP/ZDS/rU5dK4qBI1LfByGWaRRt",
+	"anWrU7ZasXeL7UIZVMto+kqCraEoAgm7ZM317w4eSJQxb7Nt1FPDk22RczlX44V6rmSgLBg9cZTKJnkK",
+	"1eJpquBuvfzSFmvg6PTtA9Ltkh87Ws6ayJVTey8eqkZHBt5Rik1qocNMHIPTt2tA+XAGxhe5rnCtOjc7",
+	"vM6ZMw4sSqVuzS+G1jK9ALlPIf4/DFQJG3kEqL/49TT+g7T7Azb5kVt7NaeH9/YuBnY6+h5C+K/r3g1Z",
+	"6FGFo0BidqisHNZnu9Db/aLxQQAeoJMesH+O3jW1cEzjyp3MkGJxigXdVfO1NPuPVk8RYWsVKcRDPzFA",
+	"62vv9lHlO8iUU/1J44yEf6hRwTFLHEKd0E+c7Drdhnt+13JrfBxiUCivdwZOCf1a3ZknF+fXOQKj5Ynm",
+	"R38bMxSFfnKf+WgnylCDaeDwkrLK6YSzZNyRK3DMDYGFrovz6+vczVhc9Xw5fCdSVISj0iH01UEr+OZm",
+	"QVVE9mGxjq15fJD8373kGYB5dnyuV2V9tv994xl1weYe10uKIjEVwPMPwVYaQ5COMnK0laVCis/p7yjl",
+	"hY+3Foex4C85d/pCDa2kTIQ3nUbMx9GKCel9nn2eTXFCkAK5bkRxgCcBvEwUgpxOKH6ZUNZlbDFcbP8O",
+	"AAD//2PL68EBJgAA",
 }
 
 // GetSwagger returns the content of the embedded swagger specification file
