@@ -3,7 +3,7 @@ info:
   title: NADA
   version: "1.0"
 servers:
-  - url: "https://localhost:8080/api"
+  - url: "http://localhost:8080/api"
   - url: "https://nada.dev.intern.nav.no/api"
   - url: "https://nada.intern.nav.no/api"
 
@@ -217,7 +217,7 @@ components:
         groups:
           type: array
           items:
-            type: string
+            $ref: "#/components/schemas/Group"
       required:
         - name
         - email
@@ -279,6 +279,18 @@ components:
         - dataproduct
         - DataproductCollection
         - datapackage
+
+    Group:
+      type: object
+      properties:
+        email:
+          type: string
+          description: "Email and ID of the group"
+        name:
+          type: string
+      required:
+        - email
+        - name
 
 paths:
   /userinfo:

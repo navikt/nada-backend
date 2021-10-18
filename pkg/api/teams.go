@@ -7,22 +7,16 @@ import (
 	"github.com/navikt/nada-backend/pkg/auth"
 )
 
-func (s *Server) GetGCPProjects(w http.ResponseWriter, r *http.Request, teamID string) {
+func (s *Server) GetGCPProjects(w http.ResponseWriter, r *http.Request, groupEmail string) {
 	user := auth.GetUser(r.Context())
 
-	found := false
-	for _, t := range user.Groups {
-		if t.Name == teamID {
-			found = true
-			break
-		}
-	}
+	group, found := user.Groups.Get(groupEmail)
 	if !found {
 		http.Error(w, "No access", http.StatusUnauthorized)
 		return
 	}
 
-	ps, ok := s.projectsMapping.Get(teamID)
+	ps, ok := s.projectsMapping.Get(group.Email)
 	if !ok {
 		http.Error(w, "No projects", http.StatusNotFound)
 		return

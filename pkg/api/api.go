@@ -91,7 +91,7 @@ func (s *Server) CreateDataproductCollection(w http.ResponseWriter, r *http.Requ
 	}
 	user := auth.GetUser(r.Context())
 
-	if !contains(newCollection.Owner.Group, user.Groups.Names()) {
+	if !user.Groups.Contains(newCollection.Owner.Group) {
 		s.log.Infof("Creating collection: User %v is not member of Group %v", user.Email, newCollection.Owner.Group)
 		http.Error(w, "unauthorized", http.StatusUnauthorized)
 		return
@@ -124,7 +124,7 @@ func (s *Server) DeleteDataproductCollection(w http.ResponseWriter, r *http.Requ
 		return
 	}
 
-	if !contains(collection.Owner.Group, user.Groups.Names()) {
+	if !user.Groups.Contains(collection.Owner.Group) {
 		s.log.Infof("Delete collection: User %v is not member of Group %v", user.Email, collection.Owner.Group)
 		http.Error(w, "unauthorized", http.StatusUnauthorized)
 		return
@@ -156,7 +156,7 @@ func (s *Server) UpdateDataproductCollection(w http.ResponseWriter, r *http.Requ
 	}
 
 	user := auth.GetUser(r.Context())
-	if !contains(existing.Owner.Group, user.Groups.Names()) {
+	if !user.Groups.Contains(existing.Owner.Group) {
 		s.log.Infof("Update collection: User %v is not member of Group %v", user.Email, existing.Owner.Group)
 		http.Error(w, "unauthorized", http.StatusUnauthorized)
 		return
@@ -203,7 +203,7 @@ func (s *Server) CreateDataproduct(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if !contains(input.Owner.Group, user.Groups.Names()) {
+	if !user.Groups.Contains(input.Owner.Group) {
 		s.log.Infof("Creating created: User %v is not member of Group %v", user.Email, input.Owner.Group)
 		http.Error(w, "unauthorized", http.StatusUnauthorized)
 		return
@@ -238,7 +238,7 @@ func (s *Server) DeleteDataproduct(w http.ResponseWriter, r *http.Request, id st
 		return
 	}
 
-	if !contains(dp.Owner.Group, user.Groups.Names()) {
+	if !user.Groups.Contains(dp.Owner.Group) {
 		s.log.Infof("Deleting dataproduct: User %v is not member of Group %v", user.Email, dp.Owner.Group)
 		http.Error(w, "unauthorized", http.StatusUnauthorized)
 		return
@@ -314,7 +314,7 @@ func (s *Server) UpdateDataproduct(w http.ResponseWriter, r *http.Request, id st
 		return
 	}
 
-	if !contains(existing.Owner.Group, user.Groups.Names()) {
+	if !user.Groups.Contains(existing.Owner.Group) {
 		s.log.Infof("Updating dataproduct: User %v is not member of Group %v", user.Email, existing.Owner.Group)
 		http.Error(w, "unauthorized", http.StatusUnauthorized)
 		return
@@ -395,9 +395,15 @@ func (s *Server) GetUserInfo(w http.ResponseWriter, r *http.Request) {
 	user := auth.GetUser(r.Context())
 
 	userInfo := openapi.UserInfo{
-		Email:  user.Email,
-		Name:   user.Name,
-		Groups: user.Groups.Names(),
+		Email: user.Email,
+		Name:  user.Name,
+	}
+
+	for _, g := range user.Groups {
+		userInfo.Groups = append(userInfo.Groups, openapi.Group{
+			Email: g.Email,
+			Name:  g.Name,
+		})
 	}
 
 	w.Header().Add("Content-Type", "application/json")
@@ -477,13 +483,4 @@ func defaultInt(i *int, def int) int {
 		return *i
 	}
 	return def
-}
-
-func contains(elem string, list []string) bool {
-	for _, entry := range list {
-		if entry == elem {
-			return true
-		}
-	}
-	return false
 }

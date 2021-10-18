@@ -124,12 +124,12 @@ func getOutputFile(ctx context.Context, url, token string) (*OutputFile, error) 
 func mergeInto(result map[string][]string, first []map[string]string, second []map[string]string) {
 	for _, item := range first {
 		for key, value := range item {
-			result[key] = append(result[key], value)
+			result[key+"@nav.no"] = append(result[key+"@nav.no"], value)
 		}
 	}
 	for _, item := range second {
 		for key, value := range item {
-			result[key] = append(result[key], value)
+			result[key+"@nav.no"] = append(result[key+"@nav.no"], value)
 		}
 	}
 }

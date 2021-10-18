@@ -65,6 +65,21 @@ func (g Groups) Names() []string {
 	return names
 }
 
+func (g Groups) Get(email string) (Group, bool) {
+	for _, grp := range g {
+		if grp.Email == email {
+			return grp, true
+		}
+	}
+
+	return Group{}, false
+}
+
+func (g Groups) Contains(email string) bool {
+	_, ok := g.Get(email)
+	return ok
+}
+
 func (g *GoogleGroups) GroupsForUser(ctx context.Context, email string) (groups Groups, err error) {
 	if g.mock {
 		return Groups{

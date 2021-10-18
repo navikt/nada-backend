@@ -224,7 +224,7 @@ func newDataproductCollection() openapi.CreateDataproductCollectionJSONRequestBo
 	return openapi.CreateDataproductCollectionJSONRequestBody{
 		Name: "new dataproductcollection",
 		Owner: openapi.Owner{
-			Group: auth.MockUser.Groups[0].Name,
+			Group: auth.MockUser.Groups[0].Email,
 		},
 	}
 }
@@ -234,7 +234,7 @@ func newDataproduct() openapi.CreateDataproductJSONRequestBody {
 		Name: "My dataset",
 		Pii:  true,
 		Owner: openapi.Owner{
-			Group: auth.MockUser.Groups[0].Name,
+			Group: auth.MockUser.Groups[0].Email,
 		},
 		Datasource: openapi.Bigquery{
 			ProjectId: auth.MockProjectIDs[0],

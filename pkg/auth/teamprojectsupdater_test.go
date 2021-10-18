@@ -25,7 +25,7 @@ func TestTeamProjectsUpdater(t *testing.T) {
 	assert.NoError(t, err)
 
 	assert.Equal(t, 3, len(tup.teamProjects))
-	assert.Equal(t, 2, len(tup.teamProjects["team-a"]))
-	assert.Equal(t, 2, len(tup.teamProjects["team-b"]))
-	assert.Equal(t, 1, len(tup.teamProjects["team-c"]))
+	assert.Equal(t, 2, len(tup.teamProjects["team-a@nav.no"]))
+	assert.Equal(t, 2, len(tup.teamProjects["team-b@nav.no"]))
+	assert.Equal(t, 1, len(tup.teamProjects["team-c@nav.no"]))
 }

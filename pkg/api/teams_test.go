@@ -11,7 +11,7 @@ import (
 )
 
 func TestTeams_GetGCPProject(t *testing.T) {
-	resp, err := client.GetGCPProjects(context.Background(), auth.MockUser.Groups[0].Name)
+	resp, err := client.GetGCPProjects(context.Background(), auth.MockUser.Groups[0].Email)
 	if err != nil {
 		t.Fatal(err)
 	}
