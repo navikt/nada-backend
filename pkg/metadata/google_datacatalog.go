@@ -3,10 +3,10 @@ package metadata
 import (
 	"context"
 	"fmt"
-	"github.com/navikt/nada-backend/pkg/database/gensql"
 	"strings"
 
 	datacatalog "cloud.google.com/go/datacatalog/apiv1"
+	"github.com/navikt/nada-backend/pkg/database/gensql"
 	"google.golang.org/api/iterator"
 	datacatalogpb "google.golang.org/genproto/googleapis/cloud/datacatalog/v1"
 )
@@ -43,7 +43,7 @@ func (c *Datacatalog) GetDatasets(ctx context.Context, projectID string) ([]gens
 		Scope: &datacatalogpb.SearchCatalogRequest_Scope{
 			IncludeProjectIds: []string{projectID},
 		},
-		Query: "system=BIGQUERY",
+		Query: "system=BIGQUERY projectid=" + projectID,
 	})
 	if err != nil {
 		return nil, err
