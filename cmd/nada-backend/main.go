@@ -63,7 +63,7 @@ func main() {
 		teamProjectsMapping = auth.NewTeamProjectsUpdater(cfg.DevTeamProjectsOutputURL, cfg.ProdTeamProjectsOutputURL, cfg.TeamsToken, http.DefaultClient)
 		go teamProjectsMapping.Run(ctx, TeamProjectsUpdateFrequency)
 
-		googleGroups, err := metadata.NewGoogleGroups(ctx, "./test-sa.json", "johnny.horvi@nav.no")
+		googleGroups, err := metadata.NewGoogleGroups(ctx, cfg.ServiceAccountFile, cfg.GoogleAdminSubject)
 		if err != nil {
 			log.Fatal(err)
 		}

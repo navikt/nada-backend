@@ -5,15 +5,23 @@ import (
 	"fmt"
 	"io/ioutil"
 
+	"github.com/sirupsen/logrus"
 	"golang.org/x/oauth2/google"
 	admin "google.golang.org/api/admin/directory/v1"
 )
 
 type GoogleGroups struct {
 	service *admin.Service
+	mock    bool
 }
 
 func NewGoogleGroups(ctx context.Context, credentailFile, subject string) (*GoogleGroups, error) {
+	if credentailFile == "" && subject == "" {
+		logrus.Warn("Credential file and subject empty, running GoogleGroups with mock data")
+		return &GoogleGroups{
+			mock: true,
+		}, nil
+	}
 	jsonCredentials, err := ioutil.ReadFile(credentailFile)
 	if err != nil {
 		return nil, fmt.Errorf("unable to read service account key file %s", err)
@@ -58,6 +66,14 @@ func (g Groups) Names() []string {
 }
 
 func (g *GoogleGroups) GroupsForUser(ctx context.Context, email string) (groups Groups, err error) {
+	if g.mock {
+		return Groups{
+			Group{Name: "All users", Email: "all-users@nav.no"},
+			Group{Name: "Dataplattform", Email: "dataplattform@nav.no"},
+			Group{Name: "nada", Email: "nada@nav.no"},
+		}, nil
+	}
+
 	err = g.service.Groups.List().UserKey(email).Pages(ctx, func(g *admin.Groups) error {
 		for _, grp := range g.Groups {
 			groups = append(groups, Group{
@@ -67,6 +83,8 @@ func (g *GoogleGroups) GroupsForUser(ctx context.Context, email string) (groups 
 		}
 		return nil
 	})
+
+	fmt.Printf("%#v\n", groups)
 
 	return groups, err
 }
