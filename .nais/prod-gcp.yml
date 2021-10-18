@@ -19,6 +19,7 @@ spec:
   envFrom:
     - secret: impersonation-subject
     - secret: github-read-token
+    - secret: google-oauth
   filesFrom:
     - secret: google-credentials
       mountPath: /var/run/secrets/google-credentials
