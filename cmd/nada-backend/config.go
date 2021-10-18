@@ -1,19 +1,19 @@
 package main
 
 type Config struct {
-	BindAddress               string
-	DBConnectionDSN           string
-	LogLevel                  string
-	OAuth2                    OAuth2Config
-	DevTeamProjectsOutputURL  string
-	ProdTeamProjectsOutputURL string
-	TeamsToken                string
-	Hostname                  string
-	CookieSecret              string
-	MockAuth                  bool
-	SkipMetadataSync          bool
-	ServiceAccountFile        string
-	GoogleAdminSubject        string
+	BindAddress                     string
+	DBConnectionDSN                 string
+	LogLevel                        string
+	OAuth2                          OAuth2Config
+	DevTeamProjectsOutputURL        string
+	ProdTeamProjectsOutputURL       string
+	TeamsToken                      string
+	Hostname                        string
+	CookieSecret                    string
+	MockAuth                        bool
+	SkipMetadataSync                bool
+	ServiceAccountFile              string
+	GoogleAdminImpersonationSubject string
 }
 
 type OAuth2Config struct {
