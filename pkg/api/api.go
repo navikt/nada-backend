@@ -198,13 +198,13 @@ func (s *Server) CreateDataproduct(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if !s.projectsMapping.OwnsProject(input.Owner.Group, datasource.ProjectId) {
-		s.log.Infof("Creating created: BigQuery project %v is not owned by Group %v", datasource.ProjectId, input.Owner.Group)
+		s.log.Infof("Creating dataproduct: BigQuery project %v is not owned by Group %v", datasource.ProjectId, input.Owner.Group)
 		http.Error(w, "unauthorized", http.StatusUnauthorized)
 		return
 	}
 
 	if !user.Groups.Contains(input.Owner.Group) {
-		s.log.Infof("Creating created: User %v is not member of Group %v", user.Email, input.Owner.Group)
+		s.log.Infof("Creating dataproduct: User %v is not member of Group %v", user.Email, input.Owner.Group)
 		http.Error(w, "unauthorized", http.StatusUnauthorized)
 		return
 	}
