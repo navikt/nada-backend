@@ -91,7 +91,11 @@ func main() {
 		Addr:    cfg.BindAddress,
 		Handler: router,
 	}
-	go server.ListenAndServe()
+	go func() {
+		if err := server.ListenAndServe(); err != nil {
+			log.Fatal(err)
+		}
+	}()
 	<-ctx.Done()
 
 	shutdownCtx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
