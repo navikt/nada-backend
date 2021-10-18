@@ -29,19 +29,7 @@ func (e *DatasourceType) Scan(src interface{}) error {
 	return nil
 }
 
-type Dataproduct struct {
-	ID           uuid.UUID
-	Name         string
-	Description  sql.NullString
-	Group        string
-	Pii          bool
-	Created      time.Time
-	LastModified time.Time
-	Type         DatasourceType
-	TsvDocument  interface{}
-}
-
-type DataproductCollection struct {
+type Collection struct {
 	ID           uuid.UUID
 	Name         string
 	Description  sql.NullString
@@ -52,6 +40,21 @@ type DataproductCollection struct {
 	Group        string
 	Keywords     []string
 	TsvDocument  interface{}
+}
+
+type Dataproduct struct {
+	ID           uuid.UUID
+	Name         string
+	Description  sql.NullString
+	Group        string
+	Pii          bool
+	Created      time.Time
+	LastModified time.Time
+	Type         DatasourceType
+	TsvDocument  interface{}
+	Slug         sql.NullString
+	Repo         sql.NullString
+	Keywords     []string
 }
 
 type DatasourceBigquery struct {

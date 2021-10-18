@@ -3,12 +3,14 @@
 package api
 
 import (
+	"context"
 	"database/sql"
 	"log"
 	"net/http/httptest"
 	"os"
 	"testing"
 
+	"github.com/coreos/go-oidc/v3/oidc"
 	"github.com/navikt/nada-backend/pkg/auth"
 	"github.com/navikt/nada-backend/pkg/database"
 	"github.com/navikt/nada-backend/pkg/openapi"
@@ -63,6 +65,16 @@ func TestMain(m *testing.M) {
 	os.Exit(code)
 }
 
+type mockOauth struct{}
+
+func (m *mockOauth) Exchange(ctx context.Context, code string, opts ...oauth2.AuthCodeOption) (*oauth2.Token, error) {
+	return nil, nil
+}
+func (m *mockOauth) AuthCodeURL(state string, opts ...oauth2.AuthCodeOption) string { return "" }
+func (m *mockOauth) Verify(ctx context.Context, rawIDToken string) (*oidc.IDToken, error) {
+	return nil, nil
+}
+
 func startServer(connString string) {
 	var err error
 	repo, err = database.New(connString)
@@ -70,7 +82,7 @@ func startServer(connString string) {
 		log.Fatal(err)
 	}
 
-	router := NewRouter(repo, oauth2.Config{}, logrus.StandardLogger().WithField("", ""), &auth.MockTeamProjectsUpdater, nil, auth.MockJWTValidatorMiddleware())
+	router := NewRouter(repo, &mockOauth{}, logrus.StandardLogger().WithField("", ""), &auth.MockTeamProjectsUpdater, nil, auth.MockJWTValidatorMiddleware())
 	server = httptest.NewServer(router)
 
 	client, err = openapi.NewClient(server.URL + "/api")

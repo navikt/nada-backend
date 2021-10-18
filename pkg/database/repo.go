@@ -59,12 +59,12 @@ func slugify(maybeslug *string, fallback string) string {
 	return url.PathEscape(fallback)
 }
 
-func (r *Repo) CreateDataproductCollection(ctx context.Context, dp openapi.NewDataproductCollection) (*openapi.DataproductCollection, error) {
+func (r *Repo) CreateCollection(ctx context.Context, dp openapi.NewCollection) (*openapi.Collection, error) {
 	var keywords []string
 	if dp.Keywords != nil {
 		keywords = *dp.Keywords
 	}
-	res, err := r.querier.CreateDataproductCollection(ctx, gensql.CreateDataproductCollectionParams{
+	res, err := r.querier.CreateCollection(ctx, gensql.CreateCollectionParams{
 		Name:        dp.Name,
 		Description: ptrToNullString(dp.Description),
 		Slug:        slugify(dp.Slug, dp.Name),
@@ -76,7 +76,7 @@ func (r *Repo) CreateDataproductCollection(ctx context.Context, dp openapi.NewDa
 		return nil, err
 	}
 
-	return dataproductCollectionFromSQL(res), nil
+	return collectionFromSQL(res), nil
 }
 
 func (r *Repo) GetDataproducts(ctx context.Context, limit, offset int) ([]*openapi.Dataproduct, error) {
@@ -94,33 +94,33 @@ func (r *Repo) GetDataproducts(ctx context.Context, limit, offset int) ([]*opena
 	return datasets, nil
 }
 
-func (r *Repo) GetDataproductCollections(ctx context.Context, limit, offset int) ([]*openapi.DataproductCollection, error) {
-	dataproducts := []*openapi.DataproductCollection{}
+func (r *Repo) GetCollections(ctx context.Context, limit, offset int) ([]*openapi.Collection, error) {
+	dataproducts := []*openapi.Collection{}
 
-	res, err := r.querier.GetDataproductCollections(ctx, gensql.GetDataproductCollectionsParams{Limit: int32(limit), Offset: int32(offset)})
+	res, err := r.querier.GetCollections(ctx, gensql.GetCollectionsParams{Limit: int32(limit), Offset: int32(offset)})
 	if err != nil {
 		return nil, fmt.Errorf("getting dataproducts from database: %w", err)
 	}
 
 	for _, entry := range res {
-		dataproduct := dataproductCollectionFromSQL(entry)
+		dataproduct := collectionFromSQL(entry)
 		dataproducts = append(dataproducts, dataproduct)
 	}
 
 	return dataproducts, nil
 }
 
-func (r *Repo) GetDataproductCollection(ctx context.Context, id string) (*openapi.DataproductCollection, error) {
+func (r *Repo) GetCollection(ctx context.Context, id string) (*openapi.Collection, error) {
 	uid, err := uuid.Parse(id)
 	if err != nil {
 		return nil, fmt.Errorf("parsing uuid: %w", err)
 	}
-	res, err := r.querier.GetDataproductCollection(ctx, uid)
+	res, err := r.querier.GetCollection(ctx, uid)
 	if err != nil {
 		return nil, fmt.Errorf("getting dataproduct from database: %w", err)
 	}
 
-	dp := dataproductCollectionFromSQL(res)
+	dp := collectionFromSQL(res)
 
 	return dp, nil
 }
@@ -142,7 +142,7 @@ func (r *Repo) GetBigqueryDatasources(ctx context.Context) ([]gensql.DatasourceB
 	return r.querier.GetBigqueryDatasources(ctx)
 }
 
-func (r *Repo) UpdateDataproductCollection(ctx context.Context, id string, new openapi.UpdateDataproductCollection) (*openapi.DataproductCollection, error) {
+func (r *Repo) UpdateCollection(ctx context.Context, id string, new openapi.UpdateCollection) (*openapi.Collection, error) {
 	uid, err := uuid.Parse(id)
 	if err != nil {
 		return nil, fmt.Errorf("parsing uuid: %w", err)
@@ -153,7 +153,7 @@ func (r *Repo) UpdateDataproductCollection(ctx context.Context, id string, new o
 		keywords = *new.Keywords
 	}
 
-	res, err := r.querier.UpdateDataproductCollection(ctx, gensql.UpdateDataproductCollectionParams{
+	res, err := r.querier.UpdateCollection(ctx, gensql.UpdateCollectionParams{
 		Name:        new.Name,
 		Description: ptrToNullString(new.Description),
 		ID:          uid,
@@ -163,7 +163,7 @@ func (r *Repo) UpdateDataproductCollection(ctx context.Context, id string, new o
 		return nil, fmt.Errorf("updating dataproduct in database: %w", err)
 	}
 
-	return dataproductCollectionFromSQL(res), nil
+	return collectionFromSQL(res), nil
 }
 
 func (r *Repo) CreateDataproduct(ctx context.Context, dp openapi.NewDataproduct) (*openapi.Dataproduct, error) {
@@ -172,12 +172,20 @@ func (r *Repo) CreateDataproduct(ctx context.Context, dp openapi.NewDataproduct)
 		return nil, err
 	}
 	querier := r.querier.WithTx(tx)
+
+	keywords := []string{}
+	if dp.Keywords != nil && *dp.Keywords != nil {
+		keywords = *dp.Keywords
+	}
 	created, err := querier.CreateDataproduct(ctx, gensql.CreateDataproductParams{
 		Name:        dp.Name,
 		Description: ptrToNullString(dp.Description),
 		Pii:         dp.Pii,
 		Type:        "bigquery",
 		OwnerGroup:  dp.Owner.Group,
+		Slug:        ptrToNullString(dp.Slug),
+		Repo:        ptrToNullString(dp.Repo),
+		Keywords:    keywords,
 	})
 	if err != nil {
 		return nil, err
@@ -241,11 +249,18 @@ func (r *Repo) UpdateDataproduct(ctx context.Context, id string, new openapi.Upd
 		return nil, fmt.Errorf("parsing uuid: %w", err)
 	}
 
+	keywords := []string{}
+	if new.Keywords != nil && *new.Keywords != nil {
+		keywords = *new.Keywords
+	}
 	res, err := r.querier.UpdateDataproduct(ctx, gensql.UpdateDataproductParams{
 		Name:        new.Name,
 		Description: ptrToNullString(new.Description),
 		ID:          uid,
 		Pii:         new.Pii,
+		Slug:        ptrToNullString(new.Slug),
+		Repo:        ptrToNullString(new.Repo),
+		Keywords:    keywords,
 	})
 	if err != nil {
 		return nil, fmt.Errorf("updating dataproduct in database: %w", err)
@@ -254,13 +269,13 @@ func (r *Repo) UpdateDataproduct(ctx context.Context, id string, new openapi.Upd
 	return dataproductFromSQL(res), nil
 }
 
-func (r *Repo) DeleteDataproductCollection(ctx context.Context, id string) error {
+func (r *Repo) DeleteCollection(ctx context.Context, id string) error {
 	uid, err := uuid.Parse(id)
 	if err != nil {
 		return fmt.Errorf("parsing uuid: %w", err)
 	}
 
-	if err := r.querier.DeleteDataproductCollection(ctx, uid); err != nil {
+	if err := r.querier.DeleteCollection(ctx, uid); err != nil {
 		return fmt.Errorf("deleting dataproduct_collection from database: %w", err)
 	}
 
@@ -318,7 +333,7 @@ func (r *Repo) Search(ctx context.Context, query string, limit, offset int) ([]*
 	// If query is empty, the search result is empty. So we do a regular SELECT * instead
 	var (
 		dataproducts []gensql.Dataproduct
-		collections  []gensql.DataproductCollection
+		collections  []gensql.Collection
 		err          error
 	)
 	if query == "" {
@@ -341,9 +356,9 @@ func (r *Repo) Search(ctx context.Context, query string, limit, offset int) ([]*
 
 	// If query is empty, the search result is empty. So we do a regular SELECT * instead
 	if query == "" {
-		collections, err = r.querier.GetDataproductCollections(ctx, gensql.GetDataproductCollectionsParams{Limit: int32(limit), Offset: int32(offset)})
+		collections, err = r.querier.GetCollections(ctx, gensql.GetCollectionsParams{Limit: int32(limit), Offset: int32(offset)})
 	} else {
-		collections, err = r.querier.SearchDataproductCollections(ctx, gensql.SearchDataproductCollectionsParams{Query: query, Limit: int32(limit), Offset: int32(offset)})
+		collections, err = r.querier.SearchCollections(ctx, gensql.SearchCollectionsParams{Query: query, Limit: int32(limit), Offset: int32(offset)})
 	}
 	if err != nil {
 		return nil, err
@@ -352,7 +367,7 @@ func (r *Repo) Search(ctx context.Context, query string, limit, offset int) ([]*
 		results = append(results, &openapi.SearchResultEntry{
 			Id:      r.ID.String(),
 			Name:    r.Name,
-			Type:    openapi.SearchResultTypeDataproductCollection,
+			Type:    openapi.SearchResultTypeCollection,
 			Excerpt: makeExcerpt(r.Description),
 			Url:     "/api/collections/" + r.ID.String(),
 		})
@@ -361,8 +376,8 @@ func (r *Repo) Search(ctx context.Context, query string, limit, offset int) ([]*
 	return results, nil
 }
 
-func dataproductCollectionFromSQL(dataproduct gensql.DataproductCollection) *openapi.DataproductCollection {
-	return &openapi.DataproductCollection{
+func collectionFromSQL(dataproduct gensql.Collection) *openapi.Collection {
+	return &openapi.Collection{
 		Id:           dataproduct.ID.String(),
 		Name:         dataproduct.Name,
 		Created:      dataproduct.Created,
@@ -383,6 +398,10 @@ func dataproductFromSQL(dataset gensql.Dataproduct) *openapi.Dataproduct {
 		Name:        dataset.Name,
 		Description: nullStringToPtr(dataset.Description),
 		Pii:         dataset.Pii,
+		Keywords:    dataset.Keywords,
+		Repo:        nullStringToPtr(dataset.Repo),
+		Slug:        nullStringToPtr(dataset.Slug),
+		Type:        openapi.DataproductType(dataset.Type),
 		Owner: openapi.Owner{
 			Group: dataset.Group,
 		},

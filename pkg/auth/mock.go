@@ -4,22 +4,36 @@ import (
 	"context"
 	"net/http"
 
+	"github.com/navikt/nada-backend/pkg/metadata"
 	"github.com/navikt/nada-backend/pkg/openapi"
 )
 
 var MockUser = User{
-	Name:   "Anderson, Mock",
-	Email:  "mock.anderson@email.com",
-	Groups: []string{"team", "dataplattform", "aura"},
+	Name:  "Anderson, Mock",
+	Email: "mock.anderson@email.com",
+	Groups: metadata.Groups{
+		{
+			Name:  "team",
+			Email: "team@nav.no",
+		},
+		{
+			Name:  "dataplattform",
+			Email: "dataplattform@nav.no",
+		},
+		{
+			Name:  "aura",
+			Email: "aura@nav.no",
+		},
+	},
 }
 
 var MockProjectIDs = []string{"team-dev", "team-prod"}
 
 var MockTeamProjectsUpdater = TeamProjectsUpdater{
 	teamProjects: map[string][]string{
-		"team":          MockProjectIDs,
-		"dataplattform": {"dataplattform-dev-9da3"},
-		"aura":          {"aura-dev-d9f5"},
+		"team@nav.no":          MockProjectIDs,
+		"dataplattform@nav.no": {"dataplattform-dev-9da3"},
+		"aura@nav.no":          {"aura-dev-d9f5"},
 	},
 }
 

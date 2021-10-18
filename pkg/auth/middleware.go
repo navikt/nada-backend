@@ -5,11 +5,13 @@ import (
 	"fmt"
 	"net/http"
 	"strings"
+	"sync"
+	"time"
 
-	"github.com/go-chi/jwtauth"
-	"github.com/golang-jwt/jwt/v4"
+	"github.com/coreos/go-oidc/v3/oidc"
+	"github.com/navikt/nada-backend/pkg/metadata"
 	"github.com/navikt/nada-backend/pkg/openapi"
-	log "github.com/sirupsen/logrus"
+	"github.com/sirupsen/logrus"
 )
 
 type contextKey int
@@ -17,113 +19,141 @@ type contextKey int
 const contextUserKey contextKey = 1
 
 type User struct {
-	Name   string
-	Email  string
-	Groups []string
-}
-
-type teamsCache interface {
-	Get(uuid string) (string, bool)
-}
-
-func JWTValidatorMiddleware(discoveryURL, clientID string, azureGroups *AzureGroups, teamUUIDs teamsCache) openapi.MiddlewareFunc {
-	certificates, err := FetchCertificates(discoveryURL)
-	if err != nil {
-		log.Fatalf("Fetching signing certificates from IDP: %v", err)
-	}
-	jwtValidator := JWTValidator(certificates, clientID)
-
-	return func(next http.HandlerFunc) http.HandlerFunc {
-		return func(w http.ResponseWriter, r *http.Request) {
-			if r.Context().Value(openapi.CookieAuthScopes) == nil {
-				next.ServeHTTP(w, r)
-				return
-			}
-
-			var claims jwt.MapClaims
-
-			token := jwtauth.TokenFromCookie(r)
-
-			_, err := jwt.ParseWithClaims(token, &claims, jwtValidator)
-			if err != nil {
-				log.Debugf("parsing token: %v", err)
-				w.WriteHeader(http.StatusForbidden)
-				_, err = fmt.Fprintf(w, "unauthorized access")
-				if err != nil {
-					log.Errorf("Writing http response: %v", err)
-				}
-				return
-			}
-
-			email := strings.ToLower(claims["preferred_username"].(string))
-			ctx := r.Context()
-
-			groups, err := azureGroups.GetGroupsForUser(ctx, token, email)
-			if err != nil {
-				log.Errorf("getting groups for user: %v", err)
-				w.WriteHeader(http.StatusInternalServerError)
-				_, err = fmt.Fprintf(w, "Unauthorized access: %s", err.Error())
-				if err != nil {
-					log.Errorf("Writing http response: %v", err)
-				}
-				return
-			}
-
-			teams := make([]string, 0)
-
-			for _, uuid := range groups {
-				if uid, found := teamUUIDs.Get(uuid); found {
-					teams = append(teams, uid)
-				}
-			}
-
-			user := &User{
-				Name:   claims["name"].(string),
-				Email:  email,
-				Groups: teams,
-			}
-
-			r = r.WithContext(context.WithValue(ctx, contextUserKey, user))
-
-			next.ServeHTTP(w, r)
-		}
-	}
-}
-
-func JWTValidator(certificates map[string]CertificateList, audience string) jwt.Keyfunc {
-	return func(token *jwt.Token) (interface{}, error) {
-		var certificateList CertificateList
-		var kid string
-		var ok bool
-
-		if claims, ok := token.Claims.(*jwt.MapClaims); !ok {
-			return nil, fmt.Errorf("unable to retrieve claims from token")
-		} else {
-			if valid := claims.VerifyAudience(audience, true); !valid {
-				return nil, fmt.Errorf("the token is not valid for this application")
-			}
-		}
-
-		if _, ok := token.Method.(*jwt.SigningMethodRSA); !ok {
-			return nil, fmt.Errorf("unexpected signing method: %v", token.Header["alg"])
-		}
-
-		if kid, ok = token.Header["kid"].(string); !ok {
-			return nil, fmt.Errorf("field 'kid' is of invalid type %T, should be string", token.Header["kid"])
-		}
-
-		if certificateList, ok = certificates[kid]; !ok {
-			return nil, fmt.Errorf("kid '%s' not found in certificate list", kid)
-		}
-
-		for _, certificate := range certificateList {
-			return certificate.PublicKey, nil
-		}
-
-		return nil, fmt.Errorf("no certificate candidates for kid '%s'", kid)
-	}
+	Name        string `json:"name"`
+	Email       string `json:"email"`
+	Groups      metadata.Groups
+	AccessToken string `json:"-"`
 }
 
 func GetUser(ctx context.Context) *User {
 	return ctx.Value(contextUserKey).(*User)
+}
+
+type GroupsLister interface {
+	GroupsForUser(ctx context.Context, email string) (groups metadata.Groups, err error)
+}
+
+type groupsCacheValue struct {
+	Groups  metadata.Groups
+	Expires time.Time
+}
+
+type groupsCacher struct {
+	lock  sync.RWMutex
+	cache map[string]groupsCacheValue
+}
+
+func (g *groupsCacher) Get(email string) ([]metadata.Group, bool) {
+	g.lock.RLock()
+	defer g.lock.RUnlock()
+
+	v, ok := g.cache[email]
+	if !ok {
+		return nil, false
+	}
+	if v.Expires.Before(time.Now()) {
+		return nil, false
+	}
+	return v.Groups, true
+}
+
+func (g *groupsCacher) Set(email string, groups []metadata.Group) {
+	g.lock.Lock()
+	defer g.lock.Unlock()
+	g.cache[email] = groupsCacheValue{
+		Groups:  groups,
+		Expires: time.Now().Add(1 * time.Hour),
+	}
+}
+
+type Middleware struct {
+	tokenVerifier *oidc.IDTokenVerifier
+	groupsCache   *groupsCacher
+	groupsLister  GroupsLister
+}
+
+func newMiddleware(tokenVerifier *oidc.IDTokenVerifier, groupsLister GroupsLister) *Middleware {
+	return &Middleware{
+		tokenVerifier: tokenVerifier,
+		groupsLister:  groupsLister,
+		groupsCache: &groupsCacher{
+			cache: map[string]groupsCacheValue{},
+		},
+	}
+}
+
+func (m *Middleware) Handler() openapi.MiddlewareFunc {
+	return func(next http.HandlerFunc) http.HandlerFunc {
+		return m.handle(next)
+	}
+}
+
+func (m *Middleware) handle(next http.HandlerFunc) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		if r.Context().Value(openapi.CookieAuthScopes) == nil {
+			next.ServeHTTP(w, r)
+			return
+		}
+
+		user, err := m.validateUser(w, r)
+		if err != nil {
+			http.Error(w, "uh oh", http.StatusForbidden)
+			return
+		}
+
+		if err := m.addGroupsToUser(r.Context(), user); err != nil {
+			logrus.WithError(err).Error("Unable to add groups")
+			http.Error(w, "uh oh", http.StatusForbidden)
+			return
+		}
+
+		ctx := r.Context()
+		r = r.WithContext(context.WithValue(ctx, contextUserKey, user))
+		next.ServeHTTP(w, r)
+	}
+}
+
+func (m *Middleware) validateUser(w http.ResponseWriter, r *http.Request) (*User, error) {
+	// Parse and verify ID Token payload.
+	cookie, err := r.Cookie("jwt")
+	if err != nil {
+		return nil, fmt.Errorf("Unauthorized")
+	}
+
+	parts := strings.SplitN(cookie.Value, "|", 2)
+	if len(parts) != 2 {
+		return nil, fmt.Errorf("Unauthorized")
+	}
+	accessToken := parts[0]
+
+	idToken, err := m.tokenVerifier.Verify(r.Context(), parts[1])
+	if err != nil {
+		return nil, fmt.Errorf("Unauthorized")
+	}
+
+	user := &User{
+		AccessToken: accessToken,
+	}
+	if err := idToken.Claims(user); err != nil {
+		return nil, fmt.Errorf("unable to decode claims: %w", err)
+	}
+
+	return user, nil
+}
+
+func (m *Middleware) addGroupsToUser(ctx context.Context, u *User) error {
+	groups, ok := m.groupsCache.Get(u.Email)
+	if ok {
+		u.Groups = groups
+		return nil
+	}
+
+	groups, err := m.groupsLister.GroupsForUser(ctx, u.Email)
+	if err != nil {
+		return err
+	}
+
+	m.groupsCache.Set(u.Email, groups)
+	u.Groups = groups
+	return nil
 }

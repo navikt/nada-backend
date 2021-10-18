@@ -62,7 +62,7 @@ func TestRepo(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	newCollection := openapi.NewDataproductCollection{
+	newCollection := openapi.NewCollection{
 		Name: "new_dataproduct",
 		Owner: openapi.Owner{
 			Group: "team",
@@ -77,12 +77,12 @@ func TestRepo(t *testing.T) {
 			Table:     "table",
 		},
 		Owner: openapi.Owner{
-			Group: auth.MockUser.Groups[0],
+			Group: auth.MockUser.Groups[0].Name,
 		},
 	}
 
 	t.Run("creates collections", func(t *testing.T) {
-		collection, err := repo.CreateDataproductCollection(context.Background(), newCollection)
+		collection, err := repo.CreateCollection(context.Background(), newCollection)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -95,12 +95,12 @@ func TestRepo(t *testing.T) {
 	})
 
 	t.Run("serves collections", func(t *testing.T) {
-		collection, err := repo.CreateDataproductCollection(context.Background(), newCollection)
+		collection, err := repo.CreateCollection(context.Background(), newCollection)
 		if err != nil {
 			t.Fatal(err)
 		}
 
-		fetchedCollection, err := repo.GetDataproductCollection(context.Background(), collection.Id)
+		fetchedCollection, err := repo.GetCollection(context.Background(), collection.Id)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -198,7 +198,7 @@ func TestRepo(t *testing.T) {
 		}{
 			"empty":            {query: "nonexistent", numResults: 0},
 			"1 dataproduct":    {query: "uniquedataproduct", numResults: 1},
-			"1 datacollection": {query: "uniquedataproductcollection", numResults: 1},
+			"1 datacollection": {query: "uniquecollection", numResults: 1},
 			"2 results":        {query: "uniquestring", numResults: 2},
 		}
 
@@ -218,12 +218,12 @@ func TestRepo(t *testing.T) {
 			t.Fatal(err)
 		}
 
-		collection := openapi.NewDataproductCollection{
+		collection := openapi.NewCollection{
 			Name:        "new_collection",
-			Description: nullStringToPtr(sql.NullString{Valid: true, String: "Uniquestring uniquedataproductcollection"}),
+			Description: nullStringToPtr(sql.NullString{Valid: true, String: "Uniquestring uniquecollection"}),
 		}
 
-		_, err = repo.CreateDataproductCollection(context.Background(), collection)
+		_, err = repo.CreateCollection(context.Background(), collection)
 		if err != nil {
 			t.Fatal(err)
 		}

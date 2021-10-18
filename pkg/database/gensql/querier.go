@@ -10,21 +10,21 @@ import (
 
 type Querier interface {
 	CreateBigqueryDatasource(ctx context.Context, arg CreateBigqueryDatasourceParams) (DatasourceBigquery, error)
+	CreateCollection(ctx context.Context, arg CreateCollectionParams) (Collection, error)
 	CreateDataproduct(ctx context.Context, arg CreateDataproductParams) (Dataproduct, error)
-	CreateDataproductCollection(ctx context.Context, arg CreateDataproductCollectionParams) (DataproductCollection, error)
+	DeleteCollection(ctx context.Context, id uuid.UUID) error
 	DeleteDataproduct(ctx context.Context, id uuid.UUID) error
-	DeleteDataproductCollection(ctx context.Context, id uuid.UUID) error
 	GetBigqueryDatasource(ctx context.Context, dataproductID uuid.UUID) (DatasourceBigquery, error)
 	GetBigqueryDatasources(ctx context.Context) ([]DatasourceBigquery, error)
+	GetCollection(ctx context.Context, id uuid.UUID) (Collection, error)
+	GetCollections(ctx context.Context, arg GetCollectionsParams) ([]Collection, error)
 	GetDataproduct(ctx context.Context, id uuid.UUID) (Dataproduct, error)
-	GetDataproductCollection(ctx context.Context, id uuid.UUID) (DataproductCollection, error)
-	GetDataproductCollections(ctx context.Context, arg GetDataproductCollectionsParams) ([]DataproductCollection, error)
 	GetDataproducts(ctx context.Context, arg GetDataproductsParams) ([]Dataproduct, error)
-	SearchDataproductCollections(ctx context.Context, arg SearchDataproductCollectionsParams) ([]DataproductCollection, error)
+	SearchCollections(ctx context.Context, arg SearchCollectionsParams) ([]Collection, error)
 	SearchDataproducts(ctx context.Context, arg SearchDataproductsParams) ([]Dataproduct, error)
 	UpdateBigqueryDatasourceSchema(ctx context.Context, arg UpdateBigqueryDatasourceSchemaParams) error
+	UpdateCollection(ctx context.Context, arg UpdateCollectionParams) (Collection, error)
 	UpdateDataproduct(ctx context.Context, arg UpdateDataproductParams) (Dataproduct, error)
-	UpdateDataproductCollection(ctx context.Context, arg UpdateDataproductCollectionParams) (DataproductCollection, error)
 }
 
 var _ Querier = (*Queries)(nil)

@@ -5,13 +5,14 @@ import (
 	"database/sql"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"net/http"
 	"strings"
 
-	"github.com/navikt/nada-backend/pkg/database/gensql"
-
+	"github.com/coreos/go-oidc/v3/oidc"
 	"github.com/navikt/nada-backend/pkg/auth"
 	"github.com/navikt/nada-backend/pkg/database"
+	"github.com/navikt/nada-backend/pkg/database/gensql"
 	"github.com/navikt/nada-backend/pkg/openapi"
 	"github.com/sirupsen/logrus"
 	"golang.org/x/oauth2"
@@ -21,15 +22,21 @@ type GCP interface {
 	GetDatasets(ctx context.Context, projectID string) ([]gensql.DatasourceBigquery, error)
 }
 
+type OAuth2 interface {
+	Exchange(ctx context.Context, code string, opts ...oauth2.AuthCodeOption) (*oauth2.Token, error)
+	AuthCodeURL(state string, opts ...oauth2.AuthCodeOption) string
+	Verify(ctx context.Context, rawIDToken string) (*oidc.IDToken, error)
+}
+
 type Server struct {
 	repo            *database.Repo
 	log             *logrus.Entry
-	oauth2Config    oauth2.Config
+	oauth2Config    OAuth2
 	projectsMapping *auth.TeamProjectsUpdater
 	gcp             GCP
 }
 
-func New(repo *database.Repo, oauth2Config oauth2.Config, log *logrus.Entry, projectsMapping *auth.TeamProjectsUpdater, gcp GCP) *Server {
+func New(repo *database.Repo, oauth2Config OAuth2, log *logrus.Entry, projectsMapping *auth.TeamProjectsUpdater, gcp GCP) *Server {
 	return &Server{
 		repo:            repo,
 		log:             log,
@@ -39,9 +46,9 @@ func New(repo *database.Repo, oauth2Config oauth2.Config, log *logrus.Entry, pro
 	}
 }
 
-// GetDataproductCollections (GET /collections)
-func (s *Server) GetDataproductCollections(w http.ResponseWriter, r *http.Request, params openapi.GetDataproductCollectionsParams) {
-	dataproducts, err := s.repo.GetDataproductCollections(r.Context(), defaultInt(params.Limit, 15), defaultInt(params.Offset, 0))
+// GetCollections (GET /collections)
+func (s *Server) GetCollections(w http.ResponseWriter, r *http.Request, params openapi.GetCollectionsParams) {
+	dataproducts, err := s.repo.GetCollections(r.Context(), defaultInt(params.Limit, 15), defaultInt(params.Offset, 0))
 	if err != nil {
 		s.log.WithError(err).Error("Getting collections")
 		http.Error(w, "uh oh", http.StatusInternalServerError)
@@ -54,9 +61,9 @@ func (s *Server) GetDataproductCollections(w http.ResponseWriter, r *http.Reques
 	}
 }
 
-// GetDataproductCollection (GET /collections/{id})
-func (s *Server) GetDataproductCollection(w http.ResponseWriter, r *http.Request, id string) {
-	collection, err := s.repo.GetDataproductCollection(r.Context(), id)
+// GetCollection (GET /collections/{id})
+func (s *Server) GetCollection(w http.ResponseWriter, r *http.Request, id string) {
+	collection, err := s.repo.GetCollection(r.Context(), id)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			http.Error(w, "No collection", http.StatusNotFound)
@@ -74,9 +81,9 @@ func (s *Server) GetDataproductCollection(w http.ResponseWriter, r *http.Request
 	}
 }
 
-// CreateDataproductCollection (POST /collections)
-func (s *Server) CreateDataproductCollection(w http.ResponseWriter, r *http.Request) {
-	var newCollection openapi.NewDataproductCollection
+// CreateCollection (POST /collections)
+func (s *Server) CreateCollection(w http.ResponseWriter, r *http.Request) {
+	var newCollection openapi.NewCollection
 	if err := json.NewDecoder(r.Body).Decode(&newCollection); err != nil {
 		s.log.WithError(err).Info("Decoding new collection")
 		http.Error(w, "invalid JSON object", http.StatusBadRequest)
@@ -84,13 +91,13 @@ func (s *Server) CreateDataproductCollection(w http.ResponseWriter, r *http.Requ
 	}
 	user := auth.GetUser(r.Context())
 
-	if !contains(newCollection.Owner.Group, user.Groups) {
+	if !user.Groups.Contains(newCollection.Owner.Group) {
 		s.log.Infof("Creating collection: User %v is not member of Group %v", user.Email, newCollection.Owner.Group)
 		http.Error(w, "unauthorized", http.StatusUnauthorized)
 		return
 	}
 
-	collection, err := s.repo.CreateDataproductCollection(r.Context(), newCollection)
+	collection, err := s.repo.CreateCollection(r.Context(), newCollection)
 	if err != nil {
 		s.log.WithError(err).Error("Creating collection")
 		http.Error(w, "uh oh", http.StatusInternalServerError)
@@ -106,24 +113,24 @@ func (s *Server) CreateDataproductCollection(w http.ResponseWriter, r *http.Requ
 	}
 }
 
-// DeleteDataproductCollection (DELETE /collections/{id})
-func (s *Server) DeleteDataproductCollection(w http.ResponseWriter, r *http.Request, id string) {
+// DeleteCollection (DELETE /collections/{id})
+func (s *Server) DeleteCollection(w http.ResponseWriter, r *http.Request, id string) {
 	user := auth.GetUser(r.Context())
 
-	collection, err := s.repo.GetDataproductCollection(r.Context(), id)
+	collection, err := s.repo.GetCollection(r.Context(), id)
 	if err != nil {
 		s.log.WithError(err).Error("Getting collection for deletion")
 		http.Error(w, "uh oh", http.StatusInternalServerError)
 		return
 	}
 
-	if !contains(collection.Owner.Group, user.Groups) {
+	if !user.Groups.Contains(collection.Owner.Group) {
 		s.log.Infof("Delete collection: User %v is not member of Group %v", user.Email, collection.Owner.Group)
 		http.Error(w, "unauthorized", http.StatusUnauthorized)
 		return
 	}
 
-	if err := s.repo.DeleteDataproductCollection(r.Context(), id); err != nil {
+	if err := s.repo.DeleteCollection(r.Context(), id); err != nil {
 		s.log.WithError(err).Error("Deleting collection")
 		return
 	}
@@ -132,16 +139,16 @@ func (s *Server) DeleteDataproductCollection(w http.ResponseWriter, r *http.Requ
 	w.WriteHeader(http.StatusNoContent)
 }
 
-// UpdateDataproductCollection (PUT /collections/{id})
-func (s *Server) UpdateDataproductCollection(w http.ResponseWriter, r *http.Request, id string) {
-	var in openapi.UpdateDataproductCollection
+// UpdateCollection (PUT /collections/{id})
+func (s *Server) UpdateCollection(w http.ResponseWriter, r *http.Request, id string) {
+	var in openapi.UpdateCollection
 	if err := json.NewDecoder(r.Body).Decode(&in); err != nil {
 		s.log.WithError(err).Info("Decoding updated collection")
 		http.Error(w, "invalid JSON object", http.StatusBadRequest)
 		return
 	}
 
-	existing, err := s.repo.GetDataproductCollection(context.Background(), id)
+	existing, err := s.repo.GetCollection(context.Background(), id)
 	if err != nil {
 		s.log.WithError(err).Info("Update collection")
 		http.Error(w, "uh oh", http.StatusBadRequest)
@@ -149,13 +156,13 @@ func (s *Server) UpdateDataproductCollection(w http.ResponseWriter, r *http.Requ
 	}
 
 	user := auth.GetUser(r.Context())
-	if !contains(existing.Owner.Group, user.Groups) {
+	if !user.Groups.Contains(existing.Owner.Group) {
 		s.log.Infof("Update collection: User %v is not member of Group %v", user.Email, existing.Owner.Group)
 		http.Error(w, "unauthorized", http.StatusUnauthorized)
 		return
 	}
 
-	updated, err := s.repo.UpdateDataproductCollection(r.Context(), id, in)
+	updated, err := s.repo.UpdateCollection(r.Context(), id, in)
 	if err != nil {
 		s.log.WithError(err).Error("Updating collection")
 		http.Error(w, "uh oh", http.StatusInternalServerError)
@@ -196,7 +203,7 @@ func (s *Server) CreateDataproduct(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if !contains(input.Owner.Group, user.Groups) {
+	if !user.Groups.Contains(input.Owner.Group) {
 		s.log.Infof("Creating created: User %v is not member of Group %v", user.Email, input.Owner.Group)
 		http.Error(w, "unauthorized", http.StatusUnauthorized)
 		return
@@ -231,7 +238,7 @@ func (s *Server) DeleteDataproduct(w http.ResponseWriter, r *http.Request, id st
 		return
 	}
 
-	if !contains(dp.Owner.Group, user.Groups) {
+	if !user.Groups.Contains(dp.Owner.Group) {
 		s.log.Infof("Deleting dataproduct: User %v is not member of Group %v", user.Email, dp.Owner.Group)
 		http.Error(w, "unauthorized", http.StatusUnauthorized)
 		return
@@ -307,7 +314,7 @@ func (s *Server) UpdateDataproduct(w http.ResponseWriter, r *http.Request, id st
 		return
 	}
 
-	if !contains(existing.Owner.Group, user.Groups) {
+	if !user.Groups.Contains(existing.Owner.Group) {
 		s.log.Infof("Updating dataproduct: User %v is not member of Group %v", user.Email, existing.Owner.Group)
 		http.Error(w, "unauthorized", http.StatusUnauthorized)
 		return
@@ -388,9 +395,15 @@ func (s *Server) GetUserInfo(w http.ResponseWriter, r *http.Request) {
 	user := auth.GetUser(r.Context())
 
 	userInfo := openapi.UserInfo{
-		Email:  user.Email,
-		Name:   user.Name,
-		Groups: user.Groups,
+		Email: user.Email,
+		Name:  user.Name,
+	}
+
+	for _, g := range user.Groups {
+		userInfo.Groups = append(userInfo.Groups, openapi.Group{
+			Email: g.Email,
+			Name:  g.Name,
+		})
 	}
 
 	w.Header().Add("Content-Type", "application/json")
@@ -402,7 +415,7 @@ func (s *Server) GetUserInfo(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) Login(w http.ResponseWriter, r *http.Request) {
-	consentUrl := s.oauth2Config.AuthCodeURL("banan", oauth2.SetAuthURLParam("redirect_uri", s.oauth2Config.RedirectURL))
+	consentUrl := s.oauth2Config.AuthCodeURL("banan")
 	http.Redirect(w, r, consentUrl, http.StatusFound)
 }
 
@@ -413,6 +426,7 @@ func (s *Server) Callback(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// TODO(thokra): Introduce varying state
 	state := r.URL.Query().Get("state")
 	if state != "banan" {
 		s.log.Info("Incoming state does not match local state")
@@ -427,12 +441,30 @@ func (s *Server) Callback(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	rawIDToken, ok := tokens.Extra("id_token").(string)
+	if !ok {
+		s.log.Info("Missing id_token")
+		http.Error(w, "uh oh", http.StatusForbidden)
+		return
+	}
+
+	// Parse and verify ID Token payload.
+	_, err = s.oauth2Config.Verify(r.Context(), rawIDToken)
+	if err != nil {
+		s.log.Info("Invalid id_token")
+		http.Error(w, "uh oh", http.StatusForbidden)
+		return
+	}
+
+	fmt.Println("ACCESSTOKEN", tokens.AccessToken)
+
+	// TODO(thokra): Use secure cookie
 	http.SetCookie(w, &http.Cookie{
 		Name:     "jwt",
-		Value:    tokens.AccessToken,
+		Value:    tokens.AccessToken + "|" + rawIDToken,
 		Path:     "/",
 		Domain:   r.Host,
-		MaxAge:   86400,
+		Expires:  tokens.Expiry,
 		Secure:   true,
 		HttpOnly: true,
 	})
@@ -451,13 +483,4 @@ func defaultInt(i *int, def int) int {
 		return *i
 	}
 	return def
-}
-
-func contains(elem string, list []string) bool {
-	for _, entry := range list {
-		if entry == elem {
-			return true
-		}
-	}
-	return false
 }

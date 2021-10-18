@@ -21,10 +21,9 @@ integration-test:
 
 local-with-auth:
 	go run ./cmd/nada-backend \
-	--oauth2-client-secret=$(shell kubectl get --context=dev-gcp --namespace=nada `kubectl get secret --context=dev-gcp --namespace=nada --sort-by='{.metadata.creationTimestamp}' -l app=nada-backend,type=azurerator.nais.io -o name | tail -1` -o jsonpath='{.data.AZURE_APP_CLIENT_SECRET}' | base64 -d) \
+	--oauth2-client-id=$(shell kubectl get --context=dev-gcp --namespace=nada secret/google-oauth -o jsonpath='{.data.CLIENT_ID}' | base64 -d) \
+	--oauth2-client-secret=$(shell kubectl get --context=dev-gcp --namespace=nada secret/google-oauth -o jsonpath='{.data.CLIENT_SECRET}' | base64 -d) \
 	--teams-token=$(shell kubectl get secret --context=dev-gcp --namespace=nada github-read-token -o jsonpath='{.data.GITHUB_READ_TOKEN}' | base64 -d) \
-	--oauth2-client-id=$(shell kubectl get --context=dev-gcp --namespace=nada `kubectl get secret --context=dev-gcp --namespace=nada --sort-by='{.metadata.creationTimestamp}' -l app=nada-backend,type=azurerator.nais.io -o name | tail -1` -o jsonpath='{.data.AZURE_APP_CLIENT_ID}' | base64 -d) \
-	--oauth2-tenant-id=62366534-1ec3-4962-8869-9b5535279d0b \
 	--bind-address=127.0.0.1:8080 \
 	--hostname=localhost \
 	--log-level=debug

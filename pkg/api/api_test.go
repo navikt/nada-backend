@@ -9,12 +9,19 @@ import (
 	"net/http"
 	"testing"
 
+	"github.com/google/go-cmp/cmp"
 	"github.com/navikt/nada-backend/pkg/auth"
 	"github.com/navikt/nada-backend/pkg/openapi"
 )
 
 func TestCreating_dataproduct(t *testing.T) {
 	in := newDataproduct()
+	slug := "my-custom-slug"
+	repo := "https://github.com/some/repo"
+	keywords := []string{"keyword1", "keyword2"}
+	in.Slug = &slug
+	in.Repo = &repo
+	in.Keywords = &keywords
 
 	resp, err := client.CreateDataproduct(context.Background(), in)
 	if err != nil {
@@ -45,6 +52,18 @@ func TestCreating_dataproduct(t *testing.T) {
 
 	if dataproduct.Name != in.Name {
 		t.Errorf("Got name %q, want %q", dataproduct.Name, in.Name)
+	}
+
+	if *dataproduct.Repo != *in.Repo {
+		t.Errorf("Got repo %q, want %q", *dataproduct.Repo, *in.Repo)
+	}
+
+	if *dataproduct.Slug != *in.Slug {
+		t.Errorf("Got slug %q, want %q", *dataproduct.Slug, *in.Slug)
+	}
+
+	if !cmp.Equal(dataproduct.Keywords, keywords) {
+		t.Error(cmp.Diff(dataproduct.Keywords, keywords))
 	}
 
 	if dataproduct.Datasource == nil {
@@ -220,11 +239,11 @@ func TestDeleting_other_teams_dataproduct_is_not_authorized(t *testing.T) {
 	}
 }
 
-func newDataproductCollection() openapi.CreateDataproductCollectionJSONRequestBody {
-	return openapi.CreateDataproductCollectionJSONRequestBody{
-		Name: "new dataproductcollection",
+func newCollection() openapi.CreateCollectionJSONRequestBody {
+	return openapi.CreateCollectionJSONRequestBody{
+		Name: "new collection",
 		Owner: openapi.Owner{
-			Group: auth.MockUser.Groups[0],
+			Group: auth.MockUser.Groups[0].Email,
 		},
 	}
 }
@@ -234,7 +253,7 @@ func newDataproduct() openapi.CreateDataproductJSONRequestBody {
 		Name: "My dataset",
 		Pii:  true,
 		Owner: openapi.Owner{
-			Group: auth.MockUser.Groups[0],
+			Group: auth.MockUser.Groups[0].Email,
 		},
 		Datasource: openapi.Bigquery{
 			ProjectId: auth.MockProjectIDs[0],
@@ -244,15 +263,15 @@ func newDataproduct() openapi.CreateDataproductJSONRequestBody {
 	}
 }
 
-func createDataproductCollection(in openapi.CreateDataproductCollectionJSONRequestBody) openapi.DataproductCollection {
-	resp, err := client.CreateDataproductCollection(context.Background(), in)
+func createCollection(in openapi.CreateCollectionJSONRequestBody) openapi.Collection {
+	resp, err := client.CreateCollection(context.Background(), in)
 	if err != nil {
 		log.Fatal(err)
 	}
 
 	defer resp.Body.Close()
 
-	var ret openapi.DataproductCollection
+	var ret openapi.Collection
 	if err := json.NewDecoder(resp.Body).Decode(&ret); err != nil {
 		log.Fatal(err)
 	}

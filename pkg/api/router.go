@@ -12,13 +12,12 @@ import (
 	"github.com/navikt/nada-backend/pkg/openapi"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/sirupsen/logrus"
-	"golang.org/x/oauth2"
 )
 
 //go:embed swagger/*
 var swagger embed.FS
 
-func NewRouter(repo *database.Repo, oauth2Config oauth2.Config, log *logrus.Entry, projectsMapping *auth.TeamProjectsUpdater, gcp GCP, middlewares ...openapi.MiddlewareFunc) http.Handler {
+func NewRouter(repo *database.Repo, oauth2Config OAuth2, log *logrus.Entry, projectsMapping *auth.TeamProjectsUpdater, gcp GCP, middlewares ...openapi.MiddlewareFunc) http.Handler {
 	corsMW := cors.Handler(cors.Options{
 		AllowedOrigins:   []string{"https://*", "http://*"},
 		AllowedMethods:   []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
