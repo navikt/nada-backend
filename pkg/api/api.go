@@ -369,6 +369,44 @@ func (s *Server) GetBigqueryTables(w http.ResponseWriter, r *http.Request, id st
 	}
 }
 
+func (s *Server) AddToCollection(w http.ResponseWriter, r *http.Request, collectionID string) {
+	var body openapi.CollectionElement
+	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+		s.log.WithError(err).Info("Decoding request body")
+		http.Error(w, "uh oh", http.StatusBadRequest)
+		return
+	}
+
+	user := auth.GetUser(r.Context())
+
+	existing, err := s.repo.GetCollection(r.Context(), collectionID)
+	if err != nil {
+		s.log.WithError(err).Info("Getting collection for checking permissions on add to collection")
+		http.Error(w, "uh oh", http.StatusInternalServerError)
+		return
+	}
+
+	if !user.Groups.Contains(existing.Owner.Group) {
+		s.log.Infof("Add to collection: User %v is not member of Group %v", user.Email, existing.Owner.Group)
+		http.Error(w, "unauthorized", http.StatusUnauthorized)
+		return
+	}
+
+	if err := s.repo.AddToCollection(r.Context(), collectionID, body); err != nil {
+		s.log.WithError(err).Error("Adding to collection")
+		http.Error(w, "uh oh", http.StatusInternalServerError)
+		return
+	}
+
+	w.WriteHeader(http.StatusCreated)
+	w.Header().Add("Content-Type", "application/json")
+	if err := json.NewEncoder(w).Encode(body); err != nil {
+		s.log.WithError(err).Error("Encoding collection content as JSON")
+		http.Error(w, "uh oh", http.StatusInternalServerError)
+		return
+	}
+}
+
 // Search (GET /search)
 func (s *Server) Search(w http.ResponseWriter, r *http.Request, params openapi.SearchParams) {
 	q := ""

@@ -27,6 +27,11 @@ const (
 	CookieAuthScopes = "cookieAuth.Scopes"
 )
 
+// Defines values for CollectionElementType.
+const (
+	CollectionElementTypeDataproduct CollectionElementType = "dataproduct"
+)
+
 // Defines values for DataproductType.
 const (
 	DataproductTypeBigquery DataproductType = "bigquery"
@@ -34,7 +39,7 @@ const (
 
 // Defines values for SearchResultType.
 const (
-	SearchResultTypeCollection SearchResultType = "Collection"
+	SearchResultTypeCollection SearchResultType = "collection"
 
 	SearchResultTypeDatapackage SearchResultType = "datapackage"
 
@@ -61,6 +66,15 @@ type Collection struct {
 	Repo         *string              `json:"repo,omitempty"`
 	Slug         string               `json:"slug"`
 }
+
+// CollectionElement defines model for CollectionElement.
+type CollectionElement struct {
+	ElementId   string                `json:"element_id"`
+	ElementType CollectionElementType `json:"element_type"`
+}
+
+// CollectionElementType defines model for CollectionElementType.
+type CollectionElementType string
 
 // Dataproduct defines model for Dataproduct.
 type Dataproduct struct {
@@ -188,6 +202,9 @@ type CreateCollectionJSONBody NewCollection
 // UpdateCollectionJSONBody defines parameters for UpdateCollection.
 type UpdateCollectionJSONBody UpdateCollection
 
+// AddToCollectionJSONBody defines parameters for AddToCollection.
+type AddToCollectionJSONBody CollectionElement
+
 // GetDataproductsParams defines parameters for GetDataproducts.
 type GetDataproductsParams struct {
 	Limit  *int `json:"limit,omitempty"`
@@ -212,6 +229,9 @@ type CreateCollectionJSONRequestBody CreateCollectionJSONBody
 
 // UpdateCollectionJSONRequestBody defines body for UpdateCollection for application/json ContentType.
 type UpdateCollectionJSONRequestBody UpdateCollectionJSONBody
+
+// AddToCollectionJSONRequestBody defines body for AddToCollection for application/json ContentType.
+type AddToCollectionJSONRequestBody AddToCollectionJSONBody
 
 // CreateDataproductJSONRequestBody defines body for CreateDataproduct for application/json ContentType.
 type CreateDataproductJSONRequestBody CreateDataproductJSONBody
@@ -310,6 +330,11 @@ type ClientInterface interface {
 	UpdateCollectionWithBody(ctx context.Context, id string, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
 
 	UpdateCollection(ctx context.Context, id string, body UpdateCollectionJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// AddToCollection request with any body
+	AddToCollectionWithBody(ctx context.Context, id string, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	AddToCollection(ctx context.Context, id string, body AddToCollectionJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
 
 	// GetDataproducts request
 	GetDataproducts(ctx context.Context, params *GetDataproductsParams, reqEditors ...RequestEditorFn) (*http.Response, error)
@@ -420,6 +445,30 @@ func (c *Client) UpdateCollectionWithBody(ctx context.Context, id string, conten
 
 func (c *Client) UpdateCollection(ctx context.Context, id string, body UpdateCollectionJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
 	req, err := NewUpdateCollectionRequest(c.Server, id, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) AddToCollectionWithBody(ctx context.Context, id string, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewAddToCollectionRequestWithBody(c.Server, id, contentType, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) AddToCollection(ctx context.Context, id string, body AddToCollectionJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewAddToCollectionRequest(c.Server, id, body)
 	if err != nil {
 		return nil, err
 	}
@@ -783,6 +832,53 @@ func NewUpdateCollectionRequestWithBody(server string, id string, contentType st
 	}
 
 	req, err := http.NewRequest("PUT", queryURL.String(), body)
+	if err != nil {
+		return nil, err
+	}
+
+	req.Header.Add("Content-Type", contentType)
+
+	return req, nil
+}
+
+// NewAddToCollectionRequest calls the generic AddToCollection builder with application/json body
+func NewAddToCollectionRequest(server string, id string, body AddToCollectionJSONRequestBody) (*http.Request, error) {
+	var bodyReader io.Reader
+	buf, err := json.Marshal(body)
+	if err != nil {
+		return nil, err
+	}
+	bodyReader = bytes.NewReader(buf)
+	return NewAddToCollectionRequestWithBody(server, id, "application/json", bodyReader)
+}
+
+// NewAddToCollectionRequestWithBody generates requests for AddToCollection with any type of body
+func NewAddToCollectionRequestWithBody(server string, id string, contentType string, body io.Reader) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithLocation("simple", false, "id", runtime.ParamLocationPath, id)
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/collections/%s/add", pathParam0)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest("POST", queryURL.String(), body)
 	if err != nil {
 		return nil, err
 	}
@@ -1280,6 +1376,11 @@ type ClientWithResponsesInterface interface {
 
 	UpdateCollectionWithResponse(ctx context.Context, id string, body UpdateCollectionJSONRequestBody, reqEditors ...RequestEditorFn) (*UpdateCollectionResponse, error)
 
+	// AddToCollection request with any body
+	AddToCollectionWithBodyWithResponse(ctx context.Context, id string, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*AddToCollectionResponse, error)
+
+	AddToCollectionWithResponse(ctx context.Context, id string, body AddToCollectionJSONRequestBody, reqEditors ...RequestEditorFn) (*AddToCollectionResponse, error)
+
 	// GetDataproducts request
 	GetDataproductsWithResponse(ctx context.Context, params *GetDataproductsParams, reqEditors ...RequestEditorFn) (*GetDataproductsResponse, error)
 
@@ -1418,6 +1519,28 @@ func (r UpdateCollectionResponse) Status() string {
 
 // StatusCode returns HTTPResponse.StatusCode
 func (r UpdateCollectionResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+type AddToCollectionResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	JSON200      *CollectionElement
+}
+
+// Status returns HTTPResponse.Status
+func (r AddToCollectionResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r AddToCollectionResponse) StatusCode() int {
 	if r.HTTPResponse != nil {
 		return r.HTTPResponse.StatusCode
 	}
@@ -1704,6 +1827,23 @@ func (c *ClientWithResponses) UpdateCollectionWithResponse(ctx context.Context, 
 	return ParseUpdateCollectionResponse(rsp)
 }
 
+// AddToCollectionWithBodyWithResponse request with arbitrary body returning *AddToCollectionResponse
+func (c *ClientWithResponses) AddToCollectionWithBodyWithResponse(ctx context.Context, id string, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*AddToCollectionResponse, error) {
+	rsp, err := c.AddToCollectionWithBody(ctx, id, contentType, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseAddToCollectionResponse(rsp)
+}
+
+func (c *ClientWithResponses) AddToCollectionWithResponse(ctx context.Context, id string, body AddToCollectionJSONRequestBody, reqEditors ...RequestEditorFn) (*AddToCollectionResponse, error) {
+	rsp, err := c.AddToCollection(ctx, id, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseAddToCollectionResponse(rsp)
+}
+
 // GetDataproductsWithResponse request returning *GetDataproductsResponse
 func (c *ClientWithResponses) GetDataproductsWithResponse(ctx context.Context, params *GetDataproductsParams, reqEditors ...RequestEditorFn) (*GetDataproductsResponse, error) {
 	rsp, err := c.GetDataproducts(ctx, params, reqEditors...)
@@ -1920,6 +2060,32 @@ func ParseUpdateCollectionResponse(rsp *http.Response) (*UpdateCollectionRespons
 	switch {
 	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
 		var dest Collection
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParseAddToCollectionResponse parses an HTTP response from a AddToCollectionWithResponse call
+func ParseAddToCollectionResponse(rsp *http.Response) (*AddToCollectionResponse, error) {
+	bodyBytes, err := ioutil.ReadAll(rsp.Body)
+	defer rsp.Body.Close()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &AddToCollectionResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest CollectionElement
 		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
 			return nil, err
 		}
@@ -2198,6 +2364,9 @@ type ServerInterface interface {
 	// (PUT /collections/{id})
 	UpdateCollection(w http.ResponseWriter, r *http.Request, id string)
 
+	// (POST /collections/{id}/add)
+	AddToCollection(w http.ResponseWriter, r *http.Request, id string)
+
 	// (GET /dataproducts)
 	GetDataproducts(w http.ResponseWriter, r *http.Request, params GetDataproductsParams)
 
@@ -2369,6 +2538,34 @@ func (siw *ServerInterfaceWrapper) UpdateCollection(w http.ResponseWriter, r *ht
 
 	var handler = func(w http.ResponseWriter, r *http.Request) {
 		siw.Handler.UpdateCollection(w, r, id)
+	}
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler(w, r.WithContext(ctx))
+}
+
+// AddToCollection operation middleware
+func (siw *ServerInterfaceWrapper) AddToCollection(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+
+	var err error
+
+	// ------------- Path parameter "id" -------------
+	var id string
+
+	err = runtime.BindStyledParameter("simple", false, "id", chi.URLParam(r, "id"), &id)
+	if err != nil {
+		http.Error(w, fmt.Sprintf("Invalid format for parameter id: %s", err), http.StatusBadRequest)
+		return
+	}
+
+	ctx = context.WithValue(ctx, CookieAuthScopes, []string{""})
+
+	var handler = func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.AddToCollection(w, r, id)
 	}
 
 	for _, middleware := range siw.HandlerMiddlewares {
@@ -2724,6 +2921,9 @@ func HandlerWithOptions(si ServerInterface, options ChiServerOptions) http.Handl
 		r.Put(options.BaseURL+"/collections/{id}", wrapper.UpdateCollection)
 	})
 	r.Group(func(r chi.Router) {
+		r.Post(options.BaseURL+"/collections/{id}/add", wrapper.AddToCollection)
+	})
+	r.Group(func(r chi.Router) {
 		r.Get(options.BaseURL+"/dataproducts", wrapper.GetDataproducts)
 	})
 	r.Group(func(r chi.Router) {
@@ -2760,31 +2960,32 @@ func HandlerWithOptions(si ServerInterface, options ChiServerOptions) http.Handl
 // Base64 encoded, gzipped, json marshaled Swagger object
 var swaggerSpec = []string{
 
-	"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",
-	"AP//VYj28WImAAA=",
+	"H4sIAAAAAAAC/+RaX2/bOBL/KgTvHnWW27sDCr2lcREE3TbdNvtUBAUjjWU2EqmSVLJG4e++IClZlET9",
+	"ces42e6bIw45M7+Z+XFI5juOeV5wBkxJHH3HMt5ATszP1zT9VoLY6t+F4AUIRcGMJEQRCUr/VNsCcISl",
+	"EpSleBdoya8Qqy808Q4rcpuBZ2QXYAHfSiogwdFnd5Vgr66efRPUs/mtltLrnvMsg1hRzvrmxgKIAmPP",
+	"moucKBzpNeE/iuaAg76RWmEheFLGFhSqIDc//i1gjSP8r7ABLawQC1fNpE9lnhOxNf7atYkQxPydgIwF",
+	"LWpDe6oHYLuD7QMXSduaPrgdZRmR6kvOE7qmh7jPSA7e9fkDAzGFw5URMvEsuHcZmZXpdAqY0BtTqhm1",
+	"/mAf0K6HnciN58mbDHJgqp8uYAeGMrgetgPjWPS0XetJXU9bKwau/lkeXFeGACtzvZyDgbNA44CTqAOl",
+	"zUsRw5x8ryRPnddHStCCUmeVW84zIOxHMre2cDZBeNPATfgqFbSFTdo7sXGQ8+WIo+odKKIn+kNdCQ3l",
+	"ujV9NgVea3o+51mZs37YOt52tO91TbhTU2vPmwEPBlPlUSI2YXy3Um/rHXaoTJtK5Ayu1jj6PG7wfsve",
+	"3ewCfCF4WXj4LSc0Mwng1ix+oz8jwhJ0uUJ8jdQGUGpWmL9FdInNaKqkfdi8h4exjXuKVJ6UPX5ye6vS",
+	"xuocwOZJmPrXoGQ/2oN86gvAVW15G/e0rqo+JkDyO6JIxlNg0zbZhXyaPwER8eYjyDJTb5jy0R38GYMo",
+	"1CF77U9RoWuS5cIAlyKb9lIL7fczlzBrD6YAGGtvAhw39FF1fyS+Iyl4KdXdnw4mm5wn8GO4zkrNCiGj",
+	"pV2kPoD+KHQH/4y48xj1OezoOBGe1tMTUJQXCAnikq35yH7eU2wYZv4J1vYL87HwO1Bv+pXyvi8aEYhL",
+	"QdX2k9ZcHdI5v6NwVqqNsVd3JPZTzRgR/vqgml6EFPQt6LZSE16Fi6Iq02Pvz1ZnOMD3IKTtbV4slmYv",
+	"KoCRguII/3exXLzUaBO1MerDhkgsy9vrjXaL9BuVCpEsQ+eOsFlWEP3HZYIjfAGqPVwQQXJQIKTp34xr",
+	"tkvbe5bRnCrs9tsJrEmZKRy9+P/eZcoUpHqf3AX+Zfh6be9JPOssPcvc6ADKgjNpY/ByubShYKo6GZOi",
+	"yGhsnAu/SltgBx4KHJLqnwm6/Qi+emu/Flx6AnBuDv6IIAYPThB6MbByLQGdqSDVa55sD/JxzLV2+7rb",
+	"2YpoAfriaMramgIvMgmSZRyDlOsyy7atUjO55xbZ55vdjRZwMz/8TpOdhT0DBf0ArMx3RMbAtzItgU4J",
+	"dEzfS6LLlW4S9EddmE1im76h4RolSnCTvMtL/bz+35ArCTIZN4VTMEYIDhj64KS7EKRNmuCG54DL86n3",
+	"0gOv3fzHs63XCT0Nqscnl55jXn5ZnohfrDUzq8XHKiFJzLHET+xnSYIUR/FwnM+S5Jr/gmHuX0ifLM6O",
+	"wqAfj0OC3X0w8ZLlBSjUEvSw46o9/g9vndxjz3F7p/Yh2tc8rVoSj9Q9tRx83Papo+qI/ZOb0/MbqLEI",
+	"WKF2BEbZzhH92/VQHVqYYIVngcTyVFk5rzsaQ69/f/JEAD5WgzRJIScL1sEtUo84wtx5rJtTLGg/Ybxq",
+	"3jViv2j17D0crCKNeBoXFmjzjyTDrcpHUKVg5qrnNU1/160CslMQZSiNC1T9g4oP9/oR7trqOEWj0Lz7",
+	"zewSprl6NE8uzj/UCBwtT0x8zJ2hDVEaF18qHcOBsqEhLEGiCZljnURrLlpPmb1wXZx/+FCrOVasJm6X",
+	"Hyko2sOjhkOaZ5hB8O0rja6I6sK1ja0dPkn+9x/MZmBemS/MrGqfnT5vfMNjsAXP65Cig1hKEPUFuTeM",
+	"KSikhZCR8lTI/unhEal8r+NHi8NKiPs6duZxEm+UKqIwzHhMsg2XKnq1fLUMSUGxxriRkVEYMpKQRQL3",
+	"Cw2gYAtG7heMjwl7BG92fwUAAP//ZzjlX1IpAAA=",
 }
 
 // GetSwagger returns the content of the embedded swagger specification file

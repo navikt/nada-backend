@@ -321,6 +321,14 @@ func (r *Repo) UpdateBigqueryDatasource(ctx context.Context, id uuid.UUID, schem
 	return nil
 }
 
+func (r *Repo) AddToCollection(ctx context.Context, collectionID string, body openapi.CollectionElement) error {
+	return r.querier.CreateCollectionElement(ctx, gensql.CreateCollectionElementParams{
+		ElementID:    body.ElementId,
+		ElementType:  string(body.ElementType),
+		CollectionID: collectionID,
+	})
+}
+
 func (r *Repo) Search(ctx context.Context, query string, limit, offset int) ([]*openapi.SearchResultEntry, error) {
 	results := []*openapi.SearchResultEntry{}
 	makeExcerpt := func(s sql.NullString) string {

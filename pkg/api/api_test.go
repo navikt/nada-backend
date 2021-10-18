@@ -239,6 +239,63 @@ func TestDeleting_other_teams_dataproduct_is_not_authorized(t *testing.T) {
 	}
 }
 
+func TestAdding_to_collection(t *testing.T) {
+	dp := createDataproduct(newDataproduct())
+
+	col, err := client.CreateCollection(context.Background(), openapi.CreateCollectionJSONRequestBody{
+		Name: "My collection",
+		Owner: openapi.Owner{
+			Group: auth.MockUser.Groups[0].Email,
+		},
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	var newCol openapi.Collection
+	if err := json.NewDecoder(col.Body).Decode(&newCol); err != nil {
+		t.Fatal(err)
+	}
+
+	resp, err := client.AddToCollection(context.Background(), newCol.Id, openapi.AddToCollectionJSONRequestBody{
+		ElementId:   dp.Id,
+		ElementType: openapi.CollectionElementTypeDataproduct,
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if resp.StatusCode != http.StatusCreated {
+		t.Fatalf("Expected status code %v, got %v", http.StatusCreated, resp.StatusCode)
+	}
+}
+
+func TestAdding_to_other_teams_collection_is_not_authorized(t *testing.T) {
+	dp := createDataproduct(newDataproduct())
+
+	col, err := repo.CreateCollection(context.Background(), openapi.NewCollection{
+		Name: "My collection",
+		Owner: openapi.Owner{
+			Group: "other-group@nav.no",
+		},
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	resp, err := client.AddToCollection(context.Background(), col.Id, openapi.AddToCollectionJSONRequestBody{
+		ElementId:   dp.Id,
+		ElementType: openapi.CollectionElementTypeDataproduct,
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if resp.StatusCode != http.StatusUnauthorized {
+		t.Fatalf("Expected status code %v, got %v", http.StatusUnauthorized, resp.StatusCode)
+	}
+}
+
 func newCollection() openapi.CreateCollectionJSONRequestBody {
 	return openapi.CreateCollectionJSONRequestBody{
 		Name: "new collection",

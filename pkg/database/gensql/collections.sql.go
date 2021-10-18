@@ -63,12 +63,50 @@ func (q *Queries) CreateCollection(ctx context.Context, arg CreateCollectionPara
 	return i, err
 }
 
+const createCollectionElement = `-- name: CreateCollectionElement :exec
+INSERT INTO collection_elements (
+	"element_id",
+	"collection_id",
+	"element_type"
+) VALUES (
+	$1,
+	$2,
+	$3
+)
+`
+
+type CreateCollectionElementParams struct {
+	ElementID    string
+	CollectionID string
+	ElementType  string
+}
+
+func (q *Queries) CreateCollectionElement(ctx context.Context, arg CreateCollectionElementParams) error {
+	_, err := q.db.ExecContext(ctx, createCollectionElement, arg.ElementID, arg.CollectionID, arg.ElementType)
+	return err
+}
+
 const deleteCollection = `-- name: DeleteCollection :exec
 DELETE FROM collections WHERE id = $1
 `
 
 func (q *Queries) DeleteCollection(ctx context.Context, id uuid.UUID) error {
 	_, err := q.db.ExecContext(ctx, deleteCollection, id)
+	return err
+}
+
+const deleteCollectionElement = `-- name: DeleteCollectionElement :exec
+DELETE FROM collection_elements WHERE element_id = $1 AND collection_id = $2 AND element_type = $3
+`
+
+type DeleteCollectionElementParams struct {
+	ElementID    string
+	CollectionID string
+	ElementType  string
+}
+
+func (q *Queries) DeleteCollectionElement(ctx context.Context, arg DeleteCollectionElementParams) error {
+	_, err := q.db.ExecContext(ctx, deleteCollectionElement, arg.ElementID, arg.CollectionID, arg.ElementType)
 	return err
 }
 
@@ -92,6 +130,33 @@ func (q *Queries) GetCollection(ctx context.Context, id uuid.UUID) (Collection, 
 		&i.TsvDocument,
 	)
 	return i, err
+}
+
+const getCollectionElements = `-- name: GetCollectionElements :many
+SELECT element_id, collection_id, element_type FROM collection_elements WHERE collection_id = $1
+`
+
+func (q *Queries) GetCollectionElements(ctx context.Context, collectionID string) ([]CollectionElement, error) {
+	rows, err := q.db.QueryContext(ctx, getCollectionElements, collectionID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []CollectionElement{}
+	for rows.Next() {
+		var i CollectionElement
+		if err := rows.Scan(&i.ElementID, &i.CollectionID, &i.ElementType); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
 }
 
 const getCollections = `-- name: GetCollections :many

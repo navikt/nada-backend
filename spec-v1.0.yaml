@@ -290,7 +290,7 @@ components:
       type: string
       enum:
         - dataproduct
-        - Collection
+        - collection
         - datapackage
 
     Group:
@@ -304,6 +304,22 @@ components:
       required:
         - email
         - name
+
+    CollectionElementType:
+      type: string
+      enum:
+        - dataproduct
+
+    CollectionElement:
+      type: object
+      properties:
+        element_type:
+          $ref: "#/components/schemas/CollectionElementType"
+        element_id:
+          type: string
+      required:
+        - element_type
+        - element_id
 
 paths:
   /userinfo:
@@ -467,6 +483,32 @@ paths:
             "application/json":
               schema:
                 $ref: "#/components/schemas/Collection"
+
+  /collections/{id}/add:
+    post:
+      security:
+        - cookieAuth: []
+      description: "Add to collection"
+      operationId: "addToCollection"
+      parameters:
+        - in: path
+          name: id
+          description: Collection ID
+          required: true
+          schema:
+            type: string
+      requestBody:
+        content:
+          "application/json":
+            schema:
+              $ref: "#/components/schemas/CollectionElement"
+      responses:
+        "200":
+          description: "Added OK"
+          content:
+            "application/json":
+              schema:
+                $ref: "#/components/schemas/CollectionElement"
 
   /dataproducts:
     get:

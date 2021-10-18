@@ -42,6 +42,12 @@ type Collection struct {
 	TsvDocument  interface{}
 }
 
+type CollectionElement struct {
+	ElementID    string
+	CollectionID string
+	ElementType  string
+}
+
 type Dataproduct struct {
 	ID           uuid.UUID
 	Name         string

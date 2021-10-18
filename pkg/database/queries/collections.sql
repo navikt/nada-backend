@@ -33,3 +33,20 @@ UPDATE collections SET
 	"keywords" = @keywords
 WHERE id = @id
 RETURNING *;
+
+-- name: CreateCollectionElement :exec
+INSERT INTO collection_elements (
+	"element_id",
+	"collection_id",
+	"element_type"
+) VALUES (
+	@element_id,
+	@collection_id,
+	@element_type
+);
+
+-- name: DeleteCollectionElement :exec
+DELETE FROM collection_elements WHERE element_id = @element_id AND collection_id = @collection_id AND element_type = @element_type;
+
+-- name: GetCollectionElements :many
+SELECT * FROM collection_elements WHERE collection_id = @collection_id;
