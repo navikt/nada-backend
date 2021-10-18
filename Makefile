@@ -26,6 +26,8 @@ local-with-auth:
 	--teams-token=$(shell kubectl get secret --context=dev-gcp --namespace=nada github-read-token -o jsonpath='{.data.GITHUB_READ_TOKEN}' | base64 -d) \
 	--bind-address=127.0.0.1:8080 \
 	--hostname=localhost \
+	--service-account-file=./test-sa.json \
+	--google-admin-subject=johnny.horvi@nav.no \
 	--log-level=debug
 
 local:
