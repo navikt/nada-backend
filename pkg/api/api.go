@@ -46,9 +46,9 @@ func New(repo *database.Repo, oauth2Config OAuth2, log *logrus.Entry, projectsMa
 	}
 }
 
-// GetDataproductCollections (GET /collections)
-func (s *Server) GetDataproductCollections(w http.ResponseWriter, r *http.Request, params openapi.GetDataproductCollectionsParams) {
-	dataproducts, err := s.repo.GetDataproductCollections(r.Context(), defaultInt(params.Limit, 15), defaultInt(params.Offset, 0))
+// GetCollections (GET /collections)
+func (s *Server) GetCollections(w http.ResponseWriter, r *http.Request, params openapi.GetCollectionsParams) {
+	dataproducts, err := s.repo.GetCollections(r.Context(), defaultInt(params.Limit, 15), defaultInt(params.Offset, 0))
 	if err != nil {
 		s.log.WithError(err).Error("Getting collections")
 		http.Error(w, "uh oh", http.StatusInternalServerError)
@@ -61,9 +61,9 @@ func (s *Server) GetDataproductCollections(w http.ResponseWriter, r *http.Reques
 	}
 }
 
-// GetDataproductCollection (GET /collections/{id})
-func (s *Server) GetDataproductCollection(w http.ResponseWriter, r *http.Request, id string) {
-	collection, err := s.repo.GetDataproductCollection(r.Context(), id)
+// GetCollection (GET /collections/{id})
+func (s *Server) GetCollection(w http.ResponseWriter, r *http.Request, id string) {
+	collection, err := s.repo.GetCollection(r.Context(), id)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			http.Error(w, "No collection", http.StatusNotFound)
@@ -81,9 +81,9 @@ func (s *Server) GetDataproductCollection(w http.ResponseWriter, r *http.Request
 	}
 }
 
-// CreateDataproductCollection (POST /collections)
-func (s *Server) CreateDataproductCollection(w http.ResponseWriter, r *http.Request) {
-	var newCollection openapi.NewDataproductCollection
+// CreateCollection (POST /collections)
+func (s *Server) CreateCollection(w http.ResponseWriter, r *http.Request) {
+	var newCollection openapi.NewCollection
 	if err := json.NewDecoder(r.Body).Decode(&newCollection); err != nil {
 		s.log.WithError(err).Info("Decoding new collection")
 		http.Error(w, "invalid JSON object", http.StatusBadRequest)
@@ -97,7 +97,7 @@ func (s *Server) CreateDataproductCollection(w http.ResponseWriter, r *http.Requ
 		return
 	}
 
-	collection, err := s.repo.CreateDataproductCollection(r.Context(), newCollection)
+	collection, err := s.repo.CreateCollection(r.Context(), newCollection)
 	if err != nil {
 		s.log.WithError(err).Error("Creating collection")
 		http.Error(w, "uh oh", http.StatusInternalServerError)
@@ -113,11 +113,11 @@ func (s *Server) CreateDataproductCollection(w http.ResponseWriter, r *http.Requ
 	}
 }
 
-// DeleteDataproductCollection (DELETE /collections/{id})
-func (s *Server) DeleteDataproductCollection(w http.ResponseWriter, r *http.Request, id string) {
+// DeleteCollection (DELETE /collections/{id})
+func (s *Server) DeleteCollection(w http.ResponseWriter, r *http.Request, id string) {
 	user := auth.GetUser(r.Context())
 
-	collection, err := s.repo.GetDataproductCollection(r.Context(), id)
+	collection, err := s.repo.GetCollection(r.Context(), id)
 	if err != nil {
 		s.log.WithError(err).Error("Getting collection for deletion")
 		http.Error(w, "uh oh", http.StatusInternalServerError)
@@ -130,7 +130,7 @@ func (s *Server) DeleteDataproductCollection(w http.ResponseWriter, r *http.Requ
 		return
 	}
 
-	if err := s.repo.DeleteDataproductCollection(r.Context(), id); err != nil {
+	if err := s.repo.DeleteCollection(r.Context(), id); err != nil {
 		s.log.WithError(err).Error("Deleting collection")
 		return
 	}
@@ -139,16 +139,16 @@ func (s *Server) DeleteDataproductCollection(w http.ResponseWriter, r *http.Requ
 	w.WriteHeader(http.StatusNoContent)
 }
 
-// UpdateDataproductCollection (PUT /collections/{id})
-func (s *Server) UpdateDataproductCollection(w http.ResponseWriter, r *http.Request, id string) {
-	var in openapi.UpdateDataproductCollection
+// UpdateCollection (PUT /collections/{id})
+func (s *Server) UpdateCollection(w http.ResponseWriter, r *http.Request, id string) {
+	var in openapi.UpdateCollection
 	if err := json.NewDecoder(r.Body).Decode(&in); err != nil {
 		s.log.WithError(err).Info("Decoding updated collection")
 		http.Error(w, "invalid JSON object", http.StatusBadRequest)
 		return
 	}
 
-	existing, err := s.repo.GetDataproductCollection(context.Background(), id)
+	existing, err := s.repo.GetCollection(context.Background(), id)
 	if err != nil {
 		s.log.WithError(err).Info("Update collection")
 		http.Error(w, "uh oh", http.StatusBadRequest)
@@ -162,7 +162,7 @@ func (s *Server) UpdateDataproductCollection(w http.ResponseWriter, r *http.Requ
 		return
 	}
 
-	updated, err := s.repo.UpdateDataproductCollection(r.Context(), id, in)
+	updated, err := s.repo.UpdateCollection(r.Context(), id, in)
 	if err != nil {
 		s.log.WithError(err).Error("Updating collection")
 		http.Error(w, "uh oh", http.StatusInternalServerError)

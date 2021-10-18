@@ -9,25 +9,25 @@ import (
 	"github.com/lib/pq"
 )
 
-const searchDataproductCollections = `-- name: SearchDataproductCollections :many
-SELECT id, name, description, slug, repo, created, last_modified, "group", keywords, tsv_document FROM "dataproduct_collections" WHERE "tsv_document" @@ websearch_to_tsquery('norwegian', $1) LIMIT $3 OFFSET $2
+const searchCollections = `-- name: SearchCollections :many
+SELECT id, name, description, slug, repo, created, last_modified, "group", keywords, tsv_document FROM "collections" WHERE "tsv_document" @@ websearch_to_tsquery('norwegian', $1) LIMIT $3 OFFSET $2
 `
 
-type SearchDataproductCollectionsParams struct {
+type SearchCollectionsParams struct {
 	Query  string
 	Offset int32
 	Limit  int32
 }
 
-func (q *Queries) SearchDataproductCollections(ctx context.Context, arg SearchDataproductCollectionsParams) ([]DataproductCollection, error) {
-	rows, err := q.db.QueryContext(ctx, searchDataproductCollections, arg.Query, arg.Offset, arg.Limit)
+func (q *Queries) SearchCollections(ctx context.Context, arg SearchCollectionsParams) ([]Collection, error) {
+	rows, err := q.db.QueryContext(ctx, searchCollections, arg.Query, arg.Offset, arg.Limit)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
-	items := []DataproductCollection{}
+	items := []Collection{}
 	for rows.Next() {
-		var i DataproductCollection
+		var i Collection
 		if err := rows.Scan(
 			&i.ID,
 			&i.Name,

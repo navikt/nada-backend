@@ -14,7 +14,7 @@ components:
       in: cookie
       name: jwt
   schemas:
-    DataproductCollection:
+    Collection:
       type: object
       properties:
         id:
@@ -52,7 +52,7 @@ components:
         - last_modified
         - dataproducts
 
-    NewDataproductCollection:
+    NewCollection:
       type: object
       properties:
         name:
@@ -73,7 +73,7 @@ components:
         - name
         - owner
 
-    UpdateDataproductCollection:
+    UpdateCollection:
       type: object
       properties:
         name:
@@ -277,7 +277,7 @@ components:
       type: string
       enum:
         - dataproduct
-        - DataproductCollection
+        - Collection
         - datapackage
 
     Group:
@@ -355,8 +355,8 @@ paths:
 
   /collections:
     get:
-      description: "List all DataproductCollections"
-      operationId: "getDataproductCollections"
+      description: "List all Collections"
+      operationId: "getCollections"
       parameters:
         - in: "query"
           name: "limit"
@@ -376,33 +376,33 @@ paths:
               schema:
                 type: array
                 items:
-                  $ref: "#/components/schemas/DataproductCollection"
+                  $ref: "#/components/schemas/Collection"
     post:
       security:
         - cookieAuth: []
-      description: "Create a new DataproductCollection"
-      operationId: "createDataproductCollection"
+      description: "Create a new Collection"
+      operationId: "createCollection"
       requestBody:
         content:
           "application/json":
             schema:
-              $ref: "#/components/schemas/NewDataproductCollection"
+              $ref: "#/components/schemas/NewCollection"
       responses:
         "201":
           description: "Created successfully"
           content:
             "application/json":
               schema:
-                $ref: "#/components/schemas/DataproductCollection"
+                $ref: "#/components/schemas/Collection"
 
   /collections/{id}:
     get:
-      description: "List a DataproductCollection with dataproducts"
-      operationId: "getDataproductCollection"
+      description: "List a Collection of data types"
+      operationId: "getCollection"
       parameters:
         - in: path
           name: id
-          description: DataproductCollection ID
+          description: Collection ID
           required: true
           schema:
             type: string
@@ -414,16 +414,16 @@ paths:
               schema:
                 type: array
                 items:
-                  $ref: "#/components/schemas/DataproductCollection"
+                  $ref: "#/components/schemas/Collection"
     delete:
       security:
         - cookieAuth: []
-      description: "Delete a DataproductCollection"
-      operationId: "deleteDataproductCollection"
+      description: "Delete a Collection"
+      operationId: "deleteCollection"
       parameters:
         - in: path
           name: id
-          description: DataproductCollection ID
+          description: Collection ID
           required: true
           schema:
             type: string
@@ -433,12 +433,12 @@ paths:
     put:
       security:
         - cookieAuth: []
-      description: "Update a DataproductCollection"
-      operationId: "updateDataproductCollection"
+      description: "Update a Collection"
+      operationId: "updateCollection"
       parameters:
         - in: path
           name: id
-          description: DataproductCollection ID
+          description: Collection ID
           required: true
           schema:
             type: string
@@ -446,14 +446,14 @@ paths:
         content:
           "application/json":
             schema:
-              $ref: "#/components/schemas/UpdateDataproductCollection"
+              $ref: "#/components/schemas/UpdateCollection"
       responses:
         "200":
           description: "Updated OK"
           content:
             "application/json":
               schema:
-                $ref: "#/components/schemas/DataproductCollection"
+                $ref: "#/components/schemas/Collection"
 
   /dataproducts:
     get:

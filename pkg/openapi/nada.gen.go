@@ -34,11 +34,11 @@ const (
 
 // Defines values for SearchResultType.
 const (
+	SearchResultTypeCollection SearchResultType = "Collection"
+
 	SearchResultTypeDatapackage SearchResultType = "datapackage"
 
 	SearchResultTypeDataproduct SearchResultType = "dataproduct"
-
-	SearchResultTypeDataproductCollection SearchResultType = "DataproductCollection"
 )
 
 // Bigquery defines model for Bigquery.
@@ -46,6 +46,20 @@ type Bigquery struct {
 	Dataset   string `json:"dataset"`
 	ProjectId string `json:"project_id"`
 	Table     string `json:"table"`
+}
+
+// Collection defines model for Collection.
+type Collection struct {
+	Created      time.Time            `json:"created"`
+	Dataproducts []DataproductSummary `json:"dataproducts"`
+	Description  *string              `json:"description,omitempty"`
+	Id           string               `json:"id"`
+	Keywords     *[]string            `json:"keywords,omitempty"`
+	LastModified time.Time            `json:"last_modified"`
+	Name         string               `json:"name"`
+	Owner        Owner                `json:"owner"`
+	Repo         *string              `json:"repo,omitempty"`
+	Slug         string               `json:"slug"`
 }
 
 // Dataproduct defines model for Dataproduct.
@@ -59,20 +73,6 @@ type Dataproduct struct {
 	Repo        *string         `json:"repo,omitempty"`
 	Slug        *string         `json:"slug,omitempty"`
 	Type        DataproductType `json:"type"`
-}
-
-// DataproductCollection defines model for DataproductCollection.
-type DataproductCollection struct {
-	Created      time.Time            `json:"created"`
-	Dataproducts []DataproductSummary `json:"dataproducts"`
-	Description  *string              `json:"description,omitempty"`
-	Id           string               `json:"id"`
-	Keywords     *[]string            `json:"keywords,omitempty"`
-	LastModified time.Time            `json:"last_modified"`
-	Name         string               `json:"name"`
-	Owner        Owner                `json:"owner"`
-	Repo         *string              `json:"repo,omitempty"`
-	Slug         string               `json:"slug"`
 }
 
 // DataproductMetadata defines model for DataproductMetadata.
@@ -101,6 +101,16 @@ type Group struct {
 	Name  string `json:"name"`
 }
 
+// NewCollection defines model for NewCollection.
+type NewCollection struct {
+	Description *string   `json:"description,omitempty"`
+	Keywords    *[]string `json:"keywords,omitempty"`
+	Name        string    `json:"name"`
+	Owner       Owner     `json:"owner"`
+	Repo        *string   `json:"repo,omitempty"`
+	Slug        *string   `json:"slug,omitempty"`
+}
+
 // NewDataproduct defines model for NewDataproduct.
 type NewDataproduct struct {
 	Datasource  Datasource `json:"datasource"`
@@ -110,16 +120,6 @@ type NewDataproduct struct {
 	Pii         bool       `json:"pii"`
 	Repo        *string    `json:"repo,omitempty"`
 	Slug        *string    `json:"slug,omitempty"`
-}
-
-// NewDataproductCollection defines model for NewDataproductCollection.
-type NewDataproductCollection struct {
-	Description *string   `json:"description,omitempty"`
-	Keywords    *[]string `json:"keywords,omitempty"`
-	Name        string    `json:"name"`
-	Owner       Owner     `json:"owner"`
-	Repo        *string   `json:"repo,omitempty"`
-	Slug        *string   `json:"slug,omitempty"`
 }
 
 // Owner defines model for Owner.
@@ -148,6 +148,15 @@ type TableColumn struct {
 	Type        string `json:"type"`
 }
 
+// UpdateCollection defines model for UpdateCollection.
+type UpdateCollection struct {
+	Description *string   `json:"description,omitempty"`
+	Keywords    *[]string `json:"keywords,omitempty"`
+	Name        string    `json:"name"`
+	Repo        *string   `json:"repo,omitempty"`
+	Slug        *string   `json:"slug,omitempty"`
+}
+
 // UpdateDataproduct defines model for UpdateDataproduct.
 type UpdateDataproduct struct {
 	Description *string `json:"description,omitempty"`
@@ -157,15 +166,6 @@ type UpdateDataproduct struct {
 	Slug        *string `json:"slug,omitempty"`
 }
 
-// UpdateDataproductCollection defines model for UpdateDataproductCollection.
-type UpdateDataproductCollection struct {
-	Description *string   `json:"description,omitempty"`
-	Keywords    *[]string `json:"keywords,omitempty"`
-	Name        string    `json:"name"`
-	Repo        *string   `json:"repo,omitempty"`
-	Slug        *string   `json:"slug,omitempty"`
-}
-
 // UserInfo defines model for UserInfo.
 type UserInfo struct {
 	Email  string  `json:"email"`
@@ -173,17 +173,17 @@ type UserInfo struct {
 	Name   string  `json:"name"`
 }
 
-// GetDataproductCollectionsParams defines parameters for GetDataproductCollections.
-type GetDataproductCollectionsParams struct {
+// GetCollectionsParams defines parameters for GetCollections.
+type GetCollectionsParams struct {
 	Limit  *int `json:"limit,omitempty"`
 	Offset *int `json:"offset,omitempty"`
 }
 
-// CreateDataproductCollectionJSONBody defines parameters for CreateDataproductCollection.
-type CreateDataproductCollectionJSONBody NewDataproductCollection
+// CreateCollectionJSONBody defines parameters for CreateCollection.
+type CreateCollectionJSONBody NewCollection
 
-// UpdateDataproductCollectionJSONBody defines parameters for UpdateDataproductCollection.
-type UpdateDataproductCollectionJSONBody UpdateDataproductCollection
+// UpdateCollectionJSONBody defines parameters for UpdateCollection.
+type UpdateCollectionJSONBody UpdateCollection
 
 // GetDataproductsParams defines parameters for GetDataproducts.
 type GetDataproductsParams struct {
@@ -204,11 +204,11 @@ type SearchParams struct {
 	Offset *int    `json:"offset,omitempty"`
 }
 
-// CreateDataproductCollectionJSONRequestBody defines body for CreateDataproductCollection for application/json ContentType.
-type CreateDataproductCollectionJSONRequestBody CreateDataproductCollectionJSONBody
+// CreateCollectionJSONRequestBody defines body for CreateCollection for application/json ContentType.
+type CreateCollectionJSONRequestBody CreateCollectionJSONBody
 
-// UpdateDataproductCollectionJSONRequestBody defines body for UpdateDataproductCollection for application/json ContentType.
-type UpdateDataproductCollectionJSONRequestBody UpdateDataproductCollectionJSONBody
+// UpdateCollectionJSONRequestBody defines body for UpdateCollection for application/json ContentType.
+type UpdateCollectionJSONRequestBody UpdateCollectionJSONBody
 
 // CreateDataproductJSONRequestBody defines body for CreateDataproduct for application/json ContentType.
 type CreateDataproductJSONRequestBody CreateDataproductJSONBody
@@ -289,24 +289,24 @@ func WithRequestEditorFn(fn RequestEditorFn) ClientOption {
 
 // The interface specification for the client above.
 type ClientInterface interface {
-	// GetDataproductCollections request
-	GetDataproductCollections(ctx context.Context, params *GetDataproductCollectionsParams, reqEditors ...RequestEditorFn) (*http.Response, error)
+	// GetCollections request
+	GetCollections(ctx context.Context, params *GetCollectionsParams, reqEditors ...RequestEditorFn) (*http.Response, error)
 
-	// CreateDataproductCollection request with any body
-	CreateDataproductCollectionWithBody(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
+	// CreateCollection request with any body
+	CreateCollectionWithBody(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
 
-	CreateDataproductCollection(ctx context.Context, body CreateDataproductCollectionJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
+	CreateCollection(ctx context.Context, body CreateCollectionJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
 
-	// DeleteDataproductCollection request
-	DeleteDataproductCollection(ctx context.Context, id string, reqEditors ...RequestEditorFn) (*http.Response, error)
+	// DeleteCollection request
+	DeleteCollection(ctx context.Context, id string, reqEditors ...RequestEditorFn) (*http.Response, error)
 
-	// GetDataproductCollection request
-	GetDataproductCollection(ctx context.Context, id string, reqEditors ...RequestEditorFn) (*http.Response, error)
+	// GetCollection request
+	GetCollection(ctx context.Context, id string, reqEditors ...RequestEditorFn) (*http.Response, error)
 
-	// UpdateDataproductCollection request with any body
-	UpdateDataproductCollectionWithBody(ctx context.Context, id string, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
+	// UpdateCollection request with any body
+	UpdateCollectionWithBody(ctx context.Context, id string, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
 
-	UpdateDataproductCollection(ctx context.Context, id string, body UpdateDataproductCollectionJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
+	UpdateCollection(ctx context.Context, id string, body UpdateCollectionJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
 
 	// GetDataproducts request
 	GetDataproducts(ctx context.Context, params *GetDataproductsParams, reqEditors ...RequestEditorFn) (*http.Response, error)
@@ -343,8 +343,8 @@ type ClientInterface interface {
 	GetUserInfo(ctx context.Context, reqEditors ...RequestEditorFn) (*http.Response, error)
 }
 
-func (c *Client) GetDataproductCollections(ctx context.Context, params *GetDataproductCollectionsParams, reqEditors ...RequestEditorFn) (*http.Response, error) {
-	req, err := NewGetDataproductCollectionsRequest(c.Server, params)
+func (c *Client) GetCollections(ctx context.Context, params *GetCollectionsParams, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewGetCollectionsRequest(c.Server, params)
 	if err != nil {
 		return nil, err
 	}
@@ -355,8 +355,8 @@ func (c *Client) GetDataproductCollections(ctx context.Context, params *GetDatap
 	return c.Client.Do(req)
 }
 
-func (c *Client) CreateDataproductCollectionWithBody(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error) {
-	req, err := NewCreateDataproductCollectionRequestWithBody(c.Server, contentType, body)
+func (c *Client) CreateCollectionWithBody(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewCreateCollectionRequestWithBody(c.Server, contentType, body)
 	if err != nil {
 		return nil, err
 	}
@@ -367,8 +367,8 @@ func (c *Client) CreateDataproductCollectionWithBody(ctx context.Context, conten
 	return c.Client.Do(req)
 }
 
-func (c *Client) CreateDataproductCollection(ctx context.Context, body CreateDataproductCollectionJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
-	req, err := NewCreateDataproductCollectionRequest(c.Server, body)
+func (c *Client) CreateCollection(ctx context.Context, body CreateCollectionJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewCreateCollectionRequest(c.Server, body)
 	if err != nil {
 		return nil, err
 	}
@@ -379,8 +379,8 @@ func (c *Client) CreateDataproductCollection(ctx context.Context, body CreateDat
 	return c.Client.Do(req)
 }
 
-func (c *Client) DeleteDataproductCollection(ctx context.Context, id string, reqEditors ...RequestEditorFn) (*http.Response, error) {
-	req, err := NewDeleteDataproductCollectionRequest(c.Server, id)
+func (c *Client) DeleteCollection(ctx context.Context, id string, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewDeleteCollectionRequest(c.Server, id)
 	if err != nil {
 		return nil, err
 	}
@@ -391,8 +391,8 @@ func (c *Client) DeleteDataproductCollection(ctx context.Context, id string, req
 	return c.Client.Do(req)
 }
 
-func (c *Client) GetDataproductCollection(ctx context.Context, id string, reqEditors ...RequestEditorFn) (*http.Response, error) {
-	req, err := NewGetDataproductCollectionRequest(c.Server, id)
+func (c *Client) GetCollection(ctx context.Context, id string, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewGetCollectionRequest(c.Server, id)
 	if err != nil {
 		return nil, err
 	}
@@ -403,8 +403,8 @@ func (c *Client) GetDataproductCollection(ctx context.Context, id string, reqEdi
 	return c.Client.Do(req)
 }
 
-func (c *Client) UpdateDataproductCollectionWithBody(ctx context.Context, id string, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error) {
-	req, err := NewUpdateDataproductCollectionRequestWithBody(c.Server, id, contentType, body)
+func (c *Client) UpdateCollectionWithBody(ctx context.Context, id string, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewUpdateCollectionRequestWithBody(c.Server, id, contentType, body)
 	if err != nil {
 		return nil, err
 	}
@@ -415,8 +415,8 @@ func (c *Client) UpdateDataproductCollectionWithBody(ctx context.Context, id str
 	return c.Client.Do(req)
 }
 
-func (c *Client) UpdateDataproductCollection(ctx context.Context, id string, body UpdateDataproductCollectionJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
-	req, err := NewUpdateDataproductCollectionRequest(c.Server, id, body)
+func (c *Client) UpdateCollection(ctx context.Context, id string, body UpdateCollectionJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewUpdateCollectionRequest(c.Server, id, body)
 	if err != nil {
 		return nil, err
 	}
@@ -571,8 +571,8 @@ func (c *Client) GetUserInfo(ctx context.Context, reqEditors ...RequestEditorFn)
 	return c.Client.Do(req)
 }
 
-// NewGetDataproductCollectionsRequest generates requests for GetDataproductCollections
-func NewGetDataproductCollectionsRequest(server string, params *GetDataproductCollectionsParams) (*http.Request, error) {
+// NewGetCollectionsRequest generates requests for GetCollections
+func NewGetCollectionsRequest(server string, params *GetCollectionsParams) (*http.Request, error) {
 	var err error
 
 	serverURL, err := url.Parse(server)
@@ -634,19 +634,19 @@ func NewGetDataproductCollectionsRequest(server string, params *GetDataproductCo
 	return req, nil
 }
 
-// NewCreateDataproductCollectionRequest calls the generic CreateDataproductCollection builder with application/json body
-func NewCreateDataproductCollectionRequest(server string, body CreateDataproductCollectionJSONRequestBody) (*http.Request, error) {
+// NewCreateCollectionRequest calls the generic CreateCollection builder with application/json body
+func NewCreateCollectionRequest(server string, body CreateCollectionJSONRequestBody) (*http.Request, error) {
 	var bodyReader io.Reader
 	buf, err := json.Marshal(body)
 	if err != nil {
 		return nil, err
 	}
 	bodyReader = bytes.NewReader(buf)
-	return NewCreateDataproductCollectionRequestWithBody(server, "application/json", bodyReader)
+	return NewCreateCollectionRequestWithBody(server, "application/json", bodyReader)
 }
 
-// NewCreateDataproductCollectionRequestWithBody generates requests for CreateDataproductCollection with any type of body
-func NewCreateDataproductCollectionRequestWithBody(server string, contentType string, body io.Reader) (*http.Request, error) {
+// NewCreateCollectionRequestWithBody generates requests for CreateCollection with any type of body
+func NewCreateCollectionRequestWithBody(server string, contentType string, body io.Reader) (*http.Request, error) {
 	var err error
 
 	serverURL, err := url.Parse(server)
@@ -674,8 +674,8 @@ func NewCreateDataproductCollectionRequestWithBody(server string, contentType st
 	return req, nil
 }
 
-// NewDeleteDataproductCollectionRequest generates requests for DeleteDataproductCollection
-func NewDeleteDataproductCollectionRequest(server string, id string) (*http.Request, error) {
+// NewDeleteCollectionRequest generates requests for DeleteCollection
+func NewDeleteCollectionRequest(server string, id string) (*http.Request, error) {
 	var err error
 
 	var pathParam0 string
@@ -708,8 +708,8 @@ func NewDeleteDataproductCollectionRequest(server string, id string) (*http.Requ
 	return req, nil
 }
 
-// NewGetDataproductCollectionRequest generates requests for GetDataproductCollection
-func NewGetDataproductCollectionRequest(server string, id string) (*http.Request, error) {
+// NewGetCollectionRequest generates requests for GetCollection
+func NewGetCollectionRequest(server string, id string) (*http.Request, error) {
 	var err error
 
 	var pathParam0 string
@@ -742,19 +742,19 @@ func NewGetDataproductCollectionRequest(server string, id string) (*http.Request
 	return req, nil
 }
 
-// NewUpdateDataproductCollectionRequest calls the generic UpdateDataproductCollection builder with application/json body
-func NewUpdateDataproductCollectionRequest(server string, id string, body UpdateDataproductCollectionJSONRequestBody) (*http.Request, error) {
+// NewUpdateCollectionRequest calls the generic UpdateCollection builder with application/json body
+func NewUpdateCollectionRequest(server string, id string, body UpdateCollectionJSONRequestBody) (*http.Request, error) {
 	var bodyReader io.Reader
 	buf, err := json.Marshal(body)
 	if err != nil {
 		return nil, err
 	}
 	bodyReader = bytes.NewReader(buf)
-	return NewUpdateDataproductCollectionRequestWithBody(server, id, "application/json", bodyReader)
+	return NewUpdateCollectionRequestWithBody(server, id, "application/json", bodyReader)
 }
 
-// NewUpdateDataproductCollectionRequestWithBody generates requests for UpdateDataproductCollection with any type of body
-func NewUpdateDataproductCollectionRequestWithBody(server string, id string, contentType string, body io.Reader) (*http.Request, error) {
+// NewUpdateCollectionRequestWithBody generates requests for UpdateCollection with any type of body
+func NewUpdateCollectionRequestWithBody(server string, id string, contentType string, body io.Reader) (*http.Request, error) {
 	var err error
 
 	var pathParam0 string
@@ -1258,24 +1258,24 @@ func WithBaseURL(baseURL string) ClientOption {
 
 // ClientWithResponsesInterface is the interface specification for the client with responses above.
 type ClientWithResponsesInterface interface {
-	// GetDataproductCollections request
-	GetDataproductCollectionsWithResponse(ctx context.Context, params *GetDataproductCollectionsParams, reqEditors ...RequestEditorFn) (*GetDataproductCollectionsResponse, error)
+	// GetCollections request
+	GetCollectionsWithResponse(ctx context.Context, params *GetCollectionsParams, reqEditors ...RequestEditorFn) (*GetCollectionsResponse, error)
 
-	// CreateDataproductCollection request with any body
-	CreateDataproductCollectionWithBodyWithResponse(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*CreateDataproductCollectionResponse, error)
+	// CreateCollection request with any body
+	CreateCollectionWithBodyWithResponse(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*CreateCollectionResponse, error)
 
-	CreateDataproductCollectionWithResponse(ctx context.Context, body CreateDataproductCollectionJSONRequestBody, reqEditors ...RequestEditorFn) (*CreateDataproductCollectionResponse, error)
+	CreateCollectionWithResponse(ctx context.Context, body CreateCollectionJSONRequestBody, reqEditors ...RequestEditorFn) (*CreateCollectionResponse, error)
 
-	// DeleteDataproductCollection request
-	DeleteDataproductCollectionWithResponse(ctx context.Context, id string, reqEditors ...RequestEditorFn) (*DeleteDataproductCollectionResponse, error)
+	// DeleteCollection request
+	DeleteCollectionWithResponse(ctx context.Context, id string, reqEditors ...RequestEditorFn) (*DeleteCollectionResponse, error)
 
-	// GetDataproductCollection request
-	GetDataproductCollectionWithResponse(ctx context.Context, id string, reqEditors ...RequestEditorFn) (*GetDataproductCollectionResponse, error)
+	// GetCollection request
+	GetCollectionWithResponse(ctx context.Context, id string, reqEditors ...RequestEditorFn) (*GetCollectionResponse, error)
 
-	// UpdateDataproductCollection request with any body
-	UpdateDataproductCollectionWithBodyWithResponse(ctx context.Context, id string, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*UpdateDataproductCollectionResponse, error)
+	// UpdateCollection request with any body
+	UpdateCollectionWithBodyWithResponse(ctx context.Context, id string, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*UpdateCollectionResponse, error)
 
-	UpdateDataproductCollectionWithResponse(ctx context.Context, id string, body UpdateDataproductCollectionJSONRequestBody, reqEditors ...RequestEditorFn) (*UpdateDataproductCollectionResponse, error)
+	UpdateCollectionWithResponse(ctx context.Context, id string, body UpdateCollectionJSONRequestBody, reqEditors ...RequestEditorFn) (*UpdateCollectionResponse, error)
 
 	// GetDataproducts request
 	GetDataproductsWithResponse(ctx context.Context, params *GetDataproductsParams, reqEditors ...RequestEditorFn) (*GetDataproductsResponse, error)
@@ -1312,14 +1312,14 @@ type ClientWithResponsesInterface interface {
 	GetUserInfoWithResponse(ctx context.Context, reqEditors ...RequestEditorFn) (*GetUserInfoResponse, error)
 }
 
-type GetDataproductCollectionsResponse struct {
+type GetCollectionsResponse struct {
 	Body         []byte
 	HTTPResponse *http.Response
-	JSON200      *[]DataproductCollection
+	JSON200      *[]Collection
 }
 
 // Status returns HTTPResponse.Status
-func (r GetDataproductCollectionsResponse) Status() string {
+func (r GetCollectionsResponse) Status() string {
 	if r.HTTPResponse != nil {
 		return r.HTTPResponse.Status
 	}
@@ -1327,21 +1327,21 @@ func (r GetDataproductCollectionsResponse) Status() string {
 }
 
 // StatusCode returns HTTPResponse.StatusCode
-func (r GetDataproductCollectionsResponse) StatusCode() int {
+func (r GetCollectionsResponse) StatusCode() int {
 	if r.HTTPResponse != nil {
 		return r.HTTPResponse.StatusCode
 	}
 	return 0
 }
 
-type CreateDataproductCollectionResponse struct {
+type CreateCollectionResponse struct {
 	Body         []byte
 	HTTPResponse *http.Response
-	JSON201      *DataproductCollection
+	JSON201      *Collection
 }
 
 // Status returns HTTPResponse.Status
-func (r CreateDataproductCollectionResponse) Status() string {
+func (r CreateCollectionResponse) Status() string {
 	if r.HTTPResponse != nil {
 		return r.HTTPResponse.Status
 	}
@@ -1349,20 +1349,20 @@ func (r CreateDataproductCollectionResponse) Status() string {
 }
 
 // StatusCode returns HTTPResponse.StatusCode
-func (r CreateDataproductCollectionResponse) StatusCode() int {
+func (r CreateCollectionResponse) StatusCode() int {
 	if r.HTTPResponse != nil {
 		return r.HTTPResponse.StatusCode
 	}
 	return 0
 }
 
-type DeleteDataproductCollectionResponse struct {
+type DeleteCollectionResponse struct {
 	Body         []byte
 	HTTPResponse *http.Response
 }
 
 // Status returns HTTPResponse.Status
-func (r DeleteDataproductCollectionResponse) Status() string {
+func (r DeleteCollectionResponse) Status() string {
 	if r.HTTPResponse != nil {
 		return r.HTTPResponse.Status
 	}
@@ -1370,21 +1370,21 @@ func (r DeleteDataproductCollectionResponse) Status() string {
 }
 
 // StatusCode returns HTTPResponse.StatusCode
-func (r DeleteDataproductCollectionResponse) StatusCode() int {
+func (r DeleteCollectionResponse) StatusCode() int {
 	if r.HTTPResponse != nil {
 		return r.HTTPResponse.StatusCode
 	}
 	return 0
 }
 
-type GetDataproductCollectionResponse struct {
+type GetCollectionResponse struct {
 	Body         []byte
 	HTTPResponse *http.Response
-	JSON200      *[]DataproductCollection
+	JSON200      *[]Collection
 }
 
 // Status returns HTTPResponse.Status
-func (r GetDataproductCollectionResponse) Status() string {
+func (r GetCollectionResponse) Status() string {
 	if r.HTTPResponse != nil {
 		return r.HTTPResponse.Status
 	}
@@ -1392,21 +1392,21 @@ func (r GetDataproductCollectionResponse) Status() string {
 }
 
 // StatusCode returns HTTPResponse.StatusCode
-func (r GetDataproductCollectionResponse) StatusCode() int {
+func (r GetCollectionResponse) StatusCode() int {
 	if r.HTTPResponse != nil {
 		return r.HTTPResponse.StatusCode
 	}
 	return 0
 }
 
-type UpdateDataproductCollectionResponse struct {
+type UpdateCollectionResponse struct {
 	Body         []byte
 	HTTPResponse *http.Response
-	JSON200      *DataproductCollection
+	JSON200      *Collection
 }
 
 // Status returns HTTPResponse.Status
-func (r UpdateDataproductCollectionResponse) Status() string {
+func (r UpdateCollectionResponse) Status() string {
 	if r.HTTPResponse != nil {
 		return r.HTTPResponse.Status
 	}
@@ -1414,7 +1414,7 @@ func (r UpdateDataproductCollectionResponse) Status() string {
 }
 
 // StatusCode returns HTTPResponse.StatusCode
-func (r UpdateDataproductCollectionResponse) StatusCode() int {
+func (r UpdateCollectionResponse) StatusCode() int {
 	if r.HTTPResponse != nil {
 		return r.HTTPResponse.StatusCode
 	}
@@ -1640,65 +1640,65 @@ func (r GetUserInfoResponse) StatusCode() int {
 	return 0
 }
 
-// GetDataproductCollectionsWithResponse request returning *GetDataproductCollectionsResponse
-func (c *ClientWithResponses) GetDataproductCollectionsWithResponse(ctx context.Context, params *GetDataproductCollectionsParams, reqEditors ...RequestEditorFn) (*GetDataproductCollectionsResponse, error) {
-	rsp, err := c.GetDataproductCollections(ctx, params, reqEditors...)
+// GetCollectionsWithResponse request returning *GetCollectionsResponse
+func (c *ClientWithResponses) GetCollectionsWithResponse(ctx context.Context, params *GetCollectionsParams, reqEditors ...RequestEditorFn) (*GetCollectionsResponse, error) {
+	rsp, err := c.GetCollections(ctx, params, reqEditors...)
 	if err != nil {
 		return nil, err
 	}
-	return ParseGetDataproductCollectionsResponse(rsp)
+	return ParseGetCollectionsResponse(rsp)
 }
 
-// CreateDataproductCollectionWithBodyWithResponse request with arbitrary body returning *CreateDataproductCollectionResponse
-func (c *ClientWithResponses) CreateDataproductCollectionWithBodyWithResponse(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*CreateDataproductCollectionResponse, error) {
-	rsp, err := c.CreateDataproductCollectionWithBody(ctx, contentType, body, reqEditors...)
+// CreateCollectionWithBodyWithResponse request with arbitrary body returning *CreateCollectionResponse
+func (c *ClientWithResponses) CreateCollectionWithBodyWithResponse(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*CreateCollectionResponse, error) {
+	rsp, err := c.CreateCollectionWithBody(ctx, contentType, body, reqEditors...)
 	if err != nil {
 		return nil, err
 	}
-	return ParseCreateDataproductCollectionResponse(rsp)
+	return ParseCreateCollectionResponse(rsp)
 }
 
-func (c *ClientWithResponses) CreateDataproductCollectionWithResponse(ctx context.Context, body CreateDataproductCollectionJSONRequestBody, reqEditors ...RequestEditorFn) (*CreateDataproductCollectionResponse, error) {
-	rsp, err := c.CreateDataproductCollection(ctx, body, reqEditors...)
+func (c *ClientWithResponses) CreateCollectionWithResponse(ctx context.Context, body CreateCollectionJSONRequestBody, reqEditors ...RequestEditorFn) (*CreateCollectionResponse, error) {
+	rsp, err := c.CreateCollection(ctx, body, reqEditors...)
 	if err != nil {
 		return nil, err
 	}
-	return ParseCreateDataproductCollectionResponse(rsp)
+	return ParseCreateCollectionResponse(rsp)
 }
 
-// DeleteDataproductCollectionWithResponse request returning *DeleteDataproductCollectionResponse
-func (c *ClientWithResponses) DeleteDataproductCollectionWithResponse(ctx context.Context, id string, reqEditors ...RequestEditorFn) (*DeleteDataproductCollectionResponse, error) {
-	rsp, err := c.DeleteDataproductCollection(ctx, id, reqEditors...)
+// DeleteCollectionWithResponse request returning *DeleteCollectionResponse
+func (c *ClientWithResponses) DeleteCollectionWithResponse(ctx context.Context, id string, reqEditors ...RequestEditorFn) (*DeleteCollectionResponse, error) {
+	rsp, err := c.DeleteCollection(ctx, id, reqEditors...)
 	if err != nil {
 		return nil, err
 	}
-	return ParseDeleteDataproductCollectionResponse(rsp)
+	return ParseDeleteCollectionResponse(rsp)
 }
 
-// GetDataproductCollectionWithResponse request returning *GetDataproductCollectionResponse
-func (c *ClientWithResponses) GetDataproductCollectionWithResponse(ctx context.Context, id string, reqEditors ...RequestEditorFn) (*GetDataproductCollectionResponse, error) {
-	rsp, err := c.GetDataproductCollection(ctx, id, reqEditors...)
+// GetCollectionWithResponse request returning *GetCollectionResponse
+func (c *ClientWithResponses) GetCollectionWithResponse(ctx context.Context, id string, reqEditors ...RequestEditorFn) (*GetCollectionResponse, error) {
+	rsp, err := c.GetCollection(ctx, id, reqEditors...)
 	if err != nil {
 		return nil, err
 	}
-	return ParseGetDataproductCollectionResponse(rsp)
+	return ParseGetCollectionResponse(rsp)
 }
 
-// UpdateDataproductCollectionWithBodyWithResponse request with arbitrary body returning *UpdateDataproductCollectionResponse
-func (c *ClientWithResponses) UpdateDataproductCollectionWithBodyWithResponse(ctx context.Context, id string, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*UpdateDataproductCollectionResponse, error) {
-	rsp, err := c.UpdateDataproductCollectionWithBody(ctx, id, contentType, body, reqEditors...)
+// UpdateCollectionWithBodyWithResponse request with arbitrary body returning *UpdateCollectionResponse
+func (c *ClientWithResponses) UpdateCollectionWithBodyWithResponse(ctx context.Context, id string, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*UpdateCollectionResponse, error) {
+	rsp, err := c.UpdateCollectionWithBody(ctx, id, contentType, body, reqEditors...)
 	if err != nil {
 		return nil, err
 	}
-	return ParseUpdateDataproductCollectionResponse(rsp)
+	return ParseUpdateCollectionResponse(rsp)
 }
 
-func (c *ClientWithResponses) UpdateDataproductCollectionWithResponse(ctx context.Context, id string, body UpdateDataproductCollectionJSONRequestBody, reqEditors ...RequestEditorFn) (*UpdateDataproductCollectionResponse, error) {
-	rsp, err := c.UpdateDataproductCollection(ctx, id, body, reqEditors...)
+func (c *ClientWithResponses) UpdateCollectionWithResponse(ctx context.Context, id string, body UpdateCollectionJSONRequestBody, reqEditors ...RequestEditorFn) (*UpdateCollectionResponse, error) {
+	rsp, err := c.UpdateCollection(ctx, id, body, reqEditors...)
 	if err != nil {
 		return nil, err
 	}
-	return ParseUpdateDataproductCollectionResponse(rsp)
+	return ParseUpdateCollectionResponse(rsp)
 }
 
 // GetDataproductsWithResponse request returning *GetDataproductsResponse
@@ -1807,22 +1807,22 @@ func (c *ClientWithResponses) GetUserInfoWithResponse(ctx context.Context, reqEd
 	return ParseGetUserInfoResponse(rsp)
 }
 
-// ParseGetDataproductCollectionsResponse parses an HTTP response from a GetDataproductCollectionsWithResponse call
-func ParseGetDataproductCollectionsResponse(rsp *http.Response) (*GetDataproductCollectionsResponse, error) {
+// ParseGetCollectionsResponse parses an HTTP response from a GetCollectionsWithResponse call
+func ParseGetCollectionsResponse(rsp *http.Response) (*GetCollectionsResponse, error) {
 	bodyBytes, err := ioutil.ReadAll(rsp.Body)
 	defer rsp.Body.Close()
 	if err != nil {
 		return nil, err
 	}
 
-	response := &GetDataproductCollectionsResponse{
+	response := &GetCollectionsResponse{
 		Body:         bodyBytes,
 		HTTPResponse: rsp,
 	}
 
 	switch {
 	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
-		var dest []DataproductCollection
+		var dest []Collection
 		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
 			return nil, err
 		}
@@ -1833,22 +1833,22 @@ func ParseGetDataproductCollectionsResponse(rsp *http.Response) (*GetDataproduct
 	return response, nil
 }
 
-// ParseCreateDataproductCollectionResponse parses an HTTP response from a CreateDataproductCollectionWithResponse call
-func ParseCreateDataproductCollectionResponse(rsp *http.Response) (*CreateDataproductCollectionResponse, error) {
+// ParseCreateCollectionResponse parses an HTTP response from a CreateCollectionWithResponse call
+func ParseCreateCollectionResponse(rsp *http.Response) (*CreateCollectionResponse, error) {
 	bodyBytes, err := ioutil.ReadAll(rsp.Body)
 	defer rsp.Body.Close()
 	if err != nil {
 		return nil, err
 	}
 
-	response := &CreateDataproductCollectionResponse{
+	response := &CreateCollectionResponse{
 		Body:         bodyBytes,
 		HTTPResponse: rsp,
 	}
 
 	switch {
 	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 201:
-		var dest DataproductCollection
+		var dest Collection
 		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
 			return nil, err
 		}
@@ -1859,15 +1859,15 @@ func ParseCreateDataproductCollectionResponse(rsp *http.Response) (*CreateDatapr
 	return response, nil
 }
 
-// ParseDeleteDataproductCollectionResponse parses an HTTP response from a DeleteDataproductCollectionWithResponse call
-func ParseDeleteDataproductCollectionResponse(rsp *http.Response) (*DeleteDataproductCollectionResponse, error) {
+// ParseDeleteCollectionResponse parses an HTTP response from a DeleteCollectionWithResponse call
+func ParseDeleteCollectionResponse(rsp *http.Response) (*DeleteCollectionResponse, error) {
 	bodyBytes, err := ioutil.ReadAll(rsp.Body)
 	defer rsp.Body.Close()
 	if err != nil {
 		return nil, err
 	}
 
-	response := &DeleteDataproductCollectionResponse{
+	response := &DeleteCollectionResponse{
 		Body:         bodyBytes,
 		HTTPResponse: rsp,
 	}
@@ -1875,22 +1875,22 @@ func ParseDeleteDataproductCollectionResponse(rsp *http.Response) (*DeleteDatapr
 	return response, nil
 }
 
-// ParseGetDataproductCollectionResponse parses an HTTP response from a GetDataproductCollectionWithResponse call
-func ParseGetDataproductCollectionResponse(rsp *http.Response) (*GetDataproductCollectionResponse, error) {
+// ParseGetCollectionResponse parses an HTTP response from a GetCollectionWithResponse call
+func ParseGetCollectionResponse(rsp *http.Response) (*GetCollectionResponse, error) {
 	bodyBytes, err := ioutil.ReadAll(rsp.Body)
 	defer rsp.Body.Close()
 	if err != nil {
 		return nil, err
 	}
 
-	response := &GetDataproductCollectionResponse{
+	response := &GetCollectionResponse{
 		Body:         bodyBytes,
 		HTTPResponse: rsp,
 	}
 
 	switch {
 	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
-		var dest []DataproductCollection
+		var dest []Collection
 		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
 			return nil, err
 		}
@@ -1901,22 +1901,22 @@ func ParseGetDataproductCollectionResponse(rsp *http.Response) (*GetDataproductC
 	return response, nil
 }
 
-// ParseUpdateDataproductCollectionResponse parses an HTTP response from a UpdateDataproductCollectionWithResponse call
-func ParseUpdateDataproductCollectionResponse(rsp *http.Response) (*UpdateDataproductCollectionResponse, error) {
+// ParseUpdateCollectionResponse parses an HTTP response from a UpdateCollectionWithResponse call
+func ParseUpdateCollectionResponse(rsp *http.Response) (*UpdateCollectionResponse, error) {
 	bodyBytes, err := ioutil.ReadAll(rsp.Body)
 	defer rsp.Body.Close()
 	if err != nil {
 		return nil, err
 	}
 
-	response := &UpdateDataproductCollectionResponse{
+	response := &UpdateCollectionResponse{
 		Body:         bodyBytes,
 		HTTPResponse: rsp,
 	}
 
 	switch {
 	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
-		var dest DataproductCollection
+		var dest Collection
 		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
 			return nil, err
 		}
@@ -2181,19 +2181,19 @@ func ParseGetUserInfoResponse(rsp *http.Response) (*GetUserInfoResponse, error) 
 type ServerInterface interface {
 
 	// (GET /collections)
-	GetDataproductCollections(w http.ResponseWriter, r *http.Request, params GetDataproductCollectionsParams)
+	GetCollections(w http.ResponseWriter, r *http.Request, params GetCollectionsParams)
 
 	// (POST /collections)
-	CreateDataproductCollection(w http.ResponseWriter, r *http.Request)
+	CreateCollection(w http.ResponseWriter, r *http.Request)
 
 	// (DELETE /collections/{id})
-	DeleteDataproductCollection(w http.ResponseWriter, r *http.Request, id string)
+	DeleteCollection(w http.ResponseWriter, r *http.Request, id string)
 
 	// (GET /collections/{id})
-	GetDataproductCollection(w http.ResponseWriter, r *http.Request, id string)
+	GetCollection(w http.ResponseWriter, r *http.Request, id string)
 
 	// (PUT /collections/{id})
-	UpdateDataproductCollection(w http.ResponseWriter, r *http.Request, id string)
+	UpdateCollection(w http.ResponseWriter, r *http.Request, id string)
 
 	// (GET /dataproducts)
 	GetDataproducts(w http.ResponseWriter, r *http.Request, params GetDataproductsParams)
@@ -2234,14 +2234,14 @@ type ServerInterfaceWrapper struct {
 
 type MiddlewareFunc func(http.HandlerFunc) http.HandlerFunc
 
-// GetDataproductCollections operation middleware
-func (siw *ServerInterfaceWrapper) GetDataproductCollections(w http.ResponseWriter, r *http.Request) {
+// GetCollections operation middleware
+func (siw *ServerInterfaceWrapper) GetCollections(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 
 	var err error
 
 	// Parameter object where we will unmarshal all parameters from the context
-	var params GetDataproductCollectionsParams
+	var params GetCollectionsParams
 
 	// ------------- Optional query parameter "limit" -------------
 	if paramValue := r.URL.Query().Get("limit"); paramValue != "" {
@@ -2266,7 +2266,7 @@ func (siw *ServerInterfaceWrapper) GetDataproductCollections(w http.ResponseWrit
 	}
 
 	var handler = func(w http.ResponseWriter, r *http.Request) {
-		siw.Handler.GetDataproductCollections(w, r, params)
+		siw.Handler.GetCollections(w, r, params)
 	}
 
 	for _, middleware := range siw.HandlerMiddlewares {
@@ -2276,14 +2276,14 @@ func (siw *ServerInterfaceWrapper) GetDataproductCollections(w http.ResponseWrit
 	handler(w, r.WithContext(ctx))
 }
 
-// CreateDataproductCollection operation middleware
-func (siw *ServerInterfaceWrapper) CreateDataproductCollection(w http.ResponseWriter, r *http.Request) {
+// CreateCollection operation middleware
+func (siw *ServerInterfaceWrapper) CreateCollection(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 
 	ctx = context.WithValue(ctx, CookieAuthScopes, []string{""})
 
 	var handler = func(w http.ResponseWriter, r *http.Request) {
-		siw.Handler.CreateDataproductCollection(w, r)
+		siw.Handler.CreateCollection(w, r)
 	}
 
 	for _, middleware := range siw.HandlerMiddlewares {
@@ -2293,8 +2293,8 @@ func (siw *ServerInterfaceWrapper) CreateDataproductCollection(w http.ResponseWr
 	handler(w, r.WithContext(ctx))
 }
 
-// DeleteDataproductCollection operation middleware
-func (siw *ServerInterfaceWrapper) DeleteDataproductCollection(w http.ResponseWriter, r *http.Request) {
+// DeleteCollection operation middleware
+func (siw *ServerInterfaceWrapper) DeleteCollection(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 
 	var err error
@@ -2311,7 +2311,7 @@ func (siw *ServerInterfaceWrapper) DeleteDataproductCollection(w http.ResponseWr
 	ctx = context.WithValue(ctx, CookieAuthScopes, []string{""})
 
 	var handler = func(w http.ResponseWriter, r *http.Request) {
-		siw.Handler.DeleteDataproductCollection(w, r, id)
+		siw.Handler.DeleteCollection(w, r, id)
 	}
 
 	for _, middleware := range siw.HandlerMiddlewares {
@@ -2321,8 +2321,8 @@ func (siw *ServerInterfaceWrapper) DeleteDataproductCollection(w http.ResponseWr
 	handler(w, r.WithContext(ctx))
 }
 
-// GetDataproductCollection operation middleware
-func (siw *ServerInterfaceWrapper) GetDataproductCollection(w http.ResponseWriter, r *http.Request) {
+// GetCollection operation middleware
+func (siw *ServerInterfaceWrapper) GetCollection(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 
 	var err error
@@ -2337,7 +2337,7 @@ func (siw *ServerInterfaceWrapper) GetDataproductCollection(w http.ResponseWrite
 	}
 
 	var handler = func(w http.ResponseWriter, r *http.Request) {
-		siw.Handler.GetDataproductCollection(w, r, id)
+		siw.Handler.GetCollection(w, r, id)
 	}
 
 	for _, middleware := range siw.HandlerMiddlewares {
@@ -2347,8 +2347,8 @@ func (siw *ServerInterfaceWrapper) GetDataproductCollection(w http.ResponseWrite
 	handler(w, r.WithContext(ctx))
 }
 
-// UpdateDataproductCollection operation middleware
-func (siw *ServerInterfaceWrapper) UpdateDataproductCollection(w http.ResponseWriter, r *http.Request) {
+// UpdateCollection operation middleware
+func (siw *ServerInterfaceWrapper) UpdateCollection(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 
 	var err error
@@ -2365,7 +2365,7 @@ func (siw *ServerInterfaceWrapper) UpdateDataproductCollection(w http.ResponseWr
 	ctx = context.WithValue(ctx, CookieAuthScopes, []string{""})
 
 	var handler = func(w http.ResponseWriter, r *http.Request) {
-		siw.Handler.UpdateDataproductCollection(w, r, id)
+		siw.Handler.UpdateCollection(w, r, id)
 	}
 
 	for _, middleware := range siw.HandlerMiddlewares {
@@ -2706,19 +2706,19 @@ func HandlerWithOptions(si ServerInterface, options ChiServerOptions) http.Handl
 	}
 
 	r.Group(func(r chi.Router) {
-		r.Get(options.BaseURL+"/collections", wrapper.GetDataproductCollections)
+		r.Get(options.BaseURL+"/collections", wrapper.GetCollections)
 	})
 	r.Group(func(r chi.Router) {
-		r.Post(options.BaseURL+"/collections", wrapper.CreateDataproductCollection)
+		r.Post(options.BaseURL+"/collections", wrapper.CreateCollection)
 	})
 	r.Group(func(r chi.Router) {
-		r.Delete(options.BaseURL+"/collections/{id}", wrapper.DeleteDataproductCollection)
+		r.Delete(options.BaseURL+"/collections/{id}", wrapper.DeleteCollection)
 	})
 	r.Group(func(r chi.Router) {
-		r.Get(options.BaseURL+"/collections/{id}", wrapper.GetDataproductCollection)
+		r.Get(options.BaseURL+"/collections/{id}", wrapper.GetCollection)
 	})
 	r.Group(func(r chi.Router) {
-		r.Put(options.BaseURL+"/collections/{id}", wrapper.UpdateDataproductCollection)
+		r.Put(options.BaseURL+"/collections/{id}", wrapper.UpdateCollection)
 	})
 	r.Group(func(r chi.Router) {
 		r.Get(options.BaseURL+"/dataproducts", wrapper.GetDataproducts)
@@ -2757,30 +2757,31 @@ func HandlerWithOptions(si ServerInterface, options ChiServerOptions) http.Handl
 // Base64 encoded, gzipped, json marshaled Swagger object
 var swaggerSpec = []string{
 
-	"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",
+	"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",
+	"tSUAAA==",
 }
 
 // GetSwagger returns the content of the embedded swagger specification file

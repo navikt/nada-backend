@@ -220,9 +220,9 @@ func TestDeleting_other_teams_dataproduct_is_not_authorized(t *testing.T) {
 	}
 }
 
-func newDataproductCollection() openapi.CreateDataproductCollectionJSONRequestBody {
-	return openapi.CreateDataproductCollectionJSONRequestBody{
-		Name: "new dataproductcollection",
+func newCollection() openapi.CreateCollectionJSONRequestBody {
+	return openapi.CreateCollectionJSONRequestBody{
+		Name: "new collection",
 		Owner: openapi.Owner{
 			Group: auth.MockUser.Groups[0].Email,
 		},
@@ -244,15 +244,15 @@ func newDataproduct() openapi.CreateDataproductJSONRequestBody {
 	}
 }
 
-func createDataproductCollection(in openapi.CreateDataproductCollectionJSONRequestBody) openapi.DataproductCollection {
-	resp, err := client.CreateDataproductCollection(context.Background(), in)
+func createCollection(in openapi.CreateCollectionJSONRequestBody) openapi.Collection {
+	resp, err := client.CreateCollection(context.Background(), in)
 	if err != nil {
 		log.Fatal(err)
 	}
 
 	defer resp.Body.Close()
 
-	var ret openapi.DataproductCollection
+	var ret openapi.Collection
 	if err := json.NewDecoder(resp.Body).Decode(&ret); err != nil {
 		log.Fatal(err)
 	}
