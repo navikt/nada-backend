@@ -8,15 +8,16 @@ metadata:
 spec:
   image: "{{ image }}"
   port: 8080
-  command:
-    - /app/nada-backend
-  azure:
-    application:
-      enabled: true
-      tenant: nav.no
-      replyURLs:
-        - "http://localhost:8080/api/oauth2/callback"
-        - "https://nada.dev.intern.nav.no/api/oauth2/callback"
+  replicas:
+    min: 2
+    max: 4
+  resources:
+    requests:
+      cpu: 100m
+      memory: 128Mi
+    limits:
+      cpu: 200m
+      memory: 256Me
   ingresses:
     - "https://nada.dev.intern.nav.no/api"
   envFrom:

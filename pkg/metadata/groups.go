@@ -40,7 +40,6 @@ func NewGoogleGroups(ctx context.Context, credentailFile, subject string) (*Goog
 		return nil, fmt.Errorf("unable to retrieve Google Admin Client: %s", err)
 	}
 
-	// service, err := admin.NewService(ctx, option.ImpersonateCredentials(target string, delegates ...string))
 	if err != nil {
 		return nil, err
 	}
@@ -98,8 +97,6 @@ func (g *GoogleGroups) GroupsForUser(ctx context.Context, email string) (groups 
 		}
 		return nil
 	})
-
-	fmt.Printf("%#v\n", groups)
 
 	return groups, err
 }
