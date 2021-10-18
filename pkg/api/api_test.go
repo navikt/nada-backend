@@ -9,12 +9,19 @@ import (
 	"net/http"
 	"testing"
 
+	"github.com/google/go-cmp/cmp"
 	"github.com/navikt/nada-backend/pkg/auth"
 	"github.com/navikt/nada-backend/pkg/openapi"
 )
 
 func TestCreating_dataproduct(t *testing.T) {
 	in := newDataproduct()
+	slug := "my-custom-slug"
+	repo := "https://github.com/some/repo"
+	keywords := []string{"keyword1", "keyword2"}
+	in.Slug = &slug
+	in.Repo = &repo
+	in.Keywords = &keywords
 
 	resp, err := client.CreateDataproduct(context.Background(), in)
 	if err != nil {
@@ -45,6 +52,18 @@ func TestCreating_dataproduct(t *testing.T) {
 
 	if dataproduct.Name != in.Name {
 		t.Errorf("Got name %q, want %q", dataproduct.Name, in.Name)
+	}
+
+	if *dataproduct.Repo != *in.Repo {
+		t.Errorf("Got repo %q, want %q", *dataproduct.Repo, *in.Repo)
+	}
+
+	if *dataproduct.Slug != *in.Slug {
+		t.Errorf("Got slug %q, want %q", *dataproduct.Slug, *in.Slug)
+	}
+
+	if !cmp.Equal(dataproduct.Keywords, keywords) {
+		t.Error(cmp.Diff(dataproduct.Keywords, keywords))
 	}
 
 	if dataproduct.Datasource == nil {

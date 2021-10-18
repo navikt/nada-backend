@@ -19,19 +19,28 @@ INSERT INTO dataproducts ("name",
                           "description",
                           "pii",
                           "type",
-                          "group")
+                          "group",
+                          "slug",
+                          "repo",
+                          "keywords")
 VALUES (@name,
         @description,
         @pii,
         @type,
-        @owner_group)
+        @owner_group,
+        @slug,
+        @repo,
+        @keywords)
 RETURNING *;
 
 -- name: UpdateDataproduct :one
 UPDATE dataproducts
 SET "name"        = @name,
     "description" = @description,
-    "pii"         = @pii
+    "pii"         = @pii,
+    "slug"        = @slug,
+    "repo"        = @repo,
+    "keywords"    = @keywords 
 WHERE id = @id
 RETURNING *;
 

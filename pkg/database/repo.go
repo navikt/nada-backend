@@ -172,12 +172,20 @@ func (r *Repo) CreateDataproduct(ctx context.Context, dp openapi.NewDataproduct)
 		return nil, err
 	}
 	querier := r.querier.WithTx(tx)
+
+	keywords := []string{}
+	if dp.Keywords != nil && *dp.Keywords != nil {
+		keywords = *dp.Keywords
+	}
 	created, err := querier.CreateDataproduct(ctx, gensql.CreateDataproductParams{
 		Name:        dp.Name,
 		Description: ptrToNullString(dp.Description),
 		Pii:         dp.Pii,
 		Type:        "bigquery",
 		OwnerGroup:  dp.Owner.Group,
+		Slug:        ptrToNullString(dp.Slug),
+		Repo:        ptrToNullString(dp.Repo),
+		Keywords:    keywords,
 	})
 	if err != nil {
 		return nil, err
@@ -241,11 +249,18 @@ func (r *Repo) UpdateDataproduct(ctx context.Context, id string, new openapi.Upd
 		return nil, fmt.Errorf("parsing uuid: %w", err)
 	}
 
+	keywords := []string{}
+	if new.Keywords != nil && *new.Keywords != nil {
+		keywords = *new.Keywords
+	}
 	res, err := r.querier.UpdateDataproduct(ctx, gensql.UpdateDataproductParams{
 		Name:        new.Name,
 		Description: ptrToNullString(new.Description),
 		ID:          uid,
 		Pii:         new.Pii,
+		Slug:        ptrToNullString(new.Slug),
+		Repo:        ptrToNullString(new.Repo),
+		Keywords:    keywords,
 	})
 	if err != nil {
 		return nil, fmt.Errorf("updating dataproduct in database: %w", err)
@@ -383,6 +398,10 @@ func dataproductFromSQL(dataset gensql.Dataproduct) *openapi.Dataproduct {
 		Name:        dataset.Name,
 		Description: nullStringToPtr(dataset.Description),
 		Pii:         dataset.Pii,
+		Keywords:    dataset.Keywords,
+		Repo:        nullStringToPtr(dataset.Repo),
+		Slug:        nullStringToPtr(dataset.Slug),
+		Type:        openapi.DataproductType(dataset.Type),
 		Owner: openapi.Owner{
 			Group: dataset.Group,
 		},

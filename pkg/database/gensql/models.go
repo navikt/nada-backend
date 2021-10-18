@@ -52,6 +52,9 @@ type Dataproduct struct {
 	LastModified time.Time
 	Type         DatasourceType
 	TsvDocument  interface{}
+	Slug         sql.NullString
+	Repo         sql.NullString
+	Keywords     []string
 }
 
 type DatasourceBigquery struct {
