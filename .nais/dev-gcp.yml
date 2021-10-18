@@ -10,8 +10,6 @@ spec:
   port: 8080
   command:
     - /app/nada-backend
-    - --service-account-file=/var/run/secrets/kubernetes.io/serviceaccount
-    - --google-admin-subject=johnny.horvi@nav.no
   azure:
     application:
       enabled: true
