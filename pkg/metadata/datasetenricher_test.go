@@ -6,11 +6,11 @@ import (
 	"io/ioutil"
 	"testing"
 
-	"github.com/google/uuid"
-	"github.com/navikt/nada-backend/pkg/database/gensql"
-
 	"github.com/google/go-cmp/cmp"
+	"github.com/google/uuid"
 	"github.com/sirupsen/logrus"
+
+	"github.com/navikt/nada-backend/pkg/database/gensql"
 )
 
 func TestDatasetEnricher(t *testing.T) {

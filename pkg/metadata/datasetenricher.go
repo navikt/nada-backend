@@ -8,9 +8,9 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	"github.com/navikt/nada-backend/pkg/database/gensql"
-
 	"github.com/sirupsen/logrus"
+
+	"github.com/navikt/nada-backend/pkg/database/gensql"
 )
 
 type DatasetEnricher struct {

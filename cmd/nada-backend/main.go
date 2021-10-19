@@ -9,20 +9,19 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/sirupsen/logrus"
+	flag "github.com/spf13/pflag"
+
 	"github.com/navikt/nada-backend/pkg/api"
 	"github.com/navikt/nada-backend/pkg/auth"
 	"github.com/navikt/nada-backend/pkg/database"
 	"github.com/navikt/nada-backend/pkg/database/gensql"
 	"github.com/navikt/nada-backend/pkg/metadata"
-	"github.com/sirupsen/logrus"
-	flag "github.com/spf13/pflag"
 )
 
 var cfg = DefaultConfig()
 
 const (
-	TeamsUpdateFrequency           = 5 * time.Minute
-	EnsureAccessUpdateFrequency    = 5 * time.Minute
 	TeamProjectsUpdateFrequency    = 5 * time.Minute
 	DatasetMetadataUpdateFrequency = 5 * time.Minute
 )
@@ -39,7 +38,6 @@ func init() {
 	flag.StringVar(&cfg.LogLevel, "log-level", "info", "which log level to output")
 	flag.StringVar(&cfg.CookieSecret, "cookie-secret", "", "Secret used when encrypting cookies")
 	flag.BoolVar(&cfg.MockAuth, "mock-auth", false, "Use mock authentication")
-	flag.BoolVar(&cfg.SkipMetadataSync, "skip-metadata-sync", false, "Skip metadata sync")
 	flag.StringVar(&cfg.GoogleAdminImpersonationSubject, "google-admin-subject", os.Getenv("GOOGLE_ADMIN_IMPERSONATION_SUBJECT"), "Subject to impersonate when accessing google admin apis")
 	flag.StringVar(&cfg.ServiceAccountFile, "service-account-file", os.Getenv("GOOGLE_ADMIN_CREDENTIALS_PATH"), "Service account file for accessing google admin apis")
 }
@@ -79,7 +77,7 @@ func main() {
 	if !cfg.SkipMetadataSync {
 		datacatalogClient, err := metadata.NewDatacatalog(ctx)
 		if err != nil {
-			log.WithError(err).Fatal("creating datacatalog client")
+			log.WithError(err).Fatal("Creating datacatalog client")
 		}
 		gcp = datacatalogClient
 		de := metadata.New(datacatalogClient, repo, log.WithField("subsystem", "datasetenricher"))
