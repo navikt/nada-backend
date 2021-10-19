@@ -4,12 +4,11 @@ import (
 	"context"
 	"fmt"
 	"strings"
-	"time"
 
+	"cloud.google.com/go/bigquery"
 	datacatalog "cloud.google.com/go/datacatalog/apiv1"
 	"github.com/navikt/nada-backend/pkg/database/gensql"
 	"github.com/navikt/nada-backend/pkg/openapi"
-	"github.com/sirupsen/logrus"
 	"google.golang.org/api/iterator"
 	datacatalogpb "google.golang.org/genproto/googleapis/cloud/datacatalog/v1"
 )
@@ -41,7 +40,7 @@ func (c *Datacatalog) Close() error {
 	return c.client.Close()
 }
 
-func (c *Datacatalog) GetDatasets(ctx context.Context, projectID string) ([]gensql.DatasourceBigquery, error) {
+func (c *Datacatalog) GetTables(ctx context.Context, projectID string) ([]gensql.DatasourceBigquery, error) {
 	results, err := c.client.SearchCatalog(ctx, &datacatalogpb.SearchCatalogRequest{
 		Scope: &datacatalogpb.SearchCatalogRequest_Scope{
 			IncludeProjectIds: []string{projectID},
@@ -71,39 +70,56 @@ func (c *Datacatalog) GetDatasets(ctx context.Context, projectID string) ([]gens
 	return ret, nil
 }
 
-func (c *Datacatalog) GetDataset(ctx context.Context, projectID, datasetID string) ([]openapi.BigqueryTypeMetadata, error) {
-	logrus.Info("we're in!")
-	results, err := c.client.SearchCatalog(ctx, &datacatalogpb.SearchCatalogRequest{
-		Scope: &datacatalogpb.SearchCatalogRequest_Scope{
-			IncludeProjectIds: []string{projectID},
-		},
-		Query: fmt.Sprintf("system=BIGQUERY parent=%v.%v type=table or type=view", projectID, datasetID),
-	})
+func (c *Datacatalog) GetDatasets(ctx context.Context, projectID string) ([]string, error) {
+	client, err := bigquery.NewClient(ctx, projectID)
 	if err != nil {
 		return nil, err
 	}
 
-	ret := []openapi.BigqueryTypeMetadata{}
-
-	for _, result := range results {
-		parts := strings.Split(result.GetLinkedResource(), "/")
-		logrus.Info(parts)
-		if len(parts) != 9 {
-			continue
+	datasets := []string{}
+	it := client.Datasets(ctx)
+	for {
+		ds, err := it.Next()
+		if err == iterator.Done {
+			break
 		}
-		name := ""
-		bqType := parts[6]
-		description := parts[8]
-		lastModified := time.Now()
-		ret = append(ret, openapi.BigqueryTypeMetadata{
-			Name:         name,
-			Type:         openapi.BigqueryType(bqType),
-			Description:  description,
-			LastModified: lastModified,
-		})
+		if err != nil {
+			break
+		}
+		datasets = append(datasets, ds.DatasetID)
+	}
+	return datasets, nil
+}
+
+func (c *Datacatalog) GetDataset(ctx context.Context, projectID, datasetID string) ([]openapi.BigqueryTypeMetadata, error) {
+	client, err := bigquery.NewClient(ctx, projectID)
+	if err != nil {
+		return nil, err
 	}
 
-	return ret, nil
+	tables := []openapi.BigqueryTypeMetadata{}
+	it := client.Dataset(datasetID).Tables(ctx)
+	for {
+		t, err := it.Next()
+		if err == iterator.Done {
+			break
+		}
+		if err != nil {
+			break
+		}
+		m, err := t.Metadata(ctx)
+		if err != nil {
+			return nil, err
+		}
+
+		tables = append(tables, openapi.BigqueryTypeMetadata{
+			Name:         t.TableID,
+			Description:  m.Description,
+			Type:         openapi.BigqueryType(strings.ToLower(string(m.Type))),
+			LastModified: m.LastModifiedTime,
+		})
+	}
+	return tables, nil
 }
 
 func (c *Datacatalog) GetDatasetSchema(ctx context.Context, ds gensql.DatasourceBigquery) (Schema, error) {

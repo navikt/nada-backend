@@ -19,7 +19,8 @@ import (
 
 type GCP interface {
 	GetDataset(ctx context.Context, projectID, datasetID string) ([]openapi.BigqueryTypeMetadata, error)
-	GetDatasets(ctx context.Context, projectID string) ([]gensql.DatasourceBigquery, error)
+	GetDatasets(ctx context.Context, projectID string) ([]string, error)
+	GetTables(ctx context.Context, projectID string) ([]gensql.DatasourceBigquery, error)
 }
 
 type OAuth2 interface {
@@ -387,7 +388,7 @@ func (s *Server) GetBigqueryDataset(w http.ResponseWriter, r *http.Request, proj
 }
 
 func (s *Server) GetBigqueryTables(w http.ResponseWriter, r *http.Request, id string) {
-	ret, err := s.gcp.GetDatasets(r.Context(), id)
+	ret, err := s.gcp.GetTables(r.Context(), id)
 	if err != nil {
 		s.log.WithError(err).Error("Getting BigQuery tables")
 		http.Error(w, "uh oh", http.StatusInternalServerError)
