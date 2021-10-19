@@ -27,6 +27,13 @@ const (
 	CookieAuthScopes = "cookieAuth.Scopes"
 )
 
+// Defines values for BigqueryType.
+const (
+	BigqueryTypeTable BigqueryType = "table"
+
+	BigqueryTypeView BigqueryType = "view"
+)
+
 // Defines values for CollectionElementType.
 const (
 	CollectionElementTypeDataproduct CollectionElementType = "dataproduct"
@@ -51,6 +58,17 @@ type Bigquery struct {
 	Dataset   string `json:"dataset"`
 	ProjectId string `json:"project_id"`
 	Table     string `json:"table"`
+}
+
+// BigqueryType defines model for BigqueryType.
+type BigqueryType string
+
+// BigqueryTypeMetadata defines model for BigqueryTypeMetadata.
+type BigqueryTypeMetadata struct {
+	Description  string       `json:"description"`
+	LastModified time.Time    `json:"last_modified"`
+	Name         string       `json:"name"`
+	Type         BigqueryType `json:"type"`
 }
 
 // Collection defines model for Collection.
@@ -358,8 +376,14 @@ type ClientInterface interface {
 	// GetDataproductMetadata request
 	GetDataproductMetadata(ctx context.Context, id string, reqEditors ...RequestEditorFn) (*http.Response, error)
 
+	// GetBigqueryDatasets request
+	GetBigqueryDatasets(ctx context.Context, id string, reqEditors ...RequestEditorFn) (*http.Response, error)
+
 	// GetBigqueryTables request
 	GetBigqueryTables(ctx context.Context, id string, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// GetBigqueryDataset request
+	GetBigqueryDataset(ctx context.Context, projectId string, datasetId string, reqEditors ...RequestEditorFn) (*http.Response, error)
 
 	// GetGCPProjects request
 	GetGCPProjects(ctx context.Context, id string, reqEditors ...RequestEditorFn) (*http.Response, error)
@@ -575,8 +599,32 @@ func (c *Client) GetDataproductMetadata(ctx context.Context, id string, reqEdito
 	return c.Client.Do(req)
 }
 
+func (c *Client) GetBigqueryDatasets(ctx context.Context, id string, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewGetBigqueryDatasetsRequest(c.Server, id)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
 func (c *Client) GetBigqueryTables(ctx context.Context, id string, reqEditors ...RequestEditorFn) (*http.Response, error) {
 	req, err := NewGetBigqueryTablesRequest(c.Server, id)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) GetBigqueryDataset(ctx context.Context, projectId string, datasetId string, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewGetBigqueryDatasetRequest(c.Server, projectId, datasetId)
 	if err != nil {
 		return nil, err
 	}
@@ -1140,6 +1188,40 @@ func NewGetDataproductMetadataRequest(server string, id string) (*http.Request, 
 	return req, nil
 }
 
+// NewGetBigqueryDatasetsRequest generates requests for GetBigqueryDatasets
+func NewGetBigqueryDatasetsRequest(server string, id string) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithLocation("simple", false, "id", runtime.ParamLocationPath, id)
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/gcp/%s/datasets", pathParam0)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest("GET", queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
+}
+
 // NewGetBigqueryTablesRequest generates requests for GetBigqueryTables
 func NewGetBigqueryTablesRequest(server string, id string) (*http.Request, error) {
 	var err error
@@ -1157,6 +1239,47 @@ func NewGetBigqueryTablesRequest(server string, id string) (*http.Request, error
 	}
 
 	operationPath := fmt.Sprintf("/gcp/%s/tables", pathParam0)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest("GET", queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
+}
+
+// NewGetBigqueryDatasetRequest generates requests for GetBigqueryDataset
+func NewGetBigqueryDatasetRequest(server string, projectId string, datasetId string) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithLocation("simple", false, "projectId", runtime.ParamLocationPath, projectId)
+	if err != nil {
+		return nil, err
+	}
+
+	var pathParam1 string
+
+	pathParam1, err = runtime.StyleParamWithLocation("simple", false, "datasetId", runtime.ParamLocationPath, datasetId)
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/gcp/%s/%s", pathParam0, pathParam1)
 	if operationPath[0] == '/' {
 		operationPath = "." + operationPath
 	}
@@ -1403,8 +1526,14 @@ type ClientWithResponsesInterface interface {
 	// GetDataproductMetadata request
 	GetDataproductMetadataWithResponse(ctx context.Context, id string, reqEditors ...RequestEditorFn) (*GetDataproductMetadataResponse, error)
 
+	// GetBigqueryDatasets request
+	GetBigqueryDatasetsWithResponse(ctx context.Context, id string, reqEditors ...RequestEditorFn) (*GetBigqueryDatasetsResponse, error)
+
 	// GetBigqueryTables request
 	GetBigqueryTablesWithResponse(ctx context.Context, id string, reqEditors ...RequestEditorFn) (*GetBigqueryTablesResponse, error)
+
+	// GetBigqueryDataset request
+	GetBigqueryDatasetWithResponse(ctx context.Context, projectId string, datasetId string, reqEditors ...RequestEditorFn) (*GetBigqueryDatasetResponse, error)
 
 	// GetGCPProjects request
 	GetGCPProjectsWithResponse(ctx context.Context, id string, reqEditors ...RequestEditorFn) (*GetGCPProjectsResponse, error)
@@ -1678,6 +1807,28 @@ func (r GetDataproductMetadataResponse) StatusCode() int {
 	return 0
 }
 
+type GetBigqueryDatasetsResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	JSON200      *[]string
+}
+
+// Status returns HTTPResponse.Status
+func (r GetBigqueryDatasetsResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r GetBigqueryDatasetsResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
 type GetBigqueryTablesResponse struct {
 	Body         []byte
 	HTTPResponse *http.Response
@@ -1694,6 +1845,28 @@ func (r GetBigqueryTablesResponse) Status() string {
 
 // StatusCode returns HTTPResponse.StatusCode
 func (r GetBigqueryTablesResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+type GetBigqueryDatasetResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	JSON200      *[]BigqueryTypeMetadata
+}
+
+// Status returns HTTPResponse.Status
+func (r GetBigqueryDatasetResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r GetBigqueryDatasetResponse) StatusCode() int {
 	if r.HTTPResponse != nil {
 		return r.HTTPResponse.StatusCode
 	}
@@ -1914,6 +2087,15 @@ func (c *ClientWithResponses) GetDataproductMetadataWithResponse(ctx context.Con
 	return ParseGetDataproductMetadataResponse(rsp)
 }
 
+// GetBigqueryDatasetsWithResponse request returning *GetBigqueryDatasetsResponse
+func (c *ClientWithResponses) GetBigqueryDatasetsWithResponse(ctx context.Context, id string, reqEditors ...RequestEditorFn) (*GetBigqueryDatasetsResponse, error) {
+	rsp, err := c.GetBigqueryDatasets(ctx, id, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseGetBigqueryDatasetsResponse(rsp)
+}
+
 // GetBigqueryTablesWithResponse request returning *GetBigqueryTablesResponse
 func (c *ClientWithResponses) GetBigqueryTablesWithResponse(ctx context.Context, id string, reqEditors ...RequestEditorFn) (*GetBigqueryTablesResponse, error) {
 	rsp, err := c.GetBigqueryTables(ctx, id, reqEditors...)
@@ -1921,6 +2103,15 @@ func (c *ClientWithResponses) GetBigqueryTablesWithResponse(ctx context.Context,
 		return nil, err
 	}
 	return ParseGetBigqueryTablesResponse(rsp)
+}
+
+// GetBigqueryDatasetWithResponse request returning *GetBigqueryDatasetResponse
+func (c *ClientWithResponses) GetBigqueryDatasetWithResponse(ctx context.Context, projectId string, datasetId string, reqEditors ...RequestEditorFn) (*GetBigqueryDatasetResponse, error) {
+	rsp, err := c.GetBigqueryDataset(ctx, projectId, datasetId, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseGetBigqueryDatasetResponse(rsp)
 }
 
 // GetGCPProjectsWithResponse request returning *GetGCPProjectsResponse
@@ -2242,6 +2433,32 @@ func ParseGetDataproductMetadataResponse(rsp *http.Response) (*GetDataproductMet
 	return response, nil
 }
 
+// ParseGetBigqueryDatasetsResponse parses an HTTP response from a GetBigqueryDatasetsWithResponse call
+func ParseGetBigqueryDatasetsResponse(rsp *http.Response) (*GetBigqueryDatasetsResponse, error) {
+	bodyBytes, err := ioutil.ReadAll(rsp.Body)
+	defer rsp.Body.Close()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &GetBigqueryDatasetsResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest []string
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	}
+
+	return response, nil
+}
+
 // ParseGetBigqueryTablesResponse parses an HTTP response from a GetBigqueryTablesWithResponse call
 func ParseGetBigqueryTablesResponse(rsp *http.Response) (*GetBigqueryTablesResponse, error) {
 	bodyBytes, err := ioutil.ReadAll(rsp.Body)
@@ -2258,6 +2475,32 @@ func ParseGetBigqueryTablesResponse(rsp *http.Response) (*GetBigqueryTablesRespo
 	switch {
 	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
 		var dest []Bigquery
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParseGetBigqueryDatasetResponse parses an HTTP response from a GetBigqueryDatasetWithResponse call
+func ParseGetBigqueryDatasetResponse(rsp *http.Response) (*GetBigqueryDatasetResponse, error) {
+	bodyBytes, err := ioutil.ReadAll(rsp.Body)
+	defer rsp.Body.Close()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &GetBigqueryDatasetResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest []BigqueryTypeMetadata
 		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
 			return nil, err
 		}
@@ -2385,8 +2628,14 @@ type ServerInterface interface {
 	// (GET /dataproducts/{id}/metadata)
 	GetDataproductMetadata(w http.ResponseWriter, r *http.Request, id string)
 
+	// (GET /gcp/{id}/datasets)
+	GetBigqueryDatasets(w http.ResponseWriter, r *http.Request, id string)
+
 	// (GET /gcp/{id}/tables)
 	GetBigqueryTables(w http.ResponseWriter, r *http.Request, id string)
+
+	// (GET /gcp/{projectId}/{datasetId})
+	GetBigqueryDataset(w http.ResponseWriter, r *http.Request, projectId string, datasetId string)
 
 	// (GET /groups/{id}/gcp_projects)
 	GetGCPProjects(w http.ResponseWriter, r *http.Request, id string)
@@ -2742,6 +2991,34 @@ func (siw *ServerInterfaceWrapper) GetDataproductMetadata(w http.ResponseWriter,
 	handler(w, r.WithContext(ctx))
 }
 
+// GetBigqueryDatasets operation middleware
+func (siw *ServerInterfaceWrapper) GetBigqueryDatasets(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+
+	var err error
+
+	// ------------- Path parameter "id" -------------
+	var id string
+
+	err = runtime.BindStyledParameter("simple", false, "id", chi.URLParam(r, "id"), &id)
+	if err != nil {
+		http.Error(w, fmt.Sprintf("Invalid format for parameter id: %s", err), http.StatusBadRequest)
+		return
+	}
+
+	ctx = context.WithValue(ctx, CookieAuthScopes, []string{""})
+
+	var handler = func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.GetBigqueryDatasets(w, r, id)
+	}
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler(w, r.WithContext(ctx))
+}
+
 // GetBigqueryTables operation middleware
 func (siw *ServerInterfaceWrapper) GetBigqueryTables(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
@@ -2761,6 +3038,43 @@ func (siw *ServerInterfaceWrapper) GetBigqueryTables(w http.ResponseWriter, r *h
 
 	var handler = func(w http.ResponseWriter, r *http.Request) {
 		siw.Handler.GetBigqueryTables(w, r, id)
+	}
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler(w, r.WithContext(ctx))
+}
+
+// GetBigqueryDataset operation middleware
+func (siw *ServerInterfaceWrapper) GetBigqueryDataset(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+
+	var err error
+
+	// ------------- Path parameter "projectId" -------------
+	var projectId string
+
+	err = runtime.BindStyledParameter("simple", false, "projectId", chi.URLParam(r, "projectId"), &projectId)
+	if err != nil {
+		http.Error(w, fmt.Sprintf("Invalid format for parameter projectId: %s", err), http.StatusBadRequest)
+		return
+	}
+
+	// ------------- Path parameter "datasetId" -------------
+	var datasetId string
+
+	err = runtime.BindStyledParameter("simple", false, "datasetId", chi.URLParam(r, "datasetId"), &datasetId)
+	if err != nil {
+		http.Error(w, fmt.Sprintf("Invalid format for parameter datasetId: %s", err), http.StatusBadRequest)
+		return
+	}
+
+	ctx = context.WithValue(ctx, CookieAuthScopes, []string{""})
+
+	var handler = func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.GetBigqueryDataset(w, r, projectId, datasetId)
 	}
 
 	for _, middleware := range siw.HandlerMiddlewares {
@@ -2942,7 +3256,13 @@ func HandlerWithOptions(si ServerInterface, options ChiServerOptions) http.Handl
 		r.Get(options.BaseURL+"/dataproducts/{id}/metadata", wrapper.GetDataproductMetadata)
 	})
 	r.Group(func(r chi.Router) {
+		r.Get(options.BaseURL+"/gcp/{id}/datasets", wrapper.GetBigqueryDatasets)
+	})
+	r.Group(func(r chi.Router) {
 		r.Get(options.BaseURL+"/gcp/{id}/tables", wrapper.GetBigqueryTables)
+	})
+	r.Group(func(r chi.Router) {
+		r.Get(options.BaseURL+"/gcp/{projectId}/{datasetId}", wrapper.GetBigqueryDataset)
 	})
 	r.Group(func(r chi.Router) {
 		r.Get(options.BaseURL+"/groups/{id}/gcp_projects", wrapper.GetGCPProjects)
@@ -2960,32 +3280,34 @@ func HandlerWithOptions(si ServerInterface, options ChiServerOptions) http.Handl
 // Base64 encoded, gzipped, json marshaled Swagger object
 var swaggerSpec = []string{
 
-	"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",
-	"Cw2gYAtG7heMjwl7BG92fwUAAP//ZzjlX1IpAAA=",
+	"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",
+	"/18AAAD//5W5ZCd0LgAA",
 }
 
 // GetSwagger returns the content of the embedded swagger specification file
@@ -3059,3 +3381,4 @@ func GetSwagger() (swagger *openapi3.T, err error) {
 	}
 	return
 }
+

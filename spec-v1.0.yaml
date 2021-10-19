@@ -220,6 +220,30 @@ components:
         - dataset
         - table
 
+    BigqueryType:
+      type: string
+      enum:
+        - table
+        - view
+
+    BigqueryTypeMetadata:
+      type: object
+      properties:
+        name:
+          type: string
+        type:
+          $ref: "#/components/schemas/BigqueryType"
+        description:
+          type: string
+        last_modified:
+          type: string
+          format: date-time
+      required:
+        - name
+        - type
+        - description
+        - last_modified
+
     UserInfo:
       type: object
       properties:
@@ -381,6 +405,58 @@ paths:
                 type: "array"
                 items:
                   $ref: "#/components/schemas/Bigquery"
+
+  /gcp/{id}/datasets:
+    parameters:
+      - in: path
+        name: id
+        description: GCP project ID
+        required: true
+        schema:
+          type: string
+    get:
+      security:
+        - cookieAuth: []
+      description: "Return all BigQuery datasets in gcp project"
+      operationId: "getBigqueryDatasets"
+      responses:
+        "200":
+          description: OK
+          content:
+            "application/json":
+              schema:
+                type: "array"
+                items:
+                  type: "string"
+
+  /gcp/{projectId}/{datasetId}:
+    parameters:
+      - in: path
+        name: projectId
+        description: GCP project ID
+        required: true
+        schema:
+          type: string
+      - in: path
+        name: datasetId
+        description: BigQuery Dataset ID
+        required: true
+        schema:
+          type: string
+    get:
+      security:
+        - cookieAuth: []
+      description: "Return all BigQuery tables and views in dataset in gcp project"
+      operationId: "getBigqueryDataset"
+      responses:
+        "200":
+          description: OK
+          content:
+            "application/json":
+              schema:
+                type: "array"
+                items:
+                  $ref: "#/components/schemas/BigqueryTypeMetadata"
 
   /collections:
     get:

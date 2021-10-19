@@ -18,6 +18,7 @@ import (
 )
 
 type GCP interface {
+	GetDataset(ctx context.Context, projectID, datasetID string) ([]openapi.BigqueryTypeMetadata, error)
 	GetDatasets(ctx context.Context, projectID string) ([]gensql.DatasourceBigquery, error)
 }
 
@@ -347,6 +348,39 @@ func (s *Server) GetDataproductMetadata(w http.ResponseWriter, r *http.Request, 
 	w.Header().Add("Content-Type", "application/json")
 	if err := json.NewEncoder(w).Encode(metadata); err != nil {
 		s.log.WithError(err).Error("Encoding dataproduct metadata as JSON")
+		http.Error(w, "uh oh", http.StatusInternalServerError)
+		return
+	}
+}
+
+func (s *Server) GetBigqueryDatasets(w http.ResponseWriter, r *http.Request, id string) {
+	s.log.Info("hello world")
+	ret, err := s.gcp.GetDatasets(r.Context(), id)
+	if err != nil {
+		s.log.WithError(err).Error("Getting BigQuery datasets")
+		http.Error(w, "uh oh", http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Add("Content-Type", "application/json")
+	if err := json.NewEncoder(w).Encode(ret); err != nil {
+		s.log.WithError(err).Error("Encoding bigquery datasets as JSON")
+		http.Error(w, "uh oh", http.StatusInternalServerError)
+		return
+	}
+}
+
+func (s *Server) GetBigqueryDataset(w http.ResponseWriter, r *http.Request, projectID, datasetID string) {
+	ret, err := s.gcp.GetDataset(r.Context(), projectID, datasetID)
+	if err != nil {
+		s.log.WithError(err).Error("Getting BigQuery dataset")
+		http.Error(w, "uh oh", http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Add("Content-Type", "application/json")
+	if err := json.NewEncoder(w).Encode(ret); err != nil {
+		s.log.WithError(err).Error("Encoding bigquery dataset as JSON")
 		http.Error(w, "uh oh", http.StatusInternalServerError)
 		return
 	}

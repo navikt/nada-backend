@@ -4,9 +4,12 @@ import (
 	"context"
 	"fmt"
 	"strings"
+	"time"
 
 	datacatalog "cloud.google.com/go/datacatalog/apiv1"
 	"github.com/navikt/nada-backend/pkg/database/gensql"
+	"github.com/navikt/nada-backend/pkg/openapi"
+	"github.com/sirupsen/logrus"
 	"google.golang.org/api/iterator"
 	datacatalogpb "google.golang.org/genproto/googleapis/cloud/datacatalog/v1"
 )
@@ -62,6 +65,41 @@ func (c *Datacatalog) GetDatasets(ctx context.Context, projectID string) ([]gens
 			ProjectID: projectID,
 			Dataset:   dataset,
 			TableName: table,
+		})
+	}
+
+	return ret, nil
+}
+
+func (c *Datacatalog) GetDataset(ctx context.Context, projectID, datasetID string) ([]openapi.BigqueryTypeMetadata, error) {
+	logrus.Info("we're in!")
+	results, err := c.client.SearchCatalog(ctx, &datacatalogpb.SearchCatalogRequest{
+		Scope: &datacatalogpb.SearchCatalogRequest_Scope{
+			IncludeProjectIds: []string{projectID},
+		},
+		Query: fmt.Sprintf("system=BIGQUERY parent=%v.%v type=table or type=view", projectID, datasetID),
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	ret := []openapi.BigqueryTypeMetadata{}
+
+	for _, result := range results {
+		parts := strings.Split(result.GetLinkedResource(), "/")
+		logrus.Info(parts)
+		if len(parts) != 9 {
+			continue
+		}
+		name := ""
+		bqType := parts[6]
+		description := parts[8]
+		lastModified := time.Now()
+		ret = append(ret, openapi.BigqueryTypeMetadata{
+			Name:         name,
+			Type:         openapi.BigqueryType(bqType),
+			Description:  description,
+			LastModified: lastModified,
 		})
 	}
 
