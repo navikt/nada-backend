@@ -122,7 +122,7 @@ func TestRepo(t *testing.T) {
 			t.Fatal("fetched name should match provided name")
 		}
 
-		expected := []openapi.CollectionElement{colElem, colElem}
+		expected := []openapi.CollectionElement{colElem}
 		if !cmp.Equal(fetchedCollection.Elements, expected) {
 			t.Error(cmp.Diff(fetchedCollection.Elements, expected))
 		}
