@@ -39,10 +39,10 @@ components:
           type: array
           items:
             type: string
-        dataproducts:
+        elements:
           type: array
           items:
-            $ref: "#/components/schemas/DataproductSummary"
+            $ref: "#/components/schemas/CollectionElement"
       required:
         - id
         - name
@@ -50,7 +50,7 @@ components:
         - owner
         - created
         - last_modified
-        - dataproducts
+        - elements
 
     NewCollection:
       type: object

@@ -122,6 +122,18 @@ func (r *Repo) GetCollection(ctx context.Context, id string) (*openapi.Collectio
 
 	dp := collectionFromSQL(res)
 
+	colElems, err := r.querier.GetCollectionElements(ctx, id)
+	if err != nil {
+		return nil, fmt.Errorf("getting collection elements: %w", err)
+	}
+
+	for _, elem := range colElems {
+		dp.Elements = append(dp.Elements, openapi.CollectionElement{
+			ElementId:   elem.ElementID,
+			ElementType: openapi.CollectionElementType(elem.ElementType),
+		})
+	}
+
 	return dp, nil
 }
 
