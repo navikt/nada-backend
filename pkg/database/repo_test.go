@@ -100,12 +100,31 @@ func TestRepo(t *testing.T) {
 			t.Fatal(err)
 		}
 
+		dataproduct, err := repo.CreateDataproduct(context.Background(), newDataproduct)
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		colElem := openapi.CollectionElement{
+			ElementId:   dataproduct.Id,
+			ElementType: openapi.CollectionElementTypeDataproduct,
+		}
+
+		if err := repo.AddToCollection(context.Background(), collection.Id, colElem); err != nil {
+			t.Fatal(err)
+		}
+
 		fetchedCollection, err := repo.GetCollection(context.Background(), collection.Id)
 		if err != nil {
 			t.Fatal(err)
 		}
 		if newCollection.Name != fetchedCollection.Name {
 			t.Fatal("fetched name should match provided name")
+		}
+
+		expected := []openapi.CollectionElement{colElem, colElem}
+		if !cmp.Equal(fetchedCollection.Elements, expected) {
+			t.Error(cmp.Diff(fetchedCollection.Elements, expected))
 		}
 	})
 
