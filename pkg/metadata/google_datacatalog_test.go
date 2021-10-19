@@ -2,8 +2,9 @@ package metadata
 
 import (
 	"context"
-	"github.com/navikt/nada-backend/pkg/database/gensql"
 	"testing"
+
+	"github.com/navikt/nada-backend/pkg/database/gensql"
 
 	"github.com/google/go-cmp/cmp"
 	datacatalogpb "google.golang.org/genproto/googleapis/cloud/datacatalog/v1"
@@ -26,7 +27,7 @@ func TestGoogleDatacatalog(t *testing.T) {
 	}
 	client := &Datacatalog{client: dcc}
 
-	res, err := client.GetDatasets(context.Background(), "project_id")
+	res, err := client.GetTables(context.Background(), "project_id")
 	if err != nil {
 		t.Fatal(err)
 	}
