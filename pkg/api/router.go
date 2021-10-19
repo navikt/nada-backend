@@ -27,7 +27,7 @@ func NewRouter(repo *database.Repo, oauth2Config OAuth2, log *logrus.Entry, proj
 	srv := New(repo, oauth2Config, log.WithField("subsystem", "api"), projectsMapping, gcp)
 
 	latencyHistBuckets := []float64{.001, .005, .01, .025, .05, .1, .5, 1, 3, 5}
-	prometheusMiddleware := PrometheusMiddleware("backend", latencyHistBuckets...)
+	prometheusMiddleware := PrometheusMiddleware("nada-backend", latencyHistBuckets...)
 	prometheusMiddleware.Initialize("/api/v1/", http.MethodGet, http.StatusOK)
 
 	baseRouter := chi.NewRouter()
