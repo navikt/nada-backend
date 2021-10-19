@@ -18,6 +18,9 @@ spec:
     limits:
       cpu: 200m
       memory: 256Mi
+  prometheus:
+    enabled: true
+    path: /internal/metrics
   ingresses:
     - "https://nada.intern.nav.no/api"
   envFrom:
