@@ -8,7 +8,8 @@ import (
 	"fmt"
 	"net/url"
 
-	log "github.com/sirupsen/logrus"
+	"github.com/sirupsen/logrus"
+
 	"github.com/tabbed/pqtype"
 
 	"github.com/google/uuid"
@@ -26,6 +27,7 @@ var embedMigrations embed.FS
 type Repo struct {
 	querier Querier
 	db      *sql.DB
+	log     *logrus.Entry
 }
 
 type Querier interface {
@@ -33,7 +35,7 @@ type Querier interface {
 	WithTx(tx *sql.Tx) *gensql.Queries
 }
 
-func New(dbConnDSN string) (*Repo, error) {
+func New(dbConnDSN string, log *logrus.Entry) (*Repo, error) {
 	db, err := sql.Open("postgres", dbConnDSN)
 	if err != nil {
 		return nil, fmt.Errorf("open sql connection: %w", err)
@@ -48,6 +50,7 @@ func New(dbConnDSN string) (*Repo, error) {
 	return &Repo{
 		querier: gensql.New(db),
 		db:      db,
+		log:     log,
 	}, nil
 }
 
@@ -216,7 +219,7 @@ func (r *Repo) CreateDataproduct(ctx context.Context, dp openapi.NewDataproduct)
 	})
 	if err != nil {
 		if err := tx.Rollback(); err != nil {
-			log.WithError(err).Error("Rolling back dataproduct and datasource_bigquery transaction")
+			r.log.WithError(err).Error("Rolling back dataproduct and datasource_bigquery transaction")
 		}
 		return nil, err
 	}

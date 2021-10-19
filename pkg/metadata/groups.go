@@ -13,11 +13,12 @@ import (
 type GoogleGroups struct {
 	service *admin.Service
 	mock    bool
+	log     *logrus.Entry
 }
 
-func NewGoogleGroups(ctx context.Context, credentailFile, subject string) (*GoogleGroups, error) {
+func NewGoogleGroups(ctx context.Context, credentailFile, subject string, log *logrus.Entry) (*GoogleGroups, error) {
 	if credentailFile == "" && subject == "" {
-		logrus.Warn("Credential file and subject empty, running GoogleGroups with mock data")
+		log.Warn("Credential file and subject empty, running GoogleGroups with mock data")
 		return &GoogleGroups{
 			mock: true,
 		}, nil
@@ -46,6 +47,7 @@ func NewGoogleGroups(ctx context.Context, credentailFile, subject string) (*Goog
 
 	return &GoogleGroups{
 		service: service,
+		log:     log,
 	}, nil
 }
 

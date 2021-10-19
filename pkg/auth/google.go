@@ -17,7 +17,6 @@ type Google struct {
 	hostname     string
 
 	provider *oidc.Provider
-	// teamUUIDs map[string]string
 }
 
 func NewGoogle(clientID, clientSecret, hostname string) *Google {

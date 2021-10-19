@@ -52,7 +52,7 @@ func main() {
 
 	log := newLogger()
 
-	repo, err := database.New(cfg.DBConnectionDSN)
+	repo, err := database.New(cfg.DBConnectionDSN, log.WithField("subsystem", "repo"))
 	if err != nil {
 		log.WithError(err).Fatal("setting up database")
 	}
@@ -64,7 +64,7 @@ func main() {
 		teamProjectsMapping = auth.NewTeamProjectsUpdater(cfg.DevTeamProjectsOutputURL, cfg.ProdTeamProjectsOutputURL, cfg.TeamsToken, http.DefaultClient)
 		go teamProjectsMapping.Run(ctx, TeamProjectsUpdateFrequency)
 
-		googleGroups, err := metadata.NewGoogleGroups(ctx, cfg.ServiceAccountFile, cfg.GoogleAdminImpersonationSubject)
+		googleGroups, err := metadata.NewGoogleGroups(ctx, cfg.ServiceAccountFile, cfg.GoogleAdminImpersonationSubject, log.WithField("subsystem", "googlegroups"))
 		if err != nil {
 			log.Fatal(err)
 		}
