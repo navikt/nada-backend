@@ -1,6 +1,7 @@
 package api
 
 import (
+	"context"
 	"embed"
 	"encoding/json"
 	"net/http"
@@ -9,6 +10,7 @@ import (
 	"github.com/go-chi/cors"
 	"github.com/navikt/nada-backend/pkg/auth"
 	"github.com/navikt/nada-backend/pkg/database"
+	"github.com/navikt/nada-backend/pkg/database/gensql"
 	"github.com/navikt/nada-backend/pkg/openapi"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/sirupsen/logrus"
@@ -17,14 +19,25 @@ import (
 //go:embed swagger/*
 var swagger embed.FS
 
-func NewRouter(repo *database.Repo, oauth2Config OAuth2, log *logrus.Entry, projectsMapping *auth.TeamProjectsUpdater, gcp GCP, middlewares ...openapi.MiddlewareFunc) http.Handler {
+type DatasetEnricher interface {
+	UpdateSchema(ctx context.Context, ds gensql.DatasourceBigquery) error
+}
+
+func NewRouter(repo *database.Repo,
+	oauth2Config OAuth2,
+	log *logrus.Entry,
+	projectsMapping *auth.TeamProjectsUpdater,
+	gcp GCP,
+	datasetEnricher DatasetEnricher,
+	middlewares ...openapi.MiddlewareFunc,
+) http.Handler {
 	corsMW := cors.Handler(cors.Options{
 		AllowedOrigins:   []string{"https://*", "http://*"},
 		AllowedMethods:   []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
 		AllowCredentials: true,
 	})
 
-	srv := New(repo, oauth2Config, log.WithField("subsystem", "api"), projectsMapping, gcp)
+	srv := New(repo, oauth2Config, log.WithField("subsystem", "api"), projectsMapping, gcp, datasetEnricher)
 
 	latencyHistBuckets := []float64{.001, .005, .01, .025, .05, .1, .5, 1, 3, 5}
 	prometheusMiddleware := PrometheusMiddleware("nada-backend", latencyHistBuckets...)

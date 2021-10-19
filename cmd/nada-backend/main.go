@@ -12,6 +12,7 @@ import (
 	"github.com/navikt/nada-backend/pkg/api"
 	"github.com/navikt/nada-backend/pkg/auth"
 	"github.com/navikt/nada-backend/pkg/database"
+	"github.com/navikt/nada-backend/pkg/database/gensql"
 	"github.com/navikt/nada-backend/pkg/metadata"
 	"github.com/sirupsen/logrus"
 	flag "github.com/spf13/pflag"
@@ -74,17 +75,19 @@ func main() {
 	}
 
 	var gcp api.GCP
+	var datasetEnricher api.DatasetEnricher = &noopDatasetEnricher{}
 	if !cfg.SkipMetadataSync {
 		datacatalogClient, err := metadata.NewDatacatalog(ctx)
 		if err != nil {
 			log.WithError(err).Fatal("creating datacatalog client")
 		}
 		gcp = datacatalogClient
-		datasetEnricher := metadata.New(datacatalogClient, repo, log.WithField("subsystem", "datasetenricher"))
-		go datasetEnricher.Run(ctx, DatasetMetadataUpdateFrequency)
+		de := metadata.New(datacatalogClient, repo, log.WithField("subsystem", "datasetenricher"))
+		datasetEnricher = de
+		go de.Run(ctx, DatasetMetadataUpdateFrequency)
 	}
 
-	router := api.NewRouter(repo, oauth2Config, log.WithField("subsystem", "api"), teamProjectsMapping, gcp, authenticatorMiddleware)
+	router := api.NewRouter(repo, oauth2Config, log.WithField("subsystem", "api"), teamProjectsMapping, gcp, datasetEnricher, authenticatorMiddleware)
 	log.Info("Listening on :8080")
 
 	server := http.Server{
@@ -122,4 +125,10 @@ func getEnv(key, fallback string) string {
 		return env
 	}
 	return fallback
+}
+
+type noopDatasetEnricher struct{}
+
+func (n *noopDatasetEnricher) UpdateSchema(ctx context.Context, ds gensql.DatasourceBigquery) error {
+	return nil
 }

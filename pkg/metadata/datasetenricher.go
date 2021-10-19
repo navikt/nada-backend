@@ -5,9 +5,10 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"time"
+
 	"github.com/google/uuid"
 	"github.com/navikt/nada-backend/pkg/database/gensql"
-	"time"
 
 	"github.com/sirupsen/logrus"
 )
@@ -77,25 +78,31 @@ func (d *DatasetEnricher) syncMetadata(ctx context.Context) error {
 	var errs errorList
 
 	for _, ds := range datasets {
-		schema, err := d.datacatalogClient.GetDatasetSchema(ctx, ds)
+		err := d.UpdateSchema(ctx, ds)
 		if err != nil {
-			errs = append(errs, fmt.Errorf("getting dataset schema: %w", err))
-			continue
-		}
-
-		schemaJSON, err := json.Marshal(schema.Columns)
-		if err != nil {
-			errs = append(errs, fmt.Errorf("marshalling schema: %w", err))
-			continue
-		}
-
-		if err := d.repo.UpdateBigqueryDatasource(ctx, ds.DataproductID, schemaJSON); err != nil {
-			errs = append(errs, fmt.Errorf("writing metadata to database: %w", err))
-			continue
+			errs = append(errs, err)
 		}
 	}
 	if len(errs) == 0 {
 		return nil
 	}
 	return errs
+}
+
+func (d *DatasetEnricher) UpdateSchema(ctx context.Context, ds gensql.DatasourceBigquery) error {
+	schema, err := d.datacatalogClient.GetDatasetSchema(ctx, ds)
+	if err != nil {
+		return fmt.Errorf("getting dataset schema: %w", err)
+	}
+
+	schemaJSON, err := json.Marshal(schema.Columns)
+	if err != nil {
+		return fmt.Errorf("marshalling schema: %w", err)
+	}
+
+	if err := d.repo.UpdateBigqueryDatasource(ctx, ds.DataproductID, schemaJSON); err != nil {
+		return fmt.Errorf("writing metadata to database: %w", err)
+	}
+
+	return nil
 }

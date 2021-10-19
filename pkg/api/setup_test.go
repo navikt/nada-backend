@@ -13,6 +13,7 @@ import (
 	"github.com/coreos/go-oidc/v3/oidc"
 	"github.com/navikt/nada-backend/pkg/auth"
 	"github.com/navikt/nada-backend/pkg/database"
+	"github.com/navikt/nada-backend/pkg/database/gensql"
 	"github.com/navikt/nada-backend/pkg/openapi"
 	"github.com/ory/dockertest/v3"
 	"github.com/sirupsen/logrus"
@@ -81,12 +82,24 @@ func startServer(connString string) {
 	if err != nil {
 		log.Fatal(err)
 	}
-
-	router := NewRouter(repo, &mockOauth{}, logrus.StandardLogger().WithField("", ""), &auth.MockTeamProjectsUpdater, nil, auth.MockJWTValidatorMiddleware())
+	router := NewRouter(repo,
+		&mockOauth{},
+		logrus.StandardLogger().WithField("", ""),
+		&auth.MockTeamProjectsUpdater,
+		nil,
+		&noopDatasetEnricher{},
+		auth.MockJWTValidatorMiddleware(),
+	)
 	server = httptest.NewServer(router)
 
 	client, err = openapi.NewClient(server.URL + "/api")
 	if err != nil {
 		log.Fatal(err)
 	}
+}
+
+type noopDatasetEnricher struct{}
+
+func (n *noopDatasetEnricher) UpdateSchema(ctx context.Context, ds gensql.DatasourceBigquery) error {
+	return nil
 }

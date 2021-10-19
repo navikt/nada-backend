@@ -9,6 +9,7 @@ import (
 	"strings"
 
 	"github.com/coreos/go-oidc/v3/oidc"
+	"github.com/google/uuid"
 	"github.com/navikt/nada-backend/pkg/auth"
 	"github.com/navikt/nada-backend/pkg/database"
 	"github.com/navikt/nada-backend/pkg/database/gensql"
@@ -35,15 +36,24 @@ type Server struct {
 	oauth2Config    OAuth2
 	projectsMapping *auth.TeamProjectsUpdater
 	gcp             GCP
+	datasetEnricher DatasetEnricher
 }
 
-func New(repo *database.Repo, oauth2Config OAuth2, log *logrus.Entry, projectsMapping *auth.TeamProjectsUpdater, gcp GCP) *Server {
+func New(
+	repo *database.Repo,
+	oauth2Config OAuth2,
+	log *logrus.Entry,
+	projectsMapping *auth.TeamProjectsUpdater,
+	gcp GCP,
+	enricher DatasetEnricher,
+) *Server {
 	return &Server{
 		repo:            repo,
 		log:             log,
 		oauth2Config:    oauth2Config,
 		projectsMapping: projectsMapping,
 		gcp:             gcp,
+		datasetEnricher: enricher,
 	}
 }
 
@@ -217,6 +227,17 @@ func (s *Server) CreateDataproduct(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	if bq, ok := created.Datasource.(openapi.Bigquery); ok {
+		err := s.datasetEnricher.UpdateSchema(r.Context(), gensql.DatasourceBigquery{
+			DataproductID: uuid.MustParse(created.Id),
+			ProjectID:     bq.ProjectId,
+			Dataset:       bq.Dataset,
+			TableName:     bq.Table,
+		})
+		if err != nil {
+			s.log.WithError(err).WithField("dataproduct", created.Id).Error("unable to update bigquery dataset schema")
+		}
+	}
 	s.log.Infof("Created dataproduct: %v", created.Name)
 
 	w.Header().Add("Content-Type", "application/json")
