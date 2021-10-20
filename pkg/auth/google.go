@@ -5,8 +5,9 @@ import (
 	"fmt"
 
 	"github.com/coreos/go-oidc/v3/oidc"
-	"github.com/navikt/nada-backend/pkg/openapi"
 	"golang.org/x/oauth2"
+
+	"github.com/navikt/nada-backend/pkg/openapi"
 )
 
 type Google struct {

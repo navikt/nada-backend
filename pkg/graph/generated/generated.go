@@ -50,7 +50,7 @@ type DirectiveRoot struct {
 type ComplexityRoot struct {
 	BigQuery struct {
 		Dataset   func(childComplexity int) int
-		ProductID func(childComplexity int) int
+		ProjectID func(childComplexity int) int
 		Table     func(childComplexity int) int
 	}
 
@@ -71,7 +71,6 @@ type ComplexityRoot struct {
 		Pii          func(childComplexity int) int
 		Repo         func(childComplexity int) int
 		Slug         func(childComplexity int) int
-		Type         func(childComplexity int) int
 	}
 
 	Mutation struct {
@@ -126,12 +125,12 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.BigQuery.Dataset(childComplexity), true
 
-	case "BigQuery.product_id":
-		if e.complexity.BigQuery.ProductID == nil {
+	case "BigQuery.projectID":
+		if e.complexity.BigQuery.ProjectID == nil {
 			break
 		}
 
-		return e.complexity.BigQuery.ProductID(childComplexity), true
+		return e.complexity.BigQuery.ProjectID(childComplexity), true
 
 	case "BigQuery.table":
 		if e.complexity.BigQuery.Table == nil {
@@ -189,7 +188,7 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.Dataproduct.Keywords(childComplexity), true
 
-	case "Dataproduct.last_modified":
+	case "Dataproduct.lastModified":
 		if e.complexity.Dataproduct.LastModified == nil {
 			break
 		}
@@ -231,13 +230,6 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.Dataproduct.Slug(childComplexity), true
 
-	case "Dataproduct.type":
-		if e.complexity.Dataproduct.Type == nil {
-			break
-		}
-
-		return e.complexity.Dataproduct.Type(childComplexity), true
-
 	case "Mutation.createDataproduct":
 		if e.complexity.Mutation.CreateDataproduct == nil {
 			break
@@ -262,14 +254,14 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.Mutation.Dummy(childComplexity, args["no"].(*string)), true
 
-	case "Owner.Group":
+	case "Owner.group":
 		if e.complexity.Owner.Group == nil {
 			break
 		}
 
 		return e.complexity.Owner.Group(childComplexity), true
 
-	case "Owner.Teamkatalogen":
+	case "Owner.teamkatalogen":
 		if e.complexity.Owner.Teamkatalogen == nil {
 			break
 		}
@@ -366,66 +358,74 @@ func (ec *executionContext) introspectType(name string) (*introspection.Type, er
 }
 
 var sources = []*ast.Source{
-	{Name: "schema/dataproducts.graphql", Input: `type Dataproduct {
-	id: ID!
-	name: String!
-	description: String
-	created: Time!
-	last_modified: Time!
-	slug: String!
-	repo: String
-	pii: Boolean!
-	keywords: [String!]!
-	owner: Owner!
-	type: DataproductType!
-	datasource: Datasource!
+	{Name: "schema/dataproducts.graphql", Input: `type Dataproduct @goModel(model: "github.com/navikt/nada-backend/pkg/graph/models.Dataproduct"){
+    id: ID!
+    name: String!
+    description: String
+    created: Time!
+    lastModified: Time!
+    slug: String!
+    repo: String
+    pii: Boolean!
+    keywords: [String!]!
+    owner: Owner!
+    datasource: Datasource!
 }
 
-type Owner {
-	Group: String!
-	Teamkatalogen: String!
+type Owner @goModel(model: "github.com/navikt/nada-backend/pkg/graph/models.Owner"){
+    group: String!
+    teamkatalogen: String!
 }
 
-enum DataproductType {
-	BigQuery
+type BigQuery @goModel(model: "github.com/navikt/nada-backend/pkg/graph/models.BigQuery") {
+    projectID: String!
+    dataset: String!
+    table: String!
 }
 
-type BigQuery {
-	product_id: String!
-	dataset: String!
-	table: String!
-}
+union Datasource @goModel(model: "github.com/navikt/nada-backend/pkg/graph/models.Datasource") = BigQuery
 
-union Datasource = BigQuery
+union CollectionElement @goModel(model: "github.com/navikt/nada-backend/pkg/graph/models.CollectionElement") = Dataproduct
 
-union CollectionElement = Dataproduct 
-
-type Collection {
-	id: ID!
-	elements: [CollectionElement!]!
+type Collection @goModel(model: "github.com/navikt/nada-backend/pkg/graph/models.Collection"){
+    id: ID!
+    elements: [CollectionElement!]!
 }
 
 extend type Query {
-	dataproduct(id: ID!): Dataproduct!
-	dataproducts: [Dataproduct!]!
+    dataproduct(id: ID!): Dataproduct!
+    dataproducts: [Dataproduct!]!
 }
 
-input NewDataproduct {
-	name: String!
-	description: String
-	slug: String!
-	repo: String
-	pii: Boolean!
-	keywords: [String!]!
-	group: String!
-	type: DataproductType!
+input NewBigQuery @goModel(model: "github.com/navikt/nada-backend/pkg/graph/models.NewBigQuery") {
+    projectID: String!
+    dataset: String!
+    table: String!
+}
+
+input NewDataproduct @goModel(model: "github.com/navikt/nada-backend/pkg/graph/models.NewDataproduct") {
+    name: String!
+    description: String
+    slug: String!
+    repo: String
+    pii: Boolean!
+    keywords: [String!]!
+    group: String!
+    bigquery: NewBigQuery!
 }
 
 extend type Mutation {
-	createDataproduct(input: NewDataproduct!): Dataproduct!
+    createDataproduct(input: NewDataproduct!): Dataproduct!
 }
 `, BuiltIn: false},
-	{Name: "schema/queries.graphql", Input: `scalar Time
+	{Name: "schema/main.graphql", Input: `scalar Time
+
+directive @goModel(model: String, models: [String!]) on OBJECT
+    | INPUT_OBJECT
+    | SCALAR
+    | ENUM
+    | INTERFACE
+    | UNION
 
 directive @goField(
     forceResolver: Boolean
@@ -433,11 +433,11 @@ directive @goField(
 ) on INPUT_FIELD_DEFINITION | FIELD_DEFINITION
 
 type Query {
-	version: String!
+    version: String!
 }
 
 type Mutation {
-	dummy(no: String): String
+    dummy(no: String): String
 }
 `, BuiltIn: false},
 }
@@ -545,7 +545,7 @@ func (ec *executionContext) field___Type_fields_args(ctx context.Context, rawArg
 
 // region    **************************** field.gotpl *****************************
 
-func (ec *executionContext) _BigQuery_product_id(ctx context.Context, field graphql.CollectedField, obj *models.BigQuery) (ret graphql.Marshaler) {
+func (ec *executionContext) _BigQuery_projectID(ctx context.Context, field graphql.CollectedField, obj *models.BigQuery) (ret graphql.Marshaler) {
 	defer func() {
 		if r := recover(); r != nil {
 			ec.Error(ctx, ec.Recover(ctx, r))
@@ -563,7 +563,7 @@ func (ec *executionContext) _BigQuery_product_id(ctx context.Context, field grap
 	ctx = graphql.WithFieldContext(ctx, fc)
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
-		return obj.ProductID, nil
+		return obj.ProjectID, nil
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -857,7 +857,7 @@ func (ec *executionContext) _Dataproduct_created(ctx context.Context, field grap
 	return ec.marshalNTime2timeᚐTime(ctx, field.Selections, res)
 }
 
-func (ec *executionContext) _Dataproduct_last_modified(ctx context.Context, field graphql.CollectedField, obj *models.Dataproduct) (ret graphql.Marshaler) {
+func (ec *executionContext) _Dataproduct_lastModified(ctx context.Context, field graphql.CollectedField, obj *models.Dataproduct) (ret graphql.Marshaler) {
 	defer func() {
 		if r := recover(); r != nil {
 			ec.Error(ctx, ec.Recover(ctx, r))
@@ -1064,41 +1064,6 @@ func (ec *executionContext) _Dataproduct_owner(ctx context.Context, field graphq
 	return ec.marshalNOwner2ᚖgithubᚗcomᚋnaviktᚋnadaᚑbackendᚋpkgᚋgraphᚋmodelsᚐOwner(ctx, field.Selections, res)
 }
 
-func (ec *executionContext) _Dataproduct_type(ctx context.Context, field graphql.CollectedField, obj *models.Dataproduct) (ret graphql.Marshaler) {
-	defer func() {
-		if r := recover(); r != nil {
-			ec.Error(ctx, ec.Recover(ctx, r))
-			ret = graphql.Null
-		}
-	}()
-	fc := &graphql.FieldContext{
-		Object:     "Dataproduct",
-		Field:      field,
-		Args:       nil,
-		IsMethod:   false,
-		IsResolver: false,
-	}
-
-	ctx = graphql.WithFieldContext(ctx, fc)
-	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
-		ctx = rctx // use context from middleware stack in children
-		return obj.Type, nil
-	})
-	if err != nil {
-		ec.Error(ctx, err)
-		return graphql.Null
-	}
-	if resTmp == nil {
-		if !graphql.HasFieldError(ctx, fc) {
-			ec.Errorf(ctx, "must not be null")
-		}
-		return graphql.Null
-	}
-	res := resTmp.(models.DataproductType)
-	fc.Result = res
-	return ec.marshalNDataproductType2githubᚗcomᚋnaviktᚋnadaᚑbackendᚋpkgᚋgraphᚋmodelsᚐDataproductType(ctx, field.Selections, res)
-}
-
 func (ec *executionContext) _Dataproduct_datasource(ctx context.Context, field graphql.CollectedField, obj *models.Dataproduct) (ret graphql.Marshaler) {
 	defer func() {
 		if r := recover(); r != nil {
@@ -1215,7 +1180,7 @@ func (ec *executionContext) _Mutation_createDataproduct(ctx context.Context, fie
 	return ec.marshalNDataproduct2ᚖgithubᚗcomᚋnaviktᚋnadaᚑbackendᚋpkgᚋgraphᚋmodelsᚐDataproduct(ctx, field.Selections, res)
 }
 
-func (ec *executionContext) _Owner_Group(ctx context.Context, field graphql.CollectedField, obj *models.Owner) (ret graphql.Marshaler) {
+func (ec *executionContext) _Owner_group(ctx context.Context, field graphql.CollectedField, obj *models.Owner) (ret graphql.Marshaler) {
 	defer func() {
 		if r := recover(); r != nil {
 			ec.Error(ctx, ec.Recover(ctx, r))
@@ -1250,7 +1215,7 @@ func (ec *executionContext) _Owner_Group(ctx context.Context, field graphql.Coll
 	return ec.marshalNString2string(ctx, field.Selections, res)
 }
 
-func (ec *executionContext) _Owner_Teamkatalogen(ctx context.Context, field graphql.CollectedField, obj *models.Owner) (ret graphql.Marshaler) {
+func (ec *executionContext) _Owner_teamkatalogen(ctx context.Context, field graphql.CollectedField, obj *models.Owner) (ret graphql.Marshaler) {
 	defer func() {
 		if r := recover(); r != nil {
 			ec.Error(ctx, ec.Recover(ctx, r))
@@ -2590,6 +2555,45 @@ func (ec *executionContext) ___Type_ofType(ctx context.Context, field graphql.Co
 
 // region    **************************** input.gotpl *****************************
 
+func (ec *executionContext) unmarshalInputNewBigQuery(ctx context.Context, obj interface{}) (models.NewBigQuery, error) {
+	var it models.NewBigQuery
+	asMap := map[string]interface{}{}
+	for k, v := range obj.(map[string]interface{}) {
+		asMap[k] = v
+	}
+
+	for k, v := range asMap {
+		switch k {
+		case "projectID":
+			var err error
+
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("projectID"))
+			it.ProjectID, err = ec.unmarshalNString2string(ctx, v)
+			if err != nil {
+				return it, err
+			}
+		case "dataset":
+			var err error
+
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("dataset"))
+			it.Dataset, err = ec.unmarshalNString2string(ctx, v)
+			if err != nil {
+				return it, err
+			}
+		case "table":
+			var err error
+
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("table"))
+			it.Table, err = ec.unmarshalNString2string(ctx, v)
+			if err != nil {
+				return it, err
+			}
+		}
+	}
+
+	return it, nil
+}
+
 func (ec *executionContext) unmarshalInputNewDataproduct(ctx context.Context, obj interface{}) (models.NewDataproduct, error) {
 	var it models.NewDataproduct
 	asMap := map[string]interface{}{}
@@ -2655,11 +2659,11 @@ func (ec *executionContext) unmarshalInputNewDataproduct(ctx context.Context, ob
 			if err != nil {
 				return it, err
 			}
-		case "type":
+		case "bigquery":
 			var err error
 
-			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("type"))
-			it.Type, err = ec.unmarshalNDataproductType2githubᚗcomᚋnaviktᚋnadaᚑbackendᚋpkgᚋgraphᚋmodelsᚐDataproductType(ctx, v)
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("bigquery"))
+			it.BigQuery, err = ec.unmarshalNNewBigQuery2githubᚗcomᚋnaviktᚋnadaᚑbackendᚋpkgᚋgraphᚋmodelsᚐNewBigQuery(ctx, v)
 			if err != nil {
 				return it, err
 			}
@@ -2720,8 +2724,8 @@ func (ec *executionContext) _BigQuery(ctx context.Context, sel ast.SelectionSet,
 		switch field.Name {
 		case "__typename":
 			out.Values[i] = graphql.MarshalString("BigQuery")
-		case "product_id":
-			out.Values[i] = ec._BigQuery_product_id(ctx, field, obj)
+		case "projectID":
+			out.Values[i] = ec._BigQuery_projectID(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
 				invalids++
 			}
@@ -2806,8 +2810,8 @@ func (ec *executionContext) _Dataproduct(ctx context.Context, sel ast.SelectionS
 			if out.Values[i] == graphql.Null {
 				atomic.AddUint32(&invalids, 1)
 			}
-		case "last_modified":
-			out.Values[i] = ec._Dataproduct_last_modified(ctx, field, obj)
+		case "lastModified":
+			out.Values[i] = ec._Dataproduct_lastModified(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
 				atomic.AddUint32(&invalids, 1)
 			}
@@ -2830,11 +2834,6 @@ func (ec *executionContext) _Dataproduct(ctx context.Context, sel ast.SelectionS
 			}
 		case "owner":
 			out.Values[i] = ec._Dataproduct_owner(ctx, field, obj)
-			if out.Values[i] == graphql.Null {
-				atomic.AddUint32(&invalids, 1)
-			}
-		case "type":
-			out.Values[i] = ec._Dataproduct_type(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
 				atomic.AddUint32(&invalids, 1)
 			}
@@ -2907,13 +2906,13 @@ func (ec *executionContext) _Owner(ctx context.Context, sel ast.SelectionSet, ob
 		switch field.Name {
 		case "__typename":
 			out.Values[i] = graphql.MarshalString("Owner")
-		case "Group":
-			out.Values[i] = ec._Owner_Group(ctx, field, obj)
+		case "group":
+			out.Values[i] = ec._Owner_group(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
 				invalids++
 			}
-		case "Teamkatalogen":
-			out.Values[i] = ec._Owner_Teamkatalogen(ctx, field, obj)
+		case "teamkatalogen":
+			out.Values[i] = ec._Owner_teamkatalogen(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
 				invalids++
 			}
@@ -3377,16 +3376,6 @@ func (ec *executionContext) marshalNDataproduct2ᚖgithubᚗcomᚋnaviktᚋnada�
 	return ec._Dataproduct(ctx, sel, v)
 }
 
-func (ec *executionContext) unmarshalNDataproductType2githubᚗcomᚋnaviktᚋnadaᚑbackendᚋpkgᚋgraphᚋmodelsᚐDataproductType(ctx context.Context, v interface{}) (models.DataproductType, error) {
-	var res models.DataproductType
-	err := res.UnmarshalGQL(v)
-	return res, graphql.ErrorOnPath(ctx, err)
-}
-
-func (ec *executionContext) marshalNDataproductType2githubᚗcomᚋnaviktᚋnadaᚑbackendᚋpkgᚋgraphᚋmodelsᚐDataproductType(ctx context.Context, sel ast.SelectionSet, v models.DataproductType) graphql.Marshaler {
-	return v
-}
-
 func (ec *executionContext) marshalNDatasource2githubᚗcomᚋnaviktᚋnadaᚑbackendᚋpkgᚋgraphᚋmodelsᚐDatasource(ctx context.Context, sel ast.SelectionSet, v models.Datasource) graphql.Marshaler {
 	if v == nil {
 		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
@@ -3410,6 +3399,11 @@ func (ec *executionContext) marshalNID2githubᚗcomᚋgoogleᚋuuidᚐUUID(ctx c
 		}
 	}
 	return res
+}
+
+func (ec *executionContext) unmarshalNNewBigQuery2githubᚗcomᚋnaviktᚋnadaᚑbackendᚋpkgᚋgraphᚋmodelsᚐNewBigQuery(ctx context.Context, v interface{}) (models.NewBigQuery, error) {
+	res, err := ec.unmarshalInputNewBigQuery(ctx, v)
+	return res, graphql.ErrorOnPath(ctx, err)
 }
 
 func (ec *executionContext) unmarshalNNewDataproduct2githubᚗcomᚋnaviktᚋnadaᚑbackendᚋpkgᚋgraphᚋmodelsᚐNewDataproduct(ctx context.Context, v interface{}) (models.NewDataproduct, error) {
@@ -3781,6 +3775,48 @@ func (ec *executionContext) unmarshalOString2string(ctx context.Context, v inter
 
 func (ec *executionContext) marshalOString2string(ctx context.Context, sel ast.SelectionSet, v string) graphql.Marshaler {
 	return graphql.MarshalString(v)
+}
+
+func (ec *executionContext) unmarshalOString2ᚕstringᚄ(ctx context.Context, v interface{}) ([]string, error) {
+	if v == nil {
+		return nil, nil
+	}
+	var vSlice []interface{}
+	if v != nil {
+		if tmp1, ok := v.([]interface{}); ok {
+			vSlice = tmp1
+		} else {
+			vSlice = []interface{}{v}
+		}
+	}
+	var err error
+	res := make([]string, len(vSlice))
+	for i := range vSlice {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithIndex(i))
+		res[i], err = ec.unmarshalNString2string(ctx, vSlice[i])
+		if err != nil {
+			return nil, err
+		}
+	}
+	return res, nil
+}
+
+func (ec *executionContext) marshalOString2ᚕstringᚄ(ctx context.Context, sel ast.SelectionSet, v []string) graphql.Marshaler {
+	if v == nil {
+		return graphql.Null
+	}
+	ret := make(graphql.Array, len(v))
+	for i := range v {
+		ret[i] = ec.marshalNString2string(ctx, sel, v[i])
+	}
+
+	for _, e := range ret {
+		if e == graphql.Null {
+			return graphql.Null
+		}
+	}
+
+	return ret
 }
 
 func (ec *executionContext) unmarshalOString2ᚖstring(ctx context.Context, v interface{}) (*string, error) {

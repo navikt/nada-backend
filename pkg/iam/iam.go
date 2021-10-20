@@ -1,11 +1,12 @@
 package iam
 
 import (
-	"cloud.google.com/go/storage"
 	"context"
 	"fmt"
-	log "github.com/sirupsen/logrus"
 	"time"
+
+	"cloud.google.com/go/storage"
+	log "github.com/sirupsen/logrus"
 )
 
 const (

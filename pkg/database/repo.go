@@ -12,6 +12,7 @@ import (
 	"github.com/tabbed/pqtype"
 
 	"github.com/google/uuid"
+
 	"github.com/navikt/nada-backend/pkg/database/gensql"
 	"github.com/navikt/nada-backend/pkg/graph/models"
 	"github.com/navikt/nada-backend/pkg/openapi"
@@ -80,8 +81,8 @@ func (r *Repo) CreateCollection(ctx context.Context, dp openapi.NewCollection) (
 	return collectionFromSQL(res), nil
 }
 
-func (r *Repo) GetDataproducts(ctx context.Context, limit, offset int) ([]*openapi.Dataproduct, error) {
-	datasets := []*openapi.Dataproduct{}
+func (r *Repo) GetDataproducts(ctx context.Context, limit, offset int) ([]*models.Dataproduct, error) {
+	datasets := []*models.Dataproduct{}
 
 	res, err := r.querier.GetDataproducts(ctx, gensql.GetDataproductsParams{Limit: int32(limit), Offset: int32(offset)})
 	if err != nil {
@@ -179,7 +180,7 @@ func (r *Repo) UpdateCollection(ctx context.Context, id string, new openapi.Upda
 	return collectionFromSQL(res), nil
 }
 
-func (r *Repo) CreateDataproduct(ctx context.Context, dp openapi.NewDataproduct) (*openapi.Dataproduct, error) {
+func (r *Repo) CreateDataproduct(ctx context.Context, dp openapi.NewDataproduct) (*models.Dataproduct, error) {
 	tx, err := r.db.Begin()
 	if err != nil {
 		return nil, err
@@ -227,7 +228,6 @@ func (r *Repo) CreateDataproduct(ctx context.Context, dp openapi.NewDataproduct)
 	}
 
 	ret := dataproductFromSQL(created)
-	ret.Datasource = datasource
 	return ret, nil
 }
 
@@ -237,31 +237,10 @@ func (r *Repo) GetDataproduct(ctx context.Context, id uuid.UUID) (*models.Datapr
 		return nil, fmt.Errorf("getting dataproduct from database: %w", err)
 	}
 
-	// bq, err := r.querier.GetBigqueryDatasource(ctx, res.ID)
-	// if err != nil {
-	// 	return nil, fmt.Errorf("getting bigquery datasource from database: %w", err)
-	// }
-
-	// ret := dataproductFromSQL(res)
-	ret := &models.Dataproduct{
-		ID:           res.ID,
-		Name:         res.Name,
-		Created:      res.Created,
-		LastModified: res.LastModified,
-		Description:  nullStringToPtr(res.Description),
-		Slug:         res.Slug.String,
-		Repo:         nullStringToPtr(res.Repo),
-		Pii:          res.Pii,
-		Keywords:     res.Keywords,
-		Owner: &models.Owner{
-			Group: res.Group,
-		},
-		Type: models.DataproductType(res.Type),
-	}
-	return ret, nil
+	return dataproductFromSQL(res), nil
 }
 
-func (r *Repo) UpdateDataproduct(ctx context.Context, id string, new openapi.UpdateDataproduct) (*openapi.Dataproduct, error) {
+func (r *Repo) UpdateDataproduct(ctx context.Context, id string, new openapi.UpdateDataproduct) (*models.Dataproduct, error) {
 	uid, err := uuid.Parse(id)
 	if err != nil {
 		return nil, fmt.Errorf("parsing uuid: %w", err)
@@ -418,19 +397,21 @@ func collectionFromSQL(dataproduct gensql.Collection) *openapi.Collection {
 	}
 }
 
-func dataproductFromSQL(dataset gensql.Dataproduct) *openapi.Dataproduct {
-	return &openapi.Dataproduct{
-		Id:          dataset.ID.String(),
-		Name:        dataset.Name,
-		Description: nullStringToPtr(dataset.Description),
-		Pii:         dataset.Pii,
-		Keywords:    dataset.Keywords,
-		Repo:        nullStringToPtr(dataset.Repo),
-		Slug:        nullStringToPtr(dataset.Slug),
-		Type:        openapi.DataproductType(dataset.Type),
-		Owner: openapi.Owner{
-			Group: dataset.Group,
+func dataproductFromSQL(dp gensql.Dataproduct) *models.Dataproduct {
+	return &models.Dataproduct{
+		ID:           dp.ID,
+		Name:         dp.Name,
+		Created:      dp.Created,
+		LastModified: dp.LastModified,
+		Description:  nullStringToPtr(dp.Description),
+		Slug:         dp.Slug.String,
+		Repo:         nullStringToPtr(dp.Repo),
+		Pii:          dp.Pii,
+		Keywords:     dp.Keywords,
+		Owner: &models.Owner{
+			Group: dp.Group,
 		},
+		Type: dp.Type,
 	}
 }
 

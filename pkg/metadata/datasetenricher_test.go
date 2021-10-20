@@ -3,10 +3,12 @@ package metadata
 import (
 	"context"
 	"encoding/json"
-	"github.com/google/uuid"
-	"github.com/navikt/nada-backend/pkg/database/gensql"
 	"io/ioutil"
 	"testing"
+
+	"github.com/google/uuid"
+
+	"github.com/navikt/nada-backend/pkg/database/gensql"
 
 	"github.com/google/go-cmp/cmp"
 	"github.com/sirupsen/logrus"

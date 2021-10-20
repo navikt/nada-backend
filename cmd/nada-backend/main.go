@@ -11,6 +11,9 @@ import (
 
 	"github.com/99designs/gqlgen/graphql/handler"
 	"github.com/99designs/gqlgen/graphql/playground"
+	"github.com/sirupsen/logrus"
+	flag "github.com/spf13/pflag"
+
 	"github.com/navikt/nada-backend/pkg/api"
 	"github.com/navikt/nada-backend/pkg/auth"
 	"github.com/navikt/nada-backend/pkg/database"
@@ -18,8 +21,6 @@ import (
 	"github.com/navikt/nada-backend/pkg/graph"
 	"github.com/navikt/nada-backend/pkg/graph/generated"
 	"github.com/navikt/nada-backend/pkg/metadata"
-	"github.com/sirupsen/logrus"
-	flag "github.com/spf13/pflag"
 )
 
 var cfg = DefaultConfig()

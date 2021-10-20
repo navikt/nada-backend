@@ -10,12 +10,13 @@ import (
 
 	"github.com/coreos/go-oidc/v3/oidc"
 	"github.com/google/uuid"
+	"github.com/sirupsen/logrus"
+	"golang.org/x/oauth2"
+
 	"github.com/navikt/nada-backend/pkg/auth"
 	"github.com/navikt/nada-backend/pkg/database"
 	"github.com/navikt/nada-backend/pkg/database/gensql"
 	"github.com/navikt/nada-backend/pkg/openapi"
-	"github.com/sirupsen/logrus"
-	"golang.org/x/oauth2"
 )
 
 type GCP interface {

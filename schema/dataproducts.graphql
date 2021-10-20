@@ -1,58 +1,59 @@
-type Dataproduct {
-	id: ID!
-	name: String!
-	description: String
-	created: Time!
-	last_modified: Time!
-	slug: String!
-	repo: String
-	pii: Boolean!
-	keywords: [String!]!
-	owner: Owner!
-	type: DataproductType!
-	datasource: Datasource!
+type Dataproduct @goModel(model: "github.com/navikt/nada-backend/pkg/graph/models.Dataproduct"){
+    id: ID!
+    name: String!
+    description: String
+    created: Time!
+    lastModified: Time!
+    slug: String!
+    repo: String
+    pii: Boolean!
+    keywords: [String!]!
+    owner: Owner!
+    datasource: Datasource!
 }
 
-type Owner {
-	Group: String!
-	Teamkatalogen: String!
+type Owner @goModel(model: "github.com/navikt/nada-backend/pkg/graph/models.Owner"){
+    group: String!
+    teamkatalogen: String!
 }
 
-enum DataproductType {
-	BigQuery
+type BigQuery @goModel(model: "github.com/navikt/nada-backend/pkg/graph/models.BigQuery") {
+    projectID: String!
+    dataset: String!
+    table: String!
 }
 
-type BigQuery {
-	product_id: String!
-	dataset: String!
-	table: String!
-}
+union Datasource @goModel(model: "github.com/navikt/nada-backend/pkg/graph/models.Datasource") = BigQuery
 
-union Datasource = BigQuery
+union CollectionElement @goModel(model: "github.com/navikt/nada-backend/pkg/graph/models.CollectionElement") = Dataproduct
 
-union CollectionElement = Dataproduct 
-
-type Collection {
-	id: ID!
-	elements: [CollectionElement!]!
+type Collection @goModel(model: "github.com/navikt/nada-backend/pkg/graph/models.Collection"){
+    id: ID!
+    elements: [CollectionElement!]!
 }
 
 extend type Query {
-	dataproduct(id: ID!): Dataproduct!
-	dataproducts: [Dataproduct!]!
+    dataproduct(id: ID!): Dataproduct!
+    dataproducts: [Dataproduct!]!
 }
 
-input NewDataproduct {
-	name: String!
-	description: String
-	slug: String!
-	repo: String
-	pii: Boolean!
-	keywords: [String!]!
-	group: String!
-	type: DataproductType!
+input NewBigQuery @goModel(model: "github.com/navikt/nada-backend/pkg/graph/models.NewBigQuery") {
+    projectID: String!
+    dataset: String!
+    table: String!
+}
+
+input NewDataproduct @goModel(model: "github.com/navikt/nada-backend/pkg/graph/models.NewDataproduct") {
+    name: String!
+    description: String
+    slug: String!
+    repo: String
+    pii: Boolean!
+    keywords: [String!]!
+    group: String!
+    bigquery: NewBigQuery!
 }
 
 extend type Mutation {
-	createDataproduct(input: NewDataproduct!): Dataproduct!
+    createDataproduct(input: NewDataproduct!): Dataproduct!
 }
