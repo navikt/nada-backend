@@ -26,6 +26,7 @@ require (
 
 require (
 	cloud.google.com/go/datacatalog v1.0.0
+	github.com/99designs/gqlgen v0.14.0
 	github.com/Azure/go-ansiterm v0.0.0-20170929234023-d6e3b3328b78 // indirect
 	github.com/Microsoft/go-winio v0.5.0 // indirect
 	github.com/Nvveen/Gotty v0.0.0-20120604004816-cd527374f1e5 // indirect
@@ -61,6 +62,7 @@ require (
 	github.com/prometheus/common v0.18.0 // indirect
 	github.com/prometheus/procfs v0.6.0 // indirect
 	github.com/tabbed/pqtype v0.1.1
+	github.com/vektah/gqlparser/v2 v2.2.0
 	github.com/xeipuuv/gojsonpointer v0.0.0-20180127040702-4e3ac2762d5f // indirect
 	github.com/xeipuuv/gojsonreference v0.0.0-20180127040603-bd5ef7bd5415 // indirect
 	github.com/xeipuuv/gojsonschema v1.2.0 // indirect
@@ -78,6 +80,9 @@ require (
 )
 
 require (
+	github.com/agnivade/levenshtein v1.1.0 // indirect
 	github.com/davecgh/go-spew v1.1.1 // indirect
+	github.com/gorilla/websocket v1.4.2 // indirect
+	github.com/hashicorp/golang-lru v0.5.1 // indirect
 	gopkg.in/square/go-jose.v2 v2.5.1 // indirect
 )

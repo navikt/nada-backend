@@ -251,30 +251,30 @@ func (s *Server) CreateDataproduct(w http.ResponseWriter, r *http.Request) {
 
 // DeleteDataproduct (DELETE /dataproducts/{id})
 func (s *Server) DeleteDataproduct(w http.ResponseWriter, r *http.Request, id string) {
-	user := auth.GetUser(r.Context())
+	// user := auth.GetUser(r.Context())
 
-	dp, err := s.repo.GetDataproduct(r.Context(), id)
-	if err != nil {
-		s.log.WithError(err).Error("Get dataproduct for checking permissions on delete dp")
-		http.Error(w, "uh oh", http.StatusInternalServerError)
-		return
-	}
+	// dp, err := s.repo.GetDataproduct(r.Context(), id)
+	// if err != nil {
+	// 	s.log.WithError(err).Error("Get dataproduct for checking permissions on delete dp")
+	// 	http.Error(w, "uh oh", http.StatusInternalServerError)
+	// 	return
+	// }
 
-	if !user.Groups.Contains(dp.Owner.Group) {
-		s.log.Infof("Deleting dataproduct: User %v is not member of Group %v", user.Email, dp.Owner.Group)
-		http.Error(w, "unauthorized", http.StatusUnauthorized)
-		return
-	}
+	// if !user.Groups.Contains(dp.Owner.Group) {
+	// 	s.log.Infof("Deleting dataproduct: User %v is not member of Group %v", user.Email, dp.Owner.Group)
+	// 	http.Error(w, "unauthorized", http.StatusUnauthorized)
+	// 	return
+	// }
 
-	if err := s.repo.DeleteDataproduct(r.Context(), id); err != nil {
-		s.log.WithError(err).Error("Deleting dataproduct")
-		http.Error(w, "uh oh", http.StatusInternalServerError)
-		return
-	}
+	// if err := s.repo.DeleteDataproduct(r.Context(), id); err != nil {
+	// 	s.log.WithError(err).Error("Deleting dataproduct")
+	// 	http.Error(w, "uh oh", http.StatusInternalServerError)
+	// 	return
+	// }
 
-	s.log.Infof("Deleted dataproduct: %v", dp.Name)
+	// s.log.Infof("Deleted dataproduct: %v", dp.Name)
 
-	w.WriteHeader(http.StatusNoContent)
+	// w.WriteHeader(http.StatusNoContent)
 }
 
 // GetDataproducts (GET /dataproductss/)
@@ -296,67 +296,67 @@ func (s *Server) GetDataproducts(w http.ResponseWriter, r *http.Request, params 
 
 // GetDataproduct (GET /dataproducts/{id})
 func (s *Server) GetDataproduct(w http.ResponseWriter, r *http.Request, id string) {
-	dp, err := s.repo.GetDataproduct(r.Context(), id)
-	if err != nil {
-		s.log.WithError(err).Error("Get dataproduct")
-		http.Error(w, "uh oh", http.StatusInternalServerError)
-		return
-	}
+	// dp, err := s.repo.GetDataproduct(r.Context(), id)
+	// if err != nil {
+	// 	s.log.WithError(err).Error("Get dataproduct")
+	// 	http.Error(w, "uh oh", http.StatusInternalServerError)
+	// 	return
+	// }
 
-	w.Header().Add("Content-Type", "application/json")
-	if err := json.NewEncoder(w).Encode(dp); err != nil {
-		s.log.WithError(err).Error("Encoding dataproduct as JSON")
-		http.Error(w, "uh oh", http.StatusInternalServerError)
-		return
-	}
+	// w.Header().Add("Content-Type", "application/json")
+	// if err := json.NewEncoder(w).Encode(dp); err != nil {
+	// 	s.log.WithError(err).Error("Encoding dataproduct as JSON")
+	// 	http.Error(w, "uh oh", http.StatusInternalServerError)
+	// 	return
+	// }
 }
 
 // UpdateDataproduct (PUT /dataproducts/{id})
 func (s *Server) UpdateDataproduct(w http.ResponseWriter, r *http.Request, id string) {
-	var input openapi.UpdateDataproduct
-	if err := json.NewDecoder(r.Body).Decode(&input); err != nil {
-		s.log.WithError(err).Info("Decoding dataproduct")
-		http.Error(w, "invalid JSON object", http.StatusBadRequest)
-		return
-	}
+	// var input openapi.UpdateDataproduct
+	// if err := json.NewDecoder(r.Body).Decode(&input); err != nil {
+	// 	s.log.WithError(err).Info("Decoding dataproduct")
+	// 	http.Error(w, "invalid JSON object", http.StatusBadRequest)
+	// 	return
+	// }
 
-	user := auth.GetUser(r.Context())
+	// user := auth.GetUser(r.Context())
 
-	existing, err := s.repo.GetDataproduct(r.Context(), id)
-	if err != nil {
-		s.log.WithError(err).Error("Getting dataproduct for checking permissions on update updated")
-		http.Error(w, "uh oh", http.StatusInternalServerError)
-		return
-	}
+	// existing, err := s.repo.GetDataproduct(r.Context(), id)
+	// if err != nil {
+	// 	s.log.WithError(err).Error("Getting dataproduct for checking permissions on update updated")
+	// 	http.Error(w, "uh oh", http.StatusInternalServerError)
+	// 	return
+	// }
 
-	datasource := existing.Datasource.(openapi.Bigquery)
-	if !s.projectsMapping.OwnsProject(existing.Owner.Group, datasource.ProjectId) {
-		s.log.Infof("Creating dataproduct: BigQuery project %v is not owned by Group %v", datasource.ProjectId, existing.Owner.Group)
-		http.Error(w, "unauthorized", http.StatusUnauthorized)
-		return
-	}
+	// datasource := existing.Datasource.(openapi.Bigquery)
+	// if !s.projectsMapping.OwnsProject(existing.Owner.Group, datasource.ProjectId) {
+	// 	s.log.Infof("Creating dataproduct: BigQuery project %v is not owned by Group %v", datasource.ProjectId, existing.Owner.Group)
+	// 	http.Error(w, "unauthorized", http.StatusUnauthorized)
+	// 	return
+	// }
 
-	if !user.Groups.Contains(existing.Owner.Group) {
-		s.log.Infof("Updating dataproduct: User %v is not member of Group %v", user.Email, existing.Owner.Group)
-		http.Error(w, "unauthorized", http.StatusUnauthorized)
-		return
-	}
+	// if !user.Groups.Contains(existing.Owner.Group) {
+	// 	s.log.Infof("Updating dataproduct: User %v is not member of Group %v", user.Email, existing.Owner.Group)
+	// 	http.Error(w, "unauthorized", http.StatusUnauthorized)
+	// 	return
+	// }
 
-	updated, err := s.repo.UpdateDataproduct(r.Context(), id, input)
-	if err != nil {
-		s.log.WithError(err).Error("Updating dataproduct")
-		http.Error(w, "uh oh", http.StatusInternalServerError)
-		return
-	}
+	// updated, err := s.repo.UpdateDataproduct(r.Context(), id, input)
+	// if err != nil {
+	// 	s.log.WithError(err).Error("Updating dataproduct")
+	// 	http.Error(w, "uh oh", http.StatusInternalServerError)
+	// 	return
+	// }
 
-	s.log.Infof("Updated dataproduct: %v", updated.Name)
+	// s.log.Infof("Updated dataproduct: %v", updated.Name)
 
-	w.Header().Add("Content-Type", "application/json")
-	if err := json.NewEncoder(w).Encode(updated); err != nil {
-		s.log.WithError(err).Error("Encoding dataproduct as JSON")
-		http.Error(w, "uh oh", http.StatusInternalServerError)
-		return
-	}
+	// w.Header().Add("Content-Type", "application/json")
+	// if err := json.NewEncoder(w).Encode(updated); err != nil {
+	// 	s.log.WithError(err).Error("Encoding dataproduct as JSON")
+	// 	http.Error(w, "uh oh", http.StatusInternalServerError)
+	// 	return
+	// }
 }
 
 func (s *Server) GetDataproductMetadata(w http.ResponseWriter, r *http.Request, id string) {

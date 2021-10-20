@@ -13,6 +13,7 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/navikt/nada-backend/pkg/database/gensql"
+	"github.com/navikt/nada-backend/pkg/graph/models"
 	"github.com/navikt/nada-backend/pkg/openapi"
 
 	// Pin version of sqlc and goose for cli
@@ -230,28 +231,33 @@ func (r *Repo) CreateDataproduct(ctx context.Context, dp openapi.NewDataproduct)
 	return ret, nil
 }
 
-func (r *Repo) GetDataproduct(ctx context.Context, id string) (*openapi.Dataproduct, error) {
-	uid, err := uuid.Parse(id)
-	if err != nil {
-		return nil, fmt.Errorf("parsing uuid: %w", err)
-	}
-	res, err := r.querier.GetDataproduct(ctx, uid)
+func (r *Repo) GetDataproduct(ctx context.Context, id uuid.UUID) (*models.Dataproduct, error) {
+	res, err := r.querier.GetDataproduct(ctx, id)
 	if err != nil {
 		return nil, fmt.Errorf("getting dataproduct from database: %w", err)
 	}
 
-	bq, err := r.querier.GetBigqueryDatasource(ctx, res.ID)
-	if err != nil {
-		return nil, fmt.Errorf("getting bigquery datasource from database: %w", err)
-	}
+	// bq, err := r.querier.GetBigqueryDatasource(ctx, res.ID)
+	// if err != nil {
+	// 	return nil, fmt.Errorf("getting bigquery datasource from database: %w", err)
+	// }
 
-	ret := dataproductFromSQL(res)
-	ret.Datasource = openapi.Bigquery{
-		Dataset:   bq.Dataset,
-		ProjectId: bq.ProjectID,
-		Table:     bq.TableName,
+	// ret := dataproductFromSQL(res)
+	ret := &models.Dataproduct{
+		ID:           res.ID,
+		Name:         res.Name,
+		Created:      res.Created,
+		LastModified: res.LastModified,
+		Description:  nullStringToPtr(res.Description),
+		Slug:         res.Slug.String,
+		Repo:         nullStringToPtr(res.Repo),
+		Pii:          res.Pii,
+		Keywords:     res.Keywords,
+		Owner: &models.Owner{
+			Group: res.Group,
+		},
+		Type: models.DataproductType(res.Type),
 	}
-
 	return ret, nil
 }
 

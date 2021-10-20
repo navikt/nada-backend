@@ -9,10 +9,14 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/99designs/gqlgen/graphql/handler"
+	"github.com/99designs/gqlgen/graphql/playground"
 	"github.com/navikt/nada-backend/pkg/api"
 	"github.com/navikt/nada-backend/pkg/auth"
 	"github.com/navikt/nada-backend/pkg/database"
 	"github.com/navikt/nada-backend/pkg/database/gensql"
+	"github.com/navikt/nada-backend/pkg/graph"
+	"github.com/navikt/nada-backend/pkg/graph/generated"
 	"github.com/navikt/nada-backend/pkg/metadata"
 	"github.com/sirupsen/logrus"
 	flag "github.com/spf13/pflag"
@@ -88,11 +92,17 @@ func main() {
 	}
 
 	router := api.NewRouter(repo, oauth2Config, log.WithField("subsystem", "api"), teamProjectsMapping, gcp, datasetEnricher, authenticatorMiddleware)
+	_ = router
 	log.Info("Listening on :8080")
+
+	srv := handler.NewDefaultServer(generated.NewExecutableSchema(generated.Config{Resolvers: graph.New(repo)}))
+	mux := http.NewServeMux()
+	mux.Handle("/", playground.Handler("GraphQL playground", "/query"))
+	mux.Handle("/query", srv)
 
 	server := http.Server{
 		Addr:    cfg.BindAddress,
-		Handler: router,
+		Handler: mux,
 	}
 	go func() {
 		if err := server.ListenAndServe(); err != nil {

@@ -1,0 +1,58 @@
+type Dataproduct {
+	id: ID!
+	name: String!
+	description: String
+	created: Time!
+	last_modified: Time!
+	slug: String!
+	repo: String
+	pii: Boolean!
+	keywords: [String!]!
+	owner: Owner!
+	type: DataproductType!
+	datasource: Datasource!
+}
+
+type Owner {
+	Group: String!
+	Teamkatalogen: String!
+}
+
+enum DataproductType {
+	BigQuery
+}
+
+type BigQuery {
+	product_id: String!
+	dataset: String!
+	table: String!
+}
+
+union Datasource = BigQuery
+
+union CollectionElement = Dataproduct 
+
+type Collection {
+	id: ID!
+	elements: [CollectionElement!]!
+}
+
+extend type Query {
+	dataproduct(id: ID!): Dataproduct!
+	dataproducts: [Dataproduct!]!
+}
+
+input NewDataproduct {
+	name: String!
+	description: String
+	slug: String!
+	repo: String
+	pii: Boolean!
+	keywords: [String!]!
+	group: String!
+	type: DataproductType!
+}
+
+extend type Mutation {
+	createDataproduct(input: NewDataproduct!): Dataproduct!
+}
