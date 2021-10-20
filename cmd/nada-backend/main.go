@@ -9,8 +9,11 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/99designs/gqlgen/graphql"
 	"github.com/99designs/gqlgen/graphql/handler"
 	"github.com/99designs/gqlgen/graphql/playground"
+	"github.com/go-chi/chi"
+	"github.com/go-chi/cors"
 	"github.com/sirupsen/logrus"
 	flag "github.com/spf13/pflag"
 
@@ -98,14 +101,25 @@ func main() {
 
 	log.Info("Listening on :8080")
 
-	srv := handler.NewDefaultServer(generated.NewExecutableSchema(generated.Config{Resolvers: graph.New(repo)}))
-	mux := http.NewServeMux()
-	mux.Handle("/", playground.Handler("GraphQL playground", "/query"))
-	mux.Handle("/query", srv)
+	config := generated.Config{Resolvers: graph.New(repo)}
+	config.Directives.Authenticated = authenticate
+	srv := handler.NewDefaultServer(generated.NewExecutableSchema(config))
+	// mux := http.NewServeMux()
+
+	corsMW := cors.Handler(cors.Options{
+		AllowedOrigins:   []string{"https://*", "http://*"},
+		AllowedMethods:   []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
+		AllowCredentials: true,
+	})
+
+	baseRouter := chi.NewRouter()
+	baseRouter.Use(corsMW)
+	baseRouter.Handle("/", playground.Handler("GraphQL playground", "/query"))
+	baseRouter.Handle("/query", authenticatorMiddleware(srv))
 
 	server := http.Server{
 		Addr:    cfg.BindAddress,
-		Handler: mux,
+		Handler: baseRouter,
 	}
 	go func() {
 		if err := server.ListenAndServe(); err != nil {
@@ -144,4 +158,14 @@ type noopDatasetEnricher struct{}
 
 func (n *noopDatasetEnricher) UpdateSchema(ctx context.Context, ds gensql.DatasourceBigquery) error {
 	return nil
+}
+
+func authenticate(ctx context.Context, obj interface{}, next graphql.Resolver, on *bool) (res interface{}, err error) {
+	if auth.GetUser(ctx) == nil {
+		// block calling the next resolver
+		return nil, fmt.Errorf("access denied")
+	}
+
+	// or let it pass through
+	return next(ctx)
 }

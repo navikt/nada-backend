@@ -7,6 +7,9 @@ directive @goModel(model: String, models: [String!]) on OBJECT
     | INTERFACE
     | UNION
 
+
+directive @authenticated(on: Boolean) on FIELD_DEFINITION
+
 directive @goField(
     forceResolver: Boolean
     name: String

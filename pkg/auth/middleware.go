@@ -10,7 +10,6 @@ import (
 
 	"github.com/coreos/go-oidc/v3/oidc"
 	"github.com/navikt/nada-backend/pkg/metadata"
-	"github.com/navikt/nada-backend/pkg/openapi"
 	"github.com/sirupsen/logrus"
 )
 
@@ -26,7 +25,11 @@ type User struct {
 }
 
 func GetUser(ctx context.Context) *User {
-	return ctx.Value(contextUserKey).(*User)
+	user := ctx.Value(contextUserKey)
+	if user == nil {
+		return nil
+	}
+	return user.(*User)
 }
 
 type GroupsLister interface {
@@ -82,17 +85,15 @@ func newMiddleware(tokenVerifier *oidc.IDTokenVerifier, groupsLister GroupsListe
 	}
 }
 
-func (m *Middleware) Handler() openapi.MiddlewareFunc {
-	return func(next http.HandlerFunc) http.HandlerFunc {
-		return m.handle(next)
-	}
+func (m *Middleware) Handler(next http.Handler) http.Handler {
+	return m.handle(next)
 }
 
-func (m *Middleware) handle(next http.HandlerFunc) http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
+func (m *Middleware) handle(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		user, err := m.validateUser(w, r)
 		if err != nil {
-			http.Error(w, "uh oh", http.StatusForbidden)
+			next.ServeHTTP(w, r)
 			return
 		}
 
@@ -105,7 +106,7 @@ func (m *Middleware) handle(next http.HandlerFunc) http.HandlerFunc {
 		ctx := r.Context()
 		r = r.WithContext(context.WithValue(ctx, contextUserKey, user))
 		next.ServeHTTP(w, r)
-	}
+	})
 }
 
 func (m *Middleware) validateUser(w http.ResponseWriter, r *http.Request) (*User, error) {

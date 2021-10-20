@@ -139,13 +139,8 @@ func (r *Repo) GetCollection(ctx context.Context, id string) (*openapi.Collectio
 	return dp, nil
 }
 
-func (r *Repo) DeleteDataproduct(ctx context.Context, id string) error {
-	uid, err := uuid.Parse(id)
-	if err != nil {
-		return fmt.Errorf("parsing uuid: %w", err)
-	}
-
-	if err := r.querier.DeleteDataproduct(ctx, uid); err != nil {
+func (r *Repo) DeleteDataproduct(ctx context.Context, id uuid.UUID) error {
+	if err := r.querier.DeleteDataproduct(ctx, id); err != nil {
 		return fmt.Errorf("deleting dataproduct from database: %w", err)
 	}
 

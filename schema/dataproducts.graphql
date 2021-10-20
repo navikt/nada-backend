@@ -66,4 +66,5 @@ input UpdateDataproduct @goModel(model: "github.com/navikt/nada-backend/pkg/grap
 extend type Mutation {
     createDataproduct(input: NewDataproduct!): Dataproduct!
     updateDataproduct(id: ID!, input: UpdateDataproduct!): Dataproduct!
+    deleteDataproduct(id: ID!) : Boolean!
 }

@@ -23,6 +23,11 @@ func (r *mutationResolver) UpdateDataproduct(ctx context.Context, id uuid.UUID, 
 	return r.repo.UpdateDataproduct(ctx, id, input)
 }
 
+func (r *mutationResolver) DeleteDataproduct(ctx context.Context, id uuid.UUID) (bool, error) {
+	err := r.repo.DeleteDataproduct(ctx, id)
+	return err == nil, err
+}
+
 func (r *queryResolver) Dataproduct(ctx context.Context, id uuid.UUID) (*models.Dataproduct, error) {
 	return r.repo.GetDataproduct(ctx, id)
 }
