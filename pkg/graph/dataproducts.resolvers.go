@@ -5,7 +5,6 @@ package graph
 
 import (
 	"context"
-	"fmt"
 
 	"github.com/google/uuid"
 	"github.com/navikt/nada-backend/pkg/graph/generated"
@@ -13,11 +12,11 @@ import (
 )
 
 func (r *dataproductResolver) Datasource(ctx context.Context, obj *models.Dataproduct) (models.Datasource, error) {
-	panic(fmt.Errorf("not implemented"))
+	return r.repo.GetBigqueryDatasource(ctx, obj.ID)
 }
 
 func (r *mutationResolver) CreateDataproduct(ctx context.Context, input models.NewDataproduct) (*models.Dataproduct, error) {
-	panic(fmt.Errorf("not implemented"))
+	return r.repo.CreateDataproduct(ctx, input)
 }
 
 func (r *queryResolver) Dataproduct(ctx context.Context, id uuid.UUID) (*models.Dataproduct, error) {
@@ -25,7 +24,7 @@ func (r *queryResolver) Dataproduct(ctx context.Context, id uuid.UUID) (*models.
 }
 
 func (r *queryResolver) Dataproducts(ctx context.Context) ([]*models.Dataproduct, error) {
-	panic(fmt.Errorf("not implemented"))
+	return r.repo.GetDataproducts(ctx, 1000, 0)
 }
 
 // Dataproduct returns generated.DataproductResolver implementation.

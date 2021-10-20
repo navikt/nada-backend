@@ -46,14 +46,24 @@ input NewBigQuery @goModel(model: "github.com/navikt/nada-backend/pkg/graph/mode
 input NewDataproduct @goModel(model: "github.com/navikt/nada-backend/pkg/graph/models.NewDataproduct") {
     name: String!
     description: String
-    slug: String!
+    slug: String
     repo: String
     pii: Boolean!
-    keywords: [String!]!
+    keywords: [String!]
     group: String!
     bigquery: NewBigQuery!
 }
 
+input UpdateDataproduct @goModel(model: "github.com/navikt/nada-backend/pkg/graph/models.UpdateDataproduct") {
+    name: String!
+    description: String
+    slug: String
+    repo: String
+    pii: Boolean!
+    keywords: [String!]
+}
+
 extend type Mutation {
     createDataproduct(input: NewDataproduct!): Dataproduct!
+    updateDataproduct(id: ID!, input: UpdateDataproduct!): Dataproduct!
 }

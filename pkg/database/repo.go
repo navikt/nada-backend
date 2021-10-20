@@ -156,6 +156,19 @@ func (r *Repo) GetBigqueryDatasources(ctx context.Context) ([]gensql.DatasourceB
 	return r.querier.GetBigqueryDatasources(ctx)
 }
 
+func (r *Repo) GetBigqueryDatasource(ctx context.Context, dataproductID uuid.UUID) (models.BigQuery, error) {
+	bq, err := r.querier.GetBigqueryDatasource(ctx, dataproductID)
+	if err != nil {
+		return models.BigQuery{}, err
+	}
+
+	return models.BigQuery{
+		ProjectID: bq.ProjectID,
+		Dataset:   bq.Dataset,
+		Table:     bq.TableName,
+	}, nil
+}
+
 func (r *Repo) UpdateCollection(ctx context.Context, id string, new openapi.UpdateCollection) (*openapi.Collection, error) {
 	uid, err := uuid.Parse(id)
 	if err != nil {
@@ -180,41 +193,36 @@ func (r *Repo) UpdateCollection(ctx context.Context, id string, new openapi.Upda
 	return collectionFromSQL(res), nil
 }
 
-func (r *Repo) CreateDataproduct(ctx context.Context, dp openapi.NewDataproduct) (*models.Dataproduct, error) {
+func (r *Repo) CreateDataproduct(ctx context.Context, dp models.NewDataproduct) (*models.Dataproduct, error) {
 	tx, err := r.db.Begin()
 	if err != nil {
 		return nil, err
 	}
-	querier := r.querier.WithTx(tx)
 
-	keywords := []string{}
-	if dp.Keywords != nil && *dp.Keywords != nil {
-		keywords = *dp.Keywords
+	if dp.Keywords == nil {
+		dp.Keywords = []string{}
 	}
+
+	querier := r.querier.WithTx(tx)
 	created, err := querier.CreateDataproduct(ctx, gensql.CreateDataproductParams{
 		Name:        dp.Name,
 		Description: ptrToNullString(dp.Description),
 		Pii:         dp.Pii,
 		Type:        "bigquery",
-		OwnerGroup:  dp.Owner.Group,
-		Slug:        ptrToNullString(dp.Slug),
+		OwnerGroup:  dp.Group,
+		Slug:        slugify(dp.Slug, dp.Name),
 		Repo:        ptrToNullString(dp.Repo),
-		Keywords:    keywords,
+		Keywords:    dp.Keywords,
 	})
-	if err != nil {
-		return nil, err
-	}
-
-	datasource, err := MapDatasource(dp.Datasource)
 	if err != nil {
 		return nil, err
 	}
 
 	_, err = querier.CreateBigqueryDatasource(ctx, gensql.CreateBigqueryDatasourceParams{
 		DataproductID: created.ID,
-		ProjectID:     datasource.ProjectId,
-		Dataset:       datasource.Dataset,
-		TableName:     datasource.Table,
+		ProjectID:     dp.BigQuery.ProjectID,
+		Dataset:       dp.BigQuery.Dataset,
+		TableName:     dp.BigQuery.Table,
 	})
 	if err != nil {
 		if err := tx.Rollback(); err != nil {
@@ -240,24 +248,23 @@ func (r *Repo) GetDataproduct(ctx context.Context, id uuid.UUID) (*models.Datapr
 	return dataproductFromSQL(res), nil
 }
 
-func (r *Repo) UpdateDataproduct(ctx context.Context, id string, new openapi.UpdateDataproduct) (*models.Dataproduct, error) {
+func (r *Repo) UpdateDataproduct(ctx context.Context, id string, new models.UpdateDataproduct) (*models.Dataproduct, error) {
 	uid, err := uuid.Parse(id)
 	if err != nil {
 		return nil, fmt.Errorf("parsing uuid: %w", err)
 	}
 
-	keywords := []string{}
-	if new.Keywords != nil && *new.Keywords != nil {
-		keywords = *new.Keywords
+	if new.Keywords == nil {
+		new.Keywords = []string{}
 	}
 	res, err := r.querier.UpdateDataproduct(ctx, gensql.UpdateDataproductParams{
 		Name:        new.Name,
 		Description: ptrToNullString(new.Description),
 		ID:          uid,
 		Pii:         new.Pii,
-		Slug:        ptrToNullString(new.Slug),
+		Slug:        slugify(new.Slug, new.Name),
 		Repo:        ptrToNullString(new.Repo),
-		Keywords:    keywords,
+		Keywords:    new.Keywords,
 	})
 	if err != nil {
 		return nil, fmt.Errorf("updating dataproduct in database: %w", err)
@@ -404,7 +411,7 @@ func dataproductFromSQL(dp gensql.Dataproduct) *models.Dataproduct {
 		Created:      dp.Created,
 		LastModified: dp.LastModified,
 		Description:  nullStringToPtr(dp.Description),
-		Slug:         dp.Slug.String,
+		Slug:         dp.Slug,
 		Repo:         nullStringToPtr(dp.Repo),
 		Pii:          dp.Pii,
 		Keywords:     dp.Keywords,

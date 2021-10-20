@@ -58,7 +58,7 @@ type Dataproduct struct {
 	LastModified time.Time
 	Type         DatasourceType
 	TsvDocument  interface{}
-	Slug         sql.NullString
+	Slug         string
 	Repo         sql.NullString
 	Keywords     []string
 }

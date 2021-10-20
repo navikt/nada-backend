@@ -76,6 +76,7 @@ type ComplexityRoot struct {
 	Mutation struct {
 		CreateDataproduct func(childComplexity int, input models.NewDataproduct) int
 		Dummy             func(childComplexity int, no *string) int
+		UpdateDataproduct func(childComplexity int, id uuid.UUID, input models.UpdateDataproduct) int
 	}
 
 	Owner struct {
@@ -96,6 +97,7 @@ type DataproductResolver interface {
 type MutationResolver interface {
 	Dummy(ctx context.Context, no *string) (*string, error)
 	CreateDataproduct(ctx context.Context, input models.NewDataproduct) (*models.Dataproduct, error)
+	UpdateDataproduct(ctx context.Context, id uuid.UUID, input models.UpdateDataproduct) (*models.Dataproduct, error)
 }
 type QueryResolver interface {
 	Version(ctx context.Context) (string, error)
@@ -254,6 +256,18 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.Mutation.Dummy(childComplexity, args["no"].(*string)), true
 
+	case "Mutation.updateDataproduct":
+		if e.complexity.Mutation.UpdateDataproduct == nil {
+			break
+		}
+
+		args, err := ec.field_Mutation_updateDataproduct_args(context.TODO(), rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Mutation.UpdateDataproduct(childComplexity, args["id"].(uuid.UUID), args["input"].(models.UpdateDataproduct)), true
+
 	case "Owner.group":
 		if e.complexity.Owner.Group == nil {
 			break
@@ -406,16 +420,26 @@ input NewBigQuery @goModel(model: "github.com/navikt/nada-backend/pkg/graph/mode
 input NewDataproduct @goModel(model: "github.com/navikt/nada-backend/pkg/graph/models.NewDataproduct") {
     name: String!
     description: String
-    slug: String!
+    slug: String
     repo: String
     pii: Boolean!
-    keywords: [String!]!
+    keywords: [String!]
     group: String!
     bigquery: NewBigQuery!
 }
 
+input UpdateDataproduct @goModel(model: "github.com/navikt/nada-backend/pkg/graph/models.UpdateDataproduct") {
+    name: String!
+    description: String
+    slug: String
+    repo: String
+    pii: Boolean!
+    keywords: [String!]
+}
+
 extend type Mutation {
     createDataproduct(input: NewDataproduct!): Dataproduct!
+    updateDataproduct(id: ID!, input: UpdateDataproduct!): Dataproduct!
 }
 `, BuiltIn: false},
 	{Name: "schema/main.graphql", Input: `scalar Time
@@ -474,6 +498,30 @@ func (ec *executionContext) field_Mutation_dummy_args(ctx context.Context, rawAr
 		}
 	}
 	args["no"] = arg0
+	return args, nil
+}
+
+func (ec *executionContext) field_Mutation_updateDataproduct_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
+	var err error
+	args := map[string]interface{}{}
+	var arg0 uuid.UUID
+	if tmp, ok := rawArgs["id"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("id"))
+		arg0, err = ec.unmarshalNID2githubᚗcomᚋgoogleᚋuuidᚐUUID(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["id"] = arg0
+	var arg1 models.UpdateDataproduct
+	if tmp, ok := rawArgs["input"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("input"))
+		arg1, err = ec.unmarshalNUpdateDataproduct2githubᚗcomᚋnaviktᚋnadaᚑbackendᚋpkgᚋgraphᚋmodelsᚐUpdateDataproduct(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["input"] = arg1
 	return args, nil
 }
 
@@ -1164,6 +1212,48 @@ func (ec *executionContext) _Mutation_createDataproduct(ctx context.Context, fie
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
 		return ec.resolvers.Mutation().CreateDataproduct(rctx, args["input"].(models.NewDataproduct))
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(*models.Dataproduct)
+	fc.Result = res
+	return ec.marshalNDataproduct2ᚖgithubᚗcomᚋnaviktᚋnadaᚑbackendᚋpkgᚋgraphᚋmodelsᚐDataproduct(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _Mutation_updateDataproduct(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "Mutation",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   true,
+		IsResolver: true,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	rawArgs := field.ArgumentMap(ec.Variables)
+	args, err := ec.field_Mutation_updateDataproduct_args(ctx, rawArgs)
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	fc.Args = args
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.Mutation().UpdateDataproduct(rctx, args["id"].(uuid.UUID), args["input"].(models.UpdateDataproduct))
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -2623,7 +2713,7 @@ func (ec *executionContext) unmarshalInputNewDataproduct(ctx context.Context, ob
 			var err error
 
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("slug"))
-			it.Slug, err = ec.unmarshalNString2string(ctx, v)
+			it.Slug, err = ec.unmarshalOString2ᚖstring(ctx, v)
 			if err != nil {
 				return it, err
 			}
@@ -2647,7 +2737,7 @@ func (ec *executionContext) unmarshalInputNewDataproduct(ctx context.Context, ob
 			var err error
 
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("keywords"))
-			it.Keywords, err = ec.unmarshalNString2ᚕstringᚄ(ctx, v)
+			it.Keywords, err = ec.unmarshalOString2ᚕstringᚄ(ctx, v)
 			if err != nil {
 				return it, err
 			}
@@ -2664,6 +2754,69 @@ func (ec *executionContext) unmarshalInputNewDataproduct(ctx context.Context, ob
 
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("bigquery"))
 			it.BigQuery, err = ec.unmarshalNNewBigQuery2githubᚗcomᚋnaviktᚋnadaᚑbackendᚋpkgᚋgraphᚋmodelsᚐNewBigQuery(ctx, v)
+			if err != nil {
+				return it, err
+			}
+		}
+	}
+
+	return it, nil
+}
+
+func (ec *executionContext) unmarshalInputUpdateDataproduct(ctx context.Context, obj interface{}) (models.UpdateDataproduct, error) {
+	var it models.UpdateDataproduct
+	asMap := map[string]interface{}{}
+	for k, v := range obj.(map[string]interface{}) {
+		asMap[k] = v
+	}
+
+	for k, v := range asMap {
+		switch k {
+		case "name":
+			var err error
+
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("name"))
+			it.Name, err = ec.unmarshalNString2string(ctx, v)
+			if err != nil {
+				return it, err
+			}
+		case "description":
+			var err error
+
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("description"))
+			it.Description, err = ec.unmarshalOString2ᚖstring(ctx, v)
+			if err != nil {
+				return it, err
+			}
+		case "slug":
+			var err error
+
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("slug"))
+			it.Slug, err = ec.unmarshalOString2ᚖstring(ctx, v)
+			if err != nil {
+				return it, err
+			}
+		case "repo":
+			var err error
+
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("repo"))
+			it.Repo, err = ec.unmarshalOString2ᚖstring(ctx, v)
+			if err != nil {
+				return it, err
+			}
+		case "pii":
+			var err error
+
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("pii"))
+			it.Pii, err = ec.unmarshalNBoolean2bool(ctx, v)
+			if err != nil {
+				return it, err
+			}
+		case "keywords":
+			var err error
+
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("keywords"))
+			it.Keywords, err = ec.unmarshalOString2ᚕstringᚄ(ctx, v)
 			if err != nil {
 				return it, err
 			}
@@ -2881,6 +3034,11 @@ func (ec *executionContext) _Mutation(ctx context.Context, sel ast.SelectionSet)
 			out.Values[i] = ec._Mutation_dummy(ctx, field)
 		case "createDataproduct":
 			out.Values[i] = ec._Mutation_createDataproduct(ctx, field)
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
+		case "updateDataproduct":
+			out.Values[i] = ec._Mutation_updateDataproduct(ctx, field)
 			if out.Values[i] == graphql.Null {
 				invalids++
 			}
@@ -3485,6 +3643,11 @@ func (ec *executionContext) marshalNTime2timeᚐTime(ctx context.Context, sel as
 		}
 	}
 	return res
+}
+
+func (ec *executionContext) unmarshalNUpdateDataproduct2githubᚗcomᚋnaviktᚋnadaᚑbackendᚋpkgᚋgraphᚋmodelsᚐUpdateDataproduct(ctx context.Context, v interface{}) (models.UpdateDataproduct, error) {
+	res, err := ec.unmarshalInputUpdateDataproduct(ctx, v)
+	return res, graphql.ErrorOnPath(ctx, err)
 }
 
 func (ec *executionContext) marshalN__Directive2githubᚗcomᚋ99designsᚋgqlgenᚋgraphqlᚋintrospectionᚐDirective(ctx context.Context, sel ast.SelectionSet, v introspection.Directive) graphql.Marshaler {

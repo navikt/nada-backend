@@ -1,5 +1,6 @@
 package api
 
+/*
 import (
 	"encoding/json"
 	"net/http"
@@ -27,3 +28,4 @@ func (s *Server) GetGCPProjects(w http.ResponseWriter, r *http.Request, groupEma
 		s.log.WithError(err).Error("Encoding gcp projects as JSON")
 	}
 }
+*/

@@ -45,12 +45,21 @@ type NewBigQuery struct {
 type NewDataproduct struct {
 	Name        string      `json:"name"`
 	Description *string     `json:"description"`
-	Slug        string      `json:"slug"`
+	Slug        *string     `json:"slug"`
 	Repo        *string     `json:"repo"`
 	Pii         bool        `json:"pii"`
 	Keywords    []string    `json:"keywords"`
 	Group       string      `json:"group"`
 	BigQuery    NewBigQuery `json:"bigquery"`
+}
+
+type UpdateDataproduct struct {
+	Name        string   `json:"name"`
+	Description *string  `json:"description"`
+	Slug        *string  `json:"slug"`
+	Repo        *string  `json:"repo"`
+	Pii         bool     `json:"pii"`
+	Keywords    []string `json:"keywords"`
 }
 
 type Owner struct {

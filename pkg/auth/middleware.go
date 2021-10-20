@@ -90,11 +90,6 @@ func (m *Middleware) Handler() openapi.MiddlewareFunc {
 
 func (m *Middleware) handle(next http.HandlerFunc) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		if r.Context().Value(openapi.CookieAuthScopes) == nil {
-			next.ServeHTTP(w, r)
-			return
-		}
-
 		user, err := m.validateUser(w, r)
 		if err != nil {
 			http.Error(w, "uh oh", http.StatusForbidden)

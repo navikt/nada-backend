@@ -63,8 +63,10 @@ func main() {
 	}
 
 	authenticatorMiddleware := auth.MockJWTValidatorMiddleware()
+	_ = authenticatorMiddleware
 	teamProjectsMapping := &auth.MockTeamProjectsUpdater
 	var oauth2Config api.OAuth2
+	_ = oauth2Config
 	if !cfg.MockAuth {
 		teamProjectsMapping = auth.NewTeamProjectsUpdater(cfg.DevTeamProjectsOutputURL, cfg.ProdTeamProjectsOutputURL, cfg.TeamsToken, http.DefaultClient)
 		go teamProjectsMapping.Run(ctx, TeamProjectsUpdateFrequency)
@@ -80,7 +82,9 @@ func main() {
 	}
 
 	var gcp api.GCP
+	_ = gcp
 	var datasetEnricher api.DatasetEnricher = &noopDatasetEnricher{}
+	_ = datasetEnricher
 	if !cfg.SkipMetadataSync {
 		datacatalogClient, err := metadata.NewDatacatalog(ctx)
 		if err != nil {
@@ -92,8 +96,6 @@ func main() {
 		go de.Run(ctx, DatasetMetadataUpdateFrequency)
 	}
 
-	router := api.NewRouter(repo, oauth2Config, log.WithField("subsystem", "api"), teamProjectsMapping, gcp, datasetEnricher, authenticatorMiddleware)
-	_ = router
 	log.Info("Listening on :8080")
 
 	srv := handler.NewDefaultServer(generated.NewExecutableSchema(generated.Config{Resolvers: graph.New(repo)}))

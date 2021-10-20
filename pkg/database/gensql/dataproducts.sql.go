@@ -75,7 +75,7 @@ type CreateDataproductParams struct {
 	Pii         bool
 	Type        DatasourceType
 	OwnerGroup  string
-	Slug        sql.NullString
+	Slug        string
 	Repo        sql.NullString
 	Keywords    []string
 }
@@ -279,7 +279,7 @@ type UpdateDataproductParams struct {
 	Name        string
 	Description sql.NullString
 	Pii         bool
-	Slug        sql.NullString
+	Slug        string
 	Repo        sql.NullString
 	Keywords    []string
 	ID          uuid.UUID
