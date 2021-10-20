@@ -55,6 +55,13 @@ type ComplexityRoot struct {
 		Table     func(childComplexity int) int
 	}
 
+	BigQueryTable struct {
+		Description  func(childComplexity int) int
+		LastModified func(childComplexity int) int
+		Name         func(childComplexity int) int
+		Type         func(childComplexity int) int
+	}
+
 	Collection struct {
 		Elements func(childComplexity int) int
 		ID       func(childComplexity int) int
@@ -92,10 +99,12 @@ type ComplexityRoot struct {
 	}
 
 	Query struct {
-		Dataproduct  func(childComplexity int, id uuid.UUID) int
-		Dataproducts func(childComplexity int) int
-		UserInfo     func(childComplexity int) int
-		Version      func(childComplexity int) int
+		Dataproduct    func(childComplexity int, id uuid.UUID) int
+		Dataproducts   func(childComplexity int) int
+		GcpGetDatasets func(childComplexity int, projectID string) int
+		GcpGetTables   func(childComplexity int, projectID string, datasetID string) int
+		UserInfo       func(childComplexity int) int
+		Version        func(childComplexity int) int
 	}
 
 	UserInfo struct {
@@ -118,6 +127,8 @@ type QueryResolver interface {
 	Version(ctx context.Context) (string, error)
 	Dataproduct(ctx context.Context, id uuid.UUID) (*models.Dataproduct, error)
 	Dataproducts(ctx context.Context) ([]*models.Dataproduct, error)
+	GcpGetTables(ctx context.Context, projectID string, datasetID string) ([]*models.BigQueryTable, error)
+	GcpGetDatasets(ctx context.Context, projectID string) ([]string, error)
 	UserInfo(ctx context.Context) (*models.UserInfo, error)
 }
 
@@ -156,6 +167,34 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 		}
 
 		return e.complexity.BigQuery.Table(childComplexity), true
+
+	case "BigQueryTable.description":
+		if e.complexity.BigQueryTable.Description == nil {
+			break
+		}
+
+		return e.complexity.BigQueryTable.Description(childComplexity), true
+
+	case "BigQueryTable.lastModified":
+		if e.complexity.BigQueryTable.LastModified == nil {
+			break
+		}
+
+		return e.complexity.BigQueryTable.LastModified(childComplexity), true
+
+	case "BigQueryTable.name":
+		if e.complexity.BigQueryTable.Name == nil {
+			break
+		}
+
+		return e.complexity.BigQueryTable.Name(childComplexity), true
+
+	case "BigQueryTable.type":
+		if e.complexity.BigQueryTable.Type == nil {
+			break
+		}
+
+		return e.complexity.BigQueryTable.Type(childComplexity), true
 
 	case "Collection.elements":
 		if e.complexity.Collection.Elements == nil {
@@ -343,6 +382,30 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.Query.Dataproducts(childComplexity), true
 
+	case "Query.gcpGetDatasets":
+		if e.complexity.Query.GcpGetDatasets == nil {
+			break
+		}
+
+		args, err := ec.field_Query_gcpGetDatasets_args(context.TODO(), rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Query.GcpGetDatasets(childComplexity, args["projectID"].(string)), true
+
+	case "Query.gcpGetTables":
+		if e.complexity.Query.GcpGetTables == nil {
+			break
+		}
+
+		args, err := ec.field_Query_gcpGetTables_args(context.TODO(), rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Query.GcpGetTables(childComplexity, args["projectID"].(string), args["datasetID"].(string)), true
+
 	case "Query.userInfo":
 		if e.complexity.Query.UserInfo == nil {
 			break
@@ -513,6 +576,24 @@ extend type Mutation {
     deleteDataproduct(id: ID!) : Boolean!
 }
 `, BuiltIn: false},
+	{Name: "schema/gcp.graphql", Input: `enum BigQueryType @goModel(model: "github.com/navikt/nada-backend/pkg/graph/models.BigQueryType") {
+    table
+    view
+    materialized_view
+}
+
+type BigQueryTable @goModel(model: "github.com/navikt/nada-backend/pkg/graph/models.BigQueryTable") {
+    description:  String!
+	lastModified: Time!
+	name:         String!
+	type:         BigQueryType!
+}
+
+extend type Query {
+    gcpGetTables(projectID: String!, datasetID: String!): [BigQueryTable!]!
+    gcpGetDatasets(projectID: String!): [String!]!
+}
+`, BuiltIn: false},
 	{Name: "schema/main.graphql", Input: `scalar Time
 
 directive @goModel(model: String, models: [String!]) on OBJECT
@@ -674,6 +755,45 @@ func (ec *executionContext) field_Query_dataproduct_args(ctx context.Context, ra
 	return args, nil
 }
 
+func (ec *executionContext) field_Query_gcpGetDatasets_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
+	var err error
+	args := map[string]interface{}{}
+	var arg0 string
+	if tmp, ok := rawArgs["projectID"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("projectID"))
+		arg0, err = ec.unmarshalNString2string(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["projectID"] = arg0
+	return args, nil
+}
+
+func (ec *executionContext) field_Query_gcpGetTables_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
+	var err error
+	args := map[string]interface{}{}
+	var arg0 string
+	if tmp, ok := rawArgs["projectID"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("projectID"))
+		arg0, err = ec.unmarshalNString2string(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["projectID"] = arg0
+	var arg1 string
+	if tmp, ok := rawArgs["datasetID"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("datasetID"))
+		arg1, err = ec.unmarshalNString2string(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["datasetID"] = arg1
+	return args, nil
+}
+
 func (ec *executionContext) field___Type_enumValues_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
 	var err error
 	args := map[string]interface{}{}
@@ -815,6 +935,146 @@ func (ec *executionContext) _BigQuery_table(ctx context.Context, field graphql.C
 	res := resTmp.(string)
 	fc.Result = res
 	return ec.marshalNString2string(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _BigQueryTable_description(ctx context.Context, field graphql.CollectedField, obj *models.BigQueryTable) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "BigQueryTable",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   false,
+		IsResolver: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Description, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(string)
+	fc.Result = res
+	return ec.marshalNString2string(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _BigQueryTable_lastModified(ctx context.Context, field graphql.CollectedField, obj *models.BigQueryTable) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "BigQueryTable",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   false,
+		IsResolver: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.LastModified, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(time.Time)
+	fc.Result = res
+	return ec.marshalNTime2timeᚐTime(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _BigQueryTable_name(ctx context.Context, field graphql.CollectedField, obj *models.BigQueryTable) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "BigQueryTable",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   false,
+		IsResolver: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Name, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(string)
+	fc.Result = res
+	return ec.marshalNString2string(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _BigQueryTable_type(ctx context.Context, field graphql.CollectedField, obj *models.BigQueryTable) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "BigQueryTable",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   false,
+		IsResolver: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Type, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(models.BigQueryType)
+	fc.Result = res
+	return ec.marshalNBigQueryType2githubᚗcomᚋnaviktᚋnadaᚑbackendᚋpkgᚋgraphᚋmodelsᚐBigQueryType(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _Collection_id(ctx context.Context, field graphql.CollectedField, obj *models.Collection) (ret graphql.Marshaler) {
@@ -1681,6 +1941,90 @@ func (ec *executionContext) _Query_dataproducts(ctx context.Context, field graph
 	res := resTmp.([]*models.Dataproduct)
 	fc.Result = res
 	return ec.marshalNDataproduct2ᚕᚖgithubᚗcomᚋnaviktᚋnadaᚑbackendᚋpkgᚋgraphᚋmodelsᚐDataproductᚄ(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _Query_gcpGetTables(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "Query",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   true,
+		IsResolver: true,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	rawArgs := field.ArgumentMap(ec.Variables)
+	args, err := ec.field_Query_gcpGetTables_args(ctx, rawArgs)
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	fc.Args = args
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.Query().GcpGetTables(rctx, args["projectID"].(string), args["datasetID"].(string))
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.([]*models.BigQueryTable)
+	fc.Result = res
+	return ec.marshalNBigQueryTable2ᚕᚖgithubᚗcomᚋnaviktᚋnadaᚑbackendᚋpkgᚋgraphᚋmodelsᚐBigQueryTableᚄ(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _Query_gcpGetDatasets(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "Query",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   true,
+		IsResolver: true,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	rawArgs := field.ArgumentMap(ec.Variables)
+	args, err := ec.field_Query_gcpGetDatasets_args(ctx, rawArgs)
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	fc.Args = args
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.Query().GcpGetDatasets(rctx, args["projectID"].(string))
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.([]string)
+	fc.Result = res
+	return ec.marshalNString2ᚕstringᚄ(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _Query_userInfo(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
@@ -3294,6 +3638,48 @@ func (ec *executionContext) _BigQuery(ctx context.Context, sel ast.SelectionSet,
 	return out
 }
 
+var bigQueryTableImplementors = []string{"BigQueryTable"}
+
+func (ec *executionContext) _BigQueryTable(ctx context.Context, sel ast.SelectionSet, obj *models.BigQueryTable) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, bigQueryTableImplementors)
+
+	out := graphql.NewFieldSet(fields)
+	var invalids uint32
+	for i, field := range fields {
+		switch field.Name {
+		case "__typename":
+			out.Values[i] = graphql.MarshalString("BigQueryTable")
+		case "description":
+			out.Values[i] = ec._BigQueryTable_description(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
+		case "lastModified":
+			out.Values[i] = ec._BigQueryTable_lastModified(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
+		case "name":
+			out.Values[i] = ec._BigQueryTable_name(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
+		case "type":
+			out.Values[i] = ec._BigQueryTable_type(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
+		default:
+			panic("unknown field " + strconv.Quote(field.Name))
+		}
+	}
+	out.Dispatch()
+	if invalids > 0 {
+		return graphql.Null
+	}
+	return out
+}
+
 var collectionImplementors = []string{"Collection"}
 
 func (ec *executionContext) _Collection(ctx context.Context, sel ast.SelectionSet, obj *models.Collection) graphql.Marshaler {
@@ -3565,6 +3951,34 @@ func (ec *executionContext) _Query(ctx context.Context, sel ast.SelectionSet) gr
 					}
 				}()
 				res = ec._Query_dataproducts(ctx, field)
+				if res == graphql.Null {
+					atomic.AddUint32(&invalids, 1)
+				}
+				return res
+			})
+		case "gcpGetTables":
+			field := field
+			out.Concurrently(i, func() (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._Query_gcpGetTables(ctx, field)
+				if res == graphql.Null {
+					atomic.AddUint32(&invalids, 1)
+				}
+				return res
+			})
+		case "gcpGetDatasets":
+			field := field
+			out.Concurrently(i, func() (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._Query_gcpGetDatasets(ctx, field)
 				if res == graphql.Null {
 					atomic.AddUint32(&invalids, 1)
 				}
@@ -3885,6 +4299,70 @@ func (ec *executionContext) ___Type(ctx context.Context, sel ast.SelectionSet, o
 // endregion **************************** object.gotpl ****************************
 
 // region    ***************************** type.gotpl *****************************
+
+func (ec *executionContext) marshalNBigQueryTable2ᚕᚖgithubᚗcomᚋnaviktᚋnadaᚑbackendᚋpkgᚋgraphᚋmodelsᚐBigQueryTableᚄ(ctx context.Context, sel ast.SelectionSet, v []*models.BigQueryTable) graphql.Marshaler {
+	ret := make(graphql.Array, len(v))
+	var wg sync.WaitGroup
+	isLen1 := len(v) == 1
+	if !isLen1 {
+		wg.Add(len(v))
+	}
+	for i := range v {
+		i := i
+		fc := &graphql.FieldContext{
+			Index:  &i,
+			Result: &v[i],
+		}
+		ctx := graphql.WithFieldContext(ctx, fc)
+		f := func(i int) {
+			defer func() {
+				if r := recover(); r != nil {
+					ec.Error(ctx, ec.Recover(ctx, r))
+					ret = nil
+				}
+			}()
+			if !isLen1 {
+				defer wg.Done()
+			}
+			ret[i] = ec.marshalNBigQueryTable2ᚖgithubᚗcomᚋnaviktᚋnadaᚑbackendᚋpkgᚋgraphᚋmodelsᚐBigQueryTable(ctx, sel, v[i])
+		}
+		if isLen1 {
+			f(i)
+		} else {
+			go f(i)
+		}
+
+	}
+	wg.Wait()
+
+	for _, e := range ret {
+		if e == graphql.Null {
+			return graphql.Null
+		}
+	}
+
+	return ret
+}
+
+func (ec *executionContext) marshalNBigQueryTable2ᚖgithubᚗcomᚋnaviktᚋnadaᚑbackendᚋpkgᚋgraphᚋmodelsᚐBigQueryTable(ctx context.Context, sel ast.SelectionSet, v *models.BigQueryTable) graphql.Marshaler {
+	if v == nil {
+		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	return ec._BigQueryTable(ctx, sel, v)
+}
+
+func (ec *executionContext) unmarshalNBigQueryType2githubᚗcomᚋnaviktᚋnadaᚑbackendᚋpkgᚋgraphᚋmodelsᚐBigQueryType(ctx context.Context, v interface{}) (models.BigQueryType, error) {
+	var res models.BigQueryType
+	err := res.UnmarshalGQL(v)
+	return res, graphql.ErrorOnPath(ctx, err)
+}
+
+func (ec *executionContext) marshalNBigQueryType2githubᚗcomᚋnaviktᚋnadaᚑbackendᚋpkgᚋgraphᚋmodelsᚐBigQueryType(ctx context.Context, sel ast.SelectionSet, v models.BigQueryType) graphql.Marshaler {
+	return v
+}
 
 func (ec *executionContext) unmarshalNBoolean2bool(ctx context.Context, v interface{}) (bool, error) {
 	res, err := graphql.UnmarshalBoolean(v)

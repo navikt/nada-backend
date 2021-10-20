@@ -1,0 +1,17 @@
+enum BigQueryType @goModel(model: "github.com/navikt/nada-backend/pkg/graph/models.BigQueryType") {
+    table
+    view
+    materialized_view
+}
+
+type BigQueryTable @goModel(model: "github.com/navikt/nada-backend/pkg/graph/models.BigQueryTable") {
+    description:  String!
+	lastModified: Time!
+	name:         String!
+	type:         BigQueryType!
+}
+
+extend type Query {
+    gcpGetTables(projectID: String!, datasetID: String!): [BigQueryTable!]!
+    gcpGetDatasets(projectID: String!): [String!]!
+}

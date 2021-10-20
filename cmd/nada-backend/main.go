@@ -84,7 +84,7 @@ func main() {
 		authenticatorMiddleware = gauth.Middleware(googleGroups)
 	}
 
-	var gcp api.GCP
+	var gcp graph.GCP
 	_ = gcp
 	var datasetEnricher api.DatasetEnricher = &noopDatasetEnricher{}
 	_ = datasetEnricher
@@ -101,7 +101,7 @@ func main() {
 
 	log.Info("Listening on :8080")
 
-	config := generated.Config{Resolvers: graph.New(repo)}
+	config := generated.Config{Resolvers: graph.New(repo, gcp)}
 	config.Directives.Authenticated = authenticate
 	srv := handler.NewDefaultServer(generated.NewExecutableSchema(config))
 	// mux := http.NewServeMux()
