@@ -19,6 +19,10 @@ func (r *mutationResolver) CreateDataproduct(ctx context.Context, input models.N
 	return r.repo.CreateDataproduct(ctx, input)
 }
 
+func (r *mutationResolver) UpdateDataproduct(ctx context.Context, id uuid.UUID, input models.UpdateDataproduct) (*models.Dataproduct, error) {
+	return r.repo.UpdateDataproduct(ctx, id, input)
+}
+
 func (r *queryResolver) Dataproduct(ctx context.Context, id uuid.UUID) (*models.Dataproduct, error) {
 	return r.repo.GetDataproduct(ctx, id)
 }

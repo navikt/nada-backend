@@ -248,19 +248,14 @@ func (r *Repo) GetDataproduct(ctx context.Context, id uuid.UUID) (*models.Datapr
 	return dataproductFromSQL(res), nil
 }
 
-func (r *Repo) UpdateDataproduct(ctx context.Context, id string, new models.UpdateDataproduct) (*models.Dataproduct, error) {
-	uid, err := uuid.Parse(id)
-	if err != nil {
-		return nil, fmt.Errorf("parsing uuid: %w", err)
-	}
-
+func (r *Repo) UpdateDataproduct(ctx context.Context, id uuid.UUID, new models.UpdateDataproduct) (*models.Dataproduct, error) {
 	if new.Keywords == nil {
 		new.Keywords = []string{}
 	}
 	res, err := r.querier.UpdateDataproduct(ctx, gensql.UpdateDataproductParams{
 		Name:        new.Name,
 		Description: ptrToNullString(new.Description),
-		ID:          uid,
+		ID:          id,
 		Pii:         new.Pii,
 		Slug:        slugify(new.Slug, new.Name),
 		Repo:        ptrToNullString(new.Repo),
