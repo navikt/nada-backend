@@ -12,14 +12,12 @@ INSERT INTO collections (
 	"name",
 	"description",
 	"slug",
-	"repo",
 	"group",
 	"keywords"
 ) VALUES (
 	@name,
 	@description,
 	@slug,
-	@repo,
 	@owner_group,
 	@keywords
 ) RETURNING *;
@@ -29,7 +27,6 @@ UPDATE collections SET
 	"name" = @name,
 	"description" = @description,
 	"slug" = @slug,
-	"repo" = @repo,
 	"keywords" = @keywords
 WHERE id = @id
 RETURNING *;
@@ -49,4 +46,7 @@ INSERT INTO collection_elements (
 DELETE FROM collection_elements WHERE element_id = @element_id AND collection_id = @collection_id AND element_type = @element_type;
 
 -- name: GetCollectionElements :many
-SELECT * FROM collection_elements WHERE collection_id = @collection_id;
+SELECT * 
+FROM dataproducts 
+WHERE id IN 
+	(SELECT element_id FROM collection_elements WHERE collection_id = @collection_id AND element_type = 'dataproduct');

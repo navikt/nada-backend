@@ -34,7 +34,6 @@ type Collection struct {
 	Name         string
 	Description  sql.NullString
 	Slug         string
-	Repo         sql.NullString
 	Created      time.Time
 	LastModified time.Time
 	Group        string
@@ -43,8 +42,8 @@ type Collection struct {
 }
 
 type CollectionElement struct {
-	ElementID    string
-	CollectionID string
+	ElementID    uuid.UUID
+	CollectionID uuid.UUID
 	ElementType  string
 }
 

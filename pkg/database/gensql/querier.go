@@ -19,7 +19,7 @@ type Querier interface {
 	GetBigqueryDatasource(ctx context.Context, dataproductID uuid.UUID) (DatasourceBigquery, error)
 	GetBigqueryDatasources(ctx context.Context) ([]DatasourceBigquery, error)
 	GetCollection(ctx context.Context, id uuid.UUID) (Collection, error)
-	GetCollectionElements(ctx context.Context, collectionID string) ([]CollectionElement, error)
+	GetCollectionElements(ctx context.Context, collectionID uuid.UUID) ([]Dataproduct, error)
 	GetCollections(ctx context.Context, arg GetCollectionsParams) ([]Collection, error)
 	GetDataproduct(ctx context.Context, id uuid.UUID) (Dataproduct, error)
 	GetDataproducts(ctx context.Context, arg GetDataproductsParams) ([]Dataproduct, error)

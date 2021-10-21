@@ -10,7 +10,7 @@ import (
 )
 
 const searchCollections = `-- name: SearchCollections :many
-SELECT id, name, description, slug, repo, created, last_modified, "group", keywords, tsv_document FROM "collections" WHERE "tsv_document" @@ websearch_to_tsquery('norwegian', $1) LIMIT $3 OFFSET $2
+SELECT id, name, description, slug, created, last_modified, "group", keywords, tsv_document FROM "collections" WHERE "tsv_document" @@ websearch_to_tsquery('norwegian', $1) LIMIT $3 OFFSET $2
 `
 
 type SearchCollectionsParams struct {
@@ -33,7 +33,6 @@ func (q *Queries) SearchCollections(ctx context.Context, arg SearchCollectionsPa
 			&i.Name,
 			&i.Description,
 			&i.Slug,
-			&i.Repo,
 			&i.Created,
 			&i.LastModified,
 			&i.Group,

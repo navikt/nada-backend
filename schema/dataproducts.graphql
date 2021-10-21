@@ -25,13 +25,6 @@ type BigQuery @goModel(model: "github.com/navikt/nada-backend/pkg/graph/models.B
 
 union Datasource @goModel(model: "github.com/navikt/nada-backend/pkg/graph/models.Datasource") = BigQuery
 
-union CollectionElement @goModel(model: "github.com/navikt/nada-backend/pkg/graph/models.CollectionElement") = Dataproduct
-
-type Collection @goModel(model: "github.com/navikt/nada-backend/pkg/graph/models.Collection"){
-    id: ID!
-    elements: [CollectionElement!]!
-}
-
 extend type Query {
     dataproduct(id: ID!): Dataproduct!
     dataproducts: [Dataproduct!]!
