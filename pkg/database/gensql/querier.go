@@ -21,10 +21,11 @@ type Querier interface {
 	GetCollection(ctx context.Context, id uuid.UUID) (Collection, error)
 	GetCollectionElements(ctx context.Context, collectionID uuid.UUID) ([]Dataproduct, error)
 	GetCollections(ctx context.Context, arg GetCollectionsParams) ([]Collection, error)
+	GetCollectionsByIDs(ctx context.Context, ids []uuid.UUID) ([]Collection, error)
 	GetDataproduct(ctx context.Context, id uuid.UUID) (Dataproduct, error)
 	GetDataproducts(ctx context.Context, arg GetDataproductsParams) ([]Dataproduct, error)
-	SearchCollections(ctx context.Context, arg SearchCollectionsParams) ([]Collection, error)
-	SearchDataproducts(ctx context.Context, arg SearchDataproductsParams) ([]Dataproduct, error)
+	GetDataproductsByIDs(ctx context.Context, ids []uuid.UUID) ([]Dataproduct, error)
+	Search(ctx context.Context, arg SearchParams) ([]SearchRow, error)
 	UpdateBigqueryDatasourceSchema(ctx context.Context, arg UpdateBigqueryDatasourceSchemaParams) error
 	UpdateCollection(ctx context.Context, arg UpdateCollectionParams) (Collection, error)
 	UpdateDataproduct(ctx context.Context, arg UpdateDataproductParams) (Dataproduct, error)

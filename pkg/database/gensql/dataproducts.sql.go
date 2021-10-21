@@ -247,6 +247,46 @@ func (q *Queries) GetDataproducts(ctx context.Context, arg GetDataproductsParams
 	return items, nil
 }
 
+const getDataproductsByIDs = `-- name: GetDataproductsByIDs :many
+SELECT id, name, description, "group", pii, created, last_modified, type, tsv_document, slug, repo, keywords FROM dataproducts WHERE id = ANY($1::uuid[]) ORDER BY last_modified DESC
+`
+
+func (q *Queries) GetDataproductsByIDs(ctx context.Context, ids []uuid.UUID) ([]Dataproduct, error) {
+	rows, err := q.db.QueryContext(ctx, getDataproductsByIDs, pq.Array(ids))
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []Dataproduct{}
+	for rows.Next() {
+		var i Dataproduct
+		if err := rows.Scan(
+			&i.ID,
+			&i.Name,
+			&i.Description,
+			&i.Group,
+			&i.Pii,
+			&i.Created,
+			&i.LastModified,
+			&i.Type,
+			&i.TsvDocument,
+			&i.Slug,
+			&i.Repo,
+			pq.Array(&i.Keywords),
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const updateBigqueryDatasourceSchema = `-- name: UpdateBigqueryDatasourceSchema :exec
 UPDATE datasource_bigquery
 SET "schema" = $1

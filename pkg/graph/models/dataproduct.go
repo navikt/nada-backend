@@ -23,6 +23,7 @@ type Dataproduct struct {
 }
 
 func (Dataproduct) IsCollectionElement() {}
+func (Dataproduct) IsSearchResult()      {}
 
 type Datasource interface {
 	IsDatasource()

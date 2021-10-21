@@ -72,7 +72,6 @@ type ComplexityRoot struct {
 		LastModified func(childComplexity int) int
 		Name         func(childComplexity int) int
 		Owner        func(childComplexity int) int
-		Slug         func(childComplexity int) int
 	}
 
 	Dataproduct struct {
@@ -86,7 +85,6 @@ type ComplexityRoot struct {
 		Owner        func(childComplexity int) int
 		Pii          func(childComplexity int) int
 		Repo         func(childComplexity int) int
-		Slug         func(childComplexity int) int
 	}
 
 	Group struct {
@@ -113,11 +111,12 @@ type ComplexityRoot struct {
 
 	Query struct {
 		Collection     func(childComplexity int, id uuid.UUID) int
-		Collections    func(childComplexity int) int
+		Collections    func(childComplexity int, limit *int, offset *int) int
 		Dataproduct    func(childComplexity int, id uuid.UUID) int
-		Dataproducts   func(childComplexity int) int
+		Dataproducts   func(childComplexity int, limit *int, offset *int) int
 		GcpGetDatasets func(childComplexity int, projectID string) int
 		GcpGetTables   func(childComplexity int, projectID string, datasetID string) int
+		Search         func(childComplexity int, q *models.SearchQuery) int
 		UserInfo       func(childComplexity int) int
 		Version        func(childComplexity int) int
 	}
@@ -148,12 +147,13 @@ type MutationResolver interface {
 }
 type QueryResolver interface {
 	Version(ctx context.Context) (string, error)
-	Collections(ctx context.Context) ([]*models.Collection, error)
+	Collections(ctx context.Context, limit *int, offset *int) ([]*models.Collection, error)
 	Collection(ctx context.Context, id uuid.UUID) (*models.Collection, error)
 	Dataproduct(ctx context.Context, id uuid.UUID) (*models.Dataproduct, error)
-	Dataproducts(ctx context.Context) ([]*models.Dataproduct, error)
+	Dataproducts(ctx context.Context, limit *int, offset *int) ([]*models.Dataproduct, error)
 	GcpGetTables(ctx context.Context, projectID string, datasetID string) ([]*models.BigQueryTable, error)
 	GcpGetDatasets(ctx context.Context, projectID string) ([]string, error)
+	Search(ctx context.Context, q *models.SearchQuery) ([]models.SearchResult, error)
 	UserInfo(ctx context.Context) (*models.UserInfo, error)
 }
 
@@ -277,13 +277,6 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.Collection.Owner(childComplexity), true
 
-	case "Collection.slug":
-		if e.complexity.Collection.Slug == nil {
-			break
-		}
-
-		return e.complexity.Collection.Slug(childComplexity), true
-
 	case "Dataproduct.created":
 		if e.complexity.Dataproduct.Created == nil {
 			break
@@ -353,13 +346,6 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 		}
 
 		return e.complexity.Dataproduct.Repo(childComplexity), true
-
-	case "Dataproduct.slug":
-		if e.complexity.Dataproduct.Slug == nil {
-			break
-		}
-
-		return e.complexity.Dataproduct.Slug(childComplexity), true
 
 	case "Group.email":
 		if e.complexity.Group.Email == nil {
@@ -514,7 +500,12 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 			break
 		}
 
-		return e.complexity.Query.Collections(childComplexity), true
+		args, err := ec.field_Query_collections_args(context.TODO(), rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Query.Collections(childComplexity, args["limit"].(*int), args["offset"].(*int)), true
 
 	case "Query.dataproduct":
 		if e.complexity.Query.Dataproduct == nil {
@@ -533,7 +524,12 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 			break
 		}
 
-		return e.complexity.Query.Dataproducts(childComplexity), true
+		args, err := ec.field_Query_dataproducts_args(context.TODO(), rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Query.Dataproducts(childComplexity, args["limit"].(*int), args["offset"].(*int)), true
 
 	case "Query.gcpGetDatasets":
 		if e.complexity.Query.GcpGetDatasets == nil {
@@ -558,6 +554,18 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 		}
 
 		return e.complexity.Query.GcpGetTables(childComplexity, args["projectID"].(string), args["datasetID"].(string)), true
+
+	case "Query.search":
+		if e.complexity.Query.Search == nil {
+			break
+		}
+
+		args, err := ec.field_Query_search_args(context.TODO(), rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Query.Search(childComplexity, args["q"].(*models.SearchQuery)), true
 
 	case "Query.userInfo":
 		if e.complexity.Query.UserInfo == nil {
@@ -672,14 +680,12 @@ type Collection @goModel(model: "github.com/navikt/nada-backend/pkg/graph/models
     lastModified: Time!
     keywords: [String!]!
     owner: Owner!
-    slug: String!
     elements: [CollectionElement!]!
 }
 
 input NewCollection @goModel(model: "github.com/navikt/nada-backend/pkg/graph/models.NewCollection") {
     name:        String!
 	description: String
-	slug:        String
 	group:       String!
 	keywords:    [String!]
 }
@@ -687,12 +693,12 @@ input NewCollection @goModel(model: "github.com/navikt/nada-backend/pkg/graph/mo
 input UpdateCollection @goModel(model: "github.com/navikt/nada-backend/pkg/graph/models.UpdateCollection") {
     name:        String!
 	description: String
-	slug:        String
 	keywords:    [String!]
 }
 
+
 extend type Query {
-    collections: [Collection!]!
+    collections(limit: Int, offset: Int): [Collection!]!
     collection(id: ID!): Collection!
 }
 
@@ -710,7 +716,6 @@ extend type Mutation {
     description: String
     created: Time!
     lastModified: Time!
-    slug: String!
     repo: String
     pii: Boolean!
     keywords: [String!]!
@@ -733,7 +738,7 @@ union Datasource @goModel(model: "github.com/navikt/nada-backend/pkg/graph/model
 
 extend type Query {
     dataproduct(id: ID!): Dataproduct!
-    dataproducts: [Dataproduct!]!
+    dataproducts(limit: Int, offset: Int): [Dataproduct!]!
 }
 
 input NewBigQuery @goModel(model: "github.com/navikt/nada-backend/pkg/graph/models.NewBigQuery") {
@@ -745,7 +750,6 @@ input NewBigQuery @goModel(model: "github.com/navikt/nada-backend/pkg/graph/mode
 input NewDataproduct @goModel(model: "github.com/navikt/nada-backend/pkg/graph/models.NewDataproduct") {
     name: String!
     description: String
-    slug: String
     repo: String
     pii: Boolean!
     keywords: [String!]
@@ -756,7 +760,6 @@ input NewDataproduct @goModel(model: "github.com/navikt/nada-backend/pkg/graph/m
 input UpdateDataproduct @goModel(model: "github.com/navikt/nada-backend/pkg/graph/models.UpdateDataproduct") {
     name: String!
     description: String
-    slug: String
     repo: String
     pii: Boolean!
     keywords: [String!]
@@ -809,6 +812,25 @@ type Query {
 
 type Mutation {
     dummy(no: String): String
+}
+`, BuiltIn: false},
+	{Name: "schema/search.graphql", Input: `union SearchResult = Dataproduct | Collection
+
+input SearchQuery {
+	"""
+	Freetext search
+	"""
+	text: String
+	"""
+	Filter on keyword
+	"""
+	keyword: String
+	limit: Int
+	offset: Int
+}
+
+extend type Query {
+	search(q: SearchQuery): [SearchResult!]!
 }
 `, BuiltIn: false},
 	{Name: "schema/user.graphql", Input: `type Group {
@@ -1067,6 +1089,30 @@ func (ec *executionContext) field_Query_collection_args(ctx context.Context, raw
 	return args, nil
 }
 
+func (ec *executionContext) field_Query_collections_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
+	var err error
+	args := map[string]interface{}{}
+	var arg0 *int
+	if tmp, ok := rawArgs["limit"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("limit"))
+		arg0, err = ec.unmarshalOInt2ᚖint(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["limit"] = arg0
+	var arg1 *int
+	if tmp, ok := rawArgs["offset"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("offset"))
+		arg1, err = ec.unmarshalOInt2ᚖint(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["offset"] = arg1
+	return args, nil
+}
+
 func (ec *executionContext) field_Query_dataproduct_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
 	var err error
 	args := map[string]interface{}{}
@@ -1079,6 +1125,30 @@ func (ec *executionContext) field_Query_dataproduct_args(ctx context.Context, ra
 		}
 	}
 	args["id"] = arg0
+	return args, nil
+}
+
+func (ec *executionContext) field_Query_dataproducts_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
+	var err error
+	args := map[string]interface{}{}
+	var arg0 *int
+	if tmp, ok := rawArgs["limit"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("limit"))
+		arg0, err = ec.unmarshalOInt2ᚖint(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["limit"] = arg0
+	var arg1 *int
+	if tmp, ok := rawArgs["offset"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("offset"))
+		arg1, err = ec.unmarshalOInt2ᚖint(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["offset"] = arg1
 	return args, nil
 }
 
@@ -1118,6 +1188,21 @@ func (ec *executionContext) field_Query_gcpGetTables_args(ctx context.Context, r
 		}
 	}
 	args["datasetID"] = arg1
+	return args, nil
+}
+
+func (ec *executionContext) field_Query_search_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
+	var err error
+	args := map[string]interface{}{}
+	var arg0 *models.SearchQuery
+	if tmp, ok := rawArgs["q"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("q"))
+		arg0, err = ec.unmarshalOSearchQuery2ᚖgithubᚗcomᚋnaviktᚋnadaᚑbackendᚋpkgᚋgraphᚋmodelsᚐSearchQuery(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["q"] = arg0
 	return args, nil
 }
 
@@ -1646,41 +1731,6 @@ func (ec *executionContext) _Collection_owner(ctx context.Context, field graphql
 	return ec.marshalNOwner2githubᚗcomᚋnaviktᚋnadaᚑbackendᚋpkgᚋgraphᚋmodelsᚐOwner(ctx, field.Selections, res)
 }
 
-func (ec *executionContext) _Collection_slug(ctx context.Context, field graphql.CollectedField, obj *models.Collection) (ret graphql.Marshaler) {
-	defer func() {
-		if r := recover(); r != nil {
-			ec.Error(ctx, ec.Recover(ctx, r))
-			ret = graphql.Null
-		}
-	}()
-	fc := &graphql.FieldContext{
-		Object:     "Collection",
-		Field:      field,
-		Args:       nil,
-		IsMethod:   false,
-		IsResolver: false,
-	}
-
-	ctx = graphql.WithFieldContext(ctx, fc)
-	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
-		ctx = rctx // use context from middleware stack in children
-		return obj.Slug, nil
-	})
-	if err != nil {
-		ec.Error(ctx, err)
-		return graphql.Null
-	}
-	if resTmp == nil {
-		if !graphql.HasFieldError(ctx, fc) {
-			ec.Errorf(ctx, "must not be null")
-		}
-		return graphql.Null
-	}
-	res := resTmp.(string)
-	fc.Result = res
-	return ec.marshalNString2string(ctx, field.Selections, res)
-}
-
 func (ec *executionContext) _Collection_elements(ctx context.Context, field graphql.CollectedField, obj *models.Collection) (ret graphql.Marshaler) {
 	defer func() {
 		if r := recover(); r != nil {
@@ -1886,41 +1936,6 @@ func (ec *executionContext) _Dataproduct_lastModified(ctx context.Context, field
 	res := resTmp.(time.Time)
 	fc.Result = res
 	return ec.marshalNTime2timeᚐTime(ctx, field.Selections, res)
-}
-
-func (ec *executionContext) _Dataproduct_slug(ctx context.Context, field graphql.CollectedField, obj *models.Dataproduct) (ret graphql.Marshaler) {
-	defer func() {
-		if r := recover(); r != nil {
-			ec.Error(ctx, ec.Recover(ctx, r))
-			ret = graphql.Null
-		}
-	}()
-	fc := &graphql.FieldContext{
-		Object:     "Dataproduct",
-		Field:      field,
-		Args:       nil,
-		IsMethod:   false,
-		IsResolver: false,
-	}
-
-	ctx = graphql.WithFieldContext(ctx, fc)
-	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
-		ctx = rctx // use context from middleware stack in children
-		return obj.Slug, nil
-	})
-	if err != nil {
-		ec.Error(ctx, err)
-		return graphql.Null
-	}
-	if resTmp == nil {
-		if !graphql.HasFieldError(ctx, fc) {
-			ec.Errorf(ctx, "must not be null")
-		}
-		return graphql.Null
-	}
-	res := resTmp.(string)
-	fc.Result = res
-	return ec.marshalNString2string(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _Dataproduct_repo(ctx context.Context, field graphql.CollectedField, obj *models.Dataproduct) (ret graphql.Marshaler) {
@@ -2661,9 +2676,16 @@ func (ec *executionContext) _Query_collections(ctx context.Context, field graphq
 	}
 
 	ctx = graphql.WithFieldContext(ctx, fc)
+	rawArgs := field.ArgumentMap(ec.Variables)
+	args, err := ec.field_Query_collections_args(ctx, rawArgs)
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	fc.Args = args
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.Query().Collections(rctx)
+		return ec.resolvers.Query().Collections(rctx, args["limit"].(*int), args["offset"].(*int))
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -2780,9 +2802,16 @@ func (ec *executionContext) _Query_dataproducts(ctx context.Context, field graph
 	}
 
 	ctx = graphql.WithFieldContext(ctx, fc)
+	rawArgs := field.ArgumentMap(ec.Variables)
+	args, err := ec.field_Query_dataproducts_args(ctx, rawArgs)
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	fc.Args = args
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.Query().Dataproducts(rctx)
+		return ec.resolvers.Query().Dataproducts(rctx, args["limit"].(*int), args["offset"].(*int))
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -2881,6 +2910,48 @@ func (ec *executionContext) _Query_gcpGetDatasets(ctx context.Context, field gra
 	res := resTmp.([]string)
 	fc.Result = res
 	return ec.marshalNString2ᚕstringᚄ(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _Query_search(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "Query",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   true,
+		IsResolver: true,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	rawArgs := field.ArgumentMap(ec.Variables)
+	args, err := ec.field_Query_search_args(ctx, rawArgs)
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	fc.Args = args
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.Query().Search(rctx, args["q"].(*models.SearchQuery))
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.([]models.SearchResult)
+	fc.Result = res
+	return ec.marshalNSearchResult2ᚕgithubᚗcomᚋnaviktᚋnadaᚑbackendᚋpkgᚋgraphᚋmodelsᚐSearchResultᚄ(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _Query_userInfo(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
@@ -4300,14 +4371,6 @@ func (ec *executionContext) unmarshalInputNewCollection(ctx context.Context, obj
 			if err != nil {
 				return it, err
 			}
-		case "slug":
-			var err error
-
-			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("slug"))
-			it.Slug, err = ec.unmarshalOString2ᚖstring(ctx, v)
-			if err != nil {
-				return it, err
-			}
 		case "group":
 			var err error
 
@@ -4352,14 +4415,6 @@ func (ec *executionContext) unmarshalInputNewDataproduct(ctx context.Context, ob
 
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("description"))
 			it.Description, err = ec.unmarshalOString2ᚖstring(ctx, v)
-			if err != nil {
-				return it, err
-			}
-		case "slug":
-			var err error
-
-			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("slug"))
-			it.Slug, err = ec.unmarshalOString2ᚖstring(ctx, v)
 			if err != nil {
 				return it, err
 			}
@@ -4409,6 +4464,53 @@ func (ec *executionContext) unmarshalInputNewDataproduct(ctx context.Context, ob
 	return it, nil
 }
 
+func (ec *executionContext) unmarshalInputSearchQuery(ctx context.Context, obj interface{}) (models.SearchQuery, error) {
+	var it models.SearchQuery
+	asMap := map[string]interface{}{}
+	for k, v := range obj.(map[string]interface{}) {
+		asMap[k] = v
+	}
+
+	for k, v := range asMap {
+		switch k {
+		case "text":
+			var err error
+
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("text"))
+			it.Text, err = ec.unmarshalOString2ᚖstring(ctx, v)
+			if err != nil {
+				return it, err
+			}
+		case "keyword":
+			var err error
+
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("keyword"))
+			it.Keyword, err = ec.unmarshalOString2ᚖstring(ctx, v)
+			if err != nil {
+				return it, err
+			}
+		case "limit":
+			var err error
+
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("limit"))
+			it.Limit, err = ec.unmarshalOInt2ᚖint(ctx, v)
+			if err != nil {
+				return it, err
+			}
+		case "offset":
+			var err error
+
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("offset"))
+			it.Offset, err = ec.unmarshalOInt2ᚖint(ctx, v)
+			if err != nil {
+				return it, err
+			}
+		}
+	}
+
+	return it, nil
+}
+
 func (ec *executionContext) unmarshalInputUpdateCollection(ctx context.Context, obj interface{}) (models.UpdateCollection, error) {
 	var it models.UpdateCollection
 	asMap := map[string]interface{}{}
@@ -4431,14 +4533,6 @@ func (ec *executionContext) unmarshalInputUpdateCollection(ctx context.Context, 
 
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("description"))
 			it.Description, err = ec.unmarshalOString2ᚖstring(ctx, v)
-			if err != nil {
-				return it, err
-			}
-		case "slug":
-			var err error
-
-			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("slug"))
-			it.Slug, err = ec.unmarshalOString2ᚖstring(ctx, v)
 			if err != nil {
 				return it, err
 			}
@@ -4478,14 +4572,6 @@ func (ec *executionContext) unmarshalInputUpdateDataproduct(ctx context.Context,
 
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("description"))
 			it.Description, err = ec.unmarshalOString2ᚖstring(ctx, v)
-			if err != nil {
-				return it, err
-			}
-		case "slug":
-			var err error
-
-			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("slug"))
-			it.Slug, err = ec.unmarshalOString2ᚖstring(ctx, v)
 			if err != nil {
 				return it, err
 			}
@@ -4550,6 +4636,29 @@ func (ec *executionContext) _Datasource(ctx context.Context, sel ast.SelectionSe
 			return graphql.Null
 		}
 		return ec._BigQuery(ctx, sel, obj)
+	default:
+		panic(fmt.Errorf("unexpected type %T", obj))
+	}
+}
+
+func (ec *executionContext) _SearchResult(ctx context.Context, sel ast.SelectionSet, obj models.SearchResult) graphql.Marshaler {
+	switch obj := (obj).(type) {
+	case nil:
+		return graphql.Null
+	case models.Dataproduct:
+		return ec._Dataproduct(ctx, sel, &obj)
+	case *models.Dataproduct:
+		if obj == nil {
+			return graphql.Null
+		}
+		return ec._Dataproduct(ctx, sel, obj)
+	case models.Collection:
+		return ec._Collection(ctx, sel, &obj)
+	case *models.Collection:
+		if obj == nil {
+			return graphql.Null
+		}
+		return ec._Collection(ctx, sel, obj)
 	default:
 		panic(fmt.Errorf("unexpected type %T", obj))
 	}
@@ -4638,7 +4747,7 @@ func (ec *executionContext) _BigQueryTable(ctx context.Context, sel ast.Selectio
 	return out
 }
 
-var collectionImplementors = []string{"Collection"}
+var collectionImplementors = []string{"Collection", "SearchResult"}
 
 func (ec *executionContext) _Collection(ctx context.Context, sel ast.SelectionSet, obj *models.Collection) graphql.Marshaler {
 	fields := graphql.CollectFields(ec.OperationContext, sel, collectionImplementors)
@@ -4681,11 +4790,6 @@ func (ec *executionContext) _Collection(ctx context.Context, sel ast.SelectionSe
 			if out.Values[i] == graphql.Null {
 				atomic.AddUint32(&invalids, 1)
 			}
-		case "slug":
-			out.Values[i] = ec._Collection_slug(ctx, field, obj)
-			if out.Values[i] == graphql.Null {
-				atomic.AddUint32(&invalids, 1)
-			}
 		case "elements":
 			field := field
 			out.Concurrently(i, func() (res graphql.Marshaler) {
@@ -4711,7 +4815,7 @@ func (ec *executionContext) _Collection(ctx context.Context, sel ast.SelectionSe
 	return out
 }
 
-var dataproductImplementors = []string{"Dataproduct", "CollectionElement"}
+var dataproductImplementors = []string{"Dataproduct", "CollectionElement", "SearchResult"}
 
 func (ec *executionContext) _Dataproduct(ctx context.Context, sel ast.SelectionSet, obj *models.Dataproduct) graphql.Marshaler {
 	fields := graphql.CollectFields(ec.OperationContext, sel, dataproductImplementors)
@@ -4741,11 +4845,6 @@ func (ec *executionContext) _Dataproduct(ctx context.Context, sel ast.SelectionS
 			}
 		case "lastModified":
 			out.Values[i] = ec._Dataproduct_lastModified(ctx, field, obj)
-			if out.Values[i] == graphql.Null {
-				atomic.AddUint32(&invalids, 1)
-			}
-		case "slug":
-			out.Values[i] = ec._Dataproduct_slug(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
 				atomic.AddUint32(&invalids, 1)
 			}
@@ -5031,6 +5130,20 @@ func (ec *executionContext) _Query(ctx context.Context, sel ast.SelectionSet) gr
 					}
 				}()
 				res = ec._Query_gcpGetDatasets(ctx, field)
+				if res == graphql.Null {
+					atomic.AddUint32(&invalids, 1)
+				}
+				return res
+			})
+		case "search":
+			field := field
+			out.Concurrently(i, func() (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._Query_search(ctx, field)
 				if res == graphql.Null {
 					atomic.AddUint32(&invalids, 1)
 				}
@@ -5719,6 +5832,60 @@ func (ec *executionContext) marshalNOwner2ᚖgithubᚗcomᚋnaviktᚋnadaᚑback
 	return ec._Owner(ctx, sel, v)
 }
 
+func (ec *executionContext) marshalNSearchResult2githubᚗcomᚋnaviktᚋnadaᚑbackendᚋpkgᚋgraphᚋmodelsᚐSearchResult(ctx context.Context, sel ast.SelectionSet, v models.SearchResult) graphql.Marshaler {
+	if v == nil {
+		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	return ec._SearchResult(ctx, sel, v)
+}
+
+func (ec *executionContext) marshalNSearchResult2ᚕgithubᚗcomᚋnaviktᚋnadaᚑbackendᚋpkgᚋgraphᚋmodelsᚐSearchResultᚄ(ctx context.Context, sel ast.SelectionSet, v []models.SearchResult) graphql.Marshaler {
+	ret := make(graphql.Array, len(v))
+	var wg sync.WaitGroup
+	isLen1 := len(v) == 1
+	if !isLen1 {
+		wg.Add(len(v))
+	}
+	for i := range v {
+		i := i
+		fc := &graphql.FieldContext{
+			Index:  &i,
+			Result: &v[i],
+		}
+		ctx := graphql.WithFieldContext(ctx, fc)
+		f := func(i int) {
+			defer func() {
+				if r := recover(); r != nil {
+					ec.Error(ctx, ec.Recover(ctx, r))
+					ret = nil
+				}
+			}()
+			if !isLen1 {
+				defer wg.Done()
+			}
+			ret[i] = ec.marshalNSearchResult2githubᚗcomᚋnaviktᚋnadaᚑbackendᚋpkgᚋgraphᚋmodelsᚐSearchResult(ctx, sel, v[i])
+		}
+		if isLen1 {
+			f(i)
+		} else {
+			go f(i)
+		}
+
+	}
+	wg.Wait()
+
+	for _, e := range ret {
+		if e == graphql.Null {
+			return graphql.Null
+		}
+	}
+
+	return ret
+}
+
 func (ec *executionContext) unmarshalNString2string(ctx context.Context, v interface{}) (string, error) {
 	res, err := graphql.UnmarshalString(v)
 	return res, graphql.ErrorOnPath(ctx, err)
@@ -6088,6 +6255,29 @@ func (ec *executionContext) marshalOBoolean2ᚖbool(ctx context.Context, sel ast
 		return graphql.Null
 	}
 	return graphql.MarshalBoolean(*v)
+}
+
+func (ec *executionContext) unmarshalOInt2ᚖint(ctx context.Context, v interface{}) (*int, error) {
+	if v == nil {
+		return nil, nil
+	}
+	res, err := graphql.UnmarshalInt(v)
+	return &res, graphql.ErrorOnPath(ctx, err)
+}
+
+func (ec *executionContext) marshalOInt2ᚖint(ctx context.Context, sel ast.SelectionSet, v *int) graphql.Marshaler {
+	if v == nil {
+		return graphql.Null
+	}
+	return graphql.MarshalInt(*v)
+}
+
+func (ec *executionContext) unmarshalOSearchQuery2ᚖgithubᚗcomᚋnaviktᚋnadaᚑbackendᚋpkgᚋgraphᚋmodelsᚐSearchQuery(ctx context.Context, v interface{}) (*models.SearchQuery, error) {
+	if v == nil {
+		return nil, nil
+	}
+	res, err := ec.unmarshalInputSearchQuery(ctx, v)
+	return &res, graphql.ErrorOnPath(ctx, err)
 }
 
 func (ec *executionContext) unmarshalOString2string(ctx context.Context, v interface{}) (string, error) {

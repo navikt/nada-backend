@@ -69,3 +69,12 @@ type DatasourceBigquery struct {
 	TableName     string
 	Schema        pqtype.NullRawMessage
 }
+
+type Search struct {
+	ElementID    uuid.UUID
+	ElementType  interface{}
+	LastModified time.Time
+	Keywords     []string
+	Group        string
+	TsvDocument  interface{}
+}

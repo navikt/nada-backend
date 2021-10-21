@@ -27,3 +27,15 @@ func New(repo *database.Repo, gcp GCP) *Resolver {
 		gcp:  gcp,
 	}
 }
+
+func pagination(limit *int, offset *int) (int, int) {
+	l := 15
+	o := 0
+	if limit != nil {
+		l = *limit
+	}
+	if offset != nil {
+		o = *offset
+	}
+	return l, o
+}

@@ -4,6 +4,9 @@ SELECT * FROM collections WHERE id = @id;
 -- name: GetCollections :many
 SELECT * FROM collections ORDER BY last_modified DESC LIMIT sqlc.arg('limit') OFFSET sqlc.arg('offset');
 
+-- name: GetCollectionsByIDs :many
+SELECT * FROM collections WHERE id = ANY(@ids::uuid[]) ORDER BY last_modified DESC;
+
 -- name: DeleteCollection :exec
 DELETE FROM collections WHERE id = @id;
 
@@ -46,7 +49,7 @@ INSERT INTO collection_elements (
 DELETE FROM collection_elements WHERE element_id = @element_id AND collection_id = @collection_id AND element_type = @element_type;
 
 -- name: GetCollectionElements :many
-SELECT * 
-FROM dataproducts 
-WHERE id IN 
+SELECT *
+FROM dataproducts
+WHERE id IN
 	(SELECT element_id FROM collection_elements WHERE collection_id = @collection_id AND element_type = 'dataproduct');

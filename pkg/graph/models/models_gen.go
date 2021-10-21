@@ -8,9 +8,22 @@ import (
 	"strconv"
 )
 
+type SearchResult interface {
+	IsSearchResult()
+}
+
 type Group struct {
 	Name  string `json:"name"`
 	Email string `json:"email"`
+}
+
+type SearchQuery struct {
+	// Freetext search
+	Text *string `json:"text"`
+	// Filter on keyword
+	Keyword *string `json:"keyword"`
+	Limit   *int    `json:"limit"`
+	Offset  *int    `json:"offset"`
 }
 
 type UserInfo struct {

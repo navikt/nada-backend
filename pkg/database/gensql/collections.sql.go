@@ -211,6 +211,43 @@ func (q *Queries) GetCollections(ctx context.Context, arg GetCollectionsParams) 
 	return items, nil
 }
 
+const getCollectionsByIDs = `-- name: GetCollectionsByIDs :many
+SELECT id, name, description, slug, created, last_modified, "group", keywords, tsv_document FROM collections WHERE id = ANY($1::uuid[]) ORDER BY last_modified DESC
+`
+
+func (q *Queries) GetCollectionsByIDs(ctx context.Context, ids []uuid.UUID) ([]Collection, error) {
+	rows, err := q.db.QueryContext(ctx, getCollectionsByIDs, pq.Array(ids))
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []Collection{}
+	for rows.Next() {
+		var i Collection
+		if err := rows.Scan(
+			&i.ID,
+			&i.Name,
+			&i.Description,
+			&i.Slug,
+			&i.Created,
+			&i.LastModified,
+			&i.Group,
+			pq.Array(&i.Keywords),
+			&i.TsvDocument,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const updateCollection = `-- name: UpdateCollection :one
 UPDATE collections SET
 	"name" = $1,

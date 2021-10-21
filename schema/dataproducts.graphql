@@ -4,7 +4,6 @@ type Dataproduct @goModel(model: "github.com/navikt/nada-backend/pkg/graph/model
     description: String
     created: Time!
     lastModified: Time!
-    slug: String!
     repo: String
     pii: Boolean!
     keywords: [String!]!
@@ -27,7 +26,7 @@ union Datasource @goModel(model: "github.com/navikt/nada-backend/pkg/graph/model
 
 extend type Query {
     dataproduct(id: ID!): Dataproduct!
-    dataproducts: [Dataproduct!]!
+    dataproducts(limit: Int, offset: Int): [Dataproduct!]!
 }
 
 input NewBigQuery @goModel(model: "github.com/navikt/nada-backend/pkg/graph/models.NewBigQuery") {
@@ -39,7 +38,6 @@ input NewBigQuery @goModel(model: "github.com/navikt/nada-backend/pkg/graph/mode
 input NewDataproduct @goModel(model: "github.com/navikt/nada-backend/pkg/graph/models.NewDataproduct") {
     name: String!
     description: String
-    slug: String
     repo: String
     pii: Boolean!
     keywords: [String!]
@@ -50,7 +48,6 @@ input NewDataproduct @goModel(model: "github.com/navikt/nada-backend/pkg/graph/m
 input UpdateDataproduct @goModel(model: "github.com/navikt/nada-backend/pkg/graph/models.UpdateDataproduct") {
     name: String!
     description: String
-    slug: String
     repo: String
     pii: Boolean!
     keywords: [String!]

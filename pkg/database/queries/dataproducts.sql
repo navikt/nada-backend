@@ -9,6 +9,10 @@ FROM dataproducts
 ORDER BY last_modified DESC
 LIMIT sqlc.arg('limit') OFFSET sqlc.arg('offset');
 
+
+-- name: GetDataproductsByIDs :many
+SELECT * FROM dataproducts WHERE id = ANY(@ids::uuid[]) ORDER BY last_modified DESC;
+
 -- name: DeleteDataproduct :exec
 DELETE
 FROM dataproducts

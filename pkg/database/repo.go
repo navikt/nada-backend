@@ -7,6 +7,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/url"
+	"sort"
 
 	log "github.com/sirupsen/logrus"
 	"github.com/tabbed/pqtype"
@@ -319,59 +320,59 @@ func (r *Repo) RemoveFromCollection(ctx context.Context, id uuid.UUID, elementID
 	})
 }
 
-func (r *Repo) Search(ctx context.Context, query string, limit, offset int) ([]*openapi.SearchResultEntry, error) {
-	results := []*openapi.SearchResultEntry{}
-	makeExcerpt := func(s sql.NullString) string {
-		if s.Valid {
-			return s.String
+func (r *Repo) Search(ctx context.Context, query *models.SearchQuery) ([]models.SearchResult, error) {
+	res, err := r.querier.Search(ctx, gensql.SearchParams{
+		Query:   ptrToString(query.Text),
+		Keyword: ptrToString(query.Keyword),
+	})
+	if err != nil {
+		return nil, err
+	}
+	ranks := map[string]float32{}
+	var dataproducts []uuid.UUID
+	var collections []uuid.UUID
+	for _, sr := range res {
+		switch sr.ElementType {
+		case "dataproduct":
+			dataproducts = append(dataproducts, sr.ElementID)
+		case "collection":
+			collections = append(collections, sr.ElementID)
 		}
-		return "No description"
+		ranks[sr.ElementType+sr.ElementID.String()] = sr.TsRankCd
 	}
 
-	// If query is empty, the search result is empty. So we do a regular SELECT * instead
-	var (
-		dataproducts []gensql.Dataproduct
-		collections  []gensql.Collection
-		err          error
-	)
-	if query == "" {
-		dataproducts, err = r.querier.GetDataproducts(ctx, gensql.GetDataproductsParams{Limit: int32(limit), Offset: int32(offset)})
-	} else {
-		dataproducts, err = r.querier.SearchDataproducts(ctx, gensql.SearchDataproductsParams{Query: query, Limit: int32(limit), Offset: int32(offset)})
-	}
+	dps, err := r.querier.GetDataproductsByIDs(ctx, dataproducts)
 	if err != nil {
 		return nil, err
 	}
-	for _, r := range dataproducts {
-		results = append(results, &openapi.SearchResultEntry{
-			Id:      r.ID.String(),
-			Name:    r.Name,
-			Type:    openapi.SearchResultTypeDataproduct,
-			Excerpt: makeExcerpt(r.Description),
-			Url:     "/api/dataproducts/" + r.ID.String(),
-		})
-	}
-
-	// If query is empty, the search result is empty. So we do a regular SELECT * instead
-	if query == "" {
-		collections, err = r.querier.GetCollections(ctx, gensql.GetCollectionsParams{Limit: int32(limit), Offset: int32(offset)})
-	} else {
-		collections, err = r.querier.SearchCollections(ctx, gensql.SearchCollectionsParams{Query: query, Limit: int32(limit), Offset: int32(offset)})
-	}
+	cols, err := r.querier.GetCollectionsByIDs(ctx, collections)
 	if err != nil {
 		return nil, err
 	}
-	for _, r := range collections {
-		results = append(results, &openapi.SearchResultEntry{
-			Id:      r.ID.String(),
-			Name:    r.Name,
-			Type:    openapi.SearchResultTypeCollection,
-			Excerpt: makeExcerpt(r.Description),
-			Url:     "/api/collections/" + r.ID.String(),
-		})
+
+	ret := []models.SearchResult{}
+	for _, d := range dps {
+		ret = append(ret, dataproductFromSQL(d))
+	}
+	for _, c := range cols {
+		ret = append(ret, collectionFromSQL(c))
 	}
 
-	return results, nil
+	getRank := func(m models.SearchResult) float32 {
+		switch m := m.(type) {
+		case *models.Dataproduct:
+			return ranks["dataproduct"+m.ID.String()]
+		case *models.Collection:
+			return ranks["collection"+m.ID.String()]
+		default:
+			return -1
+		}
+	}
+	sort.Slice(ret, func(i, j int) bool {
+		return getRank(ret[i]) < getRank(ret[j])
+	})
+
+	return ret, nil
 }
 
 func collectionFromSQL(col gensql.Collection) *models.Collection {
@@ -418,4 +419,11 @@ func MapDatasource(source openapi.Datasource) (openapi.Bigquery, error) {
 		return ds, err
 	}
 	return ds, nil
+}
+
+func ptrToString(s *string) string {
+	if s != nil {
+		return *s
+	}
+	return ""
 }

@@ -21,6 +21,8 @@ type Collection struct {
 	Slug         string    `json:"slug"`
 }
 
+func (c Collection) IsSearchResult() {}
+
 type NewCollection struct {
 	Name        string   `json:"name"`
 	Description *string  `json:"description"`

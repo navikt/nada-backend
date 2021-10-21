@@ -38,8 +38,9 @@ func (r *mutationResolver) RemoveFromCollection(ctx context.Context, id uuid.UUI
 	return err == nil, err
 }
 
-func (r *queryResolver) Collections(ctx context.Context) ([]*models.Collection, error) {
-	return r.repo.GetCollections(ctx, 15, 0)
+func (r *queryResolver) Collections(ctx context.Context, limit *int, offset *int) ([]*models.Collection, error) {
+	l, o := pagination(limit, offset)
+	return r.repo.GetCollections(ctx, l, o)
 }
 
 func (r *queryResolver) Collection(ctx context.Context, id uuid.UUID) (*models.Collection, error) {

@@ -12,14 +12,12 @@ type Collection @goModel(model: "github.com/navikt/nada-backend/pkg/graph/models
     lastModified: Time!
     keywords: [String!]!
     owner: Owner!
-    slug: String!
     elements: [CollectionElement!]!
 }
 
 input NewCollection @goModel(model: "github.com/navikt/nada-backend/pkg/graph/models.NewCollection") {
     name:        String!
 	description: String
-	slug:        String
 	group:       String!
 	keywords:    [String!]
 }
@@ -27,12 +25,12 @@ input NewCollection @goModel(model: "github.com/navikt/nada-backend/pkg/graph/mo
 input UpdateCollection @goModel(model: "github.com/navikt/nada-backend/pkg/graph/models.UpdateCollection") {
     name:        String!
 	description: String
-	slug:        String
 	keywords:    [String!]
 }
 
+
 extend type Query {
-    collections: [Collection!]!
+    collections(limit: Int, offset: Int): [Collection!]!
     collection(id: ID!): Collection!
 }
 

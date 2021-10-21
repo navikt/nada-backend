@@ -32,8 +32,9 @@ func (r *queryResolver) Dataproduct(ctx context.Context, id uuid.UUID) (*models.
 	return r.repo.GetDataproduct(ctx, id)
 }
 
-func (r *queryResolver) Dataproducts(ctx context.Context) ([]*models.Dataproduct, error) {
-	return r.repo.GetDataproducts(ctx, 1000, 0)
+func (r *queryResolver) Dataproducts(ctx context.Context, limit *int, offset *int) ([]*models.Dataproduct, error) {
+	l, o := pagination(limit, offset)
+	return r.repo.GetDataproducts(ctx, l, o)
 }
 
 // Dataproduct returns generated.DataproductResolver implementation.
