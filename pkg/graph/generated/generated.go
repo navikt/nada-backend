@@ -110,15 +110,28 @@ type ComplexityRoot struct {
 	}
 
 	Query struct {
-		Collection     func(childComplexity int, id uuid.UUID) int
-		Collections    func(childComplexity int, limit *int, offset *int) int
-		Dataproduct    func(childComplexity int, id uuid.UUID) int
-		Dataproducts   func(childComplexity int, limit *int, offset *int) int
-		GcpGetDatasets func(childComplexity int, projectID string) int
-		GcpGetTables   func(childComplexity int, projectID string, datasetID string) int
-		Search         func(childComplexity int, q *models.SearchQuery) int
-		UserInfo       func(childComplexity int) int
-		Version        func(childComplexity int) int
+		Collection       func(childComplexity int, id uuid.UUID) int
+		Collections      func(childComplexity int, limit *int, offset *int) int
+		Dataproduct      func(childComplexity int, id uuid.UUID) int
+		Dataproducts     func(childComplexity int, limit *int, offset *int) int
+		GcpGetDatasets   func(childComplexity int, projectID string) int
+		GcpGetTables     func(childComplexity int, projectID string, datasetID string) int
+		GetTableMetadata func(childComplexity int, id uuid.UUID) int
+		Search           func(childComplexity int, q *models.SearchQuery) int
+		UserInfo         func(childComplexity int) int
+		Version          func(childComplexity int) int
+	}
+
+	TableColumn struct {
+		Description func(childComplexity int) int
+		Mode        func(childComplexity int) int
+		Name        func(childComplexity int) int
+		Type        func(childComplexity int) int
+	}
+
+	TableMetadata struct {
+		ID     func(childComplexity int) int
+		Schema func(childComplexity int) int
 	}
 
 	UserInfo struct {
@@ -153,6 +166,7 @@ type QueryResolver interface {
 	Dataproducts(ctx context.Context, limit *int, offset *int) ([]*models.Dataproduct, error)
 	GcpGetTables(ctx context.Context, projectID string, datasetID string) ([]*models.BigQueryTable, error)
 	GcpGetDatasets(ctx context.Context, projectID string) ([]string, error)
+	GetTableMetadata(ctx context.Context, id uuid.UUID) (*models.TableMetadata, error)
 	Search(ctx context.Context, q *models.SearchQuery) ([]models.SearchResult, error)
 	UserInfo(ctx context.Context) (*models.UserInfo, error)
 }
@@ -555,6 +569,18 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.Query.GcpGetTables(childComplexity, args["projectID"].(string), args["datasetID"].(string)), true
 
+	case "Query.getTableMetadata":
+		if e.complexity.Query.GetTableMetadata == nil {
+			break
+		}
+
+		args, err := ec.field_Query_getTableMetadata_args(context.TODO(), rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Query.GetTableMetadata(childComplexity, args["id"].(uuid.UUID)), true
+
 	case "Query.search":
 		if e.complexity.Query.Search == nil {
 			break
@@ -580,6 +606,48 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 		}
 
 		return e.complexity.Query.Version(childComplexity), true
+
+	case "TableColumn.description":
+		if e.complexity.TableColumn.Description == nil {
+			break
+		}
+
+		return e.complexity.TableColumn.Description(childComplexity), true
+
+	case "TableColumn.mode":
+		if e.complexity.TableColumn.Mode == nil {
+			break
+		}
+
+		return e.complexity.TableColumn.Mode(childComplexity), true
+
+	case "TableColumn.name":
+		if e.complexity.TableColumn.Name == nil {
+			break
+		}
+
+		return e.complexity.TableColumn.Name(childComplexity), true
+
+	case "TableColumn.type":
+		if e.complexity.TableColumn.Type == nil {
+			break
+		}
+
+		return e.complexity.TableColumn.Type(childComplexity), true
+
+	case "TableMetadata.id":
+		if e.complexity.TableMetadata.ID == nil {
+			break
+		}
+
+		return e.complexity.TableMetadata.ID(childComplexity), true
+
+	case "TableMetadata.schema":
+		if e.complexity.TableMetadata.Schema == nil {
+			break
+		}
+
+		return e.complexity.TableMetadata.Schema(childComplexity), true
 
 	case "UserInfo.email":
 		if e.complexity.UserInfo.Email == nil {
@@ -666,48 +734,68 @@ func (ec *executionContext) introspectType(name string) (*introspection.Type, er
 }
 
 var sources = []*ast.Source{
-	{Name: "schema/collection.graphql", Input: `union CollectionElement @goModel(model: "github.com/navikt/nada-backend/pkg/graph/models.CollectionElement") = Dataproduct
+	{Name: "schema/collection.graphql", Input: `union CollectionElement
+  @goModel(
+    model: "github.com/navikt/nada-backend/pkg/graph/models.CollectionElement"
+  ) =
+    Dataproduct
 
 enum CollectionElementType {
-    dataproduct
+  dataproduct
 }
 
-type Collection @goModel(model: "github.com/navikt/nada-backend/pkg/graph/models.Collection"){
-    id: ID!
-    name: String!
-    description: String
-    created: Time!
-    lastModified: Time!
-    keywords: [String!]!
-    owner: Owner!
-    elements: [CollectionElement!]!
+type Collection
+  @goModel(
+    model: "github.com/navikt/nada-backend/pkg/graph/models.Collection"
+  ) {
+  id: ID!
+  name: String!
+  description: String
+  created: Time!
+  lastModified: Time!
+  keywords: [String!]!
+  owner: Owner!
+  elements: [CollectionElement!]!
 }
 
-input NewCollection @goModel(model: "github.com/navikt/nada-backend/pkg/graph/models.NewCollection") {
-    name:        String!
-	description: String
-	group:       String!
-	keywords:    [String!]
+input NewCollection
+  @goModel(
+    model: "github.com/navikt/nada-backend/pkg/graph/models.NewCollection"
+  ) {
+  name: String!
+  description: String
+  group: String!
+  keywords: [String!]
 }
 
-input UpdateCollection @goModel(model: "github.com/navikt/nada-backend/pkg/graph/models.UpdateCollection") {
-    name:        String!
-	description: String
-	keywords:    [String!]
+input UpdateCollection
+  @goModel(
+    model: "github.com/navikt/nada-backend/pkg/graph/models.UpdateCollection"
+  ) {
+  name: String!
+  description: String
+  keywords: [String!]
 }
-
 
 extend type Query {
-    collections(limit: Int, offset: Int): [Collection!]!
-    collection(id: ID!): Collection!
+  collections(limit: Int, offset: Int): [Collection!]!
+  collection(id: ID!): Collection!
 }
 
 extend type Mutation {
-    createCollection(input: NewCollection!): Collection!
-    updateCollection(id: ID!, input: UpdateCollection!): Collection!
-    deleteCollection(id: ID!): Boolean!
-    addToCollection(id: ID!, elementID: ID!, elementType: CollectionElementType!): Boolean!
-    removeFromCollection(id: ID!, elementID: ID!, elementType: CollectionElementType!): Boolean!
+  createCollection(input: NewCollection!): Collection!
+  updateCollection(id: ID!, input: UpdateCollection!): Collection!
+  deleteCollection(id: ID!): Boolean!
+  addToCollection(
+    id: ID!
+    elementID: ID!
+    elementType: CollectionElementType!
+  ): Boolean!
+  removeFromCollection(
+    id: ID!
+    elementID: ID!
+    elementType: CollectionElementType!
+  ): Boolean!
 }
 `, BuiltIn: false},
 	{Name: "schema/dataproducts.graphql", Input: `type Dataproduct @goModel(model: "github.com/navikt/nada-backend/pkg/graph/models.Dataproduct"){
@@ -814,6 +902,21 @@ type Mutation {
     dummy(no: String): String
 }
 `, BuiltIn: false},
+	{Name: "schema/metadata.graphql", Input: `type TableColumn @goModel(model: "github.com/navikt/nada-backend/pkg/graph/models.TableColumn") {
+    name: String!
+    description: String!
+    mode: String!
+    type: String!
+}
+
+type TableMetadata @goModel(model: "github.com/navikt/nada-backend/pkg/graph/models.TableMetadata") {
+    id: ID!
+    schema: [TableColumn!]!
+}
+
+extend type Query {
+    getTableMetadata(id: ID!) : TableMetadata!
+}`, BuiltIn: false},
 	{Name: "schema/search.graphql", Input: `union SearchResult = Dataproduct | Collection
 
 input SearchQuery {
@@ -1188,6 +1291,21 @@ func (ec *executionContext) field_Query_gcpGetTables_args(ctx context.Context, r
 		}
 	}
 	args["datasetID"] = arg1
+	return args, nil
+}
+
+func (ec *executionContext) field_Query_getTableMetadata_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
+	var err error
+	args := map[string]interface{}{}
+	var arg0 uuid.UUID
+	if tmp, ok := rawArgs["id"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("id"))
+		arg0, err = ec.unmarshalNID2githubᚗcomᚋgoogleᚋuuidᚐUUID(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["id"] = arg0
 	return args, nil
 }
 
@@ -2912,6 +3030,48 @@ func (ec *executionContext) _Query_gcpGetDatasets(ctx context.Context, field gra
 	return ec.marshalNString2ᚕstringᚄ(ctx, field.Selections, res)
 }
 
+func (ec *executionContext) _Query_getTableMetadata(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "Query",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   true,
+		IsResolver: true,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	rawArgs := field.ArgumentMap(ec.Variables)
+	args, err := ec.field_Query_getTableMetadata_args(ctx, rawArgs)
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	fc.Args = args
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.Query().GetTableMetadata(rctx, args["id"].(uuid.UUID))
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(*models.TableMetadata)
+	fc.Result = res
+	return ec.marshalNTableMetadata2ᚖgithubᚗcomᚋnaviktᚋnadaᚑbackendᚋpkgᚋgraphᚋmodelsᚐTableMetadata(ctx, field.Selections, res)
+}
+
 func (ec *executionContext) _Query_search(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
 	defer func() {
 		if r := recover(); r != nil {
@@ -3078,6 +3238,216 @@ func (ec *executionContext) _Query___schema(ctx context.Context, field graphql.C
 	res := resTmp.(*introspection.Schema)
 	fc.Result = res
 	return ec.marshalO__Schema2ᚖgithubᚗcomᚋ99designsᚋgqlgenᚋgraphqlᚋintrospectionᚐSchema(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _TableColumn_name(ctx context.Context, field graphql.CollectedField, obj *models.TableColumn) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "TableColumn",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   false,
+		IsResolver: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Name, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(string)
+	fc.Result = res
+	return ec.marshalNString2string(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _TableColumn_description(ctx context.Context, field graphql.CollectedField, obj *models.TableColumn) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "TableColumn",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   false,
+		IsResolver: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Description, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(string)
+	fc.Result = res
+	return ec.marshalNString2string(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _TableColumn_mode(ctx context.Context, field graphql.CollectedField, obj *models.TableColumn) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "TableColumn",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   false,
+		IsResolver: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Mode, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(string)
+	fc.Result = res
+	return ec.marshalNString2string(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _TableColumn_type(ctx context.Context, field graphql.CollectedField, obj *models.TableColumn) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "TableColumn",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   false,
+		IsResolver: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Type, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(string)
+	fc.Result = res
+	return ec.marshalNString2string(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _TableMetadata_id(ctx context.Context, field graphql.CollectedField, obj *models.TableMetadata) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "TableMetadata",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   false,
+		IsResolver: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.ID, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(uuid.UUID)
+	fc.Result = res
+	return ec.marshalNID2githubᚗcomᚋgoogleᚋuuidᚐUUID(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _TableMetadata_schema(ctx context.Context, field graphql.CollectedField, obj *models.TableMetadata) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "TableMetadata",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   false,
+		IsResolver: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Schema, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.([]models.TableColumn)
+	fc.Result = res
+	return ec.marshalNTableColumn2ᚕgithubᚗcomᚋnaviktᚋnadaᚑbackendᚋpkgᚋgraphᚋmodelsᚐTableColumnᚄ(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _UserInfo_name(ctx context.Context, field graphql.CollectedField, obj *models.UserInfo) (ret graphql.Marshaler) {
@@ -5135,6 +5505,20 @@ func (ec *executionContext) _Query(ctx context.Context, sel ast.SelectionSet) gr
 				}
 				return res
 			})
+		case "getTableMetadata":
+			field := field
+			out.Concurrently(i, func() (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._Query_getTableMetadata(ctx, field)
+				if res == graphql.Null {
+					atomic.AddUint32(&invalids, 1)
+				}
+				return res
+			})
 		case "search":
 			field := field
 			out.Concurrently(i, func() (res graphql.Marshaler) {
@@ -5167,6 +5551,80 @@ func (ec *executionContext) _Query(ctx context.Context, sel ast.SelectionSet) gr
 			out.Values[i] = ec._Query___type(ctx, field)
 		case "__schema":
 			out.Values[i] = ec._Query___schema(ctx, field)
+		default:
+			panic("unknown field " + strconv.Quote(field.Name))
+		}
+	}
+	out.Dispatch()
+	if invalids > 0 {
+		return graphql.Null
+	}
+	return out
+}
+
+var tableColumnImplementors = []string{"TableColumn"}
+
+func (ec *executionContext) _TableColumn(ctx context.Context, sel ast.SelectionSet, obj *models.TableColumn) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, tableColumnImplementors)
+
+	out := graphql.NewFieldSet(fields)
+	var invalids uint32
+	for i, field := range fields {
+		switch field.Name {
+		case "__typename":
+			out.Values[i] = graphql.MarshalString("TableColumn")
+		case "name":
+			out.Values[i] = ec._TableColumn_name(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
+		case "description":
+			out.Values[i] = ec._TableColumn_description(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
+		case "mode":
+			out.Values[i] = ec._TableColumn_mode(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
+		case "type":
+			out.Values[i] = ec._TableColumn_type(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
+		default:
+			panic("unknown field " + strconv.Quote(field.Name))
+		}
+	}
+	out.Dispatch()
+	if invalids > 0 {
+		return graphql.Null
+	}
+	return out
+}
+
+var tableMetadataImplementors = []string{"TableMetadata"}
+
+func (ec *executionContext) _TableMetadata(ctx context.Context, sel ast.SelectionSet, obj *models.TableMetadata) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, tableMetadataImplementors)
+
+	out := graphql.NewFieldSet(fields)
+	var invalids uint32
+	for i, field := range fields {
+		switch field.Name {
+		case "__typename":
+			out.Values[i] = graphql.MarshalString("TableMetadata")
+		case "id":
+			out.Values[i] = ec._TableMetadata_id(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
+		case "schema":
+			out.Values[i] = ec._TableMetadata_schema(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
 		default:
 			panic("unknown field " + strconv.Quote(field.Name))
 		}
@@ -5935,6 +6393,68 @@ func (ec *executionContext) marshalNString2ᚕstringᚄ(ctx context.Context, sel
 	}
 
 	return ret
+}
+
+func (ec *executionContext) marshalNTableColumn2githubᚗcomᚋnaviktᚋnadaᚑbackendᚋpkgᚋgraphᚋmodelsᚐTableColumn(ctx context.Context, sel ast.SelectionSet, v models.TableColumn) graphql.Marshaler {
+	return ec._TableColumn(ctx, sel, &v)
+}
+
+func (ec *executionContext) marshalNTableColumn2ᚕgithubᚗcomᚋnaviktᚋnadaᚑbackendᚋpkgᚋgraphᚋmodelsᚐTableColumnᚄ(ctx context.Context, sel ast.SelectionSet, v []models.TableColumn) graphql.Marshaler {
+	ret := make(graphql.Array, len(v))
+	var wg sync.WaitGroup
+	isLen1 := len(v) == 1
+	if !isLen1 {
+		wg.Add(len(v))
+	}
+	for i := range v {
+		i := i
+		fc := &graphql.FieldContext{
+			Index:  &i,
+			Result: &v[i],
+		}
+		ctx := graphql.WithFieldContext(ctx, fc)
+		f := func(i int) {
+			defer func() {
+				if r := recover(); r != nil {
+					ec.Error(ctx, ec.Recover(ctx, r))
+					ret = nil
+				}
+			}()
+			if !isLen1 {
+				defer wg.Done()
+			}
+			ret[i] = ec.marshalNTableColumn2githubᚗcomᚋnaviktᚋnadaᚑbackendᚋpkgᚋgraphᚋmodelsᚐTableColumn(ctx, sel, v[i])
+		}
+		if isLen1 {
+			f(i)
+		} else {
+			go f(i)
+		}
+
+	}
+	wg.Wait()
+
+	for _, e := range ret {
+		if e == graphql.Null {
+			return graphql.Null
+		}
+	}
+
+	return ret
+}
+
+func (ec *executionContext) marshalNTableMetadata2githubᚗcomᚋnaviktᚋnadaᚑbackendᚋpkgᚋgraphᚋmodelsᚐTableMetadata(ctx context.Context, sel ast.SelectionSet, v models.TableMetadata) graphql.Marshaler {
+	return ec._TableMetadata(ctx, sel, &v)
+}
+
+func (ec *executionContext) marshalNTableMetadata2ᚖgithubᚗcomᚋnaviktᚋnadaᚑbackendᚋpkgᚋgraphᚋmodelsᚐTableMetadata(ctx context.Context, sel ast.SelectionSet, v *models.TableMetadata) graphql.Marshaler {
+	if v == nil {
+		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	return ec._TableMetadata(ctx, sel, v)
 }
 
 func (ec *executionContext) unmarshalNTime2timeᚐTime(ctx context.Context, v interface{}) (time.Time, error) {

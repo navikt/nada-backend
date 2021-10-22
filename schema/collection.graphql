@@ -1,43 +1,63 @@
-union CollectionElement @goModel(model: "github.com/navikt/nada-backend/pkg/graph/models.CollectionElement") = Dataproduct
+union CollectionElement
+  @goModel(
+    model: "github.com/navikt/nada-backend/pkg/graph/models.CollectionElement"
+  ) =
+    Dataproduct
 
 enum CollectionElementType {
-    dataproduct
+  dataproduct
 }
 
-type Collection @goModel(model: "github.com/navikt/nada-backend/pkg/graph/models.Collection"){
-    id: ID!
-    name: String!
-    description: String
-    created: Time!
-    lastModified: Time!
-    keywords: [String!]!
-    owner: Owner!
-    elements: [CollectionElement!]!
+type Collection
+  @goModel(
+    model: "github.com/navikt/nada-backend/pkg/graph/models.Collection"
+  ) {
+  id: ID!
+  name: String!
+  description: String
+  created: Time!
+  lastModified: Time!
+  keywords: [String!]!
+  owner: Owner!
+  elements: [CollectionElement!]!
 }
 
-input NewCollection @goModel(model: "github.com/navikt/nada-backend/pkg/graph/models.NewCollection") {
-    name:        String!
-	description: String
-	group:       String!
-	keywords:    [String!]
+input NewCollection
+  @goModel(
+    model: "github.com/navikt/nada-backend/pkg/graph/models.NewCollection"
+  ) {
+  name: String!
+  description: String
+  group: String!
+  keywords: [String!]
 }
 
-input UpdateCollection @goModel(model: "github.com/navikt/nada-backend/pkg/graph/models.UpdateCollection") {
-    name:        String!
-	description: String
-	keywords:    [String!]
+input UpdateCollection
+  @goModel(
+    model: "github.com/navikt/nada-backend/pkg/graph/models.UpdateCollection"
+  ) {
+  name: String!
+  description: String
+  keywords: [String!]
 }
-
 
 extend type Query {
-    collections(limit: Int, offset: Int): [Collection!]!
-    collection(id: ID!): Collection!
+  collections(limit: Int, offset: Int): [Collection!]!
+  collection(id: ID!): Collection!
 }
 
 extend type Mutation {
-    createCollection(input: NewCollection!): Collection!
-    updateCollection(id: ID!, input: UpdateCollection!): Collection!
-    deleteCollection(id: ID!): Boolean!
-    addToCollection(id: ID!, elementID: ID!, elementType: CollectionElementType!): Boolean!
-    removeFromCollection(id: ID!, elementID: ID!, elementType: CollectionElementType!): Boolean!
+  createCollection(input: NewCollection!): Collection!
+  updateCollection(id: ID!, input: UpdateCollection!): Collection!
+  deleteCollection(id: ID!): Boolean!
+  addToCollection(
+    id: ID!
+    elementID: ID!
+    elementType: CollectionElementType!
+  ): Boolean!
+  removeFromCollection(
+    id: ID!
+    elementID: ID!
+    elementType: CollectionElementType!
+  ): Boolean!
 }

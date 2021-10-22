@@ -265,27 +265,22 @@ func (r *Repo) DeleteCollection(ctx context.Context, id uuid.UUID) error {
 	return nil
 }
 
-func (r *Repo) GetDataproductMetadata(ctx context.Context, id string) (*openapi.DataproductMetadata, error) {
-	uid, err := uuid.Parse(id)
-	if err != nil {
-		return nil, fmt.Errorf("parsing uuid: %w", err)
-	}
-
-	ds, err := r.querier.GetBigqueryDatasource(ctx, uid)
+func (r *Repo) GetDataproductMetadata(ctx context.Context, id uuid.UUID) (*models.TableMetadata, error) {
+	ds, err := r.querier.GetBigqueryDatasource(ctx, id)
 	if err != nil {
 		return nil, fmt.Errorf("getting bigquery datasource from database: %w", err)
 	}
 
-	var schema []openapi.TableColumn
+	var schema []models.TableColumn
 	if ds.Schema.Valid {
 		if err := json.Unmarshal(ds.Schema.RawMessage, &schema); err != nil {
 			return nil, fmt.Errorf("unmarshalling schema: %w", err)
 		}
 	}
 
-	return &openapi.DataproductMetadata{
-		DataproductId: ds.DataproductID.String(),
-		Schema:        schema,
+	return &models.TableMetadata{
+		ID:     ds.DataproductID,
+		Schema: schema,
 	}, nil
 }
 
