@@ -9,6 +9,11 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/99designs/gqlgen/graphql"
+	"github.com/99designs/gqlgen/graphql/handler"
+	"github.com/99designs/gqlgen/graphql/playground"
+	"github.com/go-chi/chi"
+	"github.com/go-chi/cors"
 	"github.com/sirupsen/logrus"
 	flag "github.com/spf13/pflag"
 
@@ -16,6 +21,8 @@ import (
 	"github.com/navikt/nada-backend/pkg/auth"
 	"github.com/navikt/nada-backend/pkg/database"
 	"github.com/navikt/nada-backend/pkg/database/gensql"
+	"github.com/navikt/nada-backend/pkg/graph"
+	"github.com/navikt/nada-backend/pkg/graph/generated"
 	"github.com/navikt/nada-backend/pkg/metadata"
 )
 
@@ -56,8 +63,10 @@ func main() {
 	}
 
 	authenticatorMiddleware := auth.MockJWTValidatorMiddleware()
+	_ = authenticatorMiddleware
 	teamProjectsMapping := &auth.MockTeamProjectsUpdater
 	var oauth2Config api.OAuth2
+	_ = oauth2Config
 	if !cfg.MockAuth {
 		teamProjectsMapping = auth.NewTeamProjectsUpdater(cfg.DevTeamProjectsOutputURL, cfg.ProdTeamProjectsOutputURL, cfg.TeamsToken, http.DefaultClient)
 		go teamProjectsMapping.Run(ctx, TeamProjectsUpdateFrequency)
@@ -72,8 +81,7 @@ func main() {
 		authenticatorMiddleware = gauth.Middleware(googleGroups)
 	}
 
-	var gcp api.GCP
-	var datasetEnricher api.DatasetEnricher = &noopDatasetEnricher{}
+	var gcp graph.GCP
 	if !cfg.SkipMetadataSync {
 		datacatalogClient, err := metadata.NewDatacatalog(ctx)
 		if err != nil {
@@ -81,16 +89,30 @@ func main() {
 		}
 		gcp = datacatalogClient
 		de := metadata.New(datacatalogClient, repo, log.WithField("subsystem", "datasetenricher"))
-		datasetEnricher = de
 		go de.Run(ctx, DatasetMetadataUpdateFrequency)
 	}
 
-	router := api.NewRouter(repo, oauth2Config, log.WithField("subsystem", "api"), teamProjectsMapping, gcp, datasetEnricher, authenticatorMiddleware)
 	log.Info("Listening on :8080")
+
+	config := generated.Config{Resolvers: graph.New(repo, gcp)}
+	config.Directives.Authenticated = authenticate
+	srv := handler.NewDefaultServer(generated.NewExecutableSchema(config))
+	// mux := http.NewServeMux()
+
+	corsMW := cors.Handler(cors.Options{
+		AllowedOrigins:   []string{"https://*", "http://*"},
+		AllowedMethods:   []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
+		AllowCredentials: true,
+	})
+
+	baseRouter := chi.NewRouter()
+	baseRouter.Use(corsMW)
+	baseRouter.Handle("/", playground.Handler("GraphQL playground", "/query"))
+	baseRouter.Handle("/query", authenticatorMiddleware(srv))
 
 	server := http.Server{
 		Addr:    cfg.BindAddress,
-		Handler: router,
+		Handler: baseRouter,
 	}
 	go func() {
 		if err := server.ListenAndServe(); err != nil {
@@ -129,4 +151,14 @@ type noopDatasetEnricher struct{}
 
 func (n *noopDatasetEnricher) UpdateSchema(ctx context.Context, ds gensql.DatasourceBigquery) error {
 	return nil
+}
+
+func authenticate(ctx context.Context, obj interface{}, next graphql.Resolver, on *bool) (res interface{}, err error) {
+	if auth.GetUser(ctx) == nil {
+		// block calling the next resolver
+		return nil, fmt.Errorf("access denied")
+	}
+
+	// or let it pass through
+	return next(ctx)
 }

@@ -6,86 +6,42 @@ package gensql
 import (
 	"context"
 
-	"github.com/lib/pq"
+	"github.com/google/uuid"
 )
 
-const searchCollections = `-- name: SearchCollections :many
-SELECT id, name, description, slug, repo, created, last_modified, "group", keywords, tsv_document FROM "collections" WHERE "tsv_document" @@ websearch_to_tsquery('norwegian', $1) LIMIT $3 OFFSET $2
+const search = `-- name: Search :many
+
+SELECT 
+	element_id::uuid,
+	element_type::text,
+	ts_rank_cd(tsv_document, query) 
+FROM search, websearch_to_tsquery('norwegian', $1) query
+WHERE
+	(CASE WHEN $2::text != '' THEN $2 = ANY(keywords) ELSE TRUE END)
+	AND (CASE WHEN $1::text != '' THEN "tsv_document" @@ query ELSE TRUE END)
 `
 
-type SearchCollectionsParams struct {
-	Query  string
-	Offset int32
-	Limit  int32
+type SearchParams struct {
+	Query   string
+	Keyword string
 }
 
-func (q *Queries) SearchCollections(ctx context.Context, arg SearchCollectionsParams) ([]Collection, error) {
-	rows, err := q.db.QueryContext(ctx, searchCollections, arg.Query, arg.Offset, arg.Limit)
+type SearchRow struct {
+	ElementID   uuid.UUID
+	ElementType string
+	TsRankCd    float32
+}
+
+func (q *Queries) Search(ctx context.Context, arg SearchParams) ([]SearchRow, error) {
+	rows, err := q.db.QueryContext(ctx, search, arg.Query, arg.Keyword)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
-	items := []Collection{}
+	items := []SearchRow{}
 	for rows.Next() {
-		var i Collection
-		if err := rows.Scan(
-			&i.ID,
-			&i.Name,
-			&i.Description,
-			&i.Slug,
-			&i.Repo,
-			&i.Created,
-			&i.LastModified,
-			&i.Group,
-			pq.Array(&i.Keywords),
-			&i.TsvDocument,
-		); err != nil {
-			return nil, err
-		}
-		items = append(items, i)
-	}
-	if err := rows.Close(); err != nil {
-		return nil, err
-	}
-	if err := rows.Err(); err != nil {
-		return nil, err
-	}
-	return items, nil
-}
-
-const searchDataproducts = `-- name: SearchDataproducts :many
-SELECT id, name, description, "group", pii, created, last_modified, type, tsv_document, slug, repo, keywords FROM "dataproducts" WHERE "tsv_document" @@ websearch_to_tsquery('norwegian', $1) LIMIT $3 OFFSET $2
-`
-
-type SearchDataproductsParams struct {
-	Query  string
-	Offset int32
-	Limit  int32
-}
-
-func (q *Queries) SearchDataproducts(ctx context.Context, arg SearchDataproductsParams) ([]Dataproduct, error) {
-	rows, err := q.db.QueryContext(ctx, searchDataproducts, arg.Query, arg.Offset, arg.Limit)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-	items := []Dataproduct{}
-	for rows.Next() {
-		var i Dataproduct
-		if err := rows.Scan(
-			&i.ID,
-			&i.Name,
-			&i.Description,
-			&i.Group,
-			&i.Pii,
-			&i.Created,
-			&i.LastModified,
-			&i.Type,
-			&i.TsvDocument,
-			&i.Slug,
-			&i.Repo,
-			pq.Array(&i.Keywords),
-		); err != nil {
+		var i SearchRow
+		if err := rows.Scan(&i.ElementID, &i.ElementType, &i.TsRankCd); err != nil {
 			return nil, err
 		}
 		items = append(items, i)

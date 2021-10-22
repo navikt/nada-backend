@@ -11,7 +11,11 @@ import (
 	datacatalogpb "google.golang.org/genproto/googleapis/cloud/datacatalog/v1"
 
 	"github.com/navikt/nada-backend/pkg/database/gensql"
+<<<<<<< HEAD
 	"github.com/navikt/nada-backend/pkg/openapi"
+=======
+	"github.com/navikt/nada-backend/pkg/graph/models"
+>>>>>>> graphql-main
 )
 
 type Datacatalog struct {
@@ -41,36 +45,6 @@ func (c *Datacatalog) Close() error {
 	return c.client.Close()
 }
 
-func (c *Datacatalog) GetTables(ctx context.Context, projectID string) ([]gensql.DatasourceBigquery, error) {
-	results, err := c.client.SearchCatalog(ctx, &datacatalogpb.SearchCatalogRequest{
-		Scope: &datacatalogpb.SearchCatalogRequest_Scope{
-			IncludeProjectIds: []string{projectID},
-		},
-		Query: "system=BIGQUERY projectid=" + projectID,
-	})
-	if err != nil {
-		return nil, err
-	}
-
-	ret := []gensql.DatasourceBigquery{}
-
-	for _, result := range results {
-		parts := strings.Split(result.GetLinkedResource(), "/")
-		if len(parts) != 9 {
-			continue
-		}
-		dataset := parts[6]
-		table := parts[8]
-		ret = append(ret, gensql.DatasourceBigquery{
-			ProjectID: projectID,
-			Dataset:   dataset,
-			TableName: table,
-		})
-	}
-
-	return ret, nil
-}
-
 func (c *Datacatalog) GetDatasets(ctx context.Context, projectID string) ([]string, error) {
 	client, err := bigquery.NewClient(ctx, projectID)
 	if err != nil {
@@ -92,13 +66,13 @@ func (c *Datacatalog) GetDatasets(ctx context.Context, projectID string) ([]stri
 	return datasets, nil
 }
 
-func (c *Datacatalog) GetDataset(ctx context.Context, projectID, datasetID string) ([]openapi.BigqueryTypeMetadata, error) {
+func (c *Datacatalog) GetTables(ctx context.Context, projectID, datasetID string) ([]*models.BigQueryTable, error) {
 	client, err := bigquery.NewClient(ctx, projectID)
 	if err != nil {
 		return nil, err
 	}
 
-	tables := []openapi.BigqueryTypeMetadata{}
+	tables := []*models.BigQueryTable{}
 	it := client.Dataset(datasetID).Tables(ctx)
 	for {
 		t, err := it.Next()
@@ -113,10 +87,10 @@ func (c *Datacatalog) GetDataset(ctx context.Context, projectID, datasetID strin
 			return nil, err
 		}
 
-		tables = append(tables, openapi.BigqueryTypeMetadata{
+		tables = append(tables, &models.BigQueryTable{
 			Name:         t.TableID,
 			Description:  m.Description,
-			Type:         openapi.BigqueryType(strings.ToLower(string(m.Type))),
+			Type:         models.BigQueryType(strings.ToLower(string(m.Type))),
 			LastModified: m.LastModifiedTime,
 		})
 	}

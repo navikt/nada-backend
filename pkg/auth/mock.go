@@ -5,7 +5,6 @@ import (
 	"net/http"
 
 	"github.com/navikt/nada-backend/pkg/metadata"
-	"github.com/navikt/nada-backend/pkg/openapi"
 )
 
 var MockUser = User{
@@ -37,9 +36,15 @@ var MockTeamProjectsUpdater = TeamProjectsUpdater{
 	},
 }
 
-func MockJWTValidatorMiddleware() openapi.MiddlewareFunc {
-	return func(next http.HandlerFunc) http.HandlerFunc {
-		return func(w http.ResponseWriter, r *http.Request) {
+type MiddlewareHandler func(http.Handler) http.Handler
+
+func MockJWTValidatorMiddleware() MiddlewareHandler {
+	return func(next http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			if r.Header.Get("X-NO-AUTH") != "" {
+				next.ServeHTTP(w, r)
+				return
+			}
 			teams := []string{
 				"team",
 			}
@@ -50,6 +55,6 @@ func MockJWTValidatorMiddleware() openapi.MiddlewareFunc {
 			ctx := context.WithValue(r.Context(), contextUserKey, &MockUser)
 			r = r.WithContext(ctx)
 			next.ServeHTTP(w, r)
-		}
+		})
 	}
 }

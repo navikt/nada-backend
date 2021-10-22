@@ -42,6 +42,9 @@ local:
 migrate:
 	go run github.com/pressly/goose/v3/cmd/goose -dir ./pkg/database/migrations postgres "user=postgres dbname=nada sslmode=disable password=postgres" up
 
+generate-graphql:
+	go get -d github.com/99designs/gqlgen@latest && go run github.com/99designs/gqlgen generate
+
 generate: 
 	cd pkg && $(GOBIN)/sqlc generate
 	mkdir -p pkg/openapi

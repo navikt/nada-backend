@@ -5,7 +5,6 @@ import (
 	"fmt"
 
 	"github.com/coreos/go-oidc/v3/oidc"
-	"github.com/navikt/nada-backend/pkg/openapi"
 	"golang.org/x/oauth2"
 )
 
@@ -56,7 +55,7 @@ func (g *Google) Verify(ctx context.Context, rawIDToken string) (*oidc.IDToken, 
 	return g.provider.Verifier(&oidc.Config{ClientID: g.clientID}).Verify(ctx, rawIDToken)
 }
 
-func (g *Google) Middleware(groupsLister GroupsLister) openapi.MiddlewareFunc {
+func (g *Google) Middleware(groupsLister GroupsLister) MiddlewareHandler {
 	return newMiddleware(g.provider.Verifier(&oidc.Config{ClientID: g.clientID}), groupsLister).handle
 }
 

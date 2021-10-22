@@ -16,7 +16,6 @@ INSERT INTO collections (
 	"name",
 	"description",
 	"slug",
-	"repo",
 	"group",
 	"keywords"
 ) VALUES (
@@ -24,16 +23,14 @@ INSERT INTO collections (
 	$2,
 	$3,
 	$4,
-	$5,
-	$6
-) RETURNING id, name, description, slug, repo, created, last_modified, "group", keywords, tsv_document
+	$5
+) RETURNING id, name, description, slug, created, last_modified, "group", keywords, tsv_document
 `
 
 type CreateCollectionParams struct {
 	Name        string
 	Description sql.NullString
 	Slug        string
-	Repo        sql.NullString
 	OwnerGroup  string
 	Keywords    []string
 }
@@ -43,7 +40,6 @@ func (q *Queries) CreateCollection(ctx context.Context, arg CreateCollectionPara
 		arg.Name,
 		arg.Description,
 		arg.Slug,
-		arg.Repo,
 		arg.OwnerGroup,
 		pq.Array(arg.Keywords),
 	)
@@ -53,7 +49,6 @@ func (q *Queries) CreateCollection(ctx context.Context, arg CreateCollectionPara
 		&i.Name,
 		&i.Description,
 		&i.Slug,
-		&i.Repo,
 		&i.Created,
 		&i.LastModified,
 		&i.Group,
@@ -76,8 +71,8 @@ INSERT INTO collection_elements (
 `
 
 type CreateCollectionElementParams struct {
-	ElementID    string
-	CollectionID string
+	ElementID    uuid.UUID
+	CollectionID uuid.UUID
 	ElementType  string
 }
 
@@ -100,8 +95,8 @@ DELETE FROM collection_elements WHERE element_id = $1 AND collection_id = $2 AND
 `
 
 type DeleteCollectionElementParams struct {
-	ElementID    string
-	CollectionID string
+	ElementID    uuid.UUID
+	CollectionID uuid.UUID
 	ElementType  string
 }
 
@@ -111,7 +106,7 @@ func (q *Queries) DeleteCollectionElement(ctx context.Context, arg DeleteCollect
 }
 
 const getCollection = `-- name: GetCollection :one
-SELECT id, name, description, slug, repo, created, last_modified, "group", keywords, tsv_document FROM collections WHERE id = $1
+SELECT id, name, description, slug, created, last_modified, "group", keywords, tsv_document FROM collections WHERE id = $1
 `
 
 func (q *Queries) GetCollection(ctx context.Context, id uuid.UUID) (Collection, error) {
@@ -122,7 +117,6 @@ func (q *Queries) GetCollection(ctx context.Context, id uuid.UUID) (Collection, 
 		&i.Name,
 		&i.Description,
 		&i.Slug,
-		&i.Repo,
 		&i.Created,
 		&i.LastModified,
 		&i.Group,
@@ -133,19 +127,35 @@ func (q *Queries) GetCollection(ctx context.Context, id uuid.UUID) (Collection, 
 }
 
 const getCollectionElements = `-- name: GetCollectionElements :many
-SELECT element_id, collection_id, element_type FROM collection_elements WHERE collection_id = $1
+SELECT id, name, description, "group", pii, created, last_modified, type, tsv_document, slug, repo, keywords 
+FROM dataproducts 
+WHERE id IN 
+	(SELECT element_id FROM collection_elements WHERE collection_id = $1 AND element_type = 'dataproduct')
 `
 
-func (q *Queries) GetCollectionElements(ctx context.Context, collectionID string) ([]CollectionElement, error) {
+func (q *Queries) GetCollectionElements(ctx context.Context, collectionID uuid.UUID) ([]Dataproduct, error) {
 	rows, err := q.db.QueryContext(ctx, getCollectionElements, collectionID)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
-	items := []CollectionElement{}
+	items := []Dataproduct{}
 	for rows.Next() {
-		var i CollectionElement
-		if err := rows.Scan(&i.ElementID, &i.CollectionID, &i.ElementType); err != nil {
+		var i Dataproduct
+		if err := rows.Scan(
+			&i.ID,
+			&i.Name,
+			&i.Description,
+			&i.Group,
+			&i.Pii,
+			&i.Created,
+			&i.LastModified,
+			&i.Type,
+			&i.TsvDocument,
+			&i.Slug,
+			&i.Repo,
+			pq.Array(&i.Keywords),
+		); err != nil {
 			return nil, err
 		}
 		items = append(items, i)
@@ -160,7 +170,7 @@ func (q *Queries) GetCollectionElements(ctx context.Context, collectionID string
 }
 
 const getCollections = `-- name: GetCollections :many
-SELECT id, name, description, slug, repo, created, last_modified, "group", keywords, tsv_document FROM collections ORDER BY last_modified DESC LIMIT $2 OFFSET $1
+SELECT id, name, description, slug, created, last_modified, "group", keywords, tsv_document FROM collections ORDER BY last_modified DESC LIMIT $2 OFFSET $1
 `
 
 type GetCollectionsParams struct {
@@ -182,7 +192,43 @@ func (q *Queries) GetCollections(ctx context.Context, arg GetCollectionsParams) 
 			&i.Name,
 			&i.Description,
 			&i.Slug,
-			&i.Repo,
+			&i.Created,
+			&i.LastModified,
+			&i.Group,
+			pq.Array(&i.Keywords),
+			&i.TsvDocument,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const getCollectionsByIDs = `-- name: GetCollectionsByIDs :many
+SELECT id, name, description, slug, created, last_modified, "group", keywords, tsv_document FROM collections WHERE id = ANY($1::uuid[]) ORDER BY last_modified DESC
+`
+
+func (q *Queries) GetCollectionsByIDs(ctx context.Context, ids []uuid.UUID) ([]Collection, error) {
+	rows, err := q.db.QueryContext(ctx, getCollectionsByIDs, pq.Array(ids))
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []Collection{}
+	for rows.Next() {
+		var i Collection
+		if err := rows.Scan(
+			&i.ID,
+			&i.Name,
+			&i.Description,
+			&i.Slug,
 			&i.Created,
 			&i.LastModified,
 			&i.Group,
@@ -207,17 +253,15 @@ UPDATE collections SET
 	"name" = $1,
 	"description" = $2,
 	"slug" = $3,
-	"repo" = $4,
-	"keywords" = $5
-WHERE id = $6
-RETURNING id, name, description, slug, repo, created, last_modified, "group", keywords, tsv_document
+	"keywords" = $4
+WHERE id = $5
+RETURNING id, name, description, slug, created, last_modified, "group", keywords, tsv_document
 `
 
 type UpdateCollectionParams struct {
 	Name        string
 	Description sql.NullString
 	Slug        string
-	Repo        sql.NullString
 	Keywords    []string
 	ID          uuid.UUID
 }
@@ -227,7 +271,6 @@ func (q *Queries) UpdateCollection(ctx context.Context, arg UpdateCollectionPara
 		arg.Name,
 		arg.Description,
 		arg.Slug,
-		arg.Repo,
 		pq.Array(arg.Keywords),
 		arg.ID,
 	)
@@ -237,7 +280,6 @@ func (q *Queries) UpdateCollection(ctx context.Context, arg UpdateCollectionPara
 		&i.Name,
 		&i.Description,
 		&i.Slug,
-		&i.Repo,
 		&i.Created,
 		&i.LastModified,
 		&i.Group,

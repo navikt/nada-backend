@@ -1,0 +1,60 @@
+type Dataproduct @goModel(model: "github.com/navikt/nada-backend/pkg/graph/models.Dataproduct"){
+    id: ID!
+    name: String!
+    description: String
+    created: Time!
+    lastModified: Time!
+    repo: String
+    pii: Boolean!
+    keywords: [String!]!
+    owner: Owner!
+    datasource: Datasource!
+}
+
+type Owner @goModel(model: "github.com/navikt/nada-backend/pkg/graph/models.Owner"){
+    group: String!
+    teamkatalogen: String!
+}
+
+type BigQuery @goModel(model: "github.com/navikt/nada-backend/pkg/graph/models.BigQuery") {
+    projectID: String!
+    dataset: String!
+    table: String!
+}
+
+union Datasource @goModel(model: "github.com/navikt/nada-backend/pkg/graph/models.Datasource") = BigQuery
+
+extend type Query {
+    dataproduct(id: ID!): Dataproduct!
+    dataproducts(limit: Int, offset: Int): [Dataproduct!]!
+}
+
+input NewBigQuery @goModel(model: "github.com/navikt/nada-backend/pkg/graph/models.NewBigQuery") {
+    projectID: String!
+    dataset: String!
+    table: String!
+}
+
+input NewDataproduct @goModel(model: "github.com/navikt/nada-backend/pkg/graph/models.NewDataproduct") {
+    name: String!
+    description: String
+    repo: String
+    pii: Boolean!
+    keywords: [String!]
+    group: String!
+    bigquery: NewBigQuery!
+}
+
+input UpdateDataproduct @goModel(model: "github.com/navikt/nada-backend/pkg/graph/models.UpdateDataproduct") {
+    name: String!
+    description: String
+    repo: String
+    pii: Boolean!
+    keywords: [String!]
+}
+
+extend type Mutation {
+    createDataproduct(input: NewDataproduct!): Dataproduct!
+    updateDataproduct(id: ID!, input: UpdateDataproduct!): Dataproduct!
+    deleteDataproduct(id: ID!) : Boolean!
+}

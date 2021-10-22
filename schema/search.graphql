@@ -1,0 +1,18 @@
+union SearchResult = Dataproduct | Collection
+
+input SearchQuery {
+	"""
+	Freetext search
+	"""
+	text: String
+	"""
+	Filter on keyword
+	"""
+	keyword: String
+	limit: Int
+	offset: Int
+}
+
+extend type Query {
+	search(q: SearchQuery): [SearchResult!]!
+}

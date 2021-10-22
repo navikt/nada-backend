@@ -1,0 +1,14 @@
+type Group {
+	name: String!
+	email: String!
+}
+
+type UserInfo {
+	name: String!
+	email: String!
+	groups: [Group!]!
+}
+
+extend type Query {
+	userInfo: UserInfo! @authenticated
+}

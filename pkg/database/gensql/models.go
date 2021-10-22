@@ -34,7 +34,6 @@ type Collection struct {
 	Name         string
 	Description  sql.NullString
 	Slug         string
-	Repo         sql.NullString
 	Created      time.Time
 	LastModified time.Time
 	Group        string
@@ -43,8 +42,8 @@ type Collection struct {
 }
 
 type CollectionElement struct {
-	ElementID    string
-	CollectionID string
+	ElementID    uuid.UUID
+	CollectionID uuid.UUID
 	ElementType  string
 }
 
@@ -58,7 +57,7 @@ type Dataproduct struct {
 	LastModified time.Time
 	Type         DatasourceType
 	TsvDocument  interface{}
-	Slug         sql.NullString
+	Slug         string
 	Repo         sql.NullString
 	Keywords     []string
 }
@@ -69,4 +68,13 @@ type DatasourceBigquery struct {
 	Dataset       string
 	TableName     string
 	Schema        pqtype.NullRawMessage
+}
+
+type Search struct {
+	ElementID    uuid.UUID
+	ElementType  interface{}
+	LastModified time.Time
+	Keywords     []string
+	Group        string
+	TsvDocument  interface{}
 }
