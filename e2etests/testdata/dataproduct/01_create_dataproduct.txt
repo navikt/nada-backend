@@ -10,6 +10,7 @@ mutation {
 			bigquery: { projectID: "projectid", dataset: "dataset", table: "table" }
 		}
 	) {
+		id
 		name
 		description
 		repo
@@ -37,3 +38,6 @@ RETURNS
     }
   }
 }
+
+STORE dataproduct_id=data.createDataproduct.id
+STORE dataproduct_name=data.createDataproduct.name

@@ -1,0 +1,32 @@
+{
+	dataproduct(
+		id: "{{ .dataproduct_id }}"
+	) {
+		id
+		name
+		description
+		repo
+		pii
+		owner { group }
+		keywords
+	}
+}
+
+RETURNS
+
+{
+  "data": {
+    "dataproduct": {
+      "name": "NewName",
+      "description": "New description",
+      "keywords": [
+        "keyword1"
+      ],
+      "owner": {
+        "group": "dataplattform@nav.no"
+      },
+      "pii": false,
+      "repo": "somerepo"
+    }
+  }
+}

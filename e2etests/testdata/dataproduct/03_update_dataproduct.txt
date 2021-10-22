@@ -1,0 +1,40 @@
+mutation {
+	updateDataproduct(
+		id: "{{ .dataproduct_id }}"
+		input: {
+			name: "Updated Name"
+			description: "Updated description"
+			repo: "someotherrepo"
+			pii: true
+			keywords: ["keyword1", "keyword2"]
+		}
+	) {
+		id
+		name
+		description
+		repo
+		pii
+		owner { group }
+		keywords
+	}
+}
+
+RETURNS
+
+{
+  "data": {
+    "updateDataproduct": {
+      "name": "Updated Name",
+      "description": "Updated description",
+      "keywords": [
+        "keyword1",
+				"keyword2"
+      ],
+      "owner": {
+        "group": "dataplattform@nav.no"
+      },
+      "pii": true,
+      "repo": "someotherrepo"
+    }
+  }
+}
