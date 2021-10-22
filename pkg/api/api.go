@@ -31,7 +31,7 @@ type HTTP struct {
 	log          *logrus.Entry
 }
 
-func New(oauth2Config OAuth2, log *logrus.Entry) HTTP {
+func new(oauth2Config OAuth2, log *logrus.Entry) HTTP {
 	return HTTP{
 		oauth2Config: oauth2Config,
 		log:          log,

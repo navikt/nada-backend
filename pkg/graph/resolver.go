@@ -4,8 +4,11 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/99designs/gqlgen/graphql"
+	"github.com/99designs/gqlgen/graphql/handler"
 	"github.com/navikt/nada-backend/pkg/auth"
 	"github.com/navikt/nada-backend/pkg/database"
+	"github.com/navikt/nada-backend/pkg/graph/generated"
 	"github.com/navikt/nada-backend/pkg/graph/models"
 )
 
@@ -21,11 +24,15 @@ type Resolver struct {
 	gcp  GCP
 }
 
-func New(repo *database.Repo, gcp GCP) *Resolver {
-	return &Resolver{
+func New(repo *database.Repo, gcp GCP) *handler.Server {
+	resolver := &Resolver{
 		repo: repo,
 		gcp:  gcp,
 	}
+
+	config := generated.Config{Resolvers: resolver}
+	config.Directives.Authenticated = authenticate
+	return handler.NewDefaultServer(generated.NewExecutableSchema(config))
 }
 
 func pagination(limit *int, offset *int) (int, int) {
@@ -46,4 +53,14 @@ func ensureUserInGroup(ctx context.Context, group string) error {
 		return ErrUnauthorized
 	}
 	return nil
+}
+
+func authenticate(ctx context.Context, obj interface{}, next graphql.Resolver, on *bool) (res interface{}, err error) {
+	if auth.GetUser(ctx) == nil {
+		// block calling the next resolver
+		return nil, fmt.Errorf("access denied")
+	}
+
+	// or let it pass through
+	return next(ctx)
 }
