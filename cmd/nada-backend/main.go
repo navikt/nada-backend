@@ -106,10 +106,17 @@ func main() {
 		AllowCredentials: true,
 	})
 
+	httpAPI := api.New(oauth2Config, log.WithField("subsystem", "httpAPI"))
+
 	baseRouter := chi.NewRouter()
 	baseRouter.Use(corsMW)
-	baseRouter.Handle("/", playground.Handler("GraphQL playground", "/query"))
-	baseRouter.Handle("/query", authenticatorMiddleware(srv))
+	baseRouter.Route("/api", func(r chi.Router) {
+		r.Handle("/", playground.Handler("GraphQL playground", "/api/query"))
+		r.Handle("/query", authenticatorMiddleware(srv))
+		r.HandleFunc("/login", httpAPI.Login)
+		r.HandleFunc("/oauth2/callback", httpAPI.Callback)
+		r.HandleFunc("/logout", httpAPI.Logout)
+	})
 
 	server := http.Server{
 		Addr:    cfg.BindAddress,
