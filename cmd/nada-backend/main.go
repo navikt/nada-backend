@@ -85,9 +85,6 @@ func main() {
 	}
 
 	var gcp graph.GCP
-	_ = gcp
-	var datasetEnricher api.DatasetEnricher = &noopDatasetEnricher{}
-	_ = datasetEnricher
 	if !cfg.SkipMetadataSync {
 		datacatalogClient, err := metadata.NewDatacatalog(ctx)
 		if err != nil {
@@ -95,7 +92,6 @@ func main() {
 		}
 		gcp = datacatalogClient
 		de := metadata.New(datacatalogClient, repo, log.WithField("subsystem", "datasetenricher"))
-		datasetEnricher = de
 		go de.Run(ctx, DatasetMetadataUpdateFrequency)
 	}
 

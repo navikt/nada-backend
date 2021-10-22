@@ -14,7 +14,7 @@ import (
 
 	"github.com/google/go-cmp/cmp"
 	"github.com/navikt/nada-backend/pkg/auth"
-	"github.com/navikt/nada-backend/pkg/openapi"
+	"github.com/navikt/nada-backend/pkg/graph/models"
 	"github.com/ory/dockertest/v3"
 )
 
@@ -62,23 +62,19 @@ func TestRepo(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	newCollection := openapi.NewCollection{
-		Name: "new_dataproduct",
-		Owner: openapi.Owner{
-			Group: "team",
-		},
+	newCollection := models.NewCollection{
+		Name:  "new_dataproduct",
+		Group: "team",
 	}
 
-	newDataproduct := openapi.NewDataproduct{
+	newDataproduct := models.NewDataproduct{
 		Name: "test-product",
-		Datasource: openapi.Bigquery{
+		BigQuery: models.NewBigQuery{
 			Dataset:   "dataset",
-			ProjectId: "projectid",
+			ProjectID: "projectid",
 			Table:     "table",
 		},
-		Owner: openapi.Owner{
-			Group: auth.MockUser.Groups[0].Name,
-		},
+		Group: auth.MockUser.Groups[0].Name,
 	}
 
 	t.Run("creates collections", func(t *testing.T) {
@@ -86,7 +82,7 @@ func TestRepo(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		if collection.Id == "" {
+		if collection.ID.String() == "" {
 			t.Fatal("returned collection should contain ID")
 		}
 		if newCollection.Name != collection.Name {
@@ -105,26 +101,22 @@ func TestRepo(t *testing.T) {
 			t.Fatal(err)
 		}
 
-		colElem := openapi.CollectionElement{
-			ElementId:   dataproduct.Id,
-			ElementType: openapi.CollectionElementTypeDataproduct,
-		}
-
-		if err := repo.AddToCollection(context.Background(), collection.Id, colElem); err != nil {
+		if err := repo.AddToCollection(context.Background(), collection.ID, dataproduct.ID, models.CollectionElementTypeDataproduct.String()); err != nil {
 			t.Fatal(err)
 		}
 
-		fetchedCollection, err := repo.GetCollection(context.Background(), collection.Id)
+		fetchedCollection, err := repo.GetCollection(context.Background(), collection.ID)
 		if err != nil {
 			t.Fatal(err)
 		}
 		if newCollection.Name != fetchedCollection.Name {
 			t.Fatal("fetched name should match provided name")
 		}
+		fetchedCollectionElements, err := repo.GetCollectionElements(context.Background(), collection.ID)
 
-		expected := []openapi.CollectionElement{colElem}
-		if !cmp.Equal(fetchedCollection.Elements, expected) {
-			t.Error(cmp.Diff(fetchedCollection.Elements, expected))
+		expected := []models.CollectionElement{dataproduct}
+		if !cmp.Equal(fetchedCollectionElements, expected) {
+			t.Error(cmp.Diff(fetchedCollectionElements, expected))
 		}
 	})
 
@@ -135,31 +127,31 @@ func TestRepo(t *testing.T) {
 			t.Fatal(err)
 		}
 
-		dataproduct, err := repo.GetDataproduct(context.Background(), createdDataproduct.Id)
+		dataproduct, err := repo.GetDataproduct(context.Background(), createdDataproduct.ID)
 		if err != nil {
 			t.Fatal(err)
 		}
 
-		if dataproduct.Datasource == nil {
-			t.Fatal("Expected datasource to be set")
+		if dataproduct.ID.String() == "" {
+			t.Fatal("Expected ID to be set")
 		}
 
-		bq, ok := dataproduct.Datasource.(openapi.Bigquery)
-		if !ok {
-			t.Fatalf("Expected datasource to be openapi.Bigquery, got %T", dataproduct.Datasource)
+		bq, err := repo.GetBigqueryDatasource(context.Background(), dataproduct.ID)
+		if err != nil {
+			t.Fatal(err)
 		}
 
-		if !cmp.Equal(bq, data.Datasource) {
-			t.Error(cmp.Diff(bq, data.Datasource))
+		if !cmp.Equal(bq, models.BigQuery(data.BigQuery)) {
+			t.Error(cmp.Diff(bq, models.BigQuery(data.BigQuery)))
 		}
 	})
 
 	t.Run("updates dataproducts", func(t *testing.T) {
-		data := openapi.NewDataproduct{
+		data := models.NewDataproduct{
 			Name: "test-product",
-			Datasource: openapi.Bigquery{
+			BigQuery: models.NewBigQuery{
 				Dataset:   "dataset",
-				ProjectId: "projectid",
+				ProjectID: "projectid",
 				Table:     "table",
 			},
 		}
@@ -168,7 +160,7 @@ func TestRepo(t *testing.T) {
 			t.Fatal(err)
 		}
 
-		updated := openapi.UpdateDataproduct{
+		updated := models.UpdateDataproduct{
 			Name: "updated",
 			Pii:  false,
 		}
@@ -176,12 +168,12 @@ func TestRepo(t *testing.T) {
 			t.Fatal(err)
 		}
 
-		updatedDataproduct, err := repo.UpdateDataproduct(context.Background(), createdDataproduct.Id, updated)
+		updatedDataproduct, err := repo.UpdateDataproduct(context.Background(), createdDataproduct.ID, updated)
 		if err != nil {
 			t.Fatal(err)
 		}
 
-		if updatedDataproduct.Id != createdDataproduct.Id {
+		if updatedDataproduct.ID != createdDataproduct.ID {
 			t.Fatal("updating dataproduct should not alter dataproduct ID")
 		}
 
@@ -196,11 +188,11 @@ func TestRepo(t *testing.T) {
 			t.Fatal(err)
 		}
 
-		if err := repo.DeleteDataproduct(context.Background(), createdDataproduct.Id); err != nil {
+		if err := repo.DeleteDataproduct(context.Background(), createdDataproduct.ID); err != nil {
 			t.Fatal(err)
 		}
 
-		dataproduct, err := repo.GetDataproduct(context.Background(), createdDataproduct.Id)
+		dataproduct, err := repo.GetDataproduct(context.Background(), createdDataproduct.ID)
 		if err != nil && !errors.Is(err, sql.ErrNoRows) {
 			t.Fatal(err)
 		}
@@ -212,21 +204,21 @@ func TestRepo(t *testing.T) {
 
 	t.Run("search datasets and products", func(t *testing.T) {
 		tests := map[string]struct {
-			query      string
+			query      models.SearchQuery
 			numResults int
 		}{
-			"empty":            {query: "nonexistent", numResults: 0},
-			"1 dataproduct":    {query: "uniquedataproduct", numResults: 1},
-			"1 datacollection": {query: "uniquecollection", numResults: 1},
-			"2 results":        {query: "uniquestring", numResults: 2},
+			"empty":            {query: models.SearchQuery{Text: stringToPtr("nonexistent")}, numResults: 0},
+			"1 dataproduct":    {query: models.SearchQuery{Text: stringToPtr("uniquedataproduct")}, numResults: 1},
+			"1 datacollection": {query: models.SearchQuery{Text: stringToPtr("uniquecollection")}, numResults: 1},
+			"2 results":        {query: models.SearchQuery{Text: stringToPtr("uniquestring")}, numResults: 2},
 		}
 
-		dataproduct := openapi.NewDataproduct{
+		dataproduct := models.NewDataproduct{
 			Name:        "new_dataproduct",
 			Description: nullStringToPtr(sql.NullString{Valid: true, String: "Uniquestring uniquedataproduct"}),
 			Pii:         false,
-			Datasource: openapi.Bigquery{
-				ProjectId: "project",
+			BigQuery: models.NewBigQuery{
+				ProjectID: "project",
 				Dataset:   "dataset",
 				Table:     "table",
 			},
@@ -237,7 +229,7 @@ func TestRepo(t *testing.T) {
 			t.Fatal(err)
 		}
 
-		collection := openapi.NewCollection{
+		collection := models.NewCollection{
 			Name:        "new_collection",
 			Description: nullStringToPtr(sql.NullString{Valid: true, String: "Uniquestring uniquecollection"}),
 		}
@@ -249,7 +241,7 @@ func TestRepo(t *testing.T) {
 
 		for name, tc := range tests {
 			t.Run(name, func(t *testing.T) {
-				results, err := repo.Search(context.Background(), tc.query, 15, 0)
+				results, err := repo.Search(context.Background(), &tc.query)
 				if err != nil {
 					t.Fatal(err)
 				}
