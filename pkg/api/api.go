@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/coreos/go-oidc/v3/oidc"
+	"github.com/google/uuid"
 	"github.com/navikt/nada-backend/pkg/database/gensql"
 	"github.com/navikt/nada-backend/pkg/openapi"
 	"github.com/sirupsen/logrus"
@@ -38,7 +39,17 @@ func New(oauth2Config OAuth2, log *logrus.Entry) HTTP {
 }
 
 func (h *HTTP) Login(w http.ResponseWriter, r *http.Request) {
-	consentUrl := h.oauth2Config.AuthCodeURL("banan")
+	oauthState := uuid.New().String()
+	http.SetCookie(w, &http.Cookie{
+		Name:     "oauthstate",
+		Value:    oauthState,
+		Path:     "/",
+		Domain:   r.Host,
+		Expires:  time.Now().Add(30 * time.Minute),
+		Secure:   true,
+		HttpOnly: true,
+	})
+	consentUrl := h.oauth2Config.AuthCodeURL(oauthState)
 	http.Redirect(w, r, consentUrl, http.StatusFound)
 }
 
@@ -49,9 +60,25 @@ func (h *HTTP) Callback(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// TODO(thokra): Introduce varying state
+	oauthCookie, err := r.Cookie("oauthstate")
+	if err != nil {
+		h.log.Errorf("Missing oauth state cookie: %v", err)
+		http.Error(w, "uh oh", http.StatusForbidden)
+		return
+	}
+
+	http.SetCookie(w, &http.Cookie{
+		Name:     "oauthstate",
+		Value:    "",
+		Path:     "/",
+		Domain:   r.Host,
+		Expires:  time.Unix(0, 0),
+		Secure:   true,
+		HttpOnly: true,
+	})
+
 	state := r.URL.Query().Get("state")
-	if state != "banan" {
+	if state != oauthCookie.Value {
 		h.log.Info("Incoming state does not match local state")
 		http.Error(w, "uh oh", http.StatusForbidden)
 		return
