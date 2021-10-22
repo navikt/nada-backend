@@ -7,15 +7,10 @@ import (
 
 	"cloud.google.com/go/bigquery"
 	datacatalog "cloud.google.com/go/datacatalog/apiv1"
+	"github.com/navikt/nada-backend/pkg/database/gensql"
+	"github.com/navikt/nada-backend/pkg/graph/models"
 	"google.golang.org/api/iterator"
 	datacatalogpb "google.golang.org/genproto/googleapis/cloud/datacatalog/v1"
-
-	"github.com/navikt/nada-backend/pkg/database/gensql"
-<<<<<<< HEAD
-	"github.com/navikt/nada-backend/pkg/openapi"
-=======
-	"github.com/navikt/nada-backend/pkg/graph/models"
->>>>>>> graphql-main
 )
 
 type Datacatalog struct {

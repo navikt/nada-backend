@@ -11,6 +11,7 @@ import (
 	"testing"
 
 	_ "github.com/lib/pq"
+	"github.com/sirupsen/logrus"
 
 	"github.com/google/go-cmp/cmp"
 	"github.com/navikt/nada-backend/pkg/auth"
@@ -57,7 +58,7 @@ func TestMain(m *testing.M) {
 }
 
 func TestRepo(t *testing.T) {
-	repo, err := New(dbString)
+	repo, err := New(dbString, logrus.NewEntry(logrus.StandardLogger()))
 	if err != nil {
 		t.Fatal(err)
 	}

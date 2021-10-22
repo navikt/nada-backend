@@ -8,15 +8,8 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-<<<<<<< HEAD
-=======
-
 	"github.com/navikt/nada-backend/pkg/database/gensql"
-
->>>>>>> graphql-main
 	"github.com/sirupsen/logrus"
-
-	"github.com/navikt/nada-backend/pkg/database/gensql"
 )
 
 type DatasetEnricher struct {
