@@ -47,17 +47,17 @@ extend type Query {
 }
 
 extend type Mutation {
-  createCollection(input: NewCollection!): Collection!
-  updateCollection(id: ID!, input: UpdateCollection!): Collection!
-  deleteCollection(id: ID!): Boolean!
+  createCollection(input: NewCollection!): Collection! @authenticated
+  updateCollection(id: ID!, input: UpdateCollection!): Collection! @authenticated
+  deleteCollection(id: ID!): Boolean! @authenticated
   addToCollection(
     id: ID!
     elementID: ID!
     elementType: CollectionElementType!
-  ): Boolean!
+  ): Boolean! @authenticated
   removeFromCollection(
     id: ID!
     elementID: ID!
     elementType: CollectionElementType!
-  ): Boolean!
+  ): Boolean! @authenticated
 }

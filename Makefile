@@ -45,10 +45,10 @@ migrate:
 generate-graphql:
 	go get -d github.com/99designs/gqlgen@latest && go run github.com/99designs/gqlgen generate
 
-generate: 
+generate-sql:
 	cd pkg && $(GOBIN)/sqlc generate
-	mkdir -p pkg/openapi
-	$(GOBIN)/oapi-codegen -package openapi --generate "types,chi-server,spec,client" ./spec-v1.0.yaml > ./pkg/openapi/nada.gen.go
+
+generate: generate-sql generate-graphql
 
 linux-build:
 	go build -a -installsuffix cgo -o $(APP) -ldflags "-s $(LDFLAGS)" ./cmd/nada-backend

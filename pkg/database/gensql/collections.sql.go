@@ -127,9 +127,9 @@ func (q *Queries) GetCollection(ctx context.Context, id uuid.UUID) (Collection, 
 }
 
 const getCollectionElements = `-- name: GetCollectionElements :many
-SELECT id, name, description, "group", pii, created, last_modified, type, tsv_document, slug, repo, keywords 
-FROM dataproducts 
-WHERE id IN 
+SELECT id, name, description, "group", pii, created, last_modified, type, tsv_document, slug, repo, keywords
+FROM dataproducts
+WHERE id IN
 	(SELECT element_id FROM collection_elements WHERE collection_id = $1 AND element_type = 'dataproduct')
 `
 

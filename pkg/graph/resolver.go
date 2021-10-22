@@ -2,14 +2,14 @@ package graph
 
 import (
 	"context"
+	"fmt"
 
+	"github.com/navikt/nada-backend/pkg/auth"
 	"github.com/navikt/nada-backend/pkg/database"
 	"github.com/navikt/nada-backend/pkg/graph/models"
 )
 
-// This file will not be regenerated automatically.
-//
-// It serves as dependency injection for your app, add any dependencies you require here.
+var ErrUnauthorized = fmt.Errorf("unauthorized")
 
 type GCP interface {
 	GetTables(ctx context.Context, projectID, datasetID string) ([]*models.BigQueryTable, error)
@@ -38,4 +38,12 @@ func pagination(limit *int, offset *int) (int, int) {
 		o = *offset
 	}
 	return l, o
+}
+
+func ensureUserInGroup(ctx context.Context, group string) error {
+	user := auth.GetUser(ctx)
+	if user == nil || !user.Groups.Contains(group) {
+		return ErrUnauthorized
+	}
+	return nil
 }

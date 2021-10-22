@@ -10,15 +10,26 @@ import (
 )
 
 const search = `-- name: Search :many
-
-SELECT 
-	element_id::uuid,
-	element_type::text,
-	ts_rank_cd(tsv_document, query) 
-FROM search, websearch_to_tsquery('norwegian', $1) query
+SELECT
+	element_id :: uuid,
+	element_type :: text,
+	ts_rank_cd(tsv_document, query)
+FROM
+	search,
+	websearch_to_tsquery('norwegian', $1) query
 WHERE
-	(CASE WHEN $2::text != '' THEN $2 = ANY(keywords) ELSE TRUE END)
-	AND (CASE WHEN $1::text != '' THEN "tsv_document" @@ query ELSE TRUE END)
+	(
+		CASE
+			WHEN $2 :: text != '' THEN $2 = ANY(keywords)
+			ELSE TRUE
+		END
+	)
+	AND (
+		CASE
+			WHEN $1 :: text != '' THEN "tsv_document" @@ query
+			ELSE TRUE
+		END
+	)
 `
 
 type SearchParams struct {

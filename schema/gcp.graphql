@@ -12,6 +12,6 @@ type BigQueryTable @goModel(model: "github.com/navikt/nada-backend/pkg/graph/mod
 }
 
 extend type Query {
-    gcpGetTables(projectID: String!, datasetID: String!): [BigQueryTable!]!
-    gcpGetDatasets(projectID: String!): [String!]!
+    gcpGetTables(projectID: String!, datasetID: String!): [BigQueryTable!]!  @authenticated
+    gcpGetDatasets(projectID: String!): [String!]! @authenticated
 }

@@ -4,7 +4,6 @@ go 1.17
 
 require (
 	cloud.google.com/go/bigquery v1.17.0
-	cloud.google.com/go/storage v1.10.0
 	github.com/deepmap/oapi-codegen v1.8.2
 	github.com/getkin/kin-openapi v0.61.0
 	github.com/go-chi/chi v4.1.2+incompatible

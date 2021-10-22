@@ -114,6 +114,9 @@ func TestRepo(t *testing.T) {
 			t.Fatal("fetched name should match provided name")
 		}
 		fetchedCollectionElements, err := repo.GetCollectionElements(context.Background(), collection.ID)
+		if err != nil {
+			t.Fatal(err)
+		}
 
 		expected := []models.CollectionElement{dataproduct}
 		if !cmp.Equal(fetchedCollectionElements, expected) {

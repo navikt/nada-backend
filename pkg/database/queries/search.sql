@@ -15,7 +15,7 @@ WHERE
 	)
 	AND (
 		CASE
-			WHEN @query :: text != '' THEN "tsv_document" @ @ query
+			WHEN @query :: text != '' THEN "tsv_document" @@ query
 			ELSE TRUE
 		END
 	);
