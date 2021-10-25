@@ -12,11 +12,15 @@ INSERT INTO dataproduct_access (
 )
 RETURNING *;
 
--- name: DeleteAccessToDataproduct :exec
+-- name: RevokeAccessToDataproduct :exec
 UPDATE dataproduct_access 
-SET deleted = NOW() 
+SET revoked = NOW() 
 WHERE id = @id;
 
 -- name: ListAccessToDataproduct :many
 SELECT * FROM dataproduct_access
 WHERE dataproduct_id = @dataproduct_id;
+
+-- name: GetAccessToDataproduct :one
+SELECT * FROM dataproduct_access
+WHERE id = @id;

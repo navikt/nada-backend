@@ -69,7 +69,7 @@ type DataproductAccess struct {
 	Granter       string
 	Expires       sql.NullTime
 	Created       time.Time
-	Deleted       sql.NullTime
+	Revoked       sql.NullTime
 }
 
 type DataproductRequester struct {

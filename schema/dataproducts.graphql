@@ -25,13 +25,13 @@ type BigQuery @goModel(model: "github.com/navikt/nada-backend/pkg/graph/models.B
 
 union Datasource @goModel(model: "github.com/navikt/nada-backend/pkg/graph/models.Datasource") = BigQuery
 
-type Access {
+type Access @goModel(model: "github.com/navikt/nada-backend/pkg/graph/models.Access") {
     id: ID!
     subject: String!
     granter: String!
     expires: Time
     created: Time!
-    deleted: Time
+    revoked: Time
 }
 
 extend type Query {
@@ -72,4 +72,5 @@ extend type Mutation {
     addRequesterToDataproduct(dataproductID: ID!, subject: String!): Boolean! @authenticated
     removeRequesterFromDataproduct(dataproductID: ID!, subject: String!): Boolean! @authenticated
     grantAccessToDataproduct(dataproductID: ID!, expires: Time, subject: String): Access! @authenticated
+    revokeAccessToDataproduct(id: ID!): Boolean! @authenticated
 }

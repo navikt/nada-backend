@@ -10,15 +10,24 @@ import (
 	"github.com/google/uuid"
 )
 
-const deleteAccessToDataproduct = `-- name: DeleteAccessToDataproduct :exec
-UPDATE dataproduct_access 
-SET deleted = NOW() 
+const getAccessToDataproduct = `-- name: GetAccessToDataproduct :one
+SELECT id, dataproduct_id, subject, granter, expires, created, revoked FROM dataproduct_access
 WHERE id = $1
 `
 
-func (q *Queries) DeleteAccessToDataproduct(ctx context.Context, id uuid.UUID) error {
-	_, err := q.db.ExecContext(ctx, deleteAccessToDataproduct, id)
-	return err
+func (q *Queries) GetAccessToDataproduct(ctx context.Context, id uuid.UUID) (DataproductAccess, error) {
+	row := q.db.QueryRowContext(ctx, getAccessToDataproduct, id)
+	var i DataproductAccess
+	err := row.Scan(
+		&i.ID,
+		&i.DataproductID,
+		&i.Subject,
+		&i.Granter,
+		&i.Expires,
+		&i.Created,
+		&i.Revoked,
+	)
+	return i, err
 }
 
 const grantAccessToDataproduct = `-- name: GrantAccessToDataproduct :one
@@ -33,7 +42,7 @@ INSERT INTO dataproduct_access (
 	$3,
 	$4
 )
-RETURNING id, dataproduct_id, subject, granter, expires, created, deleted
+RETURNING id, dataproduct_id, subject, granter, expires, created, revoked
 `
 
 type GrantAccessToDataproductParams struct {
@@ -58,13 +67,13 @@ func (q *Queries) GrantAccessToDataproduct(ctx context.Context, arg GrantAccessT
 		&i.Granter,
 		&i.Expires,
 		&i.Created,
-		&i.Deleted,
+		&i.Revoked,
 	)
 	return i, err
 }
 
 const listAccessToDataproduct = `-- name: ListAccessToDataproduct :many
-SELECT id, dataproduct_id, subject, granter, expires, created, deleted FROM dataproduct_access
+SELECT id, dataproduct_id, subject, granter, expires, created, revoked FROM dataproduct_access
 WHERE dataproduct_id = $1
 `
 
@@ -84,7 +93,7 @@ func (q *Queries) ListAccessToDataproduct(ctx context.Context, dataproductID uui
 			&i.Granter,
 			&i.Expires,
 			&i.Created,
-			&i.Deleted,
+			&i.Revoked,
 		); err != nil {
 			return nil, err
 		}
@@ -97,4 +106,15 @@ func (q *Queries) ListAccessToDataproduct(ctx context.Context, dataproductID uui
 		return nil, err
 	}
 	return items, nil
+}
+
+const revokeAccessToDataproduct = `-- name: RevokeAccessToDataproduct :exec
+UPDATE dataproduct_access 
+SET revoked = NOW() 
+WHERE id = $1
+`
+
+func (q *Queries) RevokeAccessToDataproduct(ctx context.Context, id uuid.UUID) error {
+	_, err := q.db.ExecContext(ctx, revokeAccessToDataproduct, id)
+	return err
 }

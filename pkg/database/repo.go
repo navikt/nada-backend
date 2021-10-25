@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"net/url"
 	"sort"
+	"time"
 
 	"github.com/sirupsen/logrus"
 
@@ -287,6 +288,32 @@ func (r *Repo) RemoveRequesterFromDataproduct(ctx context.Context, dataproductID
 	})
 }
 
+func (r *Repo) GrantAccessToDataproduct(ctx context.Context, dataproductID uuid.UUID, expires *time.Time, subject, granter string) (*models.Access, error) {
+	access, err := r.querier.GrantAccessToDataproduct(ctx, gensql.GrantAccessToDataproductParams{
+		DataproductID: dataproductID,
+		Subject:       subject,
+		Expires:       ptrToNullTime(expires),
+		Granter:       granter,
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	return accessFromSQL(access), nil
+}
+
+func (r *Repo) GetAccessToDataproduct(ctx context.Context, id uuid.UUID) (*models.Access, error) {
+	access, err := r.querier.GetAccessToDataproduct(ctx, id)
+	if err != nil {
+		return nil, err
+	}
+	return accessFromSQL(access), nil
+}
+
+func (r *Repo) RevokeAccessToDataproduct(ctx context.Context, id uuid.UUID) error {
+	return r.querier.RevokeAccessToDataproduct(ctx, id)
+}
+
 func (r *Repo) DeleteCollection(ctx context.Context, id uuid.UUID) error {
 	if err := r.querier.DeleteCollection(ctx, id); err != nil {
 		return fmt.Errorf("deleting dataproduct_collection from database: %w", err)
@@ -434,6 +461,18 @@ func dataproductFromSQL(dp gensql.Dataproduct) *models.Dataproduct {
 			Group: dp.Group,
 		},
 		Type: dp.Type,
+	}
+}
+
+func accessFromSQL(access gensql.DataproductAccess) *models.Access {
+	return &models.Access{
+		ID:            access.ID,
+		Subject:       access.Subject,
+		Granter:       access.Granter,
+		Expires:       nullTimeToPtr(access.Expires),
+		Created:       access.Created,
+		Revoked:       nullTimeToPtr(access.Revoked),
+		DataproductID: access.DataproductID,
 	}
 }
 

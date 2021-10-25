@@ -9,6 +9,8 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+	"github.com/navikt/nada-backend/pkg/auth"
+	"github.com/navikt/nada-backend/pkg/database"
 	"github.com/navikt/nada-backend/pkg/graph/generated"
 	"github.com/navikt/nada-backend/pkg/graph/models"
 )
@@ -76,7 +78,45 @@ func (r *mutationResolver) RemoveRequesterFromDataproduct(ctx context.Context, d
 }
 
 func (r *mutationResolver) GrantAccessToDataproduct(ctx context.Context, dataproductID uuid.UUID, expires *time.Time, subject *string) (*models.Access, error) {
-	panic(fmt.Errorf("not implemented"))
+	user := auth.GetUser(ctx)
+	subj := user.Email
+	if subject != nil {
+		subj = *subject
+	}
+
+	dp, err := r.repo.GetDataproduct(ctx, dataproductID)
+	if err != nil {
+		return nil, err
+	}
+
+	if err := isAllowedToGrantAccess(ctx, r.repo, dp, subj, user); err != nil {
+		return nil, err
+	}
+
+	return r.repo.GrantAccessToDataproduct(ctx, dataproductID, expires, subj, user.Email)
+}
+
+func (r *mutationResolver) RevokeAccessToDataproduct(ctx context.Context, id uuid.UUID) (bool, error) {
+	access, err := r.repo.GetAccessToDataproduct(ctx, id)
+	if err != nil {
+		return false, err
+	}
+
+	dp, err := r.repo.GetDataproduct(ctx, access.DataproductID)
+	if err != nil {
+		return false, err
+	}
+
+	if err := ensureUserInGroup(ctx, dp.Owner.Group); err == nil {
+		return true, r.repo.RevokeAccessToDataproduct(ctx, id)
+	}
+
+	user := auth.GetUser(ctx)
+	if user.Email == access.Subject {
+		return true, r.repo.RevokeAccessToDataproduct(ctx, id)
+	}
+
+	return false, ErrUnauthorized
 }
 
 func (r *queryResolver) Dataproduct(ctx context.Context, id uuid.UUID) (*models.Dataproduct, error) {
@@ -92,3 +132,31 @@ func (r *queryResolver) Dataproducts(ctx context.Context, limit *int, offset *in
 func (r *Resolver) Dataproduct() generated.DataproductResolver { return &dataproductResolver{r} }
 
 type dataproductResolver struct{ *Resolver }
+
+// !!! WARNING !!!
+// The code below was going to be deleted when updating resolvers. It has been copied here so you have
+// one last chance to move it out of harms way if you want. There are two reasons this happens:
+//  - When renaming or deleting a resolver the old code will be put in here. You can safely delete
+//    it when you're done.
+//  - You have helper methods in this file. Move them out to keep these resolver files clean.
+func isAllowedToGrantAccess(ctx context.Context, r *database.Repo, dp *models.Dataproduct, subject string, user *auth.User) error {
+	if ensureUserInGroup(ctx, dp.Owner.Group) == nil {
+		return nil
+	}
+	if subject != user.Email {
+		return ErrUnauthorized
+	}
+	requesters, err := r.GetDataproductRequesters(ctx, dp.ID)
+	if err != nil {
+		return err
+	}
+
+	for _, r := range requesters {
+		fmt.Println(r)
+		if user.Groups.Contains(r) || r == user.Email {
+			return nil
+		}
+	}
+
+	return ErrUnauthorized
+}

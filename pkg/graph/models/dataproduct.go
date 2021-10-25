@@ -64,6 +64,16 @@ type UpdateDataproduct struct {
 	Requesters  []string `json:"requesters"`
 }
 
+type Access struct {
+	ID            uuid.UUID  `json:"id"`
+	Subject       string     `json:"subject"`
+	Granter       string     `json:"granter"`
+	Expires       *time.Time `json:"expires"`
+	Created       time.Time  `json:"created"`
+	Revoked       *time.Time `json:"revoked"`
+	DataproductID uuid.UUID
+}
+
 type Owner struct {
 	Group         string `json:"group"`
 	Teamkatalogen string `json:"teamkatalogen"`
