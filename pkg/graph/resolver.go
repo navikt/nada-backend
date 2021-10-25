@@ -20,14 +20,16 @@ type GCP interface {
 }
 
 type Resolver struct {
-	repo *database.Repo
-	gcp  GCP
+	repo        *database.Repo
+	gcp         GCP
+	gcpProjects *auth.TeamProjectsUpdater
 }
 
-func New(repo *database.Repo, gcp GCP) *handler.Server {
+func New(repo *database.Repo, gcp GCP, gcpProjects *auth.TeamProjectsUpdater) *handler.Server {
 	resolver := &Resolver{
-		repo: repo,
-		gcp:  gcp,
+		repo:        repo,
+		gcp:         gcp,
+		gcpProjects: gcpProjects,
 	}
 
 	config := generated.Config{Resolvers: resolver}

@@ -1,0 +1,73 @@
+{
+	userInfo {
+		name
+		email
+		groups {
+			name
+			email
+		}
+		gcpProjects {
+			id
+			group {
+				name
+				email
+			}
+		}
+	}
+}
+
+
+RETURNS
+
+{
+	"data": {
+		"userInfo": {
+			"name": "Anderson, Mock",
+			"email": "mock.anderson@email.com",
+			"groups": [
+				{
+					"name": "team",
+					"email": "team@nav.no"
+				},
+				{
+					"name": "dataplattform",
+					"email": "dataplattform@nav.no"
+				},
+				{
+					"name": "aura",
+					"email": "aura@nav.no"
+				}
+			],
+			"gcpProjects": [
+				{
+					"id": "team-dev",
+					"group": {
+						"name": "team",
+						"email": "team@nav.no"
+					}
+				},
+				{
+					"id": "team-prod",
+					"group": {
+						"name": "team",
+						"email": "team@nav.no"
+					}
+				},
+				{
+					"id": "dataplattform-dev-9da3",
+					"group": {
+						"name": "dataplattform",
+						"email": "dataplattform@nav.no"
+					}
+				},
+				{
+					"id": "aura-dev-d9f5",
+					"group": {
+						"name": "aura",
+						"email": "aura@nav.no"
+					}
+				}
+			]
+		}
+	}
+}

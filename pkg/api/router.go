@@ -14,6 +14,7 @@ func New(
 	repo *database.Repo,
 	gcp graph.GCP,
 	oauth2 OAuth2,
+	gcpProjects *auth.TeamProjectsUpdater,
 	authMW auth.MiddlewareHandler,
 	log *logrus.Entry,
 ) *chi.Mux {
@@ -25,7 +26,7 @@ func New(
 
 	httpAPI := new(oauth2, log)
 
-	gqlServer := graph.New(repo, gcp)
+	gqlServer := graph.New(repo, gcp, gcpProjects)
 
 	router := chi.NewRouter()
 	router.Use(corsMW)

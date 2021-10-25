@@ -54,7 +54,7 @@ func TestMain(m *testing.M) {
 	if err != nil {
 		panic(err)
 	}
-	srv := api.New(repo, &mockGCP{}, nil, auth.MockJWTValidatorMiddleware(), logrus.NewEntry(logrus.StandardLogger()))
+	srv := api.New(repo, &mockGCP{}, nil, &auth.MockTeamProjectsUpdater, auth.MockJWTValidatorMiddleware(), logrus.NewEntry(logrus.StandardLogger()))
 
 	server = httptest.NewServer(srv)
 	code := m.Run()

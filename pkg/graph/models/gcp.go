@@ -7,6 +7,12 @@ import (
 	"time"
 )
 
+type GCPProject struct {
+	ID    string `json:"id"`
+	Name  string `json:"name"`
+	Group *Group `json:"group"`
+}
+
 type BigQueryTable struct {
 	Description  string       `json:"description"`
 	LastModified time.Time    `json:"lastModified"`
