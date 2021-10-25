@@ -26,12 +26,6 @@ type SearchQuery struct {
 	Offset  *int    `json:"offset"`
 }
 
-type UserInfo struct {
-	Name   string   `json:"name"`
-	Email  string   `json:"email"`
-	Groups []*Group `json:"groups"`
-}
-
 type CollectionElementType string
 
 const (

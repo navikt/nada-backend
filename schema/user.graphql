@@ -3,10 +3,16 @@ type Group {
 	email: String!
 }
 
-type UserInfo {
+type UserInfo @goModel(model: "github.com/navikt/nada-backend/pkg/graph/models.UserInfo") {
 	name: String!
 	email: String!
 	groups: [Group!]!
+	gcpProjects: [GCPProject!]!  @goField(name: "GCPProjects") @authenticated
+}
+
+type GCPProject @goModel(model: "github.com/navikt/nada-backend/pkg/graph/models.GCPProject") {
+	id: String!
+	group: Group!
 }
 
 extend type Query {
