@@ -27,7 +27,7 @@ RETURNS
       "name": "NewCollection",
       "description": "New Collection",
       "owner": {
-        "group": "dataplattform@nav.no"
+        "group": "nada@nav.no"
       },
       "elements": []
     }

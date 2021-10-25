@@ -3,7 +3,7 @@ mutation {
     input: {
       name: "NewCollection"
       description: "New Collection"
-      group: "dataplattform@nav.no"
+      group: "nada@nav.no"
       keywords: ["keyword1"]
     }
   ) {
@@ -23,7 +23,7 @@ RETURNS
       "name": "NewCollection",
       "description": "New Collection",
       "owner": {
-        "group": "dataplattform@nav.no"
+        "group": "nada@nav.no"
       },
       "elements": []
     }

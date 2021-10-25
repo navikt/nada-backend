@@ -23,7 +23,7 @@ RETURNS
         "keyword1"
       ],
       "owner": {
-        "group": "dataplattform@nav.no"
+        "group": "nada@nav.no"
       },
       "pii": false,
       "repo": "somerepo"

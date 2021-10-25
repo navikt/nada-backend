@@ -85,7 +85,7 @@ func (g *GoogleGroups) GroupsForUser(ctx context.Context, email string) (groups 
 	if g.mock {
 		return Groups{
 			Group{Name: "All users", Email: "all-users@nav.no"},
-			Group{Name: "Dataplattform", Email: "dataplattform@nav.no"},
+			Group{Name: "Dataplattform", Email: "nada@nav.no"},
 			Group{Name: "nada", Email: "nada@nav.no"},
 		}, nil
 	}
