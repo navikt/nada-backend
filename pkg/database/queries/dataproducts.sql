@@ -81,3 +81,8 @@ WHERE dataproduct_id = @dataproduct_id;
 -- name: CreateDataproductRequester :exec
 INSERT INTO dataproduct_requesters (dataproduct_id, "subject")
 VALUES (@dataproduct_id, @subject);
+
+-- name: DeleteDataproductRequester :exec
+DELETE FROM dataproduct_requesters 
+WHERE dataproduct_id = @dataproduct_id
+AND "subject" = @subject;

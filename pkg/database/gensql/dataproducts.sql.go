@@ -135,6 +135,22 @@ func (q *Queries) DeleteDataproduct(ctx context.Context, id uuid.UUID) error {
 	return err
 }
 
+const deleteDataproductRequester = `-- name: DeleteDataproductRequester :exec
+DELETE FROM dataproduct_requesters 
+WHERE dataproduct_id = $1
+AND "subject" = $2
+`
+
+type DeleteDataproductRequesterParams struct {
+	DataproductID uuid.UUID
+	Subject       string
+}
+
+func (q *Queries) DeleteDataproductRequester(ctx context.Context, arg DeleteDataproductRequesterParams) error {
+	_, err := q.db.ExecContext(ctx, deleteDataproductRequester, arg.DataproductID, arg.Subject)
+	return err
+}
+
 const getBigqueryDatasource = `-- name: GetBigqueryDatasource :one
 SELECT dataproduct_id, project_id, dataset, table_name, schema
 FROM datasource_bigquery

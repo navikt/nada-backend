@@ -17,6 +17,7 @@ type Querier interface {
 	DeleteCollection(ctx context.Context, id uuid.UUID) error
 	DeleteCollectionElement(ctx context.Context, arg DeleteCollectionElementParams) error
 	DeleteDataproduct(ctx context.Context, id uuid.UUID) error
+	DeleteDataproductRequester(ctx context.Context, arg DeleteDataproductRequesterParams) error
 	GetBigqueryDatasource(ctx context.Context, dataproductID uuid.UUID) (DatasourceBigquery, error)
 	GetBigqueryDatasources(ctx context.Context) ([]DatasourceBigquery, error)
 	GetCollection(ctx context.Context, id uuid.UUID) (Collection, error)

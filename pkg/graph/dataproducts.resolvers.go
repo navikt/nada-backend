@@ -49,6 +49,30 @@ func (r *mutationResolver) DeleteDataproduct(ctx context.Context, id uuid.UUID) 
 	return true, r.repo.DeleteDataproduct(ctx, dp.ID)
 }
 
+func (r *mutationResolver) AddRequesterToDataproduct(ctx context.Context, dataproductID uuid.UUID, subject string) (bool, error) {
+	dp, err := r.repo.GetDataproduct(ctx, dataproductID)
+	if err != nil {
+		return false, err
+	}
+	if err := ensureUserInGroup(ctx, dp.Owner.Group); err != nil {
+		return false, err
+	}
+
+	return true, r.repo.AddRequesterToDataproduct(ctx, dp.ID, subject)
+}
+
+func (r *mutationResolver) RemoveRequesterFromDataproduct(ctx context.Context, dataproductID uuid.UUID, subject string) (bool, error) {
+	dp, err := r.repo.GetDataproduct(ctx, dataproductID)
+	if err != nil {
+		return false, err
+	}
+	if err := ensureUserInGroup(ctx, dp.Owner.Group); err != nil {
+		return false, err
+	}
+
+	return true, r.repo.RemoveRequesterFromDataproduct(ctx, dp.ID, subject)
+}
+
 func (r *queryResolver) Dataproduct(ctx context.Context, id uuid.UUID) (*models.Dataproduct, error) {
 	return r.repo.GetDataproduct(ctx, id)
 }

@@ -273,6 +273,20 @@ func (r *Repo) UpdateDataproduct(ctx context.Context, id uuid.UUID, new models.U
 	return dataproductFromSQL(res), nil
 }
 
+func (r *Repo) AddRequesterToDataproduct(ctx context.Context, dataproductID uuid.UUID, subject string) error {
+	return r.querier.CreateDataproductRequester(ctx, gensql.CreateDataproductRequesterParams{
+		DataproductID: dataproductID,
+		Subject:       subject,
+	})
+}
+
+func (r *Repo) RemoveRequesterFromDataproduct(ctx context.Context, dataproductID uuid.UUID, subject string) error {
+	return r.querier.DeleteDataproductRequester(ctx, gensql.DeleteDataproductRequesterParams{
+		DataproductID: dataproductID,
+		Subject:       subject,
+	})
+}
+
 func (r *Repo) DeleteCollection(ctx context.Context, id uuid.UUID) error {
 	if err := r.querier.DeleteCollection(ctx, id); err != nil {
 		return fmt.Errorf("deleting dataproduct_collection from database: %w", err)

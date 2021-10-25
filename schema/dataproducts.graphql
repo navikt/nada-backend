@@ -60,4 +60,6 @@ extend type Mutation {
     createDataproduct(input: NewDataproduct!): Dataproduct! @authenticated
     updateDataproduct(id: ID!, input: UpdateDataproduct!): Dataproduct! @authenticated
     deleteDataproduct(id: ID!) : Boolean! @authenticated
+    addRequesterToDataproduct(dataproductID: ID!, subject: String!): Boolean! @authenticated
+    removeRequesterFromDataproduct(dataproductID: ID!, subject: String!): Boolean! @authenticated
 }
