@@ -223,6 +223,19 @@ func (r *Repo) CreateDataproduct(ctx context.Context, dp models.NewDataproduct) 
 		return nil, err
 	}
 
+	for _, subj := range dp.Requesters {
+		err = querier.CreateDataproductRequester(ctx, gensql.CreateDataproductRequesterParams{
+			DataproductID: created.ID,
+			Subject:       subj,
+		})
+		if err != nil {
+			if err := tx.Rollback(); err != nil {
+				r.log.WithError(err).Error("Rolling back dataproduct and datasource_bigquery transaction")
+			}
+			return nil, err
+		}
+	}
+
 	if err := tx.Commit(); err != nil {
 		return nil, err
 	}

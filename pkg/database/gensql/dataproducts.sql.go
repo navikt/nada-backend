@@ -109,6 +109,21 @@ func (q *Queries) CreateDataproduct(ctx context.Context, arg CreateDataproductPa
 	return i, err
 }
 
+const createDataproductRequester = `-- name: CreateDataproductRequester :exec
+INSERT INTO dataproduct_requesters (dataproduct_id, "subject")
+VALUES ($1, $2)
+`
+
+type CreateDataproductRequesterParams struct {
+	DataproductID uuid.UUID
+	Subject       string
+}
+
+func (q *Queries) CreateDataproductRequester(ctx context.Context, arg CreateDataproductRequesterParams) error {
+	_, err := q.db.ExecContext(ctx, createDataproductRequester, arg.DataproductID, arg.Subject)
+	return err
+}
+
 const deleteDataproduct = `-- name: DeleteDataproduct :exec
 DELETE
 FROM dataproducts

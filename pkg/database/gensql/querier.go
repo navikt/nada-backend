@@ -13,6 +13,7 @@ type Querier interface {
 	CreateCollection(ctx context.Context, arg CreateCollectionParams) (Collection, error)
 	CreateCollectionElement(ctx context.Context, arg CreateCollectionElementParams) error
 	CreateDataproduct(ctx context.Context, arg CreateDataproductParams) (Dataproduct, error)
+	CreateDataproductRequester(ctx context.Context, arg CreateDataproductRequesterParams) error
 	DeleteCollection(ctx context.Context, id uuid.UUID) error
 	DeleteCollectionElement(ctx context.Context, arg DeleteCollectionElementParams) error
 	DeleteDataproduct(ctx context.Context, id uuid.UUID) error
