@@ -5,6 +5,7 @@ package e2etests
 import (
 	"bytes"
 	"encoding/json"
+	"fmt"
 	"html/template"
 	"io/ioutil"
 	"os"
@@ -16,12 +17,18 @@ import (
 	"github.com/google/go-cmp/cmp"
 )
 
+const (
+	NotNullOption = "NOTNULL"
+	IgnoreOption  = "IGNORE"
+)
+
 func TestFiles(t *testing.T) {
 	// These tests are defined in testdata/ with the format:
 	//
 	// [graphql query]
 	// RETURNS
 	// json response
+
 	files, err := os.ReadDir("testdata")
 	if err != nil {
 		t.Fatal(err)
@@ -62,23 +69,8 @@ func testFile(t *testing.T, state *state, fname string) {
 			t.Fatal(err)
 		}
 
-		opts := []cmp.Option{}
-
-		for _, o := range options {
-			var of cmp.Option
-			switch {
-			case o.notnull:
-				of = cmp.Comparer(cmpNotNull)
-			case o.ignore:
-				of = cmp.Ignore()
-			default:
-				t.Fatal("unexpected option on path", o.path)
-			}
-
-			opts = append(opts, cmp.FilterPath(ignorePath(o.path), of))
-		}
-		if !cmp.Equal(val, expected, opts...) {
-			t.Error(cmp.Diff(val, expected, opts...))
+		if !cmp.Equal(val, expected, options...) {
+			t.Error(cmp.Diff(val, expected, options...))
 		}
 	})
 }
@@ -88,13 +80,7 @@ type storeRequest struct {
 	path string
 }
 
-type cmpOpt struct {
-	path    string
-	notnull bool
-	ignore  bool
-}
-
-func splitTestFile(fname string, state *state) (q string, expected map[string]interface{}, store []storeRequest, options []cmpOpt, err error) {
+func splitTestFile(fname string, state *state) (q string, expected map[string]interface{}, store []storeRequest, options cmp.Options, err error) {
 	b, err := ioutil.ReadFile("testdata/" + fname)
 	if err != nil {
 		return "", nil, nil, nil, err
@@ -123,11 +109,18 @@ func splitTestFile(fname string, state *state) (q string, expected map[string]in
 				continue
 			}
 			ps := strings.SplitN(o, "=", 2)
-			options = append(options, cmpOpt{
-				path:    strings.TrimSpace(ps[0]),
-				notnull: strings.TrimSpace(ps[1]) == "NOTNULL",
-				ignore:  strings.TrimSpace(ps[1]) == "IGNORE",
-			})
+
+			path := strings.TrimSpace(ps[0])
+			option := strings.TrimSpace(ps[1])
+
+			switch option {
+			case NotNullOption:
+				options = append(options, cmp.FilterPath(ignorePath(path), cmp.Comparer(cmpNotNull)))
+			case IgnoreOption:
+				options = append(options, cmp.FilterPath(ignorePath(path), cmp.Ignore()))
+			default:
+				return "", nil, nil, nil, fmt.Errorf("unexpected option on path: %v", path)
+			}
 		}
 	}
 
@@ -147,10 +140,6 @@ func splitTestFile(fname string, state *state) (q string, expected map[string]in
 	}
 
 	return q, expected, store, options, nil
-}
-
-func ignoreID(p cmp.Path) bool {
-	return p.Last().String() == `["id"]`
 }
 
 func ignorePath(path string) func(p cmp.Path) bool {
@@ -231,20 +220,4 @@ func doQuery(state *state, q string, store []storeRequest) (map[string]interface
 	}
 
 	return ret, nil
-}
-
-func customcmp(opts ...cmp.Option) func(a, b interface{}) bool {
-	return func(a, b interface{}) bool {
-		as, ok := a.(string)
-		if ok && as == "!NOTNULL" {
-			return b != nil
-		}
-
-		bs, ok := a.(string)
-		if ok && bs == "!NOTNULL" {
-			return a != nil
-		}
-
-		return cmp.Equal(a, b)
-	}
 }

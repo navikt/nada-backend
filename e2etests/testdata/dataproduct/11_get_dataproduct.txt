@@ -10,7 +10,6 @@
   }
 }
 
-
 RETURNS
 
 OPTION data.dataproduct.access.0.revoked=NOTNULL
