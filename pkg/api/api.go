@@ -8,17 +8,9 @@ import (
 
 	"github.com/coreos/go-oidc/v3/oidc"
 	"github.com/google/uuid"
-	"github.com/navikt/nada-backend/pkg/database/gensql"
-	"github.com/navikt/nada-backend/pkg/openapi"
 	"github.com/sirupsen/logrus"
 	"golang.org/x/oauth2"
 )
-
-type GCP interface {
-	GetDataset(ctx context.Context, projectID, datasetID string) ([]openapi.BigqueryTypeMetadata, error)
-	GetDatasets(ctx context.Context, projectID string) ([]string, error)
-	GetTables(ctx context.Context, projectID string) ([]gensql.DatasourceBigquery, error)
-}
 
 type OAuth2 interface {
 	Exchange(ctx context.Context, code string, opts ...oauth2.AuthCodeOption) (*oauth2.Token, error)

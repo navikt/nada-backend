@@ -18,7 +18,6 @@ import (
 
 	"github.com/navikt/nada-backend/pkg/database/gensql"
 	"github.com/navikt/nada-backend/pkg/graph/models"
-	"github.com/navikt/nada-backend/pkg/openapi"
 
 	// Pin version of sqlc and goose for cli
 	_ "github.com/kyleconroy/sqlc"
@@ -303,7 +302,6 @@ func (r *Repo) ListAccessToDataproduct(ctx context.Context, dataproductID uuid.U
 }
 
 func (r *Repo) GrantAccessToDataproduct(ctx context.Context, dataproductID uuid.UUID, expires *time.Time, subject, granter string) (*models.Access, error) {
-	fmt.Println("EXPIRES", expires)
 	access, err := r.querier.GrantAccessToDataproduct(ctx, gensql.GrantAccessToDataproductParams{
 		DataproductID: dataproductID,
 		Subject:       subject,
@@ -489,19 +487,6 @@ func accessFromSQL(access gensql.DataproductAccess) *models.Access {
 		Revoked:       nullTimeToPtr(access.Revoked),
 		DataproductID: access.DataproductID,
 	}
-}
-
-func MapDatasource(source openapi.Datasource) (openapi.Bigquery, error) {
-	b, err := json.Marshal(source)
-	if err != nil {
-		return openapi.Bigquery{}, err
-	}
-
-	var ds openapi.Bigquery
-	if err := json.Unmarshal(b, &ds); err != nil {
-		return ds, err
-	}
-	return ds, nil
 }
 
 func ptrToString(s *string) string {
