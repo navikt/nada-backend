@@ -10,6 +10,7 @@ type Dataproduct @goModel(model: "github.com/navikt/nada-backend/pkg/graph/model
     owner: Owner!
     datasource: Datasource!
     requesters: [String!]!
+    access: [Access!]! @authenticated
 }
 
 type Owner @goModel(model: "github.com/navikt/nada-backend/pkg/graph/models.Owner"){

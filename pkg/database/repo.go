@@ -288,7 +288,22 @@ func (r *Repo) RemoveRequesterFromDataproduct(ctx context.Context, dataproductID
 	})
 }
 
+func (r *Repo) ListAccessToDataproduct(ctx context.Context, dataproductID uuid.UUID) ([]*models.Access, error) {
+	access, err := r.querier.ListAccessToDataproduct(ctx, dataproductID)
+	if err != nil {
+		return nil, err
+	}
+
+	ret := []*models.Access{}
+	for _, a := range access {
+		ret = append(ret, accessFromSQL(a))
+	}
+
+	return ret, nil
+}
+
 func (r *Repo) GrantAccessToDataproduct(ctx context.Context, dataproductID uuid.UUID, expires *time.Time, subject, granter string) (*models.Access, error) {
+	fmt.Println("EXPIRES", expires)
 	access, err := r.querier.GrantAccessToDataproduct(ctx, gensql.GrantAccessToDataproductParams{
 		DataproductID: dataproductID,
 		Subject:       subject,

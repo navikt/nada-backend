@@ -5,12 +5,10 @@ package graph
 
 import (
 	"context"
-	"fmt"
 	"time"
 
 	"github.com/google/uuid"
 	"github.com/navikt/nada-backend/pkg/auth"
-	"github.com/navikt/nada-backend/pkg/database"
 	"github.com/navikt/nada-backend/pkg/graph/generated"
 	"github.com/navikt/nada-backend/pkg/graph/models"
 )
@@ -21,6 +19,13 @@ func (r *dataproductResolver) Datasource(ctx context.Context, obj *models.Datapr
 
 func (r *dataproductResolver) Requesters(ctx context.Context, obj *models.Dataproduct) ([]string, error) {
 	return r.repo.GetDataproductRequesters(ctx, obj.ID)
+}
+
+func (r *dataproductResolver) Access(ctx context.Context, obj *models.Dataproduct) ([]*models.Access, error) {
+	if err := ensureUserInGroup(ctx, obj.Owner.Group); err != nil {
+		return nil, err
+	}
+	return r.repo.ListAccessToDataproduct(ctx, obj.ID)
 }
 
 func (r *mutationResolver) CreateDataproduct(ctx context.Context, input models.NewDataproduct) (*models.Dataproduct, error) {
@@ -132,31 +137,3 @@ func (r *queryResolver) Dataproducts(ctx context.Context, limit *int, offset *in
 func (r *Resolver) Dataproduct() generated.DataproductResolver { return &dataproductResolver{r} }
 
 type dataproductResolver struct{ *Resolver }
-
-// !!! WARNING !!!
-// The code below was going to be deleted when updating resolvers. It has been copied here so you have
-// one last chance to move it out of harms way if you want. There are two reasons this happens:
-//  - When renaming or deleting a resolver the old code will be put in here. You can safely delete
-//    it when you're done.
-//  - You have helper methods in this file. Move them out to keep these resolver files clean.
-func isAllowedToGrantAccess(ctx context.Context, r *database.Repo, dp *models.Dataproduct, subject string, user *auth.User) error {
-	if ensureUserInGroup(ctx, dp.Owner.Group) == nil {
-		return nil
-	}
-	if subject != user.Email {
-		return ErrUnauthorized
-	}
-	requesters, err := r.GetDataproductRequesters(ctx, dp.ID)
-	if err != nil {
-		return err
-	}
-
-	for _, r := range requesters {
-		fmt.Println(r)
-		if user.Groups.Contains(r) || r == user.Email {
-			return nil
-		}
-	}
-
-	return ErrUnauthorized
-}
