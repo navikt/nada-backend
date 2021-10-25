@@ -5,6 +5,8 @@ package graph
 
 import (
 	"context"
+	"fmt"
+	"time"
 
 	"github.com/google/uuid"
 	"github.com/navikt/nada-backend/pkg/graph/generated"
@@ -71,6 +73,10 @@ func (r *mutationResolver) RemoveRequesterFromDataproduct(ctx context.Context, d
 	}
 
 	return true, r.repo.RemoveRequesterFromDataproduct(ctx, dp.ID, subject)
+}
+
+func (r *mutationResolver) GrantAccessToDataproduct(ctx context.Context, dataproductID uuid.UUID, expires *time.Time, subject *string) (*models.Access, error) {
+	panic(fmt.Errorf("not implemented"))
 }
 
 func (r *queryResolver) Dataproduct(ctx context.Context, id uuid.UUID) (*models.Dataproduct, error) {

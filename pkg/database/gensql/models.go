@@ -62,6 +62,16 @@ type Dataproduct struct {
 	Keywords     []string
 }
 
+type DataproductAccess struct {
+	ID            uuid.UUID
+	DataproductID uuid.UUID
+	Subject       string
+	Granter       string
+	Expires       sql.NullTime
+	Created       time.Time
+	Deleted       sql.NullTime
+}
+
 type DataproductRequester struct {
 	DataproductID uuid.UUID
 	Subject       string

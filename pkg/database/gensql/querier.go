@@ -14,6 +14,7 @@ type Querier interface {
 	CreateCollectionElement(ctx context.Context, arg CreateCollectionElementParams) error
 	CreateDataproduct(ctx context.Context, arg CreateDataproductParams) (Dataproduct, error)
 	CreateDataproductRequester(ctx context.Context, arg CreateDataproductRequesterParams) error
+	DeleteAccessToDataproduct(ctx context.Context, id uuid.UUID) error
 	DeleteCollection(ctx context.Context, id uuid.UUID) error
 	DeleteCollectionElement(ctx context.Context, arg DeleteCollectionElementParams) error
 	DeleteDataproduct(ctx context.Context, id uuid.UUID) error
@@ -28,6 +29,8 @@ type Querier interface {
 	GetDataproductRequesters(ctx context.Context, dataproductID uuid.UUID) ([]string, error)
 	GetDataproducts(ctx context.Context, arg GetDataproductsParams) ([]Dataproduct, error)
 	GetDataproductsByIDs(ctx context.Context, ids []uuid.UUID) ([]Dataproduct, error)
+	GrantAccessToDataproduct(ctx context.Context, arg GrantAccessToDataproductParams) (DataproductAccess, error)
+	ListAccessToDataproduct(ctx context.Context, dataproductID uuid.UUID) ([]DataproductAccess, error)
 	Search(ctx context.Context, arg SearchParams) ([]SearchRow, error)
 	UpdateBigqueryDatasourceSchema(ctx context.Context, arg UpdateBigqueryDatasourceSchemaParams) error
 	UpdateCollection(ctx context.Context, arg UpdateCollectionParams) (Collection, error)

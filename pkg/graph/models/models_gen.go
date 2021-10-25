@@ -6,10 +6,22 @@ import (
 	"fmt"
 	"io"
 	"strconv"
+	"time"
+
+	"github.com/google/uuid"
 )
 
 type SearchResult interface {
 	IsSearchResult()
+}
+
+type Access struct {
+	ID      uuid.UUID  `json:"id"`
+	Subject string     `json:"subject"`
+	Granter string     `json:"granter"`
+	Expires *time.Time `json:"expires"`
+	Created time.Time  `json:"created"`
+	Deleted *time.Time `json:"deleted"`
 }
 
 type Group struct {
