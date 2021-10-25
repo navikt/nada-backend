@@ -1,0 +1,33 @@
+mutation {
+  createCollection (
+    input: {
+      name: "NewCollection"
+      description: "New Collection"
+      group: "dataplattform@nav.no"
+      keywords: ["keyword1"]
+    }
+  ) {
+    id
+    name
+    description
+    owner { group }
+    elements {type: __typename}
+  }
+}
+
+RETURNS
+
+{
+  "data": {
+    "createCollection": {
+      "name": "NewCollection",
+      "description": "New Collection",
+      "owner": {
+        "group": "dataplattform@nav.no"
+      },
+      "elements": []
+    }
+  }
+}
+
+STORE collection_id=data.createCollection.id

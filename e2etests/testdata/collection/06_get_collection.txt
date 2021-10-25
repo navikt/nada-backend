@@ -1,0 +1,35 @@
+{
+  collection (id:"{{ .collection_id }}") {
+    id
+    name
+    description
+    owner { group }
+    elements {
+    ...on Dataproduct {
+      id
+      name
+      description
+      repo
+      pii
+      keywords
+      owner { group }
+    }
+    }
+  }
+}
+
+RETURNS
+
+{
+  "data": {
+    "collection": {
+      "id": "{{ .collection_id }}",
+      "name": "NewCollection",
+      "description": "New Collection",
+      "owner": {
+        "group": "dataplattform@nav.no"
+      },
+      "elements": []
+    }
+  }
+}
