@@ -23,6 +23,7 @@ type Querier interface {
 	GetCollections(ctx context.Context, arg GetCollectionsParams) ([]Collection, error)
 	GetCollectionsByIDs(ctx context.Context, ids []uuid.UUID) ([]Collection, error)
 	GetDataproduct(ctx context.Context, id uuid.UUID) (Dataproduct, error)
+	GetDataproductRequesters(ctx context.Context, dataproductID uuid.UUID) ([]string, error)
 	GetDataproducts(ctx context.Context, arg GetDataproductsParams) ([]Dataproduct, error)
 	GetDataproductsByIDs(ctx context.Context, ids []uuid.UUID) ([]Dataproduct, error)
 	Search(ctx context.Context, arg SearchParams) ([]SearchRow, error)

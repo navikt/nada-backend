@@ -85,6 +85,7 @@ type ComplexityRoot struct {
 		Owner        func(childComplexity int) int
 		Pii          func(childComplexity int) int
 		Repo         func(childComplexity int) int
+		Requesters   func(childComplexity int) int
 	}
 
 	Group struct {
@@ -146,6 +147,7 @@ type CollectionResolver interface {
 }
 type DataproductResolver interface {
 	Datasource(ctx context.Context, obj *models.Dataproduct) (models.Datasource, error)
+	Requesters(ctx context.Context, obj *models.Dataproduct) ([]string, error)
 }
 type MutationResolver interface {
 	Dummy(ctx context.Context, no *string) (*string, error)
@@ -360,6 +362,13 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 		}
 
 		return e.complexity.Dataproduct.Repo(childComplexity), true
+
+	case "Dataproduct.requesters":
+		if e.complexity.Dataproduct.Requesters == nil {
+			break
+		}
+
+		return e.complexity.Dataproduct.Requesters(childComplexity), true
 
 	case "Group.email":
 		if e.complexity.Group.Email == nil {
@@ -809,6 +818,7 @@ extend type Mutation {
     keywords: [String!]!
     owner: Owner!
     datasource: Datasource!
+    requesters: [String!]!
 }
 
 type Owner @goModel(model: "github.com/navikt/nada-backend/pkg/graph/models.Owner"){
@@ -843,6 +853,7 @@ input NewDataproduct @goModel(model: "github.com/navikt/nada-backend/pkg/graph/m
     keywords: [String!]
     group: String!
     bigquery: NewBigQuery!
+    requesters: [String!]
 }
 
 input UpdateDataproduct @goModel(model: "github.com/navikt/nada-backend/pkg/graph/models.UpdateDataproduct") {
@@ -851,6 +862,7 @@ input UpdateDataproduct @goModel(model: "github.com/navikt/nada-backend/pkg/grap
     repo: String
     pii: Boolean!
     keywords: [String!]
+    requesters: [String!]
 }
 
 extend type Mutation {
@@ -2226,6 +2238,41 @@ func (ec *executionContext) _Dataproduct_datasource(ctx context.Context, field g
 	res := resTmp.(models.Datasource)
 	fc.Result = res
 	return ec.marshalNDatasource2githubᚗcomᚋnaviktᚋnadaᚑbackendᚋpkgᚋgraphᚋmodelsᚐDatasource(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _Dataproduct_requesters(ctx context.Context, field graphql.CollectedField, obj *models.Dataproduct) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "Dataproduct",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   true,
+		IsResolver: true,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.Dataproduct().Requesters(rctx, obj)
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.([]string)
+	fc.Result = res
+	return ec.marshalNString2ᚕstringᚄ(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _Group_name(ctx context.Context, field graphql.CollectedField, obj *models.Group) (ret graphql.Marshaler) {
@@ -5028,6 +5075,14 @@ func (ec *executionContext) unmarshalInputNewDataproduct(ctx context.Context, ob
 			if err != nil {
 				return it, err
 			}
+		case "requesters":
+			var err error
+
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("requesters"))
+			it.Requesters, err = ec.unmarshalOString2ᚕstringᚄ(ctx, v)
+			if err != nil {
+				return it, err
+			}
 		}
 	}
 
@@ -5166,6 +5221,14 @@ func (ec *executionContext) unmarshalInputUpdateDataproduct(ctx context.Context,
 
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("keywords"))
 			it.Keywords, err = ec.unmarshalOString2ᚕstringᚄ(ctx, v)
+			if err != nil {
+				return it, err
+			}
+		case "requesters":
+			var err error
+
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("requesters"))
+			it.Requesters, err = ec.unmarshalOString2ᚕstringᚄ(ctx, v)
 			if err != nil {
 				return it, err
 			}
@@ -5444,6 +5507,20 @@ func (ec *executionContext) _Dataproduct(ctx context.Context, sel ast.SelectionS
 					}
 				}()
 				res = ec._Dataproduct_datasource(ctx, field, obj)
+				if res == graphql.Null {
+					atomic.AddUint32(&invalids, 1)
+				}
+				return res
+			})
+		case "requesters":
+			field := field
+			out.Concurrently(i, func() (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._Dataproduct_requesters(ctx, field, obj)
 				if res == graphql.Null {
 					atomic.AddUint32(&invalids, 1)
 				}

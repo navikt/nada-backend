@@ -46,7 +46,7 @@ func MockJWTValidatorMiddleware() MiddlewareHandler {
 				return
 			}
 			teams := []string{
-				"team",
+				"nada@nav.no",
 			}
 			if mockTeam := r.Header.Get("X-Mock-Team"); mockTeam != "" {
 				teams[0] = mockTeam

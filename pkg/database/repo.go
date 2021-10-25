@@ -268,6 +268,10 @@ func (r *Repo) DeleteCollection(ctx context.Context, id uuid.UUID) error {
 	return nil
 }
 
+func (r *Repo) GetDataproductRequesters(ctx context.Context, id uuid.UUID) ([]string, error) {
+	return r.querier.GetDataproductRequesters(ctx, id)
+}
+
 func (r *Repo) GetDataproductMetadata(ctx context.Context, id uuid.UUID) (*models.TableMetadata, error) {
 	ds, err := r.querier.GetBigqueryDatasource(ctx, id)
 	if err != nil {

@@ -15,6 +15,10 @@ func (r *dataproductResolver) Datasource(ctx context.Context, obj *models.Datapr
 	return r.repo.GetBigqueryDatasource(ctx, obj.ID)
 }
 
+func (r *dataproductResolver) Requesters(ctx context.Context, obj *models.Dataproduct) ([]string, error) {
+	return r.repo.GetDataproductRequesters(ctx, obj.ID)
+}
+
 func (r *mutationResolver) CreateDataproduct(ctx context.Context, input models.NewDataproduct) (*models.Dataproduct, error) {
 	if err := ensureUserInGroup(ctx, input.Group); err != nil {
 		return nil, err

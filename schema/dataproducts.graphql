@@ -9,6 +9,7 @@ type Dataproduct @goModel(model: "github.com/navikt/nada-backend/pkg/graph/model
     keywords: [String!]!
     owner: Owner!
     datasource: Datasource!
+    requesters: [String!]!
 }
 
 type Owner @goModel(model: "github.com/navikt/nada-backend/pkg/graph/models.Owner"){
@@ -43,6 +44,7 @@ input NewDataproduct @goModel(model: "github.com/navikt/nada-backend/pkg/graph/m
     keywords: [String!]
     group: String!
     bigquery: NewBigQuery!
+    requesters: [String!]
 }
 
 input UpdateDataproduct @goModel(model: "github.com/navikt/nada-backend/pkg/graph/models.UpdateDataproduct") {
@@ -51,6 +53,7 @@ input UpdateDataproduct @goModel(model: "github.com/navikt/nada-backend/pkg/grap
     repo: String
     pii: Boolean!
     keywords: [String!]
+    requesters: [String!]
 }
 
 extend type Mutation {

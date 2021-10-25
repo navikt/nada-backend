@@ -1,0 +1,10 @@
+dataproduct:
+  - name: dp
+    requesters: # specifies users or groups who can request view access
+      - all-users@nav.no # this makes all NAV users able to request personal temporary access
+      - analytikere@nav.no # this makes all members of this group able to request personal temporary access
+    access: # list of users or groups who will be granted access until expiry
+      - subject: user:erik.vattekar@nav.no # non-owner users can request view access if member of a group listed in `requesters`
+        expiry: 12351283127
+      - subject: all-users@nav.no # # only owners can add serviceusers and groups to access list. This entry would grant view access to all NAV users without having to explicitly request it 
+        expiry: 99999999999

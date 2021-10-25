@@ -62,6 +62,11 @@ type Dataproduct struct {
 	Keywords     []string
 }
 
+type DataproductRequester struct {
+	DataproductID uuid.UUID
+	Subject       string
+}
+
 type DatasourceBigquery struct {
 	DataproductID uuid.UUID
 	ProjectID     string

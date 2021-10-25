@@ -199,6 +199,35 @@ func (q *Queries) GetDataproduct(ctx context.Context, id uuid.UUID) (Dataproduct
 	return i, err
 }
 
+const getDataproductRequesters = `-- name: GetDataproductRequesters :many
+SELECT "subject"
+FROM dataproduct_requesters
+WHERE dataproduct_id = $1
+`
+
+func (q *Queries) GetDataproductRequesters(ctx context.Context, dataproductID uuid.UUID) ([]string, error) {
+	rows, err := q.db.QueryContext(ctx, getDataproductRequesters, dataproductID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []string{}
+	for rows.Next() {
+		var subject string
+		if err := rows.Scan(&subject); err != nil {
+			return nil, err
+		}
+		items = append(items, subject)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const getDataproducts = `-- name: GetDataproducts :many
 SELECT id, name, description, "group", pii, created, last_modified, type, tsv_document, slug, repo, keywords
 FROM dataproducts
@@ -310,7 +339,7 @@ SET "name"        = $1,
     "pii"         = $3,
     "slug"        = $4,
     "repo"        = $5,
-    "keywords"    = $6 
+    "keywords"    = $6
 WHERE id = $7
 RETURNING id, name, description, "group", pii, created, last_modified, type, tsv_document, slug, repo, keywords
 `
