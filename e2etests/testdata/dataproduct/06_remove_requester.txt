@@ -1,0 +1,14 @@
+mutation {
+  removeRequesterFromDataproduct(
+    dataproductID: "{{ .dataproduct_id }}"
+    subject: "all-users@nav.no"
+  )
+}
+
+RETURNS
+
+{
+  "data": {
+    "removeRequesterFromDataproduct": true
+  }
+}

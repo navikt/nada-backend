@@ -9,6 +9,7 @@
 		pii
 		owner { group }
 		keywords
+    requesters
 	}
 }
 
@@ -26,7 +27,8 @@ RETURNS
         "group": "nada@nav.no"
       },
       "pii": false,
-      "repo": "somerepo"
+      "repo": "somerepo",
+			"requesters": ["all-users@nav.no"]
     }
   }
 }

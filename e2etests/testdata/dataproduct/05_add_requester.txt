@@ -1,0 +1,14 @@
+mutation {
+  addRequesterToDataproduct(
+    dataproductID: "{{ .dataproduct_id }}"
+    subject: "somegroup@nav.no"
+  )
+}
+
+RETURNS
+
+{
+  "data": {
+    "addRequesterToDataproduct": true
+  }
+}
