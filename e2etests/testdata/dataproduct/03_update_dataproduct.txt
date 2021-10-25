@@ -9,7 +9,6 @@ mutation {
 			keywords: ["keyword1", "keyword2"]
 		}
 	) {
-		id
 		name
 		description
 		repo

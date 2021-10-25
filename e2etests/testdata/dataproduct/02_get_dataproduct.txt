@@ -2,7 +2,6 @@
 	dataproduct(
 		id: "{{ .dataproduct_id }}"
 	) {
-		id
 		name
 		description
 		repo
@@ -28,7 +27,7 @@ RETURNS
       },
       "pii": false,
       "repo": "somerepo",
-			"requesters": ["all-users@nav.no"]
+			"requesters": ["all-users@nav.no", "nada@nav.no"]
     }
   }
 }

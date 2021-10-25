@@ -1,0 +1,13 @@
+mutation {
+  revokeAccessToDataproduct(
+    id: "{{ .access_id }}"
+  )
+}
+
+RETURNS
+
+{
+  "data": {
+    "revokeAccessToDataproduct": true
+  }
+}

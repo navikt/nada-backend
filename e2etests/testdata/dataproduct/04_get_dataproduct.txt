@@ -2,7 +2,6 @@
 	dataproduct(
 		id: "{{ .dataproduct_id }}"
 	) {
-		id
 		name
 		description
 		repo

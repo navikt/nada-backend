@@ -22,6 +22,10 @@ mutation {
 
 RETURNS
 
+OPTION data.createDataproduct.id=IGNORE
+
+ENDOPTS
+
 {
   "data": {
     "createDataproduct": {

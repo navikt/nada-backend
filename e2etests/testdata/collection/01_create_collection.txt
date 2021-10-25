@@ -17,6 +17,10 @@ mutation {
 
 RETURNS
 
+OPTION data.createCollection.id=IGNORE
+
+ENDOPTS
+
 {
   "data": {
     "createCollection": {

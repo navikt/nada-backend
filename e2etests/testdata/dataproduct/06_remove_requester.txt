@@ -1,7 +1,7 @@
 mutation {
   removeRequesterFromDataproduct(
     dataproductID: "{{ .dataproduct_id }}"
-    subject: "all-users@nav.no"
+    subject: "nada@nav.no"
   )
 }
 
