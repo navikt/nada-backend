@@ -1,6 +1,8 @@
 package api
 
 import (
+	"net/http"
+
 	graphProm "github.com/99designs/gqlgen-contrib/prometheus"
 	"github.com/99designs/gqlgen/graphql/playground"
 	"github.com/go-chi/chi"
@@ -11,7 +13,6 @@ import (
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/sirupsen/logrus"
-	"net/http"
 )
 
 func New(
@@ -42,14 +43,20 @@ func New(
 		r.HandleFunc("/logout", httpAPI.Logout)
 	})
 	router.Route("/internal", func(r chi.Router) {
-		r.Handle("/metrics", prometheusGenerator())
+		r.Handle("/metrics", prometheusGenerator(repo))
 	})
 
 	return router
 }
 
-func prometheusGenerator() http.Handler {
+func prometheusGenerator(repo *database.Repo) http.Handler {
 	registry := prometheus.NewRegistry()
 	graphProm.RegisterOn(registry)
+	registry.MustRegister(prometheus.NewGoCollector())
+	registry.MustRegister(prometheus.NewProcessCollector(prometheus.ProcessCollectorOpts{ReportErrors: true}))
+
+	if err := repo.Register(registry); err != nil {
+		panic(err)
+	}
 	return promhttp.HandlerFor(registry, promhttp.HandlerOpts{})
 }

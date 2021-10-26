@@ -77,5 +77,6 @@ require (
 	github.com/davecgh/go-spew v1.1.1 // indirect
 	github.com/gorilla/websocket v1.4.2 // indirect
 	github.com/hashicorp/golang-lru v0.5.1 // indirect
+	github.com/qustavo/sqlhooks/v2 v2.1.0
 	gopkg.in/square/go-jose.v2 v2.5.1 // indirect
 )
