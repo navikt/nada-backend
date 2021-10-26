@@ -13,6 +13,11 @@ type GCPProject struct {
 	Group *Group `json:"group"`
 }
 
+type Group struct {
+	Name  string `json:"name"`
+	Email string `json:"email"`
+}
+
 type BigQueryTable struct {
 	Description  string       `json:"description"`
 	LastModified time.Time    `json:"lastModified"`

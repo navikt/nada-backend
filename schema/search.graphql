@@ -1,18 +1,18 @@
-union SearchResult = Dataproduct | Collection
+union SearchResult @goModel(model: "github.com/navikt/nada-backend/pkg/graph/models.SearchResult") = Dataproduct | Collection
 
-input SearchQuery {
-	"""
-	Freetext search
-	"""
-	text: String
-	"""
-	Filter on keyword
-	"""
-	keyword: String
-	limit: Int
-	offset: Int
+input SearchQuery @goModel(model: "github.com/navikt/nada-backend/pkg/graph/models.SearchQuery"){
+    """
+    Freetext search
+    """
+    text: String
+    """
+    Filter on keyword
+    """
+    keyword: String
+    limit: Int
+    offset: Int
 }
 
 extend type Query {
-	search(q: SearchQuery): [SearchResult!]!
+    search(q: SearchQuery): [SearchResult!]!
 }

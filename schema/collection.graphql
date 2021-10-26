@@ -1,63 +1,65 @@
 union CollectionElement
-  @goModel(
+@goModel(
     model: "github.com/navikt/nada-backend/pkg/graph/models.CollectionElement"
-  ) =
+) =
     Dataproduct
 
-enum CollectionElementType {
-  dataproduct
+enum CollectionElementType @goModel(
+    model: "github.com/navikt/nada-backend/pkg/graph/models.CollectionElementType"
+){
+    dataproduct
 }
 
 type Collection
-  @goModel(
+@goModel(
     model: "github.com/navikt/nada-backend/pkg/graph/models.Collection"
-  ) {
-  id: ID!
-  name: String!
-  description: String
-  created: Time!
-  lastModified: Time!
-  keywords: [String!]!
-  owner: Owner!
-  elements: [CollectionElement!]!
+) {
+    id: ID!
+    name: String!
+    description: String
+    created: Time!
+    lastModified: Time!
+    keywords: [String!]!
+    owner: Owner!
+    elements: [CollectionElement!]!
 }
 
 input NewCollection
-  @goModel(
+@goModel(
     model: "github.com/navikt/nada-backend/pkg/graph/models.NewCollection"
-  ) {
-  name: String!
-  description: String
-  group: String!
-  keywords: [String!]
+) {
+    name: String!
+    description: String
+    group: String!
+    keywords: [String!]
 }
 
 input UpdateCollection
-  @goModel(
+@goModel(
     model: "github.com/navikt/nada-backend/pkg/graph/models.UpdateCollection"
-  ) {
-  name: String!
-  description: String
-  keywords: [String!]
+) {
+    name: String!
+    description: String
+    keywords: [String!]
 }
 
 extend type Query {
-  collections(limit: Int, offset: Int): [Collection!]!
-  collection(id: ID!): Collection!
+    collections(limit: Int, offset: Int): [Collection!]!
+    collection(id: ID!): Collection!
 }
 
 extend type Mutation {
-  createCollection(input: NewCollection!): Collection! @authenticated
-  updateCollection(id: ID!, input: UpdateCollection!): Collection! @authenticated
-  deleteCollection(id: ID!): Boolean! @authenticated
-  addToCollection(
-    id: ID!
-    elementID: ID!
-    elementType: CollectionElementType!
-  ): Boolean! @authenticated
-  removeFromCollection(
-    id: ID!
-    elementID: ID!
-    elementType: CollectionElementType!
-  ): Boolean! @authenticated
+    createCollection(input: NewCollection!): Collection! @authenticated
+    updateCollection(id: ID!, input: UpdateCollection!): Collection! @authenticated
+    deleteCollection(id: ID!): Boolean! @authenticated
+    addToCollection(
+        id: ID!
+        elementID: ID!
+        elementType: CollectionElementType!
+    ): Boolean! @authenticated
+    removeFromCollection(
+        id: ID!
+        elementID: ID!
+        elementType: CollectionElementType!
+    ): Boolean! @authenticated
 }

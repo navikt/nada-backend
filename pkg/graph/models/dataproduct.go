@@ -1,6 +1,9 @@
 package models
 
 import (
+	"fmt"
+	"io"
+	"strconv"
 	"time"
 
 	"github.com/google/uuid"
@@ -77,4 +80,47 @@ type Access struct {
 type Owner struct {
 	Group         string `json:"group"`
 	Teamkatalogen string `json:"teamkatalogen"`
+}
+
+type SubjectType string
+
+const (
+	SubjectTypeUser           SubjectType = "user"
+	SubjectTypeGroup          SubjectType = "group"
+	SubjectTypeServiceAccount SubjectType = "serviceAccount"
+)
+
+var AllSubjectType = []SubjectType{
+	SubjectTypeUser,
+	SubjectTypeGroup,
+	SubjectTypeServiceAccount,
+}
+
+func (e SubjectType) IsValid() bool {
+	switch e {
+	case SubjectTypeUser, SubjectTypeGroup, SubjectTypeServiceAccount:
+		return true
+	}
+	return false
+}
+
+func (e SubjectType) String() string {
+	return string(e)
+}
+
+func (e *SubjectType) UnmarshalGQL(v interface{}) error {
+	str, ok := v.(string)
+	if !ok {
+		return fmt.Errorf("enums must be strings")
+	}
+
+	*e = SubjectType(str)
+	if !e.IsValid() {
+		return fmt.Errorf("%s is not a valid SubjectType", str)
+	}
+	return nil
+}
+
+func (e SubjectType) MarshalGQL(w io.Writer) {
+	fmt.Fprint(w, strconv.Quote(e.String()))
 }

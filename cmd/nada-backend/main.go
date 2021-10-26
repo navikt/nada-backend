@@ -86,7 +86,6 @@ func main() {
 	}
 
 	log.Info("Listening on :8080")
-
 	srv := api.New(repo, gcp, oauth2Config, teamProjectsMapping, authenticatorMiddleware, log.WithField("subsystem", "api"))
 
 	server := http.Server{

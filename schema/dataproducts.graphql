@@ -66,12 +66,18 @@ input UpdateDataproduct @goModel(model: "github.com/navikt/nada-backend/pkg/grap
     requesters: [String!]
 }
 
+enum SubjectType @goModel(model: "github.com/navikt/nada-backend/pkg/graph/models.SubjectType"){
+    user
+    group
+    serviceAccount
+}
+
 extend type Mutation {
     createDataproduct(input: NewDataproduct!): Dataproduct! @authenticated
     updateDataproduct(id: ID!, input: UpdateDataproduct!): Dataproduct! @authenticated
     deleteDataproduct(id: ID!) : Boolean! @authenticated
     addRequesterToDataproduct(dataproductID: ID!, subject: String!): Boolean! @authenticated
     removeRequesterFromDataproduct(dataproductID: ID!, subject: String!): Boolean! @authenticated
-    grantAccessToDataproduct(dataproductID: ID!, expires: Time, subject: String): Access! @authenticated
+    grantAccessToDataproduct(dataproductID: ID!, expires: Time, subject: String, subjectType: SubjectType): Access! @authenticated
     revokeAccessToDataproduct(id: ID!): Boolean! @authenticated
 }

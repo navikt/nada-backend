@@ -117,7 +117,7 @@ type ComplexityRoot struct {
 		DeleteCollection               func(childComplexity int, id uuid.UUID) int
 		DeleteDataproduct              func(childComplexity int, id uuid.UUID) int
 		Dummy                          func(childComplexity int, no *string) int
-		GrantAccessToDataproduct       func(childComplexity int, dataproductID uuid.UUID, expires *time.Time, subject *string) int
+		GrantAccessToDataproduct       func(childComplexity int, dataproductID uuid.UUID, expires *time.Time, subject *string, subjectType *models.SubjectType) int
 		RemoveFromCollection           func(childComplexity int, id uuid.UUID, elementID uuid.UUID, elementType models.CollectionElementType) int
 		RemoveRequesterFromDataproduct func(childComplexity int, dataproductID uuid.UUID, subject string) int
 		RevokeAccessToDataproduct      func(childComplexity int, id uuid.UUID) int
@@ -183,7 +183,7 @@ type MutationResolver interface {
 	DeleteDataproduct(ctx context.Context, id uuid.UUID) (bool, error)
 	AddRequesterToDataproduct(ctx context.Context, dataproductID uuid.UUID, subject string) (bool, error)
 	RemoveRequesterFromDataproduct(ctx context.Context, dataproductID uuid.UUID, subject string) (bool, error)
-	GrantAccessToDataproduct(ctx context.Context, dataproductID uuid.UUID, expires *time.Time, subject *string) (*models.Access, error)
+	GrantAccessToDataproduct(ctx context.Context, dataproductID uuid.UUID, expires *time.Time, subject *string, subjectType *models.SubjectType) (*models.Access, error)
 	RevokeAccessToDataproduct(ctx context.Context, id uuid.UUID) (bool, error)
 }
 type QueryResolver interface {
@@ -570,7 +570,7 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 			return 0, false
 		}
 
-		return e.complexity.Mutation.GrantAccessToDataproduct(childComplexity, args["dataproductID"].(uuid.UUID), args["expires"].(*time.Time), args["subject"].(*string)), true
+		return e.complexity.Mutation.GrantAccessToDataproduct(childComplexity, args["dataproductID"].(uuid.UUID), args["expires"].(*time.Time), args["subject"].(*string), args["subjectType"].(*models.SubjectType)), true
 
 	case "Mutation.removeFromCollection":
 		if e.complexity.Mutation.RemoveFromCollection == nil {
@@ -891,67 +891,69 @@ func (ec *executionContext) introspectType(name string) (*introspection.Type, er
 
 var sources = []*ast.Source{
 	{Name: "schema/collection.graphql", Input: `union CollectionElement
-  @goModel(
+@goModel(
     model: "github.com/navikt/nada-backend/pkg/graph/models.CollectionElement"
-  ) =
+) =
     Dataproduct
 
-enum CollectionElementType {
-  dataproduct
+enum CollectionElementType @goModel(
+    model: "github.com/navikt/nada-backend/pkg/graph/models.CollectionElementType"
+){
+    dataproduct
 }
 
 type Collection
-  @goModel(
+@goModel(
     model: "github.com/navikt/nada-backend/pkg/graph/models.Collection"
-  ) {
-  id: ID!
-  name: String!
-  description: String
-  created: Time!
-  lastModified: Time!
-  keywords: [String!]!
-  owner: Owner!
-  elements: [CollectionElement!]!
+) {
+    id: ID!
+    name: String!
+    description: String
+    created: Time!
+    lastModified: Time!
+    keywords: [String!]!
+    owner: Owner!
+    elements: [CollectionElement!]!
 }
 
 input NewCollection
-  @goModel(
+@goModel(
     model: "github.com/navikt/nada-backend/pkg/graph/models.NewCollection"
-  ) {
-  name: String!
-  description: String
-  group: String!
-  keywords: [String!]
+) {
+    name: String!
+    description: String
+    group: String!
+    keywords: [String!]
 }
 
 input UpdateCollection
-  @goModel(
+@goModel(
     model: "github.com/navikt/nada-backend/pkg/graph/models.UpdateCollection"
-  ) {
-  name: String!
-  description: String
-  keywords: [String!]
+) {
+    name: String!
+    description: String
+    keywords: [String!]
 }
 
 extend type Query {
-  collections(limit: Int, offset: Int): [Collection!]!
-  collection(id: ID!): Collection!
+    collections(limit: Int, offset: Int): [Collection!]!
+    collection(id: ID!): Collection!
 }
 
 extend type Mutation {
-  createCollection(input: NewCollection!): Collection! @authenticated
-  updateCollection(id: ID!, input: UpdateCollection!): Collection! @authenticated
-  deleteCollection(id: ID!): Boolean! @authenticated
-  addToCollection(
-    id: ID!
-    elementID: ID!
-    elementType: CollectionElementType!
-  ): Boolean! @authenticated
-  removeFromCollection(
-    id: ID!
-    elementID: ID!
-    elementType: CollectionElementType!
-  ): Boolean! @authenticated
+    createCollection(input: NewCollection!): Collection! @authenticated
+    updateCollection(id: ID!, input: UpdateCollection!): Collection! @authenticated
+    deleteCollection(id: ID!): Boolean! @authenticated
+    addToCollection(
+        id: ID!
+        elementID: ID!
+        elementType: CollectionElementType!
+    ): Boolean! @authenticated
+    removeFromCollection(
+        id: ID!
+        elementID: ID!
+        elementType: CollectionElementType!
+    ): Boolean! @authenticated
 }
 `, BuiltIn: false},
 	{Name: "schema/dataproducts.graphql", Input: `type Dataproduct @goModel(model: "github.com/navikt/nada-backend/pkg/graph/models.Dataproduct"){
@@ -966,7 +968,7 @@ extend type Mutation {
     owner: Owner!
     datasource: Datasource!
     requesters: [String!]!
-    access: [Access!]!
+    access: [Access!]! @authenticated
 }
 
 type Owner @goModel(model: "github.com/navikt/nada-backend/pkg/graph/models.Owner"){
@@ -1022,13 +1024,19 @@ input UpdateDataproduct @goModel(model: "github.com/navikt/nada-backend/pkg/grap
     requesters: [String!]
 }
 
+enum SubjectType @goModel(model: "github.com/navikt/nada-backend/pkg/graph/models.SubjectType"){
+    user
+    group
+    serviceAccount
+}
+
 extend type Mutation {
     createDataproduct(input: NewDataproduct!): Dataproduct! @authenticated
     updateDataproduct(id: ID!, input: UpdateDataproduct!): Dataproduct! @authenticated
     deleteDataproduct(id: ID!) : Boolean! @authenticated
     addRequesterToDataproduct(dataproductID: ID!, subject: String!): Boolean! @authenticated
     removeRequesterFromDataproduct(dataproductID: ID!, subject: String!): Boolean! @authenticated
-    grantAccessToDataproduct(dataproductID: ID!, expires: Time, subject: String): Access! @authenticated
+    grantAccessToDataproduct(dataproductID: ID!, expires: Time, subject: String, subjectType: SubjectType): Access! @authenticated
     revokeAccessToDataproduct(id: ID!): Boolean! @authenticated
 }
 `, BuiltIn: false},
@@ -1090,26 +1098,26 @@ type TableMetadata @goModel(model: "github.com/navikt/nada-backend/pkg/graph/mod
 extend type Query {
     getTableMetadata(id: ID!) : TableMetadata!
 }`, BuiltIn: false},
-	{Name: "schema/search.graphql", Input: `union SearchResult = Dataproduct | Collection
+	{Name: "schema/search.graphql", Input: `union SearchResult @goModel(model: "github.com/navikt/nada-backend/pkg/graph/models.SearchResult") = Dataproduct | Collection
 
-input SearchQuery {
-	"""
-	Freetext search
-	"""
-	text: String
-	"""
-	Filter on keyword
-	"""
-	keyword: String
-	limit: Int
-	offset: Int
+input SearchQuery @goModel(model: "github.com/navikt/nada-backend/pkg/graph/models.SearchQuery"){
+    """
+    Freetext search
+    """
+    text: String
+    """
+    Filter on keyword
+    """
+    keyword: String
+    limit: Int
+    offset: Int
 }
 
 extend type Query {
-	search(q: SearchQuery): [SearchResult!]!
+    search(q: SearchQuery): [SearchResult!]!
 }
 `, BuiltIn: false},
-	{Name: "schema/user.graphql", Input: `type Group {
+	{Name: "schema/user.graphql", Input: `type Group @goModel(model: "github.com/navikt/nada-backend/pkg/graph/models.Group") {
 	name: String!
 	email: String!
 }
@@ -1314,6 +1322,15 @@ func (ec *executionContext) field_Mutation_grantAccessToDataproduct_args(ctx con
 		}
 	}
 	args["subject"] = arg2
+	var arg3 *models.SubjectType
+	if tmp, ok := rawArgs["subjectType"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("subjectType"))
+		arg3, err = ec.unmarshalOSubjectType2ᚖgithubᚗcomᚋnaviktᚋnadaᚑbackendᚋpkgᚋgraphᚋmodelsᚐSubjectType(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["subjectType"] = arg3
 	return args, nil
 }
 
@@ -2759,8 +2776,28 @@ func (ec *executionContext) _Dataproduct_access(ctx context.Context, field graph
 
 	ctx = graphql.WithFieldContext(ctx, fc)
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
-		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.Dataproduct().Access(rctx, obj)
+		directive0 := func(rctx context.Context) (interface{}, error) {
+			ctx = rctx // use context from middleware stack in children
+			return ec.resolvers.Dataproduct().Access(rctx, obj)
+		}
+		directive1 := func(ctx context.Context) (interface{}, error) {
+			if ec.directives.Authenticated == nil {
+				return nil, errors.New("directive authenticated is not implemented")
+			}
+			return ec.directives.Authenticated(ctx, obj, directive0, nil)
+		}
+
+		tmp, err := directive1(rctx)
+		if err != nil {
+			return nil, graphql.ErrorOnPath(ctx, err)
+		}
+		if tmp == nil {
+			return nil, nil
+		}
+		if data, ok := tmp.([]*models.Access); ok {
+			return data, nil
+		}
+		return nil, fmt.Errorf(`unexpected type %T from directive, should be []*github.com/navikt/nada-backend/pkg/graph/models.Access`, tmp)
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -3602,7 +3639,7 @@ func (ec *executionContext) _Mutation_grantAccessToDataproduct(ctx context.Conte
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		directive0 := func(rctx context.Context) (interface{}, error) {
 			ctx = rctx // use context from middleware stack in children
-			return ec.resolvers.Mutation().GrantAccessToDataproduct(rctx, args["dataproductID"].(uuid.UUID), args["expires"].(*time.Time), args["subject"].(*string))
+			return ec.resolvers.Mutation().GrantAccessToDataproduct(rctx, args["dataproductID"].(uuid.UUID), args["expires"].(*time.Time), args["subject"].(*string), args["subjectType"].(*models.SubjectType))
 		}
 		directive1 := func(ctx context.Context) (interface{}, error) {
 			if ec.directives.Authenticated == nil {
@@ -8254,6 +8291,22 @@ func (ec *executionContext) marshalOString2ᚖstring(ctx context.Context, sel as
 		return graphql.Null
 	}
 	return graphql.MarshalString(*v)
+}
+
+func (ec *executionContext) unmarshalOSubjectType2ᚖgithubᚗcomᚋnaviktᚋnadaᚑbackendᚋpkgᚋgraphᚋmodelsᚐSubjectType(ctx context.Context, v interface{}) (*models.SubjectType, error) {
+	if v == nil {
+		return nil, nil
+	}
+	var res = new(models.SubjectType)
+	err := res.UnmarshalGQL(v)
+	return res, graphql.ErrorOnPath(ctx, err)
+}
+
+func (ec *executionContext) marshalOSubjectType2ᚖgithubᚗcomᚋnaviktᚋnadaᚑbackendᚋpkgᚋgraphᚋmodelsᚐSubjectType(ctx context.Context, sel ast.SelectionSet, v *models.SubjectType) graphql.Marshaler {
+	if v == nil {
+		return graphql.Null
+	}
+	return v
 }
 
 func (ec *executionContext) unmarshalOTime2ᚖtimeᚐTime(ctx context.Context, v interface{}) (*time.Time, error) {

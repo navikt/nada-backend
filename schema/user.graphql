@@ -1,4 +1,4 @@
-type Group {
+type Group @goModel(model: "github.com/navikt/nada-backend/pkg/graph/models.Group") {
 	name: String!
 	email: String!
 }

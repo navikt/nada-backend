@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+	"github.com/navikt/nada-backend/pkg/access"
 	"github.com/navikt/nada-backend/pkg/auth"
 	"github.com/navikt/nada-backend/pkg/graph/generated"
 	"github.com/navikt/nada-backend/pkg/graph/models"
@@ -82,19 +83,30 @@ func (r *mutationResolver) RemoveRequesterFromDataproduct(ctx context.Context, d
 	return true, r.repo.RemoveRequesterFromDataproduct(ctx, dp.ID, subject)
 }
 
-func (r *mutationResolver) GrantAccessToDataproduct(ctx context.Context, dataproductID uuid.UUID, expires *time.Time, subject *string) (*models.Access, error) {
+func (r *mutationResolver) GrantAccessToDataproduct(ctx context.Context, dataproductID uuid.UUID, expires *time.Time, subject *string, subjectType *models.SubjectType) (*models.Access, error) {
 	user := auth.GetUser(ctx)
 	subj := user.Email
 	if subject != nil {
 		subj = *subject
 	}
-
 	dp, err := r.repo.GetDataproduct(ctx, dataproductID)
 	if err != nil {
 		return nil, err
 	}
-
 	if err := isAllowedToGrantAccess(ctx, r.repo, dp, subj, user); err != nil {
+		return nil, err
+	}
+
+	ds, err := r.repo.GetBigqueryDatasource(ctx, dp.ID)
+	if err != nil {
+		return nil, err
+	}
+
+	subjType := models.SubjectTypeUser
+	if subjectType != nil {
+		subjType = *subjectType
+	}
+	if err := access.GrantBigquery(ctx, ds.ProjectID, ds.Dataset, ds.Table, subjType.String()+":"+subj); err != nil {
 		return nil, err
 	}
 
