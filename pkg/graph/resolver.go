@@ -3,6 +3,7 @@ package graph
 import (
 	"context"
 	"fmt"
+	"github.com/99designs/gqlgen-contrib/prometheus"
 
 	"github.com/99designs/gqlgen/graphql"
 	"github.com/99designs/gqlgen/graphql/handler"
@@ -34,7 +35,9 @@ func New(repo *database.Repo, gcp GCP, gcpProjects *auth.TeamProjectsUpdater) *h
 
 	config := generated.Config{Resolvers: resolver}
 	config.Directives.Authenticated = authenticate
-	return handler.NewDefaultServer(generated.NewExecutableSchema(config))
+	srv := handler.NewDefaultServer(generated.NewExecutableSchema(config))
+	srv.Use(prometheus.Tracer{})
+	return srv
 }
 
 func pagination(limit *int, offset *int) (int, int) {
