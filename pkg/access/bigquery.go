@@ -11,7 +11,7 @@ import (
 
 type Bigquery struct{}
 
-func New() *Bigquery {
+func NewBigquery() *Bigquery {
 	return &Bigquery{}
 }
 

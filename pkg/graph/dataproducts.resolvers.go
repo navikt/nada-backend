@@ -9,9 +9,14 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/navikt/nada-backend/pkg/auth"
+	"github.com/navikt/nada-backend/pkg/database/gensql"
 	"github.com/navikt/nada-backend/pkg/graph/generated"
 	"github.com/navikt/nada-backend/pkg/graph/models"
 )
+
+func (r *bigQueryResolver) Schema(ctx context.Context, obj *models.BigQuery) ([]*models.TableColumn, error) {
+	return r.repo.GetDataproductMetadata(ctx, obj.DataproductID)
+}
 
 func (r *dataproductResolver) Datasource(ctx context.Context, obj *models.Dataproduct) (models.Datasource, error) {
 	return r.repo.GetBigqueryDatasource(ctx, obj.ID)
@@ -32,7 +37,28 @@ func (r *mutationResolver) CreateDataproduct(ctx context.Context, input models.N
 	if err := ensureUserInGroup(ctx, input.Group); err != nil {
 		return nil, err
 	}
-	return r.repo.CreateDataproduct(ctx, input)
+
+	dp, err := r.repo.CreateDataproduct(ctx, input)
+	if err != nil {
+		return nil, err
+	}
+
+	ds, err := r.repo.GetBigqueryDatasource(ctx, dp.ID)
+	if err != nil {
+		return nil, err
+	}
+
+	err = r.schemaUpdater.UpdateSchema(ctx, gensql.DatasourceBigquery{
+		DataproductID: dp.ID,
+		ProjectID:     ds.ProjectID,
+		Dataset:       ds.Dataset,
+		TableName:     ds.Table,
+	})
+	if err != nil {
+		r.log.WithError(err).Errorf("Getting BigQuery schema for table %v.%v.%v", ds.ProjectID, ds.Dataset, ds.Table)
+	}
+
+	return dp, nil
 }
 
 func (r *mutationResolver) UpdateDataproduct(ctx context.Context, id uuid.UUID, input models.UpdateDataproduct) (*models.Dataproduct, error) {
@@ -131,22 +157,15 @@ func (r *mutationResolver) RevokeAccessToDataproduct(ctx context.Context, id uui
 		return false, err
 	}
 
-	if err := ensureUserInGroup(ctx, dp.Owner.Group); err == nil {
-		if err := r.accessMgr.Revoke(ctx, ds.ProjectID, ds.Dataset, ds.Table, access.Subject); err != nil {
-			return false, err
-		}
-		return true, r.repo.RevokeAccessToDataproduct(ctx, id)
-	}
-
 	user := auth.GetUser(ctx)
-	if "user:"+user.Email == access.Subject {
-		if err := r.accessMgr.Revoke(ctx, ds.ProjectID, ds.Dataset, ds.Table, access.Subject); err != nil {
-			return false, err
-		}
-		return true, r.repo.RevokeAccessToDataproduct(ctx, id)
+	if !user.Groups.Contains(dp.Owner.Group) && "user:"+user.Email != access.Subject {
+		return false, ErrUnauthorized
 	}
 
-	return false, ErrUnauthorized
+	if err := r.accessMgr.Revoke(ctx, ds.ProjectID, ds.Dataset, ds.Table, access.Subject); err != nil {
+		return false, err
+	}
+	return true, r.repo.RevokeAccessToDataproduct(ctx, id)
 }
 
 func (r *queryResolver) Dataproduct(ctx context.Context, id uuid.UUID) (*models.Dataproduct, error) {
@@ -158,7 +177,13 @@ func (r *queryResolver) Dataproducts(ctx context.Context, limit *int, offset *in
 	return r.repo.GetDataproducts(ctx, l, o)
 }
 
+// BigQuery returns generated.BigQueryResolver implementation.
+func (r *Resolver) BigQuery() generated.BigQueryResolver { return &bigQueryResolver{r} }
+
 // Dataproduct returns generated.DataproductResolver implementation.
 func (r *Resolver) Dataproduct() generated.DataproductResolver { return &dataproductResolver{r} }
 
-type dataproductResolver struct{ *Resolver }
+type (
+	bigQueryResolver    struct{ *Resolver }
+	dataproductResolver struct{ *Resolver }
+)

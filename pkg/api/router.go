@@ -7,7 +7,6 @@ import (
 	"github.com/99designs/gqlgen/graphql/playground"
 	"github.com/go-chi/chi"
 	"github.com/go-chi/cors"
-	"github.com/navikt/nada-backend/pkg/access"
 	"github.com/navikt/nada-backend/pkg/auth"
 	"github.com/navikt/nada-backend/pkg/database"
 	"github.com/navikt/nada-backend/pkg/graph"
@@ -21,9 +20,10 @@ func New(
 	gcp graph.GCP,
 	oauth2 OAuth2,
 	gcpProjects *auth.TeamProjectsUpdater,
-	accessMgr access.Access,
+	accessMgr graph.AccessManager,
+	schemaUpdater graph.SchemaUpdater,
 	authMW auth.MiddlewareHandler,
-	log *logrus.Entry,
+	log *logrus.Logger,
 ) *chi.Mux {
 	corsMW := cors.Handler(cors.Options{
 		AllowedOrigins:   []string{"https://*", "http://*"},
@@ -31,9 +31,9 @@ func New(
 		AllowCredentials: true,
 	})
 
-	httpAPI := new(oauth2, log)
+	httpAPI := new(oauth2, log.WithField("subsystem", "api"))
 
-	gqlServer := graph.New(repo, gcp, gcpProjects, accessMgr)
+	gqlServer := graph.New(repo, gcp, gcpProjects, accessMgr, schemaUpdater, log.WithField("subsystem", "graph"))
 
 	router := chi.NewRouter()
 	router.Use(corsMW)

@@ -32,9 +32,10 @@ type Datasource interface {
 }
 
 type BigQuery struct {
-	ProjectID string `json:"projectID"`
-	Dataset   string `json:"dataset"`
-	Table     string `json:"table"`
+	DataproductID uuid.UUID
+	ProjectID     string `json:"projectID"`
+	Dataset       string `json:"dataset"`
+	Table         string `json:"table"`
 }
 
 func (BigQuery) IsDatasource() {}

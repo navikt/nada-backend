@@ -124,32 +124,6 @@ func TestRepo(t *testing.T) {
 		}
 	})
 
-	t.Run("create and retrieve dataproduct", func(t *testing.T) {
-		data := newDataproduct
-		createdDataproduct, err := repo.CreateDataproduct(context.Background(), data)
-		if err != nil {
-			t.Fatal(err)
-		}
-
-		dataproduct, err := repo.GetDataproduct(context.Background(), createdDataproduct.ID)
-		if err != nil {
-			t.Fatal(err)
-		}
-
-		if dataproduct.ID.String() == "" {
-			t.Fatal("Expected ID to be set")
-		}
-
-		bq, err := repo.GetBigqueryDatasource(context.Background(), dataproduct.ID)
-		if err != nil {
-			t.Fatal(err)
-		}
-
-		if !cmp.Equal(bq, models.BigQuery(data.BigQuery)) {
-			t.Error(cmp.Diff(bq, models.BigQuery(data.BigQuery)))
-		}
-	})
-
 	t.Run("updates dataproducts", func(t *testing.T) {
 		data := models.NewDataproduct{
 			Name: "test-product",

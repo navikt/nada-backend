@@ -104,6 +104,5 @@ func nameFromQuery(q string) string {
 	if len(submatch) > 1 {
 		return submatch[1]
 	}
-	fmt.Println("Unknown", q)
 	return "Unknown"
 }

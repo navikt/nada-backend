@@ -14,6 +14,7 @@ import (
 	"github.com/navikt/nada-backend/pkg/api"
 	"github.com/navikt/nada-backend/pkg/auth"
 	"github.com/navikt/nada-backend/pkg/database"
+	"github.com/navikt/nada-backend/pkg/database/gensql"
 	"github.com/navikt/nada-backend/pkg/graph/models"
 	"github.com/ory/dockertest/v3"
 	"github.com/sirupsen/logrus"
@@ -55,7 +56,7 @@ func TestMain(m *testing.M) {
 	if err != nil {
 		panic(err)
 	}
-	srv := api.New(repo, &mockGCP{}, nil, &auth.MockTeamProjectsUpdater, access.NewMock(), auth.MockJWTValidatorMiddleware(), logrus.NewEntry(logrus.StandardLogger()))
+	srv := api.New(repo, &mockGCP{}, nil, &auth.MockTeamProjectsUpdater, access.NewNoop(), &noopDatasetEnricher{}, auth.MockJWTValidatorMiddleware(), logrus.StandardLogger())
 
 	server = httptest.NewServer(srv)
 	code := m.Run()
@@ -76,4 +77,10 @@ func (m *mockGCP) GetTables(ctx context.Context, projectID, datasetID string) ([
 
 func (m *mockGCP) GetDatasets(ctx context.Context, projectID string) ([]string, error) {
 	return nil, nil
+}
+
+type noopDatasetEnricher struct{}
+
+func (n noopDatasetEnricher) UpdateSchema(ctx context.Context, ds gensql.DatasourceBigquery) error {
+	return nil
 }

@@ -18,10 +18,18 @@ type Owner @goModel(model: "github.com/navikt/nada-backend/pkg/graph/models.Owne
     teamkatalogen: String!
 }
 
+type TableColumn @goModel(model: "github.com/navikt/nada-backend/pkg/graph/models.TableColumn") {
+    name: String!
+    description: String!
+    mode: String!
+    type: String!
+}
+
 type BigQuery @goModel(model: "github.com/navikt/nada-backend/pkg/graph/models.BigQuery") {
     projectID: String!
     dataset: String!
     table: String!
+    schema: [TableColumn!]!
 }
 
 union Datasource @goModel(model: "github.com/navikt/nada-backend/pkg/graph/models.Datasource") = BigQuery

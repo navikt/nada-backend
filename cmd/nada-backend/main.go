@@ -61,8 +61,8 @@ func main() {
 	authenticatorMiddleware := auth.MockJWTValidatorMiddleware()
 	teamProjectsMapping := &auth.MockTeamProjectsUpdater
 	var oauth2Config api.OAuth2
-	var accessMgr access.Access
-	accessMgr = access.NewMock()
+	var accessMgr graph.AccessManager
+	accessMgr = access.NewNoop()
 	if !cfg.MockAuth {
 		teamProjectsMapping = auth.NewTeamProjectsUpdater(cfg.DevTeamProjectsOutputURL, cfg.ProdTeamProjectsOutputURL, cfg.TeamsToken, http.DefaultClient)
 		go teamProjectsMapping.Run(ctx, TeamProjectsUpdateFrequency)
@@ -75,22 +75,25 @@ func main() {
 		gauth := auth.NewGoogle(cfg.OAuth2.ClientID, cfg.OAuth2.ClientSecret, cfg.Hostname)
 		oauth2Config = gauth
 		authenticatorMiddleware = gauth.Middleware(googleGroups)
-		accessMgr = access.New()
+		accessMgr = access.NewBigquery()
 	}
 
 	var gcp graph.GCP
+	var datasetEnricher graph.SchemaUpdater = &noopDatasetEnricher{}
 	if !cfg.SkipMetadataSync {
 		datacatalogClient, err := metadata.NewDatacatalog(ctx)
 		if err != nil {
 			log.WithError(err).Fatal("Creating datacatalog client")
 		}
+
 		gcp = datacatalogClient
 		de := metadata.New(datacatalogClient, repo, log.WithField("subsystem", "datasetenricher"))
+		datasetEnricher = de
 		go de.Run(ctx, DatasetMetadataUpdateFrequency)
 	}
 
 	log.Info("Listening on :8080")
-	srv := api.New(repo, gcp, oauth2Config, teamProjectsMapping, accessMgr, authenticatorMiddleware, log.WithField("subsystem", "api"))
+	srv := api.New(repo, gcp, oauth2Config, teamProjectsMapping, accessMgr, datasetEnricher, authenticatorMiddleware, log)
 
 	server := http.Server{
 		Addr:    cfg.BindAddress,
@@ -131,6 +134,6 @@ func getEnv(key, fallback string) string {
 
 type noopDatasetEnricher struct{}
 
-func (n *noopDatasetEnricher) UpdateSchema(ctx context.Context, ds gensql.DatasourceBigquery) error {
+func (n noopDatasetEnricher) UpdateSchema(ctx context.Context, ds gensql.DatasourceBigquery) error {
 	return nil
 }

@@ -133,9 +133,10 @@ func (r *Repo) GetBigqueryDatasource(ctx context.Context, dataproductID uuid.UUI
 	}
 
 	return models.BigQuery{
-		ProjectID: bq.ProjectID,
-		Dataset:   bq.Dataset,
-		Table:     bq.TableName,
+		DataproductID: bq.DataproductID,
+		ProjectID:     bq.ProjectID,
+		Dataset:       bq.Dataset,
+		Table:         bq.TableName,
 	}, nil
 }
 
@@ -154,23 +155,20 @@ func (r *Repo) UpdateBigqueryDatasource(ctx context.Context, id uuid.UUID, schem
 	return nil
 }
 
-func (r *Repo) GetDataproductMetadata(ctx context.Context, id uuid.UUID) (*models.TableMetadata, error) {
+func (r *Repo) GetDataproductMetadata(ctx context.Context, id uuid.UUID) ([]*models.TableColumn, error) {
 	ds, err := r.querier.GetBigqueryDatasource(ctx, id)
 	if err != nil {
 		return nil, fmt.Errorf("getting bigquery datasource from database: %w", err)
 	}
 
-	var schema []models.TableColumn
+	var schema []*models.TableColumn
 	if ds.Schema.Valid {
 		if err := json.Unmarshal(ds.Schema.RawMessage, &schema); err != nil {
 			return nil, fmt.Errorf("unmarshalling schema: %w", err)
 		}
 	}
 
-	return &models.TableMetadata{
-		ID:     ds.DataproductID,
-		Schema: schema,
-	}, nil
+	return schema, nil
 }
 
 func dataproductFromSQL(dp gensql.Dataproduct) *models.Dataproduct {

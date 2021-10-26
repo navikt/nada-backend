@@ -5,12 +5,13 @@ import (
 	"fmt"
 
 	"github.com/99designs/gqlgen-contrib/prometheus"
+	"github.com/sirupsen/logrus"
 
 	"github.com/99designs/gqlgen/graphql"
 	"github.com/99designs/gqlgen/graphql/handler"
-	"github.com/navikt/nada-backend/pkg/access"
 	"github.com/navikt/nada-backend/pkg/auth"
 	"github.com/navikt/nada-backend/pkg/database"
+	"github.com/navikt/nada-backend/pkg/database/gensql"
 	"github.com/navikt/nada-backend/pkg/graph/generated"
 	"github.com/navikt/nada-backend/pkg/graph/models"
 )
@@ -22,19 +23,32 @@ type GCP interface {
 	GetDatasets(ctx context.Context, projectID string) ([]string, error)
 }
 
-type Resolver struct {
-	repo        *database.Repo
-	gcp         GCP
-	gcpProjects *auth.TeamProjectsUpdater
-	accessMgr   access.Access
+type AccessManager interface {
+	Grant(ctx context.Context, projectID, datasetID, tableID, member string) error
+	Revoke(ctx context.Context, projectID, datasetID, tableID, member string) error
 }
 
-func New(repo *database.Repo, gcp GCP, gcpProjects *auth.TeamProjectsUpdater, accessMgr access.Access) *handler.Server {
+type SchemaUpdater interface {
+	UpdateSchema(ctx context.Context, ds gensql.DatasourceBigquery) error
+}
+
+type Resolver struct {
+	repo          *database.Repo
+	gcp           GCP
+	gcpProjects   *auth.TeamProjectsUpdater
+	accessMgr     AccessManager
+	schemaUpdater SchemaUpdater
+	log           *logrus.Entry
+}
+
+func New(repo *database.Repo, gcp GCP, gcpProjects *auth.TeamProjectsUpdater, accessMgr AccessManager, schemaUpdater SchemaUpdater, log *logrus.Entry) *handler.Server {
 	resolver := &Resolver{
-		repo:        repo,
-		gcp:         gcp,
-		gcpProjects: gcpProjects,
-		accessMgr:   accessMgr,
+		repo:          repo,
+		gcp:           gcp,
+		gcpProjects:   gcpProjects,
+		accessMgr:     accessMgr,
+		schemaUpdater: schemaUpdater,
+		log:           log,
 	}
 
 	config := generated.Config{Resolvers: resolver}
