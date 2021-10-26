@@ -7,6 +7,7 @@ import (
 	"github.com/99designs/gqlgen/graphql/playground"
 	"github.com/go-chi/chi"
 	"github.com/go-chi/cors"
+	"github.com/navikt/nada-backend/pkg/access"
 	"github.com/navikt/nada-backend/pkg/auth"
 	"github.com/navikt/nada-backend/pkg/database"
 	"github.com/navikt/nada-backend/pkg/graph"
@@ -20,6 +21,7 @@ func New(
 	gcp graph.GCP,
 	oauth2 OAuth2,
 	gcpProjects *auth.TeamProjectsUpdater,
+	accessMgr access.Access,
 	authMW auth.MiddlewareHandler,
 	log *logrus.Entry,
 ) *chi.Mux {
@@ -31,7 +33,7 @@ func New(
 
 	httpAPI := new(oauth2, log)
 
-	gqlServer := graph.New(repo, gcp, gcpProjects)
+	gqlServer := graph.New(repo, gcp, gcpProjects, accessMgr)
 
 	router := chi.NewRouter()
 	router.Use(corsMW)
