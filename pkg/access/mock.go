@@ -15,3 +15,7 @@ func (a AccessMock) Grant(ctx context.Context, projectID, datasetID, tableID, me
 func (a AccessMock) Revoke(ctx context.Context, projectID, datasetID, tableID, member string) error {
 	return nil
 }
+
+func (a AccessMock) HasAccess(ctx context.Context, projectID, datasetID, tableID, member string) (bool, error) {
+	return true, nil
+}

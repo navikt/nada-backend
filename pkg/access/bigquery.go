@@ -69,7 +69,7 @@ func getPolicy(ctx context.Context, bqclient *bigquery.Client, datasetID, tableI
 	return policy, nil
 }
 
-func CheckAccessInBigQueryTable(ctx context.Context, projectID, datasetID, tableID, member string) (bool, error) {
+func (b Bigquery) HasAccess(ctx context.Context, projectID, datasetID, tableID, member string) (bool, error) {
 	bqClient, err := bigquery.NewClient(ctx, projectID)
 	if err != nil {
 		return false, fmt.Errorf("bigquery.NewClient: %v", err)
