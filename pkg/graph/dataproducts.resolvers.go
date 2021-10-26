@@ -105,11 +105,14 @@ func (r *mutationResolver) GrantAccessToDataproduct(ctx context.Context, datapro
 	if subjectType != nil {
 		subjType = *subjectType
 	}
-	if err := r.accessMgr.Grant(ctx, ds.ProjectID, ds.Dataset, ds.Table, subjType.String()+":"+subj); err != nil {
+
+	subjWithType := subjType.String() + ":" + subj
+
+	if err := r.accessMgr.Grant(ctx, ds.ProjectID, ds.Dataset, ds.Table, subjWithType); err != nil {
 		return nil, err
 	}
 
-	return r.repo.GrantAccessToDataproduct(ctx, dataproductID, expires, subj, user.Email)
+	return r.repo.GrantAccessToDataproduct(ctx, dataproductID, expires, subjWithType, user.Email)
 }
 
 func (r *mutationResolver) RevokeAccessToDataproduct(ctx context.Context, id uuid.UUID) (bool, error) {
@@ -123,12 +126,23 @@ func (r *mutationResolver) RevokeAccessToDataproduct(ctx context.Context, id uui
 		return false, err
 	}
 
+	ds, err := r.repo.GetBigqueryDatasource(ctx, access.DataproductID)
+	if err != nil {
+		return false, err
+	}
+
 	if err := ensureUserInGroup(ctx, dp.Owner.Group); err == nil {
+		if err := r.accessMgr.Revoke(ctx, ds.ProjectID, ds.Dataset, ds.Table, access.Subject); err != nil {
+			return false, err
+		}
 		return true, r.repo.RevokeAccessToDataproduct(ctx, id)
 	}
 
 	user := auth.GetUser(ctx)
-	if user.Email == access.Subject {
+	if "user:"+user.Email == access.Subject {
+		if err := r.accessMgr.Revoke(ctx, ds.ProjectID, ds.Dataset, ds.Table, access.Subject); err != nil {
+			return false, err
+		}
 		return true, r.repo.RevokeAccessToDataproduct(ctx, id)
 	}
 

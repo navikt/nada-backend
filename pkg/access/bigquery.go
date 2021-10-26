@@ -36,7 +36,7 @@ func (b Bigquery) Grant(ctx context.Context, projectID, datasetID, tableID, memb
 	return bqTable.IAM().SetPolicy(ctx, policy)
 }
 
-func RemoveMemberFromBigQueryTable(ctx context.Context, projectID, datasetID, tableID, member string) error {
+func (b Bigquery) Revoke(ctx context.Context, projectID, datasetID, tableID, member string) error {
 	bqClient, err := bigquery.NewClient(ctx, projectID)
 	if err != nil {
 		return fmt.Errorf("bigquery.NewClient: %v", err)
