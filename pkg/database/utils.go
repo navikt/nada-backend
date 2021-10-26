@@ -2,6 +2,7 @@ package database
 
 import (
 	"database/sql"
+	"net/url"
 	"time"
 )
 
@@ -41,6 +42,21 @@ func nullTimeToPtr(nt sql.NullTime) *time.Time {
 	return &nt.Time
 }
 
+func ptrToString(s *string) string {
+	if s != nil {
+		return *s
+	}
+	return ""
+}
+
 func stringToPtr(s string) *string {
 	return &s
+}
+
+func slugify(maybeslug *string, fallback string) string {
+	if maybeslug != nil {
+		return *maybeslug
+	}
+	// TODO(thokra): Smartify this?
+	return url.PathEscape(fallback)
 }
