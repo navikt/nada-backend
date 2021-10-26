@@ -3,7 +3,7 @@ mutation {
     input: {
       name: "NewCollection"
       description: "New Collection"
-      group: "dataplattform@nav.no"
+      group: "nada@nav.no"
       keywords: ["keyword1"]
     }
   ) {
@@ -17,13 +17,17 @@ mutation {
 
 RETURNS
 
+OPTION data.createCollection.id=IGNORE
+
+ENDOPTS
+
 {
   "data": {
     "createCollection": {
       "name": "NewCollection",
       "description": "New Collection",
       "owner": {
-        "group": "dataplattform@nav.no"
+        "group": "nada@nav.no"
       },
       "elements": []
     }

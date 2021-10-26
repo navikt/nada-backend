@@ -1,0 +1,33 @@
+{
+  dataproduct(id: "{{ .dataproduct_id }}") {
+    access {
+      id
+      subject
+      granter
+      expires
+      revoked
+    }
+  }
+}
+
+RETURNS
+
+OPTION data.dataproduct.access.0.revoked=NOTNULL
+
+ENDOPTS
+
+{
+  "data": {
+    "dataproduct": {
+      "access": [
+        {
+          "id": "{{ .access_id }}",
+          "subject": "santa@nav.no",
+          "granter": "mock.anderson@email.com",
+          "expires": "2021-12-24T00:00:00Z",
+          "revoked": "!NOTNULL"
+        }
+      ]
+    }
+  }
+}

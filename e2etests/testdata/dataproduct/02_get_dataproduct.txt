@@ -2,13 +2,13 @@
 	dataproduct(
 		id: "{{ .dataproduct_id }}"
 	) {
-		id
 		name
 		description
 		repo
 		pii
 		owner { group }
 		keywords
+    requesters
 	}
 }
 
@@ -23,10 +23,11 @@ RETURNS
         "keyword1"
       ],
       "owner": {
-        "group": "dataplattform@nav.no"
+        "group": "nada@nav.no"
       },
       "pii": false,
-      "repo": "somerepo"
+      "repo": "somerepo",
+			"requesters": ["all-users@nav.no", "nada@nav.no"]
     }
   }
 }

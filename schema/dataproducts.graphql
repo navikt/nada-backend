@@ -9,6 +9,8 @@ type Dataproduct @goModel(model: "github.com/navikt/nada-backend/pkg/graph/model
     keywords: [String!]!
     owner: Owner!
     datasource: Datasource!
+    requesters: [String!]!
+    access: [Access!]! @authenticated
 }
 
 type Owner @goModel(model: "github.com/navikt/nada-backend/pkg/graph/models.Owner"){
@@ -23,6 +25,15 @@ type BigQuery @goModel(model: "github.com/navikt/nada-backend/pkg/graph/models.B
 }
 
 union Datasource @goModel(model: "github.com/navikt/nada-backend/pkg/graph/models.Datasource") = BigQuery
+
+type Access @goModel(model: "github.com/navikt/nada-backend/pkg/graph/models.Access") {
+    id: ID!
+    subject: String!
+    granter: String!
+    expires: Time
+    created: Time!
+    revoked: Time
+}
 
 extend type Query {
     dataproduct(id: ID!): Dataproduct!
@@ -43,6 +54,7 @@ input NewDataproduct @goModel(model: "github.com/navikt/nada-backend/pkg/graph/m
     keywords: [String!]
     group: String!
     bigquery: NewBigQuery!
+    requesters: [String!]
 }
 
 input UpdateDataproduct @goModel(model: "github.com/navikt/nada-backend/pkg/graph/models.UpdateDataproduct") {
@@ -51,10 +63,15 @@ input UpdateDataproduct @goModel(model: "github.com/navikt/nada-backend/pkg/grap
     repo: String
     pii: Boolean!
     keywords: [String!]
+    requesters: [String!]
 }
 
 extend type Mutation {
     createDataproduct(input: NewDataproduct!): Dataproduct! @authenticated
     updateDataproduct(id: ID!, input: UpdateDataproduct!): Dataproduct! @authenticated
     deleteDataproduct(id: ID!) : Boolean! @authenticated
+    addRequesterToDataproduct(dataproductID: ID!, subject: String!): Boolean! @authenticated
+    removeRequesterFromDataproduct(dataproductID: ID!, subject: String!): Boolean! @authenticated
+    grantAccessToDataproduct(dataproductID: ID!, expires: Time, subject: String): Access! @authenticated
+    revokeAccessToDataproduct(id: ID!): Boolean! @authenticated
 }

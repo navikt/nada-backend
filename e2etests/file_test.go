@@ -5,14 +5,21 @@ package e2etests
 import (
 	"bytes"
 	"encoding/json"
+	"fmt"
+	"html/template"
 	"io/ioutil"
 	"os"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"testing"
-	"text/template"
 
 	"github.com/google/go-cmp/cmp"
+)
+
+const (
+	NotNullOption = "NOTNULL"
+	IgnoreOption  = "IGNORE"
 )
 
 func TestFiles(t *testing.T) {
@@ -21,6 +28,7 @@ func TestFiles(t *testing.T) {
 	// [graphql query]
 	// RETURNS
 	// json response
+
 	files, err := os.ReadDir("testdata")
 	if err != nil {
 		t.Fatal(err)
@@ -52,7 +60,7 @@ func TestFiles(t *testing.T) {
 
 func testFile(t *testing.T, state *state, fname string) {
 	t.Run(fname, func(t *testing.T) {
-		q, expected, store, err := splitTestFile(fname)
+		q, expected, store, options, err := splitTestFile(fname, state)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -61,8 +69,8 @@ func testFile(t *testing.T, state *state, fname string) {
 			t.Fatal(err)
 		}
 
-		if !cmp.Equal(val, expected, cmp.FilterPath(ignoreID, cmp.Ignore())) {
-			t.Error(cmp.Diff(val, expected, cmp.FilterPath(ignoreID, cmp.Ignore())))
+		if !cmp.Equal(val, expected, options...) {
+			t.Error(cmp.Diff(val, expected, options...))
 		}
 	})
 }
@@ -72,18 +80,53 @@ type storeRequest struct {
 	path string
 }
 
-func splitTestFile(fname string) (q string, expected map[string]interface{}, store []storeRequest, err error) {
+func splitTestFile(fname string, state *state) (q string, expected map[string]interface{}, store []storeRequest, options cmp.Options, err error) {
 	b, err := ioutil.ReadFile("testdata/" + fname)
 	if err != nil {
-		return "", nil, nil, err
+		return "", nil, nil, nil, err
 	}
 
-	parts := bytes.SplitN(b, []byte("RETURNS"), 2)
+	tpl, err := template.New("query").Parse(string(b))
+	if err != nil {
+		return "", nil, nil, nil, err
+	}
+
+	buf := &bytes.Buffer{}
+	if err := tpl.Execute(buf, state.data); err != nil {
+		return "", nil, nil, nil, err
+	}
+
+	parts := bytes.SplitN(buf.Bytes(), []byte("RETURNS"), 2)
 	q = string(parts[0])
 
-	srs := bytes.Split(parts[1], []byte("STORE"))
+	optParts := bytes.SplitN(parts[1], []byte("ENDOPTS"), 2)
+	returns := optParts[len(optParts)-1]
+
+	if len(optParts) > 1 {
+		os := strings.Split(string(optParts[0]), "OPTION")
+		for _, o := range os {
+			if strings.TrimSpace(o) == "" {
+				continue
+			}
+			ps := strings.SplitN(o, "=", 2)
+
+			path := strings.TrimSpace(ps[0])
+			option := strings.TrimSpace(ps[1])
+
+			switch option {
+			case NotNullOption:
+				options = append(options, cmp.FilterPath(ignorePath(path), cmp.Comparer(cmpNotNull)))
+			case IgnoreOption:
+				options = append(options, cmp.FilterPath(ignorePath(path), cmp.Ignore()))
+			default:
+				return "", nil, nil, nil, fmt.Errorf("unexpected option on path: %v", path)
+			}
+		}
+	}
+
+	srs := bytes.Split(returns, []byte("STORE"))
 	if err := json.Unmarshal(srs[0], &expected); err != nil {
-		return "", nil, nil, err
+		return "", nil, nil, nil, err
 	}
 
 	if len(srs) > 1 {
@@ -96,11 +139,29 @@ func splitTestFile(fname string) (q string, expected map[string]interface{}, sto
 		}
 	}
 
-	return q, expected, store, nil
+	return q, expected, store, options, nil
 }
 
-func ignoreID(p cmp.Path) bool {
-	return p.Last().String() == `["id"]`
+func ignorePath(path string) func(p cmp.Path) bool {
+	return func(p cmp.Path) bool {
+		s := ""
+		for _, pe := range p {
+			switch pe := pe.(type) {
+			case cmp.MapIndex:
+				s += "." + pe.Key().String()
+			case cmp.SliceIndex:
+				s += "." + strconv.Itoa(pe.Key())
+			}
+		}
+		return s == "."+path
+	}
+}
+
+func cmpNotNull(a, b interface{}) bool {
+	if a == nil || b == nil {
+		return false
+	}
+	return true
 }
 
 type state struct {
@@ -108,16 +169,6 @@ type state struct {
 }
 
 func doQuery(state *state, q string, store []storeRequest) (map[string]interface{}, error) {
-	tpl, err := template.New("query").Parse(q)
-	if err != nil {
-		return nil, err
-	}
-
-	buf := &bytes.Buffer{}
-	if err := tpl.Execute(buf, state.data); err != nil {
-		return nil, err
-	}
-
 	b, err := json.Marshal(
 		struct {
 			OperationName *string                `json:"operationName"`
@@ -126,7 +177,7 @@ func doQuery(state *state, q string, store []storeRequest) (map[string]interface
 		}{
 			nil,
 			map[string]interface{}{},
-			buf.String(),
+			q,
 		},
 	)
 	if err != nil {
@@ -142,6 +193,11 @@ func doQuery(state *state, q string, store []storeRequest) (map[string]interface
 	ret := map[string]interface{}{}
 	if err := json.NewDecoder(resp.Body).Decode(&ret); err != nil {
 		return nil, err
+	}
+
+	if e, ok := ret["errors"]; ok {
+		fj, _ := json.MarshalIndent(e, "", "  ")
+		panic(string(fj))
 	}
 
 	for _, s := range store {

@@ -51,6 +51,15 @@ type DirectiveRoot struct {
 }
 
 type ComplexityRoot struct {
+	Access struct {
+		Created func(childComplexity int) int
+		Expires func(childComplexity int) int
+		Granter func(childComplexity int) int
+		ID      func(childComplexity int) int
+		Revoked func(childComplexity int) int
+		Subject func(childComplexity int) int
+	}
+
 	BigQuery struct {
 		Dataset   func(childComplexity int) int
 		ProjectID func(childComplexity int) int
@@ -76,6 +85,7 @@ type ComplexityRoot struct {
 	}
 
 	Dataproduct struct {
+		Access       func(childComplexity int) int
 		Created      func(childComplexity int) int
 		Datasource   func(childComplexity int) int
 		Description  func(childComplexity int) int
@@ -86,6 +96,7 @@ type ComplexityRoot struct {
 		Owner        func(childComplexity int) int
 		Pii          func(childComplexity int) int
 		Repo         func(childComplexity int) int
+		Requesters   func(childComplexity int) int
 	}
 
 	GCPProject struct {
@@ -99,15 +110,19 @@ type ComplexityRoot struct {
 	}
 
 	Mutation struct {
-		AddToCollection      func(childComplexity int, id uuid.UUID, elementID uuid.UUID, elementType models.CollectionElementType) int
-		CreateCollection     func(childComplexity int, input models.NewCollection) int
-		CreateDataproduct    func(childComplexity int, input models.NewDataproduct) int
-		DeleteCollection     func(childComplexity int, id uuid.UUID) int
-		DeleteDataproduct    func(childComplexity int, id uuid.UUID) int
-		Dummy                func(childComplexity int, no *string) int
-		RemoveFromCollection func(childComplexity int, id uuid.UUID, elementID uuid.UUID, elementType models.CollectionElementType) int
-		UpdateCollection     func(childComplexity int, id uuid.UUID, input models.UpdateCollection) int
-		UpdateDataproduct    func(childComplexity int, id uuid.UUID, input models.UpdateDataproduct) int
+		AddRequesterToDataproduct      func(childComplexity int, dataproductID uuid.UUID, subject string) int
+		AddToCollection                func(childComplexity int, id uuid.UUID, elementID uuid.UUID, elementType models.CollectionElementType) int
+		CreateCollection               func(childComplexity int, input models.NewCollection) int
+		CreateDataproduct              func(childComplexity int, input models.NewDataproduct) int
+		DeleteCollection               func(childComplexity int, id uuid.UUID) int
+		DeleteDataproduct              func(childComplexity int, id uuid.UUID) int
+		Dummy                          func(childComplexity int, no *string) int
+		GrantAccessToDataproduct       func(childComplexity int, dataproductID uuid.UUID, expires *time.Time, subject *string) int
+		RemoveFromCollection           func(childComplexity int, id uuid.UUID, elementID uuid.UUID, elementType models.CollectionElementType) int
+		RemoveRequesterFromDataproduct func(childComplexity int, dataproductID uuid.UUID, subject string) int
+		RevokeAccessToDataproduct      func(childComplexity int, id uuid.UUID) int
+		UpdateCollection               func(childComplexity int, id uuid.UUID, input models.UpdateCollection) int
+		UpdateDataproduct              func(childComplexity int, id uuid.UUID, input models.UpdateDataproduct) int
 	}
 
 	Owner struct {
@@ -153,6 +168,8 @@ type CollectionResolver interface {
 }
 type DataproductResolver interface {
 	Datasource(ctx context.Context, obj *models.Dataproduct) (models.Datasource, error)
+	Requesters(ctx context.Context, obj *models.Dataproduct) ([]string, error)
+	Access(ctx context.Context, obj *models.Dataproduct) ([]*models.Access, error)
 }
 type MutationResolver interface {
 	Dummy(ctx context.Context, no *string) (*string, error)
@@ -164,6 +181,10 @@ type MutationResolver interface {
 	CreateDataproduct(ctx context.Context, input models.NewDataproduct) (*models.Dataproduct, error)
 	UpdateDataproduct(ctx context.Context, id uuid.UUID, input models.UpdateDataproduct) (*models.Dataproduct, error)
 	DeleteDataproduct(ctx context.Context, id uuid.UUID) (bool, error)
+	AddRequesterToDataproduct(ctx context.Context, dataproductID uuid.UUID, subject string) (bool, error)
+	RemoveRequesterFromDataproduct(ctx context.Context, dataproductID uuid.UUID, subject string) (bool, error)
+	GrantAccessToDataproduct(ctx context.Context, dataproductID uuid.UUID, expires *time.Time, subject *string) (*models.Access, error)
+	RevokeAccessToDataproduct(ctx context.Context, id uuid.UUID) (bool, error)
 }
 type QueryResolver interface {
 	Version(ctx context.Context) (string, error)
@@ -195,6 +216,48 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 	ec := executionContext{nil, e}
 	_ = ec
 	switch typeName + "." + field {
+
+	case "Access.created":
+		if e.complexity.Access.Created == nil {
+			break
+		}
+
+		return e.complexity.Access.Created(childComplexity), true
+
+	case "Access.expires":
+		if e.complexity.Access.Expires == nil {
+			break
+		}
+
+		return e.complexity.Access.Expires(childComplexity), true
+
+	case "Access.granter":
+		if e.complexity.Access.Granter == nil {
+			break
+		}
+
+		return e.complexity.Access.Granter(childComplexity), true
+
+	case "Access.id":
+		if e.complexity.Access.ID == nil {
+			break
+		}
+
+		return e.complexity.Access.ID(childComplexity), true
+
+	case "Access.revoked":
+		if e.complexity.Access.Revoked == nil {
+			break
+		}
+
+		return e.complexity.Access.Revoked(childComplexity), true
+
+	case "Access.subject":
+		if e.complexity.Access.Subject == nil {
+			break
+		}
+
+		return e.complexity.Access.Subject(childComplexity), true
 
 	case "BigQuery.dataset":
 		if e.complexity.BigQuery.Dataset == nil {
@@ -301,6 +364,13 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.Collection.Owner(childComplexity), true
 
+	case "Dataproduct.access":
+		if e.complexity.Dataproduct.Access == nil {
+			break
+		}
+
+		return e.complexity.Dataproduct.Access(childComplexity), true
+
 	case "Dataproduct.created":
 		if e.complexity.Dataproduct.Created == nil {
 			break
@@ -371,6 +441,13 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.Dataproduct.Repo(childComplexity), true
 
+	case "Dataproduct.requesters":
+		if e.complexity.Dataproduct.Requesters == nil {
+			break
+		}
+
+		return e.complexity.Dataproduct.Requesters(childComplexity), true
+
 	case "GCPProject.group":
 		if e.complexity.GCPProject.Group == nil {
 			break
@@ -398,6 +475,18 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 		}
 
 		return e.complexity.Group.Name(childComplexity), true
+
+	case "Mutation.addRequesterToDataproduct":
+		if e.complexity.Mutation.AddRequesterToDataproduct == nil {
+			break
+		}
+
+		args, err := ec.field_Mutation_addRequesterToDataproduct_args(context.TODO(), rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Mutation.AddRequesterToDataproduct(childComplexity, args["dataproductID"].(uuid.UUID), args["subject"].(string)), true
 
 	case "Mutation.addToCollection":
 		if e.complexity.Mutation.AddToCollection == nil {
@@ -471,6 +560,18 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.Mutation.Dummy(childComplexity, args["no"].(*string)), true
 
+	case "Mutation.grantAccessToDataproduct":
+		if e.complexity.Mutation.GrantAccessToDataproduct == nil {
+			break
+		}
+
+		args, err := ec.field_Mutation_grantAccessToDataproduct_args(context.TODO(), rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Mutation.GrantAccessToDataproduct(childComplexity, args["dataproductID"].(uuid.UUID), args["expires"].(*time.Time), args["subject"].(*string)), true
+
 	case "Mutation.removeFromCollection":
 		if e.complexity.Mutation.RemoveFromCollection == nil {
 			break
@@ -482,6 +583,30 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 		}
 
 		return e.complexity.Mutation.RemoveFromCollection(childComplexity, args["id"].(uuid.UUID), args["elementID"].(uuid.UUID), args["elementType"].(models.CollectionElementType)), true
+
+	case "Mutation.removeRequesterFromDataproduct":
+		if e.complexity.Mutation.RemoveRequesterFromDataproduct == nil {
+			break
+		}
+
+		args, err := ec.field_Mutation_removeRequesterFromDataproduct_args(context.TODO(), rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Mutation.RemoveRequesterFromDataproduct(childComplexity, args["dataproductID"].(uuid.UUID), args["subject"].(string)), true
+
+	case "Mutation.revokeAccessToDataproduct":
+		if e.complexity.Mutation.RevokeAccessToDataproduct == nil {
+			break
+		}
+
+		args, err := ec.field_Mutation_revokeAccessToDataproduct_args(context.TODO(), rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Mutation.RevokeAccessToDataproduct(childComplexity, args["id"].(uuid.UUID)), true
 
 	case "Mutation.updateCollection":
 		if e.complexity.Mutation.UpdateCollection == nil {
@@ -840,6 +965,8 @@ extend type Mutation {
     keywords: [String!]!
     owner: Owner!
     datasource: Datasource!
+    requesters: [String!]!
+    access: [Access!]!
 }
 
 type Owner @goModel(model: "github.com/navikt/nada-backend/pkg/graph/models.Owner"){
@@ -854,6 +981,15 @@ type BigQuery @goModel(model: "github.com/navikt/nada-backend/pkg/graph/models.B
 }
 
 union Datasource @goModel(model: "github.com/navikt/nada-backend/pkg/graph/models.Datasource") = BigQuery
+
+type Access @goModel(model: "github.com/navikt/nada-backend/pkg/graph/models.Access") {
+    id: ID!
+    subject: String!
+    granter: String!
+    expires: Time
+    created: Time!
+    revoked: Time
+}
 
 extend type Query {
     dataproduct(id: ID!): Dataproduct!
@@ -874,6 +1010,7 @@ input NewDataproduct @goModel(model: "github.com/navikt/nada-backend/pkg/graph/m
     keywords: [String!]
     group: String!
     bigquery: NewBigQuery!
+    requesters: [String!]
 }
 
 input UpdateDataproduct @goModel(model: "github.com/navikt/nada-backend/pkg/graph/models.UpdateDataproduct") {
@@ -882,12 +1019,17 @@ input UpdateDataproduct @goModel(model: "github.com/navikt/nada-backend/pkg/grap
     repo: String
     pii: Boolean!
     keywords: [String!]
+    requesters: [String!]
 }
 
 extend type Mutation {
     createDataproduct(input: NewDataproduct!): Dataproduct! @authenticated
     updateDataproduct(id: ID!, input: UpdateDataproduct!): Dataproduct! @authenticated
     deleteDataproduct(id: ID!) : Boolean! @authenticated
+    addRequesterToDataproduct(dataproductID: ID!, subject: String!): Boolean! @authenticated
+    removeRequesterFromDataproduct(dataproductID: ID!, subject: String!): Boolean! @authenticated
+    grantAccessToDataproduct(dataproductID: ID!, expires: Time, subject: String): Access! @authenticated
+    revokeAccessToDataproduct(id: ID!): Boolean! @authenticated
 }
 `, BuiltIn: false},
 	{Name: "schema/gcp.graphql", Input: `enum BigQueryType @goModel(model: "github.com/navikt/nada-backend/pkg/graph/models.BigQueryType") {
@@ -1010,6 +1152,30 @@ func (ec *executionContext) dir_authenticated_args(ctx context.Context, rawArgs 
 	return args, nil
 }
 
+func (ec *executionContext) field_Mutation_addRequesterToDataproduct_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
+	var err error
+	args := map[string]interface{}{}
+	var arg0 uuid.UUID
+	if tmp, ok := rawArgs["dataproductID"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("dataproductID"))
+		arg0, err = ec.unmarshalNID2githubᚗcomᚋgoogleᚋuuidᚐUUID(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["dataproductID"] = arg0
+	var arg1 string
+	if tmp, ok := rawArgs["subject"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("subject"))
+		arg1, err = ec.unmarshalNString2string(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["subject"] = arg1
+	return args, nil
+}
+
 func (ec *executionContext) field_Mutation_addToCollection_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
 	var err error
 	args := map[string]interface{}{}
@@ -1118,6 +1284,39 @@ func (ec *executionContext) field_Mutation_dummy_args(ctx context.Context, rawAr
 	return args, nil
 }
 
+func (ec *executionContext) field_Mutation_grantAccessToDataproduct_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
+	var err error
+	args := map[string]interface{}{}
+	var arg0 uuid.UUID
+	if tmp, ok := rawArgs["dataproductID"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("dataproductID"))
+		arg0, err = ec.unmarshalNID2githubᚗcomᚋgoogleᚋuuidᚐUUID(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["dataproductID"] = arg0
+	var arg1 *time.Time
+	if tmp, ok := rawArgs["expires"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("expires"))
+		arg1, err = ec.unmarshalOTime2ᚖtimeᚐTime(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["expires"] = arg1
+	var arg2 *string
+	if tmp, ok := rawArgs["subject"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("subject"))
+		arg2, err = ec.unmarshalOString2ᚖstring(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["subject"] = arg2
+	return args, nil
+}
+
 func (ec *executionContext) field_Mutation_removeFromCollection_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
 	var err error
 	args := map[string]interface{}{}
@@ -1148,6 +1347,45 @@ func (ec *executionContext) field_Mutation_removeFromCollection_args(ctx context
 		}
 	}
 	args["elementType"] = arg2
+	return args, nil
+}
+
+func (ec *executionContext) field_Mutation_removeRequesterFromDataproduct_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
+	var err error
+	args := map[string]interface{}{}
+	var arg0 uuid.UUID
+	if tmp, ok := rawArgs["dataproductID"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("dataproductID"))
+		arg0, err = ec.unmarshalNID2githubᚗcomᚋgoogleᚋuuidᚐUUID(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["dataproductID"] = arg0
+	var arg1 string
+	if tmp, ok := rawArgs["subject"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("subject"))
+		arg1, err = ec.unmarshalNString2string(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["subject"] = arg1
+	return args, nil
+}
+
+func (ec *executionContext) field_Mutation_revokeAccessToDataproduct_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
+	var err error
+	args := map[string]interface{}{}
+	var arg0 uuid.UUID
+	if tmp, ok := rawArgs["id"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("id"))
+		arg0, err = ec.unmarshalNID2githubᚗcomᚋgoogleᚋuuidᚐUUID(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["id"] = arg0
 	return args, nil
 }
 
@@ -1398,6 +1636,210 @@ func (ec *executionContext) field___Type_fields_args(ctx context.Context, rawArg
 // endregion ************************** directives.gotpl **************************
 
 // region    **************************** field.gotpl *****************************
+
+func (ec *executionContext) _Access_id(ctx context.Context, field graphql.CollectedField, obj *models.Access) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "Access",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   false,
+		IsResolver: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.ID, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(uuid.UUID)
+	fc.Result = res
+	return ec.marshalNID2githubᚗcomᚋgoogleᚋuuidᚐUUID(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _Access_subject(ctx context.Context, field graphql.CollectedField, obj *models.Access) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "Access",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   false,
+		IsResolver: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Subject, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(string)
+	fc.Result = res
+	return ec.marshalNString2string(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _Access_granter(ctx context.Context, field graphql.CollectedField, obj *models.Access) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "Access",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   false,
+		IsResolver: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Granter, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(string)
+	fc.Result = res
+	return ec.marshalNString2string(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _Access_expires(ctx context.Context, field graphql.CollectedField, obj *models.Access) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "Access",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   false,
+		IsResolver: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Expires, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		return graphql.Null
+	}
+	res := resTmp.(*time.Time)
+	fc.Result = res
+	return ec.marshalOTime2ᚖtimeᚐTime(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _Access_created(ctx context.Context, field graphql.CollectedField, obj *models.Access) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "Access",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   false,
+		IsResolver: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Created, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(time.Time)
+	fc.Result = res
+	return ec.marshalNTime2timeᚐTime(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _Access_revoked(ctx context.Context, field graphql.CollectedField, obj *models.Access) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "Access",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   false,
+		IsResolver: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Revoked, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		return graphql.Null
+	}
+	res := resTmp.(*time.Time)
+	fc.Result = res
+	return ec.marshalOTime2ᚖtimeᚐTime(ctx, field.Selections, res)
+}
 
 func (ec *executionContext) _BigQuery_projectID(ctx context.Context, field graphql.CollectedField, obj *models.BigQuery) (ret graphql.Marshaler) {
 	defer func() {
@@ -2265,6 +2707,76 @@ func (ec *executionContext) _Dataproduct_datasource(ctx context.Context, field g
 	return ec.marshalNDatasource2githubᚗcomᚋnaviktᚋnadaᚑbackendᚋpkgᚋgraphᚋmodelsᚐDatasource(ctx, field.Selections, res)
 }
 
+func (ec *executionContext) _Dataproduct_requesters(ctx context.Context, field graphql.CollectedField, obj *models.Dataproduct) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "Dataproduct",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   true,
+		IsResolver: true,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.Dataproduct().Requesters(rctx, obj)
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.([]string)
+	fc.Result = res
+	return ec.marshalNString2ᚕstringᚄ(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _Dataproduct_access(ctx context.Context, field graphql.CollectedField, obj *models.Dataproduct) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "Dataproduct",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   true,
+		IsResolver: true,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.Dataproduct().Access(rctx, obj)
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.([]*models.Access)
+	fc.Result = res
+	return ec.marshalNAccess2ᚕᚖgithubᚗcomᚋnaviktᚋnadaᚑbackendᚋpkgᚋgraphᚋmodelsᚐAccessᚄ(ctx, field.Selections, res)
+}
+
 func (ec *executionContext) _GCPProject_id(ctx context.Context, field graphql.CollectedField, obj *models.GCPProject) (ret graphql.Marshaler) {
 	defer func() {
 		if r := recover(); r != nil {
@@ -2905,6 +3417,254 @@ func (ec *executionContext) _Mutation_deleteDataproduct(ctx context.Context, fie
 		directive0 := func(rctx context.Context) (interface{}, error) {
 			ctx = rctx // use context from middleware stack in children
 			return ec.resolvers.Mutation().DeleteDataproduct(rctx, args["id"].(uuid.UUID))
+		}
+		directive1 := func(ctx context.Context) (interface{}, error) {
+			if ec.directives.Authenticated == nil {
+				return nil, errors.New("directive authenticated is not implemented")
+			}
+			return ec.directives.Authenticated(ctx, nil, directive0, nil)
+		}
+
+		tmp, err := directive1(rctx)
+		if err != nil {
+			return nil, graphql.ErrorOnPath(ctx, err)
+		}
+		if tmp == nil {
+			return nil, nil
+		}
+		if data, ok := tmp.(bool); ok {
+			return data, nil
+		}
+		return nil, fmt.Errorf(`unexpected type %T from directive, should be bool`, tmp)
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(bool)
+	fc.Result = res
+	return ec.marshalNBoolean2bool(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _Mutation_addRequesterToDataproduct(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "Mutation",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   true,
+		IsResolver: true,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	rawArgs := field.ArgumentMap(ec.Variables)
+	args, err := ec.field_Mutation_addRequesterToDataproduct_args(ctx, rawArgs)
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	fc.Args = args
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		directive0 := func(rctx context.Context) (interface{}, error) {
+			ctx = rctx // use context from middleware stack in children
+			return ec.resolvers.Mutation().AddRequesterToDataproduct(rctx, args["dataproductID"].(uuid.UUID), args["subject"].(string))
+		}
+		directive1 := func(ctx context.Context) (interface{}, error) {
+			if ec.directives.Authenticated == nil {
+				return nil, errors.New("directive authenticated is not implemented")
+			}
+			return ec.directives.Authenticated(ctx, nil, directive0, nil)
+		}
+
+		tmp, err := directive1(rctx)
+		if err != nil {
+			return nil, graphql.ErrorOnPath(ctx, err)
+		}
+		if tmp == nil {
+			return nil, nil
+		}
+		if data, ok := tmp.(bool); ok {
+			return data, nil
+		}
+		return nil, fmt.Errorf(`unexpected type %T from directive, should be bool`, tmp)
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(bool)
+	fc.Result = res
+	return ec.marshalNBoolean2bool(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _Mutation_removeRequesterFromDataproduct(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "Mutation",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   true,
+		IsResolver: true,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	rawArgs := field.ArgumentMap(ec.Variables)
+	args, err := ec.field_Mutation_removeRequesterFromDataproduct_args(ctx, rawArgs)
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	fc.Args = args
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		directive0 := func(rctx context.Context) (interface{}, error) {
+			ctx = rctx // use context from middleware stack in children
+			return ec.resolvers.Mutation().RemoveRequesterFromDataproduct(rctx, args["dataproductID"].(uuid.UUID), args["subject"].(string))
+		}
+		directive1 := func(ctx context.Context) (interface{}, error) {
+			if ec.directives.Authenticated == nil {
+				return nil, errors.New("directive authenticated is not implemented")
+			}
+			return ec.directives.Authenticated(ctx, nil, directive0, nil)
+		}
+
+		tmp, err := directive1(rctx)
+		if err != nil {
+			return nil, graphql.ErrorOnPath(ctx, err)
+		}
+		if tmp == nil {
+			return nil, nil
+		}
+		if data, ok := tmp.(bool); ok {
+			return data, nil
+		}
+		return nil, fmt.Errorf(`unexpected type %T from directive, should be bool`, tmp)
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(bool)
+	fc.Result = res
+	return ec.marshalNBoolean2bool(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _Mutation_grantAccessToDataproduct(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "Mutation",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   true,
+		IsResolver: true,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	rawArgs := field.ArgumentMap(ec.Variables)
+	args, err := ec.field_Mutation_grantAccessToDataproduct_args(ctx, rawArgs)
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	fc.Args = args
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		directive0 := func(rctx context.Context) (interface{}, error) {
+			ctx = rctx // use context from middleware stack in children
+			return ec.resolvers.Mutation().GrantAccessToDataproduct(rctx, args["dataproductID"].(uuid.UUID), args["expires"].(*time.Time), args["subject"].(*string))
+		}
+		directive1 := func(ctx context.Context) (interface{}, error) {
+			if ec.directives.Authenticated == nil {
+				return nil, errors.New("directive authenticated is not implemented")
+			}
+			return ec.directives.Authenticated(ctx, nil, directive0, nil)
+		}
+
+		tmp, err := directive1(rctx)
+		if err != nil {
+			return nil, graphql.ErrorOnPath(ctx, err)
+		}
+		if tmp == nil {
+			return nil, nil
+		}
+		if data, ok := tmp.(*models.Access); ok {
+			return data, nil
+		}
+		return nil, fmt.Errorf(`unexpected type %T from directive, should be *github.com/navikt/nada-backend/pkg/graph/models.Access`, tmp)
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(*models.Access)
+	fc.Result = res
+	return ec.marshalNAccess2ᚖgithubᚗcomᚋnaviktᚋnadaᚑbackendᚋpkgᚋgraphᚋmodelsᚐAccess(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _Mutation_revokeAccessToDataproduct(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "Mutation",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   true,
+		IsResolver: true,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	rawArgs := field.ArgumentMap(ec.Variables)
+	args, err := ec.field_Mutation_revokeAccessToDataproduct_args(ctx, rawArgs)
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	fc.Args = args
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		directive0 := func(rctx context.Context) (interface{}, error) {
+			ctx = rctx // use context from middleware stack in children
+			return ec.resolvers.Mutation().RevokeAccessToDataproduct(rctx, args["id"].(uuid.UUID))
 		}
 		directive1 := func(ctx context.Context) (interface{}, error) {
 			if ec.directives.Authenticated == nil {
@@ -5190,6 +5950,14 @@ func (ec *executionContext) unmarshalInputNewDataproduct(ctx context.Context, ob
 			if err != nil {
 				return it, err
 			}
+		case "requesters":
+			var err error
+
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("requesters"))
+			it.Requesters, err = ec.unmarshalOString2ᚕstringᚄ(ctx, v)
+			if err != nil {
+				return it, err
+			}
 		}
 	}
 
@@ -5331,6 +6099,14 @@ func (ec *executionContext) unmarshalInputUpdateDataproduct(ctx context.Context,
 			if err != nil {
 				return it, err
 			}
+		case "requesters":
+			var err error
+
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("requesters"))
+			it.Requesters, err = ec.unmarshalOString2ᚕstringᚄ(ctx, v)
+			if err != nil {
+				return it, err
+			}
 		}
 	}
 
@@ -5399,6 +6175,52 @@ func (ec *executionContext) _SearchResult(ctx context.Context, sel ast.Selection
 // endregion ************************** interface.gotpl ***************************
 
 // region    **************************** object.gotpl ****************************
+
+var accessImplementors = []string{"Access"}
+
+func (ec *executionContext) _Access(ctx context.Context, sel ast.SelectionSet, obj *models.Access) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, accessImplementors)
+
+	out := graphql.NewFieldSet(fields)
+	var invalids uint32
+	for i, field := range fields {
+		switch field.Name {
+		case "__typename":
+			out.Values[i] = graphql.MarshalString("Access")
+		case "id":
+			out.Values[i] = ec._Access_id(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
+		case "subject":
+			out.Values[i] = ec._Access_subject(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
+		case "granter":
+			out.Values[i] = ec._Access_granter(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
+		case "expires":
+			out.Values[i] = ec._Access_expires(ctx, field, obj)
+		case "created":
+			out.Values[i] = ec._Access_created(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
+		case "revoked":
+			out.Values[i] = ec._Access_revoked(ctx, field, obj)
+		default:
+			panic("unknown field " + strconv.Quote(field.Name))
+		}
+	}
+	out.Dispatch()
+	if invalids > 0 {
+		return graphql.Null
+	}
+	return out
+}
 
 var bigQueryImplementors = []string{"BigQuery", "Datasource"}
 
@@ -5611,6 +6433,34 @@ func (ec *executionContext) _Dataproduct(ctx context.Context, sel ast.SelectionS
 				}
 				return res
 			})
+		case "requesters":
+			field := field
+			out.Concurrently(i, func() (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._Dataproduct_requesters(ctx, field, obj)
+				if res == graphql.Null {
+					atomic.AddUint32(&invalids, 1)
+				}
+				return res
+			})
+		case "access":
+			field := field
+			out.Concurrently(i, func() (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._Dataproduct_access(ctx, field, obj)
+				if res == graphql.Null {
+					atomic.AddUint32(&invalids, 1)
+				}
+				return res
+			})
 		default:
 			panic("unknown field " + strconv.Quote(field.Name))
 		}
@@ -5740,6 +6590,26 @@ func (ec *executionContext) _Mutation(ctx context.Context, sel ast.SelectionSet)
 			}
 		case "deleteDataproduct":
 			out.Values[i] = ec._Mutation_deleteDataproduct(ctx, field)
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
+		case "addRequesterToDataproduct":
+			out.Values[i] = ec._Mutation_addRequesterToDataproduct(ctx, field)
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
+		case "removeRequesterFromDataproduct":
+			out.Values[i] = ec._Mutation_removeRequesterFromDataproduct(ctx, field)
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
+		case "grantAccessToDataproduct":
+			out.Values[i] = ec._Mutation_grantAccessToDataproduct(ctx, field)
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
+		case "revokeAccessToDataproduct":
+			out.Values[i] = ec._Mutation_revokeAccessToDataproduct(ctx, field)
 			if out.Values[i] == graphql.Null {
 				invalids++
 			}
@@ -6330,6 +7200,64 @@ func (ec *executionContext) ___Type(ctx context.Context, sel ast.SelectionSet, o
 // endregion **************************** object.gotpl ****************************
 
 // region    ***************************** type.gotpl *****************************
+
+func (ec *executionContext) marshalNAccess2githubᚗcomᚋnaviktᚋnadaᚑbackendᚋpkgᚋgraphᚋmodelsᚐAccess(ctx context.Context, sel ast.SelectionSet, v models.Access) graphql.Marshaler {
+	return ec._Access(ctx, sel, &v)
+}
+
+func (ec *executionContext) marshalNAccess2ᚕᚖgithubᚗcomᚋnaviktᚋnadaᚑbackendᚋpkgᚋgraphᚋmodelsᚐAccessᚄ(ctx context.Context, sel ast.SelectionSet, v []*models.Access) graphql.Marshaler {
+	ret := make(graphql.Array, len(v))
+	var wg sync.WaitGroup
+	isLen1 := len(v) == 1
+	if !isLen1 {
+		wg.Add(len(v))
+	}
+	for i := range v {
+		i := i
+		fc := &graphql.FieldContext{
+			Index:  &i,
+			Result: &v[i],
+		}
+		ctx := graphql.WithFieldContext(ctx, fc)
+		f := func(i int) {
+			defer func() {
+				if r := recover(); r != nil {
+					ec.Error(ctx, ec.Recover(ctx, r))
+					ret = nil
+				}
+			}()
+			if !isLen1 {
+				defer wg.Done()
+			}
+			ret[i] = ec.marshalNAccess2ᚖgithubᚗcomᚋnaviktᚋnadaᚑbackendᚋpkgᚋgraphᚋmodelsᚐAccess(ctx, sel, v[i])
+		}
+		if isLen1 {
+			f(i)
+		} else {
+			go f(i)
+		}
+
+	}
+	wg.Wait()
+
+	for _, e := range ret {
+		if e == graphql.Null {
+			return graphql.Null
+		}
+	}
+
+	return ret
+}
+
+func (ec *executionContext) marshalNAccess2ᚖgithubᚗcomᚋnaviktᚋnadaᚑbackendᚋpkgᚋgraphᚋmodelsᚐAccess(ctx context.Context, sel ast.SelectionSet, v *models.Access) graphql.Marshaler {
+	if v == nil {
+		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	return ec._Access(ctx, sel, v)
+}
 
 func (ec *executionContext) marshalNBigQueryTable2ᚕᚖgithubᚗcomᚋnaviktᚋnadaᚑbackendᚋpkgᚋgraphᚋmodelsᚐBigQueryTableᚄ(ctx context.Context, sel ast.SelectionSet, v []*models.BigQueryTable) graphql.Marshaler {
 	ret := make(graphql.Array, len(v))
@@ -7326,6 +8254,21 @@ func (ec *executionContext) marshalOString2ᚖstring(ctx context.Context, sel as
 		return graphql.Null
 	}
 	return graphql.MarshalString(*v)
+}
+
+func (ec *executionContext) unmarshalOTime2ᚖtimeᚐTime(ctx context.Context, v interface{}) (*time.Time, error) {
+	if v == nil {
+		return nil, nil
+	}
+	res, err := graphql.UnmarshalTime(v)
+	return &res, graphql.ErrorOnPath(ctx, err)
+}
+
+func (ec *executionContext) marshalOTime2ᚖtimeᚐTime(ctx context.Context, sel ast.SelectionSet, v *time.Time) graphql.Marshaler {
+	if v == nil {
+		return graphql.Null
+	}
+	return graphql.MarshalTime(*v)
 }
 
 func (ec *executionContext) marshalO__EnumValue2ᚕgithubᚗcomᚋ99designsᚋgqlgenᚋgraphqlᚋintrospectionᚐEnumValueᚄ(ctx context.Context, sel ast.SelectionSet, v []introspection.EnumValue) graphql.Marshaler {

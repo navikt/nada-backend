@@ -2,7 +2,6 @@
 	dataproduct(
 		id: "{{ .dataproduct_id }}"
 	) {
-		id
 		name
 		description
 		repo
@@ -23,7 +22,7 @@ RETURNS
         "keyword2"
       ],
       "owner": {
-        "group": "dataplattform@nav.no"
+        "group": "nada@nav.no"
       },
       "pii": true,
       "repo": "someotherrepo"

@@ -109,6 +109,21 @@ func (q *Queries) CreateDataproduct(ctx context.Context, arg CreateDataproductPa
 	return i, err
 }
 
+const createDataproductRequester = `-- name: CreateDataproductRequester :exec
+INSERT INTO dataproduct_requesters (dataproduct_id, "subject")
+VALUES ($1, $2)
+`
+
+type CreateDataproductRequesterParams struct {
+	DataproductID uuid.UUID
+	Subject       string
+}
+
+func (q *Queries) CreateDataproductRequester(ctx context.Context, arg CreateDataproductRequesterParams) error {
+	_, err := q.db.ExecContext(ctx, createDataproductRequester, arg.DataproductID, arg.Subject)
+	return err
+}
+
 const deleteDataproduct = `-- name: DeleteDataproduct :exec
 DELETE
 FROM dataproducts
@@ -117,6 +132,22 @@ WHERE id = $1
 
 func (q *Queries) DeleteDataproduct(ctx context.Context, id uuid.UUID) error {
 	_, err := q.db.ExecContext(ctx, deleteDataproduct, id)
+	return err
+}
+
+const deleteDataproductRequester = `-- name: DeleteDataproductRequester :exec
+DELETE FROM dataproduct_requesters 
+WHERE dataproduct_id = $1
+AND "subject" = $2
+`
+
+type DeleteDataproductRequesterParams struct {
+	DataproductID uuid.UUID
+	Subject       string
+}
+
+func (q *Queries) DeleteDataproductRequester(ctx context.Context, arg DeleteDataproductRequesterParams) error {
+	_, err := q.db.ExecContext(ctx, deleteDataproductRequester, arg.DataproductID, arg.Subject)
 	return err
 }
 
@@ -197,6 +228,35 @@ func (q *Queries) GetDataproduct(ctx context.Context, id uuid.UUID) (Dataproduct
 		pq.Array(&i.Keywords),
 	)
 	return i, err
+}
+
+const getDataproductRequesters = `-- name: GetDataproductRequesters :many
+SELECT "subject"
+FROM dataproduct_requesters
+WHERE dataproduct_id = $1
+`
+
+func (q *Queries) GetDataproductRequesters(ctx context.Context, dataproductID uuid.UUID) ([]string, error) {
+	rows, err := q.db.QueryContext(ctx, getDataproductRequesters, dataproductID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []string{}
+	for rows.Next() {
+		var subject string
+		if err := rows.Scan(&subject); err != nil {
+			return nil, err
+		}
+		items = append(items, subject)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
 }
 
 const getDataproducts = `-- name: GetDataproducts :many
@@ -310,7 +370,7 @@ SET "name"        = $1,
     "pii"         = $3,
     "slug"        = $4,
     "repo"        = $5,
-    "keywords"    = $6 
+    "keywords"    = $6
 WHERE id = $7
 RETURNING id, name, description, "group", pii, created, last_modified, type, tsv_document, slug, repo, keywords
 `

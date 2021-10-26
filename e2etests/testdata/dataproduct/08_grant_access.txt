@@ -1,0 +1,32 @@
+mutation {
+  grantAccessToDataproduct(
+    dataproductID: "{{ .dataproduct_id }}"
+    expires:"2021-12-24T00:00:00Z"
+    subject: "santa@nav.no"
+  ) {
+    id
+    subject
+    granter
+    expires
+    revoked
+  }
+}
+
+RETURNS
+
+OPTION data.grantAccessToDataproduct.id=IGNORE
+
+ENDOPTS
+
+{
+  "data": {
+    "grantAccessToDataproduct": {
+      "subject": "santa@nav.no",
+      "granter": "mock.anderson@email.com",
+      "expires": "2021-12-24T00:00:00Z",
+      "revoked": null
+    }
+  }
+}
+
+STORE access_id=data.grantAccessToDataproduct.id

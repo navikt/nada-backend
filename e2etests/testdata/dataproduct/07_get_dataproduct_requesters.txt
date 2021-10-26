@@ -1,0 +1,16 @@
+{
+	dataproduct(
+		id: "{{ .dataproduct_id }}"
+	) {
+		requesters
+	}
+}
+
+RETURNS
+{
+  "data": {
+    "dataproduct": {
+			"requesters": ["all-users@nav.no", "somegroup@nav.no"]
+    }
+  }
+}

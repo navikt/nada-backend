@@ -5,9 +5,10 @@ mutation {
 			description: "New description"
 			repo: "somerepo"
 			pii: false
-			group: "dataplattform@nav.no"
+			group: "nada@nav.no"
 			keywords: ["keyword1"]
 			bigquery: { projectID: "projectid", dataset: "dataset", table: "table" }
+			requesters: ["all-users@nav.no", "nada@nav.no"]
 		}
 	) {
 		id
@@ -17,11 +18,15 @@ mutation {
 		pii
 		owner { group }
 		keywords
+		requesters
 	}
 }
 
 RETURNS
 
+OPTION data.createDataproduct.id=IGNORE
+
+ENDOPTS
 {
   "data": {
     "createDataproduct": {
@@ -31,10 +36,11 @@ RETURNS
         "keyword1"
       ],
       "owner": {
-        "group": "dataplattform@nav.no"
+        "group": "nada@nav.no"
       },
       "pii": false,
-      "repo": "somerepo"
+      "repo": "somerepo",
+			"requesters": ["all-users@nav.no", "nada@nav.no"]
     }
   }
 }

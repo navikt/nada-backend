@@ -9,7 +9,6 @@ mutation {
 			keywords: ["keyword1", "keyword2"]
 		}
 	) {
-		id
 		name
 		description
 		repo
@@ -31,7 +30,7 @@ RETURNS
 				"keyword2"
       ],
       "owner": {
-        "group": "dataplattform@nav.no"
+        "group": "nada@nav.no"
       },
       "pii": true,
       "repo": "someotherrepo"

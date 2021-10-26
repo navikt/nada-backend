@@ -44,7 +44,7 @@ SET "name"        = @name,
     "pii"         = @pii,
     "slug"        = @slug,
     "repo"        = @repo,
-    "keywords"    = @keywords 
+    "keywords"    = @keywords
 WHERE id = @id
 RETURNING *;
 
@@ -72,3 +72,17 @@ RETURNING *;
 UPDATE datasource_bigquery
 SET "schema" = @schema
 WHERE dataproduct_id = @dataproduct_id;
+
+-- name: GetDataproductRequesters :many
+SELECT "subject"
+FROM dataproduct_requesters
+WHERE dataproduct_id = @dataproduct_id;
+
+-- name: CreateDataproductRequester :exec
+INSERT INTO dataproduct_requesters (dataproduct_id, "subject")
+VALUES (@dataproduct_id, @subject);
+
+-- name: DeleteDataproductRequester :exec
+DELETE FROM dataproduct_requesters 
+WHERE dataproduct_id = @dataproduct_id
+AND "subject" = @subject;

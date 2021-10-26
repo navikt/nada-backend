@@ -30,8 +30,8 @@ RETURNS
 					"email": "team@nav.no"
 				},
 				{
-					"name": "dataplattform",
-					"email": "dataplattform@nav.no"
+					"name": "nada",
+					"email": "nada@nav.no"
 				},
 				{
 					"name": "aura",
@@ -56,8 +56,8 @@ RETURNS
 				{
 					"id": "dataplattform-dev-9da3",
 					"group": {
-						"name": "dataplattform",
-						"email": "dataplattform@nav.no"
+						"name": "nada",
+						"email": "nada@nav.no"
 					}
 				},
 				{

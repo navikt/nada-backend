@@ -51,6 +51,7 @@ type NewDataproduct struct {
 	Keywords    []string    `json:"keywords"`
 	Group       string      `json:"group"`
 	BigQuery    NewBigQuery `json:"bigquery"`
+	Requesters  []string    `json:"requesters"`
 }
 
 type UpdateDataproduct struct {
@@ -60,6 +61,17 @@ type UpdateDataproduct struct {
 	Repo        *string  `json:"repo"`
 	Pii         bool     `json:"pii"`
 	Keywords    []string `json:"keywords"`
+	Requesters  []string `json:"requesters"`
+}
+
+type Access struct {
+	ID            uuid.UUID  `json:"id"`
+	Subject       string     `json:"subject"`
+	Granter       string     `json:"granter"`
+	Expires       *time.Time `json:"expires"`
+	Created       time.Time  `json:"created"`
+	Revoked       *time.Time `json:"revoked"`
+	DataproductID uuid.UUID
 }
 
 type Owner struct {

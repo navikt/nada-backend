@@ -16,8 +16,8 @@ var MockUser = User{
 			Email: "team@nav.no",
 		},
 		{
-			Name:  "dataplattform",
-			Email: "dataplattform@nav.no",
+			Name:  "nada",
+			Email: "nada@nav.no",
 		},
 		{
 			Name:  "aura",
@@ -30,9 +30,9 @@ var MockProjectIDs = []string{"team-dev", "team-prod"}
 
 var MockTeamProjectsUpdater = TeamProjectsUpdater{
 	teamProjects: map[string][]string{
-		"team@nav.no":          MockProjectIDs,
-		"dataplattform@nav.no": {"dataplattform-dev-9da3"},
-		"aura@nav.no":          {"aura-dev-d9f5"},
+		"team@nav.no": MockProjectIDs,
+		"nada@nav.no": {"dataplattform-dev-9da3"},
+		"aura@nav.no": {"aura-dev-d9f5"},
 	},
 }
 
@@ -44,12 +44,6 @@ func MockJWTValidatorMiddleware() MiddlewareHandler {
 			if r.Header.Get("X-NO-AUTH") != "" {
 				next.ServeHTTP(w, r)
 				return
-			}
-			teams := []string{
-				"team",
-			}
-			if mockTeam := r.Header.Get("X-Mock-Team"); mockTeam != "" {
-				teams[0] = mockTeam
 			}
 
 			ctx := context.WithValue(r.Context(), contextUserKey, &MockUser)

@@ -1,6 +1,10 @@
 package database
 
-import "database/sql"
+import (
+	"database/sql"
+	"net/url"
+	"time"
+)
 
 func ptrToNullString(str *string) sql.NullString {
 	if str == nil {
@@ -12,6 +16,16 @@ func ptrToNullString(str *string) sql.NullString {
 	}
 }
 
+func ptrToNullTime(time *time.Time) sql.NullTime {
+	if time == nil {
+		return sql.NullTime{}
+	}
+	return sql.NullTime{
+		Time:  *time,
+		Valid: true,
+	}
+}
+
 func nullStringToPtr(ns sql.NullString) *string {
 	if !ns.Valid {
 		return nil
@@ -20,6 +34,29 @@ func nullStringToPtr(ns sql.NullString) *string {
 	return &ns.String
 }
 
+func nullTimeToPtr(nt sql.NullTime) *time.Time {
+	if !nt.Valid {
+		return nil
+	}
+
+	return &nt.Time
+}
+
+func ptrToString(s *string) string {
+	if s != nil {
+		return *s
+	}
+	return ""
+}
+
 func stringToPtr(s string) *string {
 	return &s
+}
+
+func slugify(maybeslug *string, fallback string) string {
+	if maybeslug != nil {
+		return *maybeslug
+	}
+	// TODO(thokra): Smartify this?
+	return url.PathEscape(fallback)
 }
