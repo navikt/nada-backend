@@ -12,6 +12,7 @@ import (
 	"github.com/sirupsen/logrus"
 	flag "github.com/spf13/pflag"
 
+	"github.com/navikt/nada-backend/pkg/access"
 	"github.com/navikt/nada-backend/pkg/api"
 	"github.com/navikt/nada-backend/pkg/auth"
 	"github.com/navikt/nada-backend/pkg/database"
@@ -60,6 +61,8 @@ func main() {
 	authenticatorMiddleware := auth.MockJWTValidatorMiddleware()
 	teamProjectsMapping := &auth.MockTeamProjectsUpdater
 	var oauth2Config api.OAuth2
+	var accessMgr access.Access
+	accessMgr = access.NewMock()
 	if !cfg.MockAuth {
 		teamProjectsMapping = auth.NewTeamProjectsUpdater(cfg.DevTeamProjectsOutputURL, cfg.ProdTeamProjectsOutputURL, cfg.TeamsToken, http.DefaultClient)
 		go teamProjectsMapping.Run(ctx, TeamProjectsUpdateFrequency)
@@ -72,6 +75,7 @@ func main() {
 		gauth := auth.NewGoogle(cfg.OAuth2.ClientID, cfg.OAuth2.ClientSecret, cfg.Hostname)
 		oauth2Config = gauth
 		authenticatorMiddleware = gauth.Middleware(googleGroups)
+		accessMgr = access.New()
 	}
 
 	var gcp graph.GCP
@@ -86,7 +90,7 @@ func main() {
 	}
 
 	log.Info("Listening on :8080")
-	srv := api.New(repo, gcp, oauth2Config, teamProjectsMapping, authenticatorMiddleware, log.WithField("subsystem", "api"))
+	srv := api.New(repo, gcp, oauth2Config, teamProjectsMapping, accessMgr, authenticatorMiddleware, log.WithField("subsystem", "api"))
 
 	server := http.Server{
 		Addr:    cfg.BindAddress,

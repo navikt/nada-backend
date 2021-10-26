@@ -9,7 +9,13 @@ import (
 	"cloud.google.com/go/iam"
 )
 
-func GrantBigquery(ctx context.Context, projectID, datasetID, tableID, member string) error {
+type Bigquery struct{}
+
+func New() *Bigquery {
+	return &Bigquery{}
+}
+
+func (b Bigquery) Grant(ctx context.Context, projectID, datasetID, tableID, member string) error {
 	bqClient, err := bigquery.NewClient(ctx, projectID)
 	if err != nil {
 		return fmt.Errorf("bigquery.NewClient: %v", err)

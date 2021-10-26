@@ -3,10 +3,12 @@ package graph
 import (
 	"context"
 	"fmt"
+
 	"github.com/99designs/gqlgen-contrib/prometheus"
 
 	"github.com/99designs/gqlgen/graphql"
 	"github.com/99designs/gqlgen/graphql/handler"
+	"github.com/navikt/nada-backend/pkg/access"
 	"github.com/navikt/nada-backend/pkg/auth"
 	"github.com/navikt/nada-backend/pkg/database"
 	"github.com/navikt/nada-backend/pkg/graph/generated"
@@ -24,13 +26,15 @@ type Resolver struct {
 	repo        *database.Repo
 	gcp         GCP
 	gcpProjects *auth.TeamProjectsUpdater
+	accessMgr   access.Access
 }
 
-func New(repo *database.Repo, gcp GCP, gcpProjects *auth.TeamProjectsUpdater) *handler.Server {
+func New(repo *database.Repo, gcp GCP, gcpProjects *auth.TeamProjectsUpdater, accessMgr access.Access) *handler.Server {
 	resolver := &Resolver{
 		repo:        repo,
 		gcp:         gcp,
 		gcpProjects: gcpProjects,
+		accessMgr:   accessMgr,
 	}
 
 	config := generated.Config{Resolvers: resolver}

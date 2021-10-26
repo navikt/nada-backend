@@ -10,6 +10,7 @@ import (
 	"os"
 	"testing"
 
+	"github.com/navikt/nada-backend/pkg/access"
 	"github.com/navikt/nada-backend/pkg/api"
 	"github.com/navikt/nada-backend/pkg/auth"
 	"github.com/navikt/nada-backend/pkg/database"
@@ -54,7 +55,7 @@ func TestMain(m *testing.M) {
 	if err != nil {
 		panic(err)
 	}
-	srv := api.New(repo, &mockGCP{}, nil, &auth.MockTeamProjectsUpdater, auth.MockJWTValidatorMiddleware(), logrus.NewEntry(logrus.StandardLogger()))
+	srv := api.New(repo, &mockGCP{}, nil, &auth.MockTeamProjectsUpdater, access.NewMock(), auth.MockJWTValidatorMiddleware(), logrus.NewEntry(logrus.StandardLogger()))
 
 	server = httptest.NewServer(srv)
 	code := m.Run()

@@ -8,7 +8,6 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	"github.com/navikt/nada-backend/pkg/access"
 	"github.com/navikt/nada-backend/pkg/auth"
 	"github.com/navikt/nada-backend/pkg/graph/generated"
 	"github.com/navikt/nada-backend/pkg/graph/models"
@@ -106,7 +105,7 @@ func (r *mutationResolver) GrantAccessToDataproduct(ctx context.Context, datapro
 	if subjectType != nil {
 		subjType = *subjectType
 	}
-	if err := access.GrantBigquery(ctx, ds.ProjectID, ds.Dataset, ds.Table, subjType.String()+":"+subj); err != nil {
+	if err := r.accessMgr.Grant(ctx, ds.ProjectID, ds.Dataset, ds.Table, subjType.String()+":"+subj); err != nil {
 		return nil, err
 	}
 
