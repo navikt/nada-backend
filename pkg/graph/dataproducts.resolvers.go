@@ -119,6 +119,10 @@ func (r *mutationResolver) RemoveRequesterFromDataproduct(ctx context.Context, d
 }
 
 func (r *mutationResolver) GrantAccessToDataproduct(ctx context.Context, dataproductID uuid.UUID, expires *time.Time, subject *string, subjectType *models.SubjectType) (*models.Access, error) {
+	if expires != nil && expires.Before(time.Now()) {
+		return nil, fmt.Errorf("expires has already expired")
+	}
+
 	user := auth.GetUser(ctx)
 	subj := user.Email
 	if subject != nil {
@@ -193,5 +197,7 @@ func (r *Resolver) BigQuery() generated.BigQueryResolver { return &bigQueryResol
 // Dataproduct returns generated.DataproductResolver implementation.
 func (r *Resolver) Dataproduct() generated.DataproductResolver { return &dataproductResolver{r} }
 
-type bigQueryResolver struct{ *Resolver }
-type dataproductResolver struct{ *Resolver }
+type (
+	bigQueryResolver    struct{ *Resolver }
+	dataproductResolver struct{ *Resolver }
+)

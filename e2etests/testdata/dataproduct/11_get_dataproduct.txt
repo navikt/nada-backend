@@ -24,7 +24,7 @@ ENDOPTS
           "id": "{{ .access_id }}",
           "subject": "user:santa@nav.no",
           "granter": "mock.anderson@email.com",
-          "expires": "2021-12-24T00:00:00Z",
+          "expires": "2048-12-24T00:00:00Z",
           "revoked": "!NOTNULL"
         }
       ]
