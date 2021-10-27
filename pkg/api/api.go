@@ -46,16 +46,23 @@ func (h *HTTP) Login(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *HTTP) Callback(w http.ResponseWriter, r *http.Request) {
+	var loginPage string
+	if strings.HasPrefix(r.Host, "localhost") {
+		loginPage = "http://localhost:3000/"
+	} else {
+		loginPage = "/"
+	}
+
 	code := r.URL.Query().Get("code")
 	if len(code) == 0 {
-		http.Error(w, "No code in query params", http.StatusForbidden)
+		http.Redirect(w, r, loginPage+"?error=unauthenticated", http.StatusFound)
 		return
 	}
 
 	oauthCookie, err := r.Cookie("oauthstate")
 	if err != nil {
 		h.log.Errorf("Missing oauth state cookie: %v", err)
-		http.Error(w, "uh oh", http.StatusForbidden)
+		http.Redirect(w, r, loginPage+"?error=invalid-state", http.StatusFound)
 		return
 	}
 
@@ -72,21 +79,21 @@ func (h *HTTP) Callback(w http.ResponseWriter, r *http.Request) {
 	state := r.URL.Query().Get("state")
 	if state != oauthCookie.Value {
 		h.log.Info("Incoming state does not match local state")
-		http.Error(w, "uh oh", http.StatusForbidden)
+		http.Redirect(w, r, loginPage+"?error=invalid-state", http.StatusFound)
 		return
 	}
 
 	tokens, err := h.oauth2Config.Exchange(r.Context(), code)
 	if err != nil {
 		h.log.Errorf("Exchanging authorization code for tokens: %v", err)
-		http.Error(w, "uh oh", http.StatusForbidden)
+		http.Redirect(w, r, loginPage+"?error=unauthenticated", http.StatusFound)
 		return
 	}
 
 	rawIDToken, ok := tokens.Extra("id_token").(string)
 	if !ok {
 		h.log.Info("Missing id_token")
-		http.Error(w, "uh oh", http.StatusForbidden)
+		http.Redirect(w, r, loginPage+"?error=unauthenticated", http.StatusFound)
 		return
 	}
 
@@ -94,7 +101,7 @@ func (h *HTTP) Callback(w http.ResponseWriter, r *http.Request) {
 	_, err = h.oauth2Config.Verify(r.Context(), rawIDToken)
 	if err != nil {
 		h.log.Info("Invalid id_token")
-		http.Error(w, "uh oh", http.StatusForbidden)
+		http.Redirect(w, r, loginPage+"?error=unauthenticated", http.StatusFound)
 		return
 	}
 
@@ -109,12 +116,6 @@ func (h *HTTP) Callback(w http.ResponseWriter, r *http.Request) {
 		HttpOnly: true,
 	})
 
-	var loginPage string
-	if strings.HasPrefix(r.Host, "localhost") {
-		loginPage = "http://localhost:3000/"
-	} else {
-		loginPage = "/"
-	}
 	http.Redirect(w, r, loginPage, http.StatusFound)
 }
 
@@ -135,5 +136,6 @@ func (h *HTTP) Logout(w http.ResponseWriter, r *http.Request) {
 	} else {
 		loginPage = "/"
 	}
+
 	http.Redirect(w, r, loginPage, http.StatusFound)
 }

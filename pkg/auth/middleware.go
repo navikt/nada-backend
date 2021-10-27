@@ -99,7 +99,8 @@ func (m *Middleware) handle(next http.Handler) http.Handler {
 
 		if err := m.addGroupsToUser(r.Context(), user); err != nil {
 			logrus.WithError(err).Error("Unable to add groups")
-			http.Error(w, "uh oh", http.StatusForbidden)
+			w.Header().Add("Content-Type", "application/json")
+			http.Error(w, `{"error": "Unable fetch users groups."}`, http.StatusInternalServerError)
 			return
 		}
 
