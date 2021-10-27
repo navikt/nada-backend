@@ -3,6 +3,7 @@ package metadata
 import (
 	"context"
 	"fmt"
+	"github.com/sirupsen/logrus"
 	"strings"
 
 	"cloud.google.com/go/bigquery"
@@ -38,6 +39,28 @@ func NewDatacatalog(ctx context.Context) (*Datacatalog, error) {
 
 func (c *Datacatalog) Close() error {
 	return c.client.Close()
+}
+
+func (c *Datacatalog) TableExists(ctx context.Context, projectID string, datasetID string, tableID string) bool {
+	client, err := bigquery.NewClient(ctx, projectID)
+	if err != nil {
+		logrus.WithError(err).WithFields(
+			logrus.Fields{
+				"projectID": projectID,
+			}).Info("Unable to create bigwuery client")
+		return false
+	}
+
+	_, err = client.Dataset(datasetID).Table(tableID).Metadata(ctx)
+	if err != nil {
+		logrus.WithError(err).WithFields(
+			logrus.Fields{
+				"projectID": projectID,
+				"datasetID": datasetID,
+				"tableID":   tableID,
+			}).Warning("Unable to fetch metadata")
+	}
+	return err == nil
 }
 
 func (c *Datacatalog) GetDatasets(ctx context.Context, projectID string) ([]string, error) {

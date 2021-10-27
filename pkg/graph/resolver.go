@@ -21,6 +21,7 @@ var ErrUnauthorized = fmt.Errorf("unauthorized")
 type GCP interface {
 	GetTables(ctx context.Context, projectID, datasetID string) ([]*models.BigQueryTable, error)
 	GetDatasets(ctx context.Context, projectID string) ([]string, error)
+	TableExists(ctx context.Context, projectID string, datasetID string, tableID string) bool
 }
 
 type AccessManager interface {

@@ -5,6 +5,7 @@ package graph
 
 import (
 	"context"
+	"fmt"
 	"time"
 
 	"github.com/google/uuid"
@@ -40,6 +41,11 @@ func (r *mutationResolver) CreateDataproduct(ctx context.Context, input models.N
 
 	if err := r.ensureUserHasAccessToGcpProject(ctx, input.BigQuery.ProjectID); err != nil {
 		return nil, err
+	}
+
+	if !(r.gcp.TableExists(ctx, input.BigQuery.ProjectID, input.BigQuery.Dataset, input.BigQuery.Table)) {
+		return nil, fmt.Errorf("Trying to create table %v, but it does not exist in %v.%v",
+			input.BigQuery.Table, input.BigQuery.ProjectID, input.BigQuery.Dataset)
 	}
 
 	dp, err := r.repo.CreateDataproduct(ctx, input)
