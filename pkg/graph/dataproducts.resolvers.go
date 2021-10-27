@@ -38,6 +38,10 @@ func (r *mutationResolver) CreateDataproduct(ctx context.Context, input models.N
 		return nil, err
 	}
 
+	if err := r.ensureUserHasAccessToGcpProject(ctx, input.BigQuery.ProjectID); err != nil {
+		return nil, err
+	}
+
 	dp, err := r.repo.CreateDataproduct(ctx, input)
 	if err != nil {
 		return nil, err
@@ -59,6 +63,24 @@ func (r *mutationResolver) CreateDataproduct(ctx context.Context, input models.N
 	}
 
 	return dp, nil
+}
+
+func (r *Resolver) ensureUserHasAccessToGcpProject(ctx context.Context, projectID string) error {
+	user := auth.GetUser(ctx)
+
+	for _, grp := range user.Groups {
+		proj, ok := r.gcpProjects.Get(grp.Email)
+		if !ok {
+			continue
+		}
+		for _, p := range proj {
+			if p == projectID {
+				return nil
+			}
+		}
+	}
+
+	return ErrUnauthorized
 }
 
 func (r *mutationResolver) UpdateDataproduct(ctx context.Context, id uuid.UUID, input models.UpdateDataproduct) (*models.Dataproduct, error) {

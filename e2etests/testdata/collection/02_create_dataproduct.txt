@@ -7,7 +7,7 @@ mutation {
 			pii: false
 			group: "nada@nav.no"
 			keywords: ["keyword1"]
-			bigquery: { projectID: "projectid", dataset: "dataset", table: "table" }
+			bigquery: { projectID: "team-prod", dataset: "dataset", table: "table" }
 		}
 	) {
 		id
