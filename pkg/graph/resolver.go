@@ -59,6 +59,24 @@ func New(repo *database.Repo, gcp GCP, gcpProjects *auth.TeamProjectsUpdater, ac
 	return srv
 }
 
+func (r *Resolver) ensureUserHasAccessToGcpProject(ctx context.Context, projectID string) error {
+	user := auth.GetUser(ctx)
+
+	for _, grp := range user.Groups {
+		proj, ok := r.gcpProjects.Get(grp.Email)
+		if !ok {
+			continue
+		}
+		for _, p := range proj {
+			if p == projectID {
+				return nil
+			}
+		}
+	}
+
+	return ErrUnauthorized
+}
+
 func pagination(limit *int, offset *int) (int, int) {
 	l := 15
 	o := 0

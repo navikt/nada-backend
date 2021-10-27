@@ -44,7 +44,7 @@ func (r *mutationResolver) CreateDataproduct(ctx context.Context, input models.N
 	}
 
 	if !(r.gcp.TableExists(ctx, input.BigQuery.ProjectID, input.BigQuery.Dataset, input.BigQuery.Table)) {
-		return nil, fmt.Errorf("Trying to create table %v, but it does not exist in %v.%v",
+		return nil, fmt.Errorf("trying to create table %v, but it does not exist in %v.%v",
 			input.BigQuery.Table, input.BigQuery.ProjectID, input.BigQuery.Dataset)
 	}
 
@@ -69,24 +69,6 @@ func (r *mutationResolver) CreateDataproduct(ctx context.Context, input models.N
 	}
 
 	return dp, nil
-}
-
-func (r *Resolver) ensureUserHasAccessToGcpProject(ctx context.Context, projectID string) error {
-	user := auth.GetUser(ctx)
-
-	for _, grp := range user.Groups {
-		proj, ok := r.gcpProjects.Get(grp.Email)
-		if !ok {
-			continue
-		}
-		for _, p := range proj {
-			if p == projectID {
-				return nil
-			}
-		}
-	}
-
-	return ErrUnauthorized
 }
 
 func (r *mutationResolver) UpdateDataproduct(ctx context.Context, id uuid.UUID, input models.UpdateDataproduct) (*models.Dataproduct, error) {
