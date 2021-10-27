@@ -25,7 +25,7 @@ var cfg = DefaultConfig()
 const (
 	TeamProjectsUpdateFrequency    = 5 * time.Minute
 	DatasetMetadataUpdateFrequency = 5 * time.Minute
-	AccessEnsurerFrequency         = 5 * time.Second
+	AccessEnsurerFrequency         = 5 * time.Minute
 )
 
 func init() {
