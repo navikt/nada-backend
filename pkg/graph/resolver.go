@@ -9,6 +9,7 @@ import (
 
 	"github.com/99designs/gqlgen/graphql"
 	"github.com/99designs/gqlgen/graphql/handler"
+
 	"github.com/navikt/nada-backend/pkg/auth"
 	"github.com/navikt/nada-backend/pkg/database"
 	"github.com/navikt/nada-backend/pkg/database/gensql"
@@ -25,8 +26,8 @@ type GCP interface {
 }
 
 type AccessManager interface {
-	Grant(ctx context.Context, projectID, datasetID, tableID, member string) error
-	Revoke(ctx context.Context, projectID, datasetID, tableID, member string) error
+	Grant(ctx context.Context, projectID, dataset, table, member string) error
+	Revoke(ctx context.Context, projectID, dataset, table, member string) error
 }
 
 type SchemaUpdater interface {

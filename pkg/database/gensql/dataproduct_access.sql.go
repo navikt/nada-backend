@@ -11,7 +11,8 @@ import (
 )
 
 const getAccessToDataproduct = `-- name: GetAccessToDataproduct :one
-SELECT id, dataproduct_id, subject, granter, expires, created, revoked FROM dataproduct_access
+SELECT id, dataproduct_id, subject, granter, expires, created, revoked
+FROM dataproduct_access
 WHERE id = $1
 `
 
@@ -31,17 +32,14 @@ func (q *Queries) GetAccessToDataproduct(ctx context.Context, id uuid.UUID) (Dat
 }
 
 const grantAccessToDataproduct = `-- name: GrantAccessToDataproduct :one
-INSERT INTO dataproduct_access (
-	dataproduct_id,
-	"subject",
-	granter,
-	expires
-) VALUES (
-	$1,
-	$2,
-	$3,
-	$4
-)
+INSERT INTO dataproduct_access (dataproduct_id,
+                                "subject",
+                                granter,
+                                expires)
+VALUES ($1,
+        $2,
+        $3,
+        $4)
 RETURNING id, dataproduct_id, subject, granter, expires, created, revoked
 `
 
@@ -73,7 +71,8 @@ func (q *Queries) GrantAccessToDataproduct(ctx context.Context, arg GrantAccessT
 }
 
 const listAccessToDataproduct = `-- name: ListAccessToDataproduct :many
-SELECT id, dataproduct_id, subject, granter, expires, created, revoked FROM dataproduct_access
+SELECT id, dataproduct_id, subject, granter, expires, created, revoked
+FROM dataproduct_access
 WHERE dataproduct_id = $1
 `
 
@@ -108,9 +107,47 @@ func (q *Queries) ListAccessToDataproduct(ctx context.Context, dataproductID uui
 	return items, nil
 }
 
+const listUnrevokedExpiredAccessEntries = `-- name: ListUnrevokedExpiredAccessEntries :many
+SELECT id, dataproduct_id, subject, granter, expires, created, revoked
+FROM dataproduct_access
+WHERE revoked IS NULL
+  AND expires < NOW()
+`
+
+func (q *Queries) ListUnrevokedExpiredAccessEntries(ctx context.Context) ([]DataproductAccess, error) {
+	rows, err := q.db.QueryContext(ctx, listUnrevokedExpiredAccessEntries)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []DataproductAccess{}
+	for rows.Next() {
+		var i DataproductAccess
+		if err := rows.Scan(
+			&i.ID,
+			&i.DataproductID,
+			&i.Subject,
+			&i.Granter,
+			&i.Expires,
+			&i.Created,
+			&i.Revoked,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const revokeAccessToDataproduct = `-- name: RevokeAccessToDataproduct :exec
-UPDATE dataproduct_access 
-SET revoked = NOW() 
+UPDATE dataproduct_access
+SET revoked = NOW()
 WHERE id = $1
 `
 

@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+
 	"github.com/navikt/nada-backend/pkg/database/gensql"
 	"github.com/navikt/nada-backend/pkg/graph/models"
 )
@@ -65,6 +66,20 @@ func (r *Repo) GetAccessToDataproduct(ctx context.Context, id uuid.UUID) (*model
 
 func (r *Repo) RevokeAccessToDataproduct(ctx context.Context, id uuid.UUID) error {
 	return r.querier.RevokeAccessToDataproduct(ctx, id)
+}
+
+func (r *Repo) GetUnrevokedExpiredAccess(ctx context.Context) ([]*models.Access, error) {
+	expired, err := r.querier.ListUnrevokedExpiredAccessEntries(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	var ret []*models.Access
+	for _, e := range expired {
+		ret = append(ret, accessFromSQL(e))
+	}
+
+	return ret, nil
 }
 
 func accessFromSQL(access gensql.DataproductAccess) *models.Access {

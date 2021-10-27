@@ -9,9 +9,6 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/sirupsen/logrus"
-	flag "github.com/spf13/pflag"
-
 	"github.com/navikt/nada-backend/pkg/access"
 	"github.com/navikt/nada-backend/pkg/api"
 	"github.com/navikt/nada-backend/pkg/auth"
@@ -19,6 +16,8 @@ import (
 	"github.com/navikt/nada-backend/pkg/database/gensql"
 	"github.com/navikt/nada-backend/pkg/graph"
 	"github.com/navikt/nada-backend/pkg/metadata"
+	"github.com/sirupsen/logrus"
+	flag "github.com/spf13/pflag"
 )
 
 var cfg = DefaultConfig()
@@ -26,6 +25,7 @@ var cfg = DefaultConfig()
 const (
 	TeamProjectsUpdateFrequency    = 5 * time.Minute
 	DatasetMetadataUpdateFrequency = 5 * time.Minute
+	AccessEnsurerFrequency         = 5 * time.Second
 )
 
 func init() {
@@ -77,6 +77,8 @@ func main() {
 		authenticatorMiddleware = gauth.Middleware(googleGroups)
 		accessMgr = access.NewBigquery()
 	}
+
+	go access.NewEnsurer(repo, accessMgr, log.WithField("subsystem", "accessensurer")).Run(ctx, AccessEnsurerFrequency)
 
 	var gcp graph.GCP
 	var datasetEnricher graph.SchemaUpdater = &noopDatasetEnricher{}
