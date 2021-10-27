@@ -71,6 +71,10 @@ func TestMain(m *testing.M) {
 
 type mockGCP struct{}
 
+func (m *mockGCP) TableExists(ctx context.Context, projectID string, datasetID string, tableID string) bool {
+	return true
+}
+
 func (m *mockGCP) GetTables(ctx context.Context, projectID, datasetID string) ([]*models.BigQueryTable, error) {
 	return nil, nil
 }
