@@ -9,7 +9,6 @@ import (
 	datacatalog "cloud.google.com/go/datacatalog/apiv1"
 	"github.com/navikt/nada-backend/pkg/database/gensql"
 	"github.com/navikt/nada-backend/pkg/graph/models"
-	"github.com/sirupsen/logrus"
 	"google.golang.org/api/iterator"
 	datacatalogpb "google.golang.org/genproto/googleapis/cloud/datacatalog/v1"
 )
@@ -41,26 +40,13 @@ func (c *Datacatalog) Close() error {
 	return c.client.Close()
 }
 
-func (c *Datacatalog) TableExists(ctx context.Context, projectID string, datasetID string, tableID string) bool {
+func (c *Datacatalog) TableMetadata(ctx context.Context, projectID string, datasetID string, tableID string) (*bigquery.TableMetadata, error) {
 	client, err := bigquery.NewClient(ctx, projectID)
 	if err != nil {
-		logrus.WithError(err).WithFields(
-			logrus.Fields{
-				"projectID": projectID,
-			}).Info("Unable to create bigwuery client")
-		return false
+		return nil, err
 	}
 
-	_, err = client.Dataset(datasetID).Table(tableID).Metadata(ctx)
-	if err != nil {
-		logrus.WithError(err).WithFields(
-			logrus.Fields{
-				"projectID": projectID,
-				"datasetID": datasetID,
-				"tableID":   tableID,
-			}).Warning("Unable to fetch metadata")
-	}
-	return err == nil
+	return client.Dataset(datasetID).Table(tableID).Metadata(ctx)
 }
 
 func (c *Datacatalog) GetDatasets(ctx context.Context, projectID string) ([]string, error) {

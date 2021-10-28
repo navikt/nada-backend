@@ -71,7 +71,7 @@ func TestMain(m *testing.M) {
 
 type mockGCP struct{}
 
-func (m *mockGCP) TableExists(ctx context.Context, projectID string, datasetID string, tableID string) bool {
+func (m *mockGCP) TableMetadata(ctx context.Context, projectID string, datasetID string, tableID string) bool {
 	return true
 }
 

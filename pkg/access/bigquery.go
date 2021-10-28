@@ -56,6 +56,33 @@ func (b Bigquery) Revoke(ctx context.Context, projectID, datasetID, tableID, mem
 	return bqTable.IAM().SetPolicy(ctx, policy)
 }
 
+func (b Bigquery) AddToAuthorizedViews(ctx context.Context, projectID, dataset, table string) error {
+	bqClient, err := bigquery.NewClient(ctx, projectID)
+	if err != nil {
+		return fmt.Errorf("bigquery.NewClient: %v", err)
+	}
+	defer bqClient.Close()
+	newEntry := &bigquery.AccessEntry{
+		EntityType: bigquery.ViewEntity,
+		View: &bigquery.Table{
+			ProjectID: projectID,
+			DatasetID: dataset,
+			TableID:   table,
+		},
+	}
+	ds := bqClient.Dataset(dataset)
+	m, err := ds.Metadata(ctx)
+
+	update := bigquery.DatasetMetadataToUpdate{
+		Access: append(m.Access, newEntry),
+	}
+	if _, err := ds.Update(ctx, update, m.ETag); err != nil {
+		return err
+	}
+
+	return nil
+}
+
 func getPolicy(ctx context.Context, bqclient *bigquery.Client, datasetID, tableID string) (*iam.Policy, error) {
 	ctx, cancel := context.WithTimeout(ctx, time.Second*10)
 	defer cancel()
