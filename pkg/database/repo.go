@@ -31,8 +31,8 @@ type Repo struct {
 	hooks *Hooks
 }
 
-func (r *Repo) Register(reg *prometheus.Registry) error {
-	return reg.Register(r.hooks.bucket)
+func (r *Repo) Metrics() prometheus.Collector {
+	return r.hooks.bucket
 }
 
 type Querier interface {

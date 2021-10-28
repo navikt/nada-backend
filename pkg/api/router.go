@@ -1,9 +1,6 @@
 package api
 
 import (
-	"net/http"
-
-	graphProm "github.com/99designs/gqlgen-contrib/prometheus"
 	"github.com/99designs/gqlgen/graphql/playground"
 	"github.com/go-chi/chi"
 	"github.com/go-chi/cors"
@@ -23,6 +20,7 @@ func New(
 	accessMgr graph.AccessManager,
 	schemaUpdater graph.SchemaUpdater,
 	authMW auth.MiddlewareHandler,
+	promReg *prometheus.Registry,
 	log *logrus.Logger,
 ) *chi.Mux {
 	corsMW := cors.Handler(cors.Options{
@@ -45,20 +43,8 @@ func New(
 		r.HandleFunc("/logout", httpAPI.Logout)
 	})
 	router.Route("/internal", func(r chi.Router) {
-		r.Handle("/metrics", prometheusGenerator(repo))
+		r.Handle("/metrics", promhttp.HandlerFor(promReg, promhttp.HandlerOpts{}))
 	})
 
 	return router
-}
-
-func prometheusGenerator(repo *database.Repo) http.Handler {
-	registry := prometheus.NewRegistry()
-	graphProm.RegisterOn(registry)
-	registry.MustRegister(prometheus.NewGoCollector())
-	registry.MustRegister(prometheus.NewProcessCollector(prometheus.ProcessCollectorOpts{ReportErrors: true}))
-
-	if err := repo.Register(registry); err != nil {
-		panic(err)
-	}
-	return promhttp.HandlerFor(registry, promhttp.HandlerOpts{})
 }

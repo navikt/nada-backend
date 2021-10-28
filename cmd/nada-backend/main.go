@@ -9,6 +9,7 @@ import (
 	"syscall"
 	"time"
 
+	graphProm "github.com/99designs/gqlgen-contrib/prometheus"
 	"github.com/navikt/nada-backend/pkg/access"
 	"github.com/navikt/nada-backend/pkg/api"
 	"github.com/navikt/nada-backend/pkg/auth"
@@ -16,11 +17,19 @@ import (
 	"github.com/navikt/nada-backend/pkg/database/gensql"
 	"github.com/navikt/nada-backend/pkg/graph"
 	"github.com/navikt/nada-backend/pkg/metadata"
+	"github.com/prometheus/client_golang/prometheus"
 	"github.com/sirupsen/logrus"
 	flag "github.com/spf13/pflag"
 )
 
-var cfg = DefaultConfig()
+var (
+	cfg = DefaultConfig()
+
+	promErrs = prometheus.NewCounterVec(prometheus.CounterOpts{
+		Namespace: "nada_backend",
+		Name:      "errors",
+	}, []string{"location"})
+)
 
 const (
 	TeamProjectsUpdateFrequency    = 5 * time.Minute
@@ -78,7 +87,7 @@ func main() {
 		accessMgr = access.NewBigquery()
 	}
 
-	go access.NewEnsurer(repo, accessMgr, log.WithField("subsystem", "accessensurer")).Run(ctx, AccessEnsurerFrequency)
+	go access.NewEnsurer(repo, accessMgr, promErrs, log.WithField("subsystem", "accessensurer")).Run(ctx, AccessEnsurerFrequency)
 
 	var gcp graph.GCP
 	var datasetEnricher graph.SchemaUpdater = &noopDatasetEnricher{}
@@ -95,7 +104,7 @@ func main() {
 	}
 
 	log.Info("Listening on :8080")
-	srv := api.New(repo, gcp, oauth2Config, teamProjectsMapping, accessMgr, datasetEnricher, authenticatorMiddleware, log)
+	srv := api.New(repo, gcp, oauth2Config, teamProjectsMapping, accessMgr, datasetEnricher, authenticatorMiddleware, prom(promErrs, repo.Metrics()), log)
 
 	server := http.Server{
 		Addr:    cfg.BindAddress,
@@ -113,6 +122,16 @@ func main() {
 	if err := server.Shutdown(shutdownCtx); err != nil {
 		log.WithError(err).Warn("Shutdown error")
 	}
+}
+
+func prom(cols ...prometheus.Collector) *prometheus.Registry {
+	r := prometheus.NewRegistry()
+	graphProm.RegisterOn(r)
+	r.MustRegister(prometheus.NewGoCollector())
+	r.MustRegister(prometheus.NewProcessCollector(prometheus.ProcessCollectorOpts{ReportErrors: true}))
+	r.MustRegister(cols...)
+
+	return r
 }
 
 func newLogger() *logrus.Logger {

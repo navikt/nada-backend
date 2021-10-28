@@ -18,7 +18,7 @@ var expired = []*models.Access{
 func TestEnsurer(t *testing.T) {
 	am := &MockAM{}
 	repo := &MockRepo{}
-	NewEnsurer(repo, am, logrus.StandardLogger().WithField("", "")).run(context.Background())
+	NewEnsurer(repo, am, nil, logrus.StandardLogger().WithField("", "")).run(context.Background())
 
 	if repo.NGetUnrevokedExpiredAccess != 1 {
 		t.Errorf("got: %v, want: %v", repo.NGetUnrevokedExpiredAccess, 1)

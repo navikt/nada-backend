@@ -11,6 +11,7 @@ import (
 	"testing"
 
 	"cloud.google.com/go/bigquery"
+	graphProm "github.com/99designs/gqlgen-contrib/prometheus"
 	"github.com/navikt/nada-backend/pkg/access"
 	"github.com/navikt/nada-backend/pkg/api"
 	"github.com/navikt/nada-backend/pkg/auth"
@@ -18,6 +19,7 @@ import (
 	"github.com/navikt/nada-backend/pkg/database/gensql"
 	"github.com/navikt/nada-backend/pkg/graph/models"
 	"github.com/ory/dockertest/v3"
+	"github.com/prometheus/client_golang/prometheus"
 	"github.com/sirupsen/logrus"
 )
 
@@ -57,7 +59,11 @@ func TestMain(m *testing.M) {
 	if err != nil {
 		panic(err)
 	}
-	srv := api.New(repo, &mockGCP{}, nil, &auth.MockTeamProjectsUpdater, access.NewNoop(), &noopDatasetEnricher{}, auth.MockJWTValidatorMiddleware(), logrus.StandardLogger())
+
+	promReg := prometheus.NewRegistry()
+	graphProm.RegisterOn(promReg)
+
+	srv := api.New(repo, &mockGCP{}, nil, &auth.MockTeamProjectsUpdater, access.NewNoop(), &noopDatasetEnricher{}, auth.MockJWTValidatorMiddleware(), prometheus.NewRegistry(), logrus.StandardLogger())
 
 	server = httptest.NewServer(srv)
 	code := m.Run()

@@ -6,6 +6,7 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/navikt/nada-backend/pkg/graph/models"
+	"github.com/prometheus/client_golang/prometheus"
 	"github.com/sirupsen/logrus"
 )
 
@@ -13,6 +14,7 @@ type Ensurer struct {
 	repo Repo
 	r    Revoker
 	log  *logrus.Entry
+	errs *prometheus.CounterVec
 }
 
 type Repo interface {
@@ -20,15 +22,17 @@ type Repo interface {
 	GetBigqueryDatasource(ctx context.Context, dataproductID uuid.UUID) (models.BigQuery, error)
 	GetUnrevokedExpiredAccess(ctx context.Context) ([]*models.Access, error)
 }
+
 type Revoker interface {
 	Revoke(ctx context.Context, projectID, dataset, table, member string) error
 }
 
-func NewEnsurer(repo Repo, r Revoker, log *logrus.Entry) *Ensurer {
+func NewEnsurer(repo Repo, r Revoker, errs *prometheus.CounterVec, log *logrus.Entry) *Ensurer {
 	return &Ensurer{
 		repo: repo,
 		r:    r,
 		log:  log,
+		errs: errs,
 	}
 }
 
@@ -56,17 +60,17 @@ func (e *Ensurer) run(ctx context.Context) {
 		ds, err := e.repo.GetBigqueryDatasource(ctx, entry.DataproductID)
 		if err != nil {
 			e.log.WithError(err).Error("Getting dataproduct datasource for expired access entry")
-			//TODO(jhrv): bump error metric
+			e.errs.WithLabelValues("GetBigqueryDatasource").Inc()
 			continue
 		}
 		if err := e.r.Revoke(ctx, ds.ProjectID, ds.Dataset, ds.Table, entry.Subject); err != nil {
 			e.log.WithError(err).Errorf("Revoking IAM access for %v on %v.%v.%v", entry.Subject, ds.ProjectID, ds.Dataset, ds.Table)
-			//TODO(jhrv): bump error metric
+			e.errs.WithLabelValues("Revoke").Inc()
 			continue
 		}
 		if err := e.repo.RevokeAccessToDataproduct(ctx, entry.ID); err != nil {
 			e.log.WithError(err).Errorf("Setting access entry with ID %v to revoked in database", entry.ID)
-			//TODO(jhrv): bump error metric
+			e.errs.WithLabelValues("RevokeAccessToDataproduct").Inc()
 			continue
 		}
 	}
