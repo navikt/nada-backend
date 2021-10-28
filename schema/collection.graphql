@@ -1,65 +1,157 @@
+"""
+CollectionElement defines all types that can be returned as a collection element.
+"""
 union CollectionElement
 @goModel(
     model: "github.com/navikt/nada-backend/pkg/graph/models.CollectionElement"
 ) =
     Dataproduct
 
+"""
+CollectionElementType defines all possible types that can be stored as a collection element.
+"""
 enum CollectionElementType @goModel(
     model: "github.com/navikt/nada-backend/pkg/graph/models.CollectionElementType"
 ){
     dataproduct
 }
 
+"""
+Collection contains metadata about a collection of elements.
+"""
 type Collection
 @goModel(
     model: "github.com/navikt/nada-backend/pkg/graph/models.Collection"
 ) {
+    "id is the identifier for the collection."
     id: ID!
+    "name of the collection."
     name: String!
+    "description of the collection."
     description: String
+    "created contains the timestamp when the collection was created."
     created: Time!
+    "lastModified contains the timestamp when the collection was last modified."
     lastModified: Time!
+    "keywords for the collection used as tags."
     keywords: [String!]!
+    "owner of the collection. Changes to the collection can only be done by a member of the owner."
     owner: Owner!
+    "elements of the collection."
     elements: [CollectionElement!]!
 }
 
+"""
+NewCollection contains metadata for creating a new collection.
+Group must match one of the groups the authenticated user is part of.
+"""
 input NewCollection
 @goModel(
     model: "github.com/navikt/nada-backend/pkg/graph/models.NewCollection"
 ) {
+    "name of the collection."
     name: String!
+    "description of the colection."
     description: String
+    "group the collection belongs to. Used for authorization."
     group: String!
+    "keywords for the collection used as tags."
     keywords: [String!]
 }
 
+"""
+UpdateCollection contains data for updating the metadata of a collection.
+"""
 input UpdateCollection
 @goModel(
     model: "github.com/navikt/nada-backend/pkg/graph/models.UpdateCollection"
 ) {
+    "name of the collection."
     name: String!
+    "description of the collection."
     description: String
+    "keywords for the collection used as tags."
     keywords: [String!]
 }
 
 extend type Query {
-    collections(limit: Int, offset: Int): [Collection!]!
-    collection(id: ID!): Collection!
+    """
+    collections returns a list of collections. Pagination done using the arguments.
+    """
+    collections(
+        "limit the number of returned collections."
+        limit: Int
+        "offset the list of returned collections. Used as pagination with PAGE-INDEX * limit."
+        offset: Int
+    ): [Collection!]!
+
+    """
+    collection returns the given collection.
+    """
+    collection(
+        "id of the requested collection."
+        id: ID!
+    ): Collection!
 }
 
 extend type Mutation {
-    createCollection(input: NewCollection!): Collection! @authenticated
-    updateCollection(id: ID!, input: UpdateCollection!): Collection! @authenticated
-    deleteCollection(id: ID!): Boolean! @authenticated
-    addToCollection(
+    """
+    createCollection creates a new collection.
+
+	Requires authentication.
+    """
+    createCollection(
+        "input contains information about the new collection."
+        input: NewCollection!
+    ): Collection! @authenticated
+
+    """
+    updateCollection updates the metadata of a collection.
+
+	Requires authentication.
+    """
+    updateCollection(
+        "id of the collection to modify."
         id: ID!
+        "input contains the new metadata of the collection."
+        input: UpdateCollection!
+    ): Collection! @authenticated
+
+    """
+    deleteCollection deletes a collection.
+
+	Requires authentication.
+    """
+    deleteCollection(
+        "id of the collection to delete."
+        id: ID!
+    ): Boolean! @authenticated
+
+    """
+    addToCollection adds a new element to the collection.
+
+	Requires authentication.
+    """
+    addToCollection(
+        "id of the collection."
+        id: ID!
+        "elementID is the id of the element which should be added to the collection."
         elementID: ID!
+        "elementType is the type of the collection element."
         elementType: CollectionElementType!
     ): Boolean! @authenticated
+
+    """
+    removeFromCollection removes a collection.
+
+	Requires authentication.
+    """
     removeFromCollection(
+        "id of the collection."
         id: ID!
+        "elementID is the id of the element which should be removed from the collection."
         elementID: ID!
+        "elementType is the type of the collection element."
         elementType: CollectionElementType!
     ): Boolean! @authenticated
 }

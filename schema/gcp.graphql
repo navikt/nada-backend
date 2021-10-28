@@ -1,17 +1,67 @@
+"""
+BigQueryType defines supported table types in a BigQuery set.
+"""
 enum BigQueryType @goModel(model: "github.com/navikt/nada-backend/pkg/graph/models.BigQueryType") {
-    table
-    view
-    materialized_view
+	"""
+	table is when the table is a regular BigQuery table.
+	"""
+	table
+
+	"""
+	view is when the table is a BigQuery view.
+	"""
+	view
+
+	"""
+	materialized_view is when the table is a BigQuery materialized view.
+	"""
+	materialized_view
 }
 
+"""
+BigQueryTable contains information about a BigQuery table.
+"""
 type BigQueryTable @goModel(model: "github.com/navikt/nada-backend/pkg/graph/models.BigQueryTable") {
-    description:  String!
-	lastModified: Time!
+	"""
+	name of the BigQuery table.
+	"""
 	name:         String!
+
+	"""
+	description defined on the bigquery table.
+	"""
+	description:  String!
+
+	"""
+	lastModified defines the last modified time of the BigQuery metadata.
+	"""
+	lastModified: Time!
+
+	"""
+	type of the BigQuery table.
+	"""
 	type:         BigQueryType!
 }
 
 extend type Query {
-    gcpGetTables(projectID: String!, datasetID: String!): [BigQueryTable!]!  @authenticated
-    gcpGetDatasets(projectID: String!): [String!]! @authenticated
+	"""
+	gcpGetTables returns all tables for a given dataset.
+
+	Requires authentication.
+	"""
+	gcpGetTables(
+		"projectID is the GCP project ID that contains the dataset."
+		projectID: String!
+		"datasetID is the ID/name of the dataset."
+		datasetID: String!
+	): [BigQueryTable!]!  @authenticated
+	"""
+	gcpGetDatasets returns all datasets for a given project.
+
+	Requires authentication.
+	"""
+	gcpGetDatasets(
+		"projectID is the GCP project ID that contains the dataset."
+		projectID: String!
+	): [String!]! @authenticated
 }

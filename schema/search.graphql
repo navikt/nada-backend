@@ -1,18 +1,35 @@
-union SearchResult @goModel(model: "github.com/navikt/nada-backend/pkg/graph/models.SearchResult") = Dataproduct | Collection
+union SearchResult @goModel(
+	model: "github.com/navikt/nada-backend/pkg/graph/models.SearchResult"
+) =
+	Dataproduct |
+	Collection
 
 input SearchQuery @goModel(model: "github.com/navikt/nada-backend/pkg/graph/models.SearchQuery"){
-    """
-    Freetext search
-    """
-    text: String
-    """
-    Filter on keyword
-    """
-    keyword: String
-    limit: Int
-    offset: Int
+	"""
+	text is used as freetext search.
+
+	Use " to identify phrases. Example: "hello world"
+
+	Use - to exclude words. Example "include this -exclude -those"
+
+	Use OR as a keyword for the OR operator. Example "night OR day"
+	"""
+	text: String
+
+	"keyword filters results on the keyword."
+	keyword: String
+
+	"limit the number of returned search results."
+	limit: Int
+
+	"offset the list of returned search results. Used as pagination with PAGE-INDEX * limit."
+	offset: Int
 }
 
 extend type Query {
-    search(q: SearchQuery): [SearchResult!]!
+	"search through existing dataproducts and collections."
+	search(
+		"q is the search query."
+		q: SearchQuery
+	): [SearchResult!]!
 }

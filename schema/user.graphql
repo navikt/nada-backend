@@ -1,20 +1,40 @@
+"""
+Group contains metadata on a GCP group
+"""
 type Group @goModel(model: "github.com/navikt/nada-backend/pkg/graph/models.Group") {
+	"name of the group"
 	name: String!
+	"email of the group"
 	email: String!
 }
 
+"""
+UserInfo contains metadata on a logged in user
+"""
 type UserInfo @goModel(model: "github.com/navikt/nada-backend/pkg/graph/models.UserInfo") {
+	"name of user."
 	name: String!
+	"email of user."
 	email: String!
+	"groups the user is a member of."
 	groups: [Group!]!
+	"gcpProjects is GCP projects the user is a member of."
 	gcpProjects: [GCPProject!]!  @goField(name: "GCPProjects") @authenticated
 }
 
+"""
+GCPProject contains metadata on a GCP project.
+"""
 type GCPProject @goModel(model: "github.com/navikt/nada-backend/pkg/graph/models.GCPProject") {
+	"id of GCP project"
 	id: String!
+	"group is owner group of GCP project"
 	group: Group!
 }
 
 extend type Query {
+	"""
+	userInfo returns information about the logged in user.
+	"""
 	userInfo: UserInfo! @authenticated
 }

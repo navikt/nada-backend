@@ -869,148 +869,330 @@ func (ec *executionContext) introspectType(name string) (*introspection.Type, er
 }
 
 var sources = []*ast.Source{
-	{Name: "schema/collection.graphql", Input: `union CollectionElement
+	{Name: "schema/collection.graphql", Input: `"""
+CollectionElement defines all types that can be returned as a collection element.
+"""
+union CollectionElement
 @goModel(
     model: "github.com/navikt/nada-backend/pkg/graph/models.CollectionElement"
 ) =
     Dataproduct
 
+"""
+CollectionElementType defines all possible types that can be stored as a collection element.
+"""
 enum CollectionElementType @goModel(
     model: "github.com/navikt/nada-backend/pkg/graph/models.CollectionElementType"
 ){
     dataproduct
 }
 
+"""
+Collection contains metadata about a collection of elements.
+"""
 type Collection
 @goModel(
     model: "github.com/navikt/nada-backend/pkg/graph/models.Collection"
 ) {
+    "id is the identifier for the collection."
     id: ID!
+    "name of the collection."
     name: String!
+    "description of the collection."
     description: String
+    "created contains the timestamp when the collection was created."
     created: Time!
+    "lastModified contains the timestamp when the collection was last modified."
     lastModified: Time!
+    "keywords for the collection used as tags."
     keywords: [String!]!
+    "owner of the collection. Changes to the collection can only be done by a member of the owner."
     owner: Owner!
+    "elements of the collection."
     elements: [CollectionElement!]!
 }
 
+"""
+NewCollection contains metadata for creating a new collection.
+Group must match one of the groups the authenticated user is part of.
+"""
 input NewCollection
 @goModel(
     model: "github.com/navikt/nada-backend/pkg/graph/models.NewCollection"
 ) {
+    "name of the collection."
     name: String!
+    "description of the colection."
     description: String
+    "group the collection belongs to. Used for authorization."
     group: String!
+    "keywords for the collection used as tags."
     keywords: [String!]
 }
 
+"""
+UpdateCollection contains data for updating the metadata of a collection.
+"""
 input UpdateCollection
 @goModel(
     model: "github.com/navikt/nada-backend/pkg/graph/models.UpdateCollection"
 ) {
+    "name of the collection."
     name: String!
+    "description of the collection."
     description: String
+    "keywords for the collection used as tags."
     keywords: [String!]
 }
 
 extend type Query {
-    collections(limit: Int, offset: Int): [Collection!]!
-    collection(id: ID!): Collection!
+    """
+    collections returns a list of collections. Pagination done using the arguments.
+    """
+    collections(
+        "limit the number of returned collections."
+        limit: Int
+        "offset the list of returned collections. Used as pagination with PAGE-INDEX * limit."
+        offset: Int
+    ): [Collection!]!
+
+    """
+    collection returns the given collection.
+    """
+    collection(
+        "id of the requested collection."
+        id: ID!
+    ): Collection!
 }
 
 extend type Mutation {
-    createCollection(input: NewCollection!): Collection! @authenticated
-    updateCollection(id: ID!, input: UpdateCollection!): Collection! @authenticated
-    deleteCollection(id: ID!): Boolean! @authenticated
-    addToCollection(
+    """
+    createCollection creates a new collection.
+
+	Requires authentication.
+    """
+    createCollection(
+        "input contains information about the new collection."
+        input: NewCollection!
+    ): Collection! @authenticated
+
+    """
+    updateCollection updates the metadata of a collection.
+
+	Requires authentication.
+    """
+    updateCollection(
+        "id of the collection to modify."
         id: ID!
+        "input contains the new metadata of the collection."
+        input: UpdateCollection!
+    ): Collection! @authenticated
+
+    """
+    deleteCollection deletes a collection.
+
+	Requires authentication.
+    """
+    deleteCollection(
+        "id of the collection to delete."
+        id: ID!
+    ): Boolean! @authenticated
+
+    """
+    addToCollection adds a new element to the collection.
+
+	Requires authentication.
+    """
+    addToCollection(
+        "id of the collection."
+        id: ID!
+        "elementID is the id of the element which should be added to the collection."
         elementID: ID!
+        "elementType is the type of the collection element."
         elementType: CollectionElementType!
     ): Boolean! @authenticated
+
+    """
+    removeFromCollection removes a collection.
+
+	Requires authentication.
+    """
     removeFromCollection(
+        "id of the collection."
         id: ID!
+        "elementID is the id of the element which should be removed from the collection."
         elementID: ID!
+        "elementType is the type of the collection element."
         elementType: CollectionElementType!
     ): Boolean! @authenticated
 }
 `, BuiltIn: false},
-	{Name: "schema/dataproducts.graphql", Input: `type Dataproduct @goModel(model: "github.com/navikt/nada-backend/pkg/graph/models.Dataproduct"){
+	{Name: "schema/dataproducts.graphql", Input: `"""
+Dataproduct contains metadata on a datasource.
+"""
+type Dataproduct @goModel(model: "github.com/navikt/nada-backend/pkg/graph/models.Dataproduct"){
+    "id is the identifier for the dataproduct"
     id: ID!
+    "name of the dataproduct"
     name: String!
+    "description of the dataproduct"
     description: String
+    "created is the timestamp for when the dataproduct was created"
     created: Time!
+    "lastModified is the timestamp for when the dataproduct was last modified"
     lastModified: Time!
+    "repo is the url of the repository containing the code to create the dataproduct"
     repo: String
+    "pii indicates whether it is personal identifiable information in the dataproduct"
     pii: Boolean!
+    "keywords for the dataproduct used as tags."
     keywords: [String!]!
+    "owner of the dataproduct. Changes to the dataproduct can only be done by a member of the owner."
     owner: Owner!
+    "datasource contains metadata on the datasource"
     datasource: Datasource!
+    "requesters contains list of users, groups and service accounts which can request access to the dataproduct"
     requesters: [String!]!
+    "access contains list of users, groups and service accounts which have access to the dataproduct"
     access: [Access!]! @authenticated
 }
 
+"""
+Owner contains metadata on the owner of the dataproduct.
+"""
 type Owner @goModel(model: "github.com/navikt/nada-backend/pkg/graph/models.Owner"){
+    "owner group is the email for the group."
     group: String!
+    "teamkatalogen is url for the team in the NAV team catalog."
     teamkatalogen: String!
 }
 
+"""
+TableColumn contains metadata on a BigQuery table column.
+"""
 type TableColumn @goModel(model: "github.com/navikt/nada-backend/pkg/graph/models.TableColumn") {
+    "name of column."
     name: String!
+    "description of column."
     description: String!
+    "mode of column (NULLABLE, REQUIRED or REPEATED)."
     mode: String!
+    "type is the datatype of the column."
     type: String!
 }
 
+"""
+BigQuery contains metadata on a BigQuery table.
+"""
 type BigQuery @goModel(model: "github.com/navikt/nada-backend/pkg/graph/models.BigQuery") {
+    "projectID is the GCP project ID that contains the BigQuery table"
     projectID: String!
+    "dataset is the dataset that contains the BigQuery table"
     dataset: String!
+    "table name for BigQuery table"
     table: String!
+    "schema for the BigQuery table"
     schema: [TableColumn!]!
 }
 
+"""
+Datasource defines types that can be returned as a dataproduct datasource.
+"""
 union Datasource @goModel(model: "github.com/navikt/nada-backend/pkg/graph/models.Datasource") = BigQuery
 
+"""
+Access contains metadata on an access entry.
+"""
 type Access @goModel(model: "github.com/navikt/nada-backend/pkg/graph/models.Access") {
+    "id for the access entry"
     id: ID!
+    "subject to grant access"
     subject: String!
+    "name of the granter"
     granter: String!
+    "expires is timestamp for when access expires"
     expires: Time
+    "created is timestamp for when access was created"
     created: Time!
+    "revoked is timestamp for when access was revoked"
     revoked: Time
 }
 
 extend type Query {
-    dataproduct(id: ID!): Dataproduct!
-    dataproducts(limit: Int, offset: Int): [Dataproduct!]!
+    """
+    dataproduct returns the given dataproduct.
+    """
+    dataproduct(
+        "id of the requested dataproduct."
+        id: ID!
+    ): Dataproduct!
+
+    """
+    dataproducts returns a list of dataproducts. Pagination done using the arguments.
+    """
+    dataproducts(
+        "limit the number of returned dataproducts."
+        limit: Int
+        "offset the list of returned dataproducts. Used as pagination with PAGE-INDEX * limit."
+        offset: Int
+    ): [Dataproduct!]!
 }
 
+"""
+NewBigQuery contains metadata for creating a new bigquery data source
+"""
 input NewBigQuery @goModel(model: "github.com/navikt/nada-backend/pkg/graph/models.NewBigQuery") {
-    projectID: String!
+    "projectID is the GCP project ID that contains the dataset."
+	projectID: String!
+	"dataset is the name of the dataset."
     dataset: String!
+    "table is the name of the table"
     table: String!
 }
 
+"""
+NewDataproduct contains metadata for creating a new dataproduct
+"""
 input NewDataproduct @goModel(model: "github.com/navikt/nada-backend/pkg/graph/models.NewDataproduct") {
+    "name of dataproduct"
     name: String!
+    "description of the dataproduct"
     description: String
+    "repo is the url of the repository containing the code to create the dataproduct"
     repo: String
+    "pii indicates whether it is personal identifiable information in the dataproduct"
     pii: Boolean!
+    "keywords for the dataproduct used as tags."
     keywords: [String!]
+    "owner group email for the dataproduct."
     group: String!
+    "bigquery contains metadata for the bigquery datasource added to the dataproduct."
     bigquery: NewBigQuery!
+    "requesters contains list of users, groups and service accounts which can request access to the dataproduct"
     requesters: [String!]
 }
 
+"""
+UpdateDataproduct contains metadata for updating a dataproduct
+"""
 input UpdateDataproduct @goModel(model: "github.com/navikt/nada-backend/pkg/graph/models.UpdateDataproduct") {
+    "name of dataproduct"
     name: String!
+    "description of the dataproduct"
     description: String
+    "repo is the url of the repository containing the code to create the dataproduct"
     repo: String
+    "pii indicates whether it is personal identifiable information in the dataproduct"
     pii: Boolean!
+    "keywords for the dataproduct used as tags."
     keywords: [String!]
+    "requesters contains list of users, groups and service accounts which can request access to the dataproduct"
     requesters: [String!]
 }
 
+"""
+SubjectType defines all possible types that can request access to a dataproduct.
+"""
 enum SubjectType @goModel(model: "github.com/navikt/nada-backend/pkg/graph/models.SubjectType"){
     user
     group
@@ -1018,95 +1200,266 @@ enum SubjectType @goModel(model: "github.com/navikt/nada-backend/pkg/graph/model
 }
 
 extend type Mutation {
-    createDataproduct(input: NewDataproduct!): Dataproduct! @authenticated
-    updateDataproduct(id: ID!, input: UpdateDataproduct!): Dataproduct! @authenticated
-    deleteDataproduct(id: ID!) : Boolean! @authenticated
-    addRequesterToDataproduct(dataproductID: ID!, subject: String!): Boolean! @authenticated
-    removeRequesterFromDataproduct(dataproductID: ID!, subject: String!): Boolean! @authenticated
-    grantAccessToDataproduct(dataproductID: ID!, expires: Time, subject: String, subjectType: SubjectType): Access! @authenticated
-    revokeAccessToDataproduct(id: ID!): Boolean! @authenticated
+    """
+    createDataproduct creates a new dataproduct
+
+    Requires authentication.
+    """
+    createDataproduct(
+        "input contains information about the new dataproduct."
+        input: NewDataproduct!
+    ): Dataproduct! @authenticated
+
+    """
+    updateDataproduct updates an existing dataproduct
+
+    Requires authentication.
+    """
+    updateDataproduct(
+        "id of requested dataproduct."
+        id: ID!
+        "input contains information about the updated dataproduct."
+        input: UpdateDataproduct!
+    ): Dataproduct! @authenticated
+
+
+    """
+    deleteDataproduct deletes a dataproduct.
+
+    Requires authentication.
+    """
+    deleteDataproduct(
+        "id of dataproduct."
+        id: ID!
+    ) : Boolean! @authenticated
+
+    """
+    addRequesterToDataproduct adds a requester to the dataproduct.
+
+    Requires authentication.
+    """
+    addRequesterToDataproduct(
+        "id of dataproduct."
+        dataproductID: ID!
+        "subject allowed to request access (user, group or service account)."
+        subject: String!
+    ): Boolean! @authenticated
+
+    """
+    removeRequesterFromDataproduct removes a requester from the dataproduct.
+
+    Requires authentication.
+    """
+    removeRequesterFromDataproduct(
+        "id of dataproduct."
+        dataproductID: ID!
+        "subject allowed request access (user, group or service account)."
+        subject: String!
+    ): Boolean! @authenticated
+
+    """
+    grantAccessToDataproduct grants access for a subject to the dataproduct.
+
+    Requires authentication.
+    """
+    grantAccessToDataproduct(
+        "id of dataproduct."
+        dataproductID: ID!
+        "expires is a timestamp for when the access expires."
+        expires: Time
+        "subject to be granted access."
+        subject: String
+        "subjectType is the type of entity which should be granted access (user, group or service account)."
+        subjectType: SubjectType
+    ): Access! @authenticated
+
+    """
+    revokeAccessToDataproduct revokes access for a subject to the dataproduct.
+
+    Requires authentication.
+    """
+    revokeAccessToDataproduct(
+        "id for the access entry."
+        id: ID!
+    ): Boolean! @authenticated
 }
 `, BuiltIn: false},
-	{Name: "schema/gcp.graphql", Input: `enum BigQueryType @goModel(model: "github.com/navikt/nada-backend/pkg/graph/models.BigQueryType") {
-    table
-    view
-    materialized_view
+	{Name: "schema/gcp.graphql", Input: `"""
+BigQueryType defines supported table types in a BigQuery set.
+"""
+enum BigQueryType @goModel(model: "github.com/navikt/nada-backend/pkg/graph/models.BigQueryType") {
+	"""
+	table is when the table is a regular BigQuery table.
+	"""
+	table
+
+	"""
+	view is when the table is a BigQuery view.
+	"""
+	view
+
+	"""
+	materialized_view is when the table is a BigQuery materialized view.
+	"""
+	materialized_view
 }
 
+"""
+BigQueryTable contains information about a BigQuery table.
+"""
 type BigQueryTable @goModel(model: "github.com/navikt/nada-backend/pkg/graph/models.BigQueryTable") {
-    description:  String!
-	lastModified: Time!
+	"""
+	name of the BigQuery table.
+	"""
 	name:         String!
+
+	"""
+	description defined on the bigquery table.
+	"""
+	description:  String!
+
+	"""
+	lastModified defines the last modified time of the BigQuery metadata.
+	"""
+	lastModified: Time!
+
+	"""
+	type of the BigQuery table.
+	"""
 	type:         BigQueryType!
 }
 
 extend type Query {
-    gcpGetTables(projectID: String!, datasetID: String!): [BigQueryTable!]!  @authenticated
-    gcpGetDatasets(projectID: String!): [String!]! @authenticated
+	"""
+	gcpGetTables returns all tables for a given dataset.
+
+	Requires authentication.
+	"""
+	gcpGetTables(
+		"projectID is the GCP project ID that contains the dataset."
+		projectID: String!
+		"datasetID is the ID/name of the dataset."
+		datasetID: String!
+	): [BigQueryTable!]!  @authenticated
+	"""
+	gcpGetDatasets returns all datasets for a given project.
+
+	Requires authentication.
+	"""
+	gcpGetDatasets(
+		"projectID is the GCP project ID that contains the dataset."
+		projectID: String!
+	): [String!]! @authenticated
 }
 `, BuiltIn: false},
-	{Name: "schema/main.graphql", Input: `scalar Time
+	{Name: "schema/main.graphql", Input: `"""
+Time is a string in [RFC 3339](https://rfc-editor.org/rfc/rfc3339.html) format, with sub-second precision added if present.
+"""
+scalar Time
 
 directive @goModel(model: String, models: [String!]) on OBJECT
-    | INPUT_OBJECT
-    | SCALAR
-    | ENUM
-    | INTERFACE
-    | UNION
+	| INPUT_OBJECT
+	| SCALAR
+	| ENUM
+	| INTERFACE
+	| UNION
 
 
 directive @authenticated(on: Boolean) on FIELD_DEFINITION
 
 directive @goField(
-    forceResolver: Boolean
-    name: String
+	forceResolver: Boolean
+	name: String
 ) on INPUT_FIELD_DEFINITION | FIELD_DEFINITION
 
 type Query {
-    version: String!
+	"""
+	version returns the API version.
+	"""
+	version: String!
 }
 
 type Mutation {
-    dummy(no: String): String
+	"""
+	This mutation doesn't do anything.
+	"""
+	dummy(no: String): String
 }
 `, BuiltIn: false},
-	{Name: "schema/search.graphql", Input: `union SearchResult @goModel(model: "github.com/navikt/nada-backend/pkg/graph/models.SearchResult") = Dataproduct | Collection
+	{Name: "schema/search.graphql", Input: `union SearchResult @goModel(
+	model: "github.com/navikt/nada-backend/pkg/graph/models.SearchResult"
+) =
+	Dataproduct |
+	Collection
 
 input SearchQuery @goModel(model: "github.com/navikt/nada-backend/pkg/graph/models.SearchQuery"){
-    """
-    Freetext search
-    """
-    text: String
-    """
-    Filter on keyword
-    """
-    keyword: String
-    limit: Int
-    offset: Int
+	"""
+	text is used as freetext search.
+
+	Use " to identify phrases. Example: "hello world"
+
+	Use - to exclude words. Example "include this -exclude -those"
+
+	Use OR as a keyword for the OR operator. Example "night OR day"
+	"""
+	text: String
+
+	"keyword filters results on the keyword."
+	keyword: String
+
+	"limit the number of returned search results."
+	limit: Int
+
+	"offset the list of returned search results. Used as pagination with PAGE-INDEX * limit."
+	offset: Int
 }
 
 extend type Query {
-    search(q: SearchQuery): [SearchResult!]!
+	"search through existing dataproducts and collections."
+	search(
+		"q is the search query."
+		q: SearchQuery
+	): [SearchResult!]!
 }
 `, BuiltIn: false},
-	{Name: "schema/user.graphql", Input: `type Group @goModel(model: "github.com/navikt/nada-backend/pkg/graph/models.Group") {
+	{Name: "schema/user.graphql", Input: `"""
+Group contains metadata on a GCP group
+"""
+type Group @goModel(model: "github.com/navikt/nada-backend/pkg/graph/models.Group") {
+	"name of the group"
 	name: String!
+	"email of the group"
 	email: String!
 }
 
+"""
+UserInfo contains metadata on a logged in user
+"""
 type UserInfo @goModel(model: "github.com/navikt/nada-backend/pkg/graph/models.UserInfo") {
+	"name of user."
 	name: String!
+	"email of user."
 	email: String!
+	"groups the user is a member of."
 	groups: [Group!]!
+	"gcpProjects is GCP projects the user is a member of."
 	gcpProjects: [GCPProject!]!  @goField(name: "GCPProjects") @authenticated
 }
 
+"""
+GCPProject contains metadata on a GCP project.
+"""
 type GCPProject @goModel(model: "github.com/navikt/nada-backend/pkg/graph/models.GCPProject") {
+	"id of GCP project"
 	id: String!
+	"group is owner group of GCP project"
 	group: Group!
 }
 
 extend type Query {
+	"""
+	userInfo returns information about the logged in user.
+	"""
 	userInfo: UserInfo! @authenticated
 }
 `, BuiltIn: false},
@@ -1955,6 +2308,41 @@ func (ec *executionContext) _BigQuery_schema(ctx context.Context, field graphql.
 	return ec.marshalNTableColumn2ᚕᚖgithubᚗcomᚋnaviktᚋnadaᚑbackendᚋpkgᚋgraphᚋmodelsᚐTableColumnᚄ(ctx, field.Selections, res)
 }
 
+func (ec *executionContext) _BigQueryTable_name(ctx context.Context, field graphql.CollectedField, obj *models.BigQueryTable) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "BigQueryTable",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   false,
+		IsResolver: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Name, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(string)
+	fc.Result = res
+	return ec.marshalNString2string(ctx, field.Selections, res)
+}
+
 func (ec *executionContext) _BigQueryTable_description(ctx context.Context, field graphql.CollectedField, obj *models.BigQueryTable) (ret graphql.Marshaler) {
 	defer func() {
 		if r := recover(); r != nil {
@@ -2023,41 +2411,6 @@ func (ec *executionContext) _BigQueryTable_lastModified(ctx context.Context, fie
 	res := resTmp.(time.Time)
 	fc.Result = res
 	return ec.marshalNTime2timeᚐTime(ctx, field.Selections, res)
-}
-
-func (ec *executionContext) _BigQueryTable_name(ctx context.Context, field graphql.CollectedField, obj *models.BigQueryTable) (ret graphql.Marshaler) {
-	defer func() {
-		if r := recover(); r != nil {
-			ec.Error(ctx, ec.Recover(ctx, r))
-			ret = graphql.Null
-		}
-	}()
-	fc := &graphql.FieldContext{
-		Object:     "BigQueryTable",
-		Field:      field,
-		Args:       nil,
-		IsMethod:   false,
-		IsResolver: false,
-	}
-
-	ctx = graphql.WithFieldContext(ctx, fc)
-	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
-		ctx = rctx // use context from middleware stack in children
-		return obj.Name, nil
-	})
-	if err != nil {
-		ec.Error(ctx, err)
-		return graphql.Null
-	}
-	if resTmp == nil {
-		if !graphql.HasFieldError(ctx, fc) {
-			ec.Errorf(ctx, "must not be null")
-		}
-		return graphql.Null
-	}
-	res := resTmp.(string)
-	fc.Result = res
-	return ec.marshalNString2string(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _BigQueryTable_type(ctx context.Context, field graphql.CollectedField, obj *models.BigQueryTable) (ret graphql.Marshaler) {
@@ -6201,6 +6554,11 @@ func (ec *executionContext) _BigQueryTable(ctx context.Context, sel ast.Selectio
 		switch field.Name {
 		case "__typename":
 			out.Values[i] = graphql.MarshalString("BigQueryTable")
+		case "name":
+			out.Values[i] = ec._BigQueryTable_name(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
 		case "description":
 			out.Values[i] = ec._BigQueryTable_description(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
@@ -6208,11 +6566,6 @@ func (ec *executionContext) _BigQueryTable(ctx context.Context, sel ast.Selectio
 			}
 		case "lastModified":
 			out.Values[i] = ec._BigQueryTable_lastModified(ctx, field, obj)
-			if out.Values[i] == graphql.Null {
-				invalids++
-			}
-		case "name":
-			out.Values[i] = ec._BigQueryTable_name(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
 				invalids++
 			}
