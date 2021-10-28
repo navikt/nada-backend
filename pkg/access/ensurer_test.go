@@ -3,7 +3,6 @@ package access
 import (
 	"context"
 	"testing"
-	"time"
 
 	"github.com/google/uuid"
 	"github.com/navikt/nada-backend/pkg/graph/models"
@@ -17,11 +16,9 @@ var expired = []*models.Access{
 }
 
 func TestEnsurer(t *testing.T) {
-	ctx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
-	defer cancel()
 	am := &MockAM{}
 	repo := &MockRepo{}
-	NewEnsurer(repo, am, logrus.StandardLogger().WithField("", "")).Run(ctx, 5*time.Minute)
+	NewEnsurer(repo, am, logrus.StandardLogger().WithField("", "")).run(context.Background())
 
 	if repo.NGetUnrevokedExpiredAccess != 1 {
 		t.Errorf("got: %v, want: %v", repo.NGetUnrevokedExpiredAccess, 1)
@@ -60,9 +57,6 @@ type MockAM struct {
 	NRevoke int
 }
 
-func (a *MockAM) Grant(ctx context.Context, projectID, dataset, table, member string) error {
-	return nil
-}
 func (a *MockAM) Revoke(ctx context.Context, projectID, dataset, table, member string) error {
 	a.NRevoke++
 	return nil
