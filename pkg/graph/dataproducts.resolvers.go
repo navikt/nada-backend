@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"time"
 
+	"cloud.google.com/go/bigquery"
 	"github.com/google/uuid"
 	"github.com/navikt/nada-backend/pkg/auth"
 	"github.com/navikt/nada-backend/pkg/database/gensql"
@@ -43,9 +44,20 @@ func (r *mutationResolver) CreateDataproduct(ctx context.Context, input models.N
 		return nil, err
 	}
 
-	if !(r.gcp.TableExists(ctx, input.BigQuery.ProjectID, input.BigQuery.Dataset, input.BigQuery.Table)) {
+	metadata, err := r.gcp.TableMetadata(ctx, input.BigQuery.ProjectID, input.BigQuery.Dataset, input.BigQuery.Table)
+	if err != nil {
 		return nil, fmt.Errorf("trying to create table %v, but it does not exist in %v.%v",
 			input.BigQuery.Table, input.BigQuery.ProjectID, input.BigQuery.Dataset)
+	}
+
+	switch metadata.Type {
+	case bigquery.RegularTable:
+	case bigquery.ViewTable:
+		if err := r.accessMgr.AddToAuthorizedViews(ctx, input.BigQuery.ProjectID, input.BigQuery.Dataset, input.BigQuery.Table); err != nil {
+			return nil, err
+		}
+	default:
+		return nil, fmt.Errorf("unsupported table type: %v", metadata.Type)
 	}
 
 	dp, err := r.repo.CreateDataproduct(ctx, input)
@@ -53,19 +65,14 @@ func (r *mutationResolver) CreateDataproduct(ctx context.Context, input models.N
 		return nil, err
 	}
 
-	ds, err := r.repo.GetBigqueryDatasource(ctx, dp.ID)
-	if err != nil {
-		return nil, err
-	}
-
 	err = r.schemaUpdater.UpdateSchema(ctx, gensql.DatasourceBigquery{
 		DataproductID: dp.ID,
-		ProjectID:     ds.ProjectID,
-		Dataset:       ds.Dataset,
-		TableName:     ds.Table,
+		ProjectID:     input.BigQuery.ProjectID,
+		Dataset:       input.BigQuery.Dataset,
+		TableName:     input.BigQuery.Table,
 	})
 	if err != nil {
-		r.log.WithError(err).Errorf("Getting BigQuery schema for table %v.%v.%v", ds.ProjectID, ds.Dataset, ds.Table)
+		r.log.WithError(err).Errorf("Getting BigQuery schema for table %v.%v.%v", input.BigQuery.ProjectID, input.BigQuery.Dataset, input.BigQuery.Table)
 	}
 
 	return dp, nil

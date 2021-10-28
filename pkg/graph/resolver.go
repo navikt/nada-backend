@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 
+	"cloud.google.com/go/bigquery"
 	"github.com/99designs/gqlgen-contrib/prometheus"
 	"github.com/sirupsen/logrus"
 
@@ -22,12 +23,13 @@ var ErrUnauthorized = fmt.Errorf("unauthorized")
 type GCP interface {
 	GetTables(ctx context.Context, projectID, datasetID string) ([]*models.BigQueryTable, error)
 	GetDatasets(ctx context.Context, projectID string) ([]string, error)
-	TableExists(ctx context.Context, projectID string, datasetID string, tableID string) bool
+	TableMetadata(ctx context.Context, projectID string, datasetID string, tableID string) (*bigquery.TableMetadata, error)
 }
 
 type AccessManager interface {
 	Grant(ctx context.Context, projectID, dataset, table, member string) error
 	Revoke(ctx context.Context, projectID, dataset, table, member string) error
+	AddToAuthorizedViews(ctx context.Context, projectID, dataset, table string) error
 }
 
 type SchemaUpdater interface {

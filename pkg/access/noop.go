@@ -19,3 +19,7 @@ func (a Noop) Revoke(ctx context.Context, projectID, datasetID, tableID, member 
 func (a Noop) HasAccess(ctx context.Context, projectID, datasetID, tableID, member string) (bool, error) {
 	return true, nil
 }
+
+func (a Noop) AddToAuthorizedViews(ctx context.Context, projectID, dataset, table string) error {
+	return nil
+}

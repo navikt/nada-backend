@@ -10,6 +10,7 @@ import (
 	"os"
 	"testing"
 
+	"cloud.google.com/go/bigquery"
 	"github.com/navikt/nada-backend/pkg/access"
 	"github.com/navikt/nada-backend/pkg/api"
 	"github.com/navikt/nada-backend/pkg/auth"
@@ -71,8 +72,8 @@ func TestMain(m *testing.M) {
 
 type mockGCP struct{}
 
-func (m *mockGCP) TableExists(ctx context.Context, projectID string, datasetID string, tableID string) bool {
-	return true
+func (m *mockGCP) TableMetadata(ctx context.Context, projectID string, datasetID string, tableID string) (*bigquery.TableMetadata, error) {
+	return &bigquery.TableMetadata{Type: bigquery.ViewTable}, nil
 }
 
 func (m *mockGCP) GetTables(ctx context.Context, projectID, datasetID string) ([]*models.BigQueryTable, error) {
