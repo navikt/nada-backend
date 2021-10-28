@@ -11,7 +11,7 @@ import (
 
 type Ensurer struct {
 	repo Repo
-	am   AccessManager
+	r    Revoker
 	log  *logrus.Entry
 }
 
@@ -20,14 +20,14 @@ type Repo interface {
 	GetBigqueryDatasource(ctx context.Context, dataproductID uuid.UUID) (models.BigQuery, error)
 	GetUnrevokedExpiredAccess(ctx context.Context) ([]*models.Access, error)
 }
-type AccessManager interface {
+type Revoker interface {
 	Revoke(ctx context.Context, projectID, dataset, table, member string) error
 }
 
-func NewEnsurer(repo Repo, am AccessManager, log *logrus.Entry) *Ensurer {
+func NewEnsurer(repo Repo, r Revoker, log *logrus.Entry) *Ensurer {
 	return &Ensurer{
 		repo: repo,
-		am:   am,
+		r:    r,
 		log:  log,
 	}
 }
@@ -59,7 +59,7 @@ func (e *Ensurer) run(ctx context.Context) {
 			//TODO(jhrv): bump error metric
 			continue
 		}
-		if err := e.am.Revoke(ctx, ds.ProjectID, ds.Dataset, ds.Table, entry.Subject); err != nil {
+		if err := e.r.Revoke(ctx, ds.ProjectID, ds.Dataset, ds.Table, entry.Subject); err != nil {
 			e.log.WithError(err).Errorf("Revoking IAM access for %v on %v.%v.%v", entry.Subject, ds.ProjectID, ds.Dataset, ds.Table)
 			//TODO(jhrv): bump error metric
 			continue
