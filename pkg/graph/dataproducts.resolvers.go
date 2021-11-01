@@ -6,6 +6,7 @@ package graph
 import (
 	"context"
 	"fmt"
+	"strings"
 	"time"
 
 	"cloud.google.com/go/bigquery"
@@ -29,10 +30,26 @@ func (r *dataproductResolver) Requesters(ctx context.Context, obj *models.Datapr
 }
 
 func (r *dataproductResolver) Access(ctx context.Context, obj *models.Dataproduct) ([]*models.Access, error) {
-	if err := ensureUserInGroup(ctx, obj.Owner.Group); err != nil {
+	all, err := r.repo.ListAccessToDataproduct(ctx, obj.ID)
+	if err != nil {
 		return nil, err
 	}
-	return r.repo.ListAccessToDataproduct(ctx, obj.ID)
+
+	user := auth.GetUser(ctx)
+	if user.Groups.Contains(obj.Owner.Group) {
+		return all, nil
+	}
+
+	ret := []*models.Access{}
+	for _, a := range all {
+		if a.Subject == "user:"+user.Email {
+			ret = append(ret, a)
+		} else if strings.HasPrefix(a.Subject, "group:") && user.Groups.Contains(strings.TrimPrefix(a.Subject, "group:")) {
+			ret = append(ret, a)
+		}
+	}
+
+	return ret, nil
 }
 
 func (r *mutationResolver) CreateDataproduct(ctx context.Context, input models.NewDataproduct) (*models.Dataproduct, error) {
