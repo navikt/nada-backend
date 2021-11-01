@@ -61,16 +61,26 @@ FROM datasource_bigquery;
 INSERT INTO datasource_bigquery ("dataproduct_id",
                                  "project_id",
                                  "dataset",
-                                 "table_name")
+                                 "table_name",
+                                 "schema",
+                                 "last_modified",
+                                 "created",
+                                 "expires",
+                                 "table_type")
 VALUES (@dataproduct_id,
         @project_id,
         @dataset,
-        @table_name)
+        @table_name,
+        @schema,
+        @last_modified,
+        @created,
+        @expires,
+        @table_type)
 RETURNING *;
 
 -- name: UpdateBigqueryDatasourceSchema :exec
 UPDATE datasource_bigquery
-SET "schema" = @schema
+SET "schema" = @schema, "last_modified" = @last_modified, "expires" = @expires
 WHERE dataproduct_id = @dataproduct_id;
 
 -- name: GetDataproductRequesters :many

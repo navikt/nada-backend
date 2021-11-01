@@ -56,6 +56,7 @@ type NewDataproduct struct {
 	Group       string      `json:"group"`
 	BigQuery    NewBigQuery `json:"bigquery"`
 	Requesters  []string    `json:"requesters"`
+	Metadata    BigqueryMetadata
 }
 
 type UpdateDataproduct struct {

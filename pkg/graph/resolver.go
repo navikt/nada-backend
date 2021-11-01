@@ -4,26 +4,22 @@ import (
 	"context"
 	"fmt"
 
-	"cloud.google.com/go/bigquery"
 	"github.com/99designs/gqlgen-contrib/prometheus"
-	"github.com/sirupsen/logrus"
-
 	"github.com/99designs/gqlgen/graphql"
 	"github.com/99designs/gqlgen/graphql/handler"
-
 	"github.com/navikt/nada-backend/pkg/auth"
 	"github.com/navikt/nada-backend/pkg/database"
-	"github.com/navikt/nada-backend/pkg/database/gensql"
 	"github.com/navikt/nada-backend/pkg/graph/generated"
 	"github.com/navikt/nada-backend/pkg/graph/models"
+	"github.com/sirupsen/logrus"
 )
 
 var ErrUnauthorized = fmt.Errorf("unauthorized")
 
-type GCP interface {
+type Bigquery interface {
 	GetTables(ctx context.Context, projectID, datasetID string) ([]*models.BigQueryTable, error)
 	GetDatasets(ctx context.Context, projectID string) ([]string, error)
-	TableMetadata(ctx context.Context, projectID string, datasetID string, tableID string) (*bigquery.TableMetadata, error)
+	TableMetadata(ctx context.Context, projectID string, datasetID string, tableID string) (models.BigqueryMetadata, error)
 }
 
 type AccessManager interface {
@@ -32,27 +28,21 @@ type AccessManager interface {
 	AddToAuthorizedViews(ctx context.Context, projectID, dataset, table string) error
 }
 
-type SchemaUpdater interface {
-	UpdateSchema(ctx context.Context, ds gensql.DatasourceBigquery) error
-}
-
 type Resolver struct {
-	repo          *database.Repo
-	gcp           GCP
-	gcpProjects   *auth.TeamProjectsUpdater
-	accessMgr     AccessManager
-	schemaUpdater SchemaUpdater
-	log           *logrus.Entry
+	repo        *database.Repo
+	bigquery    Bigquery
+	gcpProjects *auth.TeamProjectsUpdater
+	accessMgr   AccessManager
+	log         *logrus.Entry
 }
 
-func New(repo *database.Repo, gcp GCP, gcpProjects *auth.TeamProjectsUpdater, accessMgr AccessManager, schemaUpdater SchemaUpdater, log *logrus.Entry) *handler.Server {
+func New(repo *database.Repo, gcp Bigquery, gcpProjects *auth.TeamProjectsUpdater, accessMgr AccessManager, log *logrus.Entry) *handler.Server {
 	resolver := &Resolver{
-		repo:          repo,
-		gcp:           gcp,
-		gcpProjects:   gcpProjects,
-		accessMgr:     accessMgr,
-		schemaUpdater: schemaUpdater,
-		log:           log,
+		repo:        repo,
+		bigquery:    gcp,
+		gcpProjects: gcpProjects,
+		accessMgr:   accessMgr,
+		log:         log,
 	}
 
 	config := generated.Config{Resolvers: resolver}

@@ -17,11 +17,10 @@ import (
 
 func New(
 	repo *database.Repo,
-	gcp graph.GCP,
+	gcp graph.Bigquery,
 	oauth2 OAuth2,
 	gcpProjects *auth.TeamProjectsUpdater,
 	accessMgr graph.AccessManager,
-	schemaUpdater graph.SchemaUpdater,
 	authMW auth.MiddlewareHandler,
 	promReg *prometheus.Registry,
 	log *logrus.Logger,
@@ -34,7 +33,7 @@ func New(
 
 	httpAPI := new(oauth2, log.WithField("subsystem", "api"))
 
-	gqlServer := graph.New(repo, gcp, gcpProjects, accessMgr, schemaUpdater, log.WithField("subsystem", "graph"))
+	gqlServer := graph.New(repo, gcp, gcpProjects, accessMgr, log.WithField("subsystem", "graph"))
 
 	router := chi.NewRouter()
 	router.Use(corsMW)

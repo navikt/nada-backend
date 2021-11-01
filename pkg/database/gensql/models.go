@@ -83,6 +83,10 @@ type DatasourceBigquery struct {
 	Dataset       string
 	TableName     string
 	Schema        pqtype.NullRawMessage
+	LastModified  time.Time
+	Created       time.Time
+	Expires       sql.NullTime
+	TableType     string
 }
 
 type Search struct {

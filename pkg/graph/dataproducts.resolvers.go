@@ -12,7 +12,6 @@ import (
 	"cloud.google.com/go/bigquery"
 	"github.com/google/uuid"
 	"github.com/navikt/nada-backend/pkg/auth"
-	"github.com/navikt/nada-backend/pkg/database/gensql"
 	"github.com/navikt/nada-backend/pkg/graph/generated"
 	"github.com/navikt/nada-backend/pkg/graph/models"
 )
@@ -61,35 +60,25 @@ func (r *mutationResolver) CreateDataproduct(ctx context.Context, input models.N
 		return nil, err
 	}
 
-	metadata, err := r.gcp.TableMetadata(ctx, input.BigQuery.ProjectID, input.BigQuery.Dataset, input.BigQuery.Table)
+	metadata, err := r.bigquery.TableMetadata(ctx, input.BigQuery.ProjectID, input.BigQuery.Dataset, input.BigQuery.Table)
 	if err != nil {
 		return nil, fmt.Errorf("trying to create table %v, but it does not exist in %v.%v",
 			input.BigQuery.Table, input.BigQuery.ProjectID, input.BigQuery.Dataset)
 	}
 
-	switch metadata.Type {
+	switch metadata.TableType {
 	case bigquery.RegularTable:
 	case bigquery.ViewTable:
 		if err := r.accessMgr.AddToAuthorizedViews(ctx, input.BigQuery.ProjectID, input.BigQuery.Dataset, input.BigQuery.Table); err != nil {
 			return nil, err
 		}
 	default:
-		return nil, fmt.Errorf("unsupported table type: %v", metadata.Type)
+		return nil, fmt.Errorf("unsupported table type: %v", metadata.TableType)
 	}
 
 	dp, err := r.repo.CreateDataproduct(ctx, input)
 	if err != nil {
 		return nil, err
-	}
-
-	err = r.schemaUpdater.UpdateSchema(ctx, gensql.DatasourceBigquery{
-		DataproductID: dp.ID,
-		ProjectID:     input.BigQuery.ProjectID,
-		Dataset:       input.BigQuery.Dataset,
-		TableName:     input.BigQuery.Table,
-	})
-	if err != nil {
-		r.log.WithError(err).Errorf("Getting BigQuery schema for table %v.%v.%v", input.BigQuery.ProjectID, input.BigQuery.Dataset, input.BigQuery.Table)
 	}
 
 	return dp, nil
@@ -221,5 +210,7 @@ func (r *Resolver) BigQuery() generated.BigQueryResolver { return &bigQueryResol
 // Dataproduct returns generated.DataproductResolver implementation.
 func (r *Resolver) Dataproduct() generated.DataproductResolver { return &dataproductResolver{r} }
 
-type bigQueryResolver struct{ *Resolver }
-type dataproductResolver struct{ *Resolver }
+type (
+	bigQueryResolver    struct{ *Resolver }
+	dataproductResolver struct{ *Resolver }
+)

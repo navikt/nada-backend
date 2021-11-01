@@ -10,9 +10,9 @@ import (
 )
 
 func (r *queryResolver) GcpGetTables(ctx context.Context, projectID string, datasetID string) ([]*models.BigQueryTable, error) {
-	return r.gcp.GetTables(ctx, projectID, datasetID)
+	return r.bigquery.GetTables(ctx, projectID, datasetID)
 }
 
 func (r *queryResolver) GcpGetDatasets(ctx context.Context, projectID string) ([]string, error) {
-	return r.gcp.GetDatasets(ctx, projectID)
+	return r.bigquery.GetDatasets(ctx, projectID)
 }

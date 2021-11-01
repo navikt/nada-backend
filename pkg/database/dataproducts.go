@@ -2,8 +2,10 @@ package database
 
 import (
 	"context"
+	"database/sql"
 	"encoding/json"
 	"fmt"
+	"time"
 
 	"github.com/google/uuid"
 	"github.com/navikt/nada-backend/pkg/database/gensql"
@@ -60,11 +62,21 @@ func (r *Repo) CreateDataproduct(ctx context.Context, dp models.NewDataproduct) 
 		return nil, err
 	}
 
+	schemaJSON, err := json.Marshal(dp.Metadata.Schema.Columns)
+	if err != nil {
+		return nil, fmt.Errorf("marshalling schema: %w", err)
+	}
+
 	_, err = querier.CreateBigqueryDatasource(ctx, gensql.CreateBigqueryDatasourceParams{
 		DataproductID: created.ID,
 		ProjectID:     dp.BigQuery.ProjectID,
 		Dataset:       dp.BigQuery.Dataset,
 		TableName:     dp.BigQuery.Table,
+		Schema:        pqtype.NullRawMessage{RawMessage: schemaJSON, Valid: len(schemaJSON) > 4},
+		LastModified:  dp.Metadata.LastModified,
+		Created:       dp.Metadata.Created,
+		Expires:       sql.NullTime{Time: dp.Metadata.Expires, Valid: !dp.Metadata.Expires.IsZero()},
+		TableType:     string(dp.Metadata.TableType),
 	})
 	if err != nil {
 		if err := tx.Rollback(); err != nil {
@@ -140,13 +152,15 @@ func (r *Repo) GetBigqueryDatasource(ctx context.Context, dataproductID uuid.UUI
 	}, nil
 }
 
-func (r *Repo) UpdateBigqueryDatasource(ctx context.Context, id uuid.UUID, schema json.RawMessage) error {
+func (r *Repo) UpdateBigqueryDatasource(ctx context.Context, id uuid.UUID, schema json.RawMessage, lastModified, expires time.Time) error {
 	err := r.querier.UpdateBigqueryDatasourceSchema(ctx, gensql.UpdateBigqueryDatasourceSchemaParams{
 		DataproductID: id,
 		Schema: pqtype.NullRawMessage{
 			RawMessage: schema,
 			Valid:      true,
 		},
+		LastModified: lastModified,
+		Expires:      sql.NullTime{Time: expires, Valid: !expires.IsZero()},
 	})
 	if err != nil {
 		return fmt.Errorf("updating datasource_bigquery schema: %w", err)

@@ -9,7 +9,7 @@ import (
 	"time"
 
 	"github.com/coreos/go-oidc/v3/oidc"
-	"github.com/navikt/nada-backend/pkg/metadata"
+	"github.com/navikt/nada-backend/pkg/bigquery"
 	"github.com/sirupsen/logrus"
 )
 
@@ -20,7 +20,7 @@ const contextUserKey contextKey = 1
 type User struct {
 	Name        string `json:"name"`
 	Email       string `json:"email"`
-	Groups      metadata.Groups
+	Groups      bigquery.Groups
 	AccessToken string `json:"-"`
 }
 
@@ -33,11 +33,11 @@ func GetUser(ctx context.Context) *User {
 }
 
 type GroupsLister interface {
-	GroupsForUser(ctx context.Context, email string) (groups metadata.Groups, err error)
+	GroupsForUser(ctx context.Context, email string) (groups bigquery.Groups, err error)
 }
 
 type groupsCacheValue struct {
-	Groups  metadata.Groups
+	Groups  bigquery.Groups
 	Expires time.Time
 }
 
@@ -46,7 +46,7 @@ type groupsCacher struct {
 	cache map[string]groupsCacheValue
 }
 
-func (g *groupsCacher) Get(email string) ([]metadata.Group, bool) {
+func (g *groupsCacher) Get(email string) ([]bigquery.Group, bool) {
 	g.lock.RLock()
 	defer g.lock.RUnlock()
 
@@ -60,7 +60,7 @@ func (g *groupsCacher) Get(email string) ([]metadata.Group, bool) {
 	return v.Groups, true
 }
 
-func (g *groupsCacher) Set(email string, groups []metadata.Group) {
+func (g *groupsCacher) Set(email string, groups []bigquery.Group) {
 	g.lock.Lock()
 	defer g.lock.Unlock()
 	g.cache[email] = groupsCacheValue{

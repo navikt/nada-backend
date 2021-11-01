@@ -4,13 +4,13 @@ import (
 	"context"
 	"net/http"
 
-	"github.com/navikt/nada-backend/pkg/metadata"
+	"github.com/navikt/nada-backend/pkg/bigquery"
 )
 
 var MockUser = User{
 	Name:  "Anderson, Mock",
 	Email: "mock.anderson@email.com",
-	Groups: metadata.Groups{
+	Groups: bigquery.Groups{
 		{
 			Name:  "team",
 			Email: "team@nav.no",

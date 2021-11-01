@@ -13,10 +13,10 @@ import (
 	"github.com/navikt/nada-backend/pkg/access"
 	"github.com/navikt/nada-backend/pkg/api"
 	"github.com/navikt/nada-backend/pkg/auth"
+	"github.com/navikt/nada-backend/pkg/bigquery"
 	"github.com/navikt/nada-backend/pkg/database"
 	"github.com/navikt/nada-backend/pkg/database/gensql"
 	"github.com/navikt/nada-backend/pkg/graph"
-	"github.com/navikt/nada-backend/pkg/metadata"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/sirupsen/logrus"
 	flag "github.com/spf13/pflag"
@@ -33,7 +33,7 @@ var (
 
 const (
 	TeamProjectsUpdateFrequency    = 5 * time.Minute
-	DatasetMetadataUpdateFrequency = 5 * time.Minute
+	DatasetMetadataUpdateFrequency = 1 * time.Hour
 	AccessEnsurerFrequency         = 5 * time.Minute
 )
 
@@ -76,7 +76,7 @@ func main() {
 		teamProjectsMapping = auth.NewTeamProjectsUpdater(cfg.DevTeamProjectsOutputURL, cfg.ProdTeamProjectsOutputURL, cfg.TeamsToken, http.DefaultClient)
 		go teamProjectsMapping.Run(ctx, TeamProjectsUpdateFrequency)
 
-		googleGroups, err := metadata.NewGoogleGroups(ctx, cfg.ServiceAccountFile, cfg.GoogleAdminImpersonationSubject, log.WithField("subsystem", "googlegroups"))
+		googleGroups, err := bigquery.NewGoogleGroups(ctx, cfg.ServiceAccountFile, cfg.GoogleAdminImpersonationSubject, log.WithField("subsystem", "googlegroups"))
 		if err != nil {
 			log.Fatal(err)
 		}
@@ -89,22 +89,20 @@ func main() {
 
 	go access.NewEnsurer(repo, accessMgr, promErrs, log.WithField("subsystem", "accessensurer")).Run(ctx, AccessEnsurerFrequency)
 
-	var gcp graph.GCP
-	var datasetEnricher graph.SchemaUpdater = &noopDatasetEnricher{}
+	var gcp graph.Bigquery
 	if !cfg.SkipMetadataSync {
-		datacatalogClient, err := metadata.NewDatacatalog(ctx)
+		datacatalogClient, err := bigquery.New(ctx)
 		if err != nil {
 			log.WithError(err).Fatal("Creating datacatalog client")
 		}
 
 		gcp = datacatalogClient
-		de := metadata.New(datacatalogClient, repo, log.WithField("subsystem", "datasetenricher"))
-		datasetEnricher = de
+		de := bigquery.NewDatasetEnricher(datacatalogClient, repo, log.WithField("subsystem", "datasetenricher"))
 		go de.Run(ctx, DatasetMetadataUpdateFrequency)
 	}
 
 	log.Info("Listening on :8080")
-	srv := api.New(repo, gcp, oauth2Config, teamProjectsMapping, accessMgr, datasetEnricher, authenticatorMiddleware, prom(promErrs, repo.Metrics()), log)
+	srv := api.New(repo, gcp, oauth2Config, teamProjectsMapping, accessMgr, authenticatorMiddleware, prom(promErrs, repo.Metrics()), log)
 
 	server := http.Server{
 		Addr:    cfg.BindAddress,
