@@ -62,10 +62,14 @@ type ComplexityRoot struct {
 	}
 
 	BigQuery struct {
-		Dataset   func(childComplexity int) int
-		ProjectID func(childComplexity int) int
-		Schema    func(childComplexity int) int
-		Table     func(childComplexity int) int
+		Created      func(childComplexity int) int
+		Dataset      func(childComplexity int) int
+		Expired      func(childComplexity int) int
+		LastModified func(childComplexity int) int
+		ProjectID    func(childComplexity int) int
+		Schema       func(childComplexity int) int
+		Table        func(childComplexity int) int
+		TableType    func(childComplexity int) int
 	}
 
 	BigQueryTable struct {
@@ -161,6 +165,8 @@ type ComplexityRoot struct {
 
 type BigQueryResolver interface {
 	Schema(ctx context.Context, obj *models.BigQuery) ([]*models.TableColumn, error)
+
+	Expired(ctx context.Context, obj *models.BigQuery) (*time.Time, error)
 }
 type CollectionResolver interface {
 	Elements(ctx context.Context, obj *models.Collection) ([]models.CollectionElement, error)
@@ -257,12 +263,33 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.Access.Subject(childComplexity), true
 
+	case "BigQuery.created":
+		if e.complexity.BigQuery.Created == nil {
+			break
+		}
+
+		return e.complexity.BigQuery.Created(childComplexity), true
+
 	case "BigQuery.dataset":
 		if e.complexity.BigQuery.Dataset == nil {
 			break
 		}
 
 		return e.complexity.BigQuery.Dataset(childComplexity), true
+
+	case "BigQuery.expired":
+		if e.complexity.BigQuery.Expired == nil {
+			break
+		}
+
+		return e.complexity.BigQuery.Expired(childComplexity), true
+
+	case "BigQuery.lastModified":
+		if e.complexity.BigQuery.LastModified == nil {
+			break
+		}
+
+		return e.complexity.BigQuery.LastModified(childComplexity), true
 
 	case "BigQuery.projectID":
 		if e.complexity.BigQuery.ProjectID == nil {
@@ -284,6 +311,13 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 		}
 
 		return e.complexity.BigQuery.Table(childComplexity), true
+
+	case "BigQuery.tableType":
+		if e.complexity.BigQuery.TableType == nil {
+			break
+		}
+
+		return e.complexity.BigQuery.TableType(childComplexity), true
 
 	case "BigQueryTable.description":
 		if e.complexity.BigQueryTable.Description == nil {
@@ -1093,6 +1127,14 @@ type BigQuery @goModel(model: "github.com/navikt/nada-backend/pkg/graph/models.B
     table: String!
     "schema for the BigQuery table"
     schema: [TableColumn!]!
+    "lastModified is the time when the table was last modified"
+    lastModified: Time!
+    "created is when the table was created"
+    created: Time!
+    "expired, if set, is when the table expires"
+    expired: Time
+    "tableType is what type the table is"
+    tableType: BigQueryType!
 }
 
 """
@@ -2306,6 +2348,143 @@ func (ec *executionContext) _BigQuery_schema(ctx context.Context, field graphql.
 	res := resTmp.([]*models.TableColumn)
 	fc.Result = res
 	return ec.marshalNTableColumn2ᚕᚖgithubᚗcomᚋnaviktᚋnadaᚑbackendᚋpkgᚋgraphᚋmodelsᚐTableColumnᚄ(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _BigQuery_lastModified(ctx context.Context, field graphql.CollectedField, obj *models.BigQuery) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "BigQuery",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   false,
+		IsResolver: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.LastModified, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(time.Time)
+	fc.Result = res
+	return ec.marshalNTime2timeᚐTime(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _BigQuery_created(ctx context.Context, field graphql.CollectedField, obj *models.BigQuery) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "BigQuery",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   false,
+		IsResolver: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Created, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(time.Time)
+	fc.Result = res
+	return ec.marshalNTime2timeᚐTime(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _BigQuery_expired(ctx context.Context, field graphql.CollectedField, obj *models.BigQuery) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "BigQuery",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   true,
+		IsResolver: true,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.BigQuery().Expired(rctx, obj)
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		return graphql.Null
+	}
+	res := resTmp.(*time.Time)
+	fc.Result = res
+	return ec.marshalOTime2ᚖtimeᚐTime(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _BigQuery_tableType(ctx context.Context, field graphql.CollectedField, obj *models.BigQuery) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "BigQuery",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   false,
+		IsResolver: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.TableType, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(models.BigQueryType)
+	fc.Result = res
+	return ec.marshalNBigQueryType2githubᚗcomᚋnaviktᚋnadaᚑbackendᚋpkgᚋgraphᚋmodelsᚐBigQueryType(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _BigQueryTable_name(ctx context.Context, field graphql.CollectedField, obj *models.BigQueryTable) (ret graphql.Marshaler) {
@@ -6532,6 +6711,32 @@ func (ec *executionContext) _BigQuery(ctx context.Context, sel ast.SelectionSet,
 				}
 				return res
 			})
+		case "lastModified":
+			out.Values[i] = ec._BigQuery_lastModified(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				atomic.AddUint32(&invalids, 1)
+			}
+		case "created":
+			out.Values[i] = ec._BigQuery_created(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				atomic.AddUint32(&invalids, 1)
+			}
+		case "expired":
+			field := field
+			out.Concurrently(i, func() (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._BigQuery_expired(ctx, field, obj)
+				return res
+			})
+		case "tableType":
+			out.Values[i] = ec._BigQuery_tableType(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				atomic.AddUint32(&invalids, 1)
+			}
 		default:
 			panic("unknown field " + strconv.Quote(field.Name))
 		}

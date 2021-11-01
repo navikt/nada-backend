@@ -16,12 +16,10 @@ require (
 	github.com/spf13/pflag v1.0.5
 	github.com/stretchr/testify v1.7.0
 	golang.org/x/oauth2 v0.0.0-20210819190943-2bc19b11175f
-	google.golang.org/genproto v0.0.0-20210921142501-181ce0d877f6
 )
 
 require (
 	cloud.google.com/go v0.94.1
-	cloud.google.com/go/datacatalog v1.0.0
 	github.com/99designs/gqlgen v0.14.0
 	github.com/Azure/go-ansiterm v0.0.0-20170929234023-d6e3b3328b78 // indirect
 	github.com/Microsoft/go-winio v0.5.0 // indirect
@@ -79,4 +77,9 @@ require (
 	github.com/hashicorp/golang-lru v0.5.1 // indirect
 	github.com/qustavo/sqlhooks/v2 v2.1.0
 	gopkg.in/square/go-jose.v2 v2.5.1 // indirect
+)
+
+require (
+	cloud.google.com/go/datacatalog v1.0.0 // indirect
+	google.golang.org/genproto v0.0.0-20210921142501-181ce0d877f6 // indirect
 )

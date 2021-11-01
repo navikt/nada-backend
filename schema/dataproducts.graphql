@@ -64,6 +64,14 @@ type BigQuery @goModel(model: "github.com/navikt/nada-backend/pkg/graph/models.B
     table: String!
     "schema for the BigQuery table"
     schema: [TableColumn!]!
+    "lastModified is the time when the table was last modified"
+    lastModified: Time!
+    "created is when the table was created"
+    created: Time!
+    "expired, if set, is when the table expires"
+    expired: Time
+    "tableType is what type the table is"
+    tableType: BigQueryType!
 }
 
 """

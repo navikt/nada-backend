@@ -20,6 +20,10 @@ func (r *bigQueryResolver) Schema(ctx context.Context, obj *models.BigQuery) ([]
 	return r.repo.GetDataproductMetadata(ctx, obj.DataproductID)
 }
 
+func (r *bigQueryResolver) Expired(ctx context.Context, obj *models.BigQuery) (*time.Time, error) {
+	panic(fmt.Errorf("not implemented"))
+}
+
 func (r *dataproductResolver) Datasource(ctx context.Context, obj *models.Dataproduct) (models.Datasource, error) {
 	return r.repo.GetBigqueryDatasource(ctx, obj.ID)
 }
@@ -76,6 +80,7 @@ func (r *mutationResolver) CreateDataproduct(ctx context.Context, input models.N
 		return nil, fmt.Errorf("unsupported table type: %v", metadata.TableType)
 	}
 
+	input.Metadata = metadata
 	dp, err := r.repo.CreateDataproduct(ctx, input)
 	if err != nil {
 		return nil, err

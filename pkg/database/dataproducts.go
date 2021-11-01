@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"encoding/json"
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/google/uuid"
@@ -149,6 +150,10 @@ func (r *Repo) GetBigqueryDatasource(ctx context.Context, dataproductID uuid.UUI
 		ProjectID:     bq.ProjectID,
 		Dataset:       bq.Dataset,
 		Table:         bq.TableName,
+		TableType:     models.BigQueryType(strings.ToLower(bq.TableType)),
+		LastModified:  bq.LastModified,
+		Created:       bq.Created,
+		Expires:       nullTimeToPtr(bq.Expires),
 	}, nil
 }
 
