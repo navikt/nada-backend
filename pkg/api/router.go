@@ -1,6 +1,9 @@
 package api
 
 import (
+	"net/http"
+	"os"
+
 	"github.com/99designs/gqlgen/graphql/playground"
 	"github.com/go-chi/chi"
 	"github.com/go-chi/cors"
@@ -44,6 +47,14 @@ func New(
 	})
 	router.Route("/internal", func(r chi.Router) {
 		r.Handle("/metrics", promhttp.HandlerFor(promReg, promhttp.HandlerOpts{}))
+	})
+	router.HandleFunc("/datapakke/*", func(w http.ResponseWriter, r *http.Request) {
+		host := "https://datapakker.dev.intern.nav.no"
+		if os.Getenv("NAIS_CLUSTER_NAME") == "prod-gcp" {
+			host = "https://datapakker.intern.nav.no"
+		}
+
+		http.Redirect(w, r, host+r.URL.Path, http.StatusPermanentRedirect)
 	})
 
 	return router

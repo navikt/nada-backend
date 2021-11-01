@@ -23,6 +23,7 @@ spec:
     path: /internal/metrics
   ingresses:
     - "https://nada.intern.nav.no/api"
+    - "https://nada.intern.nav.no/datapakke/"
   envFrom:
     - secret: impersonation-subject
     - secret: github-read-token
