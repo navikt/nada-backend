@@ -21,7 +21,8 @@ type User struct {
 	Name        string `json:"name"`
 	Email       string `json:"email"`
 	Groups      metadata.Groups
-	AccessToken string `json:"-"`
+	AccessToken string    `json:"-"`
+	Expiry      time.Time `json:"expiry"`
 }
 
 func GetUser(ctx context.Context) *User {
@@ -130,6 +131,7 @@ func (m *Middleware) validateUser(w http.ResponseWriter, r *http.Request) (*User
 
 	user := &User{
 		AccessToken: accessToken,
+		Expiry:      idToken.Expiry,
 	}
 	if err := idToken.Claims(user); err != nil {
 		return nil, fmt.Errorf("unable to decode claims: %w", err)

@@ -152,10 +152,11 @@ type ComplexityRoot struct {
 	}
 
 	UserInfo struct {
-		Email       func(childComplexity int) int
-		GCPProjects func(childComplexity int) int
-		Groups      func(childComplexity int) int
-		Name        func(childComplexity int) int
+		Email           func(childComplexity int) int
+		GCPProjects     func(childComplexity int) int
+		Groups          func(childComplexity int) int
+		LoginExpiration func(childComplexity int) int
+		Name            func(childComplexity int) int
 	}
 }
 
@@ -797,6 +798,13 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 		}
 
 		return e.complexity.UserInfo.Groups(childComplexity), true
+
+	case "UserInfo.loginExpiration":
+		if e.complexity.UserInfo.LoginExpiration == nil {
+			break
+		}
+
+		return e.complexity.UserInfo.LoginExpiration(childComplexity), true
 
 	case "UserInfo.name":
 		if e.complexity.UserInfo.Name == nil {
@@ -1444,6 +1452,8 @@ type UserInfo @goModel(model: "github.com/navikt/nada-backend/pkg/graph/models.U
 	groups: [Group!]!
 	"gcpProjects is GCP projects the user is a member of."
 	gcpProjects: [GCPProject!]!  @goField(name: "GCPProjects") @authenticated
+	"loginExpiration is when the token expires"
+	loginExpiration: Time!
 }
 
 """
@@ -4947,6 +4957,41 @@ func (ec *executionContext) _UserInfo_gcpProjects(ctx context.Context, field gra
 	return ec.marshalNGCPProject2ᚕᚖgithubᚗcomᚋnaviktᚋnadaᚑbackendᚋpkgᚋgraphᚋmodelsᚐGCPProjectᚄ(ctx, field.Selections, res)
 }
 
+func (ec *executionContext) _UserInfo_loginExpiration(ctx context.Context, field graphql.CollectedField, obj *models.UserInfo) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "UserInfo",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   false,
+		IsResolver: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.LoginExpiration, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(time.Time)
+	fc.Result = res
+	return ec.marshalNTime2timeᚐTime(ctx, field.Selections, res)
+}
+
 func (ec *executionContext) ___Directive_name(ctx context.Context, field graphql.CollectedField, obj *introspection.Directive) (ret graphql.Marshaler) {
 	defer func() {
 		if r := recover(); r != nil {
@@ -7178,6 +7223,11 @@ func (ec *executionContext) _UserInfo(ctx context.Context, sel ast.SelectionSet,
 				}
 				return res
 			})
+		case "loginExpiration":
+			out.Values[i] = ec._UserInfo_loginExpiration(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				atomic.AddUint32(&invalids, 1)
+			}
 		default:
 			panic("unknown field " + strconv.Quote(field.Name))
 		}
