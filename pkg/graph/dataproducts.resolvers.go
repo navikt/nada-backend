@@ -20,10 +20,6 @@ func (r *bigQueryResolver) Schema(ctx context.Context, obj *models.BigQuery) ([]
 	return r.repo.GetDataproductMetadata(ctx, obj.DataproductID)
 }
 
-func (r *bigQueryResolver) Expired(ctx context.Context, obj *models.BigQuery) (*time.Time, error) {
-	panic(fmt.Errorf("not implemented"))
-}
-
 func (r *dataproductResolver) Datasource(ctx context.Context, obj *models.Dataproduct) (models.Datasource, error) {
 	return r.repo.GetBigqueryDatasource(ctx, obj.ID)
 }

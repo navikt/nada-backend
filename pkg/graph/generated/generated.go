@@ -64,7 +64,7 @@ type ComplexityRoot struct {
 	BigQuery struct {
 		Created      func(childComplexity int) int
 		Dataset      func(childComplexity int) int
-		Expired      func(childComplexity int) int
+		Expires      func(childComplexity int) int
 		LastModified func(childComplexity int) int
 		ProjectID    func(childComplexity int) int
 		Schema       func(childComplexity int) int
@@ -165,8 +165,6 @@ type ComplexityRoot struct {
 
 type BigQueryResolver interface {
 	Schema(ctx context.Context, obj *models.BigQuery) ([]*models.TableColumn, error)
-
-	Expired(ctx context.Context, obj *models.BigQuery) (*time.Time, error)
 }
 type CollectionResolver interface {
 	Elements(ctx context.Context, obj *models.Collection) ([]models.CollectionElement, error)
@@ -277,12 +275,12 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.BigQuery.Dataset(childComplexity), true
 
-	case "BigQuery.expired":
-		if e.complexity.BigQuery.Expired == nil {
+	case "BigQuery.expires":
+		if e.complexity.BigQuery.Expires == nil {
 			break
 		}
 
-		return e.complexity.BigQuery.Expired(childComplexity), true
+		return e.complexity.BigQuery.Expires(childComplexity), true
 
 	case "BigQuery.lastModified":
 		if e.complexity.BigQuery.LastModified == nil {
@@ -1131,8 +1129,8 @@ type BigQuery @goModel(model: "github.com/navikt/nada-backend/pkg/graph/models.B
     lastModified: Time!
     "created is when the table was created"
     created: Time!
-    "expired, if set, is when the table expires"
-    expired: Time
+    "expires, if set, is when the table expires"
+    expires: Time
     "tableType is what type the table is"
     tableType: BigQueryType!
 }
@@ -2420,7 +2418,7 @@ func (ec *executionContext) _BigQuery_created(ctx context.Context, field graphql
 	return ec.marshalNTime2timeᚐTime(ctx, field.Selections, res)
 }
 
-func (ec *executionContext) _BigQuery_expired(ctx context.Context, field graphql.CollectedField, obj *models.BigQuery) (ret graphql.Marshaler) {
+func (ec *executionContext) _BigQuery_expires(ctx context.Context, field graphql.CollectedField, obj *models.BigQuery) (ret graphql.Marshaler) {
 	defer func() {
 		if r := recover(); r != nil {
 			ec.Error(ctx, ec.Recover(ctx, r))
@@ -2431,14 +2429,14 @@ func (ec *executionContext) _BigQuery_expired(ctx context.Context, field graphql
 		Object:     "BigQuery",
 		Field:      field,
 		Args:       nil,
-		IsMethod:   true,
-		IsResolver: true,
+		IsMethod:   false,
+		IsResolver: false,
 	}
 
 	ctx = graphql.WithFieldContext(ctx, fc)
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.BigQuery().Expired(rctx, obj)
+		return obj.Expires, nil
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -6721,17 +6719,8 @@ func (ec *executionContext) _BigQuery(ctx context.Context, sel ast.SelectionSet,
 			if out.Values[i] == graphql.Null {
 				atomic.AddUint32(&invalids, 1)
 			}
-		case "expired":
-			field := field
-			out.Concurrently(i, func() (res graphql.Marshaler) {
-				defer func() {
-					if r := recover(); r != nil {
-						ec.Error(ctx, ec.Recover(ctx, r))
-					}
-				}()
-				res = ec._BigQuery_expired(ctx, field, obj)
-				return res
-			})
+		case "expires":
+			out.Values[i] = ec._BigQuery_expires(ctx, field, obj)
 		case "tableType":
 			out.Values[i] = ec._BigQuery_tableType(ctx, field, obj)
 			if out.Values[i] == graphql.Null {

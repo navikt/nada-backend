@@ -68,8 +68,8 @@ type BigQuery @goModel(model: "github.com/navikt/nada-backend/pkg/graph/models.B
     lastModified: Time!
     "created is when the table was created"
     created: Time!
-    "expired, if set, is when the table expires"
-    expired: Time
+    "expires, if set, is when the table expires"
+    expires: Time
     "tableType is what type the table is"
     tableType: BigQueryType!
 }
