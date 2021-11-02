@@ -3,7 +3,6 @@ package database
 import (
 	"context"
 	"fmt"
-
 	"github.com/google/uuid"
 	"github.com/navikt/nada-backend/pkg/database/gensql"
 	"github.com/navikt/nada-backend/pkg/graph/models"
@@ -58,7 +57,7 @@ func (r *Repo) CreateCollection(ctx context.Context, col models.NewCollection) (
 func (r *Repo) UpdateCollection(ctx context.Context, id uuid.UUID, new models.UpdateCollection) (*models.Collection, error) {
 	var keywords []string
 	if new.Keywords != nil {
-		keywords = []string{}
+		keywords = new.Keywords
 	}
 
 	res, err := r.querier.UpdateCollection(ctx, gensql.UpdateCollectionParams{
