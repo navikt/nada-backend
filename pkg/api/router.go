@@ -10,21 +10,13 @@ import (
 	"github.com/navikt/nada-backend/pkg/auth"
 	"github.com/navikt/nada-backend/pkg/database"
 	"github.com/navikt/nada-backend/pkg/graph"
+	"github.com/navikt/nada-backend/pkg/teamkatalogen"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/sirupsen/logrus"
 )
 
-func New(
-	repo *database.Repo,
-	gcp graph.Bigquery,
-	oauth2 OAuth2,
-	gcpProjects *auth.TeamProjectsUpdater,
-	accessMgr graph.AccessManager,
-	authMW auth.MiddlewareHandler,
-	promReg *prometheus.Registry,
-	log *logrus.Logger,
-) *chi.Mux {
+func New(repo *database.Repo, gcp graph.Bigquery, oauth2 OAuth2, gcpProjects *auth.TeamProjectsUpdater, accessMgr graph.AccessManager, authMW auth.MiddlewareHandler, tk *teamkatalogen.Teamkatalogen, promReg *prometheus.Registry, log *logrus.Logger) *chi.Mux {
 	corsMW := cors.Handler(cors.Options{
 		AllowedOrigins:   []string{"https://*", "http://*"},
 		AllowedMethods:   []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
@@ -33,7 +25,7 @@ func New(
 
 	httpAPI := new(oauth2, log.WithField("subsystem", "api"))
 
-	gqlServer := graph.New(repo, gcp, gcpProjects, accessMgr, log.WithField("subsystem", "graph"))
+	gqlServer := graph.New(repo, gcp, gcpProjects, accessMgr, tk, log.WithField("subsystem", "graph"))
 
 	router := chi.NewRouter()
 	router.Use(corsMW)

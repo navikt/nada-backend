@@ -11,6 +11,7 @@ import (
 	"github.com/navikt/nada-backend/pkg/database"
 	"github.com/navikt/nada-backend/pkg/graph/generated"
 	"github.com/navikt/nada-backend/pkg/graph/models"
+	"github.com/navikt/nada-backend/pkg/teamkatalogen"
 	"github.com/sirupsen/logrus"
 )
 
@@ -29,20 +30,22 @@ type AccessManager interface {
 }
 
 type Resolver struct {
-	repo        *database.Repo
-	bigquery    Bigquery
-	gcpProjects *auth.TeamProjectsUpdater
-	accessMgr   AccessManager
-	log         *logrus.Entry
+	repo          *database.Repo
+	bigquery      Bigquery
+	gcpProjects   *auth.TeamProjectsUpdater
+	accessMgr     AccessManager
+	teamkatalogen *teamkatalogen.Teamkatalogen
+	log           *logrus.Entry
 }
 
-func New(repo *database.Repo, gcp Bigquery, gcpProjects *auth.TeamProjectsUpdater, accessMgr AccessManager, log *logrus.Entry) *handler.Server {
+func New(repo *database.Repo, gcp Bigquery, gcpProjects *auth.TeamProjectsUpdater, accessMgr AccessManager, tk *teamkatalogen.Teamkatalogen, log *logrus.Entry) *handler.Server {
 	resolver := &Resolver{
-		repo:        repo,
-		bigquery:    gcp,
-		gcpProjects: gcpProjects,
-		accessMgr:   accessMgr,
-		log:         log,
+		repo:          repo,
+		bigquery:      gcp,
+		gcpProjects:   gcpProjects,
+		accessMgr:     accessMgr,
+		teamkatalogen: tk,
+		log:           log,
 	}
 
 	config := generated.Config{Resolvers: resolver}

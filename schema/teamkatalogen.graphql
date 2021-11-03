@@ -1,0 +1,16 @@
+type TeamkatalogenResult { #@goModel(model: "github.com/navikt/nada-backend/pkg/graph/models.SearchQuery")
+    "url to team in teamkatalogen."
+    url: String!
+    "team name."
+    name: String!
+    "team description."
+    description: String!
+}
+
+extend type Query {
+    "searches teamkatalogen for teams where team name matches query input"
+    teamkatalogen(
+        "q is the search query."
+        q: String!
+    ): [TeamkatalogenResult!]!
+}
