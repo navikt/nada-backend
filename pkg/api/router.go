@@ -40,9 +40,9 @@ func New(repo *database.Repo, gcp graph.Bigquery, oauth2 OAuth2, gcpProjects *au
 		r.Handle("/metrics", promhttp.HandlerFor(promReg, promhttp.HandlerOpts{}))
 	})
 	router.HandleFunc("/datapakke/*", func(w http.ResponseWriter, r *http.Request) {
-		host := "https://datafortelling.dev.intern.nav.no"
+		host := "https://datapakker.dev.intern.nav.no"
 		if os.Getenv("NAIS_CLUSTER_NAME") == "prod-gcp" {
-			host = "https://datafortelling.intern.nav.no"
+			host = "https://datapakker.intern.nav.no"
 		}
 
 		http.Redirect(w, r, host+r.URL.Path, http.StatusPermanentRedirect)
