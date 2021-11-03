@@ -148,6 +148,12 @@ type ComplexityRoot struct {
 		Version        func(childComplexity int) int
 	}
 
+	SearchResultRow struct {
+		Excerpt func(childComplexity int) int
+		Rank    func(childComplexity int) int
+		Result  func(childComplexity int) int
+	}
+
 	TableColumn struct {
 		Description func(childComplexity int) int
 		Mode        func(childComplexity int) int
@@ -197,7 +203,7 @@ type QueryResolver interface {
 	Dataproducts(ctx context.Context, limit *int, offset *int) ([]*models.Dataproduct, error)
 	GcpGetTables(ctx context.Context, projectID string, datasetID string) ([]*models.BigQueryTable, error)
 	GcpGetDatasets(ctx context.Context, projectID string) ([]string, error)
-	Search(ctx context.Context, q *models.SearchQuery) ([]models.SearchResult, error)
+	Search(ctx context.Context, q *models.SearchQuery) ([]*models.SearchResultRow, error)
 	UserInfo(ctx context.Context) (*models.UserInfo, error)
 }
 type UserInfoResolver interface {
@@ -780,6 +786,27 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 		}
 
 		return e.complexity.Query.Version(childComplexity), true
+
+	case "SearchResultRow.excerpt":
+		if e.complexity.SearchResultRow.Excerpt == nil {
+			break
+		}
+
+		return e.complexity.SearchResultRow.Excerpt(childComplexity), true
+
+	case "SearchResultRow.rank":
+		if e.complexity.SearchResultRow.Rank == nil {
+			break
+		}
+
+		return e.complexity.SearchResultRow.Rank(childComplexity), true
+
+	case "SearchResultRow.result":
+		if e.complexity.SearchResultRow.Result == nil {
+			break
+		}
+
+		return e.complexity.SearchResultRow.Result(childComplexity), true
 
 	case "TableColumn.description":
 		if e.complexity.TableColumn.Description == nil {
@@ -1432,6 +1459,13 @@ type Mutation {
 	Dataproduct |
 	Collection
 
+type SearchResultRow {
+	excerpt: String!
+	result: SearchResult!
+	rank: Float!,
+}
+
+
 input SearchQuery @goModel(model: "github.com/navikt/nada-backend/pkg/graph/models.SearchQuery"){
 	"""
 	text is used as freetext search.
@@ -1459,7 +1493,7 @@ extend type Query {
 	search(
 		"q is the search query."
 		q: SearchQuery
-	): [SearchResult!]!
+	): [SearchResultRow!]!
 }
 `, BuiltIn: false},
 	{Name: "schema/user.graphql", Input: `"""
@@ -4693,9 +4727,9 @@ func (ec *executionContext) _Query_search(ctx context.Context, field graphql.Col
 		}
 		return graphql.Null
 	}
-	res := resTmp.([]models.SearchResult)
+	res := resTmp.([]*models.SearchResultRow)
 	fc.Result = res
-	return ec.marshalNSearchResult2ᚕgithubᚗcomᚋnaviktᚋnadaᚑbackendᚋpkgᚋgraphᚋmodelsᚐSearchResultᚄ(ctx, field.Selections, res)
+	return ec.marshalNSearchResultRow2ᚕᚖgithubᚗcomᚋnaviktᚋnadaᚑbackendᚋpkgᚋgraphᚋmodelsᚐSearchResultRowᚄ(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _Query_userInfo(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
@@ -4822,6 +4856,111 @@ func (ec *executionContext) _Query___schema(ctx context.Context, field graphql.C
 	res := resTmp.(*introspection.Schema)
 	fc.Result = res
 	return ec.marshalO__Schema2ᚖgithubᚗcomᚋ99designsᚋgqlgenᚋgraphqlᚋintrospectionᚐSchema(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _SearchResultRow_excerpt(ctx context.Context, field graphql.CollectedField, obj *models.SearchResultRow) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "SearchResultRow",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   false,
+		IsResolver: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Excerpt, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(string)
+	fc.Result = res
+	return ec.marshalNString2string(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _SearchResultRow_result(ctx context.Context, field graphql.CollectedField, obj *models.SearchResultRow) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "SearchResultRow",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   false,
+		IsResolver: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Result, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(models.SearchResult)
+	fc.Result = res
+	return ec.marshalNSearchResult2githubᚗcomᚋnaviktᚋnadaᚑbackendᚋpkgᚋgraphᚋmodelsᚐSearchResult(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _SearchResultRow_rank(ctx context.Context, field graphql.CollectedField, obj *models.SearchResultRow) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "SearchResultRow",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   false,
+		IsResolver: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Rank, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(float64)
+	fc.Result = res
+	return ec.marshalNFloat2float64(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _TableColumn_name(ctx context.Context, field graphql.CollectedField, obj *models.TableColumn) (ret graphql.Marshaler) {
@@ -7290,6 +7429,43 @@ func (ec *executionContext) _Query(ctx context.Context, sel ast.SelectionSet) gr
 	return out
 }
 
+var searchResultRowImplementors = []string{"SearchResultRow"}
+
+func (ec *executionContext) _SearchResultRow(ctx context.Context, sel ast.SelectionSet, obj *models.SearchResultRow) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, searchResultRowImplementors)
+
+	out := graphql.NewFieldSet(fields)
+	var invalids uint32
+	for i, field := range fields {
+		switch field.Name {
+		case "__typename":
+			out.Values[i] = graphql.MarshalString("SearchResultRow")
+		case "excerpt":
+			out.Values[i] = ec._SearchResultRow_excerpt(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
+		case "result":
+			out.Values[i] = ec._SearchResultRow_result(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
+		case "rank":
+			out.Values[i] = ec._SearchResultRow_rank(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
+		default:
+			panic("unknown field " + strconv.Quote(field.Name))
+		}
+	}
+	out.Dispatch()
+	if invalids > 0 {
+		return graphql.Null
+	}
+	return out
+}
+
 var tableColumnImplementors = []string{"TableColumn"}
 
 func (ec *executionContext) _TableColumn(ctx context.Context, sel ast.SelectionSet, obj *models.TableColumn) graphql.Marshaler {
@@ -7960,6 +8136,21 @@ func (ec *executionContext) marshalNDatasource2githubᚗcomᚋnaviktᚋnadaᚑba
 	return ec._Datasource(ctx, sel, v)
 }
 
+func (ec *executionContext) unmarshalNFloat2float64(ctx context.Context, v interface{}) (float64, error) {
+	res, err := graphql.UnmarshalFloat(v)
+	return res, graphql.ErrorOnPath(ctx, err)
+}
+
+func (ec *executionContext) marshalNFloat2float64(ctx context.Context, sel ast.SelectionSet, v float64) graphql.Marshaler {
+	res := graphql.MarshalFloat(v)
+	if res == graphql.Null {
+		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
+			ec.Errorf(ctx, "must not be null")
+		}
+	}
+	return res
+}
+
 func (ec *executionContext) marshalNGCPProject2ᚕᚖgithubᚗcomᚋnaviktᚋnadaᚑbackendᚋpkgᚋgraphᚋmodelsᚐGCPProjectᚄ(ctx context.Context, sel ast.SelectionSet, v []*models.GCPProject) graphql.Marshaler {
 	ret := make(graphql.Array, len(v))
 	var wg sync.WaitGroup
@@ -8122,7 +8313,7 @@ func (ec *executionContext) marshalNSearchResult2githubᚗcomᚋnaviktᚋnadaᚑ
 	return ec._SearchResult(ctx, sel, v)
 }
 
-func (ec *executionContext) marshalNSearchResult2ᚕgithubᚗcomᚋnaviktᚋnadaᚑbackendᚋpkgᚋgraphᚋmodelsᚐSearchResultᚄ(ctx context.Context, sel ast.SelectionSet, v []models.SearchResult) graphql.Marshaler {
+func (ec *executionContext) marshalNSearchResultRow2ᚕᚖgithubᚗcomᚋnaviktᚋnadaᚑbackendᚋpkgᚋgraphᚋmodelsᚐSearchResultRowᚄ(ctx context.Context, sel ast.SelectionSet, v []*models.SearchResultRow) graphql.Marshaler {
 	ret := make(graphql.Array, len(v))
 	var wg sync.WaitGroup
 	isLen1 := len(v) == 1
@@ -8146,7 +8337,7 @@ func (ec *executionContext) marshalNSearchResult2ᚕgithubᚗcomᚋnaviktᚋnada
 			if !isLen1 {
 				defer wg.Done()
 			}
-			ret[i] = ec.marshalNSearchResult2githubᚗcomᚋnaviktᚋnadaᚑbackendᚋpkgᚋgraphᚋmodelsᚐSearchResult(ctx, sel, v[i])
+			ret[i] = ec.marshalNSearchResultRow2ᚖgithubᚗcomᚋnaviktᚋnadaᚑbackendᚋpkgᚋgraphᚋmodelsᚐSearchResultRow(ctx, sel, v[i])
 		}
 		if isLen1 {
 			f(i)
@@ -8164,6 +8355,16 @@ func (ec *executionContext) marshalNSearchResult2ᚕgithubᚗcomᚋnaviktᚋnada
 	}
 
 	return ret
+}
+
+func (ec *executionContext) marshalNSearchResultRow2ᚖgithubᚗcomᚋnaviktᚋnadaᚑbackendᚋpkgᚋgraphᚋmodelsᚐSearchResultRow(ctx context.Context, sel ast.SelectionSet, v *models.SearchResultRow) graphql.Marshaler {
+	if v == nil {
+		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	return ec._SearchResultRow(ctx, sel, v)
 }
 
 func (ec *executionContext) unmarshalNString2string(ctx context.Context, v interface{}) (string, error) {

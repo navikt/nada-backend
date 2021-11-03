@@ -9,7 +9,7 @@ import (
 	"github.com/navikt/nada-backend/pkg/graph/models"
 )
 
-func (r *Repo) Search(ctx context.Context, query *models.SearchQuery) ([]models.SearchResult, error) {
+func (r *Repo) Search(ctx context.Context, query *models.SearchQuery) ([]*models.SearchResultRow, error) {
 	res, err := r.querier.Search(ctx, gensql.SearchParams{
 		Query:   ptrToString(query.Text),
 		Keyword: ptrToString(query.Keyword),
@@ -20,6 +20,7 @@ func (r *Repo) Search(ctx context.Context, query *models.SearchQuery) ([]models.
 	ranks := map[string]float32{}
 	var dataproducts []uuid.UUID
 	var collections []uuid.UUID
+	excerpts := map[uuid.UUID]string{}
 	for _, sr := range res {
 		switch sr.ElementType {
 		case "dataproduct":
@@ -27,7 +28,8 @@ func (r *Repo) Search(ctx context.Context, query *models.SearchQuery) ([]models.
 		case "collection":
 			collections = append(collections, sr.ElementID)
 		}
-		ranks[sr.ElementType+sr.ElementID.String()] = sr.TsRankCd
+		ranks[sr.ElementType+sr.ElementID.String()] = sr.Rank
+		excerpts[sr.ElementID] = sr.Excerpt
 	}
 
 	dps, err := r.querier.GetDataproductsByIDs(ctx, dataproducts)
@@ -39,12 +41,18 @@ func (r *Repo) Search(ctx context.Context, query *models.SearchQuery) ([]models.
 		return nil, err
 	}
 
-	ret := []models.SearchResult{}
+	ret := []*models.SearchResultRow{}
 	for _, d := range dps {
-		ret = append(ret, dataproductFromSQL(d))
+		ret = append(ret, &models.SearchResultRow{
+			Excerpt: excerpts[d.ID],
+			Result:  dataproductFromSQL(d),
+		})
 	}
 	for _, c := range cols {
-		ret = append(ret, collectionFromSQL(c))
+		ret = append(ret, &models.SearchResultRow{
+			Excerpt: excerpts[c.ID],
+			Result:  collectionFromSQL(c),
+		})
 	}
 
 	getRank := func(m models.SearchResult) float32 {
@@ -58,7 +66,7 @@ func (r *Repo) Search(ctx context.Context, query *models.SearchQuery) ([]models.
 		}
 	}
 	sort.Slice(ret, func(i, j int) bool {
-		return getRank(ret[i]) > getRank(ret[j])
+		return getRank(ret[i].Result) > getRank(ret[j].Result)
 	})
 
 	return ret, nil

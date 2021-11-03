@@ -11,9 +11,10 @@ import (
 
 const search = `-- name: Search :many
 SELECT
-	element_id :: uuid,
-	element_type :: text,
-	ts_rank_cd(tsv_document, query)
+	element_id::uuid,
+	element_type::text,
+	ts_rank_cd(tsv_document, query) AS rank,
+	ts_headline("description", query, 'MinWords=14, MaxWords=15, MaxFragments=2')::text AS excerpt
 FROM
 	search,
 	websearch_to_tsquery('norwegian', $1) query
@@ -30,6 +31,7 @@ WHERE
 			ELSE TRUE
 		END
 	)
+ORDER BY rank
 `
 
 type SearchParams struct {
@@ -40,7 +42,8 @@ type SearchParams struct {
 type SearchRow struct {
 	ElementID   uuid.UUID
 	ElementType string
-	TsRankCd    float32
+	Rank        float32
+	Excerpt     string
 }
 
 func (q *Queries) Search(ctx context.Context, arg SearchParams) ([]SearchRow, error) {
@@ -52,7 +55,12 @@ func (q *Queries) Search(ctx context.Context, arg SearchParams) ([]SearchRow, er
 	items := []SearchRow{}
 	for rows.Next() {
 		var i SearchRow
-		if err := rows.Scan(&i.ElementID, &i.ElementType, &i.TsRankCd); err != nil {
+		if err := rows.Scan(
+			&i.ElementID,
+			&i.ElementType,
+			&i.Rank,
+			&i.Excerpt,
+		); err != nil {
 			return nil, err
 		}
 		items = append(items, i)

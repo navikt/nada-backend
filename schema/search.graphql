@@ -4,6 +4,13 @@ union SearchResult @goModel(
 	Dataproduct |
 	Collection
 
+type SearchResultRow {
+	excerpt: String!
+	result: SearchResult!
+	rank: Float!,
+}
+
+
 input SearchQuery @goModel(model: "github.com/navikt/nada-backend/pkg/graph/models.SearchQuery"){
 	"""
 	text is used as freetext search.
@@ -31,5 +38,5 @@ extend type Query {
 	search(
 		"q is the search query."
 		q: SearchQuery
-	): [SearchResult!]!
+	): [SearchResultRow!]!
 }
