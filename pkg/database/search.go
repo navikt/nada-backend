@@ -58,7 +58,7 @@ func (r *Repo) Search(ctx context.Context, query *models.SearchQuery) ([]models.
 		}
 	}
 	sort.Slice(ret, func(i, j int) bool {
-		return getRank(ret[i]) < getRank(ret[j])
+		return getRank(ret[i]) > getRank(ret[j])
 	})
 
 	return ret, nil
