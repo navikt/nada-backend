@@ -53,7 +53,7 @@ func (r *dataproductResolver) Access(ctx context.Context, obj *models.Dataproduc
 
 func (r *dataproductResolver) Collections(ctx context.Context, obj *models.Dataproduct, limit *int, offset *int) ([]*models.Collection, error) {
 	l, o := pagination(limit, offset)
-	return r.repo.GetCollectionsForElement(ctx, l, o)
+	return r.repo.GetCollectionsForElement(ctx, obj.ID, l, o)
 }
 
 func (r *mutationResolver) CreateDataproduct(ctx context.Context, input models.NewDataproduct) (*models.Dataproduct, error) {

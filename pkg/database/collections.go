@@ -25,10 +25,15 @@ func (r *Repo) GetCollections(ctx context.Context, limit, offset int) ([]*models
 	return collections, nil
 }
 
-func (r *Repo) GetCollectionsForElement(ctx context.Context, limit, offset int) ([]*models.Collection, error) {
+func (r *Repo) GetCollectionsForElement(ctx context.Context, id uuid.UUID, limit, offset int) ([]*models.Collection, error) {
 	collections := []*models.Collection{}
 
-	res, err := r.querier.GetCollectionsForElement(ctx, gensql.GetCollectionsForElementParams{Limit: int32(limit), Offset: int32(offset)})
+	res, err := r.querier.GetCollectionsForElement(ctx, gensql.GetCollectionsForElementParams{
+		ElementID:   id,
+		ElementType: "dataproduct",
+		Limit:       int32(limit),
+		Offset:      int32(offset),
+	})
 	if err != nil {
 		return nil, fmt.Errorf("getting collections for element from database: %w", err)
 	}
