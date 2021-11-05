@@ -51,6 +51,11 @@ func (r *dataproductResolver) Access(ctx context.Context, obj *models.Dataproduc
 	return ret, nil
 }
 
+func (r *dataproductResolver) Collections(ctx context.Context, obj *models.Dataproduct, limit *int, offset *int) ([]*models.Collection, error) {
+	l, o := pagination(limit, offset)
+	return r.repo.GetCollectionsForElement(ctx, l, o)
+}
+
 func (r *mutationResolver) CreateDataproduct(ctx context.Context, input models.NewDataproduct) (*models.Dataproduct, error) {
 	if err := ensureUserInGroup(ctx, input.Group); err != nil {
 		return nil, err
@@ -211,5 +216,7 @@ func (r *Resolver) BigQuery() generated.BigQueryResolver { return &bigQueryResol
 // Dataproduct returns generated.DataproductResolver implementation.
 func (r *Resolver) Dataproduct() generated.DataproductResolver { return &dataproductResolver{r} }
 
-type bigQueryResolver struct{ *Resolver }
-type dataproductResolver struct{ *Resolver }
+type (
+	bigQueryResolver    struct{ *Resolver }
+	dataproductResolver struct{ *Resolver }
+)

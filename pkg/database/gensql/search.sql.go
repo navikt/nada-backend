@@ -30,6 +30,8 @@ WHERE
 			ELSE TRUE
 		END
 	)
+ORDER BY rank DESC, created DESC
+LIMIT 50
 `
 
 type SearchParams struct {

@@ -92,6 +92,7 @@ type ComplexityRoot struct {
 
 	Dataproduct struct {
 		Access       func(childComplexity int) int
+		Collections  func(childComplexity int, limit *int, offset *int) int
 		Created      func(childComplexity int) int
 		Datasource   func(childComplexity int) int
 		Description  func(childComplexity int) int
@@ -180,6 +181,7 @@ type DataproductResolver interface {
 	Datasource(ctx context.Context, obj *models.Dataproduct) (models.Datasource, error)
 	Requesters(ctx context.Context, obj *models.Dataproduct) ([]string, error)
 	Access(ctx context.Context, obj *models.Dataproduct) ([]*models.Access, error)
+	Collections(ctx context.Context, obj *models.Dataproduct, limit *int, offset *int) ([]*models.Collection, error)
 }
 type MutationResolver interface {
 	Dummy(ctx context.Context, no *string) (*string, error)
@@ -415,6 +417,18 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 		}
 
 		return e.complexity.Dataproduct.Access(childComplexity), true
+
+	case "Dataproduct.collections":
+		if e.complexity.Dataproduct.Collections == nil {
+			break
+		}
+
+		args, err := ec.field_Dataproduct_collections_args(context.TODO(), rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Dataproduct.Collections(childComplexity, args["limit"].(*int), args["offset"].(*int)), true
 
 	case "Dataproduct.created":
 		if e.complexity.Dataproduct.Created == nil {
@@ -1128,6 +1142,8 @@ type Dataproduct @goModel(model: "github.com/navikt/nada-backend/pkg/graph/model
     requesters: [String!]!
     "access contains list of users, groups and service accounts which have access to the dataproduct"
     access: [Access!]! @authenticated
+    "access collections that dataproduct is part of"
+    collections(limit: Int, offset: Int): [Collection!]!
 }
 
 """
@@ -1503,14 +1519,17 @@ extend type Query {
 	): [SearchResult!]!
 }
 `, BuiltIn: false},
-	{Name: "schema/teamkatalogen.graphql", Input: `type TeamkatalogenResult { #@goModel(model: "github.com/navikt/nada-backend/pkg/graph/models.SearchQuery")
+	{Name: "schema/teamkatalogen.graphql", Input: `type TeamkatalogenResult @goModel(model: "github.com/navikt/nada-backend/pkg/graph/models.TeamkatalogenResult") {
+    "url to team in teamkatalogen."
     url: String!
+    "team name."
     name: String!
+    "team description."
     description: String!
 }
 
 extend type Query {
-    "searches teamkatalogen for teams matching query input"
+    "searches teamkatalogen for teams where team name matches query input"
     teamkatalogen(
         "q is the search query."
         q: String!
@@ -1577,6 +1596,30 @@ func (ec *executionContext) dir_authenticated_args(ctx context.Context, rawArgs 
 		}
 	}
 	args["on"] = arg0
+	return args, nil
+}
+
+func (ec *executionContext) field_Dataproduct_collections_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
+	var err error
+	args := map[string]interface{}{}
+	var arg0 *int
+	if tmp, ok := rawArgs["limit"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("limit"))
+		arg0, err = ec.unmarshalOInt2ᚖint(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["limit"] = arg0
+	var arg1 *int
+	if tmp, ok := rawArgs["offset"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("offset"))
+		arg1, err = ec.unmarshalOInt2ᚖint(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["offset"] = arg1
 	return args, nil
 }
 
@@ -3404,6 +3447,48 @@ func (ec *executionContext) _Dataproduct_access(ctx context.Context, field graph
 	res := resTmp.([]*models.Access)
 	fc.Result = res
 	return ec.marshalNAccess2ᚕᚖgithubᚗcomᚋnaviktᚋnadaᚑbackendᚋpkgᚋgraphᚋmodelsᚐAccessᚄ(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _Dataproduct_collections(ctx context.Context, field graphql.CollectedField, obj *models.Dataproduct) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "Dataproduct",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   true,
+		IsResolver: true,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	rawArgs := field.ArgumentMap(ec.Variables)
+	args, err := ec.field_Dataproduct_collections_args(ctx, rawArgs)
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	fc.Args = args
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.Dataproduct().Collections(rctx, obj, args["limit"].(*int), args["offset"].(*int))
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.([]*models.Collection)
+	fc.Result = res
+	return ec.marshalNCollection2ᚕᚖgithubᚗcomᚋnaviktᚋnadaᚑbackendᚋpkgᚋgraphᚋmodelsᚐCollectionᚄ(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _GCPProject_id(ctx context.Context, field graphql.CollectedField, obj *models.GCPProject) (ret graphql.Marshaler) {
@@ -7151,6 +7236,20 @@ func (ec *executionContext) _Dataproduct(ctx context.Context, sel ast.SelectionS
 					}
 				}()
 				res = ec._Dataproduct_access(ctx, field, obj)
+				if res == graphql.Null {
+					atomic.AddUint32(&invalids, 1)
+				}
+				return res
+			})
+		case "collections":
+			field := field
+			out.Concurrently(i, func() (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._Dataproduct_collections(ctx, field, obj)
 				if res == graphql.Null {
 					atomic.AddUint32(&invalids, 1)
 				}

@@ -53,3 +53,11 @@ SELECT *
 FROM dataproducts
 WHERE id IN
 	(SELECT element_id FROM collection_elements WHERE collection_id = @collection_id AND element_type = 'dataproduct');
+
+-- name: GetCollectionsForElement :many
+SELECT *
+FROM collections
+WHERE id IN
+	(SELECT collection_id FROM collection_elements WHERE element_id = sqlc.arg('element_id') AND element_type = sqlc.arg('element_type'))
+LIMIT sqlc.arg('limit')
+OFFSET sqlc.arg('offset');

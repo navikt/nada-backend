@@ -248,6 +248,60 @@ func (q *Queries) GetCollectionsByIDs(ctx context.Context, ids []uuid.UUID) ([]C
 	return items, nil
 }
 
+const getCollectionsForElement = `-- name: GetCollectionsForElement :many
+SELECT id, name, description, slug, created, last_modified, "group", keywords, tsv_document
+FROM collections
+WHERE id IN
+	(SELECT collection_id FROM collection_elements WHERE element_id = $1 AND element_type = $2)
+LIMIT $4
+OFFSET $3
+`
+
+type GetCollectionsForElementParams struct {
+	ElementID   uuid.UUID
+	ElementType string
+	Offset      int32
+	Limit       int32
+}
+
+func (q *Queries) GetCollectionsForElement(ctx context.Context, arg GetCollectionsForElementParams) ([]Collection, error) {
+	rows, err := q.db.QueryContext(ctx, getCollectionsForElement,
+		arg.ElementID,
+		arg.ElementType,
+		arg.Offset,
+		arg.Limit,
+	)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []Collection{}
+	for rows.Next() {
+		var i Collection
+		if err := rows.Scan(
+			&i.ID,
+			&i.Name,
+			&i.Description,
+			&i.Slug,
+			&i.Created,
+			&i.LastModified,
+			&i.Group,
+			pq.Array(&i.Keywords),
+			&i.TsvDocument,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const updateCollection = `-- name: UpdateCollection :one
 UPDATE collections SET
 	"name" = $1,

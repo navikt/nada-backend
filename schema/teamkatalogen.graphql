@@ -1,4 +1,4 @@
-type TeamkatalogenResult { #@goModel(model: "github.com/navikt/nada-backend/pkg/graph/models.SearchQuery")
+type TeamkatalogenResult @goModel(model: "github.com/navikt/nada-backend/pkg/graph/models.TeamkatalogenResult") {
     "url to team in teamkatalogen."
     url: String!
     "team name."

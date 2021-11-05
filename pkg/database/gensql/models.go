@@ -95,5 +95,6 @@ type Search struct {
 	LastModified time.Time
 	Keywords     []string
 	Group        string
+	Created      time.Time
 	TsvDocument  interface{}
 }
