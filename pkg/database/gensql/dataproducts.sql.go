@@ -161,7 +161,7 @@ func (q *Queries) DeleteDataproduct(ctx context.Context, id uuid.UUID) error {
 }
 
 const deleteDataproductRequester = `-- name: DeleteDataproductRequester :exec
-DELETE FROM dataproduct_requesters 
+DELETE FROM dataproduct_requesters
 WHERE dataproduct_id = $1
 AND "subject" = $2
 `
@@ -306,6 +306,46 @@ type GetDataproductsParams struct {
 
 func (q *Queries) GetDataproducts(ctx context.Context, arg GetDataproductsParams) ([]Dataproduct, error) {
 	rows, err := q.db.QueryContext(ctx, getDataproducts, arg.Offset, arg.Limit)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []Dataproduct{}
+	for rows.Next() {
+		var i Dataproduct
+		if err := rows.Scan(
+			&i.ID,
+			&i.Name,
+			&i.Description,
+			&i.Group,
+			&i.Pii,
+			&i.Created,
+			&i.LastModified,
+			&i.Type,
+			&i.TsvDocument,
+			&i.Slug,
+			&i.Repo,
+			pq.Array(&i.Keywords),
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const getDataproductsByGroups = `-- name: GetDataproductsByGroups :many
+SELECT id, name, description, "group", pii, created, last_modified, type, tsv_document, slug, repo, keywords FROM dataproducts WHERE "group" = ANY($1::text[]) ORDER BY last_modified DESC
+`
+
+func (q *Queries) GetDataproductsByGroups(ctx context.Context, groups []string) ([]Dataproduct, error) {
+	rows, err := q.db.QueryContext(ctx, getDataproductsByGroups, pq.Array(groups))
 	if err != nil {
 		return nil, err
 	}

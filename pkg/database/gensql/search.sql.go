@@ -30,7 +30,7 @@ WHERE
 			ELSE TRUE
 		END
 	)
-ORDER BY rank DESC, created DESC
+ORDER BY ts_rank_cd DESC, created DESC
 LIMIT 50
 `
 

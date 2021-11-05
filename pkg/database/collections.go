@@ -46,6 +46,22 @@ func (r *Repo) GetCollectionsForElement(ctx context.Context, id uuid.UUID, limit
 	return collections, nil
 }
 
+func (r *Repo) GetCollectionsByGroups(ctx context.Context, groups []string) ([]*models.Collection, error) {
+	collections := []*models.Collection{}
+
+	res, err := r.querier.GetCollectionsByGroups(ctx, groups)
+	if err != nil {
+		return nil, fmt.Errorf("getting collections by group from database: %w", err)
+	}
+
+	for _, entry := range res {
+		col := collectionFromSQL(entry)
+		collections = append(collections, col)
+	}
+
+	return collections, nil
+}
+
 func (r *Repo) GetCollection(ctx context.Context, id uuid.UUID) (*models.Collection, error) {
 	res, err := r.querier.GetCollection(ctx, id)
 	if err != nil {

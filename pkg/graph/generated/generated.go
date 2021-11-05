@@ -164,10 +164,12 @@ type ComplexityRoot struct {
 	}
 
 	UserInfo struct {
-		Email       func(childComplexity int) int
-		GCPProjects func(childComplexity int) int
-		Groups      func(childComplexity int) int
-		Name        func(childComplexity int) int
+		Collections  func(childComplexity int) int
+		Dataproducts func(childComplexity int) int
+		Email        func(childComplexity int) int
+		GCPProjects  func(childComplexity int) int
+		Groups       func(childComplexity int) int
+		Name         func(childComplexity int) int
 	}
 }
 
@@ -212,6 +214,8 @@ type QueryResolver interface {
 }
 type UserInfoResolver interface {
 	GCPProjects(ctx context.Context, obj *models.UserInfo) ([]*models.GCPProject, error)
+	Dataproducts(ctx context.Context, obj *models.UserInfo) ([]*models.Dataproduct, error)
+	Collections(ctx context.Context, obj *models.UserInfo) ([]*models.Collection, error)
 }
 
 type executableSchema struct {
@@ -863,6 +867,20 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 		}
 
 		return e.complexity.TeamkatalogenResult.URL(childComplexity), true
+
+	case "UserInfo.collections":
+		if e.complexity.UserInfo.Collections == nil {
+			break
+		}
+
+		return e.complexity.UserInfo.Collections(childComplexity), true
+
+	case "UserInfo.dataproducts":
+		if e.complexity.UserInfo.Dataproducts == nil {
+			break
+		}
+
+		return e.complexity.UserInfo.Dataproducts(childComplexity), true
 
 	case "UserInfo.email":
 		if e.complexity.UserInfo.Email == nil {
@@ -1558,6 +1576,10 @@ type UserInfo @goModel(model: "github.com/navikt/nada-backend/pkg/graph/models.U
 	groups: [Group!]!
 	"gcpProjects is GCP projects the user is a member of."
 	gcpProjects: [GCPProject!]!  @goField(name: "GCPProjects") @authenticated
+	"dataproducts is a list of dataproducts with one of the users groups as owner"
+	dataproducts: [Dataproduct!]!
+	"collections is a list of collections with one of the users groups as owner"
+	collections: [Collection!]!
 }
 
 """
@@ -5426,6 +5448,76 @@ func (ec *executionContext) _UserInfo_gcpProjects(ctx context.Context, field gra
 	return ec.marshalNGCPProject2ᚕᚖgithubᚗcomᚋnaviktᚋnadaᚑbackendᚋpkgᚋgraphᚋmodelsᚐGCPProjectᚄ(ctx, field.Selections, res)
 }
 
+func (ec *executionContext) _UserInfo_dataproducts(ctx context.Context, field graphql.CollectedField, obj *models.UserInfo) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "UserInfo",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   true,
+		IsResolver: true,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.UserInfo().Dataproducts(rctx, obj)
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.([]*models.Dataproduct)
+	fc.Result = res
+	return ec.marshalNDataproduct2ᚕᚖgithubᚗcomᚋnaviktᚋnadaᚑbackendᚋpkgᚋgraphᚋmodelsᚐDataproductᚄ(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _UserInfo_collections(ctx context.Context, field graphql.CollectedField, obj *models.UserInfo) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "UserInfo",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   true,
+		IsResolver: true,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.UserInfo().Collections(rctx, obj)
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.([]*models.Collection)
+	fc.Result = res
+	return ec.marshalNCollection2ᚕᚖgithubᚗcomᚋnaviktᚋnadaᚑbackendᚋpkgᚋgraphᚋmodelsᚐCollectionᚄ(ctx, field.Selections, res)
+}
+
 func (ec *executionContext) ___Directive_name(ctx context.Context, field graphql.CollectedField, obj *introspection.Directive) (ret graphql.Marshaler) {
 	defer func() {
 		if r := recover(); r != nil {
@@ -7734,6 +7826,34 @@ func (ec *executionContext) _UserInfo(ctx context.Context, sel ast.SelectionSet,
 					}
 				}()
 				res = ec._UserInfo_gcpProjects(ctx, field, obj)
+				if res == graphql.Null {
+					atomic.AddUint32(&invalids, 1)
+				}
+				return res
+			})
+		case "dataproducts":
+			field := field
+			out.Concurrently(i, func() (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._UserInfo_dataproducts(ctx, field, obj)
+				if res == graphql.Null {
+					atomic.AddUint32(&invalids, 1)
+				}
+				return res
+			})
+		case "collections":
+			field := field
+			out.Concurrently(i, func() (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._UserInfo_collections(ctx, field, obj)
 				if res == graphql.Null {
 					atomic.AddUint32(&invalids, 1)
 				}

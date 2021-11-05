@@ -20,6 +20,10 @@ type UserInfo @goModel(model: "github.com/navikt/nada-backend/pkg/graph/models.U
 	groups: [Group!]!
 	"gcpProjects is GCP projects the user is a member of."
 	gcpProjects: [GCPProject!]!  @goField(name: "GCPProjects") @authenticated
+	"dataproducts is a list of dataproducts with one of the users groups as owner"
+	dataproducts: [Dataproduct!]!
+	"collections is a list of collections with one of the users groups as owner"
+	collections: [Collection!]!
 }
 
 """

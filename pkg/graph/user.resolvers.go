@@ -51,6 +51,16 @@ func (r *userInfoResolver) GCPProjects(ctx context.Context, obj *models.UserInfo
 	return ret, nil
 }
 
+func (r *userInfoResolver) Dataproducts(ctx context.Context, obj *models.UserInfo) ([]*models.Dataproduct, error) {
+	user := auth.GetUser(ctx)
+	return r.repo.GetDataproductsByGroups(ctx, user.Groups.Emails())
+}
+
+func (r *userInfoResolver) Collections(ctx context.Context, obj *models.UserInfo) ([]*models.Collection, error) {
+	user := auth.GetUser(ctx)
+	return r.repo.GetCollectionsByGroups(ctx, user.Groups.Emails())
+}
+
 // UserInfo returns generated.UserInfoResolver implementation.
 func (r *Resolver) UserInfo() generated.UserInfoResolver { return &userInfoResolver{r} }
 
