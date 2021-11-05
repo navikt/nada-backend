@@ -10,5 +10,8 @@ import (
 )
 
 func (r *queryResolver) Search(ctx context.Context, q *models.SearchQuery) ([]models.SearchResult, error) {
+	if q == nil {
+		q = &models.SearchQuery{}
+	}
 	return r.repo.Search(ctx, q)
 }

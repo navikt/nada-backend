@@ -18,4 +18,7 @@ WHERE
 			WHEN @query :: text != '' THEN "tsv_document" @@ query
 			ELSE TRUE
 		END
-	);
+	)
+ORDER BY rank DESC, created DESC
+LIMIT 50
+;
