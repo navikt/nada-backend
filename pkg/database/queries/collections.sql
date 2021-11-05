@@ -7,6 +7,9 @@ SELECT * FROM collections ORDER BY last_modified DESC LIMIT sqlc.arg('limit') OF
 -- name: GetCollectionsByIDs :many
 SELECT * FROM collections WHERE id = ANY(@ids::uuid[]) ORDER BY last_modified DESC;
 
+-- name: GetCollectionsByGroups :many
+SELECT * FROM collections WHERE "group" = ANY(@groups::text[]) ORDER BY last_modified DESC;
+
 -- name: DeleteCollection :exec
 DELETE FROM collections WHERE id = @id;
 

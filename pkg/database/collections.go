@@ -3,6 +3,7 @@ package database
 import (
 	"context"
 	"fmt"
+
 	"github.com/google/uuid"
 	"github.com/navikt/nada-backend/pkg/database/gensql"
 	"github.com/navikt/nada-backend/pkg/graph/models"
@@ -14,6 +15,22 @@ func (r *Repo) GetCollections(ctx context.Context, limit, offset int) ([]*models
 	res, err := r.querier.GetCollections(ctx, gensql.GetCollectionsParams{Limit: int32(limit), Offset: int32(offset)})
 	if err != nil {
 		return nil, fmt.Errorf("getting collections from database: %w", err)
+	}
+
+	for _, entry := range res {
+		col := collectionFromSQL(entry)
+		collections = append(collections, col)
+	}
+
+	return collections, nil
+}
+
+func (r *Repo) GetCollectionsByGroups(ctx context.Context, groups []string) ([]*models.Collection, error) {
+	collections := []*models.Collection{}
+
+	res, err := r.querier.GetCollectionsByGroups(ctx, groups)
+	if err != nil {
+		return nil, fmt.Errorf("getting collections by group from database: %w", err)
 	}
 
 	for _, entry := range res {
