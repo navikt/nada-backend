@@ -1,4 +1,8 @@
 {
-  "team-a": "a-prod",
-  "team-b": "b-prod"
+  "team_projectid_mapping": {
+    "value": {
+      "team-a": "a-prod",
+      "team-b": "b-prod"
+    }
+  }
 }

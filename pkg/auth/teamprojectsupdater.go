@@ -20,6 +20,14 @@ type TeamProjectsUpdater struct {
 	httpClient          *http.Client
 }
 
+type OutputFile struct {
+	TeamProjectIdMapping OutputVariable `json:"team_projectid_mapping"`
+}
+
+type OutputVariable struct {
+	Value map[string]string `json:"value"`
+}
+
 func NewTeamProjectsUpdater(devTeamProjectsURL, prodTeamProjectsURL, teamsToken string, httpClient *http.Client) *TeamProjectsUpdater {
 	return &TeamProjectsUpdater{
 		teamProjects:        make(map[string][]string),
@@ -104,13 +112,13 @@ func getOutputFile(ctx context.Context, url, token string) (map[string]string, e
 		return nil, fmt.Errorf("performing http request, URL: %v: %w", url, err)
 	}
 
-	var outputFile map[string]string
+	var outputFile OutputFile
 
 	if err := json.NewDecoder(response.Body).Decode(&outputFile); err != nil {
 		return nil, fmt.Errorf("unmarshalling terraform output file: %w", err)
 	}
 
-	return outputFile, nil
+	return outputFile.TeamProjectIdMapping.Value, nil
 }
 
 func mergeInto(result map[string][]string, first map[string]string, second map[string]string) {
