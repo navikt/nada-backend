@@ -11,14 +11,6 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-type OutputFile struct {
-	TeamProjectIdMapping OutputVariable `json:"team_projectid_mapping"`
-}
-
-type OutputVariable struct {
-	Value []map[string]string `json:"value"`
-}
-
 type TeamProjectsUpdater struct {
 	lock                sync.RWMutex
 	teamProjects        map[string][]string
@@ -94,13 +86,13 @@ func (t *TeamProjectsUpdater) FetchTeamGoogleProjectsMapping(ctx context.Context
 	t.lock.Lock()
 	defer t.lock.Unlock()
 	t.teamProjects = map[string][]string{}
-	mergeInto(t.teamProjects, devOutputFile.TeamProjectIdMapping.Value, prodOutputFile.TeamProjectIdMapping.Value)
+	mergeInto(t.teamProjects, devOutputFile, prodOutputFile)
 	log.Infof("Updated team projects mapping: %v teams", len(t.teamProjects))
 
 	return nil
 }
 
-func getOutputFile(ctx context.Context, url, token string) (*OutputFile, error) {
+func getOutputFile(ctx context.Context, url, token string) (map[string]string, error) {
 	request, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
 	if err != nil {
 		return nil, fmt.Errorf("creating http request for getting terraform output file: %w", err)
@@ -112,24 +104,20 @@ func getOutputFile(ctx context.Context, url, token string) (*OutputFile, error) 
 		return nil, fmt.Errorf("performing http request, URL: %v: %w", url, err)
 	}
 
-	var outputFile OutputFile
+	var outputFile map[string]string
 
 	if err := json.NewDecoder(response.Body).Decode(&outputFile); err != nil {
 		return nil, fmt.Errorf("unmarshalling terraform output file: %w", err)
 	}
 
-	return &outputFile, nil
+	return outputFile, nil
 }
 
-func mergeInto(result map[string][]string, first []map[string]string, second []map[string]string) {
-	for _, item := range first {
-		for key, value := range item {
-			result[key+"@nav.no"] = append(result[key+"@nav.no"], value)
-		}
+func mergeInto(result map[string][]string, first map[string]string, second map[string]string) {
+	for key, value := range first {
+		result[key+"@nav.no"] = append(result[key+"@nav.no"], value)
 	}
-	for _, item := range second {
-		for key, value := range item {
-			result[key+"@nav.no"] = append(result[key+"@nav.no"], value)
-		}
+	for key, value := range second {
+		result[key+"@nav.no"] = append(result[key+"@nav.no"], value)
 	}
 }
