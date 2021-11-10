@@ -1,15 +1,9 @@
 {
   "team_projectid_mapping": {
-    "value": [
-      {
-        "team-a": "a-dev"
-      },
-      {
-        "team-b": "b-dev"
-      },
-      {
-        "team-c": "c-dev"
-      }
-    ]
+    "value": {
+      "team-a": "a-dev",
+      "team-b": "b-dev",
+      "team-c": "c-dev"
+    }
   }
 }
