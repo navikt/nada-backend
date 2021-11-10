@@ -63,7 +63,7 @@ func TestMain(m *testing.M) {
 	promReg := prometheus.NewRegistry()
 	graphProm.RegisterOn(promReg)
 
-	srv := api.New(repo, &mockGCP{}, nil, &auth.MockTeamProjectsUpdater, access.NewNoop(), auth.MockJWTValidatorMiddleware(), prometheus.NewRegistry(), logrus.StandardLogger())
+	srv := api.New(repo, &mockGCP{}, nil, &auth.MockTeamProjectsUpdater, access.NewNoop(), auth.MockJWTValidatorMiddleware(), nil, prometheus.NewRegistry(), logrus.StandardLogger())
 
 	server = httptest.NewServer(srv)
 	code := m.Run()

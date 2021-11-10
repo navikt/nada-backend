@@ -14,6 +14,7 @@ type Config struct {
 	SkipMetadataSync                bool
 	ServiceAccountFile              string
 	GoogleAdminImpersonationSubject string
+	TeamkatalogenURL                string
 }
 
 type OAuth2Config struct {
@@ -27,5 +28,6 @@ func DefaultConfig() Config {
 		LogLevel:                  "info",
 		DevTeamProjectsOutputURL:  "https://raw.githubusercontent.com/nais/teams/master/gcp-projects/dev-output.json",
 		ProdTeamProjectsOutputURL: "https://raw.githubusercontent.com/nais/teams/master/gcp-projects/prod-output.json",
+		TeamkatalogenURL:          "https://teamkatalog-api.prod-fss-pub.nais.io",
 	}
 }

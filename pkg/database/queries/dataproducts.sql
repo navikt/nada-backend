@@ -13,6 +13,9 @@ LIMIT sqlc.arg('limit') OFFSET sqlc.arg('offset');
 -- name: GetDataproductsByIDs :many
 SELECT * FROM dataproducts WHERE id = ANY(@ids::uuid[]) ORDER BY last_modified DESC;
 
+-- name: GetDataproductsByGroups :many
+SELECT * FROM dataproducts WHERE "group" = ANY(@groups::text[]) ORDER BY last_modified DESC;
+
 -- name: DeleteDataproduct :exec
 DELETE
 FROM dataproducts
@@ -93,6 +96,6 @@ INSERT INTO dataproduct_requesters (dataproduct_id, "subject")
 VALUES (@dataproduct_id, @subject);
 
 -- name: DeleteDataproductRequester :exec
-DELETE FROM dataproduct_requesters 
+DELETE FROM dataproduct_requesters
 WHERE dataproduct_id = @dataproduct_id
 AND "subject" = @subject;

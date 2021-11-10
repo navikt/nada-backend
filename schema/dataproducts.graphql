@@ -26,6 +26,8 @@ type Dataproduct @goModel(model: "github.com/navikt/nada-backend/pkg/graph/model
     requesters: [String!]!
     "access contains list of users, groups and service accounts which have access to the dataproduct"
     access: [Access!]! @authenticated
+    "access collections that dataproduct is part of"
+    collections(limit: Int, offset: Int): [Collection!]!
 }
 
 """

@@ -22,8 +22,8 @@ spec:
     enabled: true
     path: /internal/metrics
   ingresses:
-    - "https://nada.dev.intern.nav.no/api"
-    - "https://nada.dev.intern.nav.no/datapakke/"
+    - "https://data.dev.intern.nav.no/api"
+    - "https://data.dev.intern.nav.no/datapakke/"
   envFrom:
     - secret: impersonation-subject
     - secret: github-read-token
@@ -35,7 +35,7 @@ spec:
     - name: GOOGLE_ADMIN_CREDENTIALS_PATH
       value: /var/run/secrets/google-credentials/sa.json
     - name: HOSTNAME
-      value: "nada.dev.intern.nav.no"
+      value: "data.dev.intern.nav.no"
   gcp:
     sqlInstances:
       - type: POSTGRES_12

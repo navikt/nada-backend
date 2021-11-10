@@ -7,6 +7,9 @@ SELECT * FROM collections ORDER BY last_modified DESC LIMIT sqlc.arg('limit') OF
 -- name: GetCollectionsByIDs :many
 SELECT * FROM collections WHERE id = ANY(@ids::uuid[]) ORDER BY last_modified DESC;
 
+-- name: GetCollectionsByGroups :many
+SELECT * FROM collections WHERE "group" = ANY(@groups::text[]) ORDER BY last_modified DESC;
+
 -- name: DeleteCollection :exec
 DELETE FROM collections WHERE id = @id;
 
@@ -53,3 +56,11 @@ SELECT *
 FROM dataproducts
 WHERE id IN
 	(SELECT element_id FROM collection_elements WHERE collection_id = @collection_id AND element_type = 'dataproduct');
+
+-- name: GetCollectionsForElement :many
+SELECT *
+FROM collections
+WHERE id IN
+	(SELECT collection_id FROM collection_elements WHERE element_id = sqlc.arg('element_id') AND element_type = sqlc.arg('element_type'))
+LIMIT sqlc.arg('limit')
+OFFSET sqlc.arg('offset');

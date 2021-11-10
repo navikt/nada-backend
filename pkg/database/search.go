@@ -3,6 +3,7 @@ package database
 import (
 	"context"
 	"sort"
+	"time"
 
 	"github.com/google/uuid"
 	"github.com/navikt/nada-backend/pkg/database/gensql"
@@ -54,7 +55,12 @@ func (r *Repo) Search(ctx context.Context, query *models.SearchQuery) ([]*models
 			Result:  collectionFromSQL(c),
 		})
 	}
+	sortSearch(ret, ranks)
 
+	return ret, nil
+}
+
+func sortSearch(ret []*models.SearchResultRow, ranks map[string]float32) {
 	getRank := func(m models.SearchResult) float32 {
 		switch m := m.(type) {
 		case *models.Dataproduct:
@@ -65,9 +71,24 @@ func (r *Repo) Search(ctx context.Context, query *models.SearchQuery) ([]*models
 			return -1
 		}
 	}
-	sort.Slice(ret, func(i, j int) bool {
-		return getRank(ret[i].Result) > getRank(ret[j].Result)
-	})
 
-	return ret, nil
+	getCreatedAt := func(m models.SearchResult) time.Time {
+		switch m := m.(type) {
+		case *models.Dataproduct:
+			return m.Created
+		case *models.Collection:
+			return m.Created
+		default:
+			return time.Time{}
+		}
+	}
+
+	sort.Slice(ret, func(i, j int) bool {
+		ri, rj := getRank(ret[i].Result), getRank(ret[j].Result)
+		if ri != rj {
+			return ri > rj
+		}
+
+		return getCreatedAt(ret[i].Result).After(getCreatedAt(ret[j].Result))
+	})
 }

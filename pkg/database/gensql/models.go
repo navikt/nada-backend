@@ -93,8 +93,9 @@ type Search struct {
 	ElementID    uuid.UUID
 	ElementType  interface{}
 	Description  sql.NullString
-	LastModified time.Time
 	Keywords     []string
 	Group        string
+	Created      time.Time
+	LastModified time.Time
 	TsvDocument  interface{}
 }

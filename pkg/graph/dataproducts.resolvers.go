@@ -51,6 +51,11 @@ func (r *dataproductResolver) Access(ctx context.Context, obj *models.Dataproduc
 	return ret, nil
 }
 
+func (r *dataproductResolver) Collections(ctx context.Context, obj *models.Dataproduct, limit *int, offset *int) ([]*models.Collection, error) {
+	l, o := pagination(limit, offset)
+	return r.repo.GetCollectionsForElement(ctx, obj.ID, l, o)
+}
+
 func (r *mutationResolver) CreateDataproduct(ctx context.Context, input models.NewDataproduct) (*models.Dataproduct, error) {
 	if err := ensureUserInGroup(ctx, input.Group); err != nil {
 		return nil, err

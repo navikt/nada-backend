@@ -20,5 +20,6 @@ WHERE
 			ELSE TRUE
 		END
 	)
-ORDER BY rank
+ORDER BY rank DESC, created DESC
+LIMIT 50
 ;

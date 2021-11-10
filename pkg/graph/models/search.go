@@ -12,3 +12,9 @@ type SearchQuery struct {
 	Limit   *int    `json:"limit"`
 	Offset  *int    `json:"offset"`
 }
+
+type SearchResultRow struct {
+	Excerpt string       `json:"excerpt"`
+	Result  SearchResult `json:"result"`
+	Rank    float64      `json:"rank"`
+}

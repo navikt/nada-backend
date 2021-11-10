@@ -29,6 +29,21 @@ func (r *Repo) GetDataproducts(ctx context.Context, limit, offset int) ([]*model
 	return datasets, nil
 }
 
+func (r *Repo) GetDataproductsByGroups(ctx context.Context, groups []string) ([]*models.Dataproduct, error) {
+	datasets := []*models.Dataproduct{}
+
+	res, err := r.querier.GetDataproductsByGroups(ctx, groups)
+	if err != nil {
+		return nil, fmt.Errorf("getting datasets by group from database: %w", err)
+	}
+
+	for _, entry := range res {
+		datasets = append(datasets, dataproductFromSQL(entry))
+	}
+
+	return datasets, nil
+}
+
 func (r *Repo) GetDataproduct(ctx context.Context, id uuid.UUID) (*models.Dataproduct, error) {
 	res, err := r.querier.GetDataproduct(ctx, id)
 	if err != nil {

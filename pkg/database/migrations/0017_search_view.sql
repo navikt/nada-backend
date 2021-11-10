@@ -1,16 +1,16 @@
 -- +goose Up
-
 DROP VIEW IF EXISTS search;
 
-CREATE OR REPLACE VIEW search
+CREATE VIEW search
 AS (
 	SELECT
 		id AS element_id,
 		'dataproduct' AS element_type,
 		"description",
-		last_modified,
 		keywords,
 		"group",
+		created,
+		last_modified,
 		(
 			setweight(to_tsvector('norwegian', "name"), 'A')
 				|| setweight(to_tsvector('norwegian', coalesce("description", '')), 'B')
@@ -27,9 +27,10 @@ AS (
 		id AS element_id,
 		'collection' AS element_type,
 		"description",
-		last_modified,
 		keywords,
 		"group",
+		created,
+		last_modified,
 		(
 			setweight(to_tsvector('norwegian', "name"), 'A')
 				|| setweight(to_tsvector('norwegian', coalesce("description", '')), 'B')
