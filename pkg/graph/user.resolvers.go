@@ -56,6 +56,11 @@ func (r *userInfoResolver) Dataproducts(ctx context.Context, obj *models.UserInf
 	return r.repo.GetDataproductsByGroups(ctx, user.Groups.Emails())
 }
 
+func (r *userInfoResolver) Accessable(ctx context.Context, obj *models.UserInfo) ([]*models.Dataproduct, error) {
+	user := auth.GetUser(ctx)
+	return r.repo.GetDataproductsByUserAccess(ctx, "user:"+user.Email)
+}
+
 func (r *userInfoResolver) Collections(ctx context.Context, obj *models.UserInfo) ([]*models.Collection, error) {
 	user := auth.GetUser(ctx)
 	return r.repo.GetCollectionsByGroups(ctx, user.Groups.Emails())
