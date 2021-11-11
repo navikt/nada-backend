@@ -6,7 +6,7 @@ AS (
 	SELECT
 		id AS element_id,
 		'dataproduct' AS element_type,
-		coalesce("description", ''),
+		coalesce("description", '') AS "description",
 		keywords,
 		"group",
 		created,
@@ -26,7 +26,7 @@ AS (
 	SELECT
 		id AS element_id,
 		'collection' AS element_type,
-		coalesce("description", ''),
+		coalesce("description", '') AS "description",
 		keywords,
 		"group",
 		created,
