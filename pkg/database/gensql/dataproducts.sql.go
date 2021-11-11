@@ -434,7 +434,7 @@ WHERE id = ANY (SELECT dataproduct_id
                 FROM dataproduct_access
                 WHERE "subject" = $1
                   AND revoked IS NULL
-                  AND expires > NOW())
+                  AND (expires > NOW() OR expires IS NULL))
 ORDER BY last_modified DESC
 `
 

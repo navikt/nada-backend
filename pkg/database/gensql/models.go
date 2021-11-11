@@ -92,7 +92,7 @@ type DatasourceBigquery struct {
 type Search struct {
 	ElementID    uuid.UUID
 	ElementType  interface{}
-	Description  sql.NullString
+	Description  string
 	Keywords     []string
 	Group        string
 	Created      time.Time
