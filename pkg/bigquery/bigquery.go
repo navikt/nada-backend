@@ -92,9 +92,15 @@ func (c *Bigquery) GetTables(ctx context.Context, projectID, datasetID string) (
 		if err != nil {
 			break
 		}
+
 		m, err := t.Metadata(ctx)
 		if err != nil {
 			return nil, err
+		}
+
+		if m.Type != bigquery.RegularTable {
+			// We only support regular tables for now.
+			continue
 		}
 
 		tables = append(tables, &models.BigQueryTable{
