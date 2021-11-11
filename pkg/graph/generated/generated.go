@@ -169,6 +169,7 @@ type ComplexityRoot struct {
 	}
 
 	UserInfo struct {
+		Accessable   func(childComplexity int) int
 		Collections  func(childComplexity int) int
 		Dataproducts func(childComplexity int) int
 		Email        func(childComplexity int) int
@@ -220,6 +221,7 @@ type QueryResolver interface {
 type UserInfoResolver interface {
 	GCPProjects(ctx context.Context, obj *models.UserInfo) ([]*models.GCPProject, error)
 	Dataproducts(ctx context.Context, obj *models.UserInfo) ([]*models.Dataproduct, error)
+	Accessable(ctx context.Context, obj *models.UserInfo) ([]*models.Dataproduct, error)
 	Collections(ctx context.Context, obj *models.UserInfo) ([]*models.Collection, error)
 }
 
@@ -886,6 +888,13 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 		}
 
 		return e.complexity.TeamkatalogenResult.URL(childComplexity), true
+
+	case "UserInfo.accessable":
+		if e.complexity.UserInfo.Accessable == nil {
+			break
+		}
+
+		return e.complexity.UserInfo.Accessable(childComplexity), true
 
 	case "UserInfo.collections":
 		if e.complexity.UserInfo.Collections == nil {
@@ -1603,6 +1612,8 @@ type UserInfo @goModel(model: "github.com/navikt/nada-backend/pkg/graph/models.U
 	gcpProjects: [GCPProject!]!  @goField(name: "GCPProjects") @authenticated
 	"dataproducts is a list of dataproducts with one of the users groups as owner"
 	dataproducts: [Dataproduct!]!
+	"accessable is a list of dataproducts which the user has explicit access to"
+	accessable: [Dataproduct!]!
 	"collections is a list of collections with one of the users groups as owner"
 	collections: [Collection!]!
 }
@@ -5578,6 +5589,41 @@ func (ec *executionContext) _UserInfo_dataproducts(ctx context.Context, field gr
 	return ec.marshalNDataproduct2ᚕᚖgithubᚗcomᚋnaviktᚋnadaᚑbackendᚋpkgᚋgraphᚋmodelsᚐDataproductᚄ(ctx, field.Selections, res)
 }
 
+func (ec *executionContext) _UserInfo_accessable(ctx context.Context, field graphql.CollectedField, obj *models.UserInfo) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "UserInfo",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   true,
+		IsResolver: true,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.UserInfo().Accessable(rctx, obj)
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.([]*models.Dataproduct)
+	fc.Result = res
+	return ec.marshalNDataproduct2ᚕᚖgithubᚗcomᚋnaviktᚋnadaᚑbackendᚋpkgᚋgraphᚋmodelsᚐDataproductᚄ(ctx, field.Selections, res)
+}
+
 func (ec *executionContext) _UserInfo_collections(ctx context.Context, field graphql.CollectedField, obj *models.UserInfo) (ret graphql.Marshaler) {
 	defer func() {
 		if r := recover(); r != nil {
@@ -7967,6 +8013,20 @@ func (ec *executionContext) _UserInfo(ctx context.Context, sel ast.SelectionSet,
 					}
 				}()
 				res = ec._UserInfo_dataproducts(ctx, field, obj)
+				if res == graphql.Null {
+					atomic.AddUint32(&invalids, 1)
+				}
+				return res
+			})
+		case "accessable":
+			field := field
+			out.Concurrently(i, func() (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._UserInfo_accessable(ctx, field, obj)
 				if res == graphql.Null {
 					atomic.AddUint32(&invalids, 1)
 				}

@@ -29,19 +29,32 @@ func (r *Repo) GetDataproducts(ctx context.Context, limit, offset int) ([]*model
 	return datasets, nil
 }
 
+func (r *Repo) GetDataproductsByUserAccess(ctx context.Context, user string) ([]*models.Dataproduct, error) {
+	res, err := r.querier.GetDataproductsByUserAccess(ctx, user)
+	if err != nil {
+		return nil, err
+	}
+
+	dps := []*models.Dataproduct{}
+	for _, d := range res {
+		dps = append(dps, dataproductFromSQL(d))
+	}
+	return dps, nil
+}
+
 func (r *Repo) GetDataproductsByGroups(ctx context.Context, groups []string) ([]*models.Dataproduct, error) {
-	datasets := []*models.Dataproduct{}
+	dps := []*models.Dataproduct{}
 
 	res, err := r.querier.GetDataproductsByGroups(ctx, groups)
 	if err != nil {
-		return nil, fmt.Errorf("getting datasets by group from database: %w", err)
+		return nil, fmt.Errorf("getting dataproducts by group from database: %w", err)
 	}
 
 	for _, entry := range res {
-		datasets = append(datasets, dataproductFromSQL(entry))
+		dps = append(dps, dataproductFromSQL(entry))
 	}
 
-	return datasets, nil
+	return dps, nil
 }
 
 func (r *Repo) GetDataproduct(ctx context.Context, id uuid.UUID) (*models.Dataproduct, error) {
