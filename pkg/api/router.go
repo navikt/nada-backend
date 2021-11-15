@@ -27,6 +27,15 @@ func New(repo *database.Repo, gcp graph.Bigquery, oauth2 OAuth2, gcpProjects *au
 
 	gqlServer := graph.New(repo, gcp, gcpProjects, accessMgr, tk, log.WithField("subsystem", "graph"))
 
+	datapackageRedirect := func(w http.ResponseWriter, r *http.Request) {
+		host := "https://datapakker.dev.intern.nav.no"
+		if os.Getenv("NAIS_CLUSTER_NAME") == "prod-gcp" {
+			host = "https://datapakker.intern.nav.no"
+		}
+
+		http.Redirect(w, r, host+r.URL.Path, http.StatusPermanentRedirect)
+	}
+
 	router := chi.NewRouter()
 	router.Use(corsMW)
 	router.Route("/api", func(r chi.Router) {
@@ -35,18 +44,12 @@ func New(repo *database.Repo, gcp graph.Bigquery, oauth2 OAuth2, gcpProjects *au
 		r.HandleFunc("/login", httpAPI.Login)
 		r.HandleFunc("/oauth2/callback", httpAPI.Callback)
 		r.HandleFunc("/logout", httpAPI.Logout)
+		r.HandleFunc("/nav-interndata/*", datapackageRedirect)
 	})
 	router.Route("/internal", func(r chi.Router) {
 		r.Handle("/metrics", promhttp.HandlerFor(promReg, promhttp.HandlerOpts{}))
 	})
-	router.HandleFunc("/datapakke/*", func(w http.ResponseWriter, r *http.Request) {
-		host := "https://datapakker.dev.intern.nav.no"
-		if os.Getenv("NAIS_CLUSTER_NAME") == "prod-gcp" {
-			host = "https://datapakker.intern.nav.no"
-		}
-
-		http.Redirect(w, r, host+r.URL.Path, http.StatusPermanentRedirect)
-	})
+	router.HandleFunc("/datapakke/*", datapackageRedirect)
 
 	return router
 }
