@@ -26,6 +26,9 @@ env:
 	echo "NADA_CLIENT_SECRET=$(shell kubectl get --context=dev-gcp --namespace=nada secret/google-oauth -o jsonpath='{.data.CLIENT_SECRET}' | base64 -d)" >> .env
 	echo "GITHUB_READ_TOKEN=$(shell kubectl get secret --context=dev-gcp --namespace=nada github-read-token -o jsonpath='{.data.GITHUB_READ_TOKEN}' | base64 -d)" >> .env
 
+test-sa:
+	$(shell kubectl get --context=dev-gcp --namespace=nada secret/google-credentials -o json | jq -r '.data."sa.json"' | base64 -d > test-sa.json)
+
 local-with-auth:
 	go run ./cmd/nada-backend \
 	--oauth2-client-id=$(NADA_CLIENT_ID) \
