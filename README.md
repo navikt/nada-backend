@@ -18,13 +18,18 @@ gcloud auth application-default login
 
 
 Ensure that your `.env` file is populated with data.
+Ignore this step if there's already some data that looks right.
+
+
 This assumes that `kubectl` is installed and set up with [`KUBECONFIGS`](https://doc.nais.io/basics/access/#install-kubectl), and that [naisdevice](https://doc.nais.io/device/) is installed and running.
-This pulls secret data from a Kubernetes cluster and puts it into your `.env` file.
+This pulls secret data from a Kubernetes cluster and puts it into your `.env` file. 
 ```bash
 make env
 ```
 
 And ensure that `test-sa.json` exists and has contents.
+Ignore this step if the file exists with data.
+
 ```bash
 make test-sa
 ```
