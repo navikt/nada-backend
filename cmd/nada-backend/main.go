@@ -69,6 +69,8 @@ func main() {
 		log.WithError(err).Fatal("setting up database")
 	}
 
+	//metabase.New(repo)
+
 	authenticatorMiddleware := auth.MockJWTValidatorMiddleware()
 	teamProjectsMapping := &auth.MockTeamProjectsUpdater
 	var oauth2Config api.OAuth2
