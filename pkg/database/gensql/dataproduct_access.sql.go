@@ -37,8 +37,8 @@ INSERT INTO dataproduct_access (dataproduct_id,
                                 granter,
                                 expires)
 VALUES ($1,
-        $2,
-        $3,
+        LOWER($2),
+        LOWER($3),
         $4)
 RETURNING id, dataproduct_id, subject, granter, expires, created, revoked
 `
