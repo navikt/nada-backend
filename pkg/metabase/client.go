@@ -236,18 +236,25 @@ func (c *Client) AutoMapSemanticTypes(ctx context.Context, dbID string) error {
 
 	for _, t := range tables {
 		for _, f := range t.Fields {
-			if f.DatabaseType == "STRING" && f.SemanticType == "" {
-				if err := c.MapSemanticType(ctx, f.ID); err != nil {
+			if f.SemanticType != "" {
+				continue
+			}
+			switch f.DatabaseType {
+			case "STRING":
+				if err := c.MapSemanticType(ctx, f.ID, "type/Name"); err != nil {
 					return err
 				}
-				fmt.Println("Mapped semantic type for field", f.ID)
+			case "TIMESTAMP":
+				if err := c.MapSemanticType(ctx, f.ID, "type/CreationTimestamp"); err != nil {
+					return err
+				}
 			}
 		}
 	}
 	return nil
 }
 
-func (c *Client) MapSemanticType(ctx context.Context, fieldID int) error {
-	payload := map[string]string{"semantic_type": "type/Name"}
+func (c *Client) MapSemanticType(ctx context.Context, fieldID int, semanticType string) error {
+	payload := map[string]string{"semantic_type": semanticType}
 	return c.request(ctx, http.MethodPut, "/field/"+strconv.Itoa(fieldID), payload, nil)
 }
