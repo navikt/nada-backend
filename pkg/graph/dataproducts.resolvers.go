@@ -41,7 +41,7 @@ func (r *dataproductResolver) Access(ctx context.Context, obj *models.Dataproduc
 
 	ret := []*models.Access{}
 	for _, a := range all {
-		if a.Subject == "user:"+user.Email {
+		if strings.EqualFold(a.Subject, "user:"+user.Email) {
 			ret = append(ret, a)
 		} else if strings.HasPrefix(a.Subject, "group:") && user.Groups.Contains(strings.TrimPrefix(a.Subject, "group:")) {
 			ret = append(ret, a)
@@ -191,7 +191,7 @@ func (r *mutationResolver) RevokeAccessToDataproduct(ctx context.Context, id uui
 	}
 
 	user := auth.GetUser(ctx)
-	if !user.Groups.Contains(dp.Owner.Group) && "user:"+user.Email != access.Subject {
+	if !user.Groups.Contains(dp.Owner.Group) && !strings.EqualFold("user:"+user.Email, access.Subject) {
 		return false, ErrUnauthorized
 	}
 
@@ -216,5 +216,7 @@ func (r *Resolver) BigQuery() generated.BigQueryResolver { return &bigQueryResol
 // Dataproduct returns generated.DataproductResolver implementation.
 func (r *Resolver) Dataproduct() generated.DataproductResolver { return &dataproductResolver{r} }
 
-type bigQueryResolver struct{ *Resolver }
-type dataproductResolver struct{ *Resolver }
+type (
+	bigQueryResolver    struct{ *Resolver }
+	dataproductResolver struct{ *Resolver }
+)

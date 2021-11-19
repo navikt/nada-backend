@@ -27,7 +27,7 @@ SELECT *
 FROM dataproducts
 WHERE id = ANY (SELECT dataproduct_id
                 FROM dataproduct_access
-                WHERE "subject" = @id
+                WHERE "subject" = LOWER(@id)
                   AND revoked IS NULL
                   AND (expires > NOW() OR expires IS NULL))
 ORDER BY last_modified DESC;
@@ -111,10 +111,10 @@ WHERE dataproduct_id = @dataproduct_id;
 
 -- name: CreateDataproductRequester :exec
 INSERT INTO dataproduct_requesters (dataproduct_id, "subject")
-VALUES (@dataproduct_id, @subject);
+VALUES (@dataproduct_id, LOWER(@subject));
 
 -- name: DeleteDataproductRequester :exec
 DELETE
 FROM dataproduct_requesters
 WHERE dataproduct_id = @dataproduct_id
-  AND "subject" = @subject;
+  AND "subject" = LOWER(@subject);
