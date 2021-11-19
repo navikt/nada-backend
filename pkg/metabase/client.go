@@ -192,8 +192,7 @@ func (c *Client) HideTables(ctx context.Context, ids []int) error {
 	return c.request(ctx, http.MethodPut, "/table", t, nil)
 }
 
-type Field struct {
-}
+type Field struct{}
 
 type Table struct {
 	Name   string `json:"name"`
@@ -201,6 +200,7 @@ type Table struct {
 	Fields []struct {
 		DatabaseType string `json:"database_type"`
 		ID           int    `json:"id"`
+		SemanticType string `json:"semantic_type"`
 	} `json:"fields"`
 }
 
@@ -222,7 +222,6 @@ func (c *Client) Tables(ctx context.Context, dbID string) ([]Table, error) {
 		})
 	}
 	return ret, nil
-
 }
 
 func (c *Client) DeleteDatabase(ctx context.Context, id string) error {
@@ -237,7 +236,7 @@ func (c *Client) AutoMapSemanticTypes(ctx context.Context, dbID string) error {
 
 	for _, t := range tables {
 		for _, f := range t.Fields {
-			if f.DatabaseType == "STRING" {
+			if f.DatabaseType == "STRING" && f.SemanticType == "" {
 				if err := c.MapSemanticType(ctx, f.ID); err != nil {
 					return err
 				}
@@ -249,6 +248,6 @@ func (c *Client) AutoMapSemanticTypes(ctx context.Context, dbID string) error {
 }
 
 func (c *Client) MapSemanticType(ctx context.Context, fieldID int) error {
-	payload := strings.NewReader(`{"semantic_type": "type/Name"}`)
+	payload := map[string]string{"semantic_type": "type/Name"}
 	return c.request(ctx, http.MethodPut, "/field/"+strconv.Itoa(fieldID), payload, nil)
 }
