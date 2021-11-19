@@ -2,6 +2,7 @@ package graph
 
 import (
 	"context"
+	"strings"
 
 	"github.com/navikt/nada-backend/pkg/auth"
 	"github.com/navikt/nada-backend/pkg/database"
@@ -12,7 +13,7 @@ func isAllowedToGrantAccess(ctx context.Context, r *database.Repo, dp *models.Da
 	if ensureUserInGroup(ctx, dp.Owner.Group) == nil {
 		return nil
 	}
-	if subject != user.Email {
+	if !strings.EqualFold(subject, user.Email) {
 		return ErrUnauthorized
 	}
 	requesters, err := r.GetDataproductRequesters(ctx, dp.ID)
@@ -21,7 +22,7 @@ func isAllowedToGrantAccess(ctx context.Context, r *database.Repo, dp *models.Da
 	}
 
 	for _, r := range requesters {
-		if user.Groups.Contains(r) || r == user.Email {
+		if user.Groups.Contains(r) || strings.EqualFold(r, user.Email) {
 			return nil
 		}
 	}

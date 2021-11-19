@@ -139,6 +139,7 @@ func (r *Repo) UpdateDataproduct(ctx context.Context, id uuid.UUID, new models.U
 	if new.Keywords == nil {
 		new.Keywords = []string{}
 	}
+
 	res, err := r.querier.UpdateDataproduct(ctx, gensql.UpdateDataproductParams{
 		Name:        new.Name,
 		Description: ptrToNullString(new.Description),
