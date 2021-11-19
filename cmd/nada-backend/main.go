@@ -37,6 +37,7 @@ const (
 	TeamProjectsUpdateFrequency    = 5 * time.Minute
 	DatasetMetadataUpdateFrequency = 1 * time.Hour
 	AccessEnsurerFrequency         = 5 * time.Minute
+	MetabaseUpdateFrequency        = 5 * time.Minute
 )
 
 func init() {
@@ -58,6 +59,7 @@ func init() {
 	flag.StringVar(&cfg.MetabaseServiceAccountFile, "metabase-service-account-file", os.Getenv("METABASE_GOOGLE_CREDENTIALS_PATH"), "Service account file for metabase access to bigquery tables")
 	flag.StringVar(&cfg.MetabaseUsername, "metabase-user", os.Getenv("METABASE_USERNAME"), "Username for metabase api")
 	flag.StringVar(&cfg.MetabasePassword, "metabase-password", os.Getenv("METABASE_PASSWORD"), "Password for metabase api")
+	flag.StringVar(&cfg.MetabaseAPI, "metabase-api", os.Getenv("METABASE_API"), "URL to Metabase API, including scheme and `/api`")
 }
 
 func main() {
@@ -73,8 +75,9 @@ func main() {
 		log.WithError(err).Fatal("setting up database")
 	}
 
-	metabase := metabase.New(repo, cfg.MetabaseServiceAccountFile, cfg.MetabaseUsername, cfg.MetabasePassword)
-	metabase.Run(ctx)
+	if err := runMetabase(ctx, log.WithField("subsystem", "metabase"), cfg, repo); err != nil {
+		log.WithError(err).Fatal("running metabase")
+	}
 
 	authenticatorMiddleware := auth.MockJWTValidatorMiddleware()
 	teamProjectsMapping := &auth.MockTeamProjectsUpdater
@@ -158,6 +161,25 @@ func getEnv(key, fallback string) string {
 		return env
 	}
 	return fallback
+}
+
+func runMetabase(ctx context.Context, log *logrus.Entry, cfg Config, repo *database.Repo) error {
+	if cfg.MetabaseServiceAccountFile == "" {
+		log.Info("metabase sync disabled")
+		return nil
+	}
+
+	log.Info("metabase sync enabled")
+
+	client := metabase.NewClient(cfg.MetabaseAPI, cfg.MetabaseUsername, cfg.MetabasePassword)
+
+	sa, err := os.ReadFile(cfg.MetabaseServiceAccountFile)
+	if err != nil {
+		return err
+	}
+	metabase := metabase.New(repo, client, string(sa))
+	go metabase.Run(ctx, MetabaseUpdateFrequency)
+	return nil
 }
 
 type noopDatasetEnricher struct{}

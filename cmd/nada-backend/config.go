@@ -18,6 +18,7 @@ type Config struct {
 	MetabaseServiceAccountFile      string
 	MetabaseUsername                string
 	MetabasePassword                string
+	MetabaseAPI                     string
 }
 
 type OAuth2Config struct {
