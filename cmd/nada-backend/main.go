@@ -17,6 +17,7 @@ import (
 	"github.com/navikt/nada-backend/pkg/database"
 	"github.com/navikt/nada-backend/pkg/database/gensql"
 	"github.com/navikt/nada-backend/pkg/graph"
+	"github.com/navikt/nada-backend/pkg/metabase"
 	"github.com/navikt/nada-backend/pkg/teamkatalogen"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/sirupsen/logrus"
@@ -54,6 +55,9 @@ func init() {
 	flag.StringVar(&cfg.GoogleAdminImpersonationSubject, "google-admin-subject", os.Getenv("GOOGLE_ADMIN_IMPERSONATION_SUBJECT"), "Subject to impersonate when accessing google admin apis")
 	flag.StringVar(&cfg.ServiceAccountFile, "service-account-file", os.Getenv("GOOGLE_ADMIN_CREDENTIALS_PATH"), "Service account file for accessing google admin apis")
 	flag.BoolVar(&cfg.SkipMetadataSync, "skip-metadata-sync", false, "Skip metadata sync")
+	flag.StringVar(&cfg.MetabaseServiceAccountFile, "metabase-service-account-file", os.Getenv("METABASE_GOOGLE_CREDENTIALS_PATH"), "Service account file for metabase access to bigquery tables")
+	flag.StringVar(&cfg.MetabaseUsername, "metabase-user", os.Getenv("METABASE_USERNAME"), "Username for metabase api")
+	flag.StringVar(&cfg.MetabasePassword, "metabase-password", os.Getenv("METABASE_PASSWORD"), "Password for metabase api")
 }
 
 func main() {
@@ -69,7 +73,8 @@ func main() {
 		log.WithError(err).Fatal("setting up database")
 	}
 
-	//metabase.New(repo)
+	metabase := metabase.New(repo, cfg.MetabaseServiceAccountFile, cfg.MetabaseUsername, cfg.MetabasePassword)
+	metabase.Run(ctx)
 
 	authenticatorMiddleware := auth.MockJWTValidatorMiddleware()
 	teamProjectsMapping := &auth.MockTeamProjectsUpdater

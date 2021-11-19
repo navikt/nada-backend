@@ -11,14 +11,15 @@ type Metabase struct {
 	client *Client
 }
 
-func New(url, username, password string) *Metabase {
+func New(repo *database.Repo, url, username, password string) *Metabase {
 	return &Metabase{
+		repo:   repo,
 		client: NewClient(url, username, password),
 	}
 }
 
 func (m *Metabase) Run(ctx context.Context) {
-	//dbs, err := m.client.Databases(ctx)
+	// dbs, err := m.client.Databases(ctx)
 }
 
 func (m *Metabase) HideOtherTables(ctx context.Context, dbID, table string) error {
