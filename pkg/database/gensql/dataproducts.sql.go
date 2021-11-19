@@ -136,7 +136,7 @@ func (q *Queries) CreateDataproduct(ctx context.Context, arg CreateDataproductPa
 
 const createDataproductRequester = `-- name: CreateDataproductRequester :exec
 INSERT INTO dataproduct_requesters (dataproduct_id, "subject")
-VALUES ($1, $2)
+VALUES ($1, LOWER($2))
 `
 
 type CreateDataproductRequesterParams struct {
@@ -164,7 +164,7 @@ const deleteDataproductRequester = `-- name: DeleteDataproductRequester :exec
 DELETE
 FROM dataproduct_requesters
 WHERE dataproduct_id = $1
-  AND "subject" = $2
+  AND "subject" = LOWER($2)
 `
 
 type DeleteDataproductRequesterParams struct {
@@ -432,7 +432,7 @@ SELECT id, name, description, "group", pii, created, last_modified, type, tsv_do
 FROM dataproducts
 WHERE id = ANY (SELECT dataproduct_id
                 FROM dataproduct_access
-                WHERE "subject" = $1
+                WHERE "subject" = LOWER($1)
                   AND revoked IS NULL
                   AND (expires > NOW() OR expires IS NULL))
 ORDER BY last_modified DESC
