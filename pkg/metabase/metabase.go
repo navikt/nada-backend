@@ -6,19 +6,28 @@ import (
 	"time"
 
 	"github.com/navikt/nada-backend/pkg/database"
+	"github.com/navikt/nada-backend/pkg/graph"
 )
 
 type Metabase struct {
-	repo   *database.Repo
-	client *Client
-	sa     string
+	repo      *database.Repo
+	client    *Client
+	accessMgr graph.AccessManager
+	sa        string
+	saEmail   string
 }
 
-func New(repo *database.Repo, client *Client, serviceAccount string) *Metabase {
+type MetabaseSA struct {
+	ClientEmail string `json:"client_email"`
+}
+
+func New(repo *database.Repo, client *Client, accessMgr graph.AccessManager, serviceAccount, serviceAccountEmail string) *Metabase {
 	return &Metabase{
-		repo:   repo,
-		client: client,
-		sa:     serviceAccount,
+		repo:      repo,
+		client:    client,
+		accessMgr: accessMgr,
+		sa:        serviceAccount,
+		saEmail:   serviceAccountEmail,
 	}
 }
 
@@ -62,6 +71,11 @@ func (m *Metabase) run(ctx context.Context) error {
 		}
 
 		datasource, err := m.repo.GetBigqueryDatasource(ctx, dp.ID)
+		if err != nil {
+			return err
+		}
+
+		err = m.accessMgr.Grant(ctx, datasource.ProjectID, datasource.Dataset, datasource.Table, m.saEmail)
 		if err != nil {
 			return err
 		}

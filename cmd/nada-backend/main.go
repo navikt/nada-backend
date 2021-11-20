@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"net/http"
 	"os"
@@ -75,10 +76,6 @@ func main() {
 		log.WithError(err).Fatal("setting up database")
 	}
 
-	if err := runMetabase(ctx, log.WithField("subsystem", "metabase"), cfg, repo); err != nil {
-		log.WithError(err).Fatal("running metabase")
-	}
-
 	authenticatorMiddleware := auth.MockJWTValidatorMiddleware()
 	teamProjectsMapping := &auth.MockTeamProjectsUpdater
 	var oauth2Config api.OAuth2
@@ -97,6 +94,10 @@ func main() {
 		oauth2Config = gauth
 		authenticatorMiddleware = gauth.Middleware(googleGroups)
 		accessMgr = access.NewBigquery()
+	}
+
+	if err := runMetabase(ctx, log.WithField("subsystem", "metabase"), cfg, repo, accessMgr); err != nil {
+		log.WithError(err).Fatal("running metabase")
 	}
 
 	go access.NewEnsurer(repo, accessMgr, promErrs, log.WithField("subsystem", "accessensurer")).Run(ctx, AccessEnsurerFrequency)
@@ -163,7 +164,7 @@ func getEnv(key, fallback string) string {
 	return fallback
 }
 
-func runMetabase(ctx context.Context, log *logrus.Entry, cfg Config, repo *database.Repo) error {
+func runMetabase(ctx context.Context, log *logrus.Entry, cfg Config, repo *database.Repo, accessMgr graph.AccessManager) error {
 	if cfg.MetabaseServiceAccountFile == "" {
 		log.Info("metabase sync disabled")
 		return nil
@@ -177,7 +178,14 @@ func runMetabase(ctx context.Context, log *logrus.Entry, cfg Config, repo *datab
 	if err != nil {
 		return err
 	}
-	metabase := metabase.New(repo, client, string(sa))
+
+	metabaseSA := new(metabase.MetabaseSA)
+	err = json.Unmarshal(sa, &metabaseSA)
+	if err != nil {
+		return err
+	}
+
+	metabase := metabase.New(repo, client, accessMgr, string(sa), metabaseSA.ClientEmail)
 	go metabase.Run(ctx, MetabaseUpdateFrequency)
 	return nil
 }
