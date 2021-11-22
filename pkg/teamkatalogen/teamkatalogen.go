@@ -51,11 +51,11 @@ func (t *Teamkatalogen) Search(ctx context.Context, query string) ([]*models.Tea
 	ret := []*models.TeamkatalogenResult{}
 	for _, r := range tkRes.Content {
 		isMatch := false
-		if strings.Contains(r.Name, query) {
+		if strings.Contains(strings.ToLower(r.Name), strings.ToLower(query)) {
 			isMatch = true
 		}
 		for _, team := range r.NaisTeams {
-			if strings.Contains(team, query) {
+			if strings.Contains(strings.ToLower(team), strings.ToLower(query)) {
 				isMatch = true
 				break
 			}
