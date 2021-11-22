@@ -179,7 +179,10 @@ func runMetabase(ctx context.Context, log *logrus.Entry, cfg Config, repo *datab
 		return err
 	}
 
-	metabaseSA := new(metabase.MetabaseSA)
+	metabaseSA := struct {
+		ClientEmail string `json:"client_email"`
+	}{}
+
 	err = json.Unmarshal(sa, &metabaseSA)
 	if err != nil {
 		return err

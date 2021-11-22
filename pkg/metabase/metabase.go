@@ -17,10 +17,6 @@ type Metabase struct {
 	saEmail   string
 }
 
-type MetabaseSA struct {
-	ClientEmail string `json:"client_email"`
-}
-
 func New(repo *database.Repo, client *Client, accessMgr graph.AccessManager, serviceAccount, serviceAccountEmail string) *Metabase {
 	return &Metabase{
 		repo:      repo,
