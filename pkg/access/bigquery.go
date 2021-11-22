@@ -28,8 +28,15 @@ func (b Bigquery) Grant(ctx context.Context, projectID, datasetID, tableID, memb
 		return fmt.Errorf("getting policy for %v.%v in %v: %v", datasetID, tableID, projectID, err)
 	}
 
+	var entityType bigquery.EntityType
+	switch strings.Split(member, ":")[0] {
+	case "user", "serviceAccount":
+		entityType = bigquery.UserEmailEntity
+	case "group":
+		entityType = bigquery.GroupEmailEntity
+	}
 	newEntry := &bigquery.AccessEntry{
-		EntityType: bigquery.UserEmailEntity,
+		EntityType: entityType,
 		Entity:     strings.Split(member, ":")[1],
 		Role:       bigquery.AccessRole("roles/bigquery.metadataViewer"),
 	}

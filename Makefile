@@ -40,6 +40,9 @@ local-with-auth:
 	--hostname=localhost \
 	--service-account-file=./test-sa.json \
 	--google-admin-subject=johnny.horvi@nav.no \
+	--metabase-username=$(METABASE_USERNAME) \
+	--metabase-password=$(METABASE_PASSWORD) \
+	--metabase-api=https://metabase.dev.intern.nav.no/api \
 	--log-level=debug
 
 local:

@@ -2,9 +2,12 @@ package metabase
 
 import (
 	"context"
+	"fmt"
 	"log"
+	"strconv"
 	"time"
 
+	"github.com/google/uuid"
 	"github.com/navikt/nada-backend/pkg/database"
 	"github.com/navikt/nada-backend/pkg/graph"
 )
@@ -71,7 +74,7 @@ func (m *Metabase) run(ctx context.Context) error {
 			return err
 		}
 
-		err = m.accessMgr.Grant(ctx, datasource.ProjectID, datasource.Dataset, datasource.Table, m.saEmail)
+		err = m.accessMgr.Grant(ctx, datasource.ProjectID, datasource.Dataset, datasource.Table, "serviceAccount:"+m.saEmail)
 		if err != nil {
 			return err
 		}
@@ -90,6 +93,40 @@ func (m *Metabase) run(ctx context.Context) error {
 			return err
 		}
 	}
+
+	// Remove databases in Metabase that no longer exists or is not available to all users
+	for _, mdb := range databases {
+		found := false
+		for _, dp := range dps {
+			if mdb.NadaID == dp.ID.String() {
+				found = true
+			}
+		}
+		if !found {
+			if err := m.client.DeleteDatabase(ctx, strconv.Itoa(mdb.ID)); err != nil {
+				// log error
+				// inc err metrics
+				continue
+			}
+			uid, err := uuid.Parse(mdb.NadaID)
+			if err != nil {
+				// log error
+				// inc err metrics
+				continue
+			}
+			ds, err := m.repo.GetBigqueryDatasource(ctx, uid)
+			if err != nil {
+				return err
+			}
+			if err := m.accessMgr.Revoke(ctx, ds.ProjectID, ds.Dataset, ds.Table, "serviceAccount"+m.saEmail); err != nil {
+				fmt.Println(err)
+				// log error
+				// inc err metrics
+				continue
+			}
+		}
+	}
+
 	return nil
 }
 

@@ -38,7 +38,8 @@ const (
 	TeamProjectsUpdateFrequency    = 5 * time.Minute
 	DatasetMetadataUpdateFrequency = 1 * time.Hour
 	AccessEnsurerFrequency         = 5 * time.Minute
-	MetabaseUpdateFrequency        = 5 * time.Minute
+	MetabaseUpdateFrequency        = 30 * time.Second
+	//MetabaseUpdateFrequency        = 5 * time.Minute
 )
 
 func init() {
@@ -58,7 +59,7 @@ func init() {
 	flag.StringVar(&cfg.ServiceAccountFile, "service-account-file", os.Getenv("GOOGLE_ADMIN_CREDENTIALS_PATH"), "Service account file for accessing google admin apis")
 	flag.BoolVar(&cfg.SkipMetadataSync, "skip-metadata-sync", false, "Skip metadata sync")
 	flag.StringVar(&cfg.MetabaseServiceAccountFile, "metabase-service-account-file", os.Getenv("METABASE_GOOGLE_CREDENTIALS_PATH"), "Service account file for metabase access to bigquery tables")
-	flag.StringVar(&cfg.MetabaseUsername, "metabase-user", os.Getenv("METABASE_USERNAME"), "Username for metabase api")
+	flag.StringVar(&cfg.MetabaseUsername, "metabase-username", os.Getenv("METABASE_USERNAME"), "Username for metabase api")
 	flag.StringVar(&cfg.MetabasePassword, "metabase-password", os.Getenv("METABASE_PASSWORD"), "Password for metabase api")
 	flag.StringVar(&cfg.MetabaseAPI, "metabase-api", os.Getenv("METABASE_API"), "URL to Metabase API, including scheme and `/api`")
 }
