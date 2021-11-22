@@ -133,8 +133,8 @@ type ComplexityRoot struct {
 	}
 
 	Owner struct {
-		Group         func(childComplexity int) int
-		Teamkatalogen func(childComplexity int) int
+		Group            func(childComplexity int) int
+		TeamkatalogenURL func(childComplexity int) int
 	}
 
 	Query struct {
@@ -709,12 +709,12 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.Owner.Group(childComplexity), true
 
-	case "Owner.teamkatalogen":
-		if e.complexity.Owner.Teamkatalogen == nil {
+	case "Owner.teamkatalogenURL":
+		if e.complexity.Owner.TeamkatalogenURL == nil {
 			break
 		}
 
-		return e.complexity.Owner.Teamkatalogen(childComplexity), true
+		return e.complexity.Owner.TeamkatalogenURL(childComplexity), true
 
 	case "Query.collection":
 		if e.complexity.Query.Collection == nil {
@@ -1059,6 +1059,8 @@ input NewCollection
     description: String
     "group the collection belongs to. Used for authorization."
     group: String!
+    "owner Teamkatalogen URL for the collection."
+    teamkatalogenURL: String
     "keywords for the collection used as tags."
     keywords: [String!]
 }
@@ -1074,6 +1076,8 @@ input UpdateCollection
     name: String!
     "description of the collection."
     description: String
+    "owner Teamkatalogen URL for the collection."
+    teamkatalogenURL: String
     "keywords for the collection used as tags."
     keywords: [String!]
 }
@@ -1198,8 +1202,8 @@ Owner contains metadata on the owner of the dataproduct.
 type Owner @goModel(model: "github.com/navikt/nada-backend/pkg/graph/models.Owner"){
     "owner group is the email for the group."
     group: String!
-    "teamkatalogen is url for the team in the NAV team catalog."
-    teamkatalogen: String!
+    "teamkatalogenURL is url for the team in the NAV team catalog."
+    teamkatalogenURL: String
 }
 
 """
@@ -1309,6 +1313,8 @@ input NewDataproduct @goModel(model: "github.com/navikt/nada-backend/pkg/graph/m
     keywords: [String!]
     "owner group email for the dataproduct."
     group: String!
+    "owner Teamkatalogen URL for the dataproduct."
+    teamkatalogenURL: String
     "bigquery contains metadata for the bigquery datasource added to the dataproduct."
     bigquery: NewBigQuery!
     "requesters contains list of users, groups and service accounts which can request access to the dataproduct"
@@ -1327,6 +1333,8 @@ input UpdateDataproduct @goModel(model: "github.com/navikt/nada-backend/pkg/grap
     repo: String
     "pii indicates whether it is personal identifiable information in the dataproduct"
     pii: Boolean!
+    "owner Teamkatalogen URL for the dataproduct."
+    teamkatalogenURL: String
     "keywords for the dataproduct used as tags."
     keywords: [String!]
     "requesters contains list of users, groups and service accounts which can request access to the dataproduct"
@@ -4507,7 +4515,7 @@ func (ec *executionContext) _Owner_group(ctx context.Context, field graphql.Coll
 	return ec.marshalNString2string(ctx, field.Selections, res)
 }
 
-func (ec *executionContext) _Owner_teamkatalogen(ctx context.Context, field graphql.CollectedField, obj *models.Owner) (ret graphql.Marshaler) {
+func (ec *executionContext) _Owner_teamkatalogenURL(ctx context.Context, field graphql.CollectedField, obj *models.Owner) (ret graphql.Marshaler) {
 	defer func() {
 		if r := recover(); r != nil {
 			ec.Error(ctx, ec.Recover(ctx, r))
@@ -4525,21 +4533,18 @@ func (ec *executionContext) _Owner_teamkatalogen(ctx context.Context, field grap
 	ctx = graphql.WithFieldContext(ctx, fc)
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
-		return obj.Teamkatalogen, nil
+		return obj.TeamkatalogenURL, nil
 	})
 	if err != nil {
 		ec.Error(ctx, err)
 		return graphql.Null
 	}
 	if resTmp == nil {
-		if !graphql.HasFieldError(ctx, fc) {
-			ec.Errorf(ctx, "must not be null")
-		}
 		return graphql.Null
 	}
-	res := resTmp.(string)
+	res := resTmp.(*string)
 	fc.Result = res
-	return ec.marshalNString2string(ctx, field.Selections, res)
+	return ec.marshalOString2ᚖstring(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _Query_version(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
@@ -6853,6 +6858,14 @@ func (ec *executionContext) unmarshalInputNewCollection(ctx context.Context, obj
 			if err != nil {
 				return it, err
 			}
+		case "teamkatalogenURL":
+			var err error
+
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("teamkatalogenURL"))
+			it.TeamkatalogenURL, err = ec.unmarshalOString2ᚖstring(ctx, v)
+			if err != nil {
+				return it, err
+			}
 		case "keywords":
 			var err error
 
@@ -6921,6 +6934,14 @@ func (ec *executionContext) unmarshalInputNewDataproduct(ctx context.Context, ob
 
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("group"))
 			it.Group, err = ec.unmarshalNString2string(ctx, v)
+			if err != nil {
+				return it, err
+			}
+		case "teamkatalogenURL":
+			var err error
+
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("teamkatalogenURL"))
+			it.TeamkatalogenURL, err = ec.unmarshalOString2ᚖstring(ctx, v)
 			if err != nil {
 				return it, err
 			}
@@ -7018,6 +7039,14 @@ func (ec *executionContext) unmarshalInputUpdateCollection(ctx context.Context, 
 			if err != nil {
 				return it, err
 			}
+		case "teamkatalogenURL":
+			var err error
+
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("teamkatalogenURL"))
+			it.TeamkatalogenURL, err = ec.unmarshalOString2ᚖstring(ctx, v)
+			if err != nil {
+				return it, err
+			}
 		case "keywords":
 			var err error
 
@@ -7070,6 +7099,14 @@ func (ec *executionContext) unmarshalInputUpdateDataproduct(ctx context.Context,
 
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("pii"))
 			it.Pii, err = ec.unmarshalNBoolean2bool(ctx, v)
+			if err != nil {
+				return it, err
+			}
+		case "teamkatalogenURL":
+			var err error
+
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("teamkatalogenURL"))
+			it.TeamkatalogenURL, err = ec.unmarshalOString2ᚖstring(ctx, v)
 			if err != nil {
 				return it, err
 			}
@@ -7667,11 +7704,8 @@ func (ec *executionContext) _Owner(ctx context.Context, sel ast.SelectionSet, ob
 			if out.Values[i] == graphql.Null {
 				invalids++
 			}
-		case "teamkatalogen":
-			out.Values[i] = ec._Owner_teamkatalogen(ctx, field, obj)
-			if out.Values[i] == graphql.Null {
-				invalids++
-			}
+		case "teamkatalogenURL":
+			out.Values[i] = ec._Owner_teamkatalogenURL(ctx, field, obj)
 		default:
 			panic("unknown field " + strconv.Quote(field.Name))
 		}

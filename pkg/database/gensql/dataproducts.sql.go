@@ -80,6 +80,7 @@ INSERT INTO dataproducts ("name",
                           "pii",
                           "type",
                           "group",
+                          "teamkatalogen_url",
                           "slug",
                           "repo",
                           "keywords")
@@ -90,19 +91,21 @@ VALUES ($1,
         $5,
         $6,
         $7,
-        $8)
-RETURNING id, name, description, "group", pii, created, last_modified, type, tsv_document, slug, repo, keywords
+        $8,
+        $9)
+RETURNING id, name, description, "group", pii, created, last_modified, type, tsv_document, slug, repo, keywords, teamkatalogen_url
 `
 
 type CreateDataproductParams struct {
-	Name        string
-	Description sql.NullString
-	Pii         bool
-	Type        DatasourceType
-	OwnerGroup  string
-	Slug        string
-	Repo        sql.NullString
-	Keywords    []string
+	Name                  string
+	Description           sql.NullString
+	Pii                   bool
+	Type                  DatasourceType
+	OwnerGroup            string
+	OwnerTeamkatalogenUrl sql.NullString
+	Slug                  string
+	Repo                  sql.NullString
+	Keywords              []string
 }
 
 func (q *Queries) CreateDataproduct(ctx context.Context, arg CreateDataproductParams) (Dataproduct, error) {
@@ -112,6 +115,7 @@ func (q *Queries) CreateDataproduct(ctx context.Context, arg CreateDataproductPa
 		arg.Pii,
 		arg.Type,
 		arg.OwnerGroup,
+		arg.OwnerTeamkatalogenUrl,
 		arg.Slug,
 		arg.Repo,
 		pq.Array(arg.Keywords),
@@ -130,6 +134,7 @@ func (q *Queries) CreateDataproduct(ctx context.Context, arg CreateDataproductPa
 		&i.Slug,
 		&i.Repo,
 		pq.Array(&i.Keywords),
+		&i.TeamkatalogenUrl,
 	)
 	return i, err
 }
@@ -239,7 +244,7 @@ func (q *Queries) GetBigqueryDatasources(ctx context.Context) ([]DatasourceBigqu
 }
 
 const getDataproduct = `-- name: GetDataproduct :one
-SELECT id, name, description, "group", pii, created, last_modified, type, tsv_document, slug, repo, keywords
+SELECT id, name, description, "group", pii, created, last_modified, type, tsv_document, slug, repo, keywords, teamkatalogen_url
 FROM dataproducts
 WHERE id = $1
 `
@@ -260,6 +265,7 @@ func (q *Queries) GetDataproduct(ctx context.Context, id uuid.UUID) (Dataproduct
 		&i.Slug,
 		&i.Repo,
 		pq.Array(&i.Keywords),
+		&i.TeamkatalogenUrl,
 	)
 	return i, err
 }
@@ -294,7 +300,7 @@ func (q *Queries) GetDataproductRequesters(ctx context.Context, dataproductID uu
 }
 
 const getDataproducts = `-- name: GetDataproducts :many
-SELECT id, name, description, "group", pii, created, last_modified, type, tsv_document, slug, repo, keywords
+SELECT id, name, description, "group", pii, created, last_modified, type, tsv_document, slug, repo, keywords, teamkatalogen_url
 FROM dataproducts
 ORDER BY last_modified DESC
 LIMIT $2 OFFSET $1
@@ -327,6 +333,7 @@ func (q *Queries) GetDataproducts(ctx context.Context, arg GetDataproductsParams
 			&i.Slug,
 			&i.Repo,
 			pq.Array(&i.Keywords),
+			&i.TeamkatalogenUrl,
 		); err != nil {
 			return nil, err
 		}
@@ -342,7 +349,7 @@ func (q *Queries) GetDataproducts(ctx context.Context, arg GetDataproductsParams
 }
 
 const getDataproductsByGroups = `-- name: GetDataproductsByGroups :many
-SELECT id, name, description, "group", pii, created, last_modified, type, tsv_document, slug, repo, keywords
+SELECT id, name, description, "group", pii, created, last_modified, type, tsv_document, slug, repo, keywords, teamkatalogen_url
 FROM dataproducts
 WHERE "group" = ANY ($1::text[])
 ORDER BY last_modified DESC
@@ -370,6 +377,7 @@ func (q *Queries) GetDataproductsByGroups(ctx context.Context, groups []string) 
 			&i.Slug,
 			&i.Repo,
 			pq.Array(&i.Keywords),
+			&i.TeamkatalogenUrl,
 		); err != nil {
 			return nil, err
 		}
@@ -385,7 +393,7 @@ func (q *Queries) GetDataproductsByGroups(ctx context.Context, groups []string) 
 }
 
 const getDataproductsByIDs = `-- name: GetDataproductsByIDs :many
-SELECT id, name, description, "group", pii, created, last_modified, type, tsv_document, slug, repo, keywords
+SELECT id, name, description, "group", pii, created, last_modified, type, tsv_document, slug, repo, keywords, teamkatalogen_url
 FROM dataproducts
 WHERE id = ANY ($1::uuid[])
 ORDER BY last_modified DESC
@@ -413,6 +421,7 @@ func (q *Queries) GetDataproductsByIDs(ctx context.Context, ids []uuid.UUID) ([]
 			&i.Slug,
 			&i.Repo,
 			pq.Array(&i.Keywords),
+			&i.TeamkatalogenUrl,
 		); err != nil {
 			return nil, err
 		}
@@ -428,7 +437,7 @@ func (q *Queries) GetDataproductsByIDs(ctx context.Context, ids []uuid.UUID) ([]
 }
 
 const getDataproductsByUserAccess = `-- name: GetDataproductsByUserAccess :many
-SELECT id, name, description, "group", pii, created, last_modified, type, tsv_document, slug, repo, keywords
+SELECT id, name, description, "group", pii, created, last_modified, type, tsv_document, slug, repo, keywords, teamkatalogen_url
 FROM dataproducts
 WHERE id = ANY (SELECT dataproduct_id
                 FROM dataproduct_access
@@ -460,6 +469,7 @@ func (q *Queries) GetDataproductsByUserAccess(ctx context.Context, id string) ([
 			&i.Slug,
 			&i.Repo,
 			pq.Array(&i.Keywords),
+			&i.TeamkatalogenUrl,
 		); err != nil {
 			return nil, err
 		}
@@ -501,24 +511,26 @@ func (q *Queries) UpdateBigqueryDatasourceSchema(ctx context.Context, arg Update
 
 const updateDataproduct = `-- name: UpdateDataproduct :one
 UPDATE dataproducts
-SET "name"        = $1,
-    "description" = $2,
-    "pii"         = $3,
-    "slug"        = $4,
-    "repo"        = $5,
-    "keywords"    = $6
-WHERE id = $7
-RETURNING id, name, description, "group", pii, created, last_modified, type, tsv_document, slug, repo, keywords
+SET "name"              = $1,
+    "description"       = $2,
+    "pii"               = $3,
+    "slug"              = $4,
+    "repo"              = $5,
+    "teamkatalogen_url" = $6,
+    "keywords"          = $7
+WHERE id = $8
+RETURNING id, name, description, "group", pii, created, last_modified, type, tsv_document, slug, repo, keywords, teamkatalogen_url
 `
 
 type UpdateDataproductParams struct {
-	Name        string
-	Description sql.NullString
-	Pii         bool
-	Slug        string
-	Repo        sql.NullString
-	Keywords    []string
-	ID          uuid.UUID
+	Name                  string
+	Description           sql.NullString
+	Pii                   bool
+	Slug                  string
+	Repo                  sql.NullString
+	OwnerTeamkatalogenUrl sql.NullString
+	Keywords              []string
+	ID                    uuid.UUID
 }
 
 func (q *Queries) UpdateDataproduct(ctx context.Context, arg UpdateDataproductParams) (Dataproduct, error) {
@@ -528,6 +540,7 @@ func (q *Queries) UpdateDataproduct(ctx context.Context, arg UpdateDataproductPa
 		arg.Pii,
 		arg.Slug,
 		arg.Repo,
+		arg.OwnerTeamkatalogenUrl,
 		pq.Array(arg.Keywords),
 		arg.ID,
 	)
@@ -545,6 +558,7 @@ func (q *Queries) UpdateDataproduct(ctx context.Context, arg UpdateDataproductPa
 		&i.Slug,
 		&i.Repo,
 		pq.Array(&i.Keywords),
+		&i.TeamkatalogenUrl,
 	)
 	return i, err
 }

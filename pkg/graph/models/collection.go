@@ -27,18 +27,20 @@ type Collection struct {
 func (c Collection) IsSearchResult() {}
 
 type NewCollection struct {
-	Name        string   `json:"name"`
-	Description *string  `json:"description"`
-	Slug        *string  `json:"slug"`
-	Group       string   `json:"group"`
-	Keywords    []string `json:"keywords"`
+	Name             string   `json:"name"`
+	Description      *string  `json:"description"`
+	Slug             *string  `json:"slug"`
+	Group            string   `json:"group"`
+	TeamkatalogenURL *string  `json:"teamkatalogenURL"`
+	Keywords         []string `json:"keywords"`
 }
 
 type UpdateCollection struct {
-	Name        string   `json:"name"`
-	Description *string  `json:"description"`
-	Slug        *string  `json:"slug"`
-	Keywords    []string `json:"keywords"`
+	Name             string   `json:"name"`
+	Description      *string  `json:"description"`
+	Slug             *string  `json:"slug"`
+	TeamkatalogenURL *string  `json:"teamkatalogenURL"`
+	Keywords         []string `json:"keywords"`
 }
 
 type CollectionElementType string

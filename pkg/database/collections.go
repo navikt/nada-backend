@@ -79,11 +79,12 @@ func (r *Repo) CreateCollection(ctx context.Context, col models.NewCollection) (
 		keywords = []string{}
 	}
 	res, err := r.querier.CreateCollection(ctx, gensql.CreateCollectionParams{
-		Name:        col.Name,
-		Description: ptrToNullString(col.Description),
-		Slug:        slugify(col.Slug, col.Name),
-		OwnerGroup:  col.Group,
-		Keywords:    keywords,
+		Name:                  col.Name,
+		Description:           ptrToNullString(col.Description),
+		Slug:                  slugify(col.Slug, col.Name),
+		OwnerGroup:            col.Group,
+		OwnerTeamkatalogenUrl: ptrToNullString(col.TeamkatalogenURL),
+		Keywords:              keywords,
 	})
 	if err != nil {
 		return nil, err
@@ -99,11 +100,12 @@ func (r *Repo) UpdateCollection(ctx context.Context, id uuid.UUID, new models.Up
 	}
 
 	res, err := r.querier.UpdateCollection(ctx, gensql.UpdateCollectionParams{
-		Name:        new.Name,
-		Description: ptrToNullString(new.Description),
-		ID:          id,
-		Keywords:    keywords,
-		Slug:        slugify(new.Slug, new.Name),
+		Name:                  new.Name,
+		Description:           ptrToNullString(new.Description),
+		ID:                    id,
+		Keywords:              keywords,
+		OwnerTeamkatalogenUrl: ptrToNullString(new.TeamkatalogenURL),
+		Slug:                  slugify(new.Slug, new.Name),
 	})
 	if err != nil {
 		return nil, fmt.Errorf("updating collection in database: %w", err)
@@ -159,7 +161,8 @@ func collectionFromSQL(col gensql.Collection) *models.Collection {
 		Description:  nullStringToPtr(col.Description),
 		Keywords:     col.Keywords,
 		Owner: models.Owner{
-			Group: col.Group,
+			Group:            col.Group,
+			TeamkatalogenURL: nullStringToPtr(col.TeamkatalogenUrl),
 		},
 		Slug: col.Slug,
 	}
