@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"strings"
 
 	"github.com/navikt/nada-backend/pkg/graph/models"
 )
@@ -22,6 +23,7 @@ type TeamkatalogenResponse struct {
 		Links       struct {
 			Ui string `json:"ui"`
 		} `json:"links"`
+		NaisTeams []string `json:"naisTeams"`
 	} `json:"content"`
 }
 
@@ -30,7 +32,7 @@ func New(url string) *Teamkatalogen {
 }
 
 func (t *Teamkatalogen) Search(ctx context.Context, query string) ([]*models.TeamkatalogenResult, error) {
-	req, err := http.NewRequestWithContext(ctx, http.MethodGet, fmt.Sprintf("%v/team/search/%v", t.url, query), nil)
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, fmt.Sprintf("%v/team", t.url), nil)
 	if err != nil {
 		return nil, err
 	}
@@ -48,11 +50,23 @@ func (t *Teamkatalogen) Search(ctx context.Context, query string) ([]*models.Tea
 
 	ret := []*models.TeamkatalogenResult{}
 	for _, r := range tkRes.Content {
-		ret = append(ret, &models.TeamkatalogenResult{
-			URL:         r.Links.Ui,
-			Name:        r.Name,
-			Description: r.Description,
-		})
+		isMatch := false
+		if strings.Contains(r.Name, query) {
+			isMatch = true
+		}
+		for _, team := range r.NaisTeams {
+			if strings.Contains(team, query) {
+				isMatch = true
+				break
+			}
+		}
+		if isMatch {
+			ret = append(ret, &models.TeamkatalogenResult{
+				URL:         r.Links.Ui,
+				Name:        r.Name,
+				Description: r.Description,
+			})
+		}
 	}
 
 	return ret, nil
