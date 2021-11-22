@@ -189,7 +189,7 @@ func runMetabase(ctx context.Context, log *logrus.Entry, cfg Config, repo *datab
 		return err
 	}
 
-	metabase := metabase.New(repo, client, accessMgr, string(sa), metabaseSA.ClientEmail)
+	metabase := metabase.New(repo, client, accessMgr, string(sa), metabaseSA.ClientEmail, promErrs, log.WithField("subsystem", "metabase"))
 	go metabase.Run(ctx, MetabaseUpdateFrequency)
 	return nil
 }

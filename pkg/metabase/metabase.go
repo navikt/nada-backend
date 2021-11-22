@@ -2,7 +2,6 @@ package metabase
 
 import (
 	"context"
-	"fmt"
 	"log"
 	"strconv"
 	"time"
@@ -10,6 +9,8 @@ import (
 	"github.com/google/uuid"
 	"github.com/navikt/nada-backend/pkg/database"
 	"github.com/navikt/nada-backend/pkg/graph"
+	"github.com/prometheus/client_golang/prometheus"
+	"github.com/sirupsen/logrus"
 )
 
 type Metabase struct {
@@ -18,15 +19,19 @@ type Metabase struct {
 	accessMgr graph.AccessManager
 	sa        string
 	saEmail   string
+	errs      *prometheus.CounterVec
+	log       *logrus.Entry
 }
 
-func New(repo *database.Repo, client *Client, accessMgr graph.AccessManager, serviceAccount, serviceAccountEmail string) *Metabase {
+func New(repo *database.Repo, client *Client, accessMgr graph.AccessManager, serviceAccount, serviceAccountEmail string, errs *prometheus.CounterVec, log *logrus.Entry) *Metabase {
 	return &Metabase{
 		repo:      repo,
 		client:    client,
 		accessMgr: accessMgr,
 		sa:        serviceAccount,
 		saEmail:   serviceAccountEmail,
+		errs:      errs,
+		log:       log,
 	}
 }
 
@@ -50,8 +55,6 @@ func (m *Metabase) run(ctx context.Context) error {
 	if err != nil {
 		return err
 	}
-
-	log.Printf("Work on %v dataproducts", len(dps))
 
 	databases, err := m.client.Databases(ctx)
 	if err != nil {
@@ -79,7 +82,6 @@ func (m *Metabase) run(ctx context.Context) error {
 			return err
 		}
 
-		log.Printf("Create database")
 		id, err := m.client.CreateDatabase(ctx, dp.Name, m.sa, &datasource)
 		if err != nil {
 			return err
@@ -92,6 +94,8 @@ func (m *Metabase) run(ctx context.Context) error {
 		if err := m.client.AutoMapSemanticTypes(ctx, id); err != nil {
 			return err
 		}
+
+		m.log.Infof("Created Metabase database: %v", dp.Name)
 	}
 
 	// Remove databases in Metabase that no longer exists or is not available to all users
@@ -104,26 +108,28 @@ func (m *Metabase) run(ctx context.Context) error {
 		}
 		if !found {
 			if err := m.client.DeleteDatabase(ctx, strconv.Itoa(mdb.ID)); err != nil {
-				// log error
-				// inc err metrics
+				m.log.WithError(err).Error("Deleting database in Metabase")
+				m.errs.WithLabelValues("RemoveMetabaseDatabase").Inc()
 				continue
 			}
 			uid, err := uuid.Parse(mdb.NadaID)
 			if err != nil {
-				// log error
-				// inc err metrics
+				m.log.WithError(err).Error("Parsing UUID")
+				m.errs.WithLabelValues("RemoveMetabaseDatabase").Inc()
 				continue
 			}
 			ds, err := m.repo.GetBigqueryDatasource(ctx, uid)
 			if err != nil {
-				return err
-			}
-			if err := m.accessMgr.Revoke(ctx, ds.ProjectID, ds.Dataset, ds.Table, "serviceAccount:"+m.saEmail); err != nil {
-				fmt.Println(err)
-				// log error
-				// inc err metrics
+				m.log.WithError(err).Error("Getting Bigquery datasource")
+				m.errs.WithLabelValues("RemoveMetabaseDatabase").Inc()
 				continue
 			}
+			if err := m.accessMgr.Revoke(ctx, ds.ProjectID, ds.Dataset, ds.Table, "serviceAccount:"+m.saEmail); err != nil {
+				m.log.WithError(err).Error("Revoking IAM access")
+				m.errs.WithLabelValues("RemoveMetabaseDatabase").Inc()
+				continue
+			}
+			m.log.Infof("Deleted Metabase database with ID: %v", mdb.ID)
 		}
 	}
 
