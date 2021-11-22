@@ -118,7 +118,7 @@ func (m *Metabase) run(ctx context.Context) error {
 			if err != nil {
 				return err
 			}
-			if err := m.accessMgr.Revoke(ctx, ds.ProjectID, ds.Dataset, ds.Table, "serviceAccount"+m.saEmail); err != nil {
+			if err := m.accessMgr.Revoke(ctx, ds.ProjectID, ds.Dataset, ds.Table, "serviceAccount:"+m.saEmail); err != nil {
 				fmt.Println(err)
 				// log error
 				// inc err metrics
