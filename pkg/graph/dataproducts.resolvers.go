@@ -167,8 +167,6 @@ func (r *mutationResolver) GrantAccessToDataproduct(ctx context.Context, datapro
 
 	subjWithType := subjType.String() + ":" + subj
 
-	fmt.Println("##### subjWithType", subjWithType)
-	fmt.Println("##### user.Email", user.Email)
 	if err := r.accessMgr.Grant(ctx, ds.ProjectID, ds.Dataset, ds.Table, subjWithType); err != nil {
 		return nil, err
 	}
