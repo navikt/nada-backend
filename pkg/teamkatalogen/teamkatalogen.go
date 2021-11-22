@@ -24,7 +24,6 @@ type TeamkatalogenResponse struct {
 			Ui string `json:"ui"`
 		} `json:"links"`
 		NaisTeams []string `json:"naisTeams"`
-		Tags      []string `json:"tags"`
 	} `json:"content"`
 }
 
