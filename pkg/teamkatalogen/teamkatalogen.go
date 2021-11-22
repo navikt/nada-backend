@@ -55,17 +55,8 @@ func (t *Teamkatalogen) Search(ctx context.Context, query string) ([]*models.Tea
 		if strings.Contains(r.Name, query) {
 			isMatch = true
 		}
-		if strings.Contains(r.Description, query) {
-			isMatch = true
-		}
 		for _, team := range r.NaisTeams {
 			if strings.Contains(team, query) {
-				isMatch = true
-				break
-			}
-		}
-		for _, tag := range r.Tags {
-			if strings.Contains(tag, query) {
 				isMatch = true
 				break
 			}
@@ -75,8 +66,6 @@ func (t *Teamkatalogen) Search(ctx context.Context, query string) ([]*models.Tea
 				URL:         r.Links.Ui,
 				Name:        r.Name,
 				Description: r.Description,
-				NaisTeams:   r.NaisTeams,
-				Tags:        r.Tags,
 			})
 		}
 	}
