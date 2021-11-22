@@ -3,6 +3,7 @@ package access
 import (
 	"context"
 	"fmt"
+	"strings"
 	"time"
 
 	"cloud.google.com/go/bigquery"
@@ -25,6 +26,31 @@ func (b Bigquery) Grant(ctx context.Context, projectID, datasetID, tableID, memb
 	policy, err := getPolicy(ctx, bqClient, datasetID, tableID)
 	if err != nil {
 		return fmt.Errorf("getting policy for %v.%v in %v: %v", datasetID, tableID, projectID, err)
+	}
+
+	var entityType bigquery.EntityType
+	switch strings.Split(member, ":")[0] {
+	case "user", "serviceAccount":
+		entityType = bigquery.UserEmailEntity
+	case "group":
+		entityType = bigquery.GroupEmailEntity
+	}
+	newEntry := &bigquery.AccessEntry{
+		EntityType: entityType,
+		Entity:     strings.Split(member, ":")[1],
+		Role:       bigquery.AccessRole("roles/bigquery.metadataViewer"),
+	}
+	ds := bqClient.Dataset(datasetID)
+	m, err := ds.Metadata(ctx)
+	if err != nil {
+		return fmt.Errorf("ds.Metadata: %w", err)
+	}
+
+	update := bigquery.DatasetMetadataToUpdate{
+		Access: append(m.Access, newEntry),
+	}
+	if _, err := ds.Update(ctx, update, m.ETag); err != nil {
+		return fmt.Errorf("ds.Update: %w", err)
 	}
 
 	// no support for V3 for BigQuery yet, and no support for conditions
@@ -72,6 +98,9 @@ func (b Bigquery) AddToAuthorizedViews(ctx context.Context, projectID, dataset, 
 	}
 	ds := bqClient.Dataset(dataset)
 	m, err := ds.Metadata(ctx)
+	if err != nil {
+		return fmt.Errorf("ds.Metadata: %w", err)
+	}
 
 	update := bigquery.DatasetMetadataToUpdate{
 		Access: append(m.Access, newEntry),

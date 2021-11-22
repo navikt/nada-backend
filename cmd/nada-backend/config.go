@@ -15,6 +15,10 @@ type Config struct {
 	ServiceAccountFile              string
 	GoogleAdminImpersonationSubject string
 	TeamkatalogenURL                string
+	MetabaseServiceAccountFile      string
+	MetabaseUsername                string
+	MetabasePassword                string
+	MetabaseAPI                     string
 }
 
 type OAuth2Config struct {

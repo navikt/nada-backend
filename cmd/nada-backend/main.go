@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"net/http"
 	"os"
@@ -17,6 +18,7 @@ import (
 	"github.com/navikt/nada-backend/pkg/database"
 	"github.com/navikt/nada-backend/pkg/database/gensql"
 	"github.com/navikt/nada-backend/pkg/graph"
+	"github.com/navikt/nada-backend/pkg/metabase"
 	"github.com/navikt/nada-backend/pkg/teamkatalogen"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/sirupsen/logrus"
@@ -36,6 +38,8 @@ const (
 	TeamProjectsUpdateFrequency    = 5 * time.Minute
 	DatasetMetadataUpdateFrequency = 1 * time.Hour
 	AccessEnsurerFrequency         = 5 * time.Minute
+	MetabaseUpdateFrequency        = 30 * time.Second
+	//MetabaseUpdateFrequency        = 5 * time.Minute
 )
 
 func init() {
@@ -54,6 +58,10 @@ func init() {
 	flag.StringVar(&cfg.GoogleAdminImpersonationSubject, "google-admin-subject", os.Getenv("GOOGLE_ADMIN_IMPERSONATION_SUBJECT"), "Subject to impersonate when accessing google admin apis")
 	flag.StringVar(&cfg.ServiceAccountFile, "service-account-file", os.Getenv("GOOGLE_ADMIN_CREDENTIALS_PATH"), "Service account file for accessing google admin apis")
 	flag.BoolVar(&cfg.SkipMetadataSync, "skip-metadata-sync", false, "Skip metadata sync")
+	flag.StringVar(&cfg.MetabaseServiceAccountFile, "metabase-service-account-file", os.Getenv("METABASE_GOOGLE_CREDENTIALS_PATH"), "Service account file for metabase access to bigquery tables")
+	flag.StringVar(&cfg.MetabaseUsername, "metabase-username", os.Getenv("METABASE_USERNAME"), "Username for metabase api")
+	flag.StringVar(&cfg.MetabasePassword, "metabase-password", os.Getenv("METABASE_PASSWORD"), "Password for metabase api")
+	flag.StringVar(&cfg.MetabaseAPI, "metabase-api", os.Getenv("METABASE_API"), "URL to Metabase API, including scheme and `/api`")
 }
 
 func main() {
@@ -87,6 +95,10 @@ func main() {
 		oauth2Config = gauth
 		authenticatorMiddleware = gauth.Middleware(googleGroups)
 		accessMgr = access.NewBigquery()
+	}
+
+	if err := runMetabase(ctx, log.WithField("subsystem", "metabase"), cfg, repo, accessMgr); err != nil {
+		log.WithError(err).Fatal("running metabase")
 	}
 
 	go access.NewEnsurer(repo, accessMgr, promErrs, log.WithField("subsystem", "accessensurer")).Run(ctx, AccessEnsurerFrequency)
@@ -151,6 +163,35 @@ func getEnv(key, fallback string) string {
 		return env
 	}
 	return fallback
+}
+
+func runMetabase(ctx context.Context, log *logrus.Entry, cfg Config, repo *database.Repo, accessMgr graph.AccessManager) error {
+	if cfg.MetabaseServiceAccountFile == "" {
+		log.Info("metabase sync disabled")
+		return nil
+	}
+
+	log.Info("metabase sync enabled")
+
+	client := metabase.NewClient(cfg.MetabaseAPI, cfg.MetabaseUsername, cfg.MetabasePassword)
+
+	sa, err := os.ReadFile(cfg.MetabaseServiceAccountFile)
+	if err != nil {
+		return err
+	}
+
+	metabaseSA := struct {
+		ClientEmail string `json:"client_email"`
+	}{}
+
+	err = json.Unmarshal(sa, &metabaseSA)
+	if err != nil {
+		return err
+	}
+
+	metabase := metabase.New(repo, client, accessMgr, string(sa), metabaseSA.ClientEmail, promErrs, log.WithField("subsystem", "metabase"))
+	go metabase.Run(ctx, MetabaseUpdateFrequency)
+	return nil
 }
 
 type noopDatasetEnricher struct{}
