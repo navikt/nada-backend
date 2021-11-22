@@ -38,8 +38,7 @@ const (
 	TeamProjectsUpdateFrequency    = 5 * time.Minute
 	DatasetMetadataUpdateFrequency = 1 * time.Hour
 	AccessEnsurerFrequency         = 5 * time.Minute
-	MetabaseUpdateFrequency        = 30 * time.Second
-	//MetabaseUpdateFrequency        = 5 * time.Minute
+	MetabaseUpdateFrequency        = 5 * time.Minute
 )
 
 func init() {
