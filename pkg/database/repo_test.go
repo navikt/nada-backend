@@ -9,6 +9,7 @@ import (
 	"log"
 	"os"
 	"testing"
+	"time"
 
 	_ "github.com/lib/pq"
 	"github.com/sirupsen/logrus"
@@ -177,6 +178,36 @@ func TestRepo(t *testing.T) {
 
 		if dataproduct != nil {
 			t.Fatal("dataproduct should not exist")
+		}
+	})
+
+	t.Run("handles access grants", func(t *testing.T) {
+		dpWithUserAccess := func(ti time.Time, subj string) {
+			dp, err := repo.CreateDataproduct(context.Background(), newDataproduct)
+			if err != nil {
+				t.Fatal(err)
+			}
+			_, err = repo.GrantAccessToDataproduct(context.Background(), dp.ID, &ti, subj, "")
+			if err != nil {
+				t.Fatal(err)
+			}
+		}
+
+		subject := "a@b.com"
+		expired := time.Now().Add(-1 * time.Hour)
+		valid := time.Now().Add(1 * time.Hour)
+
+		dpWithUserAccess(valid, subject)
+		dpWithUserAccess(valid, subject)
+		dpWithUserAccess(expired, subject)
+
+		dps, err := repo.GetDataproductsByUserAccess(context.Background(), subject)
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		if len(dps) != 2 {
+			t.Errorf("got: %v, want: %v", len(dps), 2)
 		}
 	})
 

@@ -22,22 +22,33 @@ spec:
     enabled: true
     path: /internal/metrics
   ingresses:
-    - "https://nada.intern.nav.no/api"
-    - "https://nada.intern.nav.no/datapakke/"
+    - "https://data.intern.nav.no/api"
+    - "https://data.intern.nav.no/datapakke/"
   envFrom:
     - secret: impersonation-subject
     - secret: github-read-token
     - secret: google-oauth
+    - secret: metabase-sa
   filesFrom:
     - secret: google-credentials
       mountPath: /var/run/secrets/google-credentials
+    - secret: metabase-google-sa
+      mountPath: /var/run/secrets/nada-credentials
   env:
     - name: GOOGLE_ADMIN_CREDENTIALS_PATH
       value: /var/run/secrets/google-credentials/sa.json
     - name: HOSTNAME
-      value: "nada.intern.nav.no"
+      value: "data.intern.nav.no"
+    - name: METABASE_API
+      value: "https://metabase.intern.nav.no/api"
+    - name: METABASE_GOOGLE_CREDENTIALS_PATH
+      value: /var/run/secrets/nada-credentials/meta_creds.json
   gcp:
     sqlInstances:
       - type: POSTGRES_12
         databases:
           - name: nada
+  accessPolicy:
+    inbound:
+      rules:
+        - application: nada-frontend

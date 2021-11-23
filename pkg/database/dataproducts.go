@@ -2,8 +2,11 @@ package database
 
 import (
 	"context"
+	"database/sql"
 	"encoding/json"
 	"fmt"
+	"strings"
+	"time"
 
 	"github.com/google/uuid"
 	"github.com/navikt/nada-backend/pkg/database/gensql"
@@ -24,6 +27,34 @@ func (r *Repo) GetDataproducts(ctx context.Context, limit, offset int) ([]*model
 	}
 
 	return datasets, nil
+}
+
+func (r *Repo) GetDataproductsByUserAccess(ctx context.Context, user string) ([]*models.Dataproduct, error) {
+	res, err := r.querier.GetDataproductsByUserAccess(ctx, user)
+	if err != nil {
+		return nil, err
+	}
+
+	dps := []*models.Dataproduct{}
+	for _, d := range res {
+		dps = append(dps, dataproductFromSQL(d))
+	}
+	return dps, nil
+}
+
+func (r *Repo) GetDataproductsByGroups(ctx context.Context, groups []string) ([]*models.Dataproduct, error) {
+	dps := []*models.Dataproduct{}
+
+	res, err := r.querier.GetDataproductsByGroups(ctx, groups)
+	if err != nil {
+		return nil, fmt.Errorf("getting dataproducts by group from database: %w", err)
+	}
+
+	for _, entry := range res {
+		dps = append(dps, dataproductFromSQL(entry))
+	}
+
+	return dps, nil
 }
 
 func (r *Repo) GetDataproduct(ctx context.Context, id uuid.UUID) (*models.Dataproduct, error) {
@@ -60,11 +91,21 @@ func (r *Repo) CreateDataproduct(ctx context.Context, dp models.NewDataproduct) 
 		return nil, err
 	}
 
+	schemaJSON, err := json.Marshal(dp.Metadata.Schema.Columns)
+	if err != nil {
+		return nil, fmt.Errorf("marshalling schema: %w", err)
+	}
+
 	_, err = querier.CreateBigqueryDatasource(ctx, gensql.CreateBigqueryDatasourceParams{
 		DataproductID: created.ID,
 		ProjectID:     dp.BigQuery.ProjectID,
 		Dataset:       dp.BigQuery.Dataset,
 		TableName:     dp.BigQuery.Table,
+		Schema:        pqtype.NullRawMessage{RawMessage: schemaJSON, Valid: len(schemaJSON) > 4},
+		LastModified:  dp.Metadata.LastModified,
+		Created:       dp.Metadata.Created,
+		Expires:       sql.NullTime{Time: dp.Metadata.Expires, Valid: !dp.Metadata.Expires.IsZero()},
+		TableType:     string(dp.Metadata.TableType),
 	})
 	if err != nil {
 		if err := tx.Rollback(); err != nil {
@@ -98,6 +139,7 @@ func (r *Repo) UpdateDataproduct(ctx context.Context, id uuid.UUID, new models.U
 	if new.Keywords == nil {
 		new.Keywords = []string{}
 	}
+
 	res, err := r.querier.UpdateDataproduct(ctx, gensql.UpdateDataproductParams{
 		Name:        new.Name,
 		Description: ptrToNullString(new.Description),
@@ -137,16 +179,22 @@ func (r *Repo) GetBigqueryDatasource(ctx context.Context, dataproductID uuid.UUI
 		ProjectID:     bq.ProjectID,
 		Dataset:       bq.Dataset,
 		Table:         bq.TableName,
+		TableType:     models.BigQueryType(strings.ToLower(bq.TableType)),
+		LastModified:  bq.LastModified,
+		Created:       bq.Created,
+		Expires:       nullTimeToPtr(bq.Expires),
 	}, nil
 }
 
-func (r *Repo) UpdateBigqueryDatasource(ctx context.Context, id uuid.UUID, schema json.RawMessage) error {
+func (r *Repo) UpdateBigqueryDatasource(ctx context.Context, id uuid.UUID, schema json.RawMessage, lastModified, expires time.Time) error {
 	err := r.querier.UpdateBigqueryDatasourceSchema(ctx, gensql.UpdateBigqueryDatasourceSchemaParams{
 		DataproductID: id,
 		Schema: pqtype.NullRawMessage{
 			RawMessage: schema,
 			Valid:      true,
 		},
+		LastModified: lastModified,
+		Expires:      sql.NullTime{Time: expires, Valid: !expires.IsZero()},
 	})
 	if err != nil {
 		return fmt.Errorf("updating datasource_bigquery schema: %w", err)

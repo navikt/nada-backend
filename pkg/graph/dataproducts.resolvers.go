@@ -6,12 +6,12 @@ package graph
 import (
 	"context"
 	"fmt"
+	"strings"
 	"time"
 
 	"cloud.google.com/go/bigquery"
 	"github.com/google/uuid"
 	"github.com/navikt/nada-backend/pkg/auth"
-	"github.com/navikt/nada-backend/pkg/database/gensql"
 	"github.com/navikt/nada-backend/pkg/graph/generated"
 	"github.com/navikt/nada-backend/pkg/graph/models"
 )
@@ -29,10 +29,31 @@ func (r *dataproductResolver) Requesters(ctx context.Context, obj *models.Datapr
 }
 
 func (r *dataproductResolver) Access(ctx context.Context, obj *models.Dataproduct) ([]*models.Access, error) {
-	if err := ensureUserInGroup(ctx, obj.Owner.Group); err != nil {
+	all, err := r.repo.ListAccessToDataproduct(ctx, obj.ID)
+	if err != nil {
 		return nil, err
 	}
-	return r.repo.ListAccessToDataproduct(ctx, obj.ID)
+
+	user := auth.GetUser(ctx)
+	if user.Groups.Contains(obj.Owner.Group) {
+		return all, nil
+	}
+
+	ret := []*models.Access{}
+	for _, a := range all {
+		if strings.EqualFold(a.Subject, "user:"+user.Email) {
+			ret = append(ret, a)
+		} else if strings.HasPrefix(a.Subject, "group:") && user.Groups.Contains(strings.TrimPrefix(a.Subject, "group:")) {
+			ret = append(ret, a)
+		}
+	}
+
+	return ret, nil
+}
+
+func (r *dataproductResolver) Collections(ctx context.Context, obj *models.Dataproduct, limit *int, offset *int) ([]*models.Collection, error) {
+	l, o := pagination(limit, offset)
+	return r.repo.GetCollectionsForElement(ctx, obj.ID, l, o)
 }
 
 func (r *mutationResolver) CreateDataproduct(ctx context.Context, input models.NewDataproduct) (*models.Dataproduct, error) {
@@ -44,35 +65,26 @@ func (r *mutationResolver) CreateDataproduct(ctx context.Context, input models.N
 		return nil, err
 	}
 
-	metadata, err := r.gcp.TableMetadata(ctx, input.BigQuery.ProjectID, input.BigQuery.Dataset, input.BigQuery.Table)
+	metadata, err := r.bigquery.TableMetadata(ctx, input.BigQuery.ProjectID, input.BigQuery.Dataset, input.BigQuery.Table)
 	if err != nil {
 		return nil, fmt.Errorf("trying to create table %v, but it does not exist in %v.%v",
 			input.BigQuery.Table, input.BigQuery.ProjectID, input.BigQuery.Dataset)
 	}
 
-	switch metadata.Type {
+	switch metadata.TableType {
 	case bigquery.RegularTable:
 	case bigquery.ViewTable:
 		if err := r.accessMgr.AddToAuthorizedViews(ctx, input.BigQuery.ProjectID, input.BigQuery.Dataset, input.BigQuery.Table); err != nil {
 			return nil, err
 		}
 	default:
-		return nil, fmt.Errorf("unsupported table type: %v", metadata.Type)
+		return nil, fmt.Errorf("unsupported table type: %v", metadata.TableType)
 	}
 
+	input.Metadata = metadata
 	dp, err := r.repo.CreateDataproduct(ctx, input)
 	if err != nil {
 		return nil, err
-	}
-
-	err = r.schemaUpdater.UpdateSchema(ctx, gensql.DatasourceBigquery{
-		DataproductID: dp.ID,
-		ProjectID:     input.BigQuery.ProjectID,
-		Dataset:       input.BigQuery.Dataset,
-		TableName:     input.BigQuery.Table,
-	})
-	if err != nil {
-		r.log.WithError(err).Errorf("Getting BigQuery schema for table %v.%v.%v", input.BigQuery.ProjectID, input.BigQuery.Dataset, input.BigQuery.Table)
 	}
 
 	return dp, nil
@@ -179,7 +191,7 @@ func (r *mutationResolver) RevokeAccessToDataproduct(ctx context.Context, id uui
 	}
 
 	user := auth.GetUser(ctx)
-	if !user.Groups.Contains(dp.Owner.Group) && "user:"+user.Email != access.Subject {
+	if !user.Groups.Contains(dp.Owner.Group) && !strings.EqualFold("user:"+user.Email, access.Subject) {
 		return false, ErrUnauthorized
 	}
 

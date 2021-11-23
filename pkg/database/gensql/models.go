@@ -83,13 +83,19 @@ type DatasourceBigquery struct {
 	Dataset       string
 	TableName     string
 	Schema        pqtype.NullRawMessage
+	LastModified  time.Time
+	Created       time.Time
+	Expires       sql.NullTime
+	TableType     string
 }
 
 type Search struct {
 	ElementID    uuid.UUID
 	ElementType  interface{}
-	LastModified time.Time
+	Description  string
 	Keywords     []string
 	Group        string
+	Created      time.Time
+	LastModified time.Time
 	TsvDocument  interface{}
 }

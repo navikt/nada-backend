@@ -63,7 +63,7 @@ func TestMain(m *testing.M) {
 	promReg := prometheus.NewRegistry()
 	graphProm.RegisterOn(promReg)
 
-	srv := api.New(repo, &mockGCP{}, nil, &auth.MockTeamProjectsUpdater, access.NewNoop(), &noopDatasetEnricher{}, auth.MockJWTValidatorMiddleware(), prometheus.NewRegistry(), logrus.StandardLogger())
+	srv := api.New(repo, &mockGCP{}, nil, &auth.MockTeamProjectsUpdater, access.NewNoop(), auth.MockJWTValidatorMiddleware(), nil, prometheus.NewRegistry(), logrus.StandardLogger())
 
 	server = httptest.NewServer(srv)
 	code := m.Run()
@@ -78,8 +78,8 @@ func TestMain(m *testing.M) {
 
 type mockGCP struct{}
 
-func (m *mockGCP) TableMetadata(ctx context.Context, projectID string, datasetID string, tableID string) (*bigquery.TableMetadata, error) {
-	return &bigquery.TableMetadata{Type: bigquery.ViewTable}, nil
+func (m *mockGCP) TableMetadata(ctx context.Context, projectID string, datasetID string, tableID string) (models.BigqueryMetadata, error) {
+	return models.BigqueryMetadata{TableType: bigquery.ViewTable}, nil
 }
 
 func (m *mockGCP) GetTables(ctx context.Context, projectID, datasetID string) ([]*models.BigQueryTable, error) {

@@ -22,6 +22,12 @@ type UserInfo @goModel(model: "github.com/navikt/nada-backend/pkg/graph/models.U
 	gcpProjects: [GCPProject!]!  @goField(name: "GCPProjects") @authenticated
 	"loginExpiration is when the token expires"
 	loginExpiration: Time!
+	"dataproducts is a list of dataproducts with one of the users groups as owner"
+	dataproducts: [Dataproduct!]!
+	"accessable is a list of dataproducts which the user has explicit access to"
+	accessable: [Dataproduct!]!
+	"collections is a list of collections with one of the users groups as owner"
+	collections: [Collection!]!
 }
 
 """

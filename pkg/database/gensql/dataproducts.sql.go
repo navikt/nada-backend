@@ -6,6 +6,7 @@ package gensql
 import (
 	"context"
 	"database/sql"
+	"time"
 
 	"github.com/google/uuid"
 	"github.com/lib/pq"
@@ -16,12 +17,22 @@ const createBigqueryDatasource = `-- name: CreateBigqueryDatasource :one
 INSERT INTO datasource_bigquery ("dataproduct_id",
                                  "project_id",
                                  "dataset",
-                                 "table_name")
+                                 "table_name",
+                                 "schema",
+                                 "last_modified",
+                                 "created",
+                                 "expires",
+                                 "table_type")
 VALUES ($1,
         $2,
         $3,
-        $4)
-RETURNING dataproduct_id, project_id, dataset, table_name, schema
+        $4,
+        $5,
+        $6,
+        $7,
+        $8,
+        $9)
+RETURNING dataproduct_id, project_id, dataset, table_name, schema, last_modified, created, expires, table_type
 `
 
 type CreateBigqueryDatasourceParams struct {
@@ -29,6 +40,11 @@ type CreateBigqueryDatasourceParams struct {
 	ProjectID     string
 	Dataset       string
 	TableName     string
+	Schema        pqtype.NullRawMessage
+	LastModified  time.Time
+	Created       time.Time
+	Expires       sql.NullTime
+	TableType     string
 }
 
 func (q *Queries) CreateBigqueryDatasource(ctx context.Context, arg CreateBigqueryDatasourceParams) (DatasourceBigquery, error) {
@@ -37,6 +53,11 @@ func (q *Queries) CreateBigqueryDatasource(ctx context.Context, arg CreateBigque
 		arg.ProjectID,
 		arg.Dataset,
 		arg.TableName,
+		arg.Schema,
+		arg.LastModified,
+		arg.Created,
+		arg.Expires,
+		arg.TableType,
 	)
 	var i DatasourceBigquery
 	err := row.Scan(
@@ -45,6 +66,10 @@ func (q *Queries) CreateBigqueryDatasource(ctx context.Context, arg CreateBigque
 		&i.Dataset,
 		&i.TableName,
 		&i.Schema,
+		&i.LastModified,
+		&i.Created,
+		&i.Expires,
+		&i.TableType,
 	)
 	return i, err
 }
@@ -111,7 +136,7 @@ func (q *Queries) CreateDataproduct(ctx context.Context, arg CreateDataproductPa
 
 const createDataproductRequester = `-- name: CreateDataproductRequester :exec
 INSERT INTO dataproduct_requesters (dataproduct_id, "subject")
-VALUES ($1, $2)
+VALUES ($1, LOWER($2))
 `
 
 type CreateDataproductRequesterParams struct {
@@ -136,9 +161,10 @@ func (q *Queries) DeleteDataproduct(ctx context.Context, id uuid.UUID) error {
 }
 
 const deleteDataproductRequester = `-- name: DeleteDataproductRequester :exec
-DELETE FROM dataproduct_requesters 
+DELETE
+FROM dataproduct_requesters
 WHERE dataproduct_id = $1
-AND "subject" = $2
+  AND "subject" = LOWER($2)
 `
 
 type DeleteDataproductRequesterParams struct {
@@ -152,7 +178,7 @@ func (q *Queries) DeleteDataproductRequester(ctx context.Context, arg DeleteData
 }
 
 const getBigqueryDatasource = `-- name: GetBigqueryDatasource :one
-SELECT dataproduct_id, project_id, dataset, table_name, schema
+SELECT dataproduct_id, project_id, dataset, table_name, schema, last_modified, created, expires, table_type
 FROM datasource_bigquery
 WHERE dataproduct_id = $1
 `
@@ -166,12 +192,16 @@ func (q *Queries) GetBigqueryDatasource(ctx context.Context, dataproductID uuid.
 		&i.Dataset,
 		&i.TableName,
 		&i.Schema,
+		&i.LastModified,
+		&i.Created,
+		&i.Expires,
+		&i.TableType,
 	)
 	return i, err
 }
 
 const getBigqueryDatasources = `-- name: GetBigqueryDatasources :many
-SELECT dataproduct_id, project_id, dataset, table_name, schema
+SELECT dataproduct_id, project_id, dataset, table_name, schema, last_modified, created, expires, table_type
 FROM datasource_bigquery
 `
 
@@ -190,6 +220,10 @@ func (q *Queries) GetBigqueryDatasources(ctx context.Context) ([]DatasourceBigqu
 			&i.Dataset,
 			&i.TableName,
 			&i.Schema,
+			&i.LastModified,
+			&i.Created,
+			&i.Expires,
+			&i.TableType,
 		); err != nil {
 			return nil, err
 		}
@@ -307,8 +341,54 @@ func (q *Queries) GetDataproducts(ctx context.Context, arg GetDataproductsParams
 	return items, nil
 }
 
+const getDataproductsByGroups = `-- name: GetDataproductsByGroups :many
+SELECT id, name, description, "group", pii, created, last_modified, type, tsv_document, slug, repo, keywords
+FROM dataproducts
+WHERE "group" = ANY ($1::text[])
+ORDER BY last_modified DESC
+`
+
+func (q *Queries) GetDataproductsByGroups(ctx context.Context, groups []string) ([]Dataproduct, error) {
+	rows, err := q.db.QueryContext(ctx, getDataproductsByGroups, pq.Array(groups))
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []Dataproduct{}
+	for rows.Next() {
+		var i Dataproduct
+		if err := rows.Scan(
+			&i.ID,
+			&i.Name,
+			&i.Description,
+			&i.Group,
+			&i.Pii,
+			&i.Created,
+			&i.LastModified,
+			&i.Type,
+			&i.TsvDocument,
+			&i.Slug,
+			&i.Repo,
+			pq.Array(&i.Keywords),
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const getDataproductsByIDs = `-- name: GetDataproductsByIDs :many
-SELECT id, name, description, "group", pii, created, last_modified, type, tsv_document, slug, repo, keywords FROM dataproducts WHERE id = ANY($1::uuid[]) ORDER BY last_modified DESC
+SELECT id, name, description, "group", pii, created, last_modified, type, tsv_document, slug, repo, keywords
+FROM dataproducts
+WHERE id = ANY ($1::uuid[])
+ORDER BY last_modified DESC
 `
 
 func (q *Queries) GetDataproductsByIDs(ctx context.Context, ids []uuid.UUID) ([]Dataproduct, error) {
@@ -347,19 +427,75 @@ func (q *Queries) GetDataproductsByIDs(ctx context.Context, ids []uuid.UUID) ([]
 	return items, nil
 }
 
+const getDataproductsByUserAccess = `-- name: GetDataproductsByUserAccess :many
+SELECT id, name, description, "group", pii, created, last_modified, type, tsv_document, slug, repo, keywords
+FROM dataproducts
+WHERE id = ANY (SELECT dataproduct_id
+                FROM dataproduct_access
+                WHERE "subject" = LOWER($1)
+                  AND revoked IS NULL
+                  AND (expires > NOW() OR expires IS NULL))
+ORDER BY last_modified DESC
+`
+
+func (q *Queries) GetDataproductsByUserAccess(ctx context.Context, id string) ([]Dataproduct, error) {
+	rows, err := q.db.QueryContext(ctx, getDataproductsByUserAccess, id)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []Dataproduct{}
+	for rows.Next() {
+		var i Dataproduct
+		if err := rows.Scan(
+			&i.ID,
+			&i.Name,
+			&i.Description,
+			&i.Group,
+			&i.Pii,
+			&i.Created,
+			&i.LastModified,
+			&i.Type,
+			&i.TsvDocument,
+			&i.Slug,
+			&i.Repo,
+			pq.Array(&i.Keywords),
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const updateBigqueryDatasourceSchema = `-- name: UpdateBigqueryDatasourceSchema :exec
 UPDATE datasource_bigquery
-SET "schema" = $1
-WHERE dataproduct_id = $2
+SET "schema"        = $1,
+    "last_modified" = $2,
+    "expires"       = $3
+WHERE dataproduct_id = $4
 `
 
 type UpdateBigqueryDatasourceSchemaParams struct {
 	Schema        pqtype.NullRawMessage
+	LastModified  time.Time
+	Expires       sql.NullTime
 	DataproductID uuid.UUID
 }
 
 func (q *Queries) UpdateBigqueryDatasourceSchema(ctx context.Context, arg UpdateBigqueryDatasourceSchemaParams) error {
-	_, err := q.db.ExecContext(ctx, updateBigqueryDatasourceSchema, arg.Schema, arg.DataproductID)
+	_, err := q.db.ExecContext(ctx, updateBigqueryDatasourceSchema,
+		arg.Schema,
+		arg.LastModified,
+		arg.Expires,
+		arg.DataproductID,
+	)
 	return err
 }
 

@@ -25,6 +25,43 @@ func (r *Repo) GetCollections(ctx context.Context, limit, offset int) ([]*models
 	return collections, nil
 }
 
+func (r *Repo) GetCollectionsForElement(ctx context.Context, id uuid.UUID, limit, offset int) ([]*models.Collection, error) {
+	collections := []*models.Collection{}
+
+	res, err := r.querier.GetCollectionsForElement(ctx, gensql.GetCollectionsForElementParams{
+		ElementID:   id,
+		ElementType: "dataproduct",
+		Limit:       int32(limit),
+		Offset:      int32(offset),
+	})
+	if err != nil {
+		return nil, fmt.Errorf("getting collections for element from database: %w", err)
+	}
+
+	for _, entry := range res {
+		col := collectionFromSQL(entry)
+		collections = append(collections, col)
+	}
+
+	return collections, nil
+}
+
+func (r *Repo) GetCollectionsByGroups(ctx context.Context, groups []string) ([]*models.Collection, error) {
+	collections := []*models.Collection{}
+
+	res, err := r.querier.GetCollectionsByGroups(ctx, groups)
+	if err != nil {
+		return nil, fmt.Errorf("getting collections by group from database: %w", err)
+	}
+
+	for _, entry := range res {
+		col := collectionFromSQL(entry)
+		collections = append(collections, col)
+	}
+
+	return collections, nil
+}
+
 func (r *Repo) GetCollection(ctx context.Context, id uuid.UUID) (*models.Collection, error) {
 	res, err := r.querier.GetCollection(ctx, id)
 	if err != nil {
@@ -58,7 +95,7 @@ func (r *Repo) CreateCollection(ctx context.Context, col models.NewCollection) (
 func (r *Repo) UpdateCollection(ctx context.Context, id uuid.UUID, new models.UpdateCollection) (*models.Collection, error) {
 	var keywords []string
 	if new.Keywords != nil {
-		keywords = []string{}
+		keywords = new.Keywords
 	}
 
 	res, err := r.querier.UpdateCollection(ctx, gensql.UpdateCollectionParams{

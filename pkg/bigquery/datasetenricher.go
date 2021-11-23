@@ -1,4 +1,4 @@
-package metadata
+package bigquery
 
 import (
 	"context"
@@ -9,13 +9,14 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/navikt/nada-backend/pkg/database/gensql"
+	"github.com/navikt/nada-backend/pkg/graph/models"
 	"github.com/sirupsen/logrus"
 )
 
 type DatasetEnricher struct {
-	datacatalogClient Datacataloger
-	repo              Metadatastorer
-	log               *logrus.Entry
+	bigqueryClient Bigquerier
+	repo           Metadatastorer
+	log            *logrus.Entry
 }
 
 type errorList []error
@@ -27,20 +28,20 @@ func (e errorList) Error() string {
 	return fmt.Sprintf("%+v", []error(e))
 }
 
-type Datacataloger interface {
-	GetDatasetSchema(ctx context.Context, ds gensql.DatasourceBigquery) (Schema, error)
+type Bigquerier interface {
+	TableMetadata(ctx context.Context, projectID string, datasetID string, tableID string) (models.BigqueryMetadata, error)
 }
 
 type Metadatastorer interface {
 	GetBigqueryDatasources(ctx context.Context) ([]gensql.DatasourceBigquery, error)
-	UpdateBigqueryDatasource(ctx context.Context, id uuid.UUID, schema json.RawMessage) error
+	UpdateBigqueryDatasource(ctx context.Context, id uuid.UUID, schema json.RawMessage, lastModified, expires time.Time) error
 }
 
-func New(datacatalogClient Datacataloger, repo Metadatastorer, log *logrus.Entry) *DatasetEnricher {
+func NewDatasetEnricher(bigquery Bigquerier, repo Metadatastorer, log *logrus.Entry) *DatasetEnricher {
 	return &DatasetEnricher{
-		datacatalogClient: datacatalogClient,
-		repo:              repo,
-		log:               log,
+		bigqueryClient: bigquery,
+		repo:           repo,
+		log:            log,
 	}
 }
 
@@ -77,7 +78,7 @@ func (d *DatasetEnricher) syncMetadata(ctx context.Context) error {
 	var errs errorList
 
 	for _, ds := range datasets {
-		err := d.UpdateSchema(ctx, ds)
+		err := d.UpdateMetadata(ctx, ds)
 		if err != nil {
 			errs = append(errs, err)
 		}
@@ -88,18 +89,18 @@ func (d *DatasetEnricher) syncMetadata(ctx context.Context) error {
 	return errs
 }
 
-func (d *DatasetEnricher) UpdateSchema(ctx context.Context, ds gensql.DatasourceBigquery) error {
-	schema, err := d.datacatalogClient.GetDatasetSchema(ctx, ds)
+func (d *DatasetEnricher) UpdateMetadata(ctx context.Context, ds gensql.DatasourceBigquery) error {
+	metadata, err := d.bigqueryClient.TableMetadata(ctx, ds.ProjectID, ds.Dataset, ds.TableName)
 	if err != nil {
 		return fmt.Errorf("getting dataset schema: %w", err)
 	}
 
-	schemaJSON, err := json.Marshal(schema.Columns)
+	schemaJSON, err := json.Marshal(metadata.Schema.Columns)
 	if err != nil {
 		return fmt.Errorf("marshalling schema: %w", err)
 	}
 
-	if err := d.repo.UpdateBigqueryDatasource(ctx, ds.DataproductID, schemaJSON); err != nil {
+	if err := d.repo.UpdateBigqueryDatasource(ctx, ds.DataproductID, schemaJSON, metadata.LastModified, metadata.Expires); err != nil {
 		return fmt.Errorf("writing metadata to database: %w", err)
 	}
 

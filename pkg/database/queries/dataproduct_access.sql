@@ -4,8 +4,8 @@ INSERT INTO dataproduct_access (dataproduct_id,
                                 granter,
                                 expires)
 VALUES (@dataproduct_id,
-        @subject,
-        @granter,
+        LOWER(@subject),
+        LOWER(@granter),
         @expires)
 RETURNING *;
 

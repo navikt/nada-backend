@@ -33,9 +33,13 @@ type Datasource interface {
 
 type BigQuery struct {
 	DataproductID uuid.UUID
-	ProjectID     string `json:"projectID"`
-	Dataset       string `json:"dataset"`
-	Table         string `json:"table"`
+	ProjectID     string       `json:"projectID"`
+	Dataset       string       `json:"dataset"`
+	Table         string       `json:"table"`
+	TableType     BigQueryType `json:"tableType"`
+	LastModified  time.Time    `json:"lastModified"`
+	Created       time.Time    `json:"created"`
+	Expires       *time.Time   `json:"expired"`
 }
 
 func (BigQuery) IsDatasource() {}
@@ -56,6 +60,7 @@ type NewDataproduct struct {
 	Group       string      `json:"group"`
 	BigQuery    NewBigQuery `json:"bigquery"`
 	Requesters  []string    `json:"requesters"`
+	Metadata    BigqueryMetadata
 }
 
 type UpdateDataproduct struct {

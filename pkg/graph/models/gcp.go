@@ -5,6 +5,8 @@ import (
 	"io"
 	"strconv"
 	"time"
+
+	"cloud.google.com/go/bigquery"
 )
 
 type GCPProject struct {
@@ -23,6 +25,25 @@ type BigQueryTable struct {
 	LastModified time.Time    `json:"lastModified"`
 	Name         string       `json:"name"`
 	Type         BigQueryType `json:"type"`
+}
+
+type BigquerySchema struct {
+	Columns []BigqueryColumn
+}
+
+type BigqueryMetadata struct {
+	Schema       BigquerySchema
+	TableType    bigquery.TableType
+	LastModified time.Time
+	Created      time.Time
+	Expires      time.Time
+}
+
+type BigqueryColumn struct {
+	Name        string
+	Type        string
+	Mode        string
+	Description string
 }
 
 type BigQueryType string

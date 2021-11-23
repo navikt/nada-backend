@@ -1,4 +1,4 @@
-package metadata
+package bigquery
 
 import (
 	"context"
@@ -64,6 +64,14 @@ func (g Groups) Names() []string {
 		names = append(names, g.Name)
 	}
 	return names
+}
+
+func (g Groups) Emails() []string {
+	emails := []string{}
+	for _, g := range g {
+		emails = append(emails, g.Email)
+	}
+	return emails
 }
 
 func (g Groups) Get(email string) (Group, bool) {

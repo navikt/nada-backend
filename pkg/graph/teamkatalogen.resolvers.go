@@ -9,9 +9,6 @@ import (
 	"github.com/navikt/nada-backend/pkg/graph/models"
 )
 
-func (r *queryResolver) Search(ctx context.Context, q *models.SearchQuery) ([]*models.SearchResultRow, error) {
-	if q == nil {
-		q = &models.SearchQuery{}
-	}
-	return r.repo.Search(ctx, q)
+func (r *queryResolver) Teamkatalogen(ctx context.Context, q string) ([]*models.TeamkatalogenResult, error) {
+	return r.teamkatalogen.Search(ctx, q)
 }

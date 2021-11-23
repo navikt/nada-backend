@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"net/http"
 	"os"
@@ -13,10 +14,12 @@ import (
 	"github.com/navikt/nada-backend/pkg/access"
 	"github.com/navikt/nada-backend/pkg/api"
 	"github.com/navikt/nada-backend/pkg/auth"
+	"github.com/navikt/nada-backend/pkg/bigquery"
 	"github.com/navikt/nada-backend/pkg/database"
 	"github.com/navikt/nada-backend/pkg/database/gensql"
 	"github.com/navikt/nada-backend/pkg/graph"
-	"github.com/navikt/nada-backend/pkg/metadata"
+	"github.com/navikt/nada-backend/pkg/metabase"
+	"github.com/navikt/nada-backend/pkg/teamkatalogen"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/sirupsen/logrus"
 	flag "github.com/spf13/pflag"
@@ -33,8 +36,9 @@ var (
 
 const (
 	TeamProjectsUpdateFrequency    = 5 * time.Minute
-	DatasetMetadataUpdateFrequency = 5 * time.Minute
+	DatasetMetadataUpdateFrequency = 1 * time.Hour
 	AccessEnsurerFrequency         = 5 * time.Minute
+	MetabaseUpdateFrequency        = 5 * time.Minute
 )
 
 func init() {
@@ -48,10 +52,15 @@ func init() {
 	flag.StringVar(&cfg.TeamsToken, "teams-token", os.Getenv("GITHUB_READ_TOKEN"), "Token for accessing teams json")
 	flag.StringVar(&cfg.LogLevel, "log-level", "info", "which log level to output")
 	flag.StringVar(&cfg.CookieSecret, "cookie-secret", "", "Secret used when encrypting cookies")
+	flag.StringVar(&cfg.TeamkatalogenURL, "teamkatalogen-url", cfg.TeamkatalogenURL, "Teamkatalog API URL")
 	flag.BoolVar(&cfg.MockAuth, "mock-auth", false, "Use mock authentication")
 	flag.StringVar(&cfg.GoogleAdminImpersonationSubject, "google-admin-subject", os.Getenv("GOOGLE_ADMIN_IMPERSONATION_SUBJECT"), "Subject to impersonate when accessing google admin apis")
 	flag.StringVar(&cfg.ServiceAccountFile, "service-account-file", os.Getenv("GOOGLE_ADMIN_CREDENTIALS_PATH"), "Service account file for accessing google admin apis")
 	flag.BoolVar(&cfg.SkipMetadataSync, "skip-metadata-sync", false, "Skip metadata sync")
+	flag.StringVar(&cfg.MetabaseServiceAccountFile, "metabase-service-account-file", os.Getenv("METABASE_GOOGLE_CREDENTIALS_PATH"), "Service account file for metabase access to bigquery tables")
+	flag.StringVar(&cfg.MetabaseUsername, "metabase-username", os.Getenv("METABASE_USERNAME"), "Username for metabase api")
+	flag.StringVar(&cfg.MetabasePassword, "metabase-password", os.Getenv("METABASE_PASSWORD"), "Password for metabase api")
+	flag.StringVar(&cfg.MetabaseAPI, "metabase-api", os.Getenv("METABASE_API"), "URL to Metabase API, including scheme and `/api`")
 }
 
 func main() {
@@ -76,7 +85,7 @@ func main() {
 		teamProjectsMapping = auth.NewTeamProjectsUpdater(cfg.DevTeamProjectsOutputURL, cfg.ProdTeamProjectsOutputURL, cfg.TeamsToken, http.DefaultClient)
 		go teamProjectsMapping.Run(ctx, TeamProjectsUpdateFrequency)
 
-		googleGroups, err := metadata.NewGoogleGroups(ctx, cfg.ServiceAccountFile, cfg.GoogleAdminImpersonationSubject, log.WithField("subsystem", "googlegroups"))
+		googleGroups, err := bigquery.NewGoogleGroups(ctx, cfg.ServiceAccountFile, cfg.GoogleAdminImpersonationSubject, log.WithField("subsystem", "googlegroups"))
 		if err != nil {
 			log.Fatal(err)
 		}
@@ -87,24 +96,26 @@ func main() {
 		accessMgr = access.NewBigquery()
 	}
 
+	if err := runMetabase(ctx, log.WithField("subsystem", "metabase"), cfg, repo, accessMgr); err != nil {
+		log.WithError(err).Fatal("running metabase")
+	}
+
 	go access.NewEnsurer(repo, accessMgr, promErrs, log.WithField("subsystem", "accessensurer")).Run(ctx, AccessEnsurerFrequency)
 
-	var gcp graph.GCP
-	var datasetEnricher graph.SchemaUpdater = &noopDatasetEnricher{}
+	var gcp graph.Bigquery
 	if !cfg.SkipMetadataSync {
-		datacatalogClient, err := metadata.NewDatacatalog(ctx)
+		datacatalogClient, err := bigquery.New(ctx)
 		if err != nil {
 			log.WithError(err).Fatal("Creating datacatalog client")
 		}
 
 		gcp = datacatalogClient
-		de := metadata.New(datacatalogClient, repo, log.WithField("subsystem", "datasetenricher"))
-		datasetEnricher = de
+		de := bigquery.NewDatasetEnricher(datacatalogClient, repo, log.WithField("subsystem", "datasetenricher"))
 		go de.Run(ctx, DatasetMetadataUpdateFrequency)
 	}
 
 	log.Info("Listening on :8080")
-	srv := api.New(repo, gcp, oauth2Config, teamProjectsMapping, accessMgr, datasetEnricher, authenticatorMiddleware, prom(promErrs, repo.Metrics()), log)
+	srv := api.New(repo, gcp, oauth2Config, teamProjectsMapping, accessMgr, authenticatorMiddleware, teamkatalogen.New(cfg.TeamkatalogenURL), prom(promErrs, repo.Metrics()), log)
 
 	server := http.Server{
 		Addr:    cfg.BindAddress,
@@ -151,6 +162,35 @@ func getEnv(key, fallback string) string {
 		return env
 	}
 	return fallback
+}
+
+func runMetabase(ctx context.Context, log *logrus.Entry, cfg Config, repo *database.Repo, accessMgr graph.AccessManager) error {
+	if cfg.MetabaseServiceAccountFile == "" {
+		log.Info("metabase sync disabled")
+		return nil
+	}
+
+	log.Info("metabase sync enabled")
+
+	client := metabase.NewClient(cfg.MetabaseAPI, cfg.MetabaseUsername, cfg.MetabasePassword)
+
+	sa, err := os.ReadFile(cfg.MetabaseServiceAccountFile)
+	if err != nil {
+		return err
+	}
+
+	metabaseSA := struct {
+		ClientEmail string `json:"client_email"`
+	}{}
+
+	err = json.Unmarshal(sa, &metabaseSA)
+	if err != nil {
+		return err
+	}
+
+	metabase := metabase.New(repo, client, accessMgr, string(sa), metabaseSA.ClientEmail, promErrs, log.WithField("subsystem", "metabase"))
+	go metabase.Run(ctx, MetabaseUpdateFrequency)
+	return nil
 }
 
 type noopDatasetEnricher struct{}
