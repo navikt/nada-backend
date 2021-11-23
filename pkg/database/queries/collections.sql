@@ -19,12 +19,14 @@ INSERT INTO collections (
 	"description",
 	"slug",
 	"group",
+	"teamkatalogen_url",
 	"keywords"
 ) VALUES (
 	@name,
 	@description,
 	@slug,
 	@owner_group,
+	@owner_teamkatalogen_url,
 	@keywords
 ) RETURNING *;
 
@@ -33,6 +35,7 @@ UPDATE collections SET
 	"name" = @name,
 	"description" = @description,
 	"slug" = @slug,
+	"teamkatalogen_url" = @owner_teamkatalogen_url,
 	"keywords" = @keywords
 WHERE id = @id
 RETURNING *;

@@ -55,6 +55,8 @@ input NewCollection
     description: String
     "group the collection belongs to. Used for authorization."
     group: String!
+    "owner Teamkatalogen URL for the collection."
+    teamkatalogenURL: String
     "keywords for the collection used as tags."
     keywords: [String!]
 }
@@ -70,6 +72,8 @@ input UpdateCollection
     name: String!
     "description of the collection."
     description: String
+    "owner Teamkatalogen URL for the collection."
+    teamkatalogenURL: String
     "keywords for the collection used as tags."
     keywords: [String!]
 }

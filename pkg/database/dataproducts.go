@@ -78,14 +78,15 @@ func (r *Repo) CreateDataproduct(ctx context.Context, dp models.NewDataproduct) 
 
 	querier := r.querier.WithTx(tx)
 	created, err := querier.CreateDataproduct(ctx, gensql.CreateDataproductParams{
-		Name:        dp.Name,
-		Description: ptrToNullString(dp.Description),
-		Pii:         dp.Pii,
-		Type:        "bigquery",
-		OwnerGroup:  dp.Group,
-		Slug:        slugify(dp.Slug, dp.Name),
-		Repo:        ptrToNullString(dp.Repo),
-		Keywords:    dp.Keywords,
+		Name:                  dp.Name,
+		Description:           ptrToNullString(dp.Description),
+		Pii:                   dp.Pii,
+		Type:                  "bigquery",
+		OwnerGroup:            dp.Group,
+		OwnerTeamkatalogenUrl: ptrToNullString(dp.TeamkatalogenURL),
+		Slug:                  slugify(dp.Slug, dp.Name),
+		Repo:                  ptrToNullString(dp.Repo),
+		Keywords:              dp.Keywords,
 	})
 	if err != nil {
 		return nil, err
@@ -141,13 +142,14 @@ func (r *Repo) UpdateDataproduct(ctx context.Context, id uuid.UUID, new models.U
 	}
 
 	res, err := r.querier.UpdateDataproduct(ctx, gensql.UpdateDataproductParams{
-		Name:        new.Name,
-		Description: ptrToNullString(new.Description),
-		ID:          id,
-		Pii:         new.Pii,
-		Slug:        slugify(new.Slug, new.Name),
-		Repo:        ptrToNullString(new.Repo),
-		Keywords:    new.Keywords,
+		Name:                  new.Name,
+		Description:           ptrToNullString(new.Description),
+		ID:                    id,
+		Pii:                   new.Pii,
+		OwnerTeamkatalogenUrl: ptrToNullString(new.TeamkatalogenURL),
+		Slug:                  slugify(new.Slug, new.Name),
+		Repo:                  ptrToNullString(new.Repo),
+		Keywords:              new.Keywords,
 	})
 	if err != nil {
 		return nil, fmt.Errorf("updating dataproduct in database: %w", err)
@@ -231,7 +233,8 @@ func dataproductFromSQL(dp gensql.Dataproduct) *models.Dataproduct {
 		Pii:          dp.Pii,
 		Keywords:     dp.Keywords,
 		Owner: &models.Owner{
-			Group: dp.Group,
+			Group:            dp.Group,
+			TeamkatalogenURL: nullStringToPtr(dp.TeamkatalogenUrl),
 		},
 		Type: dp.Type,
 	}

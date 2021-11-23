@@ -17,22 +17,25 @@ INSERT INTO collections (
 	"description",
 	"slug",
 	"group",
+	"teamkatalogen_url",
 	"keywords"
 ) VALUES (
 	$1,
 	$2,
 	$3,
 	$4,
-	$5
-) RETURNING id, name, description, slug, created, last_modified, "group", keywords, tsv_document
+	$5,
+	$6
+) RETURNING id, name, description, slug, created, last_modified, "group", keywords, tsv_document, teamkatalogen_url
 `
 
 type CreateCollectionParams struct {
-	Name        string
-	Description sql.NullString
-	Slug        string
-	OwnerGroup  string
-	Keywords    []string
+	Name                  string
+	Description           sql.NullString
+	Slug                  string
+	OwnerGroup            string
+	OwnerTeamkatalogenUrl sql.NullString
+	Keywords              []string
 }
 
 func (q *Queries) CreateCollection(ctx context.Context, arg CreateCollectionParams) (Collection, error) {
@@ -41,6 +44,7 @@ func (q *Queries) CreateCollection(ctx context.Context, arg CreateCollectionPara
 		arg.Description,
 		arg.Slug,
 		arg.OwnerGroup,
+		arg.OwnerTeamkatalogenUrl,
 		pq.Array(arg.Keywords),
 	)
 	var i Collection
@@ -54,6 +58,7 @@ func (q *Queries) CreateCollection(ctx context.Context, arg CreateCollectionPara
 		&i.Group,
 		pq.Array(&i.Keywords),
 		&i.TsvDocument,
+		&i.TeamkatalogenUrl,
 	)
 	return i, err
 }
@@ -106,7 +111,7 @@ func (q *Queries) DeleteCollectionElement(ctx context.Context, arg DeleteCollect
 }
 
 const getCollection = `-- name: GetCollection :one
-SELECT id, name, description, slug, created, last_modified, "group", keywords, tsv_document FROM collections WHERE id = $1
+SELECT id, name, description, slug, created, last_modified, "group", keywords, tsv_document, teamkatalogen_url FROM collections WHERE id = $1
 `
 
 func (q *Queries) GetCollection(ctx context.Context, id uuid.UUID) (Collection, error) {
@@ -122,12 +127,13 @@ func (q *Queries) GetCollection(ctx context.Context, id uuid.UUID) (Collection, 
 		&i.Group,
 		pq.Array(&i.Keywords),
 		&i.TsvDocument,
+		&i.TeamkatalogenUrl,
 	)
 	return i, err
 }
 
 const getCollectionElements = `-- name: GetCollectionElements :many
-SELECT id, name, description, "group", pii, created, last_modified, type, tsv_document, slug, repo, keywords
+SELECT id, name, description, "group", pii, created, last_modified, type, tsv_document, slug, repo, keywords, teamkatalogen_url
 FROM dataproducts
 WHERE id IN
 	(SELECT element_id FROM collection_elements WHERE collection_id = $1 AND element_type = 'dataproduct')
@@ -155,6 +161,7 @@ func (q *Queries) GetCollectionElements(ctx context.Context, collectionID uuid.U
 			&i.Slug,
 			&i.Repo,
 			pq.Array(&i.Keywords),
+			&i.TeamkatalogenUrl,
 		); err != nil {
 			return nil, err
 		}
@@ -170,7 +177,7 @@ func (q *Queries) GetCollectionElements(ctx context.Context, collectionID uuid.U
 }
 
 const getCollections = `-- name: GetCollections :many
-SELECT id, name, description, slug, created, last_modified, "group", keywords, tsv_document FROM collections ORDER BY last_modified DESC LIMIT $2 OFFSET $1
+SELECT id, name, description, slug, created, last_modified, "group", keywords, tsv_document, teamkatalogen_url FROM collections ORDER BY last_modified DESC LIMIT $2 OFFSET $1
 `
 
 type GetCollectionsParams struct {
@@ -197,6 +204,7 @@ func (q *Queries) GetCollections(ctx context.Context, arg GetCollectionsParams) 
 			&i.Group,
 			pq.Array(&i.Keywords),
 			&i.TsvDocument,
+			&i.TeamkatalogenUrl,
 		); err != nil {
 			return nil, err
 		}
@@ -212,7 +220,7 @@ func (q *Queries) GetCollections(ctx context.Context, arg GetCollectionsParams) 
 }
 
 const getCollectionsByGroups = `-- name: GetCollectionsByGroups :many
-SELECT id, name, description, slug, created, last_modified, "group", keywords, tsv_document FROM collections WHERE "group" = ANY($1::text[]) ORDER BY last_modified DESC
+SELECT id, name, description, slug, created, last_modified, "group", keywords, tsv_document, teamkatalogen_url FROM collections WHERE "group" = ANY($1::text[]) ORDER BY last_modified DESC
 `
 
 func (q *Queries) GetCollectionsByGroups(ctx context.Context, groups []string) ([]Collection, error) {
@@ -234,6 +242,7 @@ func (q *Queries) GetCollectionsByGroups(ctx context.Context, groups []string) (
 			&i.Group,
 			pq.Array(&i.Keywords),
 			&i.TsvDocument,
+			&i.TeamkatalogenUrl,
 		); err != nil {
 			return nil, err
 		}
@@ -249,7 +258,7 @@ func (q *Queries) GetCollectionsByGroups(ctx context.Context, groups []string) (
 }
 
 const getCollectionsByIDs = `-- name: GetCollectionsByIDs :many
-SELECT id, name, description, slug, created, last_modified, "group", keywords, tsv_document FROM collections WHERE id = ANY($1::uuid[]) ORDER BY last_modified DESC
+SELECT id, name, description, slug, created, last_modified, "group", keywords, tsv_document, teamkatalogen_url FROM collections WHERE id = ANY($1::uuid[]) ORDER BY last_modified DESC
 `
 
 func (q *Queries) GetCollectionsByIDs(ctx context.Context, ids []uuid.UUID) ([]Collection, error) {
@@ -271,6 +280,7 @@ func (q *Queries) GetCollectionsByIDs(ctx context.Context, ids []uuid.UUID) ([]C
 			&i.Group,
 			pq.Array(&i.Keywords),
 			&i.TsvDocument,
+			&i.TeamkatalogenUrl,
 		); err != nil {
 			return nil, err
 		}
@@ -286,7 +296,7 @@ func (q *Queries) GetCollectionsByIDs(ctx context.Context, ids []uuid.UUID) ([]C
 }
 
 const getCollectionsForElement = `-- name: GetCollectionsForElement :many
-SELECT id, name, description, slug, created, last_modified, "group", keywords, tsv_document
+SELECT id, name, description, slug, created, last_modified, "group", keywords, tsv_document, teamkatalogen_url
 FROM collections
 WHERE id IN
 	(SELECT collection_id FROM collection_elements WHERE element_id = $1 AND element_type = $2)
@@ -325,6 +335,7 @@ func (q *Queries) GetCollectionsForElement(ctx context.Context, arg GetCollectio
 			&i.Group,
 			pq.Array(&i.Keywords),
 			&i.TsvDocument,
+			&i.TeamkatalogenUrl,
 		); err != nil {
 			return nil, err
 		}
@@ -344,17 +355,19 @@ UPDATE collections SET
 	"name" = $1,
 	"description" = $2,
 	"slug" = $3,
-	"keywords" = $4
-WHERE id = $5
-RETURNING id, name, description, slug, created, last_modified, "group", keywords, tsv_document
+	"teamkatalogen_url" = $4,
+	"keywords" = $5
+WHERE id = $6
+RETURNING id, name, description, slug, created, last_modified, "group", keywords, tsv_document, teamkatalogen_url
 `
 
 type UpdateCollectionParams struct {
-	Name        string
-	Description sql.NullString
-	Slug        string
-	Keywords    []string
-	ID          uuid.UUID
+	Name                  string
+	Description           sql.NullString
+	Slug                  string
+	OwnerTeamkatalogenUrl sql.NullString
+	Keywords              []string
+	ID                    uuid.UUID
 }
 
 func (q *Queries) UpdateCollection(ctx context.Context, arg UpdateCollectionParams) (Collection, error) {
@@ -362,6 +375,7 @@ func (q *Queries) UpdateCollection(ctx context.Context, arg UpdateCollectionPara
 		arg.Name,
 		arg.Description,
 		arg.Slug,
+		arg.OwnerTeamkatalogenUrl,
 		pq.Array(arg.Keywords),
 		arg.ID,
 	)
@@ -376,6 +390,7 @@ func (q *Queries) UpdateCollection(ctx context.Context, arg UpdateCollectionPara
 		&i.Group,
 		pq.Array(&i.Keywords),
 		&i.TsvDocument,
+		&i.TeamkatalogenUrl,
 	)
 	return i, err
 }

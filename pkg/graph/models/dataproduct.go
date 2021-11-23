@@ -51,26 +51,28 @@ type NewBigQuery struct {
 }
 
 type NewDataproduct struct {
-	Name        string      `json:"name"`
-	Description *string     `json:"description"`
-	Slug        *string     `json:"slug"`
-	Repo        *string     `json:"repo"`
-	Pii         bool        `json:"pii"`
-	Keywords    []string    `json:"keywords"`
-	Group       string      `json:"group"`
-	BigQuery    NewBigQuery `json:"bigquery"`
-	Requesters  []string    `json:"requesters"`
-	Metadata    BigqueryMetadata
+	Name             string      `json:"name"`
+	Description      *string     `json:"description"`
+	Slug             *string     `json:"slug"`
+	Repo             *string     `json:"repo"`
+	Pii              bool        `json:"pii"`
+	Keywords         []string    `json:"keywords"`
+	Group            string      `json:"group"`
+	TeamkatalogenURL *string     `json:"teamkatalogenURL"`
+	BigQuery         NewBigQuery `json:"bigquery"`
+	Requesters       []string    `json:"requesters"`
+	Metadata         BigqueryMetadata
 }
 
 type UpdateDataproduct struct {
-	Name        string   `json:"name"`
-	Description *string  `json:"description"`
-	Slug        *string  `json:"slug"`
-	Repo        *string  `json:"repo"`
-	Pii         bool     `json:"pii"`
-	Keywords    []string `json:"keywords"`
-	Requesters  []string `json:"requesters"`
+	Name             string   `json:"name"`
+	Description      *string  `json:"description"`
+	Slug             *string  `json:"slug"`
+	Repo             *string  `json:"repo"`
+	Pii              bool     `json:"pii"`
+	TeamkatalogenURL *string  `json:"teamkatalogenURL"`
+	Keywords         []string `json:"keywords"`
+	Requesters       []string `json:"requesters"`
 }
 
 type Access struct {
@@ -84,8 +86,8 @@ type Access struct {
 }
 
 type Owner struct {
-	Group         string `json:"group"`
-	Teamkatalogen string `json:"teamkatalogen"`
+	Group            string  `json:"group"`
+	TeamkatalogenURL *string `json:"teamkatalogenURL"`
 }
 
 type SubjectType string

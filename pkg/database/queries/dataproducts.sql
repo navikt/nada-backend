@@ -43,6 +43,7 @@ INSERT INTO dataproducts ("name",
                           "pii",
                           "type",
                           "group",
+                          "teamkatalogen_url",
                           "slug",
                           "repo",
                           "keywords")
@@ -51,6 +52,7 @@ VALUES (@name,
         @pii,
         @type,
         @owner_group,
+        @owner_teamkatalogen_url,
         @slug,
         @repo,
         @keywords)
@@ -58,12 +60,13 @@ RETURNING *;
 
 -- name: UpdateDataproduct :one
 UPDATE dataproducts
-SET "name"        = @name,
-    "description" = @description,
-    "pii"         = @pii,
-    "slug"        = @slug,
-    "repo"        = @repo,
-    "keywords"    = @keywords
+SET "name"              = @name,
+    "description"       = @description,
+    "pii"               = @pii,
+    "slug"              = @slug,
+    "repo"              = @repo,
+    "teamkatalogen_url" = @owner_teamkatalogen_url,
+    "keywords"          = @keywords
 WHERE id = @id
 RETURNING *;
 

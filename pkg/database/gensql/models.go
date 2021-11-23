@@ -30,15 +30,16 @@ func (e *DatasourceType) Scan(src interface{}) error {
 }
 
 type Collection struct {
-	ID           uuid.UUID
-	Name         string
-	Description  sql.NullString
-	Slug         string
-	Created      time.Time
-	LastModified time.Time
-	Group        string
-	Keywords     []string
-	TsvDocument  interface{}
+	ID               uuid.UUID
+	Name             string
+	Description      sql.NullString
+	Slug             string
+	Created          time.Time
+	LastModified     time.Time
+	Group            string
+	Keywords         []string
+	TsvDocument      interface{}
+	TeamkatalogenUrl sql.NullString
 }
 
 type CollectionElement struct {
@@ -48,18 +49,19 @@ type CollectionElement struct {
 }
 
 type Dataproduct struct {
-	ID           uuid.UUID
-	Name         string
-	Description  sql.NullString
-	Group        string
-	Pii          bool
-	Created      time.Time
-	LastModified time.Time
-	Type         DatasourceType
-	TsvDocument  interface{}
-	Slug         string
-	Repo         sql.NullString
-	Keywords     []string
+	ID               uuid.UUID
+	Name             string
+	Description      sql.NullString
+	Group            string
+	Pii              bool
+	Created          time.Time
+	LastModified     time.Time
+	Type             DatasourceType
+	TsvDocument      interface{}
+	Slug             string
+	Repo             sql.NullString
+	Keywords         []string
+	TeamkatalogenUrl sql.NullString
 }
 
 type DataproductAccess struct {

@@ -36,8 +36,8 @@ Owner contains metadata on the owner of the dataproduct.
 type Owner @goModel(model: "github.com/navikt/nada-backend/pkg/graph/models.Owner"){
     "owner group is the email for the group."
     group: String!
-    "teamkatalogen is url for the team in the NAV team catalog."
-    teamkatalogen: String!
+    "teamkatalogenURL is url for the team in the NAV team catalog."
+    teamkatalogenURL: String
 }
 
 """
@@ -147,6 +147,8 @@ input NewDataproduct @goModel(model: "github.com/navikt/nada-backend/pkg/graph/m
     keywords: [String!]
     "owner group email for the dataproduct."
     group: String!
+    "owner Teamkatalogen URL for the dataproduct."
+    teamkatalogenURL: String
     "bigquery contains metadata for the bigquery datasource added to the dataproduct."
     bigquery: NewBigQuery!
     "requesters contains list of users, groups and service accounts which can request access to the dataproduct"
@@ -165,6 +167,8 @@ input UpdateDataproduct @goModel(model: "github.com/navikt/nada-backend/pkg/grap
     repo: String
     "pii indicates whether it is personal identifiable information in the dataproduct"
     pii: Boolean!
+    "owner Teamkatalogen URL for the dataproduct."
+    teamkatalogenURL: String
     "keywords for the dataproduct used as tags."
     keywords: [String!]
     "requesters contains list of users, groups and service accounts which can request access to the dataproduct"
