@@ -22,9 +22,10 @@ func (r *queryResolver) UserInfo(ctx context.Context) (*models.UserInfo, error) 
 	}
 
 	return &models.UserInfo{
-		Name:   user.Name,
-		Email:  user.Email,
-		Groups: groups,
+		Name:            user.Name,
+		Email:           user.Email,
+		Groups:          groups,
+		LoginExpiration: user.Expiry,
 	}, nil
 }
 
