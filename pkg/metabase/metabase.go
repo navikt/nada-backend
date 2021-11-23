@@ -102,7 +102,9 @@ func (m *Metabase) run(ctx context.Context) error {
 	for _, mdb := range databases {
 		found := false
 		for _, dp := range dps {
-			if mdb.NadaID == dp.ID.String() {
+			if mdb.NadaID == "" {
+				continue
+			} else if mdb.NadaID == dp.ID.String() {
 				found = true
 			}
 		}
