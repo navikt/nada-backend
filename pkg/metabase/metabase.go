@@ -100,39 +100,42 @@ func (m *Metabase) run(ctx context.Context) error {
 
 	// Remove databases in Metabase that no longer exists or is not available to all users
 	for _, mdb := range databases {
+		if mdb.NadaID == "" {
+			continue
+		}
 		found := false
+
 		for _, dp := range dps {
-			if mdb.NadaID == "" {
-				continue
-			} else if mdb.NadaID == dp.ID.String() {
+			if mdb.NadaID == dp.ID.String() {
 				found = true
 			}
 		}
-		if !found {
-			if err := m.client.DeleteDatabase(ctx, strconv.Itoa(mdb.ID)); err != nil {
-				m.log.WithError(err).Error("Deleting database in Metabase")
-				m.errs.WithLabelValues("RemoveMetabaseDatabase").Inc()
-				continue
-			}
-			uid, err := uuid.Parse(mdb.NadaID)
-			if err != nil {
-				m.log.WithError(err).Error("Parsing UUID")
-				m.errs.WithLabelValues("RemoveMetabaseDatabase").Inc()
-				continue
-			}
-			ds, err := m.repo.GetBigqueryDatasource(ctx, uid)
-			if err != nil {
-				m.log.WithError(err).Error("Getting Bigquery datasource")
-				m.errs.WithLabelValues("RemoveMetabaseDatabase").Inc()
-				continue
-			}
-			if err := m.accessMgr.Revoke(ctx, ds.ProjectID, ds.Dataset, ds.Table, "serviceAccount:"+m.saEmail); err != nil {
-				m.log.WithError(err).Error("Revoking IAM access")
-				m.errs.WithLabelValues("RemoveMetabaseDatabase").Inc()
-				continue
-			}
-			m.log.Infof("Deleted Metabase database with ID: %v", mdb.ID)
+		if found {
+			continue
 		}
+		if err := m.client.DeleteDatabase(ctx, strconv.Itoa(mdb.ID)); err != nil {
+			m.log.WithError(err).Error("Deleting database in Metabase")
+			m.errs.WithLabelValues("RemoveMetabaseDatabase").Inc()
+			continue
+		}
+		uid, err := uuid.Parse(mdb.NadaID)
+		if err != nil {
+			m.log.WithError(err).Error("Parsing UUID")
+			m.errs.WithLabelValues("RemoveMetabaseDatabase").Inc()
+			continue
+		}
+		ds, err := m.repo.GetBigqueryDatasource(ctx, uid)
+		if err != nil {
+			m.log.WithError(err).Error("Getting Bigquery datasource")
+			m.errs.WithLabelValues("RemoveMetabaseDatabase").Inc()
+			continue
+		}
+		if err := m.accessMgr.Revoke(ctx, ds.ProjectID, ds.Dataset, ds.Table, "serviceAccount:"+m.saEmail); err != nil {
+			m.log.WithError(err).Error("Revoking IAM access")
+			m.errs.WithLabelValues("RemoveMetabaseDatabase").Inc()
+			continue
+		}
+		m.log.Infof("Deleted Metabase database with ID: %v", mdb.ID)
 	}
 
 	return nil
