@@ -40,7 +40,7 @@ spec:
     - name: HOSTNAME
       value: "data.dev.intern.nav.no"
     - name: METABASE_API
-      value: "https://metabase.dev.intern.nav.no/api"
+      value: "http://metabase/api"
     - name: METABASE_GOOGLE_CREDENTIALS_PATH
       value: /var/run/secrets/nada-credentials/meta_creds.json
   gcp:
@@ -52,3 +52,6 @@ spec:
     inbound:
       rules:
         - application: nada-frontend
+    outbound:
+      rules:
+        - application: metabase
