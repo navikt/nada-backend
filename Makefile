@@ -43,6 +43,7 @@ local-with-auth:
 	--metabase-username=$(METABASE_USERNAME) \
 	--metabase-password=$(METABASE_PASSWORD) \
 	--metabase-api=https://metabase.dev.intern.nav.no/api \
+	--teamkatalogen-url=https://teamkatalog-api.intern.nav.no \
 	--log-level=debug
 
 local:
