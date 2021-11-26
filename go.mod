@@ -5,8 +5,9 @@ go 1.17
 require (
 	cloud.google.com/go/bigquery v1.17.0
 	github.com/99designs/gqlgen-contrib v0.1.1-0.20200601100547-7a955d321bbd
+	github.com/btcsuite/btcutil v1.0.2
 	github.com/go-chi/chi v4.1.2+incompatible
-	github.com/google/uuid v1.1.2
+	github.com/google/uuid v1.2.0
 	github.com/kyleconroy/sqlc v1.10.0
 	github.com/lib/pq v1.10.3
 	github.com/ory/dockertest/v3 v3.8.0
