@@ -98,8 +98,8 @@ func (c *Bigquery) GetTables(ctx context.Context, projectID, datasetID string) (
 			return nil, err
 		}
 
-		if m.Type != bigquery.RegularTable {
-			// We only support regular tables for now.
+		if m.Type != bigquery.RegularTable && m.Type != bigquery.ViewTable {
+			// We only support regular tables and views for now.
 			continue
 		}
 
