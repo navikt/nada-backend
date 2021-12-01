@@ -1547,45 +1547,42 @@ type Mutation {
 }
 `, BuiltIn: false},
 	{Name: "schema/search.graphql", Input: `union SearchResult @goModel(
-	model: "github.com/navikt/nada-backend/pkg/graph/models.SearchResult"
-) =
-	Dataproduct |
-	Collection
+    model: "github.com/navikt/nada-backend/pkg/graph/models.SearchResult"
+) = Dataproduct
 
 type SearchResultRow  @goModel(model: "github.com/navikt/nada-backend/pkg/graph/models.SearchResultRow") {
-	excerpt: String!
-	result: SearchResult!
+    excerpt: String!
+    result: SearchResult!
 }
 
-
 input SearchQuery @goModel(model: "github.com/navikt/nada-backend/pkg/graph/models.SearchQuery") {
-	"""
-	text is used as freetext search.
+    """
+    text is used as freetext search.
 
-	Use " to identify phrases. Example: "hello world"
+    Use " to identify phrases. Example: "hello world"
 
-	Use - to exclude words. Example "include this -exclude -those"
+    Use - to exclude words. Example "include this -exclude -those"
 
-	Use OR as a keyword for the OR operator. Example "night OR day"
-	"""
-	text: String
+    Use OR as a keyword for the OR operator. Example "night OR day"
+    """
+    text: String
 
-	"keyword filters results on the keyword."
-	keyword: String
+    "keyword filters results on the keyword."
+    keyword: String
 
-	"limit the number of returned search results."
-	limit: Int
+    "limit the number of returned search results."
+    limit: Int
 
-	"offset the list of returned search results. Used as pagination with PAGE-INDEX * limit."
-	offset: Int
+    "offset the list of returned search results. Used as pagination with PAGE-INDEX * limit."
+    offset: Int
 }
 
 extend type Query {
-	"search through existing dataproducts and collections."
-	search(
-		"q is the search query."
-		q: SearchQuery
-	): [SearchResultRow!]!
+    "search through existing dataproducts."
+    search(
+        "q is the search query."
+        q: SearchQuery
+    ): [SearchResultRow!]!
 }
 `, BuiltIn: false},
 	{Name: "schema/teamkatalogen.graphql", Input: `type TeamkatalogenResult @goModel(model: "github.com/navikt/nada-backend/pkg/graph/models.TeamkatalogenResult") {
@@ -7225,13 +7222,6 @@ func (ec *executionContext) _SearchResult(ctx context.Context, sel ast.Selection
 			return graphql.Null
 		}
 		return ec._Dataproduct(ctx, sel, obj)
-	case models.Collection:
-		return ec._Collection(ctx, sel, &obj)
-	case *models.Collection:
-		if obj == nil {
-			return graphql.Null
-		}
-		return ec._Collection(ctx, sel, obj)
 	default:
 		panic(fmt.Errorf("unexpected type %T", obj))
 	}
@@ -7397,7 +7387,7 @@ func (ec *executionContext) _BigQueryTable(ctx context.Context, sel ast.Selectio
 	return out
 }
 
-var collectionImplementors = []string{"Collection", "SearchResult"}
+var collectionImplementors = []string{"Collection"}
 
 func (ec *executionContext) _Collection(ctx context.Context, sel ast.SelectionSet, obj *models.Collection) graphql.Marshaler {
 	fields := graphql.CollectFields(ec.OperationContext, sel, collectionImplementors)
