@@ -115,6 +115,7 @@ type Database struct {
 	DatasetID string
 	ProjectID string
 	NadaID    string
+	SAEmail   string
 }
 
 func (c *Client) Databases(ctx context.Context) ([]Database, error) {
@@ -124,6 +125,7 @@ func (c *Client) Databases(ctx context.Context) ([]Database, error) {
 				DatasetID string `json:"dataset-id"`
 				ProjectID string `json:"project-id"`
 				NadaID    string `json:"nada-id"`
+				SAEmail   string `json:"sa-email"`
 			} `json:"details"`
 			ID int `json:"id"`
 		} `json:"data"`
@@ -140,6 +142,7 @@ func (c *Client) Databases(ctx context.Context) ([]Database, error) {
 			DatasetID: db.Details.DatasetID,
 			ProjectID: db.Details.ProjectID,
 			NadaID:    db.Details.NadaID,
+			SAEmail:   db.Details.SAEmail,
 		})
 	}
 
@@ -159,9 +162,10 @@ type Details struct {
 	ProjectID          string `json:"project-id"`
 	ServiceAccountJSON string `json:"service-account-json"`
 	NadaID             string `json:"nada-id"`
+	SAEmail            string `json:"sa-email"`
 }
 
-func (c *Client) CreateDatabase(ctx context.Context, name, saJSON string, ds *models.BigQuery) (string, error) {
+func (c *Client) CreateDatabase(ctx context.Context, name, saJSON, saEmail string, ds *models.BigQuery) (string, error) {
 	db := NewDatabase{
 		Name: name,
 		Details: Details{
@@ -169,6 +173,7 @@ func (c *Client) CreateDatabase(ctx context.Context, name, saJSON string, ds *mo
 			NadaID:             ds.DataproductID.String(),
 			ProjectID:          ds.ProjectID,
 			ServiceAccountJSON: saJSON,
+			SAEmail:            saEmail,
 		},
 		Engine:         "bigquery-cloud-sdk",
 		IsFullSync:     true,
@@ -257,4 +262,9 @@ func (c *Client) AutoMapSemanticTypes(ctx context.Context, dbID string) error {
 func (c *Client) MapSemanticType(ctx context.Context, fieldID int, semanticType string) error {
 	payload := map[string]string{"semantic_type": semanticType}
 	return c.request(ctx, http.MethodPut, "/field/"+strconv.Itoa(fieldID), payload, nil)
+}
+
+func (c *Client) CreatePermissionGroup(ctx context.Context, name string) error {
+	payload := map[string]string{"name": name}
+	return c.request(ctx, http.MethodPost, "/permissions/group", payload, nil)
 }

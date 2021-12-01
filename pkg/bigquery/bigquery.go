@@ -110,5 +110,6 @@ func (c *Bigquery) GetTables(ctx context.Context, projectID, datasetID string) (
 			LastModified: m.LastModifiedTime,
 		})
 	}
+
 	return tables, nil
 }

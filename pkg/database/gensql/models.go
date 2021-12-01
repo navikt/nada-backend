@@ -101,3 +101,8 @@ type Search struct {
 	LastModified time.Time
 	TsvDocument  interface{}
 }
+
+type ThirdPartyMapping struct {
+	DataproductID uuid.UUID
+	Services      []string
+}

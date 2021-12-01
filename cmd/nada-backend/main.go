@@ -23,6 +23,7 @@ import (
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/sirupsen/logrus"
 	flag "github.com/spf13/pflag"
+	"google.golang.org/api/iam/v1"
 )
 
 var (
@@ -188,7 +189,12 @@ func runMetabase(ctx context.Context, log *logrus.Entry, cfg Config, repo *datab
 		return err
 	}
 
-	metabase := metabase.New(repo, client, accessMgr, string(sa), metabaseSA.ClientEmail, promErrs, log.WithField("subsystem", "metabase"))
+	iamService, err := iam.NewService(ctx)
+	if err != nil {
+		return err
+	}
+
+	metabase := metabase.New(repo, client, accessMgr, string(sa), metabaseSA.ClientEmail, promErrs, iamService, log.WithField("subsystem", "metabase"))
 	go metabase.Run(ctx, MetabaseUpdateFrequency)
 	return nil
 }
