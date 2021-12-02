@@ -4,6 +4,7 @@ import (
 	"context"
 	"log"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/btcsuite/btcutil/base58"
@@ -111,6 +112,7 @@ func (m *Metabase) run(ctx context.Context) error {
 		if err != nil {
 			return err
 		}
+
 		key, email, err := m.createServiceAccount(dp)
 		if err != nil {
 			return err
@@ -128,6 +130,11 @@ func (m *Metabase) run(ctx context.Context) error {
 		return err
 	}
 	err = m.delete(ctx, combinedDps, databases)
+	if err != nil {
+		return err
+	}
+
+	err = m.syncPermissionGroupMembers(ctx, restrictedDps)
 	if err != nil {
 		return err
 	}
@@ -209,6 +216,59 @@ func (m *Metabase) delete(ctx context.Context, dataproducts []dpWrapper, databas
 	return nil
 }
 
+func (m *Metabase) syncPermissionGroupMembers(ctx context.Context, restrictedDps []*models.Dataproduct) error {
+	for _, dp := range restrictedDps {
+		subjects, err := m.repo.ListAccessToDataproduct(ctx, dp.ID)
+		if err != nil {
+			return err
+		}
+
+		dpGrants := []string{}
+		for _, s := range subjects {
+			subject := strings.Split(s.Subject, ":")
+			if subject[0] == "user" {
+				dpGrants = append(dpGrants, subject[1])
+			}
+		}
+
+		groupID, mbGroupMembers, err := m.client.GetPermissionGroup(ctx, dp.ID.String())
+		if err != nil {
+			return err
+		}
+
+		err = m.removeDeletedMembersFromGroup(ctx, mbGroupMembers, dpGrants)
+		if err != nil {
+			return err
+		}
+
+		err = m.addNewMembersToGroup(ctx, groupID, mbGroupMembers, dpGrants)
+		if err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func (m *Metabase) removeDeletedMembersFromGroup(ctx context.Context, groupMembers []PermissionGroupMember, dpGrants []string) error {
+	for _, s := range groupMembers {
+		if !contains(dpGrants, s.Email) {
+			m.client.RemovePermissionGroupMember(ctx, s.ID)
+		}
+	}
+
+	return nil
+}
+
+func (m *Metabase) addNewMembersToGroup(ctx context.Context, groupID int, groupMembers []PermissionGroupMember, dpGrants []string) error {
+	for _, s := range dpGrants {
+		if !groupContainsUser(groupMembers, s) {
+			m.client.AddPermissionGroupMember(ctx, groupID, s)
+		}
+	}
+
+	return nil
+}
+
 func (m *Metabase) HideOtherTables(ctx context.Context, dbID, table string) error {
 	tables, err := m.client.Tables(ctx, dbID)
 	if err != nil {
@@ -255,9 +315,18 @@ func (m *Metabase) createServiceAccount(dp *models.Dataproduct) ([]byte, string,
 	return saJson, account.Email, err
 }
 
-func containsAccessGroup(accessList []*models.Access, group string) bool {
-	for _, a := range accessList {
-		if a.Subject == group {
+func groupContainsUser(mbGroups []PermissionGroupMember, email string) bool {
+	for _, a := range mbGroups {
+		if a.Email == email {
+			return true
+		}
+	}
+	return false
+}
+
+func contains(list []string, value string) bool {
+	for _, g := range list {
+		if value == g {
 			return true
 		}
 	}

@@ -209,6 +209,24 @@ type Table struct {
 	} `json:"fields"`
 }
 
+type PermissionGroup struct {
+	ID      int                     `json:"id"`
+	Name    string                  `json:"name"`
+	Members []PermissionGroupMember `json:"members"`
+}
+
+type PermissionGroupMember struct {
+	ID    string `json:"membership_id"`
+	Email string `json:"email"`
+}
+
+type MetabaseUser struct {
+	GoogleAuth bool   `json:"google_auth"`
+	Superuser  bool   `json:"is_superuser"`
+	Email      string `json:"email"`
+	ID         int    `json:"id"`
+}
+
 func (c *Client) Tables(ctx context.Context, dbID string) ([]Table, error) {
 	var v struct {
 		Tables []Table `json:"tables"`
@@ -267,4 +285,60 @@ func (c *Client) MapSemanticType(ctx context.Context, fieldID int, semanticType 
 func (c *Client) CreatePermissionGroup(ctx context.Context, name string) error {
 	payload := map[string]string{"name": name}
 	return c.request(ctx, http.MethodPost, "/permissions/group", payload, nil)
+}
+
+func (c *Client) GetPermissionGroup(ctx context.Context, groupName string) (int, []PermissionGroupMember, error) {
+	groups := []PermissionGroup{}
+	c.request(ctx, http.MethodGet, "/permissions/group", nil, &groups)
+
+	groupID := -1
+	for _, g := range groups {
+		if g.Name == groupName {
+			groupID = g.ID
+			break
+		}
+	}
+	if groupID == -1 {
+		return -1, nil, fmt.Errorf("group %v does not exist in metabase", groupName)
+	}
+
+	g := PermissionGroup{}
+	err := c.request(ctx, http.MethodGet, fmt.Sprintf("/permissions/group/%v", groupID), nil, &g)
+	if err != nil {
+		return -1, nil, err
+	}
+
+	return groupID, g.Members, nil
+}
+
+func (c *Client) RemovePermissionGroupMember(ctx context.Context, memberID string) error {
+	return c.request(ctx, http.MethodDelete, "/permissions/membership/"+memberID, nil, nil)
+}
+
+func (c *Client) AddPermissionGroupMember(ctx context.Context, groupID int, email string) error {
+	users := []MetabaseUser{}
+
+	err := c.request(ctx, http.MethodGet, "/user", nil, &users)
+	if err != nil {
+		return err
+	}
+
+	userID, err := getUserID(users, email)
+	if err != nil {
+		return err
+	}
+
+	payload := map[string]int{"group_id": groupID, "user_id": userID}
+	return c.request(ctx, http.MethodPost, "/permissions/membership", payload, nil)
+}
+
+func getUserID(users []MetabaseUser, email string) (int, error) {
+	for _, u := range users {
+		if !u.GoogleAuth || u.Superuser {
+			continue
+		} else if u.Email == email {
+			return u.ID, nil
+		}
+	}
+	return -1, fmt.Errorf("user %v does not exist in metabase", email)
 }
