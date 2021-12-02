@@ -24,8 +24,7 @@ type Dataproduct struct {
 	Type         gensql.DatasourceType
 }
 
-func (Dataproduct) IsCollectionElement() {}
-func (Dataproduct) IsSearchResult()      {}
+func (Dataproduct) IsSearchResult() {}
 
 type Datasource interface {
 	IsDatasource()

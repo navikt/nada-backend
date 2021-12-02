@@ -40,7 +40,6 @@ type Config struct {
 
 type ResolverRoot interface {
 	BigQuery() BigQueryResolver
-	Collection() CollectionResolver
 	Dataproduct() DataproductResolver
 	Mutation() MutationResolver
 	Query() QueryResolver
@@ -79,20 +78,8 @@ type ComplexityRoot struct {
 		Type         func(childComplexity int) int
 	}
 
-	Collection struct {
-		Created      func(childComplexity int) int
-		Description  func(childComplexity int) int
-		Elements     func(childComplexity int) int
-		ID           func(childComplexity int) int
-		Keywords     func(childComplexity int) int
-		LastModified func(childComplexity int) int
-		Name         func(childComplexity int) int
-		Owner        func(childComplexity int) int
-	}
-
 	Dataproduct struct {
 		Access       func(childComplexity int) int
-		Collections  func(childComplexity int, limit *int, offset *int) int
 		Created      func(childComplexity int) int
 		Datasource   func(childComplexity int) int
 		Description  func(childComplexity int) int
@@ -118,17 +105,12 @@ type ComplexityRoot struct {
 
 	Mutation struct {
 		AddRequesterToDataproduct      func(childComplexity int, dataproductID uuid.UUID, subject string) int
-		AddToCollection                func(childComplexity int, id uuid.UUID, elementID uuid.UUID, elementType models.CollectionElementType) int
-		CreateCollection               func(childComplexity int, input models.NewCollection) int
 		CreateDataproduct              func(childComplexity int, input models.NewDataproduct) int
-		DeleteCollection               func(childComplexity int, id uuid.UUID) int
 		DeleteDataproduct              func(childComplexity int, id uuid.UUID) int
 		Dummy                          func(childComplexity int, no *string) int
 		GrantAccessToDataproduct       func(childComplexity int, dataproductID uuid.UUID, expires *time.Time, subject *string, subjectType *models.SubjectType) int
-		RemoveFromCollection           func(childComplexity int, id uuid.UUID, elementID uuid.UUID, elementType models.CollectionElementType) int
 		RemoveRequesterFromDataproduct func(childComplexity int, dataproductID uuid.UUID, subject string) int
 		RevokeAccessToDataproduct      func(childComplexity int, id uuid.UUID) int
-		UpdateCollection               func(childComplexity int, id uuid.UUID, input models.UpdateCollection) int
 		UpdateDataproduct              func(childComplexity int, id uuid.UUID, input models.UpdateDataproduct) int
 	}
 
@@ -138,8 +120,6 @@ type ComplexityRoot struct {
 	}
 
 	Query struct {
-		Collection     func(childComplexity int, id uuid.UUID) int
-		Collections    func(childComplexity int, limit *int, offset *int) int
 		Dataproduct    func(childComplexity int, id uuid.UUID) int
 		Dataproducts   func(childComplexity int, limit *int, offset *int) int
 		GcpGetDatasets func(childComplexity int, projectID string) int
@@ -170,7 +150,6 @@ type ComplexityRoot struct {
 
 	UserInfo struct {
 		Accessable      func(childComplexity int) int
-		Collections     func(childComplexity int) int
 		Dataproducts    func(childComplexity int) int
 		Email           func(childComplexity int) int
 		GCPProjects     func(childComplexity int) int
@@ -183,22 +162,13 @@ type ComplexityRoot struct {
 type BigQueryResolver interface {
 	Schema(ctx context.Context, obj *models.BigQuery) ([]*models.TableColumn, error)
 }
-type CollectionResolver interface {
-	Elements(ctx context.Context, obj *models.Collection) ([]models.CollectionElement, error)
-}
 type DataproductResolver interface {
 	Datasource(ctx context.Context, obj *models.Dataproduct) (models.Datasource, error)
 	Requesters(ctx context.Context, obj *models.Dataproduct) ([]string, error)
 	Access(ctx context.Context, obj *models.Dataproduct) ([]*models.Access, error)
-	Collections(ctx context.Context, obj *models.Dataproduct, limit *int, offset *int) ([]*models.Collection, error)
 }
 type MutationResolver interface {
 	Dummy(ctx context.Context, no *string) (*string, error)
-	CreateCollection(ctx context.Context, input models.NewCollection) (*models.Collection, error)
-	UpdateCollection(ctx context.Context, id uuid.UUID, input models.UpdateCollection) (*models.Collection, error)
-	DeleteCollection(ctx context.Context, id uuid.UUID) (bool, error)
-	AddToCollection(ctx context.Context, id uuid.UUID, elementID uuid.UUID, elementType models.CollectionElementType) (bool, error)
-	RemoveFromCollection(ctx context.Context, id uuid.UUID, elementID uuid.UUID, elementType models.CollectionElementType) (bool, error)
 	CreateDataproduct(ctx context.Context, input models.NewDataproduct) (*models.Dataproduct, error)
 	UpdateDataproduct(ctx context.Context, id uuid.UUID, input models.UpdateDataproduct) (*models.Dataproduct, error)
 	DeleteDataproduct(ctx context.Context, id uuid.UUID) (bool, error)
@@ -209,8 +179,6 @@ type MutationResolver interface {
 }
 type QueryResolver interface {
 	Version(ctx context.Context) (string, error)
-	Collections(ctx context.Context, limit *int, offset *int) ([]*models.Collection, error)
-	Collection(ctx context.Context, id uuid.UUID) (*models.Collection, error)
 	Dataproduct(ctx context.Context, id uuid.UUID) (*models.Dataproduct, error)
 	Dataproducts(ctx context.Context, limit *int, offset *int) ([]*models.Dataproduct, error)
 	GcpGetTables(ctx context.Context, projectID string, datasetID string) ([]*models.BigQueryTable, error)
@@ -224,7 +192,6 @@ type UserInfoResolver interface {
 
 	Dataproducts(ctx context.Context, obj *models.UserInfo) ([]*models.Dataproduct, error)
 	Accessable(ctx context.Context, obj *models.UserInfo) ([]*models.Dataproduct, error)
-	Collections(ctx context.Context, obj *models.UserInfo) ([]*models.Collection, error)
 }
 
 type executableSchema struct {
@@ -368,80 +335,12 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.BigQueryTable.Type(childComplexity), true
 
-	case "Collection.created":
-		if e.complexity.Collection.Created == nil {
-			break
-		}
-
-		return e.complexity.Collection.Created(childComplexity), true
-
-	case "Collection.description":
-		if e.complexity.Collection.Description == nil {
-			break
-		}
-
-		return e.complexity.Collection.Description(childComplexity), true
-
-	case "Collection.elements":
-		if e.complexity.Collection.Elements == nil {
-			break
-		}
-
-		return e.complexity.Collection.Elements(childComplexity), true
-
-	case "Collection.id":
-		if e.complexity.Collection.ID == nil {
-			break
-		}
-
-		return e.complexity.Collection.ID(childComplexity), true
-
-	case "Collection.keywords":
-		if e.complexity.Collection.Keywords == nil {
-			break
-		}
-
-		return e.complexity.Collection.Keywords(childComplexity), true
-
-	case "Collection.lastModified":
-		if e.complexity.Collection.LastModified == nil {
-			break
-		}
-
-		return e.complexity.Collection.LastModified(childComplexity), true
-
-	case "Collection.name":
-		if e.complexity.Collection.Name == nil {
-			break
-		}
-
-		return e.complexity.Collection.Name(childComplexity), true
-
-	case "Collection.owner":
-		if e.complexity.Collection.Owner == nil {
-			break
-		}
-
-		return e.complexity.Collection.Owner(childComplexity), true
-
 	case "Dataproduct.access":
 		if e.complexity.Dataproduct.Access == nil {
 			break
 		}
 
 		return e.complexity.Dataproduct.Access(childComplexity), true
-
-	case "Dataproduct.collections":
-		if e.complexity.Dataproduct.Collections == nil {
-			break
-		}
-
-		args, err := ec.field_Dataproduct_collections_args(context.TODO(), rawArgs)
-		if err != nil {
-			return 0, false
-		}
-
-		return e.complexity.Dataproduct.Collections(childComplexity, args["limit"].(*int), args["offset"].(*int)), true
 
 	case "Dataproduct.created":
 		if e.complexity.Dataproduct.Created == nil {
@@ -560,30 +459,6 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.Mutation.AddRequesterToDataproduct(childComplexity, args["dataproductID"].(uuid.UUID), args["subject"].(string)), true
 
-	case "Mutation.addToCollection":
-		if e.complexity.Mutation.AddToCollection == nil {
-			break
-		}
-
-		args, err := ec.field_Mutation_addToCollection_args(context.TODO(), rawArgs)
-		if err != nil {
-			return 0, false
-		}
-
-		return e.complexity.Mutation.AddToCollection(childComplexity, args["id"].(uuid.UUID), args["elementID"].(uuid.UUID), args["elementType"].(models.CollectionElementType)), true
-
-	case "Mutation.createCollection":
-		if e.complexity.Mutation.CreateCollection == nil {
-			break
-		}
-
-		args, err := ec.field_Mutation_createCollection_args(context.TODO(), rawArgs)
-		if err != nil {
-			return 0, false
-		}
-
-		return e.complexity.Mutation.CreateCollection(childComplexity, args["input"].(models.NewCollection)), true
-
 	case "Mutation.createDataproduct":
 		if e.complexity.Mutation.CreateDataproduct == nil {
 			break
@@ -595,18 +470,6 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 		}
 
 		return e.complexity.Mutation.CreateDataproduct(childComplexity, args["input"].(models.NewDataproduct)), true
-
-	case "Mutation.deleteCollection":
-		if e.complexity.Mutation.DeleteCollection == nil {
-			break
-		}
-
-		args, err := ec.field_Mutation_deleteCollection_args(context.TODO(), rawArgs)
-		if err != nil {
-			return 0, false
-		}
-
-		return e.complexity.Mutation.DeleteCollection(childComplexity, args["id"].(uuid.UUID)), true
 
 	case "Mutation.deleteDataproduct":
 		if e.complexity.Mutation.DeleteDataproduct == nil {
@@ -644,18 +507,6 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.Mutation.GrantAccessToDataproduct(childComplexity, args["dataproductID"].(uuid.UUID), args["expires"].(*time.Time), args["subject"].(*string), args["subjectType"].(*models.SubjectType)), true
 
-	case "Mutation.removeFromCollection":
-		if e.complexity.Mutation.RemoveFromCollection == nil {
-			break
-		}
-
-		args, err := ec.field_Mutation_removeFromCollection_args(context.TODO(), rawArgs)
-		if err != nil {
-			return 0, false
-		}
-
-		return e.complexity.Mutation.RemoveFromCollection(childComplexity, args["id"].(uuid.UUID), args["elementID"].(uuid.UUID), args["elementType"].(models.CollectionElementType)), true
-
 	case "Mutation.removeRequesterFromDataproduct":
 		if e.complexity.Mutation.RemoveRequesterFromDataproduct == nil {
 			break
@@ -679,18 +530,6 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 		}
 
 		return e.complexity.Mutation.RevokeAccessToDataproduct(childComplexity, args["id"].(uuid.UUID)), true
-
-	case "Mutation.updateCollection":
-		if e.complexity.Mutation.UpdateCollection == nil {
-			break
-		}
-
-		args, err := ec.field_Mutation_updateCollection_args(context.TODO(), rawArgs)
-		if err != nil {
-			return 0, false
-		}
-
-		return e.complexity.Mutation.UpdateCollection(childComplexity, args["id"].(uuid.UUID), args["input"].(models.UpdateCollection)), true
 
 	case "Mutation.updateDataproduct":
 		if e.complexity.Mutation.UpdateDataproduct == nil {
@@ -717,30 +556,6 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 		}
 
 		return e.complexity.Owner.TeamkatalogenURL(childComplexity), true
-
-	case "Query.collection":
-		if e.complexity.Query.Collection == nil {
-			break
-		}
-
-		args, err := ec.field_Query_collection_args(context.TODO(), rawArgs)
-		if err != nil {
-			return 0, false
-		}
-
-		return e.complexity.Query.Collection(childComplexity, args["id"].(uuid.UUID)), true
-
-	case "Query.collections":
-		if e.complexity.Query.Collections == nil {
-			break
-		}
-
-		args, err := ec.field_Query_collections_args(context.TODO(), rawArgs)
-		if err != nil {
-			return 0, false
-		}
-
-		return e.complexity.Query.Collections(childComplexity, args["limit"].(*int), args["offset"].(*int)), true
 
 	case "Query.dataproduct":
 		if e.complexity.Query.Dataproduct == nil {
@@ -898,13 +713,6 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.UserInfo.Accessable(childComplexity), true
 
-	case "UserInfo.collections":
-		if e.complexity.UserInfo.Collections == nil {
-			break
-		}
-
-		return e.complexity.UserInfo.Collections(childComplexity), true
-
 	case "UserInfo.dataproducts":
 		if e.complexity.UserInfo.Dataproducts == nil {
 			break
@@ -1011,168 +819,6 @@ func (ec *executionContext) introspectType(name string) (*introspection.Type, er
 }
 
 var sources = []*ast.Source{
-	{Name: "schema/collection.graphql", Input: `"""
-CollectionElement defines all types that can be returned as a collection element.
-"""
-union CollectionElement
-@goModel(
-    model: "github.com/navikt/nada-backend/pkg/graph/models.CollectionElement"
-) =
-    Dataproduct
-
-"""
-CollectionElementType defines all possible types that can be stored as a collection element.
-"""
-enum CollectionElementType @goModel(
-    model: "github.com/navikt/nada-backend/pkg/graph/models.CollectionElementType"
-){
-    dataproduct
-}
-
-"""
-Collection contains metadata about a collection of elements.
-"""
-type Collection
-@goModel(
-    model: "github.com/navikt/nada-backend/pkg/graph/models.Collection"
-) {
-    "id is the identifier for the collection."
-    id: ID!
-    "name of the collection."
-    name: String!
-    "description of the collection."
-    description: String
-    "created contains the timestamp when the collection was created."
-    created: Time!
-    "lastModified contains the timestamp when the collection was last modified."
-    lastModified: Time!
-    "keywords for the collection used as tags."
-    keywords: [String!]!
-    "owner of the collection. Changes to the collection can only be done by a member of the owner."
-    owner: Owner!
-    "elements of the collection."
-    elements: [CollectionElement!]!
-}
-
-"""
-NewCollection contains metadata for creating a new collection.
-Group must match one of the groups the authenticated user is part of.
-"""
-input NewCollection
-@goModel(
-    model: "github.com/navikt/nada-backend/pkg/graph/models.NewCollection"
-) {
-    "name of the collection."
-    name: String!
-    "description of the colection."
-    description: String
-    "group the collection belongs to. Used for authorization."
-    group: String!
-    "owner Teamkatalogen URL for the collection."
-    teamkatalogenURL: String
-    "keywords for the collection used as tags."
-    keywords: [String!]
-}
-
-"""
-UpdateCollection contains data for updating the metadata of a collection.
-"""
-input UpdateCollection
-@goModel(
-    model: "github.com/navikt/nada-backend/pkg/graph/models.UpdateCollection"
-) {
-    "name of the collection."
-    name: String!
-    "description of the collection."
-    description: String
-    "owner Teamkatalogen URL for the collection."
-    teamkatalogenURL: String
-    "keywords for the collection used as tags."
-    keywords: [String!]
-}
-
-extend type Query {
-    """
-    collections returns a list of collections. Pagination done using the arguments.
-    """
-    collections(
-        "limit the number of returned collections."
-        limit: Int
-        "offset the list of returned collections. Used as pagination with PAGE-INDEX * limit."
-        offset: Int
-    ): [Collection!]!
-
-    """
-    collection returns the given collection.
-    """
-    collection(
-        "id of the requested collection."
-        id: ID!
-    ): Collection!
-}
-
-extend type Mutation {
-    """
-    createCollection creates a new collection.
-
-	Requires authentication.
-    """
-    createCollection(
-        "input contains information about the new collection."
-        input: NewCollection!
-    ): Collection! @authenticated
-
-    """
-    updateCollection updates the metadata of a collection.
-
-	Requires authentication.
-    """
-    updateCollection(
-        "id of the collection to modify."
-        id: ID!
-        "input contains the new metadata of the collection."
-        input: UpdateCollection!
-    ): Collection! @authenticated
-
-    """
-    deleteCollection deletes a collection.
-
-	Requires authentication.
-    """
-    deleteCollection(
-        "id of the collection to delete."
-        id: ID!
-    ): Boolean! @authenticated
-
-    """
-    addToCollection adds a new element to the collection.
-
-	Requires authentication.
-    """
-    addToCollection(
-        "id of the collection."
-        id: ID!
-        "elementID is the id of the element which should be added to the collection."
-        elementID: ID!
-        "elementType is the type of the collection element."
-        elementType: CollectionElementType!
-    ): Boolean! @authenticated
-
-    """
-    removeFromCollection removes a collection.
-
-	Requires authentication.
-    """
-    removeFromCollection(
-        "id of the collection."
-        id: ID!
-        "elementID is the id of the element which should be removed from the collection."
-        elementID: ID!
-        "elementType is the type of the collection element."
-        elementType: CollectionElementType!
-    ): Boolean! @authenticated
-}
-`, BuiltIn: false},
 	{Name: "schema/dataproducts.graphql", Input: `"""
 Dataproduct contains metadata on a datasource.
 """
@@ -1201,8 +847,6 @@ type Dataproduct @goModel(model: "github.com/navikt/nada-backend/pkg/graph/model
     requesters: [String!]!
     "access contains list of users, groups and service accounts which have access to the dataproduct"
     access: [Access!]! @authenticated
-    "access collections that dataproduct is part of"
-    collections(limit: Int, offset: Int): [Collection!]!
 }
 
 """
@@ -1630,8 +1274,6 @@ type UserInfo @goModel(model: "github.com/navikt/nada-backend/pkg/graph/models.U
 	dataproducts: [Dataproduct!]!
 	"accessable is a list of dataproducts which the user has explicit access to"
 	accessable: [Dataproduct!]!
-	"collections is a list of collections with one of the users groups as owner"
-	collections: [Collection!]!
 }
 
 """
@@ -1673,30 +1315,6 @@ func (ec *executionContext) dir_authenticated_args(ctx context.Context, rawArgs 
 	return args, nil
 }
 
-func (ec *executionContext) field_Dataproduct_collections_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
-	var err error
-	args := map[string]interface{}{}
-	var arg0 *int
-	if tmp, ok := rawArgs["limit"]; ok {
-		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("limit"))
-		arg0, err = ec.unmarshalOInt2ᚖint(ctx, tmp)
-		if err != nil {
-			return nil, err
-		}
-	}
-	args["limit"] = arg0
-	var arg1 *int
-	if tmp, ok := rawArgs["offset"]; ok {
-		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("offset"))
-		arg1, err = ec.unmarshalOInt2ᚖint(ctx, tmp)
-		if err != nil {
-			return nil, err
-		}
-	}
-	args["offset"] = arg1
-	return args, nil
-}
-
 func (ec *executionContext) field_Mutation_addRequesterToDataproduct_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
 	var err error
 	args := map[string]interface{}{}
@@ -1721,54 +1339,6 @@ func (ec *executionContext) field_Mutation_addRequesterToDataproduct_args(ctx co
 	return args, nil
 }
 
-func (ec *executionContext) field_Mutation_addToCollection_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
-	var err error
-	args := map[string]interface{}{}
-	var arg0 uuid.UUID
-	if tmp, ok := rawArgs["id"]; ok {
-		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("id"))
-		arg0, err = ec.unmarshalNID2githubᚗcomᚋgoogleᚋuuidᚐUUID(ctx, tmp)
-		if err != nil {
-			return nil, err
-		}
-	}
-	args["id"] = arg0
-	var arg1 uuid.UUID
-	if tmp, ok := rawArgs["elementID"]; ok {
-		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("elementID"))
-		arg1, err = ec.unmarshalNID2githubᚗcomᚋgoogleᚋuuidᚐUUID(ctx, tmp)
-		if err != nil {
-			return nil, err
-		}
-	}
-	args["elementID"] = arg1
-	var arg2 models.CollectionElementType
-	if tmp, ok := rawArgs["elementType"]; ok {
-		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("elementType"))
-		arg2, err = ec.unmarshalNCollectionElementType2githubᚗcomᚋnaviktᚋnadaᚑbackendᚋpkgᚋgraphᚋmodelsᚐCollectionElementType(ctx, tmp)
-		if err != nil {
-			return nil, err
-		}
-	}
-	args["elementType"] = arg2
-	return args, nil
-}
-
-func (ec *executionContext) field_Mutation_createCollection_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
-	var err error
-	args := map[string]interface{}{}
-	var arg0 models.NewCollection
-	if tmp, ok := rawArgs["input"]; ok {
-		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("input"))
-		arg0, err = ec.unmarshalNNewCollection2githubᚗcomᚋnaviktᚋnadaᚑbackendᚋpkgᚋgraphᚋmodelsᚐNewCollection(ctx, tmp)
-		if err != nil {
-			return nil, err
-		}
-	}
-	args["input"] = arg0
-	return args, nil
-}
-
 func (ec *executionContext) field_Mutation_createDataproduct_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
 	var err error
 	args := map[string]interface{}{}
@@ -1781,21 +1351,6 @@ func (ec *executionContext) field_Mutation_createDataproduct_args(ctx context.Co
 		}
 	}
 	args["input"] = arg0
-	return args, nil
-}
-
-func (ec *executionContext) field_Mutation_deleteCollection_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
-	var err error
-	args := map[string]interface{}{}
-	var arg0 uuid.UUID
-	if tmp, ok := rawArgs["id"]; ok {
-		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("id"))
-		arg0, err = ec.unmarshalNID2githubᚗcomᚋgoogleᚋuuidᚐUUID(ctx, tmp)
-		if err != nil {
-			return nil, err
-		}
-	}
-	args["id"] = arg0
 	return args, nil
 }
 
@@ -1871,39 +1426,6 @@ func (ec *executionContext) field_Mutation_grantAccessToDataproduct_args(ctx con
 	return args, nil
 }
 
-func (ec *executionContext) field_Mutation_removeFromCollection_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
-	var err error
-	args := map[string]interface{}{}
-	var arg0 uuid.UUID
-	if tmp, ok := rawArgs["id"]; ok {
-		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("id"))
-		arg0, err = ec.unmarshalNID2githubᚗcomᚋgoogleᚋuuidᚐUUID(ctx, tmp)
-		if err != nil {
-			return nil, err
-		}
-	}
-	args["id"] = arg0
-	var arg1 uuid.UUID
-	if tmp, ok := rawArgs["elementID"]; ok {
-		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("elementID"))
-		arg1, err = ec.unmarshalNID2githubᚗcomᚋgoogleᚋuuidᚐUUID(ctx, tmp)
-		if err != nil {
-			return nil, err
-		}
-	}
-	args["elementID"] = arg1
-	var arg2 models.CollectionElementType
-	if tmp, ok := rawArgs["elementType"]; ok {
-		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("elementType"))
-		arg2, err = ec.unmarshalNCollectionElementType2githubᚗcomᚋnaviktᚋnadaᚑbackendᚋpkgᚋgraphᚋmodelsᚐCollectionElementType(ctx, tmp)
-		if err != nil {
-			return nil, err
-		}
-	}
-	args["elementType"] = arg2
-	return args, nil
-}
-
 func (ec *executionContext) field_Mutation_removeRequesterFromDataproduct_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
 	var err error
 	args := map[string]interface{}{}
@@ -1943,30 +1465,6 @@ func (ec *executionContext) field_Mutation_revokeAccessToDataproduct_args(ctx co
 	return args, nil
 }
 
-func (ec *executionContext) field_Mutation_updateCollection_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
-	var err error
-	args := map[string]interface{}{}
-	var arg0 uuid.UUID
-	if tmp, ok := rawArgs["id"]; ok {
-		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("id"))
-		arg0, err = ec.unmarshalNID2githubᚗcomᚋgoogleᚋuuidᚐUUID(ctx, tmp)
-		if err != nil {
-			return nil, err
-		}
-	}
-	args["id"] = arg0
-	var arg1 models.UpdateCollection
-	if tmp, ok := rawArgs["input"]; ok {
-		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("input"))
-		arg1, err = ec.unmarshalNUpdateCollection2githubᚗcomᚋnaviktᚋnadaᚑbackendᚋpkgᚋgraphᚋmodelsᚐUpdateCollection(ctx, tmp)
-		if err != nil {
-			return nil, err
-		}
-	}
-	args["input"] = arg1
-	return args, nil
-}
-
 func (ec *executionContext) field_Mutation_updateDataproduct_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
 	var err error
 	args := map[string]interface{}{}
@@ -2003,45 +1501,6 @@ func (ec *executionContext) field_Query___type_args(ctx context.Context, rawArgs
 		}
 	}
 	args["name"] = arg0
-	return args, nil
-}
-
-func (ec *executionContext) field_Query_collection_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
-	var err error
-	args := map[string]interface{}{}
-	var arg0 uuid.UUID
-	if tmp, ok := rawArgs["id"]; ok {
-		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("id"))
-		arg0, err = ec.unmarshalNID2githubᚗcomᚋgoogleᚋuuidᚐUUID(ctx, tmp)
-		if err != nil {
-			return nil, err
-		}
-	}
-	args["id"] = arg0
-	return args, nil
-}
-
-func (ec *executionContext) field_Query_collections_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
-	var err error
-	args := map[string]interface{}{}
-	var arg0 *int
-	if tmp, ok := rawArgs["limit"]; ok {
-		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("limit"))
-		arg0, err = ec.unmarshalOInt2ᚖint(ctx, tmp)
-		if err != nil {
-			return nil, err
-		}
-	}
-	args["limit"] = arg0
-	var arg1 *int
-	if tmp, ok := rawArgs["offset"]; ok {
-		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("offset"))
-		arg1, err = ec.unmarshalOInt2ᚖint(ctx, tmp)
-		if err != nil {
-			return nil, err
-		}
-	}
-	args["offset"] = arg1
 	return args, nil
 }
 
@@ -2812,283 +2271,6 @@ func (ec *executionContext) _BigQueryTable_type(ctx context.Context, field graph
 	return ec.marshalNBigQueryType2githubᚗcomᚋnaviktᚋnadaᚑbackendᚋpkgᚋgraphᚋmodelsᚐBigQueryType(ctx, field.Selections, res)
 }
 
-func (ec *executionContext) _Collection_id(ctx context.Context, field graphql.CollectedField, obj *models.Collection) (ret graphql.Marshaler) {
-	defer func() {
-		if r := recover(); r != nil {
-			ec.Error(ctx, ec.Recover(ctx, r))
-			ret = graphql.Null
-		}
-	}()
-	fc := &graphql.FieldContext{
-		Object:     "Collection",
-		Field:      field,
-		Args:       nil,
-		IsMethod:   false,
-		IsResolver: false,
-	}
-
-	ctx = graphql.WithFieldContext(ctx, fc)
-	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
-		ctx = rctx // use context from middleware stack in children
-		return obj.ID, nil
-	})
-	if err != nil {
-		ec.Error(ctx, err)
-		return graphql.Null
-	}
-	if resTmp == nil {
-		if !graphql.HasFieldError(ctx, fc) {
-			ec.Errorf(ctx, "must not be null")
-		}
-		return graphql.Null
-	}
-	res := resTmp.(uuid.UUID)
-	fc.Result = res
-	return ec.marshalNID2githubᚗcomᚋgoogleᚋuuidᚐUUID(ctx, field.Selections, res)
-}
-
-func (ec *executionContext) _Collection_name(ctx context.Context, field graphql.CollectedField, obj *models.Collection) (ret graphql.Marshaler) {
-	defer func() {
-		if r := recover(); r != nil {
-			ec.Error(ctx, ec.Recover(ctx, r))
-			ret = graphql.Null
-		}
-	}()
-	fc := &graphql.FieldContext{
-		Object:     "Collection",
-		Field:      field,
-		Args:       nil,
-		IsMethod:   false,
-		IsResolver: false,
-	}
-
-	ctx = graphql.WithFieldContext(ctx, fc)
-	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
-		ctx = rctx // use context from middleware stack in children
-		return obj.Name, nil
-	})
-	if err != nil {
-		ec.Error(ctx, err)
-		return graphql.Null
-	}
-	if resTmp == nil {
-		if !graphql.HasFieldError(ctx, fc) {
-			ec.Errorf(ctx, "must not be null")
-		}
-		return graphql.Null
-	}
-	res := resTmp.(string)
-	fc.Result = res
-	return ec.marshalNString2string(ctx, field.Selections, res)
-}
-
-func (ec *executionContext) _Collection_description(ctx context.Context, field graphql.CollectedField, obj *models.Collection) (ret graphql.Marshaler) {
-	defer func() {
-		if r := recover(); r != nil {
-			ec.Error(ctx, ec.Recover(ctx, r))
-			ret = graphql.Null
-		}
-	}()
-	fc := &graphql.FieldContext{
-		Object:     "Collection",
-		Field:      field,
-		Args:       nil,
-		IsMethod:   false,
-		IsResolver: false,
-	}
-
-	ctx = graphql.WithFieldContext(ctx, fc)
-	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
-		ctx = rctx // use context from middleware stack in children
-		return obj.Description, nil
-	})
-	if err != nil {
-		ec.Error(ctx, err)
-		return graphql.Null
-	}
-	if resTmp == nil {
-		return graphql.Null
-	}
-	res := resTmp.(*string)
-	fc.Result = res
-	return ec.marshalOString2ᚖstring(ctx, field.Selections, res)
-}
-
-func (ec *executionContext) _Collection_created(ctx context.Context, field graphql.CollectedField, obj *models.Collection) (ret graphql.Marshaler) {
-	defer func() {
-		if r := recover(); r != nil {
-			ec.Error(ctx, ec.Recover(ctx, r))
-			ret = graphql.Null
-		}
-	}()
-	fc := &graphql.FieldContext{
-		Object:     "Collection",
-		Field:      field,
-		Args:       nil,
-		IsMethod:   false,
-		IsResolver: false,
-	}
-
-	ctx = graphql.WithFieldContext(ctx, fc)
-	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
-		ctx = rctx // use context from middleware stack in children
-		return obj.Created, nil
-	})
-	if err != nil {
-		ec.Error(ctx, err)
-		return graphql.Null
-	}
-	if resTmp == nil {
-		if !graphql.HasFieldError(ctx, fc) {
-			ec.Errorf(ctx, "must not be null")
-		}
-		return graphql.Null
-	}
-	res := resTmp.(time.Time)
-	fc.Result = res
-	return ec.marshalNTime2timeᚐTime(ctx, field.Selections, res)
-}
-
-func (ec *executionContext) _Collection_lastModified(ctx context.Context, field graphql.CollectedField, obj *models.Collection) (ret graphql.Marshaler) {
-	defer func() {
-		if r := recover(); r != nil {
-			ec.Error(ctx, ec.Recover(ctx, r))
-			ret = graphql.Null
-		}
-	}()
-	fc := &graphql.FieldContext{
-		Object:     "Collection",
-		Field:      field,
-		Args:       nil,
-		IsMethod:   false,
-		IsResolver: false,
-	}
-
-	ctx = graphql.WithFieldContext(ctx, fc)
-	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
-		ctx = rctx // use context from middleware stack in children
-		return obj.LastModified, nil
-	})
-	if err != nil {
-		ec.Error(ctx, err)
-		return graphql.Null
-	}
-	if resTmp == nil {
-		if !graphql.HasFieldError(ctx, fc) {
-			ec.Errorf(ctx, "must not be null")
-		}
-		return graphql.Null
-	}
-	res := resTmp.(time.Time)
-	fc.Result = res
-	return ec.marshalNTime2timeᚐTime(ctx, field.Selections, res)
-}
-
-func (ec *executionContext) _Collection_keywords(ctx context.Context, field graphql.CollectedField, obj *models.Collection) (ret graphql.Marshaler) {
-	defer func() {
-		if r := recover(); r != nil {
-			ec.Error(ctx, ec.Recover(ctx, r))
-			ret = graphql.Null
-		}
-	}()
-	fc := &graphql.FieldContext{
-		Object:     "Collection",
-		Field:      field,
-		Args:       nil,
-		IsMethod:   false,
-		IsResolver: false,
-	}
-
-	ctx = graphql.WithFieldContext(ctx, fc)
-	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
-		ctx = rctx // use context from middleware stack in children
-		return obj.Keywords, nil
-	})
-	if err != nil {
-		ec.Error(ctx, err)
-		return graphql.Null
-	}
-	if resTmp == nil {
-		if !graphql.HasFieldError(ctx, fc) {
-			ec.Errorf(ctx, "must not be null")
-		}
-		return graphql.Null
-	}
-	res := resTmp.([]string)
-	fc.Result = res
-	return ec.marshalNString2ᚕstringᚄ(ctx, field.Selections, res)
-}
-
-func (ec *executionContext) _Collection_owner(ctx context.Context, field graphql.CollectedField, obj *models.Collection) (ret graphql.Marshaler) {
-	defer func() {
-		if r := recover(); r != nil {
-			ec.Error(ctx, ec.Recover(ctx, r))
-			ret = graphql.Null
-		}
-	}()
-	fc := &graphql.FieldContext{
-		Object:     "Collection",
-		Field:      field,
-		Args:       nil,
-		IsMethod:   false,
-		IsResolver: false,
-	}
-
-	ctx = graphql.WithFieldContext(ctx, fc)
-	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
-		ctx = rctx // use context from middleware stack in children
-		return obj.Owner, nil
-	})
-	if err != nil {
-		ec.Error(ctx, err)
-		return graphql.Null
-	}
-	if resTmp == nil {
-		if !graphql.HasFieldError(ctx, fc) {
-			ec.Errorf(ctx, "must not be null")
-		}
-		return graphql.Null
-	}
-	res := resTmp.(models.Owner)
-	fc.Result = res
-	return ec.marshalNOwner2githubᚗcomᚋnaviktᚋnadaᚑbackendᚋpkgᚋgraphᚋmodelsᚐOwner(ctx, field.Selections, res)
-}
-
-func (ec *executionContext) _Collection_elements(ctx context.Context, field graphql.CollectedField, obj *models.Collection) (ret graphql.Marshaler) {
-	defer func() {
-		if r := recover(); r != nil {
-			ec.Error(ctx, ec.Recover(ctx, r))
-			ret = graphql.Null
-		}
-	}()
-	fc := &graphql.FieldContext{
-		Object:     "Collection",
-		Field:      field,
-		Args:       nil,
-		IsMethod:   true,
-		IsResolver: true,
-	}
-
-	ctx = graphql.WithFieldContext(ctx, fc)
-	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
-		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.Collection().Elements(rctx, obj)
-	})
-	if err != nil {
-		ec.Error(ctx, err)
-		return graphql.Null
-	}
-	if resTmp == nil {
-		if !graphql.HasFieldError(ctx, fc) {
-			ec.Errorf(ctx, "must not be null")
-		}
-		return graphql.Null
-	}
-	res := resTmp.([]models.CollectionElement)
-	fc.Result = res
-	return ec.marshalNCollectionElement2ᚕgithubᚗcomᚋnaviktᚋnadaᚑbackendᚋpkgᚋgraphᚋmodelsᚐCollectionElementᚄ(ctx, field.Selections, res)
-}
-
 func (ec *executionContext) _Dataproduct_id(ctx context.Context, field graphql.CollectedField, obj *models.Dataproduct) (ret graphql.Marshaler) {
 	defer func() {
 		if r := recover(); r != nil {
@@ -3523,48 +2705,6 @@ func (ec *executionContext) _Dataproduct_access(ctx context.Context, field graph
 	return ec.marshalNAccess2ᚕᚖgithubᚗcomᚋnaviktᚋnadaᚑbackendᚋpkgᚋgraphᚋmodelsᚐAccessᚄ(ctx, field.Selections, res)
 }
 
-func (ec *executionContext) _Dataproduct_collections(ctx context.Context, field graphql.CollectedField, obj *models.Dataproduct) (ret graphql.Marshaler) {
-	defer func() {
-		if r := recover(); r != nil {
-			ec.Error(ctx, ec.Recover(ctx, r))
-			ret = graphql.Null
-		}
-	}()
-	fc := &graphql.FieldContext{
-		Object:     "Dataproduct",
-		Field:      field,
-		Args:       nil,
-		IsMethod:   true,
-		IsResolver: true,
-	}
-
-	ctx = graphql.WithFieldContext(ctx, fc)
-	rawArgs := field.ArgumentMap(ec.Variables)
-	args, err := ec.field_Dataproduct_collections_args(ctx, rawArgs)
-	if err != nil {
-		ec.Error(ctx, err)
-		return graphql.Null
-	}
-	fc.Args = args
-	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
-		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.Dataproduct().Collections(rctx, obj, args["limit"].(*int), args["offset"].(*int))
-	})
-	if err != nil {
-		ec.Error(ctx, err)
-		return graphql.Null
-	}
-	if resTmp == nil {
-		if !graphql.HasFieldError(ctx, fc) {
-			ec.Errorf(ctx, "must not be null")
-		}
-		return graphql.Null
-	}
-	res := resTmp.([]*models.Collection)
-	fc.Result = res
-	return ec.marshalNCollection2ᚕᚖgithubᚗcomᚋnaviktᚋnadaᚑbackendᚋpkgᚋgraphᚋmodelsᚐCollectionᚄ(ctx, field.Selections, res)
-}
-
 func (ec *executionContext) _GCPProject_id(ctx context.Context, field graphql.CollectedField, obj *models.GCPProject) (ret graphql.Marshaler) {
 	defer func() {
 		if r := recover(); r != nil {
@@ -3742,316 +2882,6 @@ func (ec *executionContext) _Mutation_dummy(ctx context.Context, field graphql.C
 	res := resTmp.(*string)
 	fc.Result = res
 	return ec.marshalOString2ᚖstring(ctx, field.Selections, res)
-}
-
-func (ec *executionContext) _Mutation_createCollection(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
-	defer func() {
-		if r := recover(); r != nil {
-			ec.Error(ctx, ec.Recover(ctx, r))
-			ret = graphql.Null
-		}
-	}()
-	fc := &graphql.FieldContext{
-		Object:     "Mutation",
-		Field:      field,
-		Args:       nil,
-		IsMethod:   true,
-		IsResolver: true,
-	}
-
-	ctx = graphql.WithFieldContext(ctx, fc)
-	rawArgs := field.ArgumentMap(ec.Variables)
-	args, err := ec.field_Mutation_createCollection_args(ctx, rawArgs)
-	if err != nil {
-		ec.Error(ctx, err)
-		return graphql.Null
-	}
-	fc.Args = args
-	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
-		directive0 := func(rctx context.Context) (interface{}, error) {
-			ctx = rctx // use context from middleware stack in children
-			return ec.resolvers.Mutation().CreateCollection(rctx, args["input"].(models.NewCollection))
-		}
-		directive1 := func(ctx context.Context) (interface{}, error) {
-			if ec.directives.Authenticated == nil {
-				return nil, errors.New("directive authenticated is not implemented")
-			}
-			return ec.directives.Authenticated(ctx, nil, directive0, nil)
-		}
-
-		tmp, err := directive1(rctx)
-		if err != nil {
-			return nil, graphql.ErrorOnPath(ctx, err)
-		}
-		if tmp == nil {
-			return nil, nil
-		}
-		if data, ok := tmp.(*models.Collection); ok {
-			return data, nil
-		}
-		return nil, fmt.Errorf(`unexpected type %T from directive, should be *github.com/navikt/nada-backend/pkg/graph/models.Collection`, tmp)
-	})
-	if err != nil {
-		ec.Error(ctx, err)
-		return graphql.Null
-	}
-	if resTmp == nil {
-		if !graphql.HasFieldError(ctx, fc) {
-			ec.Errorf(ctx, "must not be null")
-		}
-		return graphql.Null
-	}
-	res := resTmp.(*models.Collection)
-	fc.Result = res
-	return ec.marshalNCollection2ᚖgithubᚗcomᚋnaviktᚋnadaᚑbackendᚋpkgᚋgraphᚋmodelsᚐCollection(ctx, field.Selections, res)
-}
-
-func (ec *executionContext) _Mutation_updateCollection(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
-	defer func() {
-		if r := recover(); r != nil {
-			ec.Error(ctx, ec.Recover(ctx, r))
-			ret = graphql.Null
-		}
-	}()
-	fc := &graphql.FieldContext{
-		Object:     "Mutation",
-		Field:      field,
-		Args:       nil,
-		IsMethod:   true,
-		IsResolver: true,
-	}
-
-	ctx = graphql.WithFieldContext(ctx, fc)
-	rawArgs := field.ArgumentMap(ec.Variables)
-	args, err := ec.field_Mutation_updateCollection_args(ctx, rawArgs)
-	if err != nil {
-		ec.Error(ctx, err)
-		return graphql.Null
-	}
-	fc.Args = args
-	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
-		directive0 := func(rctx context.Context) (interface{}, error) {
-			ctx = rctx // use context from middleware stack in children
-			return ec.resolvers.Mutation().UpdateCollection(rctx, args["id"].(uuid.UUID), args["input"].(models.UpdateCollection))
-		}
-		directive1 := func(ctx context.Context) (interface{}, error) {
-			if ec.directives.Authenticated == nil {
-				return nil, errors.New("directive authenticated is not implemented")
-			}
-			return ec.directives.Authenticated(ctx, nil, directive0, nil)
-		}
-
-		tmp, err := directive1(rctx)
-		if err != nil {
-			return nil, graphql.ErrorOnPath(ctx, err)
-		}
-		if tmp == nil {
-			return nil, nil
-		}
-		if data, ok := tmp.(*models.Collection); ok {
-			return data, nil
-		}
-		return nil, fmt.Errorf(`unexpected type %T from directive, should be *github.com/navikt/nada-backend/pkg/graph/models.Collection`, tmp)
-	})
-	if err != nil {
-		ec.Error(ctx, err)
-		return graphql.Null
-	}
-	if resTmp == nil {
-		if !graphql.HasFieldError(ctx, fc) {
-			ec.Errorf(ctx, "must not be null")
-		}
-		return graphql.Null
-	}
-	res := resTmp.(*models.Collection)
-	fc.Result = res
-	return ec.marshalNCollection2ᚖgithubᚗcomᚋnaviktᚋnadaᚑbackendᚋpkgᚋgraphᚋmodelsᚐCollection(ctx, field.Selections, res)
-}
-
-func (ec *executionContext) _Mutation_deleteCollection(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
-	defer func() {
-		if r := recover(); r != nil {
-			ec.Error(ctx, ec.Recover(ctx, r))
-			ret = graphql.Null
-		}
-	}()
-	fc := &graphql.FieldContext{
-		Object:     "Mutation",
-		Field:      field,
-		Args:       nil,
-		IsMethod:   true,
-		IsResolver: true,
-	}
-
-	ctx = graphql.WithFieldContext(ctx, fc)
-	rawArgs := field.ArgumentMap(ec.Variables)
-	args, err := ec.field_Mutation_deleteCollection_args(ctx, rawArgs)
-	if err != nil {
-		ec.Error(ctx, err)
-		return graphql.Null
-	}
-	fc.Args = args
-	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
-		directive0 := func(rctx context.Context) (interface{}, error) {
-			ctx = rctx // use context from middleware stack in children
-			return ec.resolvers.Mutation().DeleteCollection(rctx, args["id"].(uuid.UUID))
-		}
-		directive1 := func(ctx context.Context) (interface{}, error) {
-			if ec.directives.Authenticated == nil {
-				return nil, errors.New("directive authenticated is not implemented")
-			}
-			return ec.directives.Authenticated(ctx, nil, directive0, nil)
-		}
-
-		tmp, err := directive1(rctx)
-		if err != nil {
-			return nil, graphql.ErrorOnPath(ctx, err)
-		}
-		if tmp == nil {
-			return nil, nil
-		}
-		if data, ok := tmp.(bool); ok {
-			return data, nil
-		}
-		return nil, fmt.Errorf(`unexpected type %T from directive, should be bool`, tmp)
-	})
-	if err != nil {
-		ec.Error(ctx, err)
-		return graphql.Null
-	}
-	if resTmp == nil {
-		if !graphql.HasFieldError(ctx, fc) {
-			ec.Errorf(ctx, "must not be null")
-		}
-		return graphql.Null
-	}
-	res := resTmp.(bool)
-	fc.Result = res
-	return ec.marshalNBoolean2bool(ctx, field.Selections, res)
-}
-
-func (ec *executionContext) _Mutation_addToCollection(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
-	defer func() {
-		if r := recover(); r != nil {
-			ec.Error(ctx, ec.Recover(ctx, r))
-			ret = graphql.Null
-		}
-	}()
-	fc := &graphql.FieldContext{
-		Object:     "Mutation",
-		Field:      field,
-		Args:       nil,
-		IsMethod:   true,
-		IsResolver: true,
-	}
-
-	ctx = graphql.WithFieldContext(ctx, fc)
-	rawArgs := field.ArgumentMap(ec.Variables)
-	args, err := ec.field_Mutation_addToCollection_args(ctx, rawArgs)
-	if err != nil {
-		ec.Error(ctx, err)
-		return graphql.Null
-	}
-	fc.Args = args
-	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
-		directive0 := func(rctx context.Context) (interface{}, error) {
-			ctx = rctx // use context from middleware stack in children
-			return ec.resolvers.Mutation().AddToCollection(rctx, args["id"].(uuid.UUID), args["elementID"].(uuid.UUID), args["elementType"].(models.CollectionElementType))
-		}
-		directive1 := func(ctx context.Context) (interface{}, error) {
-			if ec.directives.Authenticated == nil {
-				return nil, errors.New("directive authenticated is not implemented")
-			}
-			return ec.directives.Authenticated(ctx, nil, directive0, nil)
-		}
-
-		tmp, err := directive1(rctx)
-		if err != nil {
-			return nil, graphql.ErrorOnPath(ctx, err)
-		}
-		if tmp == nil {
-			return nil, nil
-		}
-		if data, ok := tmp.(bool); ok {
-			return data, nil
-		}
-		return nil, fmt.Errorf(`unexpected type %T from directive, should be bool`, tmp)
-	})
-	if err != nil {
-		ec.Error(ctx, err)
-		return graphql.Null
-	}
-	if resTmp == nil {
-		if !graphql.HasFieldError(ctx, fc) {
-			ec.Errorf(ctx, "must not be null")
-		}
-		return graphql.Null
-	}
-	res := resTmp.(bool)
-	fc.Result = res
-	return ec.marshalNBoolean2bool(ctx, field.Selections, res)
-}
-
-func (ec *executionContext) _Mutation_removeFromCollection(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
-	defer func() {
-		if r := recover(); r != nil {
-			ec.Error(ctx, ec.Recover(ctx, r))
-			ret = graphql.Null
-		}
-	}()
-	fc := &graphql.FieldContext{
-		Object:     "Mutation",
-		Field:      field,
-		Args:       nil,
-		IsMethod:   true,
-		IsResolver: true,
-	}
-
-	ctx = graphql.WithFieldContext(ctx, fc)
-	rawArgs := field.ArgumentMap(ec.Variables)
-	args, err := ec.field_Mutation_removeFromCollection_args(ctx, rawArgs)
-	if err != nil {
-		ec.Error(ctx, err)
-		return graphql.Null
-	}
-	fc.Args = args
-	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
-		directive0 := func(rctx context.Context) (interface{}, error) {
-			ctx = rctx // use context from middleware stack in children
-			return ec.resolvers.Mutation().RemoveFromCollection(rctx, args["id"].(uuid.UUID), args["elementID"].(uuid.UUID), args["elementType"].(models.CollectionElementType))
-		}
-		directive1 := func(ctx context.Context) (interface{}, error) {
-			if ec.directives.Authenticated == nil {
-				return nil, errors.New("directive authenticated is not implemented")
-			}
-			return ec.directives.Authenticated(ctx, nil, directive0, nil)
-		}
-
-		tmp, err := directive1(rctx)
-		if err != nil {
-			return nil, graphql.ErrorOnPath(ctx, err)
-		}
-		if tmp == nil {
-			return nil, nil
-		}
-		if data, ok := tmp.(bool); ok {
-			return data, nil
-		}
-		return nil, fmt.Errorf(`unexpected type %T from directive, should be bool`, tmp)
-	})
-	if err != nil {
-		ec.Error(ctx, err)
-		return graphql.Null
-	}
-	if resTmp == nil {
-		if !graphql.HasFieldError(ctx, fc) {
-			ec.Errorf(ctx, "must not be null")
-		}
-		return graphql.Null
-	}
-	res := resTmp.(bool)
-	fc.Result = res
-	return ec.marshalNBoolean2bool(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _Mutation_createDataproduct(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
@@ -4588,90 +3418,6 @@ func (ec *executionContext) _Query_version(ctx context.Context, field graphql.Co
 	res := resTmp.(string)
 	fc.Result = res
 	return ec.marshalNString2string(ctx, field.Selections, res)
-}
-
-func (ec *executionContext) _Query_collections(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
-	defer func() {
-		if r := recover(); r != nil {
-			ec.Error(ctx, ec.Recover(ctx, r))
-			ret = graphql.Null
-		}
-	}()
-	fc := &graphql.FieldContext{
-		Object:     "Query",
-		Field:      field,
-		Args:       nil,
-		IsMethod:   true,
-		IsResolver: true,
-	}
-
-	ctx = graphql.WithFieldContext(ctx, fc)
-	rawArgs := field.ArgumentMap(ec.Variables)
-	args, err := ec.field_Query_collections_args(ctx, rawArgs)
-	if err != nil {
-		ec.Error(ctx, err)
-		return graphql.Null
-	}
-	fc.Args = args
-	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
-		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.Query().Collections(rctx, args["limit"].(*int), args["offset"].(*int))
-	})
-	if err != nil {
-		ec.Error(ctx, err)
-		return graphql.Null
-	}
-	if resTmp == nil {
-		if !graphql.HasFieldError(ctx, fc) {
-			ec.Errorf(ctx, "must not be null")
-		}
-		return graphql.Null
-	}
-	res := resTmp.([]*models.Collection)
-	fc.Result = res
-	return ec.marshalNCollection2ᚕᚖgithubᚗcomᚋnaviktᚋnadaᚑbackendᚋpkgᚋgraphᚋmodelsᚐCollectionᚄ(ctx, field.Selections, res)
-}
-
-func (ec *executionContext) _Query_collection(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
-	defer func() {
-		if r := recover(); r != nil {
-			ec.Error(ctx, ec.Recover(ctx, r))
-			ret = graphql.Null
-		}
-	}()
-	fc := &graphql.FieldContext{
-		Object:     "Query",
-		Field:      field,
-		Args:       nil,
-		IsMethod:   true,
-		IsResolver: true,
-	}
-
-	ctx = graphql.WithFieldContext(ctx, fc)
-	rawArgs := field.ArgumentMap(ec.Variables)
-	args, err := ec.field_Query_collection_args(ctx, rawArgs)
-	if err != nil {
-		ec.Error(ctx, err)
-		return graphql.Null
-	}
-	fc.Args = args
-	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
-		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.Query().Collection(rctx, args["id"].(uuid.UUID))
-	})
-	if err != nil {
-		ec.Error(ctx, err)
-		return graphql.Null
-	}
-	if resTmp == nil {
-		if !graphql.HasFieldError(ctx, fc) {
-			ec.Errorf(ctx, "must not be null")
-		}
-		return graphql.Null
-	}
-	res := resTmp.(*models.Collection)
-	fc.Result = res
-	return ec.marshalNCollection2ᚖgithubᚗcomᚋnaviktᚋnadaᚑbackendᚋpkgᚋgraphᚋmodelsᚐCollection(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _Query_dataproduct(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
@@ -5670,41 +4416,6 @@ func (ec *executionContext) _UserInfo_accessable(ctx context.Context, field grap
 	res := resTmp.([]*models.Dataproduct)
 	fc.Result = res
 	return ec.marshalNDataproduct2ᚕᚖgithubᚗcomᚋnaviktᚋnadaᚑbackendᚋpkgᚋgraphᚋmodelsᚐDataproductᚄ(ctx, field.Selections, res)
-}
-
-func (ec *executionContext) _UserInfo_collections(ctx context.Context, field graphql.CollectedField, obj *models.UserInfo) (ret graphql.Marshaler) {
-	defer func() {
-		if r := recover(); r != nil {
-			ec.Error(ctx, ec.Recover(ctx, r))
-			ret = graphql.Null
-		}
-	}()
-	fc := &graphql.FieldContext{
-		Object:     "UserInfo",
-		Field:      field,
-		Args:       nil,
-		IsMethod:   true,
-		IsResolver: true,
-	}
-
-	ctx = graphql.WithFieldContext(ctx, fc)
-	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
-		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.UserInfo().Collections(rctx, obj)
-	})
-	if err != nil {
-		ec.Error(ctx, err)
-		return graphql.Null
-	}
-	if resTmp == nil {
-		if !graphql.HasFieldError(ctx, fc) {
-			ec.Errorf(ctx, "must not be null")
-		}
-		return graphql.Null
-	}
-	res := resTmp.([]*models.Collection)
-	fc.Result = res
-	return ec.marshalNCollection2ᚕᚖgithubᚗcomᚋnaviktᚋnadaᚑbackendᚋpkgᚋgraphᚋmodelsᚐCollectionᚄ(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) ___Directive_name(ctx context.Context, field graphql.CollectedField, obj *introspection.Directive) (ret graphql.Marshaler) {
@@ -6868,61 +5579,6 @@ func (ec *executionContext) unmarshalInputNewBigQuery(ctx context.Context, obj i
 	return it, nil
 }
 
-func (ec *executionContext) unmarshalInputNewCollection(ctx context.Context, obj interface{}) (models.NewCollection, error) {
-	var it models.NewCollection
-	asMap := map[string]interface{}{}
-	for k, v := range obj.(map[string]interface{}) {
-		asMap[k] = v
-	}
-
-	for k, v := range asMap {
-		switch k {
-		case "name":
-			var err error
-
-			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("name"))
-			it.Name, err = ec.unmarshalNString2string(ctx, v)
-			if err != nil {
-				return it, err
-			}
-		case "description":
-			var err error
-
-			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("description"))
-			it.Description, err = ec.unmarshalOString2ᚖstring(ctx, v)
-			if err != nil {
-				return it, err
-			}
-		case "group":
-			var err error
-
-			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("group"))
-			it.Group, err = ec.unmarshalNString2string(ctx, v)
-			if err != nil {
-				return it, err
-			}
-		case "teamkatalogenURL":
-			var err error
-
-			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("teamkatalogenURL"))
-			it.TeamkatalogenURL, err = ec.unmarshalOString2ᚖstring(ctx, v)
-			if err != nil {
-				return it, err
-			}
-		case "keywords":
-			var err error
-
-			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("keywords"))
-			it.Keywords, err = ec.unmarshalOString2ᚕstringᚄ(ctx, v)
-			if err != nil {
-				return it, err
-			}
-		}
-	}
-
-	return it, nil
-}
-
 func (ec *executionContext) unmarshalInputNewDataproduct(ctx context.Context, obj interface{}) (models.NewDataproduct, error) {
 	var it models.NewDataproduct
 	asMap := map[string]interface{}{}
@@ -7057,53 +5713,6 @@ func (ec *executionContext) unmarshalInputSearchQuery(ctx context.Context, obj i
 	return it, nil
 }
 
-func (ec *executionContext) unmarshalInputUpdateCollection(ctx context.Context, obj interface{}) (models.UpdateCollection, error) {
-	var it models.UpdateCollection
-	asMap := map[string]interface{}{}
-	for k, v := range obj.(map[string]interface{}) {
-		asMap[k] = v
-	}
-
-	for k, v := range asMap {
-		switch k {
-		case "name":
-			var err error
-
-			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("name"))
-			it.Name, err = ec.unmarshalNString2string(ctx, v)
-			if err != nil {
-				return it, err
-			}
-		case "description":
-			var err error
-
-			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("description"))
-			it.Description, err = ec.unmarshalOString2ᚖstring(ctx, v)
-			if err != nil {
-				return it, err
-			}
-		case "teamkatalogenURL":
-			var err error
-
-			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("teamkatalogenURL"))
-			it.TeamkatalogenURL, err = ec.unmarshalOString2ᚖstring(ctx, v)
-			if err != nil {
-				return it, err
-			}
-		case "keywords":
-			var err error
-
-			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("keywords"))
-			it.Keywords, err = ec.unmarshalOString2ᚕstringᚄ(ctx, v)
-			if err != nil {
-				return it, err
-			}
-		}
-	}
-
-	return it, nil
-}
-
 func (ec *executionContext) unmarshalInputUpdateDataproduct(ctx context.Context, obj interface{}) (models.UpdateDataproduct, error) {
 	var it models.UpdateDataproduct
 	asMap := map[string]interface{}{}
@@ -7178,22 +5787,6 @@ func (ec *executionContext) unmarshalInputUpdateDataproduct(ctx context.Context,
 // endregion **************************** input.gotpl *****************************
 
 // region    ************************** interface.gotpl ***************************
-
-func (ec *executionContext) _CollectionElement(ctx context.Context, sel ast.SelectionSet, obj models.CollectionElement) graphql.Marshaler {
-	switch obj := (obj).(type) {
-	case nil:
-		return graphql.Null
-	case models.Dataproduct:
-		return ec._Dataproduct(ctx, sel, &obj)
-	case *models.Dataproduct:
-		if obj == nil {
-			return graphql.Null
-		}
-		return ec._Dataproduct(ctx, sel, obj)
-	default:
-		panic(fmt.Errorf("unexpected type %T", obj))
-	}
-}
 
 func (ec *executionContext) _Datasource(ctx context.Context, sel ast.SelectionSet, obj models.Datasource) graphql.Marshaler {
 	switch obj := (obj).(type) {
@@ -7387,75 +5980,7 @@ func (ec *executionContext) _BigQueryTable(ctx context.Context, sel ast.Selectio
 	return out
 }
 
-var collectionImplementors = []string{"Collection"}
-
-func (ec *executionContext) _Collection(ctx context.Context, sel ast.SelectionSet, obj *models.Collection) graphql.Marshaler {
-	fields := graphql.CollectFields(ec.OperationContext, sel, collectionImplementors)
-
-	out := graphql.NewFieldSet(fields)
-	var invalids uint32
-	for i, field := range fields {
-		switch field.Name {
-		case "__typename":
-			out.Values[i] = graphql.MarshalString("Collection")
-		case "id":
-			out.Values[i] = ec._Collection_id(ctx, field, obj)
-			if out.Values[i] == graphql.Null {
-				atomic.AddUint32(&invalids, 1)
-			}
-		case "name":
-			out.Values[i] = ec._Collection_name(ctx, field, obj)
-			if out.Values[i] == graphql.Null {
-				atomic.AddUint32(&invalids, 1)
-			}
-		case "description":
-			out.Values[i] = ec._Collection_description(ctx, field, obj)
-		case "created":
-			out.Values[i] = ec._Collection_created(ctx, field, obj)
-			if out.Values[i] == graphql.Null {
-				atomic.AddUint32(&invalids, 1)
-			}
-		case "lastModified":
-			out.Values[i] = ec._Collection_lastModified(ctx, field, obj)
-			if out.Values[i] == graphql.Null {
-				atomic.AddUint32(&invalids, 1)
-			}
-		case "keywords":
-			out.Values[i] = ec._Collection_keywords(ctx, field, obj)
-			if out.Values[i] == graphql.Null {
-				atomic.AddUint32(&invalids, 1)
-			}
-		case "owner":
-			out.Values[i] = ec._Collection_owner(ctx, field, obj)
-			if out.Values[i] == graphql.Null {
-				atomic.AddUint32(&invalids, 1)
-			}
-		case "elements":
-			field := field
-			out.Concurrently(i, func() (res graphql.Marshaler) {
-				defer func() {
-					if r := recover(); r != nil {
-						ec.Error(ctx, ec.Recover(ctx, r))
-					}
-				}()
-				res = ec._Collection_elements(ctx, field, obj)
-				if res == graphql.Null {
-					atomic.AddUint32(&invalids, 1)
-				}
-				return res
-			})
-		default:
-			panic("unknown field " + strconv.Quote(field.Name))
-		}
-	}
-	out.Dispatch()
-	if invalids > 0 {
-		return graphql.Null
-	}
-	return out
-}
-
-var dataproductImplementors = []string{"Dataproduct", "CollectionElement", "SearchResult"}
+var dataproductImplementors = []string{"Dataproduct", "SearchResult"}
 
 func (ec *executionContext) _Dataproduct(ctx context.Context, sel ast.SelectionSet, obj *models.Dataproduct) graphql.Marshaler {
 	fields := graphql.CollectFields(ec.OperationContext, sel, dataproductImplementors)
@@ -7542,20 +6067,6 @@ func (ec *executionContext) _Dataproduct(ctx context.Context, sel ast.SelectionS
 					}
 				}()
 				res = ec._Dataproduct_access(ctx, field, obj)
-				if res == graphql.Null {
-					atomic.AddUint32(&invalids, 1)
-				}
-				return res
-			})
-		case "collections":
-			field := field
-			out.Concurrently(i, func() (res graphql.Marshaler) {
-				defer func() {
-					if r := recover(); r != nil {
-						ec.Error(ctx, ec.Recover(ctx, r))
-					}
-				}()
-				res = ec._Dataproduct_collections(ctx, field, obj)
 				if res == graphql.Null {
 					atomic.AddUint32(&invalids, 1)
 				}
@@ -7653,31 +6164,6 @@ func (ec *executionContext) _Mutation(ctx context.Context, sel ast.SelectionSet)
 			out.Values[i] = graphql.MarshalString("Mutation")
 		case "dummy":
 			out.Values[i] = ec._Mutation_dummy(ctx, field)
-		case "createCollection":
-			out.Values[i] = ec._Mutation_createCollection(ctx, field)
-			if out.Values[i] == graphql.Null {
-				invalids++
-			}
-		case "updateCollection":
-			out.Values[i] = ec._Mutation_updateCollection(ctx, field)
-			if out.Values[i] == graphql.Null {
-				invalids++
-			}
-		case "deleteCollection":
-			out.Values[i] = ec._Mutation_deleteCollection(ctx, field)
-			if out.Values[i] == graphql.Null {
-				invalids++
-			}
-		case "addToCollection":
-			out.Values[i] = ec._Mutation_addToCollection(ctx, field)
-			if out.Values[i] == graphql.Null {
-				invalids++
-			}
-		case "removeFromCollection":
-			out.Values[i] = ec._Mutation_removeFromCollection(ctx, field)
-			if out.Values[i] == graphql.Null {
-				invalids++
-			}
 		case "createDataproduct":
 			out.Values[i] = ec._Mutation_createDataproduct(ctx, field)
 			if out.Values[i] == graphql.Null {
@@ -7777,34 +6263,6 @@ func (ec *executionContext) _Query(ctx context.Context, sel ast.SelectionSet) gr
 					}
 				}()
 				res = ec._Query_version(ctx, field)
-				if res == graphql.Null {
-					atomic.AddUint32(&invalids, 1)
-				}
-				return res
-			})
-		case "collections":
-			field := field
-			out.Concurrently(i, func() (res graphql.Marshaler) {
-				defer func() {
-					if r := recover(); r != nil {
-						ec.Error(ctx, ec.Recover(ctx, r))
-					}
-				}()
-				res = ec._Query_collections(ctx, field)
-				if res == graphql.Null {
-					atomic.AddUint32(&invalids, 1)
-				}
-				return res
-			})
-		case "collection":
-			field := field
-			out.Concurrently(i, func() (res graphql.Marshaler) {
-				defer func() {
-					if r := recover(); r != nil {
-						ec.Error(ctx, ec.Recover(ctx, r))
-					}
-				}()
-				res = ec._Query_collection(ctx, field)
 				if res == graphql.Null {
 					atomic.AddUint32(&invalids, 1)
 				}
@@ -8102,20 +6560,6 @@ func (ec *executionContext) _UserInfo(ctx context.Context, sel ast.SelectionSet,
 					}
 				}()
 				res = ec._UserInfo_accessable(ctx, field, obj)
-				if res == graphql.Null {
-					atomic.AddUint32(&invalids, 1)
-				}
-				return res
-			})
-		case "collections":
-			field := field
-			out.Concurrently(i, func() (res graphql.Marshaler) {
-				defer func() {
-					if r := recover(); r != nil {
-						ec.Error(ctx, ec.Recover(ctx, r))
-					}
-				}()
-				res = ec._UserInfo_collections(ctx, field, obj)
 				if res == graphql.Null {
 					atomic.AddUint32(&invalids, 1)
 				}
@@ -8519,128 +6963,6 @@ func (ec *executionContext) marshalNBoolean2bool(ctx context.Context, sel ast.Se
 	return res
 }
 
-func (ec *executionContext) marshalNCollection2githubᚗcomᚋnaviktᚋnadaᚑbackendᚋpkgᚋgraphᚋmodelsᚐCollection(ctx context.Context, sel ast.SelectionSet, v models.Collection) graphql.Marshaler {
-	return ec._Collection(ctx, sel, &v)
-}
-
-func (ec *executionContext) marshalNCollection2ᚕᚖgithubᚗcomᚋnaviktᚋnadaᚑbackendᚋpkgᚋgraphᚋmodelsᚐCollectionᚄ(ctx context.Context, sel ast.SelectionSet, v []*models.Collection) graphql.Marshaler {
-	ret := make(graphql.Array, len(v))
-	var wg sync.WaitGroup
-	isLen1 := len(v) == 1
-	if !isLen1 {
-		wg.Add(len(v))
-	}
-	for i := range v {
-		i := i
-		fc := &graphql.FieldContext{
-			Index:  &i,
-			Result: &v[i],
-		}
-		ctx := graphql.WithFieldContext(ctx, fc)
-		f := func(i int) {
-			defer func() {
-				if r := recover(); r != nil {
-					ec.Error(ctx, ec.Recover(ctx, r))
-					ret = nil
-				}
-			}()
-			if !isLen1 {
-				defer wg.Done()
-			}
-			ret[i] = ec.marshalNCollection2ᚖgithubᚗcomᚋnaviktᚋnadaᚑbackendᚋpkgᚋgraphᚋmodelsᚐCollection(ctx, sel, v[i])
-		}
-		if isLen1 {
-			f(i)
-		} else {
-			go f(i)
-		}
-
-	}
-	wg.Wait()
-
-	for _, e := range ret {
-		if e == graphql.Null {
-			return graphql.Null
-		}
-	}
-
-	return ret
-}
-
-func (ec *executionContext) marshalNCollection2ᚖgithubᚗcomᚋnaviktᚋnadaᚑbackendᚋpkgᚋgraphᚋmodelsᚐCollection(ctx context.Context, sel ast.SelectionSet, v *models.Collection) graphql.Marshaler {
-	if v == nil {
-		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
-			ec.Errorf(ctx, "must not be null")
-		}
-		return graphql.Null
-	}
-	return ec._Collection(ctx, sel, v)
-}
-
-func (ec *executionContext) marshalNCollectionElement2githubᚗcomᚋnaviktᚋnadaᚑbackendᚋpkgᚋgraphᚋmodelsᚐCollectionElement(ctx context.Context, sel ast.SelectionSet, v models.CollectionElement) graphql.Marshaler {
-	if v == nil {
-		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
-			ec.Errorf(ctx, "must not be null")
-		}
-		return graphql.Null
-	}
-	return ec._CollectionElement(ctx, sel, v)
-}
-
-func (ec *executionContext) marshalNCollectionElement2ᚕgithubᚗcomᚋnaviktᚋnadaᚑbackendᚋpkgᚋgraphᚋmodelsᚐCollectionElementᚄ(ctx context.Context, sel ast.SelectionSet, v []models.CollectionElement) graphql.Marshaler {
-	ret := make(graphql.Array, len(v))
-	var wg sync.WaitGroup
-	isLen1 := len(v) == 1
-	if !isLen1 {
-		wg.Add(len(v))
-	}
-	for i := range v {
-		i := i
-		fc := &graphql.FieldContext{
-			Index:  &i,
-			Result: &v[i],
-		}
-		ctx := graphql.WithFieldContext(ctx, fc)
-		f := func(i int) {
-			defer func() {
-				if r := recover(); r != nil {
-					ec.Error(ctx, ec.Recover(ctx, r))
-					ret = nil
-				}
-			}()
-			if !isLen1 {
-				defer wg.Done()
-			}
-			ret[i] = ec.marshalNCollectionElement2githubᚗcomᚋnaviktᚋnadaᚑbackendᚋpkgᚋgraphᚋmodelsᚐCollectionElement(ctx, sel, v[i])
-		}
-		if isLen1 {
-			f(i)
-		} else {
-			go f(i)
-		}
-
-	}
-	wg.Wait()
-
-	for _, e := range ret {
-		if e == graphql.Null {
-			return graphql.Null
-		}
-	}
-
-	return ret
-}
-
-func (ec *executionContext) unmarshalNCollectionElementType2githubᚗcomᚋnaviktᚋnadaᚑbackendᚋpkgᚋgraphᚋmodelsᚐCollectionElementType(ctx context.Context, v interface{}) (models.CollectionElementType, error) {
-	var res models.CollectionElementType
-	err := res.UnmarshalGQL(v)
-	return res, graphql.ErrorOnPath(ctx, err)
-}
-
-func (ec *executionContext) marshalNCollectionElementType2githubᚗcomᚋnaviktᚋnadaᚑbackendᚋpkgᚋgraphᚋmodelsᚐCollectionElementType(ctx context.Context, sel ast.SelectionSet, v models.CollectionElementType) graphql.Marshaler {
-	return v
-}
-
 func (ec *executionContext) marshalNDataproduct2githubᚗcomᚋnaviktᚋnadaᚑbackendᚋpkgᚋgraphᚋmodelsᚐDataproduct(ctx context.Context, sel ast.SelectionSet, v models.Dataproduct) graphql.Marshaler {
 	return ec._Dataproduct(ctx, sel, &v)
 }
@@ -8837,18 +7159,9 @@ func (ec *executionContext) unmarshalNNewBigQuery2githubᚗcomᚋnaviktᚋnada�
 	return res, graphql.ErrorOnPath(ctx, err)
 }
 
-func (ec *executionContext) unmarshalNNewCollection2githubᚗcomᚋnaviktᚋnadaᚑbackendᚋpkgᚋgraphᚋmodelsᚐNewCollection(ctx context.Context, v interface{}) (models.NewCollection, error) {
-	res, err := ec.unmarshalInputNewCollection(ctx, v)
-	return res, graphql.ErrorOnPath(ctx, err)
-}
-
 func (ec *executionContext) unmarshalNNewDataproduct2githubᚗcomᚋnaviktᚋnadaᚑbackendᚋpkgᚋgraphᚋmodelsᚐNewDataproduct(ctx context.Context, v interface{}) (models.NewDataproduct, error) {
 	res, err := ec.unmarshalInputNewDataproduct(ctx, v)
 	return res, graphql.ErrorOnPath(ctx, err)
-}
-
-func (ec *executionContext) marshalNOwner2githubᚗcomᚋnaviktᚋnadaᚑbackendᚋpkgᚋgraphᚋmodelsᚐOwner(ctx context.Context, sel ast.SelectionSet, v models.Owner) graphql.Marshaler {
-	return ec._Owner(ctx, sel, &v)
 }
 
 func (ec *executionContext) marshalNOwner2ᚖgithubᚗcomᚋnaviktᚋnadaᚑbackendᚋpkgᚋgraphᚋmodelsᚐOwner(ctx context.Context, sel ast.SelectionSet, v *models.Owner) graphql.Marshaler {
@@ -9097,11 +7410,6 @@ func (ec *executionContext) marshalNTime2timeᚐTime(ctx context.Context, sel as
 		}
 	}
 	return res
-}
-
-func (ec *executionContext) unmarshalNUpdateCollection2githubᚗcomᚋnaviktᚋnadaᚑbackendᚋpkgᚋgraphᚋmodelsᚐUpdateCollection(ctx context.Context, v interface{}) (models.UpdateCollection, error) {
-	res, err := ec.unmarshalInputUpdateCollection(ctx, v)
-	return res, graphql.ErrorOnPath(ctx, err)
 }
 
 func (ec *executionContext) unmarshalNUpdateDataproduct2githubᚗcomᚋnaviktᚋnadaᚑbackendᚋpkgᚋgraphᚋmodelsᚐUpdateDataproduct(ctx context.Context, v interface{}) (models.UpdateDataproduct, error) {

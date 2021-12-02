@@ -20,14 +20,11 @@ func (r *Repo) Search(ctx context.Context, query *models.SearchQuery) ([]*models
 	}
 	ranks := map[string]float32{}
 	var dataproducts []uuid.UUID
-	//var collections []uuid.UUID
 	excerpts := map[uuid.UUID]string{}
 	for _, sr := range res {
 		switch sr.ElementType {
 		case "dataproduct":
 			dataproducts = append(dataproducts, sr.ElementID)
-			//case "collection":
-			//	collections = append(collections, sr.ElementID)
 		}
 		ranks[sr.ElementType+sr.ElementID.String()] = sr.Rank
 		excerpts[sr.ElementID] = sr.Excerpt
@@ -56,8 +53,6 @@ func sortSearch(ret []*models.SearchResultRow, ranks map[string]float32) {
 		switch m := m.(type) {
 		case *models.Dataproduct:
 			return ranks["dataproduct"+m.ID.String()]
-		//case *models.Collection:
-		//	return ranks["collection"+m.ID.String()]
 		default:
 			return -1
 		}
@@ -67,8 +62,6 @@ func sortSearch(ret []*models.SearchResultRow, ranks map[string]float32) {
 		switch m := m.(type) {
 		case *models.Dataproduct:
 			return m.Created
-		//case *models.Collection:
-		//	return m.Created
 		default:
 			return time.Time{}
 		}
