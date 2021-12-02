@@ -117,6 +117,22 @@ extend type Query {
         "offset the list of returned dataproducts. Used as pagination with PAGE-INDEX * limit."
         offset: Int
     ): [Dataproduct!]!
+
+    """
+    getDataproductMappings returns the service a dataproduct is exposed to.
+    """
+    getDataproductMappings(
+        "id of dataproduct."
+        dataproductId: ID!
+    ): [MappingService!]!
+
+    """
+    getDataproductByMapping returns the dataproduct exposed to a service.
+    """
+    getDataproductByMapping(
+        "service is the third party service."
+        service: MappingService!
+    ): [Dataproduct!]!
 }
 
 """
@@ -182,6 +198,13 @@ enum SubjectType @goModel(model: "github.com/navikt/nada-backend/pkg/graph/model
     user
     group
     serviceAccount
+}
+
+"""
+MappingService defines all possible service types that a dataproduct can be exposed to.
+"""
+enum MappingService @goModel(model: "github.com/navikt/nada-backend/pkg/graph/models.MappingService"){
+    metabase
 }
 
 extend type Mutation {
@@ -266,5 +289,17 @@ extend type Mutation {
     revokeAccessToDataproduct(
         "id for the access entry."
         id: ID!
+    ): Boolean! @authenticated
+
+    """
+    mapDataproduct exposes a dataproduct to third party services, e.g. metabase
+
+    Requires authentication
+    """
+    mapDataproduct(
+        "id of dataproduct."
+        dataproductId: ID!
+        "service is the type of third party service for which the dataproduct should be exposed."
+        services: [MappingService!]!
     ): Boolean! @authenticated
 }
