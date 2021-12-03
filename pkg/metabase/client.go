@@ -221,10 +221,8 @@ type PermissionGroupMember struct {
 }
 
 type MetabaseUser struct {
-	GoogleAuth bool   `json:"google_auth"`
-	Superuser  bool   `json:"is_superuser"`
-	Email      string `json:"email"`
-	ID         int    `json:"id"`
+	Email string `json:"email"`
+	ID    int    `json:"id"`
 }
 
 func (c *Client) Tables(ctx context.Context, dbID string) ([]Table, error) {
@@ -305,6 +303,8 @@ func (c *Client) GetPermissionGroup(ctx context.Context, groupName string) (int,
 		return -1, nil, fmt.Errorf("group %v does not exist in metabase", groupName)
 	}
 
+	// todo (erikvatt): could store metabase group ids in nada-backend
+
 	g := PermissionGroup{}
 	err = c.request(ctx, http.MethodGet, fmt.Sprintf("/permissions/group/%v", groupID), nil, &g)
 	if err != nil {
@@ -337,9 +337,7 @@ func (c *Client) AddPermissionGroupMember(ctx context.Context, groupID int, emai
 
 func getUserID(users []MetabaseUser, email string) (int, error) {
 	for _, u := range users {
-		if !u.GoogleAuth || u.Superuser {
-			continue
-		} else if u.Email == email {
+		if u.Email == email {
 			return u.ID, nil
 		}
 	}
