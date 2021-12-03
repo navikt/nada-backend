@@ -289,7 +289,10 @@ func (c *Client) CreatePermissionGroup(ctx context.Context, name string) error {
 
 func (c *Client) GetPermissionGroup(ctx context.Context, groupName string) (int, []PermissionGroupMember, error) {
 	groups := []PermissionGroup{}
-	c.request(ctx, http.MethodGet, "/permissions/group", nil, &groups)
+	err := c.request(ctx, http.MethodGet, "/permissions/group", nil, &groups)
+	if err != nil {
+		return -1, nil, err
+	}
 
 	groupID := -1
 	for _, g := range groups {
@@ -303,7 +306,7 @@ func (c *Client) GetPermissionGroup(ctx context.Context, groupName string) (int,
 	}
 
 	g := PermissionGroup{}
-	err := c.request(ctx, http.MethodGet, fmt.Sprintf("/permissions/group/%v", groupID), nil, &g)
+	err = c.request(ctx, http.MethodGet, fmt.Sprintf("/permissions/group/%v", groupID), nil, &g)
 	if err != nil {
 		return -1, nil, err
 	}
