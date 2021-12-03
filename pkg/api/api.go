@@ -12,6 +12,11 @@ import (
 	"golang.org/x/oauth2"
 )
 
+const (
+	RedirectURICookie = "redirecturi"
+	OAuthStateCookie  = "oauthstate"
+)
+
 type OAuth2 interface {
 	Exchange(ctx context.Context, code string, opts ...oauth2.AuthCodeOption) (*oauth2.Token, error)
 	AuthCodeURL(state string, opts ...oauth2.AuthCodeOption) string
@@ -31,9 +36,20 @@ func new(oauth2Config OAuth2, log *logrus.Entry) HTTP {
 }
 
 func (h *HTTP) Login(w http.ResponseWriter, r *http.Request) {
+	redirectURI := r.URL.Query().Get("redirect_uri")
+	http.SetCookie(w, &http.Cookie{
+		Name:     RedirectURICookie,
+		Value:    redirectURI,
+		Path:     "/",
+		Domain:   r.Host,
+		Expires:  time.Now().Add(30 * time.Minute),
+		Secure:   true,
+		HttpOnly: true,
+	})
+
 	oauthState := uuid.New().String()
 	http.SetCookie(w, &http.Cookie{
-		Name:     "oauthstate",
+		Name:     OAuthStateCookie,
 		Value:    oauthState,
 		Path:     "/",
 		Domain:   r.Host,
@@ -41,6 +57,7 @@ func (h *HTTP) Login(w http.ResponseWriter, r *http.Request) {
 		Secure:   true,
 		HttpOnly: true,
 	})
+
 	consentUrl := h.oauth2Config.AuthCodeURL(oauthState)
 	http.Redirect(w, r, consentUrl, http.StatusFound)
 }
@@ -59,22 +76,14 @@ func (h *HTTP) Callback(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	oauthCookie, err := r.Cookie("oauthstate")
+	oauthCookie, err := r.Cookie(OAuthStateCookie)
 	if err != nil {
 		h.log.Errorf("Missing oauth state cookie: %v", err)
 		http.Redirect(w, r, loginPage+"?error=invalid-state", http.StatusFound)
 		return
 	}
 
-	http.SetCookie(w, &http.Cookie{
-		Name:     "oauthstate",
-		Value:    "",
-		Path:     "/",
-		Domain:   r.Host,
-		Expires:  time.Unix(0, 0),
-		Secure:   true,
-		HttpOnly: true,
-	})
+	deleteCookie(w, OAuthStateCookie, r.Host)
 
 	state := r.URL.Query().Get("state")
 	if state != oauthCookie.Value {
@@ -105,7 +114,7 @@ func (h *HTTP) Callback(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// TODO(thokra): Use secure cookie
+	// TODO(thokra): Encrypt cookie value
 	http.SetCookie(w, &http.Cookie{
 		Name:     "jwt",
 		Value:    tokens.AccessToken + "|" + rawIDToken,
@@ -116,7 +125,25 @@ func (h *HTTP) Callback(w http.ResponseWriter, r *http.Request) {
 		HttpOnly: true,
 	})
 
-	http.Redirect(w, r, loginPage, http.StatusFound)
+	redirectURI, err := r.Cookie(RedirectURICookie)
+	if err != nil {
+		h.log.Infof("Missing redirect URI cookie: %v", err)
+	}
+
+	deleteCookie(w, RedirectURICookie, r.Host)
+	http.Redirect(w, r, loginPage+redirectURI.Value, http.StatusFound)
+}
+
+func deleteCookie(w http.ResponseWriter, name, domain string) {
+	http.SetCookie(w, &http.Cookie{
+		Name:     name,
+		Value:    "",
+		Path:     "/",
+		Domain:   domain,
+		Expires:  time.Unix(0, 0),
+		Secure:   true,
+		HttpOnly: true,
+	})
 }
 
 func (h *HTTP) Logout(w http.ResponseWriter, r *http.Request) {
