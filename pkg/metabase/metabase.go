@@ -3,7 +3,6 @@ package metabase
 import (
 	"context"
 	"encoding/base64"
-	"fmt"
 	"log"
 	"os"
 	"strconv"
@@ -17,36 +16,40 @@ import (
 	"github.com/navikt/nada-backend/pkg/graph/models"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/sirupsen/logrus"
+	"google.golang.org/api/cloudresourcemanager/v1"
 	iam "google.golang.org/api/iam/v1"
 )
 
 type Metabase struct {
-	repo      *database.Repo
-	client    *Client
-	accessMgr graph.AccessManager
-	sa        string
-	saEmail   string
-	errs      *prometheus.CounterVec
-	service   *iam.Service
-	log       *logrus.Entry
+	repo       *database.Repo
+	client     *Client
+	accessMgr  graph.AccessManager
+	sa         string
+	saEmail    string
+	errs       *prometheus.CounterVec
+	iamService *iam.Service
+	crmService *cloudresourcemanager.Service
+	log        *logrus.Entry
 }
 
 type dpWrapper struct {
-	Dataproduct *models.Dataproduct
-	Key         string
-	Email       string
+	Dataproduct     *models.Dataproduct
+	Key             string
+	Email           string
+	MetabaseGroupID int
 }
 
-func New(repo *database.Repo, client *Client, accessMgr graph.AccessManager, serviceAccount, serviceAccountEmail string, errs *prometheus.CounterVec, service *iam.Service, log *logrus.Entry) *Metabase {
+func New(repo *database.Repo, client *Client, accessMgr graph.AccessManager, serviceAccount, serviceAccountEmail string, errs *prometheus.CounterVec, iamService *iam.Service, crmService *cloudresourcemanager.Service, log *logrus.Entry) *Metabase {
 	return &Metabase{
-		repo:      repo,
-		client:    client,
-		accessMgr: accessMgr,
-		sa:        serviceAccount,
-		saEmail:   serviceAccountEmail,
-		errs:      errs,
-		service:   service,
-		log:       log,
+		repo:       repo,
+		client:     client,
+		accessMgr:  accessMgr,
+		sa:         serviceAccount,
+		saEmail:    serviceAccountEmail,
+		errs:       errs,
+		iamService: iamService,
+		crmService: crmService,
+		log:        log,
 	}
 }
 
@@ -113,7 +116,7 @@ func (m *Metabase) run(ctx context.Context) error {
 			continue
 		}
 
-		err := m.client.CreatePermissionGroup(ctx, dp.ID.String())
+		groupID, err := m.client.CreatePermissionGroup(ctx, dp.ID.String())
 		if err != nil {
 			return err
 		}
@@ -123,10 +126,13 @@ func (m *Metabase) run(ctx context.Context) error {
 			return err
 		}
 
+		// todo (erikvatt) Give service account NADA metabase role
+
 		createDps = append(createDps, dpWrapper{
-			Dataproduct: dp,
-			Key:         string(key),
-			Email:       email,
+			Dataproduct:     dp,
+			Key:             string(key),
+			Email:           email,
+			MetabaseGroupID: groupID,
 		})
 	}
 
@@ -159,16 +165,32 @@ func (m *Metabase) create(ctx context.Context, dps []dpWrapper) error {
 			return err
 		}
 
-		id, err := m.client.CreateDatabase(ctx, dp.Dataproduct.Name, dp.Key, dp.Email, &datasource)
+		dbID, err := m.client.CreateDatabase(ctx, dp.Dataproduct.Name, dp.Key, dp.Email, &datasource)
 		if err != nil {
 			return err
 		}
-		time.Sleep(2 * time.Second)
-		if err := m.HideOtherTables(ctx, id, datasource.Table); err != nil {
+
+		err = m.repo.CreateMetabaseMetadata(ctx, models.MetabaseMetadata{
+			DataproductID:     dp.Dataproduct.ID,
+			DatabaseID:        dbID,
+			PermissionGroupID: dp.MetabaseGroupID,
+		})
+		if err != nil {
 			return err
 		}
 
-		if err := m.client.AutoMapSemanticTypes(ctx, id); err != nil {
+		// todo (erikvatt) find better solution for this, call metabase api instead of sleeping
+		time.Sleep(2 * time.Second)
+
+		if dp.MetabaseGroupID > 0 {
+			m.client.RestrictAccessToDatabase(ctx, dp.MetabaseGroupID, dbID)
+		}
+
+		if err := m.HideOtherTables(ctx, dbID, datasource.Table); err != nil {
+			return err
+		}
+
+		if err := m.client.AutoMapSemanticTypes(ctx, dbID); err != nil {
 			return err
 		}
 
@@ -257,7 +279,6 @@ func (m *Metabase) removeDeletedMembersFromGroup(ctx context.Context, groupMembe
 
 func (m *Metabase) addNewMembersToGroup(ctx context.Context, groupID int, groupMembers []PermissionGroupMember, dpGrants []string) error {
 	for _, s := range dpGrants {
-		fmt.Println(s)
 		if !groupContainsUser(groupMembers, s) {
 			if err := m.client.AddPermissionGroupMember(ctx, groupID, s); err != nil {
 				m.log.WithError(err).WithField("user", s).
@@ -270,7 +291,7 @@ func (m *Metabase) addNewMembersToGroup(ctx context.Context, groupID int, groupM
 	return nil
 }
 
-func (m *Metabase) HideOtherTables(ctx context.Context, dbID, table string) error {
+func (m *Metabase) HideOtherTables(ctx context.Context, dbID int, table string) error {
 	tables, err := m.client.Tables(ctx, dbID)
 	if err != nil {
 		return err
@@ -289,6 +310,7 @@ func (m *Metabase) HideOtherTables(ctx context.Context, dbID, table string) erro
 }
 
 func (m *Metabase) createServiceAccount(dp *models.Dataproduct) ([]byte, string, error) {
+	projectResource := os.Getenv("GCP_TEAM_PROJECT_ID")
 	request := &iam.CreateServiceAccountRequest{
 		AccountId: "nada-" + MarshalUUID(dp.ID),
 		ServiceAccount: &iam.ServiceAccount{
@@ -297,14 +319,34 @@ func (m *Metabase) createServiceAccount(dp *models.Dataproduct) ([]byte, string,
 		},
 	}
 
-	account, err := m.service.Projects.ServiceAccounts.Create("projects/"+os.Getenv("GCP_TEAM_PROJECT_ID"), request).Do()
+	account, err := m.iamService.Projects.ServiceAccounts.Create("projects/"+projectResource, request).Do()
+	if err != nil {
+		return nil, "", err
+	}
+
+	iamPolicyCall := m.crmService.Projects.GetIamPolicy(projectResource, &cloudresourcemanager.GetIamPolicyRequest{})
+	iamPolicies, err := iamPolicyCall.Do()
+	if err != nil {
+		return nil, "", err
+	}
+
+	iamPolicies.Bindings = append(iamPolicies.Bindings, &cloudresourcemanager.Binding{
+		Members: []string{"serviceAccount:" + account.Email},
+		Role:    "projects/" + projectResource + "/roles/nada.metabase",
+	})
+
+	iamSetPolicyCall := m.crmService.Projects.SetIamPolicy(projectResource, &cloudresourcemanager.SetIamPolicyRequest{
+		Policy: iamPolicies,
+	})
+
+	_, err = iamSetPolicyCall.Do()
 	if err != nil {
 		return nil, "", err
 	}
 
 	keyRequest := &iam.CreateServiceAccountKeyRequest{}
 
-	key, err := m.service.Projects.ServiceAccounts.Keys.Create("projects/-/serviceAccounts/"+account.UniqueId, keyRequest).Do()
+	key, err := m.iamService.Projects.ServiceAccounts.Keys.Create("projects/-/serviceAccounts/"+account.UniqueId, keyRequest).Do()
 	if err != nil {
 		return nil, "", err
 	}

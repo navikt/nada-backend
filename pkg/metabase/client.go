@@ -169,7 +169,7 @@ type Details struct {
 	SAEmail            string `json:"sa-email"`
 }
 
-func (c *Client) CreateDatabase(ctx context.Context, name, saJSON, saEmail string, ds *models.BigQuery) (string, error) {
+func (c *Client) CreateDatabase(ctx context.Context, name, saJSON, saEmail string, ds *models.BigQuery) (int, error) {
 	db := NewDatabase{
 		Name: name,
 		Details: Details{
@@ -188,7 +188,7 @@ func (c *Client) CreateDatabase(ctx context.Context, name, saJSON, saEmail strin
 	}
 	err := c.request(ctx, http.MethodPost, "/database", db, &v)
 
-	return strconv.Itoa(v.ID), err
+	return v.ID, err
 }
 
 func (c *Client) HideTables(ctx context.Context, ids []int) error {
@@ -230,12 +230,12 @@ type MetabaseUser struct {
 	ID    int    `json:"id"`
 }
 
-func (c *Client) Tables(ctx context.Context, dbID string) ([]Table, error) {
+func (c *Client) Tables(ctx context.Context, dbID int) ([]Table, error) {
 	var v struct {
 		Tables []Table `json:"tables"`
 	}
 
-	if err := c.request(ctx, http.MethodGet, "/database/"+dbID+"/metadata", nil, &v); err != nil {
+	if err := c.request(ctx, http.MethodGet, fmt.Sprintf("/database/%v/metadata", dbID), nil, &v); err != nil {
 		return nil, err
 	}
 
@@ -254,7 +254,7 @@ func (c *Client) DeleteDatabase(ctx context.Context, id string) error {
 	return c.request(ctx, http.MethodDelete, "/database/"+id, nil, nil)
 }
 
-func (c *Client) AutoMapSemanticTypes(ctx context.Context, dbID string) error {
+func (c *Client) AutoMapSemanticTypes(ctx context.Context, dbID int) error {
 	tables, err := c.Tables(ctx, dbID)
 	if err != nil {
 		return err
@@ -285,9 +285,13 @@ func (c *Client) MapSemanticType(ctx context.Context, fieldID int, semanticType 
 	return c.request(ctx, http.MethodPut, "/field/"+strconv.Itoa(fieldID), payload, nil)
 }
 
-func (c *Client) CreatePermissionGroup(ctx context.Context, name string) error {
+func (c *Client) CreatePermissionGroup(ctx context.Context, name string) (int, error) {
+	group := PermissionGroup{}
 	payload := map[string]string{"name": name}
-	return c.request(ctx, http.MethodPost, "/permissions/group", payload, nil)
+	if err := c.request(ctx, http.MethodPost, "/permissions/group", payload, &group); err != nil {
+		return 0, err
+	}
+	return group.ID, nil
 }
 
 func (c *Client) GetPermissionGroup(ctx context.Context, groupName string) (int, []PermissionGroupMember, error) {
@@ -323,10 +327,6 @@ func (c *Client) RemovePermissionGroupMember(ctx context.Context, memberID int) 
 	return c.request(ctx, http.MethodDelete, fmt.Sprintf("/permissions/membership/%v", memberID), nil, nil)
 }
 
-func (c *Client) GetGroupPermissionsForDatabase(ctx context.Context, databaseID int)  {
-
-}
-
 func (c *Client) AddPermissionGroupMember(ctx context.Context, groupID int, email string) error {
 	var users struct {
 		Data []MetabaseUser
@@ -344,6 +344,45 @@ func (c *Client) AddPermissionGroupMember(ctx context.Context, groupID int, emai
 
 	payload := map[string]int{"group_id": groupID, "user_id": userID}
 	return c.request(ctx, http.MethodPost, "/permissions/membership", payload, nil)
+}
+
+func (c *Client) RestrictAccessToDatabase(ctx context.Context, groupID, databaseID int) error {
+	type permissions struct {
+		Native  string `json:"native,omitempty"`
+		Schemas string `json:"schemas,omitempty"`
+	}
+	var permissionGraph struct {
+		Groups   map[string]map[string]permissions `json:"groups"`
+		Revision int                               `json:"revision"`
+	}
+
+	err := c.request(ctx, http.MethodGet, "/permissions/graph", nil, &permissionGraph)
+	if err != nil {
+		return err
+	}
+
+	grpSID := strconv.Itoa(groupID)
+	dbSID := strconv.Itoa(databaseID)
+
+	if _, ok := permissionGraph.Groups[grpSID]; !ok {
+		permissionGraph.Groups[grpSID] = map[string]permissions{}
+	}
+	permissionGraph.Groups[grpSID][dbSID] = permissions{Native: "write", Schemas: "all"}
+
+	for gid, permission := range permissionGraph.Groups {
+		if gid == "2" {
+			continue
+		}
+		if gid != grpSID {
+			permission[dbSID] = permissions{Native: "none", Schemas: "none"}
+		}
+	}
+
+	if err := c.request(ctx, http.MethodPut, "/permissions/graph", permissionGraph, nil); err != nil {
+		return err
+	}
+
+	return nil
 }
 
 func getUserID(users []MetabaseUser, email string) (int, error) {
