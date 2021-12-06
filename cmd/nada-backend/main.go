@@ -23,6 +23,8 @@ import (
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/sirupsen/logrus"
 	flag "github.com/spf13/pflag"
+	"google.golang.org/api/cloudresourcemanager/v1"
+	"google.golang.org/api/iam/v1"
 )
 
 var (
@@ -173,6 +175,10 @@ func runMetabase(ctx context.Context, log *logrus.Entry, cfg Config, repo *datab
 	log.Info("metabase sync enabled")
 
 	client := metabase.NewClient(cfg.MetabaseAPI, cfg.MetabaseUsername, cfg.MetabasePassword)
+	crmService, err := cloudresourcemanager.NewService(ctx)
+	if err != nil {
+		return err
+	}
 
 	sa, err := os.ReadFile(cfg.MetabaseServiceAccountFile)
 	if err != nil {
@@ -188,7 +194,12 @@ func runMetabase(ctx context.Context, log *logrus.Entry, cfg Config, repo *datab
 		return err
 	}
 
-	metabase := metabase.New(repo, client, accessMgr, string(sa), metabaseSA.ClientEmail, promErrs, log.WithField("subsystem", "metabase"))
+	iamService, err := iam.NewService(ctx)
+	if err != nil {
+		return err
+	}
+
+	metabase := metabase.New(repo, client, accessMgr, string(sa), metabaseSA.ClientEmail, promErrs, iamService, crmService, log.WithField("subsystem", "metabase"))
 	go metabase.Run(ctx, MetabaseUpdateFrequency)
 	return nil
 }

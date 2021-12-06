@@ -201,6 +201,14 @@ func (r *mutationResolver) RevokeAccessToDataproduct(ctx context.Context, id uui
 	return true, r.repo.RevokeAccessToDataproduct(ctx, id)
 }
 
+func (r *mutationResolver) MapDataproduct(ctx context.Context, dataproductID uuid.UUID, services []models.MappingService) (bool, error) {
+	err := r.repo.MapDataproduct(ctx, dataproductID, services)
+	if err != nil {
+		return false, err
+	}
+	return true, nil
+}
+
 func (r *queryResolver) Dataproduct(ctx context.Context, id uuid.UUID) (*models.Dataproduct, error) {
 	return r.repo.GetDataproduct(ctx, id)
 }
@@ -210,11 +218,21 @@ func (r *queryResolver) Dataproducts(ctx context.Context, limit *int, offset *in
 	return r.repo.GetDataproducts(ctx, l, o)
 }
 
+func (r *queryResolver) GetDataproductMappings(ctx context.Context, dataproductID uuid.UUID) ([]models.MappingService, error) {
+	return r.repo.GetDataproductMappings(ctx, dataproductID)
+}
+
+func (r *queryResolver) GetDataproductByMapping(ctx context.Context, service models.MappingService) ([]*models.Dataproduct, error) {
+	return r.repo.GetDataproductsByMapping(ctx, service)
+}
+
 // BigQuery returns generated.BigQueryResolver implementation.
 func (r *Resolver) BigQuery() generated.BigQueryResolver { return &bigQueryResolver{r} }
 
 // Dataproduct returns generated.DataproductResolver implementation.
 func (r *Resolver) Dataproduct() generated.DataproductResolver { return &dataproductResolver{r} }
 
-type bigQueryResolver struct{ *Resolver }
-type dataproductResolver struct{ *Resolver }
+type (
+	bigQueryResolver    struct{ *Resolver }
+	dataproductResolver struct{ *Resolver }
+)

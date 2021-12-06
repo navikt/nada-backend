@@ -37,20 +37,20 @@ func NewClient(url, username, password string) *Client {
 func (c *Client) request(ctx context.Context, method, path string, body interface{}, v interface{}) error {
 	err := c.ensureValidSession(ctx)
 	if err != nil {
-		return err
+		return fmt.Errorf("%v %v: %w", method, path, err)
 	}
 
 	var buf io.ReadWriter
 	if body != nil {
 		buf = &bytes.Buffer{}
 		if err := json.NewEncoder(buf).Encode(body); err != nil {
-			return err
+			return fmt.Errorf("%v %v: %w", method, path, err)
 		}
 	}
 
 	req, err := http.NewRequestWithContext(ctx, method, c.url+path, buf)
 	if err != nil {
-		return err
+		return fmt.Errorf("%v %v: %w", method, path, err)
 	}
 
 	req.Header.Set("X-Metabase-Session", c.sessionID)
@@ -58,22 +58,26 @@ func (c *Client) request(ctx context.Context, method, path string, body interfac
 
 	res, err := c.c.Do(req)
 	if err != nil {
-		return err
+		return fmt.Errorf("%v %v: %w", method, path, err)
 	}
 
 	if res.StatusCode > 299 {
 		_, err := io.Copy(os.Stdout, res.Body)
 		if err != nil {
-			return err
+			return fmt.Errorf("%v %v: %w", method, path, err)
 		}
-		return fmt.Errorf("non 2xx status code, got: %v", res.StatusCode)
+		return fmt.Errorf("%v %v: non 2xx status code, got: %v", method, path, res.StatusCode)
 	}
 
 	if v == nil {
 		return nil
 	}
 
-	return json.NewDecoder(res.Body).Decode(v)
+	if err := json.NewDecoder(res.Body).Decode(v); err != nil {
+		return fmt.Errorf("%v %v: %w", method, path, err)
+	}
+
+	return nil
 }
 
 func (c *Client) ensureValidSession(ctx context.Context) error {
@@ -115,6 +119,7 @@ type Database struct {
 	DatasetID string
 	ProjectID string
 	NadaID    string
+	SAEmail   string
 }
 
 func (c *Client) Databases(ctx context.Context) ([]Database, error) {
@@ -124,6 +129,7 @@ func (c *Client) Databases(ctx context.Context) ([]Database, error) {
 				DatasetID string `json:"dataset-id"`
 				ProjectID string `json:"project-id"`
 				NadaID    string `json:"nada-id"`
+				SAEmail   string `json:"sa-email"`
 			} `json:"details"`
 			ID int `json:"id"`
 		} `json:"data"`
@@ -140,6 +146,7 @@ func (c *Client) Databases(ctx context.Context) ([]Database, error) {
 			DatasetID: db.Details.DatasetID,
 			ProjectID: db.Details.ProjectID,
 			NadaID:    db.Details.NadaID,
+			SAEmail:   db.Details.SAEmail,
 		})
 	}
 
@@ -159,9 +166,10 @@ type Details struct {
 	ProjectID          string `json:"project-id"`
 	ServiceAccountJSON string `json:"service-account-json"`
 	NadaID             string `json:"nada-id"`
+	SAEmail            string `json:"sa-email"`
 }
 
-func (c *Client) CreateDatabase(ctx context.Context, name, saJSON string, ds *models.BigQuery) (string, error) {
+func (c *Client) CreateDatabase(ctx context.Context, name, saJSON, saEmail string, ds *models.BigQuery) (int, error) {
 	db := NewDatabase{
 		Name: name,
 		Details: Details{
@@ -169,6 +177,7 @@ func (c *Client) CreateDatabase(ctx context.Context, name, saJSON string, ds *mo
 			NadaID:             ds.DataproductID.String(),
 			ProjectID:          ds.ProjectID,
 			ServiceAccountJSON: saJSON,
+			SAEmail:            saEmail,
 		},
 		Engine:         "bigquery-cloud-sdk",
 		IsFullSync:     true,
@@ -178,7 +187,8 @@ func (c *Client) CreateDatabase(ctx context.Context, name, saJSON string, ds *mo
 		ID int `json:"id"`
 	}
 	err := c.request(ctx, http.MethodPost, "/database", db, &v)
-	return strconv.Itoa(v.ID), err
+
+	return v.ID, err
 }
 
 func (c *Client) HideTables(ctx context.Context, ids []int) error {
@@ -204,12 +214,28 @@ type Table struct {
 	} `json:"fields"`
 }
 
-func (c *Client) Tables(ctx context.Context, dbID string) ([]Table, error) {
+type PermissionGroup struct {
+	ID      int                     `json:"id"`
+	Name    string                  `json:"name"`
+	Members []PermissionGroupMember `json:"members"`
+}
+
+type PermissionGroupMember struct {
+	ID    int    `json:"membership_id"`
+	Email string `json:"email"`
+}
+
+type MetabaseUser struct {
+	Email string `json:"email"`
+	ID    int    `json:"id"`
+}
+
+func (c *Client) Tables(ctx context.Context, dbID int) ([]Table, error) {
 	var v struct {
 		Tables []Table `json:"tables"`
 	}
 
-	if err := c.request(ctx, http.MethodGet, "/database/"+dbID+"/metadata", nil, &v); err != nil {
+	if err := c.request(ctx, http.MethodGet, fmt.Sprintf("/database/%v/metadata", dbID), nil, &v); err != nil {
 		return nil, err
 	}
 
@@ -228,7 +254,7 @@ func (c *Client) DeleteDatabase(ctx context.Context, id string) error {
 	return c.request(ctx, http.MethodDelete, "/database/"+id, nil, nil)
 }
 
-func (c *Client) AutoMapSemanticTypes(ctx context.Context, dbID string) error {
+func (c *Client) AutoMapSemanticTypes(ctx context.Context, dbID int) error {
 	tables, err := c.Tables(ctx, dbID)
 	if err != nil {
 		return err
@@ -257,4 +283,111 @@ func (c *Client) AutoMapSemanticTypes(ctx context.Context, dbID string) error {
 func (c *Client) MapSemanticType(ctx context.Context, fieldID int, semanticType string) error {
 	payload := map[string]string{"semantic_type": semanticType}
 	return c.request(ctx, http.MethodPut, "/field/"+strconv.Itoa(fieldID), payload, nil)
+}
+
+func (c *Client) CreatePermissionGroup(ctx context.Context, name string) (int, error) {
+	group := PermissionGroup{}
+	payload := map[string]string{"name": name}
+	if err := c.request(ctx, http.MethodPost, "/permissions/group", payload, &group); err != nil {
+		return 0, err
+	}
+	return group.ID, nil
+}
+
+func (c *Client) GetPermissionGroup(ctx context.Context, groupName string) (int, []PermissionGroupMember, error) {
+	groups := []PermissionGroup{}
+	err := c.request(ctx, http.MethodGet, "/permissions/group", nil, &groups)
+	if err != nil {
+		return -1, nil, err
+	}
+
+	groupID := -1
+	for _, g := range groups {
+		if g.Name == groupName {
+			groupID = g.ID
+			break
+		}
+	}
+	if groupID == -1 {
+		return -1, nil, fmt.Errorf("group %v does not exist in metabase", groupName)
+	}
+
+	g := PermissionGroup{}
+	err = c.request(ctx, http.MethodGet, fmt.Sprintf("/permissions/group/%v", groupID), nil, &g)
+	if err != nil {
+		return -1, nil, err
+	}
+
+	return groupID, g.Members, nil
+}
+
+func (c *Client) RemovePermissionGroupMember(ctx context.Context, memberID int) error {
+	return c.request(ctx, http.MethodDelete, fmt.Sprintf("/permissions/membership/%v", memberID), nil, nil)
+}
+
+func (c *Client) AddPermissionGroupMember(ctx context.Context, groupID int, email string) error {
+	var users struct {
+		Data []MetabaseUser
+	}
+
+	err := c.request(ctx, http.MethodGet, "/user", nil, &users)
+	if err != nil {
+		return err
+	}
+
+	userID, err := getUserID(users.Data, email)
+	if err != nil {
+		return err
+	}
+
+	payload := map[string]int{"group_id": groupID, "user_id": userID}
+	return c.request(ctx, http.MethodPost, "/permissions/membership", payload, nil)
+}
+
+func (c *Client) RestrictAccessToDatabase(ctx context.Context, groupID, databaseID int) error {
+	type permissions struct {
+		Native  string `json:"native,omitempty"`
+		Schemas string `json:"schemas,omitempty"`
+	}
+	var permissionGraph struct {
+		Groups   map[string]map[string]permissions `json:"groups"`
+		Revision int                               `json:"revision"`
+	}
+
+	err := c.request(ctx, http.MethodGet, "/permissions/graph", nil, &permissionGraph)
+	if err != nil {
+		return err
+	}
+
+	grpSID := strconv.Itoa(groupID)
+	dbSID := strconv.Itoa(databaseID)
+
+	if _, ok := permissionGraph.Groups[grpSID]; !ok {
+		permissionGraph.Groups[grpSID] = map[string]permissions{}
+	}
+	permissionGraph.Groups[grpSID][dbSID] = permissions{Native: "write", Schemas: "all"}
+
+	for gid, permission := range permissionGraph.Groups {
+		if gid == "2" {
+			continue
+		}
+		if gid != grpSID {
+			permission[dbSID] = permissions{Native: "none", Schemas: "none"}
+		}
+	}
+
+	if err := c.request(ctx, http.MethodPut, "/permissions/graph", permissionGraph, nil); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func getUserID(users []MetabaseUser, email string) (int, error) {
+	for _, u := range users {
+		if u.Email == email {
+			return u.ID, nil
+		}
+	}
+	return -1, fmt.Errorf("user %v does not exist in metabase", email)
 }

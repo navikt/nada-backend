@@ -64,6 +64,20 @@ func (r *Repo) GetAccessToDataproduct(ctx context.Context, id uuid.UUID) (*model
 	return accessFromSQL(access), nil
 }
 
+func (r *Repo) ListActiveAccessToDataproduct(ctx context.Context, dataproductID uuid.UUID) ([]*models.Access, error) {
+	access, err := r.querier.ListActiveAccessToDataproduct(ctx, dataproductID)
+	if err != nil {
+		return nil, err
+	}
+
+	var ret []*models.Access
+	for _, e := range access {
+		ret = append(ret, accessFromSQL(e))
+	}
+
+	return ret, nil
+}
+
 func (r *Repo) RevokeAccessToDataproduct(ctx context.Context, id uuid.UUID) error {
 	return r.querier.RevokeAccessToDataproduct(ctx, id)
 }

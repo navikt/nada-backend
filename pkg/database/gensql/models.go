@@ -91,6 +91,12 @@ type DatasourceBigquery struct {
 	TableType     string
 }
 
+type MetabaseMetadatum struct {
+	DataproductID     uuid.UUID
+	DatabaseID        int32
+	PermissionGroupID sql.NullInt32
+}
+
 type Search struct {
 	ElementID    uuid.UUID
 	ElementType  interface{}
@@ -100,4 +106,9 @@ type Search struct {
 	Created      time.Time
 	LastModified time.Time
 	TsvDocument  interface{}
+}
+
+type ThirdPartyMapping struct {
+	DataproductID uuid.UUID
+	Services      []string
 }
