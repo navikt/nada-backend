@@ -171,6 +171,7 @@ func (m *Metabase) create(ctx context.Context, dps []dpWrapper) error {
 			DataproductID:     dp.Dataproduct.ID,
 			DatabaseID:        dbID,
 			PermissionGroupID: dp.MetabaseGroupID,
+			SAEmail:           dp.Email,
 		})
 		if err != nil {
 			return err
@@ -226,6 +227,12 @@ func (m *Metabase) delete(ctx context.Context, dataproducts map[string]bool, dat
 		if mbMetadata.PermissionGroupID > 0 {
 			if err := m.client.DeletePermissionGroup(ctx, mbMetadata.PermissionGroupID); err != nil {
 				m.log.WithError(err).Error("Deleting permission group in Metabase")
+				m.errs.WithLabelValues("RemoveMetabaseDatabase").Inc()
+				continue
+			}
+
+			if err := m.deleteServiceAccount(mbMetadata.SAEmail); err != nil {
+				m.log.WithError(err).Error("Deleting metabase permission group service account")
 				m.errs.WithLabelValues("RemoveMetabaseDatabase").Inc()
 				continue
 			}
@@ -371,6 +378,13 @@ func (m *Metabase) createServiceAccount(dp *models.Dataproduct) ([]byte, string,
 	}
 
 	return saJson, account.Email, err
+}
+
+func (m *Metabase) deleteServiceAccount(saEmail string) error {
+	_, err := m.iamService.Projects.ServiceAccounts.
+		Delete("projects/" + os.Getenv("GCP_TEAM_PROJECT_ID") + "/serviceAccounts/" + saEmail).
+		Do()
+	return err
 }
 
 func groupContainsUser(mbGroups []PermissionGroupMember, email string) bool {

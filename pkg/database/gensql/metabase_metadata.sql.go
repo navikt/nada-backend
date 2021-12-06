@@ -14,11 +14,13 @@ const createMetabaseMetadata = `-- name: CreateMetabaseMetadata :exec
 INSERT INTO metabase_metadata (
     "dataproduct_id",
     "database_id",
-    "permission_group_id"
+    "permission_group_id",
+    "sa_email"
 ) VALUES (
     $1,
     $2,
-    $3
+    $3,
+    $4
 )
 `
 
@@ -26,15 +28,21 @@ type CreateMetabaseMetadataParams struct {
 	DataproductID     uuid.UUID
 	DatabaseID        int32
 	PermissionGroupID sql.NullInt32
+	SaEmail           string
 }
 
 func (q *Queries) CreateMetabaseMetadata(ctx context.Context, arg CreateMetabaseMetadataParams) error {
-	_, err := q.db.ExecContext(ctx, createMetabaseMetadata, arg.DataproductID, arg.DatabaseID, arg.PermissionGroupID)
+	_, err := q.db.ExecContext(ctx, createMetabaseMetadata,
+		arg.DataproductID,
+		arg.DatabaseID,
+		arg.PermissionGroupID,
+		arg.SaEmail,
+	)
 	return err
 }
 
 const getMetabaseMetadata = `-- name: GetMetabaseMetadata :one
-SELECT dataproduct_id, database_id, permission_group_id
+SELECT dataproduct_id, database_id, permission_group_id, sa_email
 FROM metabase_metadata
 WHERE "dataproduct_id" = $1
 `
@@ -42,6 +50,11 @@ WHERE "dataproduct_id" = $1
 func (q *Queries) GetMetabaseMetadata(ctx context.Context, dataproductID uuid.UUID) (MetabaseMetadatum, error) {
 	row := q.db.QueryRowContext(ctx, getMetabaseMetadata, dataproductID)
 	var i MetabaseMetadatum
-	err := row.Scan(&i.DataproductID, &i.DatabaseID, &i.PermissionGroupID)
+	err := row.Scan(
+		&i.DataproductID,
+		&i.DatabaseID,
+		&i.PermissionGroupID,
+		&i.SaEmail,
+	)
 	return i, err
 }

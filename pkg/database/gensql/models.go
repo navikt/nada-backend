@@ -95,6 +95,7 @@ type MetabaseMetadatum struct {
 	DataproductID     uuid.UUID
 	DatabaseID        int32
 	PermissionGroupID sql.NullInt32
+	SaEmail           string
 }
 
 type Search struct {

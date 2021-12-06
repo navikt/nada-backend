@@ -17,6 +17,7 @@ func (r *Repo) CreateMetabaseMetadata(ctx context.Context, metadata models.Metab
 			Int32: int32(metadata.PermissionGroupID),
 			Valid: metadata.PermissionGroupID > 0,
 		},
+		SaEmail: metadata.SAEmail,
 	})
 }
 
@@ -30,5 +31,6 @@ func (r *Repo) GetMetabaseMetadata(ctx context.Context, dataproductID uuid.UUID)
 		DataproductID:     meta.DataproductID,
 		DatabaseID:        int(meta.DatabaseID),
 		PermissionGroupID: int(meta.PermissionGroupID.Int32),
+		SAEmail:           meta.SaEmail,
 	}, nil
 }
