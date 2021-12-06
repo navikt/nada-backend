@@ -250,8 +250,8 @@ func (c *Client) Tables(ctx context.Context, dbID int) ([]Table, error) {
 	return ret, nil
 }
 
-func (c *Client) DeleteDatabase(ctx context.Context, id string) error {
-	return c.request(ctx, http.MethodDelete, "/database/"+id, nil, nil)
+func (c *Client) DeleteDatabase(ctx context.Context, id int) error {
+	return c.request(ctx, http.MethodDelete, fmt.Sprintf("/database/%v", id), nil, nil)
 }
 
 func (c *Client) AutoMapSemanticTypes(ctx context.Context, dbID int) error {
@@ -381,6 +381,10 @@ func (c *Client) RestrictAccessToDatabase(ctx context.Context, groupID, database
 	}
 
 	return nil
+}
+
+func (c *Client) DeletePermissionGroup(ctx context.Context, groupID int) error {
+	return c.request(ctx, http.MethodDelete, fmt.Sprintf("/permissions/group/%v", groupID), nil, nil)
 }
 
 func getUserID(users []MetabaseUser, email string) (int, error) {

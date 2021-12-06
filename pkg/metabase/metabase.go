@@ -5,7 +5,6 @@ import (
 	"encoding/base64"
 	"log"
 	"os"
-	"strconv"
 	"strings"
 	"time"
 
@@ -204,17 +203,34 @@ func (m *Metabase) delete(ctx context.Context, dataproducts map[string]bool, dat
 			continue
 		}
 
-		if err := m.client.DeleteDatabase(ctx, strconv.Itoa(mdb.ID)); err != nil {
+		if err := m.client.DeleteDatabase(ctx, mdb.ID); err != nil {
 			m.log.WithError(err).Error("Deleting database in Metabase")
 			m.errs.WithLabelValues("RemoveMetabaseDatabase").Inc()
 			continue
 		}
+
 		uid, err := uuid.Parse(mdb.NadaID)
 		if err != nil {
 			m.log.WithError(err).Error("Parsing UUID")
 			m.errs.WithLabelValues("RemoveMetabaseDatabase").Inc()
 			continue
 		}
+
+		mbMetadata, err := m.repo.GetMetabaseMetadata(ctx, uid)
+		if err != nil {
+			m.log.WithError(err).Error("Get metabase metadata on delete database")
+			m.errs.WithLabelValues("RemoveMetabaseDatabase").Inc()
+			continue
+		}
+
+		if mbMetadata.PermissionGroupID > 0 {
+			if err := m.client.DeletePermissionGroup(ctx, mbMetadata.PermissionGroupID); err != nil {
+				m.log.WithError(err).Error("Deleting permission group in Metabase")
+				m.errs.WithLabelValues("RemoveMetabaseDatabase").Inc()
+				continue
+			}
+		}
+
 		ds, err := m.repo.GetBigqueryDatasource(ctx, uid)
 		if err != nil {
 			m.log.WithError(err).Error("Getting Bigquery datasource")
