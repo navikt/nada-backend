@@ -312,8 +312,6 @@ func (c *Client) GetPermissionGroup(ctx context.Context, groupName string) (int,
 		return -1, nil, fmt.Errorf("group %v does not exist in metabase", groupName)
 	}
 
-	// todo (erikvatt): could store metabase group ids in nada-backend
-
 	g := PermissionGroup{}
 	err = c.request(ctx, http.MethodGet, fmt.Sprintf("/permissions/group/%v", groupID), nil, &g)
 	if err != nil {

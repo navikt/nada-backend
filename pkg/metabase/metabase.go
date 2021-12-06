@@ -126,8 +126,6 @@ func (m *Metabase) run(ctx context.Context) error {
 			return err
 		}
 
-		// todo (erikvatt) Give service account NADA metabase role
-
 		createDps = append(createDps, dpWrapper{
 			Dataproduct:     dp,
 			Key:             string(key),
