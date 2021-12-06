@@ -29,3 +29,8 @@ WHERE dataproduct_id = @dataproduct_id;
 SELECT *
 FROM dataproduct_access
 WHERE id = @id;
+
+-- name: ListActiveAccessToDataproduct :many
+SELECT *
+FROM dataproduct_access
+WHERE dataproduct_id = @dataproduct_id AND revoked IS NULL AND (expires IS NULL OR expires >= NOW());

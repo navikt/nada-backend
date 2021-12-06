@@ -107,6 +107,43 @@ func (q *Queries) ListAccessToDataproduct(ctx context.Context, dataproductID uui
 	return items, nil
 }
 
+const listActiveAccessToDataproduct = `-- name: ListActiveAccessToDataproduct :many
+SELECT id, dataproduct_id, subject, granter, expires, created, revoked
+FROM dataproduct_access
+WHERE dataproduct_id = $1 AND revoked IS NULL AND (expires IS NULL OR expires >= NOW())
+`
+
+func (q *Queries) ListActiveAccessToDataproduct(ctx context.Context, dataproductID uuid.UUID) ([]DataproductAccess, error) {
+	rows, err := q.db.QueryContext(ctx, listActiveAccessToDataproduct, dataproductID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []DataproductAccess{}
+	for rows.Next() {
+		var i DataproductAccess
+		if err := rows.Scan(
+			&i.ID,
+			&i.DataproductID,
+			&i.Subject,
+			&i.Granter,
+			&i.Expires,
+			&i.Created,
+			&i.Revoked,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const listUnrevokedExpiredAccessEntries = `-- name: ListUnrevokedExpiredAccessEntries :many
 SELECT id, dataproduct_id, subject, granter, expires, created, revoked
 FROM dataproduct_access

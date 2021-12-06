@@ -2,7 +2,10 @@ package metabase
 
 import (
 	"context"
+	"encoding/base64"
+	"fmt"
 	"log"
+	"os"
 	"strconv"
 	"strings"
 	"time"
@@ -83,28 +86,30 @@ func (m *Metabase) run(ctx context.Context) error {
 		lookup[d.NadaID] = d
 	}
 
-	combinedDps := []dpWrapper{}
+	createDps := []dpWrapper{}
 	combinedIDs := map[string]bool{}
 
 	for _, dp := range openDps {
+		combinedIDs[dp.ID.String()] = true
 		if _, ok := lookup[dp.ID.String()]; ok {
 			// It exists in metabase
 			continue
 		}
 
-		combinedDps = append(combinedDps, dpWrapper{
+		createDps = append(createDps, dpWrapper{
 			Dataproduct: dp,
 			Key:         m.sa,
 			Email:       m.saEmail,
 		})
-		combinedIDs[dp.ID.String()] = true
 	}
 
 	for _, dp := range restrictedDps {
+		if combinedIDs[dp.ID.String()] {
+			continue
+		}
+		combinedIDs[dp.ID.String()] = true
 		if _, ok := lookup[dp.ID.String()]; ok {
 			// It exists in metabase
-			continue
-		} else if combinedIDs[dp.ID.String()] {
 			continue
 		}
 
@@ -118,18 +123,18 @@ func (m *Metabase) run(ctx context.Context) error {
 			return err
 		}
 
-		combinedDps = append(combinedDps, dpWrapper{
+		createDps = append(createDps, dpWrapper{
 			Dataproduct: dp,
 			Key:         string(key),
 			Email:       email,
 		})
 	}
 
-	err = m.create(ctx, combinedDps)
+	err = m.create(ctx, createDps)
 	if err != nil {
 		return err
 	}
-	err = m.delete(ctx, combinedDps, databases)
+	err = m.delete(ctx, combinedIDs, databases)
 	if err != nil {
 		return err
 	}
@@ -172,22 +177,13 @@ func (m *Metabase) create(ctx context.Context, dps []dpWrapper) error {
 	return nil
 }
 
-func (m *Metabase) delete(ctx context.Context, dataproducts []dpWrapper, databases []Database) error {
+func (m *Metabase) delete(ctx context.Context, dataproducts map[string]bool, databases []Database) error {
 	// Remove databases in Metabase that no longer exists or is not available to all users
 	for _, mdb := range databases {
-		if mdb.NadaID == "" {
+		if mdb.NadaID == "" || dataproducts[mdb.NadaID] {
 			continue
 		}
-		found := false
 
-		for _, dp := range dataproducts {
-			if mdb.NadaID == dp.Dataproduct.ID.String() {
-				found = true
-			}
-		}
-		if found {
-			continue
-		}
 		if err := m.client.DeleteDatabase(ctx, strconv.Itoa(mdb.ID)); err != nil {
 			m.log.WithError(err).Error("Deleting database in Metabase")
 			m.errs.WithLabelValues("RemoveMetabaseDatabase").Inc()
@@ -218,7 +214,7 @@ func (m *Metabase) delete(ctx context.Context, dataproducts []dpWrapper, databas
 
 func (m *Metabase) syncPermissionGroupMembers(ctx context.Context, restrictedDps []*models.Dataproduct) error {
 	for _, dp := range restrictedDps {
-		subjects, err := m.repo.ListAccessToDataproduct(ctx, dp.ID)
+		subjects, err := m.repo.ListActiveAccessToDataproduct(ctx, dp.ID)
 		if err != nil {
 			return err
 		}
@@ -261,8 +257,13 @@ func (m *Metabase) removeDeletedMembersFromGroup(ctx context.Context, groupMembe
 
 func (m *Metabase) addNewMembersToGroup(ctx context.Context, groupID int, groupMembers []PermissionGroupMember, dpGrants []string) error {
 	for _, s := range dpGrants {
+		fmt.Println(s)
 		if !groupContainsUser(groupMembers, s) {
-			m.client.AddPermissionGroupMember(ctx, groupID, s)
+			if err := m.client.AddPermissionGroupMember(ctx, groupID, s); err != nil {
+				m.log.WithError(err).WithField("user", s).
+					WithField("group", groupID).
+					Warn("Unable to sync user")
+			}
 		}
 	}
 
@@ -296,22 +297,23 @@ func (m *Metabase) createServiceAccount(dp *models.Dataproduct) ([]byte, string,
 		},
 	}
 
-	account, err := m.service.Projects.ServiceAccounts.Create("projects/nada-prod-6977", request).Do()
+	account, err := m.service.Projects.ServiceAccounts.Create("projects/"+os.Getenv("GCP_TEAM_PROJECT_ID"), request).Do()
 	if err != nil {
 		return nil, "", err
 	}
 
 	keyRequest := &iam.CreateServiceAccountKeyRequest{}
 
-	key, err := m.service.Projects.ServiceAccounts.Keys.Create("projects/nada-prod-6977/serviceAccounts/"+account.UniqueId, keyRequest).Do()
+	key, err := m.service.Projects.ServiceAccounts.Keys.Create("projects/-/serviceAccounts/"+account.UniqueId, keyRequest).Do()
 	if err != nil {
 		return nil, "", err
 	}
 
-	saJson, err := key.MarshalJSON()
+	saJson, err := base64.StdEncoding.DecodeString(key.PrivateKeyData)
 	if err != nil {
 		return nil, "", err
 	}
+
 	return saJson, account.Email, err
 }
 
@@ -334,5 +336,5 @@ func contains(list []string, value string) bool {
 }
 
 func MarshalUUID(id uuid.UUID) string {
-	return base58.Encode(id[:])
+	return strings.ToLower(base58.Encode(id[:]))
 }

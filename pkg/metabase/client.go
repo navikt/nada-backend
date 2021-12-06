@@ -37,20 +37,20 @@ func NewClient(url, username, password string) *Client {
 func (c *Client) request(ctx context.Context, method, path string, body interface{}, v interface{}) error {
 	err := c.ensureValidSession(ctx)
 	if err != nil {
-		return err
+		return fmt.Errorf("%v %v: %w", method, path, err)
 	}
 
 	var buf io.ReadWriter
 	if body != nil {
 		buf = &bytes.Buffer{}
 		if err := json.NewEncoder(buf).Encode(body); err != nil {
-			return err
+			return fmt.Errorf("%v %v: %w", method, path, err)
 		}
 	}
 
 	req, err := http.NewRequestWithContext(ctx, method, c.url+path, buf)
 	if err != nil {
-		return err
+		return fmt.Errorf("%v %v: %w", method, path, err)
 	}
 
 	req.Header.Set("X-Metabase-Session", c.sessionID)
@@ -58,22 +58,26 @@ func (c *Client) request(ctx context.Context, method, path string, body interfac
 
 	res, err := c.c.Do(req)
 	if err != nil {
-		return err
+		return fmt.Errorf("%v %v: %w", method, path, err)
 	}
 
 	if res.StatusCode > 299 {
 		_, err := io.Copy(os.Stdout, res.Body)
 		if err != nil {
-			return err
+			return fmt.Errorf("%v %v: %w", method, path, err)
 		}
-		return fmt.Errorf("non 2xx status code, got: %v", res.StatusCode)
+		return fmt.Errorf("%v %v: non 2xx status code, got: %v", method, path, res.StatusCode)
 	}
 
 	if v == nil {
 		return nil
 	}
 
-	return json.NewDecoder(res.Body).Decode(v)
+	if err := json.NewDecoder(res.Body).Decode(v); err != nil {
+		return fmt.Errorf("%v %v: %w", method, path, err)
+	}
+
+	return nil
 }
 
 func (c *Client) ensureValidSession(ctx context.Context) error {
@@ -183,6 +187,7 @@ func (c *Client) CreateDatabase(ctx context.Context, name, saJSON, saEmail strin
 		ID int `json:"id"`
 	}
 	err := c.request(ctx, http.MethodPost, "/database", db, &v)
+
 	return strconv.Itoa(v.ID), err
 }
 
@@ -216,7 +221,7 @@ type PermissionGroup struct {
 }
 
 type PermissionGroupMember struct {
-	ID    string `json:"membership_id"`
+	ID    int    `json:"membership_id"`
 	Email string `json:"email"`
 }
 
@@ -314,19 +319,25 @@ func (c *Client) GetPermissionGroup(ctx context.Context, groupName string) (int,
 	return groupID, g.Members, nil
 }
 
-func (c *Client) RemovePermissionGroupMember(ctx context.Context, memberID string) error {
-	return c.request(ctx, http.MethodDelete, "/permissions/membership/"+memberID, nil, nil)
+func (c *Client) RemovePermissionGroupMember(ctx context.Context, memberID int) error {
+	return c.request(ctx, http.MethodDelete, fmt.Sprintf("/permissions/membership/%v", memberID), nil, nil)
+}
+
+func (c *Client) GetGroupPermissionsForDatabase(ctx context.Context, databaseID int)  {
+
 }
 
 func (c *Client) AddPermissionGroupMember(ctx context.Context, groupID int, email string) error {
-	users := []MetabaseUser{}
+	var users struct {
+		Data []MetabaseUser
+	}
 
 	err := c.request(ctx, http.MethodGet, "/user", nil, &users)
 	if err != nil {
 		return err
 	}
 
-	userID, err := getUserID(users, email)
+	userID, err := getUserID(users.Data, email)
 	if err != nil {
 		return err
 	}
