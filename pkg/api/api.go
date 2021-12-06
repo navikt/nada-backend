@@ -41,7 +41,7 @@ func (h *HTTP) Login(w http.ResponseWriter, r *http.Request) {
 		Secure:   true,
 		HttpOnly: true,
 	})
-	consentUrl := h.oauth2Config.AuthCodeURL(oauthState)
+	consentUrl := h.oauth2Config.AuthCodeURL(oauthState, oauth2.SetAuthURLParam("prompt", "select_account"))
 	http.Redirect(w, r, consentUrl, http.StatusFound)
 }
 
