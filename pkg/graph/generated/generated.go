@@ -91,6 +91,11 @@ type ComplexityRoot struct {
 		Pii          func(childComplexity int) int
 		Repo         func(childComplexity int) int
 		Requesters   func(childComplexity int) int
+		Services     func(childComplexity int) int
+	}
+
+	DataproductServices struct {
+		Metabase func(childComplexity int) int
 	}
 
 	GCPProject struct {
@@ -169,6 +174,7 @@ type DataproductResolver interface {
 	Datasource(ctx context.Context, obj *models.Dataproduct) (models.Datasource, error)
 	Requesters(ctx context.Context, obj *models.Dataproduct) ([]string, error)
 	Access(ctx context.Context, obj *models.Dataproduct) ([]*models.Access, error)
+	Services(ctx context.Context, obj *models.Dataproduct) (*models.DataproductServices, error)
 }
 type MutationResolver interface {
 	Dummy(ctx context.Context, no *string) (*string, error)
@@ -424,6 +430,20 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 		}
 
 		return e.complexity.Dataproduct.Requesters(childComplexity), true
+
+	case "Dataproduct.services":
+		if e.complexity.Dataproduct.Services == nil {
+			break
+		}
+
+		return e.complexity.Dataproduct.Services(childComplexity), true
+
+	case "DataproductServices.metabase":
+		if e.complexity.DataproductServices.Metabase == nil {
+			break
+		}
+
+		return e.complexity.DataproductServices.Metabase(childComplexity), true
 
 	case "GCPProject.group":
 		if e.complexity.GCPProject.Group == nil {
@@ -889,6 +909,13 @@ type Dataproduct @goModel(model: "github.com/navikt/nada-backend/pkg/graph/model
     requesters: [String!]!
     "access contains list of users, groups and service accounts which have access to the dataproduct"
     access: [Access!]! @authenticated
+    "services contains links to this dataproduct in other services"
+    services: DataproductServices!
+}
+
+type DataproductServices @goModel(model: "github.com/navikt/nada-backend/pkg/graph/models.DataproductServices") {
+    "URL to the dataproduct in metabase"
+    metabase: String
 }
 
 """
@@ -2834,6 +2861,73 @@ func (ec *executionContext) _Dataproduct_access(ctx context.Context, field graph
 	res := resTmp.([]*models.Access)
 	fc.Result = res
 	return ec.marshalNAccess2ᚕᚖgithubᚗcomᚋnaviktᚋnadaᚑbackendᚋpkgᚋgraphᚋmodelsᚐAccessᚄ(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _Dataproduct_services(ctx context.Context, field graphql.CollectedField, obj *models.Dataproduct) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "Dataproduct",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   true,
+		IsResolver: true,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.Dataproduct().Services(rctx, obj)
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(*models.DataproductServices)
+	fc.Result = res
+	return ec.marshalNDataproductServices2ᚖgithubᚗcomᚋnaviktᚋnadaᚑbackendᚋpkgᚋgraphᚋmodelsᚐDataproductServices(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _DataproductServices_metabase(ctx context.Context, field graphql.CollectedField, obj *models.DataproductServices) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "DataproductServices",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   false,
+		IsResolver: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Metabase, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		return graphql.Null
+	}
+	res := resTmp.(*string)
+	fc.Result = res
+	return ec.marshalOString2ᚖstring(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _GCPProject_id(ctx context.Context, field graphql.CollectedField, obj *models.GCPProject) (ret graphql.Marshaler) {
@@ -6349,6 +6443,44 @@ func (ec *executionContext) _Dataproduct(ctx context.Context, sel ast.SelectionS
 				}
 				return res
 			})
+		case "services":
+			field := field
+			out.Concurrently(i, func() (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._Dataproduct_services(ctx, field, obj)
+				if res == graphql.Null {
+					atomic.AddUint32(&invalids, 1)
+				}
+				return res
+			})
+		default:
+			panic("unknown field " + strconv.Quote(field.Name))
+		}
+	}
+	out.Dispatch()
+	if invalids > 0 {
+		return graphql.Null
+	}
+	return out
+}
+
+var dataproductServicesImplementors = []string{"DataproductServices"}
+
+func (ec *executionContext) _DataproductServices(ctx context.Context, sel ast.SelectionSet, obj *models.DataproductServices) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, dataproductServicesImplementors)
+
+	out := graphql.NewFieldSet(fields)
+	var invalids uint32
+	for i, field := range fields {
+		switch field.Name {
+		case "__typename":
+			out.Values[i] = graphql.MarshalString("DataproductServices")
+		case "metabase":
+			out.Values[i] = ec._DataproductServices_metabase(ctx, field, obj)
 		default:
 			panic("unknown field " + strconv.Quote(field.Name))
 		}
@@ -7329,6 +7461,20 @@ func (ec *executionContext) marshalNDataproduct2ᚖgithubᚗcomᚋnaviktᚋnada�
 		return graphql.Null
 	}
 	return ec._Dataproduct(ctx, sel, v)
+}
+
+func (ec *executionContext) marshalNDataproductServices2githubᚗcomᚋnaviktᚋnadaᚑbackendᚋpkgᚋgraphᚋmodelsᚐDataproductServices(ctx context.Context, sel ast.SelectionSet, v models.DataproductServices) graphql.Marshaler {
+	return ec._DataproductServices(ctx, sel, &v)
+}
+
+func (ec *executionContext) marshalNDataproductServices2ᚖgithubᚗcomᚋnaviktᚋnadaᚑbackendᚋpkgᚋgraphᚋmodelsᚐDataproductServices(ctx context.Context, sel ast.SelectionSet, v *models.DataproductServices) graphql.Marshaler {
+	if v == nil {
+		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	return ec._DataproductServices(ctx, sel, v)
 }
 
 func (ec *executionContext) marshalNDatasource2githubᚗcomᚋnaviktᚋnadaᚑbackendᚋpkgᚋgraphᚋmodelsᚐDatasource(ctx context.Context, sel ast.SelectionSet, v models.Datasource) graphql.Marshaler {
