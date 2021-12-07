@@ -12,12 +12,10 @@ import (
 	"time"
 
 	_ "github.com/lib/pq"
-	"github.com/sirupsen/logrus"
-
-	"github.com/google/go-cmp/cmp"
 	"github.com/navikt/nada-backend/pkg/auth"
 	"github.com/navikt/nada-backend/pkg/graph/models"
 	"github.com/ory/dockertest/v3"
+	"github.com/sirupsen/logrus"
 )
 
 var dbString string
@@ -64,11 +62,6 @@ func TestRepo(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	newCollection := models.NewCollection{
-		Name:  "new_dataproduct",
-		Group: "team",
-	}
-
 	newDataproduct := models.NewDataproduct{
 		Name: "test-product",
 		BigQuery: models.NewBigQuery{
@@ -78,52 +71,6 @@ func TestRepo(t *testing.T) {
 		},
 		Group: auth.MockUser.Groups[0].Name,
 	}
-
-	t.Run("creates collections", func(t *testing.T) {
-		collection, err := repo.CreateCollection(context.Background(), newCollection)
-		if err != nil {
-			t.Fatal(err)
-		}
-		if collection.ID.String() == "" {
-			t.Fatal("returned collection should contain ID")
-		}
-		if newCollection.Name != collection.Name {
-			t.Fatal("returned name should match provided name")
-		}
-	})
-
-	t.Run("serves collections", func(t *testing.T) {
-		collection, err := repo.CreateCollection(context.Background(), newCollection)
-		if err != nil {
-			t.Fatal(err)
-		}
-
-		dataproduct, err := repo.CreateDataproduct(context.Background(), newDataproduct)
-		if err != nil {
-			t.Fatal(err)
-		}
-
-		if err := repo.AddToCollection(context.Background(), collection.ID, dataproduct.ID, models.CollectionElementTypeDataproduct.String()); err != nil {
-			t.Fatal(err)
-		}
-
-		fetchedCollection, err := repo.GetCollection(context.Background(), collection.ID)
-		if err != nil {
-			t.Fatal(err)
-		}
-		if newCollection.Name != fetchedCollection.Name {
-			t.Fatal("fetched name should match provided name")
-		}
-		fetchedCollectionElements, err := repo.GetCollectionElements(context.Background(), collection.ID)
-		if err != nil {
-			t.Fatal(err)
-		}
-
-		expected := []models.CollectionElement{dataproduct}
-		if !cmp.Equal(fetchedCollectionElements, expected) {
-			t.Error(cmp.Diff(fetchedCollectionElements, expected))
-		}
-	})
 
 	t.Run("updates dataproducts", func(t *testing.T) {
 		data := models.NewDataproduct{
@@ -216,10 +163,9 @@ func TestRepo(t *testing.T) {
 			query      models.SearchQuery
 			numResults int
 		}{
-			"empty":            {query: models.SearchQuery{Text: stringToPtr("nonexistent")}, numResults: 0},
-			"1 dataproduct":    {query: models.SearchQuery{Text: stringToPtr("uniquedataproduct")}, numResults: 1},
-			"1 datacollection": {query: models.SearchQuery{Text: stringToPtr("uniquecollection")}, numResults: 1},
-			"2 results":        {query: models.SearchQuery{Text: stringToPtr("uniquestring")}, numResults: 2},
+			"empty":         {query: models.SearchQuery{Text: stringToPtr("nonexistent")}, numResults: 0},
+			"1 dataproduct": {query: models.SearchQuery{Text: stringToPtr("uniquedataproduct")}, numResults: 1},
+			"1 results":     {query: models.SearchQuery{Text: stringToPtr("uniquestring")}, numResults: 1},
 		}
 
 		dataproduct := models.NewDataproduct{
@@ -234,16 +180,6 @@ func TestRepo(t *testing.T) {
 		}
 
 		_, err = repo.CreateDataproduct(context.Background(), dataproduct)
-		if err != nil {
-			t.Fatal(err)
-		}
-
-		collection := models.NewCollection{
-			Name:        "new_collection",
-			Description: nullStringToPtr(sql.NullString{Valid: true, String: "Uniquestring uniquecollection"}),
-		}
-
-		_, err = repo.CreateCollection(context.Background(), collection)
 		if err != nil {
 			t.Fatal(err)
 		}

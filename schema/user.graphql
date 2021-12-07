@@ -26,8 +26,6 @@ type UserInfo @goModel(model: "github.com/navikt/nada-backend/pkg/graph/models.U
 	dataproducts: [Dataproduct!]!
 	"accessable is a list of dataproducts which the user has explicit access to"
 	accessable: [Dataproduct!]!
-	"collections is a list of collections with one of the users groups as owner"
-	collections: [Collection!]!
 }
 
 """

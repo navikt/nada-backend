@@ -29,25 +29,6 @@ func (e *DatasourceType) Scan(src interface{}) error {
 	return nil
 }
 
-type Collection struct {
-	ID               uuid.UUID
-	Name             string
-	Description      sql.NullString
-	Slug             string
-	Created          time.Time
-	LastModified     time.Time
-	Group            string
-	Keywords         []string
-	TsvDocument      interface{}
-	TeamkatalogenUrl sql.NullString
-}
-
-type CollectionElement struct {
-	ElementID    uuid.UUID
-	CollectionID uuid.UUID
-	ElementType  string
-}
-
 type Dataproduct struct {
 	ID               uuid.UUID
 	Name             string

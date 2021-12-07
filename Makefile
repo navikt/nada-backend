@@ -1,11 +1,10 @@
-.PHONY: test integration-test local-with-auth local linux-build docker-build docker-push run-postgres-test stop-postgres-test install-sqlc install-oapi-codegen
+.PHONY: test integration-test local-with-auth local linux-build docker-build docker-push run-postgres-test stop-postgres-test install-sqlc 
 DATE = $(shell date "+%Y-%m-%d")
 LAST_COMMIT = $(shell git --no-pager log -1 --pretty=%h)
 VERSION ?= $(DATE)-$(LAST_COMMIT)
 LDFLAGS := -X github.com/navikt/nada-backend/backend/version.Revision=$(shell git rev-parse --short HEAD) -X github.com/navikt/nada-backend/backend/version.Version=$(VERSION)
 APP = nada-backend
 SQLC_VERSION ?= "v1.10.0"
-OAPI_CODEGEN_VERSION ?= "v1.8.2"
 # Get the currently used golang install path (in GOPATH/bin, unless GOBIN is set)
 ifeq (,$(shell go env GOBIN))
 	GOBIN=$(shell go env GOPATH)/bin
@@ -74,9 +73,6 @@ docker-build:
 docker-push:
 	docker image push ghcr.io/navikt/$(APP):$(VERSION)
 	docker image push ghcr.io/navikt/$(APP):latest
-
-install-oapi-codegen:
-	go install github.com/deepmap/oapi-codegen/cmd/oapi-codegen@$(OAPI_CODEGEN_VERSION)
 
 install-sqlc:
 	go install github.com/kyleconroy/sqlc/cmd/sqlc@$(SQLC_VERSION)
