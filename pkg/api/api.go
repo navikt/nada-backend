@@ -62,13 +62,18 @@ func (h *HTTP) Login(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *HTTP) Callback(w http.ResponseWriter, r *http.Request) {
-	var loginPage string
-	if strings.HasPrefix(r.Host, "localhost") {
-		loginPage = "http://localhost:3000/"
-	} else {
-		loginPage = "/"
+	loginPage := "/"
+
+	redirectURI, err := r.Cookie(RedirectURICookie)
+	if err == nil {
+		loginPage = loginPage + strings.TrimPrefix(redirectURI.Value, "/")
 	}
 
+	if strings.HasPrefix(r.Host, "localhost") {
+		loginPage = "http://localhost:3000" + loginPage
+	}
+
+	deleteCookie(w, RedirectURICookie, r.Host)
 	code := r.URL.Query().Get("code")
 	if len(code) == 0 {
 		http.Redirect(w, r, loginPage+"?error=unauthenticated", http.StatusFound)
@@ -124,14 +129,6 @@ func (h *HTTP) Callback(w http.ResponseWriter, r *http.Request) {
 		HttpOnly: true,
 	})
 
-	redirectURI, err := r.Cookie(RedirectURICookie)
-	if err != nil {
-		h.log.Infof("Missing redirect URI cookie: %v", err)
-	} else {
-		loginPage = redirectURI.Value
-	}
-
-	deleteCookie(w, RedirectURICookie, r.Host)
 	http.Redirect(w, r, loginPage, http.StatusFound)
 }
 
