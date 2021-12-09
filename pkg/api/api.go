@@ -66,7 +66,7 @@ func (h *HTTP) Callback(w http.ResponseWriter, r *http.Request) {
 	if strings.HasPrefix(r.Host, "localhost") {
 		loginPage = "http://localhost:3000/"
 	} else {
-		loginPage = r.Host
+		loginPage = "/"
 	}
 
 	code := r.URL.Query().Get("code")
@@ -127,10 +127,12 @@ func (h *HTTP) Callback(w http.ResponseWriter, r *http.Request) {
 	redirectURI, err := r.Cookie(RedirectURICookie)
 	if err != nil {
 		h.log.Infof("Missing redirect URI cookie: %v", err)
+	} else {
+		loginPage = redirectURI.Value
 	}
 
 	deleteCookie(w, RedirectURICookie, r.Host)
-	http.Redirect(w, r, loginPage+redirectURI.Value, http.StatusFound)
+	http.Redirect(w, r, loginPage, http.StatusFound)
 }
 
 func deleteCookie(w http.ResponseWriter, name, domain string) {
