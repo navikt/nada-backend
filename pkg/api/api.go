@@ -66,7 +66,7 @@ func (h *HTTP) Callback(w http.ResponseWriter, r *http.Request) {
 	if strings.HasPrefix(r.Host, "localhost") {
 		loginPage = "http://localhost:3000/"
 	} else {
-		loginPage = "/"
+		loginPage = r.Host
 	}
 
 	code := r.URL.Query().Get("code")
