@@ -141,7 +141,6 @@ func prom(cols ...prometheus.Collector) *prometheus.Registry {
 	r := prometheus.NewRegistry()
 	graphProm.RegisterOn(r)
 	r.MustRegister(prometheus.NewGoCollector())
-	r.MustRegister(prometheus.NewProcessCollector(prometheus.ProcessCollectorOpts{ReportErrors: true}))
 	r.MustRegister(cols...)
 
 	return r
