@@ -115,7 +115,12 @@ func (m *Metabase) run(ctx context.Context) error {
 			continue
 		}
 
-		groupID, err := m.client.CreatePermissionGroup(ctx, dp.ID.String())
+		groupID, err := m.client.CreatePermissionGroup(ctx, dp.Name)
+		if err != nil {
+			return err
+		}
+
+		_, err = m.client.CreateCollectionWithAccess(ctx, groupID, dp.Name)
 		if err != nil {
 			return err
 		}
@@ -181,7 +186,10 @@ func (m *Metabase) create(ctx context.Context, dps []dpWrapper) error {
 		time.Sleep(2 * time.Second)
 
 		if dp.MetabaseGroupID > 0 {
-			m.client.RestrictAccessToDatabase(ctx, dp.MetabaseGroupID, dbID)
+			err := m.client.RestrictAccessToDatabase(ctx, dp.MetabaseGroupID, dbID)
+			if err != nil {
+				return err
+			}
 		}
 
 		if err := m.HideOtherTables(ctx, dbID, datasource.Table); err != nil {
@@ -270,7 +278,12 @@ func (m *Metabase) syncPermissionGroupMembers(ctx context.Context, restrictedDps
 			}
 		}
 
-		groupID, mbGroupMembers, err := m.client.GetPermissionGroup(ctx, dp.ID.String())
+		mbMetadata, err := m.repo.GetMetabaseMetadata(ctx, dp.ID)
+		if err != nil {
+			return err
+		}
+
+		mbGroupMembers, err := m.client.GetPermissionGroup(ctx, mbMetadata.PermissionGroupID)
 		if err != nil {
 			return err
 		}
@@ -280,7 +293,7 @@ func (m *Metabase) syncPermissionGroupMembers(ctx context.Context, restrictedDps
 			return err
 		}
 
-		err = m.addNewMembersToGroup(ctx, groupID, mbGroupMembers, dpGrants)
+		err = m.addNewMembersToGroup(ctx, mbMetadata.PermissionGroupID, mbGroupMembers, dpGrants)
 		if err != nil {
 			return err
 		}
