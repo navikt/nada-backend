@@ -115,7 +115,12 @@ func (m *Metabase) run(ctx context.Context) error {
 			continue
 		}
 
-		groupID, err := m.client.CreatePermissionGroup(ctx, dp.ID.String())
+		groupID, err := m.client.CreatePermissionGroup(ctx, dp.Name)
+		if err != nil {
+			return err
+		}
+
+		_, err = m.client.CreateCollectionWithAccess(ctx, groupID, dp.Name)
 		if err != nil {
 			return err
 		}
@@ -177,11 +182,13 @@ func (m *Metabase) create(ctx context.Context, dps []dpWrapper) error {
 			return err
 		}
 
-		// todo (erikvatt) find better solution for this, call metabase api instead of sleeping
-		time.Sleep(2 * time.Second)
+		m.waitForDatabase(ctx, dbID, datasource.Table)
 
 		if dp.MetabaseGroupID > 0 {
-			m.client.RestrictAccessToDatabase(ctx, dp.MetabaseGroupID, dbID)
+			err := m.client.RestrictAccessToDatabase(ctx, dp.MetabaseGroupID, dbID)
+			if err != nil {
+				return err
+			}
 		}
 
 		if err := m.HideOtherTables(ctx, dbID, datasource.Table); err != nil {
@@ -270,7 +277,12 @@ func (m *Metabase) syncPermissionGroupMembers(ctx context.Context, restrictedDps
 			}
 		}
 
-		groupID, mbGroupMembers, err := m.client.GetPermissionGroup(ctx, dp.ID.String())
+		mbMetadata, err := m.repo.GetMetabaseMetadata(ctx, dp.ID)
+		if err != nil {
+			return err
+		}
+
+		mbGroupMembers, err := m.client.GetPermissionGroup(ctx, mbMetadata.PermissionGroupID)
 		if err != nil {
 			return err
 		}
@@ -280,7 +292,7 @@ func (m *Metabase) syncPermissionGroupMembers(ctx context.Context, restrictedDps
 			return err
 		}
 
-		err = m.addNewMembersToGroup(ctx, groupID, mbGroupMembers, dpGrants)
+		err = m.addNewMembersToGroup(ctx, mbMetadata.PermissionGroupID, mbGroupMembers, dpGrants)
 		if err != nil {
 			return err
 		}
@@ -385,6 +397,21 @@ func (m *Metabase) deleteServiceAccount(saEmail string) error {
 		Delete("projects/" + os.Getenv("GCP_TEAM_PROJECT_ID") + "/serviceAccounts/" + saEmail).
 		Do()
 	return err
+}
+
+func (m *Metabase) waitForDatabase(ctx context.Context, dbID int, tableName string) {
+	for i := 0; i < 50; i++ {
+		time.Sleep(100 * time.Millisecond)
+		tables, err := m.client.Tables(ctx, dbID)
+		if err != nil || len(tables) == 0 {
+			continue
+		}
+		for _, tab := range tables {
+			if tab.Name == tableName && len(tab.Fields) > 0 {
+				return
+			}
+		}
+	}
 }
 
 func groupContainsUser(mbGroups []PermissionGroupMember, email string) bool {

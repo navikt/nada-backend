@@ -294,31 +294,14 @@ func (c *Client) CreatePermissionGroup(ctx context.Context, name string) (int, e
 	return group.ID, nil
 }
 
-func (c *Client) GetPermissionGroup(ctx context.Context, groupName string) (int, []PermissionGroupMember, error) {
-	groups := []PermissionGroup{}
-	err := c.request(ctx, http.MethodGet, "/permissions/group", nil, &groups)
-	if err != nil {
-		return -1, nil, err
-	}
-
-	groupID := -1
-	for _, g := range groups {
-		if g.Name == groupName {
-			groupID = g.ID
-			break
-		}
-	}
-	if groupID == -1 {
-		return -1, nil, fmt.Errorf("group %v does not exist in metabase", groupName)
-	}
-
+func (c *Client) GetPermissionGroup(ctx context.Context, groupID int) ([]PermissionGroupMember, error) {
 	g := PermissionGroup{}
-	err = c.request(ctx, http.MethodGet, fmt.Sprintf("/permissions/group/%v", groupID), nil, &g)
+	err := c.request(ctx, http.MethodGet, fmt.Sprintf("/permissions/group/%v", groupID), nil, &g)
 	if err != nil {
-		return -1, nil, err
+		return nil, err
 	}
 
-	return groupID, g.Members, nil
+	return g.Members, nil
 }
 
 func (c *Client) RemovePermissionGroupMember(ctx context.Context, memberID int) error {
@@ -369,6 +352,7 @@ func (c *Client) RestrictAccessToDatabase(ctx context.Context, groupID, database
 
 	for gid, permission := range permissionGraph.Groups {
 		if gid == "2" {
+			// admin group
 			continue
 		}
 		if gid != grpSID {
@@ -385,6 +369,66 @@ func (c *Client) RestrictAccessToDatabase(ctx context.Context, groupID, database
 
 func (c *Client) DeletePermissionGroup(ctx context.Context, groupID int) error {
 	return c.request(ctx, http.MethodDelete, fmt.Sprintf("/permissions/group/%v", groupID), nil, nil)
+}
+
+func (c *Client) CreateCollection(ctx context.Context, name string) (int, error) {
+	collection := struct {
+		Name        string `json:"name"`
+		Description string `json:"description"`
+		Color       string `json:"color"`
+	}{
+		Name:        name,
+		Description: "Collection for " + name,
+		Color:       "#509EE3",
+	}
+
+	var response struct {
+		ID int `json:"id"`
+	}
+
+	err := c.request(ctx, http.MethodPost, "/collection", collection, &response)
+	if err != nil {
+		return 0, err
+	}
+	return response.ID, nil
+}
+
+func (c *Client) SetCollectionAccess(ctx context.Context, groupID, collectionID int) error {
+	var cPermissions struct {
+		Revision int                          `json:"revision"`
+		Groups   map[string]map[string]string `json:"groups"`
+	}
+
+	err := c.request(ctx, http.MethodGet, "/collection/graph", nil, &cPermissions)
+	if err != nil {
+		return err
+	}
+
+	sgid := strconv.Itoa(groupID)
+	scid := strconv.Itoa(collectionID)
+	for gid, permissions := range cPermissions.Groups {
+		if gid == "2" {
+			continue
+		} else if gid == sgid {
+			permissions[scid] = "write"
+		} else {
+			permissions[scid] = "none"
+		}
+	}
+
+	return c.request(ctx, http.MethodPut, "/collection/graph", cPermissions, nil)
+}
+
+func (c *Client) CreateCollectionWithAccess(ctx context.Context, groupID int, name string) (int, error) {
+	cid, err := c.CreateCollection(ctx, name)
+	if err != nil {
+		return 0, err
+	}
+
+	if err := c.SetCollectionAccess(ctx, groupID, cid); err != nil {
+		return cid, err
+	}
+	return cid, nil
 }
 
 func getUserID(users []MetabaseUser, email string) (int, error) {

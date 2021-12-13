@@ -4,4 +4,4 @@ test-sa.json
 hack/.ipynb_checkpoints/
 .DS_Store
 .env
-google_creds.json
+*.json
