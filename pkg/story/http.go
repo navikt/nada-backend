@@ -21,6 +21,7 @@ func NewHandler(repo *database.Repo) *Handler {
 
 func (h *Handler) Upload(w http.ResponseWriter, r *http.Request) {
 	story := &models.Story{}
+
 	if err := json.NewDecoder(r.Body).Decode(story); err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return

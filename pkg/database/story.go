@@ -25,6 +25,7 @@ func (r *Repo) CreateStoryDraft(ctx context.Context, story *models.Story) (uuid.
 			StoryID: ret.ID,
 			Type:    gensql.StoryViewType(view.Type),
 			Spec:    view.Spec,
+			Sort:    int32(i),
 		})
 		if err != nil {
 			if err := tx.Rollback(); err != nil {

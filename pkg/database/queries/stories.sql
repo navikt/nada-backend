@@ -11,10 +11,12 @@ RETURNING *;
 -- name: CreateStoryView :one
 INSERT INTO story_views (
 	"story_id",
+	"sort",
 	"type",
 	"spec"
 ) VALUES (
 	@story_id,
+	@sort,
 	@type,
 	@spec
 )

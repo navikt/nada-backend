@@ -127,6 +127,7 @@ type StoryDraft struct {
 type StoryView struct {
 	ID      uuid.UUID
 	StoryID uuid.UUID
+	Sort    int32
 	Type    StoryViewType
 	Spec    json.RawMessage
 }
@@ -134,6 +135,7 @@ type StoryView struct {
 type StoryViewDraft struct {
 	ID      uuid.UUID
 	StoryID uuid.UUID
+	Sort    int32
 	Type    StoryViewType
 	Spec    json.RawMessage
 }

@@ -29,28 +29,37 @@ func (q *Queries) CreateStoryDraft(ctx context.Context, name string) (StoryDraft
 const createStoryViewDraft = `-- name: CreateStoryViewDraft :one
 INSERT INTO story_view_drafts (
 	"story_id",
+	"sort",
 	"type",
 	"spec"
 ) VALUES (
 	$1,
 	$2,
-	$3
+	$3,
+	$4
 )
-RETURNING id, story_id, type, spec
+RETURNING id, story_id, sort, type, spec
 `
 
 type CreateStoryViewDraftParams struct {
 	StoryID uuid.UUID
+	Sort    int32
 	Type    StoryViewType
 	Spec    json.RawMessage
 }
 
 func (q *Queries) CreateStoryViewDraft(ctx context.Context, arg CreateStoryViewDraftParams) (StoryViewDraft, error) {
-	row := q.db.QueryRowContext(ctx, createStoryViewDraft, arg.StoryID, arg.Type, arg.Spec)
+	row := q.db.QueryRowContext(ctx, createStoryViewDraft,
+		arg.StoryID,
+		arg.Sort,
+		arg.Type,
+		arg.Spec,
+	)
 	var i StoryViewDraft
 	err := row.Scan(
 		&i.ID,
 		&i.StoryID,
+		&i.Sort,
 		&i.Type,
 		&i.Spec,
 	)

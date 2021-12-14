@@ -12,6 +12,7 @@ CREATE TABLE stories (
 CREATE TABLE story_views (
 	"id" uuid DEFAULT uuid_generate_v4(),
 	"story_id" uuid NOT NULL,
+	"sort" INT NOT NULL DEFAULT 0,
 	"type" story_view_type NOT NULL,
 	"spec" JSONB NOT NULL,
 	PRIMARY KEY (id),
@@ -30,6 +31,7 @@ CREATE TABLE story_drafts (
 CREATE TABLE story_view_drafts (
 	"id" uuid DEFAULT uuid_generate_v4(),
 	"story_id" uuid NOT NULL,
+	"sort" INT NOT NULL DEFAULT 0,
 	"type" story_view_type NOT NULL,
 	"spec" JSONB NOT NULL,
 	PRIMARY KEY (id),
