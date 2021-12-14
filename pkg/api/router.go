@@ -10,6 +10,7 @@ import (
 	"github.com/navikt/nada-backend/pkg/auth"
 	"github.com/navikt/nada-backend/pkg/database"
 	"github.com/navikt/nada-backend/pkg/graph"
+	"github.com/navikt/nada-backend/pkg/story"
 	"github.com/navikt/nada-backend/pkg/teamkatalogen"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
@@ -35,6 +36,7 @@ func New(repo *database.Repo, gcp graph.Bigquery, oauth2 OAuth2, gcpProjects *au
 
 		http.Redirect(w, r, host+r.URL.Path, http.StatusPermanentRedirect)
 	}
+	storyHandler := story.NewHandler(repo)
 
 	router := chi.NewRouter()
 	router.Use(corsMW)
@@ -45,6 +47,7 @@ func New(repo *database.Repo, gcp graph.Bigquery, oauth2 OAuth2, gcpProjects *au
 		r.HandleFunc("/oauth2/callback", httpAPI.Callback)
 		r.HandleFunc("/logout", httpAPI.Logout)
 		r.HandleFunc("/nav-interndata/*", datapackageRedirect)
+		r.Post("/story", storyHandler.Upload)
 	})
 	router.Route("/internal", func(r chi.Router) {
 		r.Handle("/metrics", promhttp.HandlerFor(promReg, promhttp.HandlerOpts{}))

@@ -13,6 +13,10 @@ type Querier interface {
 	CreateDataproduct(ctx context.Context, arg CreateDataproductParams) (Dataproduct, error)
 	CreateDataproductRequester(ctx context.Context, arg CreateDataproductRequesterParams) error
 	CreateMetabaseMetadata(ctx context.Context, arg CreateMetabaseMetadataParams) error
+	CreateStory(ctx context.Context, arg CreateStoryParams) (Story, error)
+	CreateStoryDraft(ctx context.Context, name string) (StoryDraft, error)
+	CreateStoryView(ctx context.Context, arg CreateStoryViewParams) (StoryView, error)
+	CreateStoryViewDraft(ctx context.Context, arg CreateStoryViewDraftParams) (StoryViewDraft, error)
 	DeleteDataproduct(ctx context.Context, id uuid.UUID) error
 	DeleteDataproductRequester(ctx context.Context, arg DeleteDataproductRequesterParams) error
 	GetAccessToDataproduct(ctx context.Context, id uuid.UUID) (DataproductAccess, error)
