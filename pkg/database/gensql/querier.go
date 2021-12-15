@@ -31,6 +31,8 @@ type Querier interface {
 	GetDataproductsByMapping(ctx context.Context, service string) ([]Dataproduct, error)
 	GetDataproductsByUserAccess(ctx context.Context, id string) ([]Dataproduct, error)
 	GetMetabaseMetadata(ctx context.Context, dataproductID uuid.UUID) (MetabaseMetadatum, error)
+	GetStoryDrafts(ctx context.Context) ([]StoryDraft, error)
+	GetStoryViewDrafts(ctx context.Context, storyID uuid.UUID) ([]StoryViewDraft, error)
 	GrantAccessToDataproduct(ctx context.Context, arg GrantAccessToDataproductParams) (DataproductAccess, error)
 	ListAccessToDataproduct(ctx context.Context, dataproductID uuid.UUID) ([]DataproductAccess, error)
 	ListActiveAccessToDataproduct(ctx context.Context, dataproductID uuid.UUID) ([]DataproductAccess, error)

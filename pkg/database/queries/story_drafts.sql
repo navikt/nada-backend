@@ -19,3 +19,14 @@ INSERT INTO story_view_drafts (
 	@spec
 )
 RETURNING *;
+
+-- name: GetStoryDrafts :many
+SELECT *
+FROM story_drafts
+ORDER BY created DESC;
+
+-- name: GetStoryViewDrafts :many
+SELECT *
+FROM story_view_drafts
+WHERE story_id = @story_id
+ORDER BY sort ASC;

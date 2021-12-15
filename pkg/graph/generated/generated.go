@@ -43,6 +43,7 @@ type ResolverRoot interface {
 	Dataproduct() DataproductResolver
 	Mutation() MutationResolver
 	Query() QueryResolver
+	Story() StoryResolver
 	UserInfo() UserInfoResolver
 }
 
@@ -128,6 +129,7 @@ type ComplexityRoot struct {
 		GetDataproductByMapping func(childComplexity int, service models.MappingService) int
 		GetDataproductMappings  func(childComplexity int, dataproductID uuid.UUID) int
 		Search                  func(childComplexity int, q *models.SearchQuery) int
+		Stories                 func(childComplexity int, draft *bool) int
 		Teamkatalogen           func(childComplexity int, q string) int
 		UserInfo                func(childComplexity int) int
 		Version                 func(childComplexity int) int
@@ -136,6 +138,19 @@ type ComplexityRoot struct {
 	SearchResultRow struct {
 		Excerpt func(childComplexity int) int
 		Result  func(childComplexity int) int
+	}
+
+	Story struct {
+		Created func(childComplexity int) int
+		ID      func(childComplexity int) int
+		Name    func(childComplexity int) int
+		Owner   func(childComplexity int) int
+		Views   func(childComplexity int) int
+	}
+
+	StoryView struct {
+		Spec func(childComplexity int) int
+		Type func(childComplexity int) int
 	}
 
 	TableColumn struct {
@@ -190,8 +205,13 @@ type QueryResolver interface {
 	GcpGetTables(ctx context.Context, projectID string, datasetID string) ([]*models.BigQueryTable, error)
 	GcpGetDatasets(ctx context.Context, projectID string) ([]string, error)
 	Search(ctx context.Context, q *models.SearchQuery) ([]*models.SearchResultRow, error)
+	Stories(ctx context.Context, draft *bool) ([]*models.Story, error)
 	Teamkatalogen(ctx context.Context, q string) ([]*models.TeamkatalogenResult, error)
 	UserInfo(ctx context.Context) (*models.UserInfo, error)
+}
+type StoryResolver interface {
+	Owner(ctx context.Context, obj *models.Story) (*models.Owner, error)
+	Views(ctx context.Context, obj *models.Story) ([]*models.StoryView, error)
 }
 type UserInfoResolver interface {
 	GCPProjects(ctx context.Context, obj *models.UserInfo) ([]*models.GCPProject, error)
@@ -659,6 +679,18 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.Query.Search(childComplexity, args["q"].(*models.SearchQuery)), true
 
+	case "Query.stories":
+		if e.complexity.Query.Stories == nil {
+			break
+		}
+
+		args, err := ec.field_Query_stories_args(context.TODO(), rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Query.Stories(childComplexity, args["draft"].(*bool)), true
+
 	case "Query.teamkatalogen":
 		if e.complexity.Query.Teamkatalogen == nil {
 			break
@@ -698,6 +730,55 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 		}
 
 		return e.complexity.SearchResultRow.Result(childComplexity), true
+
+	case "Story.created":
+		if e.complexity.Story.Created == nil {
+			break
+		}
+
+		return e.complexity.Story.Created(childComplexity), true
+
+	case "Story.id":
+		if e.complexity.Story.ID == nil {
+			break
+		}
+
+		return e.complexity.Story.ID(childComplexity), true
+
+	case "Story.name":
+		if e.complexity.Story.Name == nil {
+			break
+		}
+
+		return e.complexity.Story.Name(childComplexity), true
+
+	case "Story.owner":
+		if e.complexity.Story.Owner == nil {
+			break
+		}
+
+		return e.complexity.Story.Owner(childComplexity), true
+
+	case "Story.views":
+		if e.complexity.Story.Views == nil {
+			break
+		}
+
+		return e.complexity.Story.Views(childComplexity), true
+
+	case "StoryView.spec":
+		if e.complexity.StoryView.Spec == nil {
+			break
+		}
+
+		return e.complexity.StoryView.Spec(childComplexity), true
+
+	case "StoryView.type":
+		if e.complexity.StoryView.Type == nil {
+			break
+		}
+
+		return e.complexity.StoryView.Type(childComplexity), true
 
 	case "TableColumn.description":
 		if e.complexity.TableColumn.Description == nil {
@@ -1238,6 +1319,11 @@ Time is a string in [RFC 3339](https://rfc-editor.org/rfc/rfc3339.html) format, 
 """
 scalar Time
 
+"""
+Maps an arbitrary GraphQL value to a map[string]interface{} Go type.
+"""
+scalar Map
+
 directive @goModel(model: String, models: [String!]) on OBJECT
 	| INPUT_OBJECT
 	| SCALAR
@@ -1305,6 +1391,35 @@ extend type Query {
         q: SearchQuery
     ): [SearchResultRow!]!
 }
+`, BuiltIn: false},
+	{Name: "schema/story.graphql", Input: `type Story @goModel(model: "github.com/navikt/nada-backend/pkg/graph/models.Story") {
+	id: ID!
+	name: String!
+	created: Time!
+	owner: Owner
+	views: [StoryView!]! @goField(forceResolver: true)
+}
+
+enum StoryViewType @goModel(model: "github.com/navikt/nada-backend/pkg/graph/models.StoryViewType") {
+	markdown,
+	header,
+	plotly
+}
+
+type StoryView @goModel(model: "github.com/navikt/nada-backend/pkg/graph/models.StoryView") {
+	type: StoryViewType!
+	spec: Map!
+}
+
+extend type Query {
+	stories(draft: Boolean): [Story!]!
+}
+
+
+# extend type Mutation {
+# 	publishStory(id: ID!)
+
+# }
 `, BuiltIn: false},
 	{Name: "schema/teamkatalogen.graphql", Input: `type TeamkatalogenResult @goModel(model: "github.com/navikt/nada-backend/pkg/graph/models.TeamkatalogenResult") {
     "url to team in teamkatalogen."
@@ -1725,6 +1840,21 @@ func (ec *executionContext) field_Query_search_args(ctx context.Context, rawArgs
 		}
 	}
 	args["q"] = arg0
+	return args, nil
+}
+
+func (ec *executionContext) field_Query_stories_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
+	var err error
+	args := map[string]interface{}{}
+	var arg0 *bool
+	if tmp, ok := rawArgs["draft"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("draft"))
+		arg0, err = ec.unmarshalOBoolean2ᚖbool(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["draft"] = arg0
 	return args, nil
 }
 
@@ -3947,6 +4077,48 @@ func (ec *executionContext) _Query_search(ctx context.Context, field graphql.Col
 	return ec.marshalNSearchResultRow2ᚕᚖgithubᚗcomᚋnaviktᚋnadaᚑbackendᚋpkgᚋgraphᚋmodelsᚐSearchResultRowᚄ(ctx, field.Selections, res)
 }
 
+func (ec *executionContext) _Query_stories(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "Query",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   true,
+		IsResolver: true,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	rawArgs := field.ArgumentMap(ec.Variables)
+	args, err := ec.field_Query_stories_args(ctx, rawArgs)
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	fc.Args = args
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.Query().Stories(rctx, args["draft"].(*bool))
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.([]*models.Story)
+	fc.Result = res
+	return ec.marshalNStory2ᚕᚖgithubᚗcomᚋnaviktᚋnadaᚑbackendᚋpkgᚋgraphᚋmodelsᚐStoryᚄ(ctx, field.Selections, res)
+}
+
 func (ec *executionContext) _Query_teamkatalogen(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
 	defer func() {
 		if r := recover(); r != nil {
@@ -4183,6 +4355,248 @@ func (ec *executionContext) _SearchResultRow_result(ctx context.Context, field g
 	res := resTmp.(models.SearchResult)
 	fc.Result = res
 	return ec.marshalNSearchResult2githubᚗcomᚋnaviktᚋnadaᚑbackendᚋpkgᚋgraphᚋmodelsᚐSearchResult(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _Story_id(ctx context.Context, field graphql.CollectedField, obj *models.Story) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "Story",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   false,
+		IsResolver: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.ID, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(uuid.UUID)
+	fc.Result = res
+	return ec.marshalNID2githubᚗcomᚋgoogleᚋuuidᚐUUID(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _Story_name(ctx context.Context, field graphql.CollectedField, obj *models.Story) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "Story",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   false,
+		IsResolver: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Name, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(string)
+	fc.Result = res
+	return ec.marshalNString2string(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _Story_created(ctx context.Context, field graphql.CollectedField, obj *models.Story) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "Story",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   false,
+		IsResolver: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Created, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(time.Time)
+	fc.Result = res
+	return ec.marshalNTime2timeᚐTime(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _Story_owner(ctx context.Context, field graphql.CollectedField, obj *models.Story) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "Story",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   true,
+		IsResolver: true,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.Story().Owner(rctx, obj)
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		return graphql.Null
+	}
+	res := resTmp.(*models.Owner)
+	fc.Result = res
+	return ec.marshalOOwner2ᚖgithubᚗcomᚋnaviktᚋnadaᚑbackendᚋpkgᚋgraphᚋmodelsᚐOwner(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _Story_views(ctx context.Context, field graphql.CollectedField, obj *models.Story) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "Story",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   true,
+		IsResolver: true,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.Story().Views(rctx, obj)
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.([]*models.StoryView)
+	fc.Result = res
+	return ec.marshalNStoryView2ᚕᚖgithubᚗcomᚋnaviktᚋnadaᚑbackendᚋpkgᚋgraphᚋmodelsᚐStoryViewᚄ(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _StoryView_type(ctx context.Context, field graphql.CollectedField, obj *models.StoryView) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "StoryView",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   false,
+		IsResolver: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Type, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(models.StoryViewType)
+	fc.Result = res
+	return ec.marshalNStoryViewType2githubᚗcomᚋnaviktᚋnadaᚑbackendᚋpkgᚋgraphᚋmodelsᚐStoryViewType(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _StoryView_spec(ctx context.Context, field graphql.CollectedField, obj *models.StoryView) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "StoryView",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   false,
+		IsResolver: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Spec, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(map[string]interface{})
+	fc.Result = res
+	return ec.marshalNMap2map(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _TableColumn_name(ctx context.Context, field graphql.CollectedField, obj *models.TableColumn) (ret graphql.Marshaler) {
@@ -6648,6 +7062,20 @@ func (ec *executionContext) _Query(ctx context.Context, sel ast.SelectionSet) gr
 				}
 				return res
 			})
+		case "stories":
+			field := field
+			out.Concurrently(i, func() (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._Query_stories(ctx, field)
+				if res == graphql.Null {
+					atomic.AddUint32(&invalids, 1)
+				}
+				return res
+			})
 		case "teamkatalogen":
 			field := field
 			out.Concurrently(i, func() (res graphql.Marshaler) {
@@ -6709,6 +7137,100 @@ func (ec *executionContext) _SearchResultRow(ctx context.Context, sel ast.Select
 			}
 		case "result":
 			out.Values[i] = ec._SearchResultRow_result(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
+		default:
+			panic("unknown field " + strconv.Quote(field.Name))
+		}
+	}
+	out.Dispatch()
+	if invalids > 0 {
+		return graphql.Null
+	}
+	return out
+}
+
+var storyImplementors = []string{"Story"}
+
+func (ec *executionContext) _Story(ctx context.Context, sel ast.SelectionSet, obj *models.Story) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, storyImplementors)
+
+	out := graphql.NewFieldSet(fields)
+	var invalids uint32
+	for i, field := range fields {
+		switch field.Name {
+		case "__typename":
+			out.Values[i] = graphql.MarshalString("Story")
+		case "id":
+			out.Values[i] = ec._Story_id(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				atomic.AddUint32(&invalids, 1)
+			}
+		case "name":
+			out.Values[i] = ec._Story_name(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				atomic.AddUint32(&invalids, 1)
+			}
+		case "created":
+			out.Values[i] = ec._Story_created(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				atomic.AddUint32(&invalids, 1)
+			}
+		case "owner":
+			field := field
+			out.Concurrently(i, func() (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._Story_owner(ctx, field, obj)
+				return res
+			})
+		case "views":
+			field := field
+			out.Concurrently(i, func() (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._Story_views(ctx, field, obj)
+				if res == graphql.Null {
+					atomic.AddUint32(&invalids, 1)
+				}
+				return res
+			})
+		default:
+			panic("unknown field " + strconv.Quote(field.Name))
+		}
+	}
+	out.Dispatch()
+	if invalids > 0 {
+		return graphql.Null
+	}
+	return out
+}
+
+var storyViewImplementors = []string{"StoryView"}
+
+func (ec *executionContext) _StoryView(ctx context.Context, sel ast.SelectionSet, obj *models.StoryView) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, storyViewImplementors)
+
+	out := graphql.NewFieldSet(fields)
+	var invalids uint32
+	for i, field := range fields {
+		switch field.Name {
+		case "__typename":
+			out.Values[i] = graphql.MarshalString("StoryView")
+		case "type":
+			out.Values[i] = ec._StoryView_type(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
+		case "spec":
+			out.Values[i] = ec._StoryView_spec(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
 				invalids++
 			}
@@ -7464,6 +7986,27 @@ func (ec *executionContext) marshalNID2githubᚗcomᚋgoogleᚋuuidᚐUUID(ctx c
 	return res
 }
 
+func (ec *executionContext) unmarshalNMap2map(ctx context.Context, v interface{}) (map[string]interface{}, error) {
+	res, err := graphql.UnmarshalMap(v)
+	return res, graphql.ErrorOnPath(ctx, err)
+}
+
+func (ec *executionContext) marshalNMap2map(ctx context.Context, sel ast.SelectionSet, v map[string]interface{}) graphql.Marshaler {
+	if v == nil {
+		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := graphql.MarshalMap(v)
+	if res == graphql.Null {
+		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
+			ec.Errorf(ctx, "must not be null")
+		}
+	}
+	return res
+}
+
 func (ec *executionContext) unmarshalNMappingService2githubᚗcomᚋnaviktᚋnadaᚑbackendᚋpkgᚋgraphᚋmodelsᚐMappingService(ctx context.Context, v interface{}) (models.MappingService, error) {
 	var res models.MappingService
 	err := res.UnmarshalGQL(v)
@@ -7621,6 +8164,124 @@ func (ec *executionContext) marshalNSearchResultRow2ᚖgithubᚗcomᚋnaviktᚋn
 		return graphql.Null
 	}
 	return ec._SearchResultRow(ctx, sel, v)
+}
+
+func (ec *executionContext) marshalNStory2ᚕᚖgithubᚗcomᚋnaviktᚋnadaᚑbackendᚋpkgᚋgraphᚋmodelsᚐStoryᚄ(ctx context.Context, sel ast.SelectionSet, v []*models.Story) graphql.Marshaler {
+	ret := make(graphql.Array, len(v))
+	var wg sync.WaitGroup
+	isLen1 := len(v) == 1
+	if !isLen1 {
+		wg.Add(len(v))
+	}
+	for i := range v {
+		i := i
+		fc := &graphql.FieldContext{
+			Index:  &i,
+			Result: &v[i],
+		}
+		ctx := graphql.WithFieldContext(ctx, fc)
+		f := func(i int) {
+			defer func() {
+				if r := recover(); r != nil {
+					ec.Error(ctx, ec.Recover(ctx, r))
+					ret = nil
+				}
+			}()
+			if !isLen1 {
+				defer wg.Done()
+			}
+			ret[i] = ec.marshalNStory2ᚖgithubᚗcomᚋnaviktᚋnadaᚑbackendᚋpkgᚋgraphᚋmodelsᚐStory(ctx, sel, v[i])
+		}
+		if isLen1 {
+			f(i)
+		} else {
+			go f(i)
+		}
+
+	}
+	wg.Wait()
+
+	for _, e := range ret {
+		if e == graphql.Null {
+			return graphql.Null
+		}
+	}
+
+	return ret
+}
+
+func (ec *executionContext) marshalNStory2ᚖgithubᚗcomᚋnaviktᚋnadaᚑbackendᚋpkgᚋgraphᚋmodelsᚐStory(ctx context.Context, sel ast.SelectionSet, v *models.Story) graphql.Marshaler {
+	if v == nil {
+		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	return ec._Story(ctx, sel, v)
+}
+
+func (ec *executionContext) marshalNStoryView2ᚕᚖgithubᚗcomᚋnaviktᚋnadaᚑbackendᚋpkgᚋgraphᚋmodelsᚐStoryViewᚄ(ctx context.Context, sel ast.SelectionSet, v []*models.StoryView) graphql.Marshaler {
+	ret := make(graphql.Array, len(v))
+	var wg sync.WaitGroup
+	isLen1 := len(v) == 1
+	if !isLen1 {
+		wg.Add(len(v))
+	}
+	for i := range v {
+		i := i
+		fc := &graphql.FieldContext{
+			Index:  &i,
+			Result: &v[i],
+		}
+		ctx := graphql.WithFieldContext(ctx, fc)
+		f := func(i int) {
+			defer func() {
+				if r := recover(); r != nil {
+					ec.Error(ctx, ec.Recover(ctx, r))
+					ret = nil
+				}
+			}()
+			if !isLen1 {
+				defer wg.Done()
+			}
+			ret[i] = ec.marshalNStoryView2ᚖgithubᚗcomᚋnaviktᚋnadaᚑbackendᚋpkgᚋgraphᚋmodelsᚐStoryView(ctx, sel, v[i])
+		}
+		if isLen1 {
+			f(i)
+		} else {
+			go f(i)
+		}
+
+	}
+	wg.Wait()
+
+	for _, e := range ret {
+		if e == graphql.Null {
+			return graphql.Null
+		}
+	}
+
+	return ret
+}
+
+func (ec *executionContext) marshalNStoryView2ᚖgithubᚗcomᚋnaviktᚋnadaᚑbackendᚋpkgᚋgraphᚋmodelsᚐStoryView(ctx context.Context, sel ast.SelectionSet, v *models.StoryView) graphql.Marshaler {
+	if v == nil {
+		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	return ec._StoryView(ctx, sel, v)
+}
+
+func (ec *executionContext) unmarshalNStoryViewType2githubᚗcomᚋnaviktᚋnadaᚑbackendᚋpkgᚋgraphᚋmodelsᚐStoryViewType(ctx context.Context, v interface{}) (models.StoryViewType, error) {
+	var res models.StoryViewType
+	err := res.UnmarshalGQL(v)
+	return res, graphql.ErrorOnPath(ctx, err)
+}
+
+func (ec *executionContext) marshalNStoryViewType2githubᚗcomᚋnaviktᚋnadaᚑbackendᚋpkgᚋgraphᚋmodelsᚐStoryViewType(ctx context.Context, sel ast.SelectionSet, v models.StoryViewType) graphql.Marshaler {
+	return v
 }
 
 func (ec *executionContext) unmarshalNString2string(ctx context.Context, v interface{}) (string, error) {
@@ -8110,6 +8771,13 @@ func (ec *executionContext) marshalOInt2ᚖint(ctx context.Context, sel ast.Sele
 		return graphql.Null
 	}
 	return graphql.MarshalInt(*v)
+}
+
+func (ec *executionContext) marshalOOwner2ᚖgithubᚗcomᚋnaviktᚋnadaᚑbackendᚋpkgᚋgraphᚋmodelsᚐOwner(ctx context.Context, sel ast.SelectionSet, v *models.Owner) graphql.Marshaler {
+	if v == nil {
+		return graphql.Null
+	}
+	return ec._Owner(ctx, sel, v)
 }
 
 func (ec *executionContext) unmarshalOSearchQuery2ᚖgithubᚗcomᚋnaviktᚋnadaᚑbackendᚋpkgᚋgraphᚋmodelsᚐSearchQuery(ctx context.Context, v interface{}) (*models.SearchQuery, error) {
