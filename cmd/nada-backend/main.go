@@ -95,8 +95,8 @@ func main() {
 
 		gauth := auth.NewGoogle(cfg.OAuth2.ClientID, cfg.OAuth2.ClientSecret, cfg.Hostname)
 		oauth2Config = gauth
-		httpAPI = api.NewHTTP(oauth2Config, log.WithField("subsystem", "api"))
-		authenticatorMiddleware = gauth.Middleware(googleGroups)
+		httpAPI = api.NewHTTP(oauth2Config, repo, log.WithField("subsystem", "api"))
+		authenticatorMiddleware = gauth.Middleware(googleGroups, repo)
 		accessMgr = access.NewBigquery()
 	}
 

@@ -90,6 +90,14 @@ type Search struct {
 	TsvDocument  interface{}
 }
 
+type Session struct {
+	Token   string
+	Email   string
+	Name    string
+	Created time.Time
+	Expires time.Time
+}
+
 type ThirdPartyMapping struct {
 	DataproductID uuid.UUID
 	Services      []string

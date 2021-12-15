@@ -55,8 +55,8 @@ func (g *Google) Verify(ctx context.Context, rawIDToken string) (*oidc.IDToken, 
 	return g.provider.Verifier(&oidc.Config{ClientID: g.clientID}).Verify(ctx, rawIDToken)
 }
 
-func (g *Google) Middleware(groupsLister GroupsLister) MiddlewareHandler {
-	return newMiddleware(g.provider.Verifier(&oidc.Config{ClientID: g.clientID}), groupsLister).handle
+func (g *Google) Middleware(groupsLister GroupsLister, sessionStore SessionRetriever) MiddlewareHandler {
+	return newMiddleware(g.provider.Verifier(&oidc.Config{ClientID: g.clientID}), groupsLister, sessionStore).handle
 }
 
 // func (a *Google) Groups(client *http.Client) *GoogleGroups {

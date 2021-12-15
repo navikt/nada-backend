@@ -13,6 +13,7 @@ type Querier interface {
 	CreateDataproduct(ctx context.Context, arg CreateDataproductParams) (Dataproduct, error)
 	CreateDataproductRequester(ctx context.Context, arg CreateDataproductRequesterParams) error
 	CreateMetabaseMetadata(ctx context.Context, arg CreateMetabaseMetadataParams) error
+	CreateSession(ctx context.Context, arg CreateSessionParams) error
 	DeleteDataproduct(ctx context.Context, id uuid.UUID) error
 	DeleteDataproductRequester(ctx context.Context, arg DeleteDataproductRequesterParams) error
 	GetAccessToDataproduct(ctx context.Context, id uuid.UUID) (DataproductAccess, error)
@@ -28,6 +29,7 @@ type Querier interface {
 	GetDataproductsByMapping(ctx context.Context, service string) ([]Dataproduct, error)
 	GetDataproductsByUserAccess(ctx context.Context, id string) ([]Dataproduct, error)
 	GetMetabaseMetadata(ctx context.Context, dataproductID uuid.UUID) (MetabaseMetadatum, error)
+	GetSession(ctx context.Context, token string) (Session, error)
 	GrantAccessToDataproduct(ctx context.Context, arg GrantAccessToDataproductParams) (DataproductAccess, error)
 	ListAccessToDataproduct(ctx context.Context, dataproductID uuid.UUID) ([]DataproductAccess, error)
 	ListActiveAccessToDataproduct(ctx context.Context, dataproductID uuid.UUID) ([]DataproductAccess, error)
