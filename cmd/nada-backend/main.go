@@ -85,7 +85,6 @@ func main() {
 	var accessMgr graph.AccessManager
 	accessMgr = access.NewNoop()
 	if !cfg.MockAuth {
-		httpAPI = api.NewHTTP(oauth2Config, log.WithField("subsystem", "api"))
 		teamProjectsMapping = auth.NewTeamProjectsUpdater(cfg.DevTeamProjectsOutputURL, cfg.ProdTeamProjectsOutputURL, cfg.TeamsToken, http.DefaultClient)
 		go teamProjectsMapping.Run(ctx, TeamProjectsUpdateFrequency)
 
@@ -96,6 +95,7 @@ func main() {
 
 		gauth := auth.NewGoogle(cfg.OAuth2.ClientID, cfg.OAuth2.ClientSecret, cfg.Hostname)
 		oauth2Config = gauth
+		httpAPI = api.NewHTTP(oauth2Config, log.WithField("subsystem", "api"))
 		authenticatorMiddleware = gauth.Middleware(googleGroups)
 		accessMgr = access.NewBigquery()
 	}
