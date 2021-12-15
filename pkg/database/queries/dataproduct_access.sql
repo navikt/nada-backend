@@ -34,3 +34,14 @@ WHERE id = @id;
 SELECT *
 FROM dataproduct_access
 WHERE dataproduct_id = @dataproduct_id AND revoked IS NULL AND (expires IS NULL OR expires >= NOW());
+
+-- name: GetActiveAccessToDataproductForSubject :one
+SELECT *
+FROM dataproduct_access
+WHERE dataproduct_id = @dataproduct_id 
+AND "subject" = @subject 
+AND revoked IS NULL 
+AND (
+  expires IS NULL 
+  OR expires >= NOW()
+);

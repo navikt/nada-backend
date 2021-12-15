@@ -2,6 +2,8 @@ package database
 
 import (
 	"context"
+	"database/sql"
+	"errors"
 	"time"
 
 	"github.com/google/uuid"
@@ -54,8 +56,11 @@ func (r *Repo) ListAccessToDataproduct(ctx context.Context, dataproductID uuid.U
 }
 
 func (r *Repo) GrantAccessToDataproduct(ctx context.Context, dataproductID uuid.UUID, expires *time.Time, subject, granter string) (*models.Access, error) {
-	accesses, err := r.ListActiveAccessToDataproduct(ctx, dataproductID)
-	if err != nil {
+	a, err := r.querier.GetActiveAccessToDataproductForSubject(ctx, gensql.GetActiveAccessToDataproductForSubjectParams{
+		DataproductID: dataproductID,
+		Subject:       subject,
+	})
+	if err != nil && !errors.Is(err, sql.ErrNoRows) {
 		return nil, err
 	}
 
@@ -66,14 +71,12 @@ func (r *Repo) GrantAccessToDataproduct(ctx context.Context, dataproductID uuid.
 
 	querier := r.querier.WithTx(tx)
 
-	for _, a := range accesses {
-		if a.Subject == subject {
-			if err := querier.RevokeAccessToDataproduct(ctx, a.ID); err != nil {
-				if err := tx.Rollback(); err != nil {
-					r.log.WithError(err).Error("Rolling back revoke and grant access to dataproduct transaction")
-				}
-				return nil, err
+	if len(a.Subject) > 0 {
+		if err := querier.RevokeAccessToDataproduct(ctx, a.ID); err != nil {
+			if err := tx.Rollback(); err != nil {
+				r.log.WithError(err).Error("Rolling back revoke and grant access to dataproduct transaction")
 			}
+			return nil, err
 		}
 	}
 
