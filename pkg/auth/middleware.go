@@ -4,12 +4,12 @@ import (
 	"context"
 	"fmt"
 	"net/http"
-	"strings"
 	"sync"
 	"time"
 
 	"github.com/coreos/go-oidc/v3/oidc"
 	"github.com/navikt/nada-backend/pkg/bigquery"
+	"github.com/navikt/nada-backend/pkg/graph/models"
 	"github.com/sirupsen/logrus"
 )
 
@@ -18,11 +18,10 @@ type contextKey int
 const contextUserKey contextKey = 1
 
 type User struct {
-	Name        string `json:"name"`
-	Email       string `json:"email"`
-	Groups      bigquery.Groups
-	AccessToken string    `json:"-"`
-	Expiry      time.Time `json:"expiry"`
+	Name   string `json:"name"`
+	Email  string `json:"email"`
+	Groups bigquery.Groups
+	Expiry time.Time `json:"expiry"`
 }
 
 func GetUser(ctx context.Context) *User {
@@ -70,19 +69,25 @@ func (g *groupsCacher) Set(email string, groups []bigquery.Group) {
 	}
 }
 
+type SessionRetriever interface {
+	GetSession(ctx context.Context, token string) (*models.Session, error)
+}
+
 type Middleware struct {
 	tokenVerifier *oidc.IDTokenVerifier
 	groupsCache   *groupsCacher
 	groupsLister  GroupsLister
+	sessionStore  SessionRetriever
 }
 
-func newMiddleware(tokenVerifier *oidc.IDTokenVerifier, groupsLister GroupsLister) *Middleware {
+func newMiddleware(tokenVerifier *oidc.IDTokenVerifier, groupsLister GroupsLister, sessionStore SessionRetriever) *Middleware {
 	return &Middleware{
 		tokenVerifier: tokenVerifier,
 		groupsLister:  groupsLister,
 		groupsCache: &groupsCacher{
 			cache: map[string]groupsCacheValue{},
 		},
+		sessionStore: sessionStore,
 	}
 }
 
@@ -113,31 +118,21 @@ func (m *Middleware) handle(next http.Handler) http.Handler {
 
 func (m *Middleware) validateUser(w http.ResponseWriter, r *http.Request) (*User, error) {
 	// Parse and verify ID Token payload.
-	cookie, err := r.Cookie("jwt")
+	cookie, err := r.Cookie("nada_session")
 	if err != nil {
 		return nil, fmt.Errorf("Unauthorized")
 	}
 
-	parts := strings.SplitN(cookie.Value, "|", 2)
-	if len(parts) != 2 {
-		return nil, fmt.Errorf("Unauthorized")
-	}
-	accessToken := parts[0]
-
-	idToken, err := m.tokenVerifier.Verify(r.Context(), parts[1])
+	session, err := m.sessionStore.GetSession(r.Context(), cookie.Value)
 	if err != nil {
-		return nil, fmt.Errorf("Unauthorized")
+		return nil, err
 	}
 
-	user := &User{
-		AccessToken: accessToken,
-		Expiry:      idToken.Expiry,
-	}
-	if err := idToken.Claims(user); err != nil {
-		return nil, fmt.Errorf("unable to decode claims: %w", err)
-	}
-
-	return user, nil
+	return &User{
+		Name:   session.Name,
+		Email:  session.Email,
+		Expiry: session.Expires,
+	}, nil
 }
 
 func (m *Middleware) addGroupsToUser(ctx context.Context, u *User) error {

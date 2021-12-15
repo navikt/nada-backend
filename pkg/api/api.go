@@ -2,19 +2,25 @@ package api
 
 import (
 	"context"
+	"crypto/rand"
+	"encoding/hex"
 	"net/http"
 	"strings"
 	"time"
 
 	"github.com/coreos/go-oidc/v3/oidc"
 	"github.com/google/uuid"
+	"github.com/navikt/nada-backend/pkg/database"
+	"github.com/navikt/nada-backend/pkg/graph/models"
 	"github.com/sirupsen/logrus"
 	"golang.org/x/oauth2"
 )
 
 const (
-	RedirectURICookie = "redirecturi"
-	OAuthStateCookie  = "oauthstate"
+	RedirectURICookie               = "redirecturi"
+	OAuthStateCookie                = "oauthstate"
+	tokenLength                     = 32
+	sessionLength     time.Duration = 7 * time.Hour
 )
 
 type OAuth2 interface {
@@ -26,12 +32,14 @@ type OAuth2 interface {
 type HTTP struct {
 	oauth2Config OAuth2
 	log          *logrus.Entry
+	repo         *database.Repo
 }
 
-func NewHTTP(oauth2Config OAuth2, log *logrus.Entry) HTTP {
+func NewHTTP(oauth2Config OAuth2, repo *database.Repo, log *logrus.Entry) HTTP {
 	return HTTP{
 		oauth2Config: oauth2Config,
 		log:          log,
+		repo:         repo,
 	}
 }
 
@@ -111,20 +119,36 @@ func (h HTTP) Callback(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Parse and verify ID Token payload.
-	_, err = h.oauth2Config.Verify(r.Context(), rawIDToken)
+	idToken, err := h.oauth2Config.Verify(r.Context(), rawIDToken)
 	if err != nil {
 		h.log.Info("Invalid id_token")
 		http.Redirect(w, r, loginPage+"?error=unauthenticated", http.StatusFound)
 		return
 	}
 
+	session := &models.Session{
+		Token:   generateSecureToken(tokenLength),
+		Expires: time.Now().Add(sessionLength),
+	}
+	if err := idToken.Claims(session); err != nil {
+		h.log.WithError(err).Info("Unable to parse claims")
+		http.Redirect(w, r, loginPage+"?error=unauthenticated", http.StatusFound)
+		return
+	}
+
+	if err := h.repo.CreateSession(r.Context(), session); err != nil {
+		h.log.WithError(err).Error("Unable to store session")
+		http.Redirect(w, r, loginPage+"?error=unauthenticated", http.StatusFound)
+		return
+	}
+
 	// TODO(thokra): Encrypt cookie value
 	http.SetCookie(w, &http.Cookie{
-		Name:     "jwt",
-		Value:    tokens.AccessToken + "|" + rawIDToken,
+		Name:     "nada_session",
+		Value:    session.Token,
 		Path:     "/",
 		Domain:   r.Host,
-		Expires:  tokens.Expiry,
+		Expires:  session.Expires,
 		Secure:   true,
 		HttpOnly: true,
 	})
@@ -163,4 +187,12 @@ func (h HTTP) Logout(w http.ResponseWriter, r *http.Request) {
 	}
 
 	http.Redirect(w, r, loginPage, http.StatusFound)
+}
+
+func generateSecureToken(length int) string {
+	b := make([]byte, length)
+	if _, err := rand.Read(b); err != nil {
+		return ""
+	}
+	return hex.EncodeToString(b)
 }
