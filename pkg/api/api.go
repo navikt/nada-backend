@@ -170,7 +170,7 @@ func deleteCookie(w http.ResponseWriter, name, domain string) {
 
 func (h HTTP) Logout(w http.ResponseWriter, r *http.Request) {
 	http.SetCookie(w, &http.Cookie{
-		Name:     "jwt",
+		Name:     "nada_backend",
 		Value:    "",
 		Path:     "/",
 		Domain:   r.Host,
@@ -178,6 +178,8 @@ func (h HTTP) Logout(w http.ResponseWriter, r *http.Request) {
 		Secure:   true,
 		HttpOnly: true,
 	})
+
+	// TODO(thokra): Delete from db as well
 
 	var loginPage string
 	if strings.HasPrefix(r.Host, "localhost") {
