@@ -28,14 +28,14 @@ type HTTP struct {
 	log          *logrus.Entry
 }
 
-func new(oauth2Config OAuth2, log *logrus.Entry) HTTP {
+func NewHTTP(oauth2Config OAuth2, log *logrus.Entry) HTTP {
 	return HTTP{
 		oauth2Config: oauth2Config,
 		log:          log,
 	}
 }
 
-func (h *HTTP) Login(w http.ResponseWriter, r *http.Request) {
+func (h HTTP) Login(w http.ResponseWriter, r *http.Request) {
 	redirectURI := r.URL.Query().Get("redirect_uri")
 	http.SetCookie(w, &http.Cookie{
 		Name:     RedirectURICookie,
@@ -61,7 +61,7 @@ func (h *HTTP) Login(w http.ResponseWriter, r *http.Request) {
 	http.Redirect(w, r, consentUrl, http.StatusFound)
 }
 
-func (h *HTTP) Callback(w http.ResponseWriter, r *http.Request) {
+func (h HTTP) Callback(w http.ResponseWriter, r *http.Request) {
 	loginPage := "/"
 
 	redirectURI, err := r.Cookie(RedirectURICookie)
@@ -144,7 +144,7 @@ func deleteCookie(w http.ResponseWriter, name, domain string) {
 	})
 }
 
-func (h *HTTP) Logout(w http.ResponseWriter, r *http.Request) {
+func (h HTTP) Logout(w http.ResponseWriter, r *http.Request) {
 	http.SetCookie(w, &http.Cookie{
 		Name:     "jwt",
 		Value:    "",

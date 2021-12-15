@@ -81,9 +81,11 @@ func main() {
 	authenticatorMiddleware := auth.MockJWTValidatorMiddleware()
 	teamProjectsMapping := &auth.MockTeamProjectsUpdater
 	var oauth2Config api.OAuth2
+	var httpAPI api.HTTPAPI // mock as default?
 	var accessMgr graph.AccessManager
 	accessMgr = access.NewNoop()
 	if !cfg.MockAuth {
+		httpAPI = api.NewHTTP(oauth2Config, log.WithField("subsystem", "api"))
 		teamProjectsMapping = auth.NewTeamProjectsUpdater(cfg.DevTeamProjectsOutputURL, cfg.ProdTeamProjectsOutputURL, cfg.TeamsToken, http.DefaultClient)
 		go teamProjectsMapping.Run(ctx, TeamProjectsUpdateFrequency)
 
@@ -117,7 +119,7 @@ func main() {
 	}
 
 	log.Info("Listening on :8080")
-	srv := api.New(repo, gcp, oauth2Config, teamProjectsMapping, accessMgr, authenticatorMiddleware, teamkatalogen.New(cfg.TeamkatalogenURL), prom(promErrs, repo.Metrics()), log)
+	srv := api.New(repo, gcp, httpAPI, teamProjectsMapping, accessMgr, authenticatorMiddleware, teamkatalogen.New(cfg.TeamkatalogenURL), prom(promErrs, repo.Metrics()), log)
 
 	server := http.Server{
 		Addr:    cfg.BindAddress,

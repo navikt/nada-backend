@@ -16,14 +16,18 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-func New(repo *database.Repo, gcp graph.Bigquery, oauth2 OAuth2, gcpProjects *auth.TeamProjectsUpdater, accessMgr graph.AccessManager, authMW auth.MiddlewareHandler, tk *teamkatalogen.Teamkatalogen, promReg *prometheus.Registry, log *logrus.Logger) *chi.Mux {
+type HTTPAPI interface {
+	Login(w http.ResponseWriter, r *http.Request)
+	Callback(w http.ResponseWriter, r *http.Request)
+	Logout(w http.ResponseWriter, r *http.Request)
+}
+
+func New(repo *database.Repo, gcp graph.Bigquery, httpAPI HTTPAPI, gcpProjects *auth.TeamProjectsUpdater, accessMgr graph.AccessManager, authMW auth.MiddlewareHandler, tk *teamkatalogen.Teamkatalogen, promReg *prometheus.Registry, log *logrus.Logger) *chi.Mux {
 	corsMW := cors.Handler(cors.Options{
 		AllowedOrigins:   []string{"https://*", "http://*"},
 		AllowedMethods:   []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
 		AllowCredentials: true,
 	})
-
-	httpAPI := new(oauth2, log.WithField("subsystem", "api"))
 
 	gqlServer := graph.New(repo, gcp, gcpProjects, accessMgr, tk, log.WithField("subsystem", "graph"))
 
