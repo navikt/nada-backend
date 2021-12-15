@@ -11,6 +11,17 @@ import (
 )
 
 func (r *Repo) AddRequesterToDataproduct(ctx context.Context, dataproductID uuid.UUID, subject string) error {
+	requesters, err := r.querier.GetDataproductRequesters(ctx, dataproductID)
+	if err != nil {
+		return err
+	}
+
+	for _, r := range requesters {
+		if subject == r {
+			return nil
+		}
+	}
+
 	return r.querier.CreateDataproductRequester(ctx, gensql.CreateDataproductRequesterParams{
 		DataproductID: dataproductID,
 		Subject:       subject,
@@ -43,13 +54,43 @@ func (r *Repo) ListAccessToDataproduct(ctx context.Context, dataproductID uuid.U
 }
 
 func (r *Repo) GrantAccessToDataproduct(ctx context.Context, dataproductID uuid.UUID, expires *time.Time, subject, granter string) (*models.Access, error) {
-	access, err := r.querier.GrantAccessToDataproduct(ctx, gensql.GrantAccessToDataproductParams{
+	accesses, err := r.ListActiveAccessToDataproduct(ctx, dataproductID)
+	if err != nil {
+		return nil, err
+	}
+
+	tx, err := r.db.Begin()
+	if err != nil {
+		return nil, err
+	}
+
+	querier := r.querier.WithTx(tx)
+
+	for _, a := range accesses {
+		if a.Subject == subject {
+			if err := querier.RevokeAccessToDataproduct(ctx, a.ID); err != nil {
+				if err := tx.Rollback(); err != nil {
+					r.log.WithError(err).Error("Rolling back revoke and grant access to dataproduct transaction")
+				}
+				return nil, err
+			}
+		}
+	}
+
+	access, err := querier.GrantAccessToDataproduct(ctx, gensql.GrantAccessToDataproductParams{
 		DataproductID: dataproductID,
 		Subject:       subject,
 		Expires:       ptrToNullTime(expires),
 		Granter:       granter,
 	})
 	if err != nil {
+		if err := tx.Rollback(); err != nil {
+			r.log.WithError(err).Error("Rolling back revoke and grant access to dataproduct transaction")
+		}
+		return nil, err
+	}
+
+	if err := tx.Commit(); err != nil {
 		return nil, err
 	}
 
