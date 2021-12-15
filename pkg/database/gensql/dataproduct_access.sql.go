@@ -31,6 +31,38 @@ func (q *Queries) GetAccessToDataproduct(ctx context.Context, id uuid.UUID) (Dat
 	return i, err
 }
 
+const getActiveAccessToDataproductForSubject = `-- name: GetActiveAccessToDataproductForSubject :one
+SELECT id, dataproduct_id, subject, granter, expires, created, revoked
+FROM dataproduct_access
+WHERE dataproduct_id = $1 
+AND "subject" = $2 
+AND revoked IS NULL 
+AND (
+  expires IS NULL 
+  OR expires >= NOW()
+)
+`
+
+type GetActiveAccessToDataproductForSubjectParams struct {
+	DataproductID uuid.UUID
+	Subject       string
+}
+
+func (q *Queries) GetActiveAccessToDataproductForSubject(ctx context.Context, arg GetActiveAccessToDataproductForSubjectParams) (DataproductAccess, error) {
+	row := q.db.QueryRowContext(ctx, getActiveAccessToDataproductForSubject, arg.DataproductID, arg.Subject)
+	var i DataproductAccess
+	err := row.Scan(
+		&i.ID,
+		&i.DataproductID,
+		&i.Subject,
+		&i.Granter,
+		&i.Expires,
+		&i.Created,
+		&i.Revoked,
+	)
+	return i, err
+}
+
 const grantAccessToDataproduct = `-- name: GrantAccessToDataproduct :one
 INSERT INTO dataproduct_access (dataproduct_id,
                                 "subject",
