@@ -2,6 +2,8 @@ package database
 
 import (
 	"context"
+	"database/sql"
+	"errors"
 	"time"
 
 	"github.com/google/uuid"
@@ -11,6 +13,17 @@ import (
 )
 
 func (r *Repo) AddRequesterToDataproduct(ctx context.Context, dataproductID uuid.UUID, subject string) error {
+	requesters, err := r.querier.GetDataproductRequesters(ctx, dataproductID)
+	if err != nil {
+		return err
+	}
+
+	for _, r := range requesters {
+		if subject == r {
+			return nil
+		}
+	}
+
 	return r.querier.CreateDataproductRequester(ctx, gensql.CreateDataproductRequesterParams{
 		DataproductID: dataproductID,
 		Subject:       subject,
@@ -43,13 +56,44 @@ func (r *Repo) ListAccessToDataproduct(ctx context.Context, dataproductID uuid.U
 }
 
 func (r *Repo) GrantAccessToDataproduct(ctx context.Context, dataproductID uuid.UUID, expires *time.Time, subject, granter string) (*models.Access, error) {
-	access, err := r.querier.GrantAccessToDataproduct(ctx, gensql.GrantAccessToDataproductParams{
+	a, err := r.querier.GetActiveAccessToDataproductForSubject(ctx, gensql.GetActiveAccessToDataproductForSubjectParams{
+		DataproductID: dataproductID,
+		Subject:       subject,
+	})
+	if err != nil && !errors.Is(err, sql.ErrNoRows) {
+		return nil, err
+	}
+
+	tx, err := r.db.Begin()
+	if err != nil {
+		return nil, err
+	}
+
+	querier := r.querier.WithTx(tx)
+
+	if len(a.Subject) > 0 {
+		if err := querier.RevokeAccessToDataproduct(ctx, a.ID); err != nil {
+			if err := tx.Rollback(); err != nil {
+				r.log.WithError(err).Error("Rolling back revoke and grant access to dataproduct transaction")
+			}
+			return nil, err
+		}
+	}
+
+	access, err := querier.GrantAccessToDataproduct(ctx, gensql.GrantAccessToDataproductParams{
 		DataproductID: dataproductID,
 		Subject:       subject,
 		Expires:       ptrToNullTime(expires),
 		Granter:       granter,
 	})
 	if err != nil {
+		if err := tx.Rollback(); err != nil {
+			r.log.WithError(err).Error("Rolling back revoke and grant access to dataproduct transaction")
+		}
+		return nil, err
+	}
+
+	if err := tx.Commit(); err != nil {
 		return nil, err
 	}
 
