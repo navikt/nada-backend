@@ -6,6 +6,7 @@ import (
 	"context"
 	"database/sql"
 	"log"
+	"net/http"
 	"net/http/httptest"
 	"os"
 	"testing"
@@ -63,7 +64,16 @@ func TestMain(m *testing.M) {
 	promReg := prometheus.NewRegistry()
 	graphProm.RegisterOn(promReg)
 
-	srv := api.New(repo, &mockGCP{}, nil, &auth.MockTeamProjectsUpdater, access.NewNoop(), auth.MockJWTValidatorMiddleware(), nil, prometheus.NewRegistry(), logrus.StandardLogger())
+	srv := api.New(
+		repo,
+		&mockGCP{},
+		&mockAuthHandler{},
+		&auth.MockTeamProjectsUpdater,
+		access.NewNoop(),
+		auth.MockJWTValidatorMiddleware(),
+		nil,
+		prometheus.NewRegistry(), logrus.StandardLogger(),
+	)
 
 	server = httptest.NewServer(srv)
 	code := m.Run()
@@ -95,3 +105,9 @@ type noopDatasetEnricher struct{}
 func (n noopDatasetEnricher) UpdateSchema(ctx context.Context, ds gensql.DatasourceBigquery) error {
 	return nil
 }
+
+type mockAuthHandler struct{}
+
+func (m *mockAuthHandler) Login(w http.ResponseWriter, r *http.Request)    {}
+func (m *mockAuthHandler) Callback(w http.ResponseWriter, r *http.Request) {}
+func (m *mockAuthHandler) Logout(w http.ResponseWriter, r *http.Request)   {}
