@@ -26,6 +26,13 @@ type Dataproduct @goModel(model: "github.com/navikt/nada-backend/pkg/graph/model
     requesters: [String!]!
     "access contains list of users, groups and service accounts which have access to the dataproduct"
     access: [Access!]! @authenticated
+    "services contains links to this dataproduct in other services"
+    services: DataproductServices!
+}
+
+type DataproductServices @goModel(model: "github.com/navikt/nada-backend/pkg/graph/models.DataproductServices") {
+    "URL to the dataproduct in metabase"
+    metabase: String
 }
 
 """

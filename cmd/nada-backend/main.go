@@ -81,6 +81,7 @@ func main() {
 	authenticatorMiddleware := auth.MockJWTValidatorMiddleware()
 	teamProjectsMapping := &auth.MockTeamProjectsUpdater
 	var oauth2Config api.OAuth2
+	var httpAPI api.HTTPAPI // mock as default?
 	var accessMgr graph.AccessManager
 	accessMgr = access.NewNoop()
 	if !cfg.MockAuth {
@@ -94,7 +95,8 @@ func main() {
 
 		gauth := auth.NewGoogle(cfg.OAuth2.ClientID, cfg.OAuth2.ClientSecret, cfg.Hostname)
 		oauth2Config = gauth
-		authenticatorMiddleware = gauth.Middleware(googleGroups)
+		httpAPI = api.NewHTTP(oauth2Config, repo, log.WithField("subsystem", "api"))
+		authenticatorMiddleware = gauth.Middleware(googleGroups, repo)
 		accessMgr = access.NewBigquery()
 	}
 
@@ -117,7 +119,7 @@ func main() {
 	}
 
 	log.Info("Listening on :8080")
-	srv := api.New(repo, gcp, oauth2Config, teamProjectsMapping, accessMgr, authenticatorMiddleware, teamkatalogen.New(cfg.TeamkatalogenURL), prom(promErrs, repo.Metrics()), log)
+	srv := api.New(repo, gcp, httpAPI, teamProjectsMapping, accessMgr, authenticatorMiddleware, teamkatalogen.New(cfg.TeamkatalogenURL), prom(promErrs, repo.Metrics()), log)
 
 	server := http.Server{
 		Addr:    cfg.BindAddress,
@@ -141,7 +143,6 @@ func prom(cols ...prometheus.Collector) *prometheus.Registry {
 	r := prometheus.NewRegistry()
 	graphProm.RegisterOn(r)
 	r.MustRegister(prometheus.NewGoCollector())
-	r.MustRegister(prometheus.NewProcessCollector(prometheus.ProcessCollectorOpts{ReportErrors: true}))
 	r.MustRegister(cols...)
 
 	return r

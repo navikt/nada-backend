@@ -6,7 +6,7 @@ CREATE TABLE stories (
 	"name" TEXT NOT NULL,
 	"created" TIMESTAMPTZ NOT NULL DEFAULT NOW(),
 	"group" TEXT NOT NULL,
-	PRIMARY KEY (id)
+	PRIMARY KEY (id, revision)
 );
 
 CREATE TABLE story_views (

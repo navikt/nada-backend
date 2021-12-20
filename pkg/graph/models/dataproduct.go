@@ -89,6 +89,10 @@ type Owner struct {
 	TeamkatalogenURL *string `json:"teamkatalogenURL"`
 }
 
+type DataproductServices struct {
+	Metabase *string `json:"metabase"`
+}
+
 type SubjectType string
 
 const (

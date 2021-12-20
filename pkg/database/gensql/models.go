@@ -111,6 +111,14 @@ type Search struct {
 	TsvDocument  interface{}
 }
 
+type Session struct {
+	Token   string
+	Email   string
+	Name    string
+	Created time.Time
+	Expires time.Time
+}
+
 type Story struct {
 	ID      uuid.UUID
 	Name    string

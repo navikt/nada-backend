@@ -13,6 +13,7 @@ type Querier interface {
 	CreateDataproduct(ctx context.Context, arg CreateDataproductParams) (Dataproduct, error)
 	CreateDataproductRequester(ctx context.Context, arg CreateDataproductRequesterParams) error
 	CreateMetabaseMetadata(ctx context.Context, arg CreateMetabaseMetadataParams) error
+	CreateSession(ctx context.Context, arg CreateSessionParams) error
 	CreateStory(ctx context.Context, arg CreateStoryParams) (Story, error)
 	CreateStoryDraft(ctx context.Context, name string) (StoryDraft, error)
 	CreateStoryView(ctx context.Context, arg CreateStoryViewParams) (StoryView, error)
@@ -20,6 +21,7 @@ type Querier interface {
 	DeleteDataproduct(ctx context.Context, id uuid.UUID) error
 	DeleteDataproductRequester(ctx context.Context, arg DeleteDataproductRequesterParams) error
 	GetAccessToDataproduct(ctx context.Context, id uuid.UUID) (DataproductAccess, error)
+	GetActiveAccessToDataproductForSubject(ctx context.Context, arg GetActiveAccessToDataproductForSubjectParams) (DataproductAccess, error)
 	GetBigqueryDatasource(ctx context.Context, dataproductID uuid.UUID) (DatasourceBigquery, error)
 	GetBigqueryDatasources(ctx context.Context) ([]DatasourceBigquery, error)
 	GetDataproduct(ctx context.Context, id uuid.UUID) (Dataproduct, error)
@@ -31,6 +33,7 @@ type Querier interface {
 	GetDataproductsByMapping(ctx context.Context, service string) ([]Dataproduct, error)
 	GetDataproductsByUserAccess(ctx context.Context, id string) ([]Dataproduct, error)
 	GetMetabaseMetadata(ctx context.Context, dataproductID uuid.UUID) (MetabaseMetadatum, error)
+	GetSession(ctx context.Context, token string) (Session, error)
 	GetStoryDrafts(ctx context.Context) ([]StoryDraft, error)
 	GetStoryViewDrafts(ctx context.Context, storyID uuid.UUID) ([]StoryViewDraft, error)
 	GrantAccessToDataproduct(ctx context.Context, arg GrantAccessToDataproductParams) (DataproductAccess, error)
