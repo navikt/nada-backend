@@ -4,6 +4,7 @@ package gensql
 
 import (
 	"database/sql"
+	"encoding/json"
 	"fmt"
 	"time"
 
@@ -25,6 +26,26 @@ func (e *DatasourceType) Scan(src interface{}) error {
 		*e = DatasourceType(s)
 	default:
 		return fmt.Errorf("unsupported scan type for DatasourceType: %T", src)
+	}
+	return nil
+}
+
+type StoryViewType string
+
+const (
+	StoryViewTypeMarkdown StoryViewType = "markdown"
+	StoryViewTypeHeader   StoryViewType = "header"
+	StoryViewTypePlotly   StoryViewType = "plotly"
+)
+
+func (e *StoryViewType) Scan(src interface{}) error {
+	switch s := src.(type) {
+	case []byte:
+		*e = StoryViewType(s)
+	case string:
+		*e = StoryViewType(s)
+	default:
+		return fmt.Errorf("unsupported scan type for StoryViewType: %T", src)
 	}
 	return nil
 }
@@ -96,6 +117,36 @@ type Session struct {
 	Name    string
 	Created time.Time
 	Expires time.Time
+}
+
+type Story struct {
+	ID           uuid.UUID
+	Name         string
+	Created      time.Time
+	LastModified time.Time
+	Group        string
+}
+
+type StoryDraft struct {
+	ID      uuid.UUID
+	Name    string
+	Created time.Time
+}
+
+type StoryView struct {
+	ID      uuid.UUID
+	StoryID uuid.UUID
+	Sort    int32
+	Type    StoryViewType
+	Spec    json.RawMessage
+}
+
+type StoryViewDraft struct {
+	ID      uuid.UUID
+	StoryID uuid.UUID
+	Sort    int32
+	Type    StoryViewType
+	Spec    json.RawMessage
 }
 
 type ThirdPartyMapping struct {

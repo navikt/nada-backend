@@ -43,6 +43,7 @@ type ResolverRoot interface {
 	Dataproduct() DataproductResolver
 	Mutation() MutationResolver
 	Query() QueryResolver
+	Story() StoryResolver
 	UserInfo() UserInfoResolver
 }
 
@@ -116,6 +117,7 @@ type ComplexityRoot struct {
 		Dummy                          func(childComplexity int, no *string) int
 		GrantAccessToDataproduct       func(childComplexity int, dataproductID uuid.UUID, expires *time.Time, subject *string, subjectType *models.SubjectType) int
 		MapDataproduct                 func(childComplexity int, dataproductID uuid.UUID, services []models.MappingService) int
+		PublishStory                   func(childComplexity int, id uuid.UUID, group string) int
 		RemoveRequesterFromDataproduct func(childComplexity int, dataproductID uuid.UUID, subject string) int
 		RevokeAccessToDataproduct      func(childComplexity int, id uuid.UUID) int
 		UpdateDataproduct              func(childComplexity int, id uuid.UUID, input models.UpdateDataproduct) int
@@ -133,6 +135,8 @@ type ComplexityRoot struct {
 		GcpGetTables            func(childComplexity int, projectID string, datasetID string) int
 		GetDataproductByMapping func(childComplexity int, service models.MappingService) int
 		Search                  func(childComplexity int, q *models.SearchQuery) int
+		Stories                 func(childComplexity int, draft *bool) int
+		Story                   func(childComplexity int, id uuid.UUID, draft *bool) int
 		Teamkatalogen           func(childComplexity int, q string) int
 		UserInfo                func(childComplexity int) int
 		Version                 func(childComplexity int) int
@@ -141,6 +145,20 @@ type ComplexityRoot struct {
 	SearchResultRow struct {
 		Excerpt func(childComplexity int) int
 		Result  func(childComplexity int) int
+	}
+
+	Story struct {
+		Created      func(childComplexity int) int
+		ID           func(childComplexity int) int
+		LastModified func(childComplexity int) int
+		Name         func(childComplexity int) int
+		Owner        func(childComplexity int) int
+		Views        func(childComplexity int) int
+	}
+
+	StoryView struct {
+		Spec func(childComplexity int) int
+		Type func(childComplexity int) int
 	}
 
 	TableColumn struct {
@@ -187,6 +205,7 @@ type MutationResolver interface {
 	GrantAccessToDataproduct(ctx context.Context, dataproductID uuid.UUID, expires *time.Time, subject *string, subjectType *models.SubjectType) (*models.Access, error)
 	RevokeAccessToDataproduct(ctx context.Context, id uuid.UUID) (bool, error)
 	MapDataproduct(ctx context.Context, dataproductID uuid.UUID, services []models.MappingService) (bool, error)
+	PublishStory(ctx context.Context, id uuid.UUID, group string) (*models.Story, error)
 }
 type QueryResolver interface {
 	Version(ctx context.Context) (string, error)
@@ -196,8 +215,14 @@ type QueryResolver interface {
 	GcpGetTables(ctx context.Context, projectID string, datasetID string) ([]*models.BigQueryTable, error)
 	GcpGetDatasets(ctx context.Context, projectID string) ([]string, error)
 	Search(ctx context.Context, q *models.SearchQuery) ([]*models.SearchResultRow, error)
+	Stories(ctx context.Context, draft *bool) ([]*models.Story, error)
+	Story(ctx context.Context, id uuid.UUID, draft *bool) (*models.Story, error)
 	Teamkatalogen(ctx context.Context, q string) ([]*models.TeamkatalogenResult, error)
 	UserInfo(ctx context.Context) (*models.UserInfo, error)
+}
+type StoryResolver interface {
+	Owner(ctx context.Context, obj *models.Story) (*models.Owner, error)
+	Views(ctx context.Context, obj *models.Story) ([]*models.StoryView, error)
 }
 type UserInfoResolver interface {
 	GCPProjects(ctx context.Context, obj *models.UserInfo) ([]*models.GCPProject, error)
@@ -552,6 +577,18 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.Mutation.MapDataproduct(childComplexity, args["dataproductID"].(uuid.UUID), args["services"].([]models.MappingService)), true
 
+	case "Mutation.publishStory":
+		if e.complexity.Mutation.PublishStory == nil {
+			break
+		}
+
+		args, err := ec.field_Mutation_publishStory_args(context.TODO(), rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Mutation.PublishStory(childComplexity, args["id"].(uuid.UUID), args["group"].(string)), true
+
 	case "Mutation.removeRequesterFromDataproduct":
 		if e.complexity.Mutation.RemoveRequesterFromDataproduct == nil {
 			break
@@ -674,6 +711,30 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.Query.Search(childComplexity, args["q"].(*models.SearchQuery)), true
 
+	case "Query.stories":
+		if e.complexity.Query.Stories == nil {
+			break
+		}
+
+		args, err := ec.field_Query_stories_args(context.TODO(), rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Query.Stories(childComplexity, args["draft"].(*bool)), true
+
+	case "Query.story":
+		if e.complexity.Query.Story == nil {
+			break
+		}
+
+		args, err := ec.field_Query_story_args(context.TODO(), rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Query.Story(childComplexity, args["id"].(uuid.UUID), args["draft"].(*bool)), true
+
 	case "Query.teamkatalogen":
 		if e.complexity.Query.Teamkatalogen == nil {
 			break
@@ -713,6 +774,62 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 		}
 
 		return e.complexity.SearchResultRow.Result(childComplexity), true
+
+	case "Story.created":
+		if e.complexity.Story.Created == nil {
+			break
+		}
+
+		return e.complexity.Story.Created(childComplexity), true
+
+	case "Story.id":
+		if e.complexity.Story.ID == nil {
+			break
+		}
+
+		return e.complexity.Story.ID(childComplexity), true
+
+	case "Story.lastModified":
+		if e.complexity.Story.LastModified == nil {
+			break
+		}
+
+		return e.complexity.Story.LastModified(childComplexity), true
+
+	case "Story.name":
+		if e.complexity.Story.Name == nil {
+			break
+		}
+
+		return e.complexity.Story.Name(childComplexity), true
+
+	case "Story.owner":
+		if e.complexity.Story.Owner == nil {
+			break
+		}
+
+		return e.complexity.Story.Owner(childComplexity), true
+
+	case "Story.views":
+		if e.complexity.Story.Views == nil {
+			break
+		}
+
+		return e.complexity.Story.Views(childComplexity), true
+
+	case "StoryView.spec":
+		if e.complexity.StoryView.Spec == nil {
+			break
+		}
+
+		return e.complexity.StoryView.Spec(childComplexity), true
+
+	case "StoryView.type":
+		if e.complexity.StoryView.Type == nil {
+			break
+		}
+
+		return e.complexity.StoryView.Type(childComplexity), true
 
 	case "TableColumn.description":
 		if e.complexity.TableColumn.Description == nil {
@@ -1254,6 +1371,11 @@ Time is a string in [RFC 3339](https://rfc-editor.org/rfc/rfc3339.html) format, 
 """
 scalar Time
 
+"""
+Maps an arbitrary GraphQL value to a map[string]interface{} Go type.
+"""
+scalar Map
+
 directive @goModel(model: String, models: [String!]) on OBJECT
 	| INPUT_OBJECT
 	| SCALAR
@@ -1320,6 +1442,36 @@ extend type Query {
         "q is the search query."
         q: SearchQuery
     ): [SearchResultRow!]!
+}
+`, BuiltIn: false},
+	{Name: "schema/story.graphql", Input: `type Story @goModel(model: "github.com/navikt/nada-backend/pkg/graph/models.Story") {
+	id: ID!
+	name: String!
+	created: Time!
+	lastModified: Time
+	owner: Owner
+	views: [StoryView!]! @goField(forceResolver: true)
+}
+
+enum StoryViewType @goModel(model: "github.com/navikt/nada-backend/pkg/graph/models.StoryViewType") {
+	markdown,
+	header,
+	plotly
+}
+
+type StoryView @goModel(model: "github.com/navikt/nada-backend/pkg/graph/models.StoryView") {
+	type: StoryViewType!
+	spec: Map!
+}
+
+extend type Query {
+	stories(draft: Boolean): [Story!]!
+	story(id: ID!, draft: Boolean): Story!
+}
+
+extend type Mutation {
+	publishStory(id: ID!, group: String!) : Story! @authenticated
+	# publishStoryWithID(id: ID!, target: ID!) : Story! @authenticated
 }
 `, BuiltIn: false},
 	{Name: "schema/teamkatalogen.graphql", Input: `type TeamkatalogenResult @goModel(model: "github.com/navikt/nada-backend/pkg/graph/models.TeamkatalogenResult") {
@@ -1543,6 +1695,30 @@ func (ec *executionContext) field_Mutation_mapDataproduct_args(ctx context.Conte
 	return args, nil
 }
 
+func (ec *executionContext) field_Mutation_publishStory_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
+	var err error
+	args := map[string]interface{}{}
+	var arg0 uuid.UUID
+	if tmp, ok := rawArgs["id"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("id"))
+		arg0, err = ec.unmarshalNID2githubᚗcomᚋgoogleᚋuuidᚐUUID(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["id"] = arg0
+	var arg1 string
+	if tmp, ok := rawArgs["group"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("group"))
+		arg1, err = ec.unmarshalNString2string(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["group"] = arg1
+	return args, nil
+}
+
 func (ec *executionContext) field_Mutation_removeRequesterFromDataproduct_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
 	var err error
 	args := map[string]interface{}{}
@@ -1726,6 +1902,45 @@ func (ec *executionContext) field_Query_search_args(ctx context.Context, rawArgs
 		}
 	}
 	args["q"] = arg0
+	return args, nil
+}
+
+func (ec *executionContext) field_Query_stories_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
+	var err error
+	args := map[string]interface{}{}
+	var arg0 *bool
+	if tmp, ok := rawArgs["draft"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("draft"))
+		arg0, err = ec.unmarshalOBoolean2ᚖbool(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["draft"] = arg0
+	return args, nil
+}
+
+func (ec *executionContext) field_Query_story_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
+	var err error
+	args := map[string]interface{}{}
+	var arg0 uuid.UUID
+	if tmp, ok := rawArgs["id"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("id"))
+		arg0, err = ec.unmarshalNID2githubᚗcomᚋgoogleᚋuuidᚐUUID(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["id"] = arg0
+	var arg1 *bool
+	if tmp, ok := rawArgs["draft"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("draft"))
+		arg1, err = ec.unmarshalOBoolean2ᚖbool(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["draft"] = arg1
 	return args, nil
 }
 
@@ -3614,6 +3829,68 @@ func (ec *executionContext) _Mutation_mapDataproduct(ctx context.Context, field 
 	return ec.marshalNBoolean2bool(ctx, field.Selections, res)
 }
 
+func (ec *executionContext) _Mutation_publishStory(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "Mutation",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   true,
+		IsResolver: true,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	rawArgs := field.ArgumentMap(ec.Variables)
+	args, err := ec.field_Mutation_publishStory_args(ctx, rawArgs)
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	fc.Args = args
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		directive0 := func(rctx context.Context) (interface{}, error) {
+			ctx = rctx // use context from middleware stack in children
+			return ec.resolvers.Mutation().PublishStory(rctx, args["id"].(uuid.UUID), args["group"].(string))
+		}
+		directive1 := func(ctx context.Context) (interface{}, error) {
+			if ec.directives.Authenticated == nil {
+				return nil, errors.New("directive authenticated is not implemented")
+			}
+			return ec.directives.Authenticated(ctx, nil, directive0, nil)
+		}
+
+		tmp, err := directive1(rctx)
+		if err != nil {
+			return nil, graphql.ErrorOnPath(ctx, err)
+		}
+		if tmp == nil {
+			return nil, nil
+		}
+		if data, ok := tmp.(*models.Story); ok {
+			return data, nil
+		}
+		return nil, fmt.Errorf(`unexpected type %T from directive, should be *github.com/navikt/nada-backend/pkg/graph/models.Story`, tmp)
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(*models.Story)
+	fc.Result = res
+	return ec.marshalNStory2ᚖgithubᚗcomᚋnaviktᚋnadaᚑbackendᚋpkgᚋgraphᚋmodelsᚐStory(ctx, field.Selections, res)
+}
+
 func (ec *executionContext) _Owner_group(ctx context.Context, field graphql.CollectedField, obj *models.Owner) (ret graphql.Marshaler) {
 	defer func() {
 		if r := recover(); r != nil {
@@ -4008,6 +4285,90 @@ func (ec *executionContext) _Query_search(ctx context.Context, field graphql.Col
 	return ec.marshalNSearchResultRow2ᚕᚖgithubᚗcomᚋnaviktᚋnadaᚑbackendᚋpkgᚋgraphᚋmodelsᚐSearchResultRowᚄ(ctx, field.Selections, res)
 }
 
+func (ec *executionContext) _Query_stories(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "Query",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   true,
+		IsResolver: true,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	rawArgs := field.ArgumentMap(ec.Variables)
+	args, err := ec.field_Query_stories_args(ctx, rawArgs)
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	fc.Args = args
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.Query().Stories(rctx, args["draft"].(*bool))
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.([]*models.Story)
+	fc.Result = res
+	return ec.marshalNStory2ᚕᚖgithubᚗcomᚋnaviktᚋnadaᚑbackendᚋpkgᚋgraphᚋmodelsᚐStoryᚄ(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _Query_story(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "Query",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   true,
+		IsResolver: true,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	rawArgs := field.ArgumentMap(ec.Variables)
+	args, err := ec.field_Query_story_args(ctx, rawArgs)
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	fc.Args = args
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.Query().Story(rctx, args["id"].(uuid.UUID), args["draft"].(*bool))
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(*models.Story)
+	fc.Result = res
+	return ec.marshalNStory2ᚖgithubᚗcomᚋnaviktᚋnadaᚑbackendᚋpkgᚋgraphᚋmodelsᚐStory(ctx, field.Selections, res)
+}
+
 func (ec *executionContext) _Query_teamkatalogen(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
 	defer func() {
 		if r := recover(); r != nil {
@@ -4244,6 +4605,280 @@ func (ec *executionContext) _SearchResultRow_result(ctx context.Context, field g
 	res := resTmp.(models.SearchResult)
 	fc.Result = res
 	return ec.marshalNSearchResult2githubᚗcomᚋnaviktᚋnadaᚑbackendᚋpkgᚋgraphᚋmodelsᚐSearchResult(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _Story_id(ctx context.Context, field graphql.CollectedField, obj *models.Story) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "Story",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   false,
+		IsResolver: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.ID, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(uuid.UUID)
+	fc.Result = res
+	return ec.marshalNID2githubᚗcomᚋgoogleᚋuuidᚐUUID(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _Story_name(ctx context.Context, field graphql.CollectedField, obj *models.Story) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "Story",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   false,
+		IsResolver: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Name, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(string)
+	fc.Result = res
+	return ec.marshalNString2string(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _Story_created(ctx context.Context, field graphql.CollectedField, obj *models.Story) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "Story",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   false,
+		IsResolver: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Created, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(time.Time)
+	fc.Result = res
+	return ec.marshalNTime2timeᚐTime(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _Story_lastModified(ctx context.Context, field graphql.CollectedField, obj *models.Story) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "Story",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   false,
+		IsResolver: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.LastModified, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		return graphql.Null
+	}
+	res := resTmp.(time.Time)
+	fc.Result = res
+	return ec.marshalOTime2timeᚐTime(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _Story_owner(ctx context.Context, field graphql.CollectedField, obj *models.Story) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "Story",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   true,
+		IsResolver: true,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.Story().Owner(rctx, obj)
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		return graphql.Null
+	}
+	res := resTmp.(*models.Owner)
+	fc.Result = res
+	return ec.marshalOOwner2ᚖgithubᚗcomᚋnaviktᚋnadaᚑbackendᚋpkgᚋgraphᚋmodelsᚐOwner(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _Story_views(ctx context.Context, field graphql.CollectedField, obj *models.Story) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "Story",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   true,
+		IsResolver: true,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.Story().Views(rctx, obj)
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.([]*models.StoryView)
+	fc.Result = res
+	return ec.marshalNStoryView2ᚕᚖgithubᚗcomᚋnaviktᚋnadaᚑbackendᚋpkgᚋgraphᚋmodelsᚐStoryViewᚄ(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _StoryView_type(ctx context.Context, field graphql.CollectedField, obj *models.StoryView) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "StoryView",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   false,
+		IsResolver: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Type, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(models.StoryViewType)
+	fc.Result = res
+	return ec.marshalNStoryViewType2githubᚗcomᚋnaviktᚋnadaᚑbackendᚋpkgᚋgraphᚋmodelsᚐStoryViewType(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _StoryView_spec(ctx context.Context, field graphql.CollectedField, obj *models.StoryView) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "StoryView",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   false,
+		IsResolver: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Spec, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(map[string]interface{})
+	fc.Result = res
+	return ec.marshalNMap2map(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _TableColumn_name(ctx context.Context, field graphql.CollectedField, obj *models.TableColumn) (ret graphql.Marshaler) {
@@ -6594,6 +7229,11 @@ func (ec *executionContext) _Mutation(ctx context.Context, sel ast.SelectionSet)
 			if out.Values[i] == graphql.Null {
 				invalids++
 			}
+		case "publishStory":
+			out.Values[i] = ec._Mutation_publishStory(ctx, field)
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
 		default:
 			panic("unknown field " + strconv.Quote(field.Name))
 		}
@@ -6747,6 +7387,34 @@ func (ec *executionContext) _Query(ctx context.Context, sel ast.SelectionSet) gr
 				}
 				return res
 			})
+		case "stories":
+			field := field
+			out.Concurrently(i, func() (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._Query_stories(ctx, field)
+				if res == graphql.Null {
+					atomic.AddUint32(&invalids, 1)
+				}
+				return res
+			})
+		case "story":
+			field := field
+			out.Concurrently(i, func() (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._Query_story(ctx, field)
+				if res == graphql.Null {
+					atomic.AddUint32(&invalids, 1)
+				}
+				return res
+			})
 		case "teamkatalogen":
 			field := field
 			out.Concurrently(i, func() (res graphql.Marshaler) {
@@ -6808,6 +7476,102 @@ func (ec *executionContext) _SearchResultRow(ctx context.Context, sel ast.Select
 			}
 		case "result":
 			out.Values[i] = ec._SearchResultRow_result(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
+		default:
+			panic("unknown field " + strconv.Quote(field.Name))
+		}
+	}
+	out.Dispatch()
+	if invalids > 0 {
+		return graphql.Null
+	}
+	return out
+}
+
+var storyImplementors = []string{"Story"}
+
+func (ec *executionContext) _Story(ctx context.Context, sel ast.SelectionSet, obj *models.Story) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, storyImplementors)
+
+	out := graphql.NewFieldSet(fields)
+	var invalids uint32
+	for i, field := range fields {
+		switch field.Name {
+		case "__typename":
+			out.Values[i] = graphql.MarshalString("Story")
+		case "id":
+			out.Values[i] = ec._Story_id(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				atomic.AddUint32(&invalids, 1)
+			}
+		case "name":
+			out.Values[i] = ec._Story_name(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				atomic.AddUint32(&invalids, 1)
+			}
+		case "created":
+			out.Values[i] = ec._Story_created(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				atomic.AddUint32(&invalids, 1)
+			}
+		case "lastModified":
+			out.Values[i] = ec._Story_lastModified(ctx, field, obj)
+		case "owner":
+			field := field
+			out.Concurrently(i, func() (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._Story_owner(ctx, field, obj)
+				return res
+			})
+		case "views":
+			field := field
+			out.Concurrently(i, func() (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._Story_views(ctx, field, obj)
+				if res == graphql.Null {
+					atomic.AddUint32(&invalids, 1)
+				}
+				return res
+			})
+		default:
+			panic("unknown field " + strconv.Quote(field.Name))
+		}
+	}
+	out.Dispatch()
+	if invalids > 0 {
+		return graphql.Null
+	}
+	return out
+}
+
+var storyViewImplementors = []string{"StoryView"}
+
+func (ec *executionContext) _StoryView(ctx context.Context, sel ast.SelectionSet, obj *models.StoryView) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, storyViewImplementors)
+
+	out := graphql.NewFieldSet(fields)
+	var invalids uint32
+	for i, field := range fields {
+		switch field.Name {
+		case "__typename":
+			out.Values[i] = graphql.MarshalString("StoryView")
+		case "type":
+			out.Values[i] = ec._StoryView_type(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
+		case "spec":
+			out.Values[i] = ec._StoryView_spec(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
 				invalids++
 			}
@@ -7577,6 +8341,27 @@ func (ec *executionContext) marshalNID2githubᚗcomᚋgoogleᚋuuidᚐUUID(ctx c
 	return res
 }
 
+func (ec *executionContext) unmarshalNMap2map(ctx context.Context, v interface{}) (map[string]interface{}, error) {
+	res, err := graphql.UnmarshalMap(v)
+	return res, graphql.ErrorOnPath(ctx, err)
+}
+
+func (ec *executionContext) marshalNMap2map(ctx context.Context, sel ast.SelectionSet, v map[string]interface{}) graphql.Marshaler {
+	if v == nil {
+		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := graphql.MarshalMap(v)
+	if res == graphql.Null {
+		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
+			ec.Errorf(ctx, "must not be null")
+		}
+	}
+	return res
+}
+
 func (ec *executionContext) unmarshalNMappingService2githubᚗcomᚋnaviktᚋnadaᚑbackendᚋpkgᚋgraphᚋmodelsᚐMappingService(ctx context.Context, v interface{}) (models.MappingService, error) {
 	var res models.MappingService
 	err := res.UnmarshalGQL(v)
@@ -7734,6 +8519,128 @@ func (ec *executionContext) marshalNSearchResultRow2ᚖgithubᚗcomᚋnaviktᚋn
 		return graphql.Null
 	}
 	return ec._SearchResultRow(ctx, sel, v)
+}
+
+func (ec *executionContext) marshalNStory2githubᚗcomᚋnaviktᚋnadaᚑbackendᚋpkgᚋgraphᚋmodelsᚐStory(ctx context.Context, sel ast.SelectionSet, v models.Story) graphql.Marshaler {
+	return ec._Story(ctx, sel, &v)
+}
+
+func (ec *executionContext) marshalNStory2ᚕᚖgithubᚗcomᚋnaviktᚋnadaᚑbackendᚋpkgᚋgraphᚋmodelsᚐStoryᚄ(ctx context.Context, sel ast.SelectionSet, v []*models.Story) graphql.Marshaler {
+	ret := make(graphql.Array, len(v))
+	var wg sync.WaitGroup
+	isLen1 := len(v) == 1
+	if !isLen1 {
+		wg.Add(len(v))
+	}
+	for i := range v {
+		i := i
+		fc := &graphql.FieldContext{
+			Index:  &i,
+			Result: &v[i],
+		}
+		ctx := graphql.WithFieldContext(ctx, fc)
+		f := func(i int) {
+			defer func() {
+				if r := recover(); r != nil {
+					ec.Error(ctx, ec.Recover(ctx, r))
+					ret = nil
+				}
+			}()
+			if !isLen1 {
+				defer wg.Done()
+			}
+			ret[i] = ec.marshalNStory2ᚖgithubᚗcomᚋnaviktᚋnadaᚑbackendᚋpkgᚋgraphᚋmodelsᚐStory(ctx, sel, v[i])
+		}
+		if isLen1 {
+			f(i)
+		} else {
+			go f(i)
+		}
+
+	}
+	wg.Wait()
+
+	for _, e := range ret {
+		if e == graphql.Null {
+			return graphql.Null
+		}
+	}
+
+	return ret
+}
+
+func (ec *executionContext) marshalNStory2ᚖgithubᚗcomᚋnaviktᚋnadaᚑbackendᚋpkgᚋgraphᚋmodelsᚐStory(ctx context.Context, sel ast.SelectionSet, v *models.Story) graphql.Marshaler {
+	if v == nil {
+		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	return ec._Story(ctx, sel, v)
+}
+
+func (ec *executionContext) marshalNStoryView2ᚕᚖgithubᚗcomᚋnaviktᚋnadaᚑbackendᚋpkgᚋgraphᚋmodelsᚐStoryViewᚄ(ctx context.Context, sel ast.SelectionSet, v []*models.StoryView) graphql.Marshaler {
+	ret := make(graphql.Array, len(v))
+	var wg sync.WaitGroup
+	isLen1 := len(v) == 1
+	if !isLen1 {
+		wg.Add(len(v))
+	}
+	for i := range v {
+		i := i
+		fc := &graphql.FieldContext{
+			Index:  &i,
+			Result: &v[i],
+		}
+		ctx := graphql.WithFieldContext(ctx, fc)
+		f := func(i int) {
+			defer func() {
+				if r := recover(); r != nil {
+					ec.Error(ctx, ec.Recover(ctx, r))
+					ret = nil
+				}
+			}()
+			if !isLen1 {
+				defer wg.Done()
+			}
+			ret[i] = ec.marshalNStoryView2ᚖgithubᚗcomᚋnaviktᚋnadaᚑbackendᚋpkgᚋgraphᚋmodelsᚐStoryView(ctx, sel, v[i])
+		}
+		if isLen1 {
+			f(i)
+		} else {
+			go f(i)
+		}
+
+	}
+	wg.Wait()
+
+	for _, e := range ret {
+		if e == graphql.Null {
+			return graphql.Null
+		}
+	}
+
+	return ret
+}
+
+func (ec *executionContext) marshalNStoryView2ᚖgithubᚗcomᚋnaviktᚋnadaᚑbackendᚋpkgᚋgraphᚋmodelsᚐStoryView(ctx context.Context, sel ast.SelectionSet, v *models.StoryView) graphql.Marshaler {
+	if v == nil {
+		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	return ec._StoryView(ctx, sel, v)
+}
+
+func (ec *executionContext) unmarshalNStoryViewType2githubᚗcomᚋnaviktᚋnadaᚑbackendᚋpkgᚋgraphᚋmodelsᚐStoryViewType(ctx context.Context, v interface{}) (models.StoryViewType, error) {
+	var res models.StoryViewType
+	err := res.UnmarshalGQL(v)
+	return res, graphql.ErrorOnPath(ctx, err)
+}
+
+func (ec *executionContext) marshalNStoryViewType2githubᚗcomᚋnaviktᚋnadaᚑbackendᚋpkgᚋgraphᚋmodelsᚐStoryViewType(ctx context.Context, sel ast.SelectionSet, v models.StoryViewType) graphql.Marshaler {
+	return v
 }
 
 func (ec *executionContext) unmarshalNString2string(ctx context.Context, v interface{}) (string, error) {
@@ -8225,6 +9132,13 @@ func (ec *executionContext) marshalOInt2ᚖint(ctx context.Context, sel ast.Sele
 	return graphql.MarshalInt(*v)
 }
 
+func (ec *executionContext) marshalOOwner2ᚖgithubᚗcomᚋnaviktᚋnadaᚑbackendᚋpkgᚋgraphᚋmodelsᚐOwner(ctx context.Context, sel ast.SelectionSet, v *models.Owner) graphql.Marshaler {
+	if v == nil {
+		return graphql.Null
+	}
+	return ec._Owner(ctx, sel, v)
+}
+
 func (ec *executionContext) unmarshalOSearchQuery2ᚖgithubᚗcomᚋnaviktᚋnadaᚑbackendᚋpkgᚋgraphᚋmodelsᚐSearchQuery(ctx context.Context, v interface{}) (*models.SearchQuery, error) {
 	if v == nil {
 		return nil, nil
@@ -8313,6 +9227,15 @@ func (ec *executionContext) marshalOSubjectType2ᚖgithubᚗcomᚋnaviktᚋnada�
 		return graphql.Null
 	}
 	return v
+}
+
+func (ec *executionContext) unmarshalOTime2timeᚐTime(ctx context.Context, v interface{}) (time.Time, error) {
+	res, err := graphql.UnmarshalTime(v)
+	return res, graphql.ErrorOnPath(ctx, err)
+}
+
+func (ec *executionContext) marshalOTime2timeᚐTime(ctx context.Context, sel ast.SelectionSet, v time.Time) graphql.Marshaler {
+	return graphql.MarshalTime(v)
 }
 
 func (ec *executionContext) unmarshalOTime2ᚖtimeᚐTime(ctx context.Context, v interface{}) (*time.Time, error) {

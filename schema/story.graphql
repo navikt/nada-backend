@@ -1,0 +1,29 @@
+type Story @goModel(model: "github.com/navikt/nada-backend/pkg/graph/models.Story") {
+	id: ID!
+	name: String!
+	created: Time!
+	lastModified: Time
+	owner: Owner
+	views: [StoryView!]! @goField(forceResolver: true)
+}
+
+enum StoryViewType @goModel(model: "github.com/navikt/nada-backend/pkg/graph/models.StoryViewType") {
+	markdown,
+	header,
+	plotly
+}
+
+type StoryView @goModel(model: "github.com/navikt/nada-backend/pkg/graph/models.StoryView") {
+	type: StoryViewType!
+	spec: Map!
+}
+
+extend type Query {
+	stories(draft: Boolean): [Story!]!
+	story(id: ID!, draft: Boolean): Story!
+}
+
+extend type Mutation {
+	publishStory(id: ID!, group: String!) : Story! @authenticated
+	# publishStoryWithID(id: ID!, target: ID!) : Story! @authenticated
+}

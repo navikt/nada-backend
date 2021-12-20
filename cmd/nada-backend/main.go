@@ -81,7 +81,7 @@ func main() {
 	authenticatorMiddleware := auth.MockJWTValidatorMiddleware()
 	teamProjectsMapping := &auth.MockTeamProjectsUpdater
 	var oauth2Config api.OAuth2
-	var httpAPI api.HTTPAPI // mock as default?
+	var httpAPI api.HTTPAPI = api.NewMockHTTP(repo, log.WithField("subsystem", "mockhttp"))
 	var accessMgr graph.AccessManager
 	accessMgr = access.NewNoop()
 	if !cfg.MockAuth {
