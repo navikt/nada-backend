@@ -66,7 +66,7 @@ func (r *dataproductResolver) Services(ctx context.Context, obj *models.Dataprod
 	svc := &models.DataproductServices{}
 	if meta.DatabaseID > 0 {
 		base := "https://metabase.dev.intern.nav.no/browse/%v"
-		if os.Getenv("NAIS_CLUSTER") == "prod-gcp" {
+		if os.Getenv("NAIS_CLUSTER_NAME") == "prod-gcp" {
 			base = "https://metabase.intern.nav.no/browse/%v"
 		}
 		url := fmt.Sprintf(base, meta.DatabaseID)
