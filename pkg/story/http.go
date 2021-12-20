@@ -36,7 +36,7 @@ func (h *Handler) Upload(w http.ResponseWriter, r *http.Request) {
 	w.Header().Add("content-type", "application/json")
 
 	resp := map[string]string{
-		"url": r.Host + "/stories/drafts/" + id.String(),
+		"url": r.Host + "/story/draft/" + id.String(),
 		"id":  id.String(),
 	}
 	if err := json.NewEncoder(w).Encode(resp); err != nil {
