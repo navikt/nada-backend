@@ -5,7 +5,10 @@ package graph
 
 import (
 	"context"
+	"database/sql"
+	"errors"
 	"fmt"
+	"os"
 	"strings"
 	"time"
 
@@ -49,6 +52,28 @@ func (r *dataproductResolver) Access(ctx context.Context, obj *models.Dataproduc
 	}
 
 	return ret, nil
+}
+
+func (r *dataproductResolver) Services(ctx context.Context, obj *models.Dataproduct) (*models.DataproductServices, error) {
+	meta, err := r.repo.GetMetabaseMetadata(ctx, obj.ID)
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return &models.DataproductServices{}, nil
+		}
+		return nil, err
+	}
+
+	svc := &models.DataproductServices{}
+	if meta.DatabaseID > 0 {
+		base := "https://metabase.dev.intern.nav.no/browse/%v"
+		if os.Getenv("NAIS_CLUSTER") == "prod-gcp" {
+			base = "https://metabase.intern.nav.no/browse/%v"
+		}
+		url := fmt.Sprintf(base, meta.DatabaseID)
+		svc.Metabase = &url
+	}
+
+	return svc, nil
 }
 
 func (r *mutationResolver) CreateDataproduct(ctx context.Context, input models.NewDataproduct) (*models.Dataproduct, error) {
@@ -227,5 +252,7 @@ func (r *Resolver) BigQuery() generated.BigQueryResolver { return &bigQueryResol
 // Dataproduct returns generated.DataproductResolver implementation.
 func (r *Resolver) Dataproduct() generated.DataproductResolver { return &dataproductResolver{r} }
 
-type bigQueryResolver struct{ *Resolver }
-type dataproductResolver struct{ *Resolver }
+type (
+	bigQueryResolver    struct{ *Resolver }
+	dataproductResolver struct{ *Resolver }
+)
