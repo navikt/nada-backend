@@ -5,28 +5,40 @@ package graph
 
 import (
 	"context"
-	"fmt"
 
+	"github.com/google/uuid"
+	"github.com/navikt/nada-backend/pkg/auth"
 	"github.com/navikt/nada-backend/pkg/graph/generated"
 	"github.com/navikt/nada-backend/pkg/graph/models"
 )
+
+func (r *mutationResolver) PublishStory(ctx context.Context, id uuid.UUID, group string) (*models.Story, error) {
+	user := auth.GetUser(ctx)
+	if !user.Groups.Contains(group) {
+		return nil, ErrUnauthorized
+	}
+
+	return r.repo.PublishStory(ctx, id, group)
+}
 
 func (r *queryResolver) Stories(ctx context.Context, draft *bool) ([]*models.Story, error) {
 	if draft != nil && *draft {
 		return r.repo.GetStoryDrafts(ctx)
 	}
-	panic("not implemented")
+	return r.repo.GetStories(ctx)
 }
 
 func (r *storyResolver) Owner(ctx context.Context, obj *models.Story) (*models.Owner, error) {
-	panic(fmt.Errorf("not implemented"))
+	return &models.Owner{
+		Group: obj.Group,
+	}, nil
 }
 
 func (r *storyResolver) Views(ctx context.Context, obj *models.Story) ([]*models.StoryView, error) {
 	if obj.Draft {
 		return r.repo.GetStoryViewDraft(ctx, obj.ID)
 	}
-	panic(fmt.Errorf("not implemented"))
+	return r.repo.GetStoryViews(ctx, obj.ID)
 }
 
 // Story returns generated.StoryResolver implementation.

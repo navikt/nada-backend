@@ -21,8 +21,7 @@ extend type Query {
 	stories(draft: Boolean): [Story!]!
 }
 
-
-# extend type Mutation {
-# 	publishStory(id: ID!)
-
-# }
+extend type Mutation {
+	publishStory(id: ID!, group: String!) : Story! @authenticated
+	# publishStoryWithID(id: ID!, target: ID!) : Story! @authenticated
+}

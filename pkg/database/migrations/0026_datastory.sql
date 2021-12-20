@@ -5,9 +5,16 @@ CREATE TABLE stories (
 	"id" uuid DEFAULT uuid_generate_v4(),
 	"name" TEXT NOT NULL,
 	"created" TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  "last_modified" TIMESTAMPTZ NOT NULL DEFAULT NOW(),
 	"group" TEXT NOT NULL,
-	PRIMARY KEY (id, revision)
+	PRIMARY KEY (id)
 );
+
+CREATE TRIGGER stories_set_modified
+    BEFORE UPDATE
+    ON stories
+    FOR EACH ROW
+EXECUTE PROCEDURE update_modified_timestamp();
 
 CREATE TABLE story_views (
 	"id" uuid DEFAULT uuid_generate_v4(),

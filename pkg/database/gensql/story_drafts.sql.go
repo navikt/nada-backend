@@ -66,6 +66,39 @@ func (q *Queries) CreateStoryViewDraft(ctx context.Context, arg CreateStoryViewD
 	return i, err
 }
 
+const deleteStoryDraft = `-- name: DeleteStoryDraft :exec
+DELETE FROM story_drafts
+WHERE id = $1
+`
+
+func (q *Queries) DeleteStoryDraft(ctx context.Context, id uuid.UUID) error {
+	_, err := q.db.ExecContext(ctx, deleteStoryDraft, id)
+	return err
+}
+
+const deleteStoryViewDraft = `-- name: DeleteStoryViewDraft :exec
+DELETE FROM story_view_drafts
+WHERE story_id = $1
+`
+
+func (q *Queries) DeleteStoryViewDraft(ctx context.Context, storyID uuid.UUID) error {
+	_, err := q.db.ExecContext(ctx, deleteStoryViewDraft, storyID)
+	return err
+}
+
+const getStoryDraft = `-- name: GetStoryDraft :one
+SELECT id, name, created
+FROM story_drafts
+WHERE id = $1
+`
+
+func (q *Queries) GetStoryDraft(ctx context.Context, id uuid.UUID) (StoryDraft, error) {
+	row := q.db.QueryRowContext(ctx, getStoryDraft, id)
+	var i StoryDraft
+	err := row.Scan(&i.ID, &i.Name, &i.Created)
+	return i, err
+}
+
 const getStoryDrafts = `-- name: GetStoryDrafts :many
 SELECT id, name, created
 FROM story_drafts

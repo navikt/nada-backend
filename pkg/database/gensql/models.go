@@ -120,10 +120,11 @@ type Session struct {
 }
 
 type Story struct {
-	ID      uuid.UUID
-	Name    string
-	Created time.Time
-	Group   string
+	ID           uuid.UUID
+	Name         string
+	Created      time.Time
+	LastModified time.Time
+	Group        string
 }
 
 type StoryDraft struct {

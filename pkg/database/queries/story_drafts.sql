@@ -20,6 +20,11 @@ INSERT INTO story_view_drafts (
 )
 RETURNING *;
 
+-- name: GetStoryDraft :one
+SELECT *
+FROM story_drafts
+WHERE id = @id;
+
 -- name: GetStoryDrafts :many
 SELECT *
 FROM story_drafts
@@ -30,3 +35,11 @@ SELECT *
 FROM story_view_drafts
 WHERE story_id = @story_id
 ORDER BY sort ASC;
+
+-- name: DeleteStoryDraft :exec
+DELETE FROM story_drafts
+WHERE id = @id;
+
+-- name: DeleteStoryViewDraft :exec
+DELETE FROM story_view_drafts
+WHERE story_id = @story_id;

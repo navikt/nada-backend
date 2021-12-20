@@ -18,7 +18,7 @@ INSERT INTO stories (
 	$1,
 	$2
 )
-RETURNING id, name, created, "group"
+RETURNING id, name, created, last_modified, "group"
 `
 
 type CreateStoryParams struct {
@@ -33,6 +33,7 @@ func (q *Queries) CreateStory(ctx context.Context, arg CreateStoryParams) (Story
 		&i.ID,
 		&i.Name,
 		&i.Created,
+		&i.LastModified,
 		&i.Group,
 	)
 	return i, err
@@ -76,4 +77,94 @@ func (q *Queries) CreateStoryView(ctx context.Context, arg CreateStoryViewParams
 		&i.Spec,
 	)
 	return i, err
+}
+
+const getStories = `-- name: GetStories :many
+SELECT id, name, created, last_modified, "group"
+FROM stories
+ORDER BY created DESC
+`
+
+func (q *Queries) GetStories(ctx context.Context) ([]Story, error) {
+	rows, err := q.db.QueryContext(ctx, getStories)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []Story{}
+	for rows.Next() {
+		var i Story
+		if err := rows.Scan(
+			&i.ID,
+			&i.Name,
+			&i.Created,
+			&i.LastModified,
+			&i.Group,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const getStory = `-- name: GetStory :one
+SELECT id, name, created, last_modified, "group"
+FROM stories
+WHERE id = $1
+`
+
+func (q *Queries) GetStory(ctx context.Context, id uuid.UUID) (Story, error) {
+	row := q.db.QueryRowContext(ctx, getStory, id)
+	var i Story
+	err := row.Scan(
+		&i.ID,
+		&i.Name,
+		&i.Created,
+		&i.LastModified,
+		&i.Group,
+	)
+	return i, err
+}
+
+const getStoryViews = `-- name: GetStoryViews :many
+SELECT id, story_id, sort, type, spec
+FROM story_views
+WHERE story_id = $1
+ORDER BY sort ASC
+`
+
+func (q *Queries) GetStoryViews(ctx context.Context, storyID uuid.UUID) ([]StoryView, error) {
+	rows, err := q.db.QueryContext(ctx, getStoryViews, storyID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []StoryView{}
+	for rows.Next() {
+		var i StoryView
+		if err := rows.Scan(
+			&i.ID,
+			&i.StoryID,
+			&i.Sort,
+			&i.Type,
+			&i.Spec,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
 }
