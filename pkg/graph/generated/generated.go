@@ -550,7 +550,7 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 			return 0, false
 		}
 
-		return e.complexity.Mutation.MapDataproduct(childComplexity, args["dataproductId"].(uuid.UUID), args["services"].([]models.MappingService)), true
+		return e.complexity.Mutation.MapDataproduct(childComplexity, args["dataproductID"].(uuid.UUID), args["services"].([]models.MappingService)), true
 
 	case "Mutation.removeRequesterFromDataproduct":
 		if e.complexity.Mutation.RemoveRequesterFromDataproduct == nil {
@@ -1175,7 +1175,7 @@ extend type Mutation {
     """
     mapDataproduct(
         "id of dataproduct."
-        dataproductId: ID!
+        dataproductID: ID!
         "service is the type of third party service for which the dataproduct should be exposed."
         services: [MappingService!]!
     ): Boolean! @authenticated
@@ -1523,14 +1523,14 @@ func (ec *executionContext) field_Mutation_mapDataproduct_args(ctx context.Conte
 	var err error
 	args := map[string]interface{}{}
 	var arg0 uuid.UUID
-	if tmp, ok := rawArgs["dataproductId"]; ok {
-		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("dataproductId"))
+	if tmp, ok := rawArgs["dataproductID"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("dataproductID"))
 		arg0, err = ec.unmarshalNID2githubᚗcomᚋgoogleᚋuuidᚐUUID(ctx, tmp)
 		if err != nil {
 			return nil, err
 		}
 	}
-	args["dataproductId"] = arg0
+	args["dataproductID"] = arg0
 	var arg1 []models.MappingService
 	if tmp, ok := rawArgs["services"]; ok {
 		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("services"))
@@ -3578,7 +3578,7 @@ func (ec *executionContext) _Mutation_mapDataproduct(ctx context.Context, field 
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		directive0 := func(rctx context.Context) (interface{}, error) {
 			ctx = rctx // use context from middleware stack in children
-			return ec.resolvers.Mutation().MapDataproduct(rctx, args["dataproductId"].(uuid.UUID), args["services"].([]models.MappingService))
+			return ec.resolvers.Mutation().MapDataproduct(rctx, args["dataproductID"].(uuid.UUID), args["services"].([]models.MappingService))
 		}
 		directive1 := func(ctx context.Context) (interface{}, error) {
 			if ec.directives.Authenticated == nil {

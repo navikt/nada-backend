@@ -297,7 +297,7 @@ extend type Mutation {
     """
     mapDataproduct(
         "id of dataproduct."
-        dataproductId: ID!
+        dataproductID: ID!
         "service is the type of third party service for which the dataproduct should be exposed."
         services: [MappingService!]!
     ): Boolean! @authenticated

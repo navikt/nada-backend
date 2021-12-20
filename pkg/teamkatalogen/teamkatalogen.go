@@ -17,7 +17,7 @@ type Teamkatalogen struct {
 
 type TeamkatalogenResponse struct {
 	Content []struct {
-		Id          string `json:"id"`
+		ID          string `json:"id"`
 		Name        string `json:"name"`
 		Description string `json:"description"`
 		Links       struct {

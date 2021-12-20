@@ -193,10 +193,10 @@ func (c *Client) CreateDatabase(ctx context.Context, name, saJSON, saEmail strin
 
 func (c *Client) HideTables(ctx context.Context, ids []int) error {
 	t := struct {
-		Ids            []int  `json:"ids"`
+		IDs            []int  `json:"ids"`
 		VisibilityType string `json:"visibility_type"`
 	}{
-		Ids:            ids,
+		IDs:            ids,
 		VisibilityType: "hidden",
 	}
 	return c.request(ctx, http.MethodPut, "/table", t, nil)

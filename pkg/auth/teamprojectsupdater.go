@@ -21,7 +21,7 @@ type TeamProjectsUpdater struct {
 }
 
 type OutputFile struct {
-	TeamProjectIdMapping OutputVariable `json:"team_projectid_mapping"`
+	TeamProjectIDMapping OutputVariable `json:"team_projectid_mapping"`
 }
 
 type OutputVariable struct {
@@ -118,7 +118,7 @@ func getOutputFile(ctx context.Context, url, token string) (map[string]string, e
 		return nil, fmt.Errorf("unmarshalling terraform output file: %w", err)
 	}
 
-	return outputFile.TeamProjectIdMapping.Value, nil
+	return outputFile.TeamProjectIDMapping.Value, nil
 }
 
 func mergeInto(result map[string][]string, first map[string]string, second map[string]string) {
