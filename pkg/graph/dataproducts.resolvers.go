@@ -76,6 +76,10 @@ func (r *dataproductResolver) Services(ctx context.Context, obj *models.Dataprod
 	return svc, nil
 }
 
+func (r *dataproductResolver) Mappings(ctx context.Context, obj *models.Dataproduct) ([]models.MappingService, error) {
+	return r.repo.GetDataproductMappings(ctx, obj.ID)
+}
+
 func (r *mutationResolver) CreateDataproduct(ctx context.Context, input models.NewDataproduct) (*models.Dataproduct, error) {
 	if err := ensureUserInGroup(ctx, input.Group); err != nil {
 		return nil, err
@@ -236,10 +240,6 @@ func (r *queryResolver) Dataproduct(ctx context.Context, id uuid.UUID) (*models.
 func (r *queryResolver) Dataproducts(ctx context.Context, limit *int, offset *int) ([]*models.Dataproduct, error) {
 	l, o := pagination(limit, offset)
 	return r.repo.GetDataproducts(ctx, l, o)
-}
-
-func (r *queryResolver) GetDataproductMappings(ctx context.Context, dataproductID uuid.UUID) ([]models.MappingService, error) {
-	return r.repo.GetDataproductMappings(ctx, dataproductID)
 }
 
 func (r *queryResolver) GetDataproductByMapping(ctx context.Context, service models.MappingService) ([]*models.Dataproduct, error) {

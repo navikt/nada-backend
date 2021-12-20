@@ -28,6 +28,8 @@ type Dataproduct @goModel(model: "github.com/navikt/nada-backend/pkg/graph/model
     access: [Access!]! @authenticated
     "services contains links to this dataproduct in other services"
     services: DataproductServices!
+    "mappings services a dataproduct is exposed to"
+    mappings: [MappingService!]!
 }
 
 type DataproductServices @goModel(model: "github.com/navikt/nada-backend/pkg/graph/models.DataproductServices") {
@@ -122,14 +124,6 @@ extend type Query {
         "offset the list of returned dataproducts. Used as pagination with PAGE-INDEX * limit."
         offset: Int
     ): [Dataproduct!]!
-
-    """
-    getDataproductMappings returns the service a dataproduct is exposed to.
-    """
-    getDataproductMappings(
-        "id of dataproduct."
-        dataproductId: ID!
-    ): [MappingService!]!
 
     """
     getDataproductByMapping returns the dataproduct exposed to a service.
