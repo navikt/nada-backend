@@ -136,6 +136,7 @@ type ComplexityRoot struct {
 		GetDataproductMappings  func(childComplexity int, dataproductID uuid.UUID) int
 		Search                  func(childComplexity int, q *models.SearchQuery) int
 		Stories                 func(childComplexity int, draft *bool) int
+		Story                   func(childComplexity int, id uuid.UUID, draft *bool) int
 		Teamkatalogen           func(childComplexity int, q string) int
 		UserInfo                func(childComplexity int) int
 		Version                 func(childComplexity int) int
@@ -147,11 +148,12 @@ type ComplexityRoot struct {
 	}
 
 	Story struct {
-		Created func(childComplexity int) int
-		ID      func(childComplexity int) int
-		Name    func(childComplexity int) int
-		Owner   func(childComplexity int) int
-		Views   func(childComplexity int) int
+		Created      func(childComplexity int) int
+		ID           func(childComplexity int) int
+		LastModified func(childComplexity int) int
+		Name         func(childComplexity int) int
+		Owner        func(childComplexity int) int
+		Views        func(childComplexity int) int
 	}
 
 	StoryView struct {
@@ -214,6 +216,7 @@ type QueryResolver interface {
 	GcpGetDatasets(ctx context.Context, projectID string) ([]string, error)
 	Search(ctx context.Context, q *models.SearchQuery) ([]*models.SearchResultRow, error)
 	Stories(ctx context.Context, draft *bool) ([]*models.Story, error)
+	Story(ctx context.Context, id uuid.UUID, draft *bool) (*models.Story, error)
 	Teamkatalogen(ctx context.Context, q string) ([]*models.TeamkatalogenResult, error)
 	UserInfo(ctx context.Context) (*models.UserInfo, error)
 }
@@ -725,6 +728,18 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.Query.Stories(childComplexity, args["draft"].(*bool)), true
 
+	case "Query.story":
+		if e.complexity.Query.Story == nil {
+			break
+		}
+
+		args, err := ec.field_Query_story_args(context.TODO(), rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Query.Story(childComplexity, args["id"].(uuid.UUID), args["draft"].(*bool)), true
+
 	case "Query.teamkatalogen":
 		if e.complexity.Query.Teamkatalogen == nil {
 			break
@@ -778,6 +793,13 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 		}
 
 		return e.complexity.Story.ID(childComplexity), true
+
+	case "Story.lastModified":
+		if e.complexity.Story.LastModified == nil {
+			break
+		}
+
+		return e.complexity.Story.LastModified(childComplexity), true
 
 	case "Story.name":
 		if e.complexity.Story.Name == nil {
@@ -1437,6 +1459,7 @@ extend type Query {
 	id: ID!
 	name: String!
 	created: Time!
+	lastModified: Time
 	owner: Owner
 	views: [StoryView!]! @goField(forceResolver: true)
 }
@@ -1454,6 +1477,7 @@ type StoryView @goModel(model: "github.com/navikt/nada-backend/pkg/graph/models.
 
 extend type Query {
 	stories(draft: Boolean): [Story!]!
+	story(id: ID!, draft: Boolean): Story!
 }
 
 extend type Mutation {
@@ -1919,6 +1943,30 @@ func (ec *executionContext) field_Query_stories_args(ctx context.Context, rawArg
 		}
 	}
 	args["draft"] = arg0
+	return args, nil
+}
+
+func (ec *executionContext) field_Query_story_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
+	var err error
+	args := map[string]interface{}{}
+	var arg0 uuid.UUID
+	if tmp, ok := rawArgs["id"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("id"))
+		arg0, err = ec.unmarshalNID2githubᚗcomᚋgoogleᚋuuidᚐUUID(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["id"] = arg0
+	var arg1 *bool
+	if tmp, ok := rawArgs["draft"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("draft"))
+		arg1, err = ec.unmarshalOBoolean2ᚖbool(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["draft"] = arg1
 	return args, nil
 }
 
@@ -4312,6 +4360,48 @@ func (ec *executionContext) _Query_stories(ctx context.Context, field graphql.Co
 	return ec.marshalNStory2ᚕᚖgithubᚗcomᚋnaviktᚋnadaᚑbackendᚋpkgᚋgraphᚋmodelsᚐStoryᚄ(ctx, field.Selections, res)
 }
 
+func (ec *executionContext) _Query_story(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "Query",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   true,
+		IsResolver: true,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	rawArgs := field.ArgumentMap(ec.Variables)
+	args, err := ec.field_Query_story_args(ctx, rawArgs)
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	fc.Args = args
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.Query().Story(rctx, args["id"].(uuid.UUID), args["draft"].(*bool))
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(*models.Story)
+	fc.Result = res
+	return ec.marshalNStory2ᚖgithubᚗcomᚋnaviktᚋnadaᚑbackendᚋpkgᚋgraphᚋmodelsᚐStory(ctx, field.Selections, res)
+}
+
 func (ec *executionContext) _Query_teamkatalogen(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
 	defer func() {
 		if r := recover(); r != nil {
@@ -4653,6 +4743,38 @@ func (ec *executionContext) _Story_created(ctx context.Context, field graphql.Co
 	res := resTmp.(time.Time)
 	fc.Result = res
 	return ec.marshalNTime2timeᚐTime(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _Story_lastModified(ctx context.Context, field graphql.CollectedField, obj *models.Story) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "Story",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   false,
+		IsResolver: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.LastModified, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		return graphql.Null
+	}
+	res := resTmp.(time.Time)
+	fc.Result = res
+	return ec.marshalOTime2timeᚐTime(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _Story_owner(ctx context.Context, field graphql.CollectedField, obj *models.Story) (ret graphql.Marshaler) {
@@ -7312,6 +7434,20 @@ func (ec *executionContext) _Query(ctx context.Context, sel ast.SelectionSet) gr
 				}
 				return res
 			})
+		case "story":
+			field := field
+			out.Concurrently(i, func() (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._Query_story(ctx, field)
+				if res == graphql.Null {
+					atomic.AddUint32(&invalids, 1)
+				}
+				return res
+			})
 		case "teamkatalogen":
 			field := field
 			out.Concurrently(i, func() (res graphql.Marshaler) {
@@ -7413,6 +7549,8 @@ func (ec *executionContext) _Story(ctx context.Context, sel ast.SelectionSet, ob
 			if out.Values[i] == graphql.Null {
 				atomic.AddUint32(&invalids, 1)
 			}
+		case "lastModified":
+			out.Values[i] = ec._Story_lastModified(ctx, field, obj)
 		case "owner":
 			field := field
 			out.Concurrently(i, func() (res graphql.Marshaler) {
@@ -9122,6 +9260,15 @@ func (ec *executionContext) marshalOSubjectType2ᚖgithubᚗcomᚋnaviktᚋnada�
 		return graphql.Null
 	}
 	return v
+}
+
+func (ec *executionContext) unmarshalOTime2timeᚐTime(ctx context.Context, v interface{}) (time.Time, error) {
+	res, err := graphql.UnmarshalTime(v)
+	return res, graphql.ErrorOnPath(ctx, err)
+}
+
+func (ec *executionContext) marshalOTime2timeᚐTime(ctx context.Context, sel ast.SelectionSet, v time.Time) graphql.Marshaler {
+	return graphql.MarshalTime(v)
 }
 
 func (ec *executionContext) unmarshalOTime2ᚖtimeᚐTime(ctx context.Context, v interface{}) (*time.Time, error) {

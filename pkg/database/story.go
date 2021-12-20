@@ -49,6 +49,15 @@ func (r *Repo) CreateStoryDraft(ctx context.Context, story *models.Story) (uuid.
 	return ret.ID, nil
 }
 
+func (r *Repo) GetStoryDraft(ctx context.Context, id uuid.UUID) (*models.Story, error) {
+	story, err := r.querier.GetStoryDraft(ctx, id)
+	if err != nil {
+		return nil, err
+	}
+
+	return storyDraftFromSQL(story), nil
+}
+
 func (r *Repo) GetStoryDrafts(ctx context.Context) ([]*models.Story, error) {
 	stories, err := r.querier.GetStoryDrafts(ctx)
 	if err != nil {
@@ -75,6 +84,15 @@ func (r *Repo) GetStoryViewDraft(ctx context.Context, storyID uuid.UUID) ([]*mod
 	}
 
 	return ret, nil
+}
+
+func (r *Repo) GetStory(ctx context.Context, id uuid.UUID) (*models.Story, error) {
+	story, err := r.querier.GetStory(ctx, id)
+	if err != nil {
+		return nil, err
+	}
+
+	return storyFromSQL(story), nil
 }
 
 func (r *Repo) GetStories(ctx context.Context) ([]*models.Story, error) {

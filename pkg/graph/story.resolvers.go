@@ -28,6 +28,13 @@ func (r *queryResolver) Stories(ctx context.Context, draft *bool) ([]*models.Sto
 	return r.repo.GetStories(ctx)
 }
 
+func (r *queryResolver) Story(ctx context.Context, id uuid.UUID, draft *bool) (*models.Story, error) {
+	if draft != nil && *draft {
+		return r.repo.GetStoryDraft(ctx, id)
+	}
+	return r.repo.GetStory(ctx, id)
+}
+
 func (r *storyResolver) Owner(ctx context.Context, obj *models.Story) (*models.Owner, error) {
 	return &models.Owner{
 		Group: obj.Group,

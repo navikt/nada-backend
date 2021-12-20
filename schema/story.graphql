@@ -2,6 +2,7 @@ type Story @goModel(model: "github.com/navikt/nada-backend/pkg/graph/models.Stor
 	id: ID!
 	name: String!
 	created: Time!
+	lastModified: Time
 	owner: Owner
 	views: [StoryView!]! @goField(forceResolver: true)
 }
@@ -19,6 +20,7 @@ type StoryView @goModel(model: "github.com/navikt/nada-backend/pkg/graph/models.
 
 extend type Query {
 	stories(draft: Boolean): [Story!]!
+	story(id: ID!, draft: Boolean): Story!
 }
 
 extend type Mutation {

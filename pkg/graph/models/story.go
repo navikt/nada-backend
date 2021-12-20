@@ -15,12 +15,13 @@ type StoryView struct {
 }
 
 type Story struct {
-	ID      uuid.UUID   `json:"id"`
-	Name    string      `json:"name"`
-	Group   string      `json:"group"`
-	Created time.Time   `json:"created"`
-	Views   []StoryView `json:"views"`
-	Draft   bool
+	ID           uuid.UUID   `json:"id"`
+	Name         string      `json:"name"`
+	Group        string      `json:"group"`
+	Created      time.Time   `json:"created"`
+	LastModified time.Time   `json:"lastModified"`
+	Views        []StoryView `json:"views"`
+	Draft        bool
 }
 
 type StoryViewType string
