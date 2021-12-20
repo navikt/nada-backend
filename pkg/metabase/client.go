@@ -262,9 +262,6 @@ func (c *Client) AutoMapSemanticTypes(ctx context.Context, dbID int) error {
 
 	for _, t := range tables {
 		for _, f := range t.Fields {
-			if f.SemanticType != "" {
-				continue
-			}
 			switch f.DatabaseType {
 			case "STRING":
 				if err := c.MapSemanticType(ctx, f.ID, "type/Name"); err != nil {
@@ -272,6 +269,10 @@ func (c *Client) AutoMapSemanticTypes(ctx context.Context, dbID int) error {
 				}
 			case "TIMESTAMP":
 				if err := c.MapSemanticType(ctx, f.ID, "type/CreationTimestamp"); err != nil {
+					return err
+				}
+			case "DATE":
+				if err := c.MapSemanticType(ctx, f.ID, "type/CreationDate"); err != nil {
 					return err
 				}
 			}
