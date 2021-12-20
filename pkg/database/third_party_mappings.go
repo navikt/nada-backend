@@ -2,6 +2,8 @@ package database
 
 import (
 	"context"
+	"database/sql"
+	"errors"
 
 	"github.com/google/uuid"
 	"github.com/navikt/nada-backend/pkg/database/gensql"
@@ -11,6 +13,9 @@ import (
 func (r *Repo) GetDataproductMappings(ctx context.Context, dataproductID uuid.UUID) ([]models.MappingService, error) {
 	tpm, err := r.querier.GetDataproductMappings(ctx, dataproductID)
 	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return []models.MappingService{}, nil
+		}
 		return nil, err
 	}
 
