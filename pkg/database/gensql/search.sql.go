@@ -32,12 +32,14 @@ WHERE
 		END
 	)
 ORDER BY rank DESC, created DESC
-LIMIT 50
+LIMIT $4 OFFSET $3
 `
 
 type SearchParams struct {
 	Query   string
 	Keyword string
+	Offs    int32
+	Lim     int32
 }
 
 type SearchRow struct {
@@ -48,7 +50,12 @@ type SearchRow struct {
 }
 
 func (q *Queries) Search(ctx context.Context, arg SearchParams) ([]SearchRow, error) {
-	rows, err := q.db.QueryContext(ctx, search, arg.Query, arg.Keyword)
+	rows, err := q.db.QueryContext(ctx, search,
+		arg.Query,
+		arg.Keyword,
+		arg.Offs,
+		arg.Lim,
+	)
 	if err != nil {
 		return nil, err
 	}

@@ -21,5 +21,5 @@ WHERE
 		END
 	)
 ORDER BY rank DESC, created DESC
-LIMIT 50
+LIMIT @lim OFFSET @offs;
 ;
