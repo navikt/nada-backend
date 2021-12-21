@@ -134,18 +134,17 @@ type ComplexityRoot struct {
 	}
 
 	Query struct {
-		Dataproduct             func(childComplexity int, id uuid.UUID) int
-		Dataproducts            func(childComplexity int, limit *int, offset *int) int
-		GcpGetDatasets          func(childComplexity int, projectID string) int
-		GcpGetTables            func(childComplexity int, projectID string, datasetID string) int
-		GetDataproductByMapping func(childComplexity int, service models.MappingService) int
-		Keywords                func(childComplexity int, prefix *string) int
-		Search                  func(childComplexity int, q *models.SearchQuery) int
-		Stories                 func(childComplexity int, draft *bool) int
-		Story                   func(childComplexity int, id uuid.UUID, draft *bool) int
-		Teamkatalogen           func(childComplexity int, q string) int
-		UserInfo                func(childComplexity int) int
-		Version                 func(childComplexity int) int
+		Dataproduct    func(childComplexity int, id uuid.UUID) int
+		Dataproducts   func(childComplexity int, limit *int, offset *int, service *models.MappingService) int
+		GcpGetDatasets func(childComplexity int, projectID string) int
+		GcpGetTables   func(childComplexity int, projectID string, datasetID string) int
+		Keywords       func(childComplexity int, prefix *string) int
+		Search         func(childComplexity int, q *models.SearchQuery) int
+		Stories        func(childComplexity int, draft *bool) int
+		Story          func(childComplexity int, id uuid.UUID, draft *bool) int
+		Teamkatalogen  func(childComplexity int, q string) int
+		UserInfo       func(childComplexity int) int
+		Version        func(childComplexity int) int
 	}
 
 	SearchResultRow struct {
@@ -216,8 +215,7 @@ type MutationResolver interface {
 type QueryResolver interface {
 	Version(ctx context.Context) (string, error)
 	Dataproduct(ctx context.Context, id uuid.UUID) (*models.Dataproduct, error)
-	Dataproducts(ctx context.Context, limit *int, offset *int) ([]*models.Dataproduct, error)
-	GetDataproductByMapping(ctx context.Context, service models.MappingService) ([]*models.Dataproduct, error)
+	Dataproducts(ctx context.Context, limit *int, offset *int, service *models.MappingService) ([]*models.Dataproduct, error)
 	GcpGetTables(ctx context.Context, projectID string, datasetID string) ([]*models.BigQueryTable, error)
 	GcpGetDatasets(ctx context.Context, projectID string) ([]string, error)
 	Keywords(ctx context.Context, prefix *string) ([]*models.Keyword, error)
@@ -682,7 +680,7 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 			return 0, false
 		}
 
-		return e.complexity.Query.Dataproducts(childComplexity, args["limit"].(*int), args["offset"].(*int)), true
+		return e.complexity.Query.Dataproducts(childComplexity, args["limit"].(*int), args["offset"].(*int), args["service"].(*models.MappingService)), true
 
 	case "Query.gcpGetDatasets":
 		if e.complexity.Query.GcpGetDatasets == nil {
@@ -707,18 +705,6 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 		}
 
 		return e.complexity.Query.GcpGetTables(childComplexity, args["projectID"].(string), args["datasetID"].(string)), true
-
-	case "Query.getDataproductByMapping":
-		if e.complexity.Query.GetDataproductByMapping == nil {
-			break
-		}
-
-		args, err := ec.field_Query_getDataproductByMapping_args(context.TODO(), rawArgs)
-		if err != nil {
-			return 0, false
-		}
-
-		return e.complexity.Query.GetDataproductByMapping(childComplexity, args["service"].(models.MappingService)), true
 
 	case "Query.keywords":
 		if e.complexity.Query.Keywords == nil {
@@ -1151,14 +1137,8 @@ extend type Query {
         limit: Int
         "offset the list of returned dataproducts. Used as pagination with PAGE-INDEX * limit."
         offset: Int
-    ): [Dataproduct!]!
-
-    """
-    getDataproductByMapping returns the dataproduct exposed to a service.
-    """
-    getDataproductByMapping(
         "service is the third party service."
-        service: MappingService!
+        service: MappingService
     ): [Dataproduct!]!
 }
 
@@ -1886,6 +1866,15 @@ func (ec *executionContext) field_Query_dataproducts_args(ctx context.Context, r
 		}
 	}
 	args["offset"] = arg1
+	var arg2 *models.MappingService
+	if tmp, ok := rawArgs["service"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("service"))
+		arg2, err = ec.unmarshalOMappingService2ᚖgithubᚗcomᚋnaviktᚋnadaᚑbackendᚋpkgᚋgraphᚋmodelsᚐMappingService(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["service"] = arg2
 	return args, nil
 }
 
@@ -1925,21 +1914,6 @@ func (ec *executionContext) field_Query_gcpGetTables_args(ctx context.Context, r
 		}
 	}
 	args["datasetID"] = arg1
-	return args, nil
-}
-
-func (ec *executionContext) field_Query_getDataproductByMapping_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
-	var err error
-	args := map[string]interface{}{}
-	var arg0 models.MappingService
-	if tmp, ok := rawArgs["service"]; ok {
-		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("service"))
-		arg0, err = ec.unmarshalNMappingService2githubᚗcomᚋnaviktᚋnadaᚑbackendᚋpkgᚋgraphᚋmodelsᚐMappingService(ctx, tmp)
-		if err != nil {
-			return nil, err
-		}
-	}
-	args["service"] = arg0
 	return args, nil
 }
 
@@ -4198,49 +4172,7 @@ func (ec *executionContext) _Query_dataproducts(ctx context.Context, field graph
 	fc.Args = args
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.Query().Dataproducts(rctx, args["limit"].(*int), args["offset"].(*int))
-	})
-	if err != nil {
-		ec.Error(ctx, err)
-		return graphql.Null
-	}
-	if resTmp == nil {
-		if !graphql.HasFieldError(ctx, fc) {
-			ec.Errorf(ctx, "must not be null")
-		}
-		return graphql.Null
-	}
-	res := resTmp.([]*models.Dataproduct)
-	fc.Result = res
-	return ec.marshalNDataproduct2ᚕᚖgithubᚗcomᚋnaviktᚋnadaᚑbackendᚋpkgᚋgraphᚋmodelsᚐDataproductᚄ(ctx, field.Selections, res)
-}
-
-func (ec *executionContext) _Query_getDataproductByMapping(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
-	defer func() {
-		if r := recover(); r != nil {
-			ec.Error(ctx, ec.Recover(ctx, r))
-			ret = graphql.Null
-		}
-	}()
-	fc := &graphql.FieldContext{
-		Object:     "Query",
-		Field:      field,
-		Args:       nil,
-		IsMethod:   true,
-		IsResolver: true,
-	}
-
-	ctx = graphql.WithFieldContext(ctx, fc)
-	rawArgs := field.ArgumentMap(ec.Variables)
-	args, err := ec.field_Query_getDataproductByMapping_args(ctx, rawArgs)
-	if err != nil {
-		ec.Error(ctx, err)
-		return graphql.Null
-	}
-	fc.Args = args
-	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
-		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.Query().GetDataproductByMapping(rctx, args["service"].(models.MappingService))
+		return ec.resolvers.Query().Dataproducts(rctx, args["limit"].(*int), args["offset"].(*int), args["service"].(*models.MappingService))
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -7543,20 +7475,6 @@ func (ec *executionContext) _Query(ctx context.Context, sel ast.SelectionSet) gr
 				}
 				return res
 			})
-		case "getDataproductByMapping":
-			field := field
-			out.Concurrently(i, func() (res graphql.Marshaler) {
-				defer func() {
-					if r := recover(); r != nil {
-						ec.Error(ctx, ec.Recover(ctx, r))
-					}
-				}()
-				res = ec._Query_getDataproductByMapping(ctx, field)
-				if res == graphql.Null {
-					atomic.AddUint32(&invalids, 1)
-				}
-				return res
-			})
 		case "gcpGetTables":
 			field := field
 			out.Concurrently(i, func() (res graphql.Marshaler) {
@@ -9425,6 +9343,22 @@ func (ec *executionContext) marshalOInt2ᚖint(ctx context.Context, sel ast.Sele
 		return graphql.Null
 	}
 	return graphql.MarshalInt(*v)
+}
+
+func (ec *executionContext) unmarshalOMappingService2ᚖgithubᚗcomᚋnaviktᚋnadaᚑbackendᚋpkgᚋgraphᚋmodelsᚐMappingService(ctx context.Context, v interface{}) (*models.MappingService, error) {
+	if v == nil {
+		return nil, nil
+	}
+	var res = new(models.MappingService)
+	err := res.UnmarshalGQL(v)
+	return res, graphql.ErrorOnPath(ctx, err)
+}
+
+func (ec *executionContext) marshalOMappingService2ᚖgithubᚗcomᚋnaviktᚋnadaᚑbackendᚋpkgᚋgraphᚋmodelsᚐMappingService(ctx context.Context, sel ast.SelectionSet, v *models.MappingService) graphql.Marshaler {
+	if v == nil {
+		return graphql.Null
+	}
+	return v
 }
 
 func (ec *executionContext) marshalOOwner2ᚖgithubᚗcomᚋnaviktᚋnadaᚑbackendᚋpkgᚋgraphᚋmodelsᚐOwner(ctx context.Context, sel ast.SelectionSet, v *models.Owner) graphql.Marshaler {

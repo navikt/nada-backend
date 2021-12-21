@@ -27,9 +27,13 @@ func (r *Repo) GetDataproductMappings(ctx context.Context, dataproductID uuid.UU
 	return svcs, nil
 }
 
-func (r *Repo) GetDataproductsByMapping(ctx context.Context, service models.MappingService) ([]*models.Dataproduct, error) {
+func (r *Repo) GetDataproductsByMapping(ctx context.Context, service models.MappingService, limit, offset int) ([]*models.Dataproduct, error) {
 	dataproducts := []*models.Dataproduct{}
-	dps, err := r.querier.GetDataproductsByMapping(ctx, string(service))
+	dps, err := r.querier.GetDataproductsByMapping(ctx, gensql.GetDataproductsByMappingParams{
+		Service: string(service),
+		Lim:     int32(limit),
+		Offs:    int32(offset),
+	})
 	if err != nil {
 		return nil, err
 	}

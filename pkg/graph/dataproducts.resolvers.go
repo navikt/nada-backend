@@ -245,13 +245,12 @@ func (r *queryResolver) Dataproduct(ctx context.Context, id uuid.UUID) (*models.
 	return r.repo.GetDataproduct(ctx, id)
 }
 
-func (r *queryResolver) Dataproducts(ctx context.Context, limit *int, offset *int) ([]*models.Dataproduct, error) {
+func (r *queryResolver) Dataproducts(ctx context.Context, limit *int, offset *int, service *models.MappingService) ([]*models.Dataproduct, error) {
 	l, o := pagination(limit, offset)
+	if service != nil {
+		return r.repo.GetDataproductsByMapping(ctx, *service, l, o)
+	}
 	return r.repo.GetDataproducts(ctx, l, o)
-}
-
-func (r *queryResolver) GetDataproductByMapping(ctx context.Context, service models.MappingService) ([]*models.Dataproduct, error) {
-	return r.repo.GetDataproductsByMapping(ctx, service)
 }
 
 // BigQuery returns generated.BigQueryResolver implementation.

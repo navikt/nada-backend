@@ -11,7 +11,7 @@ import (
 )
 
 const getDataproductMappings = `-- name: GetDataproductMappings :one
-SELECT dataproduct_id, services 
+SELECT dataproduct_id, services
 FROM third_party_mappings
 WHERE "dataproduct_id" = $1
 `
@@ -24,13 +24,20 @@ func (q *Queries) GetDataproductMappings(ctx context.Context, dataproductID uuid
 }
 
 const getDataproductsByMapping = `-- name: GetDataproductsByMapping :many
-SELECT dataproducts.id, dataproducts.name, dataproducts.description, dataproducts."group", dataproducts.pii, dataproducts.created, dataproducts.last_modified, dataproducts.type, dataproducts.tsv_document, dataproducts.slug, dataproducts.repo, dataproducts.keywords, dataproducts.teamkatalogen_url FROM third_party_mappings 
+SELECT dataproducts.id, dataproducts.name, dataproducts.description, dataproducts."group", dataproducts.pii, dataproducts.created, dataproducts.last_modified, dataproducts.type, dataproducts.tsv_document, dataproducts.slug, dataproducts.repo, dataproducts.keywords, dataproducts.teamkatalogen_url FROM third_party_mappings
 INNER JOIN dataproducts ON dataproducts.id = third_party_mappings.dataproduct_id
 WHERE $1::TEXT = ANY("services")
+LIMIT $3 OFFSET $2
 `
 
-func (q *Queries) GetDataproductsByMapping(ctx context.Context, service string) ([]Dataproduct, error) {
-	rows, err := q.db.QueryContext(ctx, getDataproductsByMapping, service)
+type GetDataproductsByMappingParams struct {
+	Service string
+	Offs    int32
+	Lim     int32
+}
+
+func (q *Queries) GetDataproductsByMapping(ctx context.Context, arg GetDataproductsByMappingParams) ([]Dataproduct, error) {
+	rows, err := q.db.QueryContext(ctx, getDataproductsByMapping, arg.Service, arg.Offs, arg.Lim)
 	if err != nil {
 		return nil, err
 	}
@@ -73,7 +80,7 @@ INSERT INTO third_party_mappings (
 ) VALUES (
     $1,
     $2
-) ON CONFLICT ("dataproduct_id") DO UPDATE SET 
+) ON CONFLICT ("dataproduct_id") DO UPDATE SET
     "services" = EXCLUDED.services
 `
 

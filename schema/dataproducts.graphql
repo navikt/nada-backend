@@ -123,14 +123,8 @@ extend type Query {
         limit: Int
         "offset the list of returned dataproducts. Used as pagination with PAGE-INDEX * limit."
         offset: Int
-    ): [Dataproduct!]!
-
-    """
-    getDataproductByMapping returns the dataproduct exposed to a service.
-    """
-    getDataproductByMapping(
         "service is the third party service."
-        service: MappingService!
+        service: MappingService
     ): [Dataproduct!]!
 }
 

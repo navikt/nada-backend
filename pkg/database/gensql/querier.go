@@ -34,7 +34,7 @@ type Querier interface {
 	GetDataproducts(ctx context.Context, arg GetDataproductsParams) ([]Dataproduct, error)
 	GetDataproductsByGroups(ctx context.Context, groups []string) ([]Dataproduct, error)
 	GetDataproductsByIDs(ctx context.Context, ids []uuid.UUID) ([]Dataproduct, error)
-	GetDataproductsByMapping(ctx context.Context, service string) ([]Dataproduct, error)
+	GetDataproductsByMapping(ctx context.Context, arg GetDataproductsByMappingParams) ([]Dataproduct, error)
 	GetDataproductsByUserAccess(ctx context.Context, id string) ([]Dataproduct, error)
 	GetMetabaseMetadata(ctx context.Context, dataproductID uuid.UUID) (MetabaseMetadatum, error)
 	GetSession(ctx context.Context, token string) (Session, error)
