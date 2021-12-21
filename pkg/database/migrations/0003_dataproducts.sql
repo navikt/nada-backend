@@ -15,6 +15,10 @@ CREATE TABLE dataproducts
                                 to_tsvector('norwegian', "name")
                                 || to_tsvector('norwegian', coalesce("description", ''))
                         ) STORED,
+    "slug"           TEXT NOT NULL,
+    "repo"           TEXT,
+    "keywords"       TEXT[] NOT NULL DEFAULT '{}',
+    "teamkatalogen_url" TEXT,
     PRIMARY KEY (id)
 );
 
@@ -33,6 +37,10 @@ CREATE TABLE datasource_bigquery
     "dataset"        TEXT  NOT NULL,
     "table_name"     TEXT  NOT NULL,
     "schema"         JSONB,
+    "last_modified"  TIMESTAMPTZ NOT NULL,
+    "created"        TIMESTAMPTZ NOT NULL,
+    "expires"        TIMESTAMPTZ,
+    "table_type"     TEXT NOT NULL,
     PRIMARY KEY (dataproduct_id),
     CONSTRAINT fk_bigquery_dataproduct
         FOREIGN KEY (dataproduct_id)
@@ -40,7 +48,7 @@ CREATE TABLE datasource_bigquery
 );
 
 CREATE OR REPLACE FUNCTION update_dataproduct_modified_timestamp() RETURNS TRIGGER AS
-$$ BEGIN UPDATE dataproducts SET last_modified = now() WHERE id = NEW.id; END; $$
+$$ BEGIN UPDATE dataproducts SET last_modified = now() WHERE id = NEW.dataproduct_id; RETURN NEW; END; $$
 LANGUAGE plpgsql;
 
 CREATE TRIGGER datasource_bigquery_set_modified
