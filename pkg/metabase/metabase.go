@@ -73,7 +73,7 @@ func (m *Metabase) run(ctx context.Context) error {
 		return err
 	}
 
-	restrictedDps, err := m.repo.GetDataproductsByMapping(ctx, models.MappingServiceMetabase)
+	restrictedDps, err := m.repo.GetDataproductsByMapping(ctx, models.MappingServiceMetabase, 1000, 0)
 	if err != nil {
 		return err
 	}
