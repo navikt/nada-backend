@@ -248,7 +248,12 @@ func (r *queryResolver) Dataproduct(ctx context.Context, id uuid.UUID) (*models.
 func (r *queryResolver) Dataproducts(ctx context.Context, limit *int, offset *int, service *models.MappingService) ([]*models.Dataproduct, error) {
 	l, o := pagination(limit, offset)
 	if service != nil {
-		return r.repo.GetDataproductsByMapping(ctx, *service, l, o)
+		switch *service {
+		case models.MappingServiceMetabase:
+			return r.repo.GetDataproductsByMetabase(ctx, l, o)
+		default:
+			return nil, fmt.Errorf("unknown service: %s", *service)
+		}
 	}
 	return r.repo.GetDataproducts(ctx, l, o)
 }
@@ -259,5 +264,7 @@ func (r *Resolver) BigQuery() generated.BigQueryResolver { return &bigQueryResol
 // Dataproduct returns generated.DataproductResolver implementation.
 func (r *Resolver) Dataproduct() generated.DataproductResolver { return &dataproductResolver{r} }
 
-type bigQueryResolver struct{ *Resolver }
-type dataproductResolver struct{ *Resolver }
+type (
+	bigQueryResolver    struct{ *Resolver }
+	dataproductResolver struct{ *Resolver }
+)

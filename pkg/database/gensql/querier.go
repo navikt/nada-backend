@@ -19,6 +19,7 @@ type Querier interface {
 	CreateStoryView(ctx context.Context, arg CreateStoryViewParams) (StoryView, error)
 	CreateStoryViewDraft(ctx context.Context, arg CreateStoryViewDraftParams) (StoryViewDraft, error)
 	DataproductKeywords(ctx context.Context, keyword string) ([]DataproductKeywordsRow, error)
+	DataproductsByMetabase(ctx context.Context, arg DataproductsByMetabaseParams) ([]Dataproduct, error)
 	DeleteDataproduct(ctx context.Context, id uuid.UUID) error
 	DeleteDataproductRequester(ctx context.Context, arg DeleteDataproductRequesterParams) error
 	DeleteSession(ctx context.Context, token string) error

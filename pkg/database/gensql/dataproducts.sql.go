@@ -195,6 +195,59 @@ func (q *Queries) DataproductKeywords(ctx context.Context, keyword string) ([]Da
 	return items, nil
 }
 
+const dataproductsByMetabase = `-- name: DataproductsByMetabase :many
+SELECT id, name, description, "group", pii, created, last_modified, type, tsv_document, slug, repo, keywords, teamkatalogen_url
+FROM dataproducts
+WHERE id IN (
+	SELECT dataproduct_id
+	FROM metabase_metadata
+)
+ORDER BY last_modified DESC
+LIMIT $2 OFFSET $1
+`
+
+type DataproductsByMetabaseParams struct {
+	Offs int32
+	Lim  int32
+}
+
+func (q *Queries) DataproductsByMetabase(ctx context.Context, arg DataproductsByMetabaseParams) ([]Dataproduct, error) {
+	rows, err := q.db.QueryContext(ctx, dataproductsByMetabase, arg.Offs, arg.Lim)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []Dataproduct{}
+	for rows.Next() {
+		var i Dataproduct
+		if err := rows.Scan(
+			&i.ID,
+			&i.Name,
+			&i.Description,
+			&i.Group,
+			&i.Pii,
+			&i.Created,
+			&i.LastModified,
+			&i.Type,
+			&i.TsvDocument,
+			&i.Slug,
+			&i.Repo,
+			pq.Array(&i.Keywords),
+			&i.TeamkatalogenUrl,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const deleteDataproduct = `-- name: DeleteDataproduct :exec
 DELETE
 FROM dataproducts

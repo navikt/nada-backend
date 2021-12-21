@@ -66,6 +66,24 @@ func (r *Repo) GetDataproduct(ctx context.Context, id uuid.UUID) (*models.Datapr
 	return dataproductFromSQL(res), nil
 }
 
+func (r *Repo) GetDataproductsByMetabase(ctx context.Context, limit, offset int) ([]*models.Dataproduct, error) {
+	dps := []*models.Dataproduct{}
+
+	res, err := r.querier.DataproductsByMetabase(ctx, gensql.DataproductsByMetabaseParams{
+		Lim:  int32(limit),
+		Offs: int32(offset),
+	})
+	if err != nil {
+		return nil, fmt.Errorf("getting dataproducts by metabase from database: %w", err)
+	}
+
+	for _, entry := range res {
+		dps = append(dps, dataproductFromSQL(entry))
+	}
+
+	return dps, nil
+}
+
 func (r *Repo) CreateDataproduct(ctx context.Context, dp models.NewDataproduct) (*models.Dataproduct, error) {
 	tx, err := r.db.Begin()
 	if err != nil {

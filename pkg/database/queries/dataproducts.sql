@@ -133,3 +133,13 @@ AND CASE WHEN coalesce(TRIM(@keyword), '') = '' THEN true ELSE keyword ILIKE @ke
 GROUP BY keyword
 ORDER BY "count" DESC
 LIMIT 15;
+
+-- name: DataproductsByMetabase :many
+SELECT *
+FROM dataproducts
+WHERE id IN (
+	SELECT dataproduct_id
+	FROM metabase_metadata
+)
+ORDER BY last_modified DESC
+LIMIT @lim OFFSET @offs;
