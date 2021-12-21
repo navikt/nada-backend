@@ -226,7 +226,15 @@ func (r *mutationResolver) RevokeAccessToDataproduct(ctx context.Context, id uui
 }
 
 func (r *mutationResolver) MapDataproduct(ctx context.Context, dataproductID uuid.UUID, services []models.MappingService) (bool, error) {
-	err := r.repo.MapDataproduct(ctx, dataproductID, services)
+	dp, err := r.repo.GetDataproduct(ctx, dataproductID)
+	if err != nil {
+		return false, err
+	}
+	if err := ensureUserInGroup(ctx, dp.Owner.Group); err != nil {
+		return false, err
+	}
+
+	err = r.repo.MapDataproduct(ctx, dataproductID, services)
 	if err != nil {
 		return false, err
 	}
