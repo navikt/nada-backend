@@ -1,0 +1,19 @@
+"""
+Keyword represents a keyword used by other dataproducts
+"""
+type Keyword @goModel(model: "github.com/navikt/nada-backend/pkg/graph/models.Keyword")  {
+	"Keyword name"
+	keyword: String!
+	"Count is the number of dataproducts with this keyword"
+	count: Int!
+}
+
+extend type Query {
+	"""
+	Keywords returns all keywords, with an optional filter
+	"""
+	keywords(
+		"Match keywords with the given filter"
+		prefix: String
+	): [Keyword!]!
+}

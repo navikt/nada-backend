@@ -154,6 +154,47 @@ func (q *Queries) CreateDataproductRequester(ctx context.Context, arg CreateData
 	return err
 }
 
+const dataproductKeywords = `-- name: DataproductKeywords :many
+SELECT keyword::text, count(1) as "count"
+FROM (
+	SELECT unnest(keywords) as keyword
+	FROM dataproducts
+) s
+WHERE true
+AND CASE WHEN coalesce(TRIM($1), '') = '' THEN true ELSE keyword ILIKE $1::text || '%' END
+GROUP BY keyword
+ORDER BY "count" DESC
+LIMIT 15
+`
+
+type DataproductKeywordsRow struct {
+	Keyword string
+	Count   int64
+}
+
+func (q *Queries) DataproductKeywords(ctx context.Context, keyword string) ([]DataproductKeywordsRow, error) {
+	rows, err := q.db.QueryContext(ctx, dataproductKeywords, keyword)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []DataproductKeywordsRow{}
+	for rows.Next() {
+		var i DataproductKeywordsRow
+		if err := rows.Scan(&i.Keyword, &i.Count); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const deleteDataproduct = `-- name: DeleteDataproduct :exec
 DELETE
 FROM dataproducts

@@ -121,3 +121,15 @@ DELETE
 FROM dataproduct_requesters
 WHERE dataproduct_id = @dataproduct_id
   AND "subject" = LOWER(@subject);
+
+-- name: DataproductKeywords :many
+SELECT keyword::text, count(1) as "count"
+FROM (
+	SELECT unnest(keywords) as keyword
+	FROM dataproducts
+) s
+WHERE true
+AND CASE WHEN coalesce(TRIM(@keyword), '') = '' THEN true ELSE keyword ILIKE @keyword::text || '%' END
+GROUP BY keyword
+ORDER BY "count" DESC
+LIMIT 15;

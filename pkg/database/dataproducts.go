@@ -221,6 +221,22 @@ func (r *Repo) GetDataproductMetadata(ctx context.Context, id uuid.UUID) ([]*mod
 	return schema, nil
 }
 
+func (r *Repo) DataproductKeywords(ctx context.Context, prefix string) ([]*models.Keyword, error) {
+	kws, err := r.querier.DataproductKeywords(ctx, prefix)
+	if err != nil {
+		return nil, err
+	}
+
+	ret := make([]*models.Keyword, len(kws))
+	for i, kw := range kws {
+		ret[i] = &models.Keyword{
+			Keyword: kw.Keyword,
+			Count:   int(kw.Count),
+		}
+	}
+	return ret, nil
+}
+
 func dataproductFromSQL(dp gensql.Dataproduct) *models.Dataproduct {
 	return &models.Dataproduct{
 		ID:           dp.ID,

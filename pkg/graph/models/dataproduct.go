@@ -135,3 +135,8 @@ func (e *SubjectType) UnmarshalGQL(v interface{}) error {
 func (e SubjectType) MarshalGQL(w io.Writer) {
 	fmt.Fprint(w, strconv.Quote(e.String()))
 }
+
+type Keyword struct {
+	Keyword string `json:"keyword"`
+	Count   int    `json:"count"`
+}
