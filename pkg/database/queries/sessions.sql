@@ -16,3 +16,8 @@ SELECT *
 FROM sessions
 WHERE token = @token
 AND expires > now();
+
+-- name: DeleteSession :exec
+DELETE
+FROM sessions
+WHERE token = @token;

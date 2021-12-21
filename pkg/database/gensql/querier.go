@@ -20,6 +20,7 @@ type Querier interface {
 	CreateStoryViewDraft(ctx context.Context, arg CreateStoryViewDraftParams) (StoryViewDraft, error)
 	DeleteDataproduct(ctx context.Context, id uuid.UUID) error
 	DeleteDataproductRequester(ctx context.Context, arg DeleteDataproductRequesterParams) error
+	DeleteSession(ctx context.Context, token string) error
 	DeleteStoryDraft(ctx context.Context, id uuid.UUID) error
 	DeleteStoryViewDraft(ctx context.Context, storyID uuid.UUID) error
 	GetAccessToDataproduct(ctx context.Context, id uuid.UUID) (DataproductAccess, error)

@@ -170,7 +170,7 @@ func deleteCookie(w http.ResponseWriter, name, domain string) {
 
 func (h HTTP) Logout(w http.ResponseWriter, r *http.Request) {
 	http.SetCookie(w, &http.Cookie{
-		Name:     "nada_backend",
+		Name:     "nada_session",
 		Value:    "",
 		Path:     "/",
 		Domain:   r.Host,
@@ -179,7 +179,12 @@ func (h HTTP) Logout(w http.ResponseWriter, r *http.Request) {
 		HttpOnly: true,
 	})
 
-	// TODO(thokra): Delete from db as well
+	session, err := r.Cookie("nada_session")
+	if err != nil {
+		h.log.WithError(err).Info("Unable to logout session")
+	} else if err := h.repo.DeleteSession(r.Context(), session.Value); err != nil {
+		h.log.WithError(err).Info("Unable to delete session from database")
+	}
 
 	var loginPage string
 	if strings.HasPrefix(r.Host, "localhost") {

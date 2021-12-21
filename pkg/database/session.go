@@ -30,3 +30,7 @@ func (r *Repo) GetSession(ctx context.Context, token string) (*models.Session, e
 		Expires: sess.Expires,
 	}, nil
 }
+
+func (r *Repo) DeleteSession(ctx context.Context, token string) error {
+	return r.querier.DeleteSession(ctx, token)
+}
