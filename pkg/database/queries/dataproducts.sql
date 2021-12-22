@@ -143,3 +143,11 @@ WHERE id IN (
 )
 ORDER BY last_modified DESC
 LIMIT @lim OFFSET @offs;
+
+-- name: DataproductGroupStats :many
+SELECT "group",
+       count(1) as "count"
+FROM "dataproducts"
+GROUP BY "group"
+ORDER BY "count" DESC
+LIMIT @lim OFFSET @offs;

@@ -154,6 +154,48 @@ func (q *Queries) CreateDataproductRequester(ctx context.Context, arg CreateData
 	return err
 }
 
+const dataproductGroupStats = `-- name: DataproductGroupStats :many
+SELECT "group",
+       count(1) as "count"
+FROM "dataproducts"
+GROUP BY "group"
+ORDER BY "count" DESC
+LIMIT $2 OFFSET $1
+`
+
+type DataproductGroupStatsParams struct {
+	Offs int32
+	Lim  int32
+}
+
+type DataproductGroupStatsRow struct {
+	Group string
+	Count int64
+}
+
+func (q *Queries) DataproductGroupStats(ctx context.Context, arg DataproductGroupStatsParams) ([]DataproductGroupStatsRow, error) {
+	rows, err := q.db.QueryContext(ctx, dataproductGroupStats, arg.Offs, arg.Lim)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []DataproductGroupStatsRow{}
+	for rows.Next() {
+		var i DataproductGroupStatsRow
+		if err := rows.Scan(&i.Group, &i.Count); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const dataproductKeywords = `-- name: DataproductKeywords :many
 SELECT keyword::text, count(1) as "count"
 FROM (

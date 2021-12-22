@@ -106,6 +106,16 @@ type Access @goModel(model: "github.com/navikt/nada-backend/pkg/graph/models.Acc
     revoked: Time
 }
 
+"""
+GroupStats contains statistics on a group.
+"""
+type GroupStats @goModel(model: "github.com/navikt/nada-backend/pkg/graph/models.GroupStats") {
+    "email of the group"
+	email: String!
+    "number of dataproducts owned by the group"
+	dataproducts: Int!
+}
+
 extend type Query {
     """
     dataproduct returns the given dataproduct.
@@ -126,6 +136,16 @@ extend type Query {
         "service is the third party service."
         service: MappingService
     ): [Dataproduct!]!
+
+    """
+    groupStats returns statistics for groups that have created dataproducts.
+    """
+	groupStats(
+        "limit the number of returned groups."
+        limit: Int
+        "offset the list of returned groups. Used as pagination with PAGE-INDEX * limit."
+        offset: Int
+    ): [GroupStats!]!
 }
 
 """

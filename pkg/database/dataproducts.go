@@ -255,6 +255,25 @@ func (r *Repo) DataproductKeywords(ctx context.Context, prefix string) ([]*model
 	return ret, nil
 }
 
+func (r *Repo) DataproductGroupStats(ctx context.Context, limit, offset int) ([]*models.GroupStats, error) {
+	stats, err := r.querier.DataproductGroupStats(ctx, gensql.DataproductGroupStatsParams{
+		Lim:  int32(limit),
+		Offs: int32(offset),
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	ret := make([]*models.GroupStats, len(stats))
+	for i, s := range stats {
+		ret[i] = &models.GroupStats{
+			Email:        s.Group,
+			Dataproducts: int(s.Count),
+		}
+	}
+	return ret, nil
+}
+
 func dataproductFromSQL(dp gensql.Dataproduct) *models.Dataproduct {
 	return &models.Dataproduct{
 		ID:           dp.ID,

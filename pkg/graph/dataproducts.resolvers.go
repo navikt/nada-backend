@@ -258,6 +258,11 @@ func (r *queryResolver) Dataproducts(ctx context.Context, limit *int, offset *in
 	return r.repo.GetDataproducts(ctx, l, o)
 }
 
+func (r *queryResolver) GroupStats(ctx context.Context, limit *int, offset *int) ([]*models.GroupStats, error) {
+	l, o := pagination(limit, offset)
+	return r.repo.DataproductGroupStats(ctx, l, o)
+}
+
 // BigQuery returns generated.BigQueryResolver implementation.
 func (r *Resolver) BigQuery() generated.BigQueryResolver { return &bigQueryResolver{r} }
 

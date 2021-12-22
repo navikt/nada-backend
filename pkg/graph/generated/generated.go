@@ -110,6 +110,11 @@ type ComplexityRoot struct {
 		Name  func(childComplexity int) int
 	}
 
+	GroupStats struct {
+		Dataproducts func(childComplexity int) int
+		Email        func(childComplexity int) int
+	}
+
 	Keyword struct {
 		Count   func(childComplexity int) int
 		Keyword func(childComplexity int) int
@@ -138,6 +143,7 @@ type ComplexityRoot struct {
 		Dataproducts   func(childComplexity int, limit *int, offset *int, service *models.MappingService) int
 		GcpGetDatasets func(childComplexity int, projectID string) int
 		GcpGetTables   func(childComplexity int, projectID string, datasetID string) int
+		GroupStats     func(childComplexity int, limit *int, offset *int) int
 		Keywords       func(childComplexity int, prefix *string) int
 		Search         func(childComplexity int, q *models.SearchQuery) int
 		Stories        func(childComplexity int, draft *bool) int
@@ -216,6 +222,7 @@ type QueryResolver interface {
 	Version(ctx context.Context) (string, error)
 	Dataproduct(ctx context.Context, id uuid.UUID) (*models.Dataproduct, error)
 	Dataproducts(ctx context.Context, limit *int, offset *int, service *models.MappingService) ([]*models.Dataproduct, error)
+	GroupStats(ctx context.Context, limit *int, offset *int) ([]*models.GroupStats, error)
 	GcpGetTables(ctx context.Context, projectID string, datasetID string) ([]*models.BigQueryTable, error)
 	GcpGetDatasets(ctx context.Context, projectID string) ([]string, error)
 	Keywords(ctx context.Context, prefix *string) ([]*models.Keyword, error)
@@ -510,6 +517,20 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.Group.Name(childComplexity), true
 
+	case "GroupStats.dataproducts":
+		if e.complexity.GroupStats.Dataproducts == nil {
+			break
+		}
+
+		return e.complexity.GroupStats.Dataproducts(childComplexity), true
+
+	case "GroupStats.email":
+		if e.complexity.GroupStats.Email == nil {
+			break
+		}
+
+		return e.complexity.GroupStats.Email(childComplexity), true
+
 	case "Keyword.count":
 		if e.complexity.Keyword.Count == nil {
 			break
@@ -705,6 +726,18 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 		}
 
 		return e.complexity.Query.GcpGetTables(childComplexity, args["projectID"].(string), args["datasetID"].(string)), true
+
+	case "Query.groupStats":
+		if e.complexity.Query.GroupStats == nil {
+			break
+		}
+
+		args, err := ec.field_Query_groupStats_args(context.TODO(), rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Query.GroupStats(childComplexity, args["limit"].(*int), args["offset"].(*int)), true
 
 	case "Query.keywords":
 		if e.complexity.Query.Keywords == nil {
@@ -1120,6 +1153,16 @@ type Access @goModel(model: "github.com/navikt/nada-backend/pkg/graph/models.Acc
     revoked: Time
 }
 
+"""
+GroupStats contains statistics on a group.
+"""
+type GroupStats @goModel(model: "github.com/navikt/nada-backend/pkg/graph/models.GroupStats") {
+    "email of the group"
+	email: String!
+    "number of dataproducts owned by the group"
+	dataproducts: Int!
+}
+
 extend type Query {
     """
     dataproduct returns the given dataproduct.
@@ -1140,6 +1183,16 @@ extend type Query {
         "service is the third party service."
         service: MappingService
     ): [Dataproduct!]!
+
+    """
+    groupStats returns statistics for groups that have created dataproducts.
+    """
+	groupStats(
+        "limit the number of returned groups."
+        limit: Int
+        "offset the list of returned groups. Used as pagination with PAGE-INDEX * limit."
+        offset: Int
+    ): [GroupStats!]!
 }
 
 """
@@ -1914,6 +1967,30 @@ func (ec *executionContext) field_Query_gcpGetTables_args(ctx context.Context, r
 		}
 	}
 	args["datasetID"] = arg1
+	return args, nil
+}
+
+func (ec *executionContext) field_Query_groupStats_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
+	var err error
+	args := map[string]interface{}{}
+	var arg0 *int
+	if tmp, ok := rawArgs["limit"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("limit"))
+		arg0, err = ec.unmarshalOInt2ᚖint(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["limit"] = arg0
+	var arg1 *int
+	if tmp, ok := rawArgs["offset"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("offset"))
+		arg1, err = ec.unmarshalOInt2ᚖint(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["offset"] = arg1
 	return args, nil
 }
 
@@ -3336,6 +3413,76 @@ func (ec *executionContext) _Group_email(ctx context.Context, field graphql.Coll
 	return ec.marshalNString2string(ctx, field.Selections, res)
 }
 
+func (ec *executionContext) _GroupStats_email(ctx context.Context, field graphql.CollectedField, obj *models.GroupStats) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "GroupStats",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   false,
+		IsResolver: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Email, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(string)
+	fc.Result = res
+	return ec.marshalNString2string(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _GroupStats_dataproducts(ctx context.Context, field graphql.CollectedField, obj *models.GroupStats) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "GroupStats",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   false,
+		IsResolver: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Dataproducts, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(int)
+	fc.Result = res
+	return ec.marshalNInt2int(ctx, field.Selections, res)
+}
+
 func (ec *executionContext) _Keyword_keyword(ctx context.Context, field graphql.CollectedField, obj *models.Keyword) (ret graphql.Marshaler) {
 	defer func() {
 		if r := recover(); r != nil {
@@ -4187,6 +4334,48 @@ func (ec *executionContext) _Query_dataproducts(ctx context.Context, field graph
 	res := resTmp.([]*models.Dataproduct)
 	fc.Result = res
 	return ec.marshalNDataproduct2ᚕᚖgithubᚗcomᚋnaviktᚋnadaᚑbackendᚋpkgᚋgraphᚋmodelsᚐDataproductᚄ(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _Query_groupStats(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "Query",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   true,
+		IsResolver: true,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	rawArgs := field.ArgumentMap(ec.Variables)
+	args, err := ec.field_Query_groupStats_args(ctx, rawArgs)
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	fc.Args = args
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.Query().GroupStats(rctx, args["limit"].(*int), args["offset"].(*int))
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.([]*models.GroupStats)
+	fc.Result = res
+	return ec.marshalNGroupStats2ᚕᚖgithubᚗcomᚋnaviktᚋnadaᚑbackendᚋpkgᚋgraphᚋmodelsᚐGroupStatsᚄ(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _Query_gcpGetTables(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
@@ -7284,6 +7473,38 @@ func (ec *executionContext) _Group(ctx context.Context, sel ast.SelectionSet, ob
 	return out
 }
 
+var groupStatsImplementors = []string{"GroupStats"}
+
+func (ec *executionContext) _GroupStats(ctx context.Context, sel ast.SelectionSet, obj *models.GroupStats) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, groupStatsImplementors)
+
+	out := graphql.NewFieldSet(fields)
+	var invalids uint32
+	for i, field := range fields {
+		switch field.Name {
+		case "__typename":
+			out.Values[i] = graphql.MarshalString("GroupStats")
+		case "email":
+			out.Values[i] = ec._GroupStats_email(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
+		case "dataproducts":
+			out.Values[i] = ec._GroupStats_dataproducts(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
+		default:
+			panic("unknown field " + strconv.Quote(field.Name))
+		}
+	}
+	out.Dispatch()
+	if invalids > 0 {
+		return graphql.Null
+	}
+	return out
+}
+
 var keywordImplementors = []string{"Keyword"}
 
 func (ec *executionContext) _Keyword(ctx context.Context, sel ast.SelectionSet, obj *models.Keyword) graphql.Marshaler {
@@ -7470,6 +7691,20 @@ func (ec *executionContext) _Query(ctx context.Context, sel ast.SelectionSet) gr
 					}
 				}()
 				res = ec._Query_dataproducts(ctx, field)
+				if res == graphql.Null {
+					atomic.AddUint32(&invalids, 1)
+				}
+				return res
+			})
+		case "groupStats":
+			field := field
+			out.Concurrently(i, func() (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._Query_groupStats(ctx, field)
 				if res == graphql.Null {
 					atomic.AddUint32(&invalids, 1)
 				}
@@ -8468,6 +8703,60 @@ func (ec *executionContext) marshalNGroup2ᚖgithubᚗcomᚋnaviktᚋnadaᚑback
 		return graphql.Null
 	}
 	return ec._Group(ctx, sel, v)
+}
+
+func (ec *executionContext) marshalNGroupStats2ᚕᚖgithubᚗcomᚋnaviktᚋnadaᚑbackendᚋpkgᚋgraphᚋmodelsᚐGroupStatsᚄ(ctx context.Context, sel ast.SelectionSet, v []*models.GroupStats) graphql.Marshaler {
+	ret := make(graphql.Array, len(v))
+	var wg sync.WaitGroup
+	isLen1 := len(v) == 1
+	if !isLen1 {
+		wg.Add(len(v))
+	}
+	for i := range v {
+		i := i
+		fc := &graphql.FieldContext{
+			Index:  &i,
+			Result: &v[i],
+		}
+		ctx := graphql.WithFieldContext(ctx, fc)
+		f := func(i int) {
+			defer func() {
+				if r := recover(); r != nil {
+					ec.Error(ctx, ec.Recover(ctx, r))
+					ret = nil
+				}
+			}()
+			if !isLen1 {
+				defer wg.Done()
+			}
+			ret[i] = ec.marshalNGroupStats2ᚖgithubᚗcomᚋnaviktᚋnadaᚑbackendᚋpkgᚋgraphᚋmodelsᚐGroupStats(ctx, sel, v[i])
+		}
+		if isLen1 {
+			f(i)
+		} else {
+			go f(i)
+		}
+
+	}
+	wg.Wait()
+
+	for _, e := range ret {
+		if e == graphql.Null {
+			return graphql.Null
+		}
+	}
+
+	return ret
+}
+
+func (ec *executionContext) marshalNGroupStats2ᚖgithubᚗcomᚋnaviktᚋnadaᚑbackendᚋpkgᚋgraphᚋmodelsᚐGroupStats(ctx context.Context, sel ast.SelectionSet, v *models.GroupStats) graphql.Marshaler {
+	if v == nil {
+		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	return ec._GroupStats(ctx, sel, v)
 }
 
 func (ec *executionContext) unmarshalNID2githubᚗcomᚋgoogleᚋuuidᚐUUID(ctx context.Context, v interface{}) (uuid.UUID, error) {
