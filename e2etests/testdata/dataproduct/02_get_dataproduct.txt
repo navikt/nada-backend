@@ -20,7 +20,8 @@ RETURNS
       "name": "NewName",
       "description": "New description",
       "keywords": [
-        "keyword1"
+        "keyword1",
+        "otherkeyword"
       ],
       "owner": {
         "group": "nada@nav.no"

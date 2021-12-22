@@ -7,7 +7,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"html/template"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"strconv"
@@ -81,10 +80,12 @@ type storeRequest struct {
 }
 
 func splitTestFile(fname string, state *state) (q string, expected map[string]interface{}, store []storeRequest, options cmp.Options, err error) {
-	b, err := ioutil.ReadFile("testdata/" + fname)
+	b, err := os.ReadFile("testdata/" + fname)
 	if err != nil {
 		return "", nil, nil, nil, err
 	}
+
+	b = removeComments(b)
 
 	tpl, err := template.New("query").Parse(string(b))
 	if err != nil {
@@ -145,15 +146,18 @@ func splitTestFile(fname string, state *state) (q string, expected map[string]in
 func ignorePath(path string) func(p cmp.Path) bool {
 	return func(p cmp.Path) bool {
 		s := ""
+		wide := ""
 		for _, pe := range p {
 			switch pe := pe.(type) {
 			case cmp.MapIndex:
 				s += "." + pe.Key().String()
+				wide += "." + pe.Key().String()
 			case cmp.SliceIndex:
 				s += "." + strconv.Itoa(pe.Key())
+				wide += ".*"
 			}
 		}
-		return s == "."+path
+		return s == "."+path || wide == "."+path
 	}
 }
 
@@ -220,4 +224,15 @@ func doQuery(state *state, q string, store []storeRequest) (map[string]interface
 	}
 
 	return ret, nil
+}
+
+func removeComments(b []byte) []byte {
+	lines := bytes.Split(b, []byte("\n"))
+	ret := [][]byte{}
+	for _, l := range lines {
+		if !bytes.HasPrefix(l, []byte("//")) {
+			ret = append(ret, l)
+		}
+	}
+	return bytes.Join(ret, []byte("\n"))
 }

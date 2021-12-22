@@ -1,0 +1,17 @@
+{
+  gcpGetDatasets(projectID:"")
+}
+
+RETURNS
+
+{
+  "data": {
+    "gcpGetDatasets": [
+      "dataset1",
+      "dataset2"
+    ]
+  }
+}
+
+
+STORE dataset_id=data.gcpGetDatasets[0]

@@ -1,0 +1,31 @@
+{
+  gcpGetTables(projectID: "test", datasetID: "{{ .dataproduct_id }}") {
+    name
+    description
+    type
+  }
+}
+
+RETURNS
+
+{
+  "data": {
+    "gcpGetTables": [
+      {
+        "name": "table1",
+        "description": "description1",
+        "type": "table"
+      },
+      {
+        "name": "table2",
+        "description": "description2",
+        "type": "table"
+      },
+      {
+        "name": "view1",
+        "description": "description1",
+        "type": "view"
+      }
+    ]
+  }
+}

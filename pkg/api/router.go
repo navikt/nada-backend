@@ -4,14 +4,13 @@ import (
 	"net/http"
 	"os"
 
+	"github.com/99designs/gqlgen/graphql/handler"
 	"github.com/99designs/gqlgen/graphql/playground"
 	"github.com/go-chi/chi"
 	"github.com/go-chi/cors"
 	"github.com/navikt/nada-backend/pkg/auth"
 	"github.com/navikt/nada-backend/pkg/database"
-	"github.com/navikt/nada-backend/pkg/graph"
 	"github.com/navikt/nada-backend/pkg/story"
-	"github.com/navikt/nada-backend/pkg/teamkatalogen"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/sirupsen/logrus"
@@ -23,14 +22,19 @@ type HTTPAPI interface {
 	Logout(w http.ResponseWriter, r *http.Request)
 }
 
-func New(repo *database.Repo, gcp graph.Bigquery, httpAPI HTTPAPI, gcpProjects *auth.TeamProjectsUpdater, accessMgr graph.AccessManager, authMW auth.MiddlewareHandler, tk *teamkatalogen.Teamkatalogen, promReg *prometheus.Registry, log *logrus.Logger) *chi.Mux {
+func New(
+	repo *database.Repo,
+	httpAPI HTTPAPI,
+	authMW auth.MiddlewareHandler,
+	gqlServer *handler.Server,
+	promReg *prometheus.Registry,
+	log *logrus.Logger,
+) *chi.Mux {
 	corsMW := cors.Handler(cors.Options{
 		AllowedOrigins:   []string{"https://*", "http://*"},
 		AllowedMethods:   []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
 		AllowCredentials: true,
 	})
-
-	gqlServer := graph.New(repo, gcp, gcpProjects, accessMgr, tk, log.WithField("subsystem", "graph"))
 
 	datapackageRedirect := func(w http.ResponseWriter, r *http.Request) {
 		host := "https://datapakker.dev.intern.nav.no"

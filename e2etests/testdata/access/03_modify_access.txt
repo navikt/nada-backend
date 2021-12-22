@@ -1,0 +1,29 @@
+mutation {
+  grantAccessToDataproduct(
+    dataproductID: "{{ .dataproduct_id }}"
+    subject: "santa@nav.no"
+  ) {
+    id
+  }
+	addRequesterToDataproduct(
+		dataproductID: "{{ .dataproduct_id }}"
+		subject: "rudolf@nav.no"
+	)
+}
+
+
+RETURNS
+
+OPTION data.grantAccessToDataproduct.id=IGNORE
+ENDOPTS
+
+{
+  "data": {
+    "grantAccessToDataproduct": {
+      "id": "b018bdaf-05ed-401a-b281-5f136aa6d70b"
+    },
+    "addRequesterToDataproduct": true
+  }
+}
+
+STORE access_id=data.grantAccessToDataproduct.id

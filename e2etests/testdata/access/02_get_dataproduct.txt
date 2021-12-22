@@ -1,0 +1,23 @@
+{
+	dataproduct(
+		id: "{{ .dataproduct_id }}"
+	) {
+		requesters
+    access {
+      subject
+      granter
+      revoked
+    }
+	}
+}
+
+RETURNS
+
+{
+  "data": {
+    "dataproduct": {
+      "requesters": [],
+			"access": []
+    }
+  }
+}

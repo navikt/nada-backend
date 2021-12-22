@@ -1,0 +1,23 @@
+{
+	keywords() {
+		keyword
+		count
+	}
+}
+
+RETURNS
+
+{
+  "data": {
+    "keywords": [
+			{
+				"keyword": "keyword1",
+				"count": 1
+			},
+			{
+				"keyword": "otherkeyword",
+				"count": 1
+			}
+		]
+  }
+}

@@ -84,7 +84,9 @@ func main() {
 	var httpAPI api.HTTPAPI = api.NewMockHTTP(repo, log.WithField("subsystem", "mockhttp"))
 	var accessMgr graph.AccessManager
 	accessMgr = access.NewNoop()
+	var teamcatalogue graph.Teamkatalogen = teamkatalogen.NewMock()
 	if !cfg.MockAuth {
+		teamcatalogue = teamkatalogen.New(cfg.TeamkatalogenURL)
 		teamProjectsMapping = auth.NewTeamProjectsUpdater(cfg.DevTeamProjectsOutputURL, cfg.ProdTeamProjectsOutputURL, cfg.TeamsToken, http.DefaultClient)
 		go teamProjectsMapping.Run(ctx, TeamProjectsUpdateFrequency)
 
@@ -106,7 +108,7 @@ func main() {
 
 	go access.NewEnsurer(repo, accessMgr, promErrs, log.WithField("subsystem", "accessensurer")).Run(ctx, AccessEnsurerFrequency)
 
-	var gcp graph.Bigquery
+	var gcp graph.Bigquery = bigquery.NewMock()
 	if !cfg.SkipMetadataSync {
 		datacatalogClient, err := bigquery.New(ctx)
 		if err != nil {
@@ -119,7 +121,8 @@ func main() {
 	}
 
 	log.Info("Listening on :8080")
-	srv := api.New(repo, gcp, httpAPI, teamProjectsMapping, accessMgr, authenticatorMiddleware, teamkatalogen.New(cfg.TeamkatalogenURL), prom(promErrs, repo.Metrics()), log)
+	gqlServer := graph.New(repo, gcp, teamProjectsMapping, accessMgr, teamcatalogue, log.WithField("subsystem", "graph"))
+	srv := api.New(repo, httpAPI, authenticatorMiddleware, gqlServer, prom(promErrs, repo.Metrics()), log)
 
 	server := http.Server{
 		Addr:    cfg.BindAddress,

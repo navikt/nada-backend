@@ -1,0 +1,11 @@
+mutation {
+  mapDataproduct(dataproductID: "{{ .dataproduct_id }}", services: [metabase])
+}
+
+RETURNS
+
+{
+  "data": {
+    "mapDataproduct": true
+  }
+}

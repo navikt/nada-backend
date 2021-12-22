@@ -11,7 +11,6 @@ import (
 	"github.com/navikt/nada-backend/pkg/database"
 	"github.com/navikt/nada-backend/pkg/graph/generated"
 	"github.com/navikt/nada-backend/pkg/graph/models"
-	"github.com/navikt/nada-backend/pkg/teamkatalogen"
 	"github.com/sirupsen/logrus"
 )
 
@@ -29,16 +28,20 @@ type AccessManager interface {
 	AddToAuthorizedViews(ctx context.Context, projectID, dataset, table string) error
 }
 
+type Teamkatalogen interface {
+	Search(ctx context.Context, query string) ([]*models.TeamkatalogenResult, error)
+}
+
 type Resolver struct {
 	repo          *database.Repo
 	bigquery      Bigquery
 	gcpProjects   *auth.TeamProjectsUpdater
 	accessMgr     AccessManager
-	teamkatalogen *teamkatalogen.Teamkatalogen
+	teamkatalogen Teamkatalogen
 	log           *logrus.Entry
 }
 
-func New(repo *database.Repo, gcp Bigquery, gcpProjects *auth.TeamProjectsUpdater, accessMgr AccessManager, tk *teamkatalogen.Teamkatalogen, log *logrus.Entry) *handler.Server {
+func New(repo *database.Repo, gcp Bigquery, gcpProjects *auth.TeamProjectsUpdater, accessMgr AccessManager, tk Teamkatalogen, log *logrus.Entry) *handler.Server {
 	resolver := &Resolver{
 		repo:          repo,
 		bigquery:      gcp,

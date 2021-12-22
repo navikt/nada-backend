@@ -11,14 +11,15 @@ import (
 	"os"
 	"testing"
 
-	"cloud.google.com/go/bigquery"
 	graphProm "github.com/99designs/gqlgen-contrib/prometheus"
 	"github.com/navikt/nada-backend/pkg/access"
 	"github.com/navikt/nada-backend/pkg/api"
 	"github.com/navikt/nada-backend/pkg/auth"
+	"github.com/navikt/nada-backend/pkg/bigquery"
 	"github.com/navikt/nada-backend/pkg/database"
 	"github.com/navikt/nada-backend/pkg/database/gensql"
-	"github.com/navikt/nada-backend/pkg/graph/models"
+	"github.com/navikt/nada-backend/pkg/graph"
+	"github.com/navikt/nada-backend/pkg/teamkatalogen"
 	"github.com/ory/dockertest/v3"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/sirupsen/logrus"
@@ -64,14 +65,19 @@ func TestMain(m *testing.M) {
 	promReg := prometheus.NewRegistry()
 	graphProm.RegisterOn(promReg)
 
-	srv := api.New(
+	gqlServer := graph.New(
 		repo,
-		&mockGCP{},
-		&mockAuthHandler{},
+		bigquery.NewMock(),
 		&auth.MockTeamProjectsUpdater,
 		access.NewNoop(),
+		teamkatalogen.NewMock(),
+		logrus.StandardLogger().WithField("subsystem", "graphql"),
+	)
+	srv := api.New(
+		repo,
+		&mockAuthHandler{},
 		auth.MockJWTValidatorMiddleware(),
-		nil,
+		gqlServer,
 		prometheus.NewRegistry(), logrus.StandardLogger(),
 	)
 
@@ -84,20 +90,6 @@ func TestMain(m *testing.M) {
 	}
 
 	os.Exit(code)
-}
-
-type mockGCP struct{}
-
-func (m *mockGCP) TableMetadata(ctx context.Context, projectID string, datasetID string, tableID string) (models.BigqueryMetadata, error) {
-	return models.BigqueryMetadata{TableType: bigquery.ViewTable}, nil
-}
-
-func (m *mockGCP) GetTables(ctx context.Context, projectID, datasetID string) ([]*models.BigQueryTable, error) {
-	return nil, nil
-}
-
-func (m *mockGCP) GetDatasets(ctx context.Context, projectID string) ([]string, error) {
-	return nil, nil
 }
 
 type noopDatasetEnricher struct{}
