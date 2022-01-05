@@ -1515,6 +1515,9 @@ input SearchQuery @goModel(model: "github.com/navikt/nada-backend/pkg/graph/mode
     "keyword filters results on the keyword."
     keyword: String
 
+    "group filters results on the group."
+    group: String
+
     "limit the number of returned search results."
     limit: Int
 
@@ -6962,6 +6965,14 @@ func (ec *executionContext) unmarshalInputSearchQuery(ctx context.Context, obj i
 
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("keyword"))
 			it.Keyword, err = ec.unmarshalOString2ᚖstring(ctx, v)
+			if err != nil {
+				return it, err
+			}
+		case "group":
+			var err error
+
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("group"))
+			it.Group, err = ec.unmarshalOString2ᚖstring(ctx, v)
 			if err != nil {
 				return it, err
 			}

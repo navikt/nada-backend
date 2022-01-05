@@ -22,6 +22,9 @@ input SearchQuery @goModel(model: "github.com/navikt/nada-backend/pkg/graph/mode
     "keyword filters results on the keyword."
     keyword: String
 
+    "group filters results on the group."
+    group: String
+
     "limit the number of returned search results."
     limit: Int
 

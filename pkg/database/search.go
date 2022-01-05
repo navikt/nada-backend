@@ -14,6 +14,7 @@ func (r *Repo) Search(ctx context.Context, query *models.SearchQuery) ([]*models
 	res, err := r.querier.Search(ctx, gensql.SearchParams{
 		Query:   ptrToString(query.Text),
 		Keyword: ptrToString(query.Keyword),
+		Grp:     ptrToString(query.Group),
 		Lim:     int32(ptrToIntDefault(query.Limit, 24)),
 		Offs:    int32(ptrToIntDefault(query.Offset, 0)),
 	})

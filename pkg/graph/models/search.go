@@ -9,8 +9,10 @@ type SearchQuery struct {
 	Text *string `json:"text"`
 	// Filter on keyword
 	Keyword *string `json:"keyword"`
-	Limit   *int    `json:"limit"`
-	Offset  *int    `json:"offset"`
+	// Filter on group
+	Group  *string `json:"group"`
+	Limit  *int    `json:"limit"`
+	Offset *int    `json:"offset"`
 }
 
 type SearchResultRow struct {

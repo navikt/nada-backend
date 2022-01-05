@@ -20,6 +20,12 @@ WHERE
 			ELSE TRUE
 		END
 	)
+	AND (
+		CASE
+			WHEN @grp :: text != '' THEN "group" = @grp
+			ELSE TRUE
+		END
+	)
 ORDER BY rank DESC, created DESC
 LIMIT @lim OFFSET @offs;
 ;

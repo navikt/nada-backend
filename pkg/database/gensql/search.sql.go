@@ -31,13 +31,20 @@ WHERE
 			ELSE TRUE
 		END
 	)
+	AND (
+		CASE
+			WHEN $3 :: text != '' THEN "group" = $3
+			ELSE TRUE
+		END
+	)
 ORDER BY rank DESC, created DESC
-LIMIT $4 OFFSET $3
+LIMIT $5 OFFSET $4
 `
 
 type SearchParams struct {
 	Query   string
 	Keyword string
+	Grp     string
 	Offs    int32
 	Lim     int32
 }
@@ -53,6 +60,7 @@ func (q *Queries) Search(ctx context.Context, arg SearchParams) ([]SearchRow, er
 	rows, err := q.db.QueryContext(ctx, search,
 		arg.Query,
 		arg.Keyword,
+		arg.Grp,
 		arg.Offs,
 		arg.Lim,
 	)
