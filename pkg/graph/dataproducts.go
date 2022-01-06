@@ -22,9 +22,6 @@ func isAllowedToGrantAccess(ctx context.Context, r *database.Repo, dp *models.Da
 	}
 
 	for _, r := range requesters {
-		if r == "all-users@nav.no" {
-			return nil
-		}
 		if user.Groups.Contains(r) || strings.EqualFold(r, user.Email) {
 			return nil
 		}
