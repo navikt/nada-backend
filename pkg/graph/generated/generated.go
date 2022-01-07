@@ -128,6 +128,7 @@ type ComplexityRoot struct {
 		GrantAccessToDataproduct       func(childComplexity int, dataproductID uuid.UUID, expires *time.Time, subject *string, subjectType *models.SubjectType) int
 		MapDataproduct                 func(childComplexity int, dataproductID uuid.UUID, services []models.MappingService) int
 		PublishStory                   func(childComplexity int, id uuid.UUID, group string) int
+		PublishStoryWithID             func(childComplexity int, id uuid.UUID, target uuid.UUID) int
 		RemoveRequesterFromDataproduct func(childComplexity int, dataproductID uuid.UUID, subject string) int
 		RevokeAccessToDataproduct      func(childComplexity int, id uuid.UUID) int
 		UpdateDataproduct              func(childComplexity int, id uuid.UUID, input models.UpdateDataproduct) int
@@ -218,6 +219,7 @@ type MutationResolver interface {
 	RevokeAccessToDataproduct(ctx context.Context, id uuid.UUID) (bool, error)
 	MapDataproduct(ctx context.Context, dataproductID uuid.UUID, services []models.MappingService) (bool, error)
 	PublishStory(ctx context.Context, id uuid.UUID, group string) (*models.Story, error)
+	PublishStoryWithID(ctx context.Context, id uuid.UUID, target uuid.UUID) (*models.Story, error)
 }
 type QueryResolver interface {
 	Version(ctx context.Context) (string, error)
@@ -630,6 +632,18 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 		}
 
 		return e.complexity.Mutation.PublishStory(childComplexity, args["id"].(uuid.UUID), args["group"].(string)), true
+
+	case "Mutation.publishStoryWithID":
+		if e.complexity.Mutation.PublishStoryWithID == nil {
+			break
+		}
+
+		args, err := ec.field_Mutation_publishStoryWithID_args(context.TODO(), rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Mutation.PublishStoryWithID(childComplexity, args["id"].(uuid.UUID), args["target"].(uuid.UUID)), true
 
 	case "Mutation.removeRequesterFromDataproduct":
 		if e.complexity.Mutation.RemoveRequesterFromDataproduct == nil {
@@ -1576,7 +1590,7 @@ extend type Query {
 
 extend type Mutation {
 	publishStory(id: ID!, group: String!) : Story! @authenticated
-	# publishStoryWithID(id: ID!, target: ID!) : Story! @authenticated
+	publishStoryWithID(id: ID!, target: ID!) : Story! @authenticated
 }
 `, BuiltIn: false},
 	{Name: "schema/teamkatalogen.graphql", Input: `type TeamkatalogenResult @goModel(model: "github.com/navikt/nada-backend/pkg/graph/models.TeamkatalogenResult") {
@@ -1797,6 +1811,30 @@ func (ec *executionContext) field_Mutation_mapDataproduct_args(ctx context.Conte
 		}
 	}
 	args["services"] = arg1
+	return args, nil
+}
+
+func (ec *executionContext) field_Mutation_publishStoryWithID_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
+	var err error
+	args := map[string]interface{}{}
+	var arg0 uuid.UUID
+	if tmp, ok := rawArgs["id"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("id"))
+		arg0, err = ec.unmarshalNID2githubᚗcomᚋgoogleᚋuuidᚐUUID(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["id"] = arg0
+	var arg1 uuid.UUID
+	if tmp, ok := rawArgs["target"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("target"))
+		arg1, err = ec.unmarshalNID2githubᚗcomᚋgoogleᚋuuidᚐUUID(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["target"] = arg1
 	return args, nil
 }
 
@@ -4158,6 +4196,68 @@ func (ec *executionContext) _Mutation_publishStory(ctx context.Context, field gr
 		directive0 := func(rctx context.Context) (interface{}, error) {
 			ctx = rctx // use context from middleware stack in children
 			return ec.resolvers.Mutation().PublishStory(rctx, args["id"].(uuid.UUID), args["group"].(string))
+		}
+		directive1 := func(ctx context.Context) (interface{}, error) {
+			if ec.directives.Authenticated == nil {
+				return nil, errors.New("directive authenticated is not implemented")
+			}
+			return ec.directives.Authenticated(ctx, nil, directive0, nil)
+		}
+
+		tmp, err := directive1(rctx)
+		if err != nil {
+			return nil, graphql.ErrorOnPath(ctx, err)
+		}
+		if tmp == nil {
+			return nil, nil
+		}
+		if data, ok := tmp.(*models.Story); ok {
+			return data, nil
+		}
+		return nil, fmt.Errorf(`unexpected type %T from directive, should be *github.com/navikt/nada-backend/pkg/graph/models.Story`, tmp)
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(*models.Story)
+	fc.Result = res
+	return ec.marshalNStory2ᚖgithubᚗcomᚋnaviktᚋnadaᚑbackendᚋpkgᚋgraphᚋmodelsᚐStory(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _Mutation_publishStoryWithID(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "Mutation",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   true,
+		IsResolver: true,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	rawArgs := field.ArgumentMap(ec.Variables)
+	args, err := ec.field_Mutation_publishStoryWithID_args(ctx, rawArgs)
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	fc.Args = args
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		directive0 := func(rctx context.Context) (interface{}, error) {
+			ctx = rctx // use context from middleware stack in children
+			return ec.resolvers.Mutation().PublishStoryWithID(rctx, args["id"].(uuid.UUID), args["target"].(uuid.UUID))
 		}
 		directive1 := func(ctx context.Context) (interface{}, error) {
 			if ec.directives.Authenticated == nil {
@@ -7689,6 +7789,11 @@ func (ec *executionContext) _Mutation(ctx context.Context, sel ast.SelectionSet)
 			}
 		case "publishStory":
 			out.Values[i] = ec._Mutation_publishStory(ctx, field)
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
+		case "publishStoryWithID":
+			out.Values[i] = ec._Mutation_publishStoryWithID(ctx, field)
 			if out.Values[i] == graphql.Null {
 				invalids++
 			}

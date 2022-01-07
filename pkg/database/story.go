@@ -109,6 +109,63 @@ func (r *Repo) PublishStory(ctx context.Context, draftID uuid.UUID, group string
 	return storyFromSQL(story), nil
 }
 
+func (r *Repo) UpdateStory(ctx context.Context, draftID, target uuid.UUID, group string) (*models.Story, error) {
+	draft, err := r.querier.GetStoryDraft(ctx, draftID)
+	if err != nil {
+		return nil, err
+	}
+
+	draftViews, err := r.querier.GetStoryViewDrafts(ctx, draftID)
+	if err != nil {
+		return nil, err
+	}
+
+	tx, err := r.db.Begin()
+	if err != nil {
+		return nil, err
+	}
+
+	querier := r.querier.WithTx(tx)
+	story, err := querier.UpdateStory(ctx, gensql.UpdateStoryParams{
+		ID:   target,
+		Name: draft.Name,
+		Grp:  group,
+	})
+	if err != nil {
+		if err := tx.Rollback(); err != nil {
+			r.log.WithError(err).Error("unable to roll back when create story failed")
+		}
+		return nil, err
+	}
+
+	if err := querier.DeleteStoryViews(ctx, story.ID); err != nil {
+		if err := tx.Rollback(); err != nil {
+			r.log.WithError(err).Error("unable to roll back when delete story views failed")
+		}
+		return nil, err
+	}
+
+	for _, view := range draftViews {
+		_, err := querier.CreateStoryView(ctx, gensql.CreateStoryViewParams{
+			StoryID: story.ID,
+			Sort:    view.Sort,
+			Type:    view.Type,
+			Spec:    view.Spec,
+		})
+		if err != nil {
+			if err := tx.Rollback(); err != nil {
+				r.log.WithError(err).Error("unable to roll back when create story view failed")
+			}
+			return nil, err
+		}
+	}
+
+	if err := tx.Commit(); err != nil {
+		return nil, err
+	}
+	return storyFromSQL(story), nil
+}
+
 func storyViewFromSQL(s gensql.StoryView) *models.StoryView {
 	spec := map[string]interface{}{}
 	_ = json.Unmarshal(s.Spec, &spec)

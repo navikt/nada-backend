@@ -21,6 +21,24 @@ func (r *mutationResolver) PublishStory(ctx context.Context, id uuid.UUID, group
 	return r.repo.PublishStory(ctx, id, group)
 }
 
+func (r *mutationResolver) PublishStoryWithID(ctx context.Context, id uuid.UUID, target uuid.UUID) (*models.Story, error) {
+	t, err := r.repo.GetStory(ctx, target)
+	if err != nil {
+		return nil, err
+	}
+
+	user := auth.GetUser(ctx)
+	if !user.Groups.Contains(t.Group) {
+		return nil, ErrUnauthorized
+	}
+
+	s, err := r.repo.UpdateStory(ctx, id, target, t.Group)
+	if err != nil {
+		return nil, err
+	}
+	return s, nil
+}
+
 func (r *queryResolver) Stories(ctx context.Context, draft *bool) ([]*models.Story, error) {
 	if draft != nil && *draft {
 		return r.repo.GetStoryDrafts(ctx)

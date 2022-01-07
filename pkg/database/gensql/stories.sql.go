@@ -79,6 +79,16 @@ func (q *Queries) CreateStoryView(ctx context.Context, arg CreateStoryViewParams
 	return i, err
 }
 
+const deleteStoryViews = `-- name: DeleteStoryViews :exec
+DELETE FROM story_views
+WHERE story_id = $1
+`
+
+func (q *Queries) DeleteStoryViews(ctx context.Context, storyID uuid.UUID) error {
+	_, err := q.db.ExecContext(ctx, deleteStoryViews, storyID)
+	return err
+}
+
 const getStories = `-- name: GetStories :many
 SELECT id, name, created, last_modified, "group"
 FROM stories
@@ -223,4 +233,32 @@ func (q *Queries) GetStoryViewsWithoutFigures(ctx context.Context, storyID uuid.
 		return nil, err
 	}
 	return items, nil
+}
+
+const updateStory = `-- name: UpdateStory :one
+UPDATE stories
+SET
+	"name" = $1,
+	"group" = $2
+WHERE id = $3
+RETURNING id, name, created, last_modified, "group"
+`
+
+type UpdateStoryParams struct {
+	Name string
+	Grp  string
+	ID   uuid.UUID
+}
+
+func (q *Queries) UpdateStory(ctx context.Context, arg UpdateStoryParams) (Story, error) {
+	row := q.db.QueryRowContext(ctx, updateStory, arg.Name, arg.Grp, arg.ID)
+	var i Story
+	err := row.Scan(
+		&i.ID,
+		&i.Name,
+		&i.Created,
+		&i.LastModified,
+		&i.Group,
+	)
+	return i, err
 }

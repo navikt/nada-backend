@@ -26,6 +26,7 @@ type Querier interface {
 	DeleteSession(ctx context.Context, token string) error
 	DeleteStoryDraft(ctx context.Context, id uuid.UUID) error
 	DeleteStoryViewDraft(ctx context.Context, storyID uuid.UUID) error
+	DeleteStoryViews(ctx context.Context, storyID uuid.UUID) error
 	GetAccessToDataproduct(ctx context.Context, id uuid.UUID) (DataproductAccess, error)
 	GetActiveAccessToDataproductForSubject(ctx context.Context, arg GetActiveAccessToDataproductForSubjectParams) (DataproductAccess, error)
 	GetBigqueryDatasource(ctx context.Context, dataproductID uuid.UUID) (DatasourceBigquery, error)
@@ -59,6 +60,7 @@ type Querier interface {
 	Search(ctx context.Context, arg SearchParams) ([]SearchRow, error)
 	UpdateBigqueryDatasourceSchema(ctx context.Context, arg UpdateBigqueryDatasourceSchemaParams) error
 	UpdateDataproduct(ctx context.Context, arg UpdateDataproductParams) (Dataproduct, error)
+	UpdateStory(ctx context.Context, arg UpdateStoryParams) (Story, error)
 }
 
 var _ Querier = (*Queries)(nil)
