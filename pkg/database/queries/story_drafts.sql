@@ -35,11 +35,17 @@ SELECT *
 FROM story_view_drafts
 WHERE id = @id;
 
--- name: GetStoryViewDrafts :many
+-- name: GetStoryViewDraftsWithoutFigures :many
 SELECT *
 FROM story_view_drafts
 WHERE story_id = @story_id
 AND "type" NOT IN ('plotly')
+ORDER BY sort ASC;
+
+-- name: GetStoryViewDrafts :many
+SELECT *
+FROM story_view_drafts
+WHERE story_id = @story_id
 ORDER BY sort ASC;
 
 -- name: DeleteStoryDraft :exec

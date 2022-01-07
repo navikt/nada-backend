@@ -151,12 +151,48 @@ const getStoryViewDrafts = `-- name: GetStoryViewDrafts :many
 SELECT id, story_id, sort, type, spec
 FROM story_view_drafts
 WHERE story_id = $1
-AND "type" NOT IN ('plotly')
 ORDER BY sort ASC
 `
 
 func (q *Queries) GetStoryViewDrafts(ctx context.Context, storyID uuid.UUID) ([]StoryViewDraft, error) {
 	rows, err := q.db.QueryContext(ctx, getStoryViewDrafts, storyID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []StoryViewDraft{}
+	for rows.Next() {
+		var i StoryViewDraft
+		if err := rows.Scan(
+			&i.ID,
+			&i.StoryID,
+			&i.Sort,
+			&i.Type,
+			&i.Spec,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const getStoryViewDraftsWithoutFigures = `-- name: GetStoryViewDraftsWithoutFigures :many
+SELECT id, story_id, sort, type, spec
+FROM story_view_drafts
+WHERE story_id = $1
+AND "type" NOT IN ('plotly')
+ORDER BY sort ASC
+`
+
+func (q *Queries) GetStoryViewDraftsWithoutFigures(ctx context.Context, storyID uuid.UUID) ([]StoryViewDraft, error) {
+	rows, err := q.db.QueryContext(ctx, getStoryViewDraftsWithoutFigures, storyID)
 	if err != nil {
 		return nil, err
 	}

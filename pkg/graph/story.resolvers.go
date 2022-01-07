@@ -50,7 +50,7 @@ func (r *storyResolver) Owner(ctx context.Context, obj *models.Story) (*models.O
 
 func (r *storyResolver) Views(ctx context.Context, obj *models.Story) ([]*models.StoryView, error) {
 	if obj.Draft {
-		return r.repo.GetStoryViewDrafts(ctx, obj.ID)
+		return r.repo.GetStoryViewDraftsWithoutFigures(ctx, obj.ID)
 	}
 	return r.repo.GetStoryViews(ctx, obj.ID)
 }

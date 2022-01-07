@@ -32,6 +32,20 @@ func (r *Repo) GetStoryView(ctx context.Context, id uuid.UUID) (*models.StoryVie
 	return storyViewDraftFromSQL(storyView), nil
 }
 
+func (r *Repo) GetStoryViewsWithoutFigures(ctx context.Context, storyID uuid.UUID) ([]*models.StoryView, error) {
+	storyViews, err := r.querier.GetStoryViewsWithoutFigures(ctx, storyID)
+	if err != nil {
+		return nil, err
+	}
+
+	ret := make([]*models.StoryView, len(storyViews))
+	for i, s := range storyViews {
+		ret[i] = storyViewFromSQL(s)
+	}
+
+	return ret, nil
+}
+
 func (r *Repo) GetStoryViews(ctx context.Context, storyID uuid.UUID) ([]*models.StoryView, error) {
 	storyViews, err := r.querier.GetStoryViews(ctx, storyID)
 	if err != nil {

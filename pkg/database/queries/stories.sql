@@ -37,11 +37,17 @@ SELECT *
 FROM story_view_drafts
 WHERE id = @id;
 
--- name: GetStoryViews :many
+-- name: GetStoryViewsWithoutFigures :many
 SELECT *
 FROM story_views
 WHERE story_id = @story_id
 AND "type" NOT IN ('plotly')
+ORDER BY sort ASC;
+
+-- name: GetStoryViews :many
+SELECT *
+FROM story_views
+WHERE story_id = @story_id
 ORDER BY sort ASC;
 
 -- -- name: UpdateStory :one
