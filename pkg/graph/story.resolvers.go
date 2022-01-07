@@ -35,6 +35,13 @@ func (r *queryResolver) Story(ctx context.Context, id uuid.UUID, draft *bool) (*
 	return r.repo.GetStory(ctx, id)
 }
 
+func (r *queryResolver) StoryView(ctx context.Context, id uuid.UUID, draft *bool) (*models.StoryView, error) {
+	if draft != nil && *draft {
+		return r.repo.GetStoryViewDraft(ctx, id)
+	}
+	return r.repo.GetStoryView(ctx, id)
+}
+
 func (r *storyResolver) Owner(ctx context.Context, obj *models.Story) (*models.Owner, error) {
 	return &models.Owner{
 		Group: obj.Group,
@@ -43,7 +50,7 @@ func (r *storyResolver) Owner(ctx context.Context, obj *models.Story) (*models.O
 
 func (r *storyResolver) Views(ctx context.Context, obj *models.Story) ([]*models.StoryView, error) {
 	if obj.Draft {
-		return r.repo.GetStoryViewDraft(ctx, obj.ID)
+		return r.repo.GetStoryViewDrafts(ctx, obj.ID)
 	}
 	return r.repo.GetStoryViews(ctx, obj.ID)
 }

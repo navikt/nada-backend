@@ -44,6 +44,8 @@ type Querier interface {
 	GetStory(ctx context.Context, id uuid.UUID) (Story, error)
 	GetStoryDraft(ctx context.Context, id uuid.UUID) (StoryDraft, error)
 	GetStoryDrafts(ctx context.Context) ([]StoryDraft, error)
+	GetStoryView(ctx context.Context, id uuid.UUID) (StoryViewDraft, error)
+	GetStoryViewDraft(ctx context.Context, id uuid.UUID) (StoryViewDraft, error)
 	GetStoryViewDrafts(ctx context.Context, storyID uuid.UUID) ([]StoryViewDraft, error)
 	GetStoryViews(ctx context.Context, storyID uuid.UUID) ([]StoryView, error)
 	GrantAccessToDataproduct(ctx context.Context, arg GrantAccessToDataproductParams) (DataproductAccess, error)

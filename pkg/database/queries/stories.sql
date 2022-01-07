@@ -32,10 +32,16 @@ SELECT *
 FROM stories
 ORDER BY created DESC;
 
+-- name: GetStoryView :one
+SELECT *
+FROM story_view_drafts
+WHERE id = @id;
+
 -- name: GetStoryViews :many
 SELECT *
 FROM story_views
 WHERE story_id = @story_id
+AND "type" NOT IN ('plotly')
 ORDER BY sort ASC;
 
 -- -- name: UpdateStory :one

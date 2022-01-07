@@ -148,6 +148,7 @@ type ComplexityRoot struct {
 		Search         func(childComplexity int, q *models.SearchQuery) int
 		Stories        func(childComplexity int, draft *bool) int
 		Story          func(childComplexity int, id uuid.UUID, draft *bool) int
+		StoryView      func(childComplexity int, id uuid.UUID, draft *bool) int
 		Teamkatalogen  func(childComplexity int, q string) int
 		UserInfo       func(childComplexity int) int
 		Version        func(childComplexity int) int
@@ -229,6 +230,7 @@ type QueryResolver interface {
 	Search(ctx context.Context, q *models.SearchQuery) ([]*models.SearchResultRow, error)
 	Stories(ctx context.Context, draft *bool) ([]*models.Story, error)
 	Story(ctx context.Context, id uuid.UUID, draft *bool) (*models.Story, error)
+	StoryView(ctx context.Context, id uuid.UUID, draft *bool) (*models.StoryView, error)
 	Teamkatalogen(ctx context.Context, q string) ([]*models.TeamkatalogenResult, error)
 	UserInfo(ctx context.Context) (*models.UserInfo, error)
 }
@@ -786,6 +788,18 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 		}
 
 		return e.complexity.Query.Story(childComplexity, args["id"].(uuid.UUID), args["draft"].(*bool)), true
+
+	case "Query.storyView":
+		if e.complexity.Query.StoryView == nil {
+			break
+		}
+
+		args, err := ec.field_Query_storyView_args(context.TODO(), rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Query.StoryView(childComplexity, args["id"].(uuid.UUID), args["draft"].(*bool)), true
 
 	case "Query.teamkatalogen":
 		if e.complexity.Query.Teamkatalogen == nil {
@@ -1545,7 +1559,8 @@ extend type Query {
 enum StoryViewType @goModel(model: "github.com/navikt/nada-backend/pkg/graph/models.StoryViewType") {
 	markdown,
 	header,
-	plotly
+	plotly,
+	graphURI
 }
 
 type StoryView @goModel(model: "github.com/navikt/nada-backend/pkg/graph/models.StoryView") {
@@ -1556,6 +1571,7 @@ type StoryView @goModel(model: "github.com/navikt/nada-backend/pkg/graph/models.
 extend type Query {
 	stories(draft: Boolean): [Story!]!
 	story(id: ID!, draft: Boolean): Story!
+	storyView(id: ID!, draft: Boolean): StoryView!
 }
 
 extend type Mutation {
@@ -2039,6 +2055,30 @@ func (ec *executionContext) field_Query_stories_args(ctx context.Context, rawArg
 		}
 	}
 	args["draft"] = arg0
+	return args, nil
+}
+
+func (ec *executionContext) field_Query_storyView_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
+	var err error
+	args := map[string]interface{}{}
+	var arg0 uuid.UUID
+	if tmp, ok := rawArgs["id"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("id"))
+		arg0, err = ec.unmarshalNID2githubᚗcomᚋgoogleᚋuuidᚐUUID(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["id"] = arg0
+	var arg1 *bool
+	if tmp, ok := rawArgs["draft"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("draft"))
+		arg1, err = ec.unmarshalOBoolean2ᚖbool(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["draft"] = arg1
 	return args, nil
 }
 
@@ -4671,6 +4711,48 @@ func (ec *executionContext) _Query_story(ctx context.Context, field graphql.Coll
 	res := resTmp.(*models.Story)
 	fc.Result = res
 	return ec.marshalNStory2ᚖgithubᚗcomᚋnaviktᚋnadaᚑbackendᚋpkgᚋgraphᚋmodelsᚐStory(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _Query_storyView(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "Query",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   true,
+		IsResolver: true,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	rawArgs := field.ArgumentMap(ec.Variables)
+	args, err := ec.field_Query_storyView_args(ctx, rawArgs)
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	fc.Args = args
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.Query().StoryView(rctx, args["id"].(uuid.UUID), args["draft"].(*bool))
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(*models.StoryView)
+	fc.Result = res
+	return ec.marshalNStoryView2ᚖgithubᚗcomᚋnaviktᚋnadaᚑbackendᚋpkgᚋgraphᚋmodelsᚐStoryView(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _Query_teamkatalogen(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
@@ -7805,6 +7887,20 @@ func (ec *executionContext) _Query(ctx context.Context, sel ast.SelectionSet) gr
 				}
 				return res
 			})
+		case "storyView":
+			field := field
+			out.Concurrently(i, func() (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._Query_storyView(ctx, field)
+				if res == graphql.Null {
+					atomic.AddUint32(&invalids, 1)
+				}
+				return res
+			})
 		case "teamkatalogen":
 			field := field
 			out.Concurrently(i, func() (res graphql.Marshaler) {
@@ -9090,6 +9186,10 @@ func (ec *executionContext) marshalNStory2ᚖgithubᚗcomᚋnaviktᚋnadaᚑback
 		return graphql.Null
 	}
 	return ec._Story(ctx, sel, v)
+}
+
+func (ec *executionContext) marshalNStoryView2githubᚗcomᚋnaviktᚋnadaᚑbackendᚋpkgᚋgraphᚋmodelsᚐStoryView(ctx context.Context, sel ast.SelectionSet, v models.StoryView) graphql.Marshaler {
+	return ec._StoryView(ctx, sel, &v)
 }
 
 func (ec *executionContext) marshalNStoryView2ᚕᚖgithubᚗcomᚋnaviktᚋnadaᚑbackendᚋpkgᚋgraphᚋmodelsᚐStoryViewᚄ(ctx context.Context, sel ast.SelectionSet, v []*models.StoryView) graphql.Marshaler {

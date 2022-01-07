@@ -133,10 +133,30 @@ func (q *Queries) GetStory(ctx context.Context, id uuid.UUID) (Story, error) {
 	return i, err
 }
 
+const getStoryView = `-- name: GetStoryView :one
+SELECT id, story_id, sort, type, spec
+FROM story_view_drafts
+WHERE id = $1
+`
+
+func (q *Queries) GetStoryView(ctx context.Context, id uuid.UUID) (StoryViewDraft, error) {
+	row := q.db.QueryRowContext(ctx, getStoryView, id)
+	var i StoryViewDraft
+	err := row.Scan(
+		&i.ID,
+		&i.StoryID,
+		&i.Sort,
+		&i.Type,
+		&i.Spec,
+	)
+	return i, err
+}
+
 const getStoryViews = `-- name: GetStoryViews :many
 SELECT id, story_id, sort, type, spec
 FROM story_views
 WHERE story_id = $1
+AND "type" NOT IN ('plotly')
 ORDER BY sort ASC
 `
 

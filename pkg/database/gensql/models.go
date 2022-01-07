@@ -36,6 +36,7 @@ const (
 	StoryViewTypeMarkdown StoryViewType = "markdown"
 	StoryViewTypeHeader   StoryViewType = "header"
 	StoryViewTypePlotly   StoryViewType = "plotly"
+	StoryViewTypeGraphUri StoryViewType = "graph_uri"
 )
 
 func (e *StoryViewType) Scan(src interface{}) error {

@@ -30,6 +30,7 @@ const (
 	StoryViewTypeMarkdown StoryViewType = "markdown"
 	StoryViewTypeHeader   StoryViewType = "header"
 	StoryViewTypePlotly   StoryViewType = "plotly"
+	StoryViewTypeGraphURI StoryViewType = "graph_uri"
 )
 
 var AllStoryViewType = []StoryViewType{

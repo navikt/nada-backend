@@ -10,7 +10,8 @@ type Story @goModel(model: "github.com/navikt/nada-backend/pkg/graph/models.Stor
 enum StoryViewType @goModel(model: "github.com/navikt/nada-backend/pkg/graph/models.StoryViewType") {
 	markdown,
 	header,
-	plotly
+	plotly,
+	graphURI
 }
 
 type StoryView @goModel(model: "github.com/navikt/nada-backend/pkg/graph/models.StoryView") {
@@ -21,6 +22,7 @@ type StoryView @goModel(model: "github.com/navikt/nada-backend/pkg/graph/models.
 extend type Query {
 	stories(draft: Boolean): [Story!]!
 	story(id: ID!, draft: Boolean): Story!
+	storyView(id: ID!, draft: Boolean): StoryView!
 }
 
 extend type Mutation {
