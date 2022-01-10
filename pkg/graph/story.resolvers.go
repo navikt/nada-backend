@@ -70,7 +70,7 @@ func (r *storyResolver) Views(ctx context.Context, obj *models.Story) ([]*models
 	if obj.Draft {
 		return r.repo.GetStoryViewDraftsWithoutFigures(ctx, obj.ID)
 	}
-	return r.repo.GetStoryViews(ctx, obj.ID)
+	return r.repo.GetStoryViewsWithoutFigures(ctx, obj.ID)
 }
 
 // Story returns generated.StoryResolver implementation.

@@ -145,13 +145,13 @@ func (q *Queries) GetStory(ctx context.Context, id uuid.UUID) (Story, error) {
 
 const getStoryView = `-- name: GetStoryView :one
 SELECT id, story_id, sort, type, spec
-FROM story_view_drafts
+FROM story_views
 WHERE id = $1
 `
 
-func (q *Queries) GetStoryView(ctx context.Context, id uuid.UUID) (StoryViewDraft, error) {
+func (q *Queries) GetStoryView(ctx context.Context, id uuid.UUID) (StoryView, error) {
 	row := q.db.QueryRowContext(ctx, getStoryView, id)
-	var i StoryViewDraft
+	var i StoryView
 	err := row.Scan(
 		&i.ID,
 		&i.StoryID,

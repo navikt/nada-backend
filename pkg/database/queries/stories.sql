@@ -34,7 +34,7 @@ ORDER BY created DESC;
 
 -- name: GetStoryView :one
 SELECT *
-FROM story_view_drafts
+FROM story_views
 WHERE id = @id;
 
 -- name: GetStoryViewsWithoutFigures :many
