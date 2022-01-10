@@ -3,7 +3,7 @@ package metabase
 import (
 	"context"
 	"encoding/base64"
-	"log"
+	"fmt"
 	"os"
 	"strings"
 	"time"
@@ -18,6 +18,19 @@ import (
 	"google.golang.org/api/cloudresourcemanager/v1"
 	iam "google.golang.org/api/iam/v1"
 )
+
+type metabaseError struct {
+	Dataproduct uuid.UUID
+	Err         error
+}
+
+func (m *metabaseError) Error() string {
+	return fmt.Sprintf("dataproduct %v: %v", m.Dataproduct, m.Err)
+}
+
+func newMetabaseError(dataproductID uuid.UUID, err error) error {
+	return &metabaseError{Dataproduct: dataproductID, Err: err}
+}
 
 type Metabase struct {
 	repo       *database.Repo
@@ -57,7 +70,11 @@ func (m *Metabase) Run(ctx context.Context, frequency time.Duration) {
 	defer ticker.Stop()
 	for {
 		if err := m.run(ctx); err != nil {
-			log.Println("failed to run metabase", err)
+			if err, ok := err.(*metabaseError); ok {
+				m.log.WithError(err.Err).WithField("dataproduct", err.Dataproduct.String()).Error("failed to run metabase")
+			} else {
+				m.log.WithError(err).Error("failed to run metabase")
+			}
 		}
 		select {
 		case <-ctx.Done():
@@ -117,17 +134,17 @@ func (m *Metabase) run(ctx context.Context) error {
 
 		groupID, err := m.client.CreatePermissionGroup(ctx, dp.Name)
 		if err != nil {
-			return err
+			return newMetabaseError(dp.ID, err)
 		}
 
 		_, err = m.client.CreateCollectionWithAccess(ctx, groupID, dp.Name)
 		if err != nil {
-			return err
+			return newMetabaseError(dp.ID, err)
 		}
 
 		key, email, err := m.createServiceAccount(dp)
 		if err != nil {
-			return err
+			return newMetabaseError(dp.ID, err)
 		}
 
 		createDps = append(createDps, dpWrapper{
@@ -159,17 +176,17 @@ func (m *Metabase) create(ctx context.Context, dps []dpWrapper) error {
 	for _, dp := range dps {
 		datasource, err := m.repo.GetBigqueryDatasource(ctx, dp.Dataproduct.ID)
 		if err != nil {
-			return err
+			return newMetabaseError(dp.Dataproduct.ID, err)
 		}
 
 		err = m.accessMgr.Grant(ctx, datasource.ProjectID, datasource.Dataset, datasource.Table, "serviceAccount:"+dp.Email)
 		if err != nil {
-			return err
+			return newMetabaseError(dp.Dataproduct.ID, err)
 		}
 
 		dbID, err := m.client.CreateDatabase(ctx, dp.Dataproduct.Name, dp.Key, dp.Email, &datasource)
 		if err != nil {
-			return err
+			return newMetabaseError(dp.Dataproduct.ID, err)
 		}
 
 		err = m.repo.CreateMetabaseMetadata(ctx, models.MetabaseMetadata{
@@ -179,7 +196,7 @@ func (m *Metabase) create(ctx context.Context, dps []dpWrapper) error {
 			SAEmail:           dp.Email,
 		})
 		if err != nil {
-			return err
+			return newMetabaseError(dp.Dataproduct.ID, err)
 		}
 
 		m.waitForDatabase(ctx, dbID, datasource.Table)
@@ -187,16 +204,16 @@ func (m *Metabase) create(ctx context.Context, dps []dpWrapper) error {
 		if dp.MetabaseGroupID > 0 {
 			err := m.client.RestrictAccessToDatabase(ctx, dp.MetabaseGroupID, dbID)
 			if err != nil {
-				return err
+				return newMetabaseError(dp.Dataproduct.ID, err)
 			}
 		}
 
 		if err := m.HideOtherTables(ctx, dbID, datasource.Table); err != nil {
-			return err
+			return newMetabaseError(dp.Dataproduct.ID, err)
 		}
 
 		if err := m.client.AutoMapSemanticTypes(ctx, dbID); err != nil {
-			return err
+			return newMetabaseError(dp.Dataproduct.ID, err)
 		}
 
 		m.log.Infof("Created Metabase database: %v", dp.Dataproduct.Name)
@@ -266,7 +283,7 @@ func (m *Metabase) syncPermissionGroupMembers(ctx context.Context, restrictedDps
 	for _, dp := range restrictedDps {
 		subjects, err := m.repo.ListActiveAccessToDataproduct(ctx, dp.ID)
 		if err != nil {
-			return err
+			return newMetabaseError(dp.ID, err)
 		}
 
 		dpGrants := []string{}
@@ -279,22 +296,22 @@ func (m *Metabase) syncPermissionGroupMembers(ctx context.Context, restrictedDps
 
 		mbMetadata, err := m.repo.GetMetabaseMetadata(ctx, dp.ID)
 		if err != nil {
-			return err
+			return newMetabaseError(dp.ID, err)
 		}
 
 		mbGroupMembers, err := m.client.GetPermissionGroup(ctx, mbMetadata.PermissionGroupID)
 		if err != nil {
-			return err
+			return newMetabaseError(dp.ID, err)
 		}
 
 		err = m.removeDeletedMembersFromGroup(ctx, mbGroupMembers, dpGrants)
 		if err != nil {
-			return err
+			return newMetabaseError(dp.ID, err)
 		}
 
 		err = m.addNewMembersToGroup(ctx, mbMetadata.PermissionGroupID, mbGroupMembers, dpGrants)
 		if err != nil {
-			return err
+			return newMetabaseError(dp.ID, err)
 		}
 	}
 	return nil
@@ -354,13 +371,13 @@ func (m *Metabase) createServiceAccount(dp *models.Dataproduct) ([]byte, string,
 
 	account, err := m.iamService.Projects.ServiceAccounts.Create("projects/"+projectResource, request).Do()
 	if err != nil {
-		return nil, "", err
+		return nil, "", newMetabaseError(dp.ID, err)
 	}
 
 	iamPolicyCall := m.crmService.Projects.GetIamPolicy(projectResource, &cloudresourcemanager.GetIamPolicyRequest{})
 	iamPolicies, err := iamPolicyCall.Do()
 	if err != nil {
-		return nil, "", err
+		return nil, "", newMetabaseError(dp.ID, err)
 	}
 
 	iamPolicies.Bindings = append(iamPolicies.Bindings, &cloudresourcemanager.Binding{
@@ -374,19 +391,19 @@ func (m *Metabase) createServiceAccount(dp *models.Dataproduct) ([]byte, string,
 
 	_, err = iamSetPolicyCall.Do()
 	if err != nil {
-		return nil, "", err
+		return nil, "", newMetabaseError(dp.ID, err)
 	}
 
 	keyRequest := &iam.CreateServiceAccountKeyRequest{}
 
 	key, err := m.iamService.Projects.ServiceAccounts.Keys.Create("projects/-/serviceAccounts/"+account.UniqueId, keyRequest).Do()
 	if err != nil {
-		return nil, "", err
+		return nil, "", newMetabaseError(dp.ID, err)
 	}
 
 	saJson, err := base64.StdEncoding.DecodeString(key.PrivateKeyData)
 	if err != nil {
-		return nil, "", err
+		return nil, "", newMetabaseError(dp.ID, err)
 	}
 
 	return saJson, account.Email, err
