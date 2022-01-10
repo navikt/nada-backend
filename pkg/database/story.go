@@ -89,17 +89,19 @@ func (r *Repo) PublishStory(ctx context.Context, draftID uuid.UUID, group string
 	}
 
 	for _, view := range draftViews {
-		_, err := querier.CreateStoryView(ctx, gensql.CreateStoryViewParams{
-			StoryID: story.ID,
-			Sort:    view.Sort,
-			Type:    view.Type,
-			Spec:    view.Spec,
-		})
-		if err != nil {
-			if err := tx.Rollback(); err != nil {
-				r.log.WithError(err).Error("unable to roll back when create story view failed")
+		if view.Type != gensql.StoryViewType(models.StoryViewTypeGraphURI) {
+			_, err := querier.CreateStoryView(ctx, gensql.CreateStoryViewParams{
+				StoryID: story.ID,
+				Sort:    view.Sort,
+				Type:    view.Type,
+				Spec:    view.Spec,
+			})
+			if err != nil {
+				if err := tx.Rollback(); err != nil {
+					r.log.WithError(err).Error("unable to roll back when create story view failed")
+				}
+				return nil, err
 			}
-			return nil, err
 		}
 	}
 
@@ -146,17 +148,19 @@ func (r *Repo) UpdateStory(ctx context.Context, draftID, target uuid.UUID, group
 	}
 
 	for _, view := range draftViews {
-		_, err := querier.CreateStoryView(ctx, gensql.CreateStoryViewParams{
-			StoryID: story.ID,
-			Sort:    view.Sort,
-			Type:    view.Type,
-			Spec:    view.Spec,
-		})
-		if err != nil {
-			if err := tx.Rollback(); err != nil {
-				r.log.WithError(err).Error("unable to roll back when create story view failed")
+		if view.Type != gensql.StoryViewType(models.StoryViewTypeGraphURI) {
+			_, err := querier.CreateStoryView(ctx, gensql.CreateStoryViewParams{
+				StoryID: story.ID,
+				Sort:    view.Sort,
+				Type:    view.Type,
+				Spec:    view.Spec,
+			})
+			if err != nil {
+				if err := tx.Rollback(); err != nil {
+					r.log.WithError(err).Error("unable to roll back when create story view failed")
+				}
+				return nil, err
 			}
-			return nil, err
 		}
 	}
 

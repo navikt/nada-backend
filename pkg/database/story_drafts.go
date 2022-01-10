@@ -22,24 +22,12 @@ func (r *Repo) CreateStoryDraft(ctx context.Context, story *models.Story) (uuid.
 	}
 
 	for i, view := range story.Views {
-		viewID, err := r.createStoryViewDraft(ctx, querier, ret.ID, view.Type, view.Spec, i)
+		_, err := r.createStoryViewDraft(ctx, querier, ret.ID, view.Type, view.Spec, i)
 		if err != nil {
 			if err := tx.Rollback(); err != nil {
 				r.log.WithError(err).Errorf("unable to create view %v", i)
 			}
 			return uuid.UUID{}, err
-		}
-
-		if view.Type == models.StoryViewTypePlotly {
-			data := map[string]interface{}{"id": viewID}
-
-			_, err := r.createStoryViewDraft(ctx, querier, ret.ID, models.StoryViewTypeGraphURI, data, i)
-			if err != nil {
-				if err := tx.Rollback(); err != nil {
-					r.log.WithError(err).Errorf("unable to create view %v", i)
-				}
-				return uuid.UUID{}, err
-			}
 		}
 	}
 
