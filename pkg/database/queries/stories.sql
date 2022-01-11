@@ -37,13 +37,6 @@ SELECT *
 FROM story_views
 WHERE id = @id;
 
--- name: GetStoryViewsWithoutFigures :many
-SELECT *
-FROM story_views
-WHERE story_id = @story_id
-AND "type" NOT IN ('plotly')
-ORDER BY sort ASC;
-
 -- name: GetStoryViews :many
 SELECT *
 FROM story_views

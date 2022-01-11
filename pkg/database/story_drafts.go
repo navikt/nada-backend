@@ -80,7 +80,7 @@ func (r *Repo) GetStoryViewDraft(ctx context.Context, id uuid.UUID) (*models.DBS
 }
 
 func (r *Repo) GetStoryViewDraftsWithoutFigures(ctx context.Context, storyID uuid.UUID) ([]*models.DBStoryView, error) {
-	storyViews, err := r.querier.GetStoryViewDraftsWithoutFigures(ctx, storyID)
+	storyViews, err := r.querier.GetStoryViewDrafts(ctx, storyID)
 	if err != nil {
 		return nil, err
 	}

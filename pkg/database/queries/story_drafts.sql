@@ -35,20 +35,6 @@ SELECT *
 FROM story_view_drafts
 WHERE id = @id;
 
--- name: GetStoryViewDraftsWithoutFigures :many
-SELECT *
-FROM story_view_drafts
-WHERE story_id = @story_id
-AND "type" NOT IN ('plotly')
-ORDER BY sort ASC;
-
--- name: GetStoryViewDraftsWithFigures :many
-SELECT *
-FROM story_view_drafts
-WHERE story_id = @story_id
-AND "type" NOT IN ('graph_uri')
-ORDER BY sort ASC;
-
 -- name: GetStoryViewDrafts :many
 SELECT *
 FROM story_view_drafts

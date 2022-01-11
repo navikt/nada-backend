@@ -31,20 +31,6 @@ func (r *Repo) GetStoryView(ctx context.Context, id uuid.UUID) (*models.DBStoryV
 	return storyViewFromSQL(storyView), nil
 }
 
-func (r *Repo) GetStoryViewsWithoutFigures(ctx context.Context, storyID uuid.UUID) ([]*models.DBStoryView, error) {
-	storyViews, err := r.querier.GetStoryViewsWithoutFigures(ctx, storyID)
-	if err != nil {
-		return nil, err
-	}
-
-	ret := make([]*models.DBStoryView, len(storyViews))
-	for i, s := range storyViews {
-		ret[i] = storyViewFromSQL(s)
-	}
-
-	return ret, nil
-}
-
 func (r *Repo) GetStoryViews(ctx context.Context, storyID uuid.UUID) ([]*models.DBStoryView, error) {
 	storyViews, err := r.querier.GetStoryViews(ctx, storyID)
 	if err != nil {
@@ -65,7 +51,7 @@ func (r *Repo) PublishStory(ctx context.Context, draftID uuid.UUID, group string
 		return nil, err
 	}
 
-	draftViews, err := r.querier.GetStoryViewDraftsWithFigures(ctx, draftID)
+	draftViews, err := r.querier.GetStoryViewDrafts(ctx, draftID)
 	if err != nil {
 		return nil, err
 	}
@@ -114,7 +100,7 @@ func (r *Repo) UpdateStory(ctx context.Context, draftID, target uuid.UUID, group
 		return nil, err
 	}
 
-	draftViews, err := r.querier.GetStoryViewDraftsWithFigures(ctx, draftID)
+	draftViews, err := r.querier.GetStoryViewDrafts(ctx, draftID)
 	if err != nil {
 		return nil, err
 	}

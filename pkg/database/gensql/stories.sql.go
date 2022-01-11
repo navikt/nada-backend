@@ -198,43 +198,6 @@ func (q *Queries) GetStoryViews(ctx context.Context, storyID uuid.UUID) ([]Story
 	return items, nil
 }
 
-const getStoryViewsWithoutFigures = `-- name: GetStoryViewsWithoutFigures :many
-SELECT id, story_id, sort, type, spec
-FROM story_views
-WHERE story_id = $1
-AND "type" NOT IN ('plotly')
-ORDER BY sort ASC
-`
-
-func (q *Queries) GetStoryViewsWithoutFigures(ctx context.Context, storyID uuid.UUID) ([]StoryView, error) {
-	rows, err := q.db.QueryContext(ctx, getStoryViewsWithoutFigures, storyID)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-	items := []StoryView{}
-	for rows.Next() {
-		var i StoryView
-		if err := rows.Scan(
-			&i.ID,
-			&i.StoryID,
-			&i.Sort,
-			&i.Type,
-			&i.Spec,
-		); err != nil {
-			return nil, err
-		}
-		items = append(items, i)
-	}
-	if err := rows.Close(); err != nil {
-		return nil, err
-	}
-	if err := rows.Err(); err != nil {
-		return nil, err
-	}
-	return items, nil
-}
-
 const updateStory = `-- name: UpdateStory :one
 UPDATE stories
 SET
