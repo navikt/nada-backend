@@ -102,6 +102,20 @@ func (r *queryResolver) StoryView(ctx context.Context, id uuid.UUID, draft *bool
 	return storyViewFromDB(storyView)
 }
 
+func (r *queryResolver) StoryToken(ctx context.Context, id uuid.UUID) (*models.StoryToken, error) {
+	story, err := r.repo.GetStory(ctx, id)
+	if err != nil {
+		return nil, err
+	}
+
+	user := auth.GetUser(ctx)
+	if !user.Groups.Contains(story.Group) {
+		return nil, ErrUnauthorized
+	}
+
+	return r.repo.GetStoryToken(ctx, id)
+}
+
 func (r *storyResolver) Owner(ctx context.Context, obj *models.GraphStory) (*models.Owner, error) {
 	return &models.Owner{
 		Group: obj.Group,

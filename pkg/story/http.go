@@ -68,7 +68,7 @@ func (h *Handler) Update(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if token != storyToken {
+	if token != storyToken.Token {
 		http.Error(w, "Unauthorized", http.StatusUnauthorized)
 		return
 	}

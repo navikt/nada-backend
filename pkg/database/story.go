@@ -140,12 +140,15 @@ func (r *Repo) UpdateStory(ctx context.Context, draftID, target uuid.UUID) (*mod
 	return storyFromSQL(story), nil
 }
 
-func (r *Repo) GetStoryToken(ctx context.Context, storyID uuid.UUID) (string, error) {
+func (r *Repo) GetStoryToken(ctx context.Context, storyID uuid.UUID) (*models.StoryToken, error) {
 	token, err := r.querier.GetStoryToken(ctx, storyID)
 	if err != nil {
-		return "", err
+		return nil, err
 	}
-	return token.Token.String(), nil
+	return &models.StoryToken{
+		ID:    storyID,
+		Token: token.Token.String(),
+	}, nil
 }
 
 func storyViewFromSQL(s gensql.StoryView) *models.DBStoryView {

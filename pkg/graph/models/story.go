@@ -59,3 +59,8 @@ type StoryViewPlotly struct {
 }
 
 func (StoryViewPlotly) IsStoryView() {}
+
+type StoryToken struct {
+	ID    uuid.UUID `json:"id"`
+	Token string    `json:"token"`
+}
