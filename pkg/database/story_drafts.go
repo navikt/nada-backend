@@ -79,20 +79,6 @@ func (r *Repo) GetStoryViewDraft(ctx context.Context, id uuid.UUID) (*models.DBS
 	return storyViewDraftFromSQL(storyView), nil
 }
 
-func (r *Repo) GetStoryViewDraftsWithoutFigures(ctx context.Context, storyID uuid.UUID) ([]*models.DBStoryView, error) {
-	storyViews, err := r.querier.GetStoryViewDrafts(ctx, storyID)
-	if err != nil {
-		return nil, err
-	}
-
-	ret := make([]*models.DBStoryView, len(storyViews))
-	for i, s := range storyViews {
-		ret[i] = storyViewDraftFromSQL(s)
-	}
-
-	return ret, nil
-}
-
 func (r *Repo) GetStoryViewDrafts(ctx context.Context, storyID uuid.UUID) ([]*models.DBStoryView, error) {
 	storyViews, err := r.querier.GetStoryViewDrafts(ctx, storyID)
 	if err != nil {

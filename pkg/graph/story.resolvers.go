@@ -114,9 +114,9 @@ func (r *storyResolver) Views(ctx context.Context, obj *models.GraphStory) ([]mo
 		err   error
 	)
 	if obj.Draft {
-		views, err = r.repo.GetStoryViewDraftsWithoutFigures(ctx, obj.ID)
+		views, err = r.repo.GetStoryViewDrafts(ctx, obj.ID)
 	} else {
-		views, err = r.repo.GetStoryViewsWithoutFigures(ctx, obj.ID)
+		views, err = r.repo.GetStoryViews(ctx, obj.ID)
 	}
 	if err != nil {
 		return nil, err
