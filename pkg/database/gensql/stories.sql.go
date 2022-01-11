@@ -143,6 +143,19 @@ func (q *Queries) GetStory(ctx context.Context, id uuid.UUID) (Story, error) {
 	return i, err
 }
 
+const getStoryToken = `-- name: GetStoryToken :one
+SELECT id, story_id, token
+FROM story_tokens
+WHERE story_id = $1
+`
+
+func (q *Queries) GetStoryToken(ctx context.Context, storyID uuid.UUID) (StoryToken, error) {
+	row := q.db.QueryRowContext(ctx, getStoryToken, storyID)
+	var i StoryToken
+	err := row.Scan(&i.ID, &i.StoryID, &i.Token)
+	return i, err
+}
+
 const getStoryView = `-- name: GetStoryView :one
 SELECT id, story_id, sort, type, spec
 FROM story_views

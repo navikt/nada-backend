@@ -94,12 +94,7 @@ func (r *Repo) PublishStory(ctx context.Context, draftID uuid.UUID, group string
 	return storyFromSQL(story), nil
 }
 
-func (r *Repo) UpdateStory(ctx context.Context, draftID, target uuid.UUID, group string) (*models.DBStory, error) {
-	draft, err := r.querier.GetStoryDraft(ctx, draftID)
-	if err != nil {
-		return nil, err
-	}
-
+func (r *Repo) UpdateStory(ctx context.Context, draftID, target uuid.UUID) (*models.DBStory, error) {
 	draftViews, err := r.querier.GetStoryViewDrafts(ctx, draftID)
 	if err != nil {
 		return nil, err
@@ -111,19 +106,7 @@ func (r *Repo) UpdateStory(ctx context.Context, draftID, target uuid.UUID, group
 	}
 
 	querier := r.querier.WithTx(tx)
-	story, err := querier.UpdateStory(ctx, gensql.UpdateStoryParams{
-		ID:   target,
-		Name: draft.Name,
-		Grp:  group,
-	})
-	if err != nil {
-		if err := tx.Rollback(); err != nil {
-			r.log.WithError(err).Error("unable to roll back when create story failed")
-		}
-		return nil, err
-	}
-
-	if err := querier.DeleteStoryViews(ctx, story.ID); err != nil {
+	if err := querier.DeleteStoryViews(ctx, target); err != nil {
 		if err := tx.Rollback(); err != nil {
 			r.log.WithError(err).Error("unable to roll back when delete story views failed")
 		}
@@ -132,7 +115,7 @@ func (r *Repo) UpdateStory(ctx context.Context, draftID, target uuid.UUID, group
 
 	for _, view := range draftViews {
 		_, err := querier.CreateStoryView(ctx, gensql.CreateStoryViewParams{
-			StoryID: story.ID,
+			StoryID: target,
 			Sort:    view.Sort,
 			Type:    view.Type,
 			Spec:    view.Spec,
@@ -148,7 +131,21 @@ func (r *Repo) UpdateStory(ctx context.Context, draftID, target uuid.UUID, group
 	if err := tx.Commit(); err != nil {
 		return nil, err
 	}
+
+	story, err := r.querier.GetStory(ctx, target)
+	if err != nil {
+		return nil, err
+	}
+
 	return storyFromSQL(story), nil
+}
+
+func (r *Repo) GetStoryToken(ctx context.Context, storyID uuid.UUID) (string, error) {
+	token, err := r.querier.GetStoryToken(ctx, storyID)
+	if err != nil {
+		return "", err
+	}
+	return token.Token.String(), nil
 }
 
 func storyViewFromSQL(s gensql.StoryView) *models.DBStoryView {

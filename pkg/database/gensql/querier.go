@@ -45,6 +45,7 @@ type Querier interface {
 	GetStory(ctx context.Context, id uuid.UUID) (Story, error)
 	GetStoryDraft(ctx context.Context, id uuid.UUID) (StoryDraft, error)
 	GetStoryDrafts(ctx context.Context) ([]StoryDraft, error)
+	GetStoryToken(ctx context.Context, storyID uuid.UUID) (StoryToken, error)
 	GetStoryView(ctx context.Context, id uuid.UUID) (StoryView, error)
 	GetStoryViewDraft(ctx context.Context, id uuid.UUID) (StoryViewDraft, error)
 	GetStoryViewDrafts(ctx context.Context, storyID uuid.UUID) ([]StoryViewDraft, error)

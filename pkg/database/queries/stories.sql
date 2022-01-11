@@ -54,3 +54,8 @@ RETURNING *;
 -- name: DeleteStoryViews :exec
 DELETE FROM story_views
 WHERE story_id = @story_id;
+
+-- name: GetStoryToken :one
+SELECT *
+FROM story_tokens
+WHERE story_id = @story_id;

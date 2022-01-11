@@ -36,7 +36,7 @@ func (r *mutationResolver) PublishStoryWithID(ctx context.Context, id uuid.UUID,
 		return nil, ErrUnauthorized
 	}
 
-	s, err := r.repo.UpdateStory(ctx, id, target, t.Group)
+	s, err := r.repo.UpdateStory(ctx, id, target)
 	if err != nil {
 		return nil, err
 	}
