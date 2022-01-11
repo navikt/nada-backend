@@ -5,7 +5,6 @@ package graph
 
 import (
 	"context"
-
 	"github.com/google/uuid"
 	"github.com/navikt/nada-backend/pkg/auth"
 	"github.com/navikt/nada-backend/pkg/graph/generated"
@@ -25,7 +24,7 @@ func (r *mutationResolver) PublishStory(ctx context.Context, id uuid.UUID, group
 	return storyFromDB(s)
 }
 
-func (r *mutationResolver) PublishStoryWithID(ctx context.Context, id uuid.UUID, target uuid.UUID) (*models.GraphStory, error) {
+func (r *mutationResolver) UpdateStory(ctx context.Context, id uuid.UUID, target uuid.UUID) (*models.GraphStory, error) {
 	t, err := r.repo.GetStory(ctx, target)
 	if err != nil {
 		return nil, err

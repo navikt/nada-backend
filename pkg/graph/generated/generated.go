@@ -128,10 +128,10 @@ type ComplexityRoot struct {
 		GrantAccessToDataproduct       func(childComplexity int, dataproductID uuid.UUID, expires *time.Time, subject *string, subjectType *models.SubjectType) int
 		MapDataproduct                 func(childComplexity int, dataproductID uuid.UUID, services []models.MappingService) int
 		PublishStory                   func(childComplexity int, id uuid.UUID, group string) int
-		PublishStoryWithID             func(childComplexity int, id uuid.UUID, target uuid.UUID) int
 		RemoveRequesterFromDataproduct func(childComplexity int, dataproductID uuid.UUID, subject string) int
 		RevokeAccessToDataproduct      func(childComplexity int, id uuid.UUID) int
 		UpdateDataproduct              func(childComplexity int, id uuid.UUID, input models.UpdateDataproduct) int
+		UpdateStory                    func(childComplexity int, id uuid.UUID, target uuid.UUID) int
 	}
 
 	Owner struct {
@@ -237,7 +237,7 @@ type MutationResolver interface {
 	RevokeAccessToDataproduct(ctx context.Context, id uuid.UUID) (bool, error)
 	MapDataproduct(ctx context.Context, dataproductID uuid.UUID, services []models.MappingService) (bool, error)
 	PublishStory(ctx context.Context, id uuid.UUID, group string) (*models.GraphStory, error)
-	PublishStoryWithID(ctx context.Context, id uuid.UUID, target uuid.UUID) (*models.GraphStory, error)
+	UpdateStory(ctx context.Context, id uuid.UUID, target uuid.UUID) (*models.GraphStory, error)
 }
 type QueryResolver interface {
 	Version(ctx context.Context) (string, error)
@@ -652,18 +652,6 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.Mutation.PublishStory(childComplexity, args["id"].(uuid.UUID), args["group"].(string)), true
 
-	case "Mutation.publishStoryWithID":
-		if e.complexity.Mutation.PublishStoryWithID == nil {
-			break
-		}
-
-		args, err := ec.field_Mutation_publishStoryWithID_args(context.TODO(), rawArgs)
-		if err != nil {
-			return 0, false
-		}
-
-		return e.complexity.Mutation.PublishStoryWithID(childComplexity, args["id"].(uuid.UUID), args["target"].(uuid.UUID)), true
-
 	case "Mutation.removeRequesterFromDataproduct":
 		if e.complexity.Mutation.RemoveRequesterFromDataproduct == nil {
 			break
@@ -699,6 +687,18 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 		}
 
 		return e.complexity.Mutation.UpdateDataproduct(childComplexity, args["id"].(uuid.UUID), args["input"].(models.UpdateDataproduct)), true
+
+	case "Mutation.updateStory":
+		if e.complexity.Mutation.UpdateStory == nil {
+			break
+		}
+
+		args, err := ec.field_Mutation_updateStory_args(context.TODO(), rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Mutation.UpdateStory(childComplexity, args["id"].(uuid.UUID), args["target"].(uuid.UUID)), true
 
 	case "Owner.group":
 		if e.complexity.Owner.Group == nil {
@@ -1692,7 +1692,7 @@ extend type Query {
 
 extend type Mutation {
 	publishStory(id: ID!, group: String!) : Story! @authenticated
-	publishStoryWithID(id: ID!, target: ID!) : Story! @authenticated
+	updateStory(id: ID!, target: ID!) : Story! @authenticated
 }
 `, BuiltIn: false},
 	{Name: "schema/teamkatalogen.graphql", Input: `type TeamkatalogenResult @goModel(model: "github.com/navikt/nada-backend/pkg/graph/models.TeamkatalogenResult") {
@@ -1916,30 +1916,6 @@ func (ec *executionContext) field_Mutation_mapDataproduct_args(ctx context.Conte
 	return args, nil
 }
 
-func (ec *executionContext) field_Mutation_publishStoryWithID_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
-	var err error
-	args := map[string]interface{}{}
-	var arg0 uuid.UUID
-	if tmp, ok := rawArgs["id"]; ok {
-		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("id"))
-		arg0, err = ec.unmarshalNID2githubᚗcomᚋgoogleᚋuuidᚐUUID(ctx, tmp)
-		if err != nil {
-			return nil, err
-		}
-	}
-	args["id"] = arg0
-	var arg1 uuid.UUID
-	if tmp, ok := rawArgs["target"]; ok {
-		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("target"))
-		arg1, err = ec.unmarshalNID2githubᚗcomᚋgoogleᚋuuidᚐUUID(ctx, tmp)
-		if err != nil {
-			return nil, err
-		}
-	}
-	args["target"] = arg1
-	return args, nil
-}
-
 func (ec *executionContext) field_Mutation_publishStory_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
 	var err error
 	args := map[string]interface{}{}
@@ -2024,6 +2000,30 @@ func (ec *executionContext) field_Mutation_updateDataproduct_args(ctx context.Co
 		}
 	}
 	args["input"] = arg1
+	return args, nil
+}
+
+func (ec *executionContext) field_Mutation_updateStory_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
+	var err error
+	args := map[string]interface{}{}
+	var arg0 uuid.UUID
+	if tmp, ok := rawArgs["id"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("id"))
+		arg0, err = ec.unmarshalNID2githubᚗcomᚋgoogleᚋuuidᚐUUID(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["id"] = arg0
+	var arg1 uuid.UUID
+	if tmp, ok := rawArgs["target"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("target"))
+		arg1, err = ec.unmarshalNID2githubᚗcomᚋgoogleᚋuuidᚐUUID(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["target"] = arg1
 	return args, nil
 }
 
@@ -4348,7 +4348,7 @@ func (ec *executionContext) _Mutation_publishStory(ctx context.Context, field gr
 	return ec.marshalNStory2ᚖgithubᚗcomᚋnaviktᚋnadaᚑbackendᚋpkgᚋgraphᚋmodelsᚐGraphStory(ctx, field.Selections, res)
 }
 
-func (ec *executionContext) _Mutation_publishStoryWithID(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+func (ec *executionContext) _Mutation_updateStory(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
 	defer func() {
 		if r := recover(); r != nil {
 			ec.Error(ctx, ec.Recover(ctx, r))
@@ -4365,7 +4365,7 @@ func (ec *executionContext) _Mutation_publishStoryWithID(ctx context.Context, fi
 
 	ctx = graphql.WithFieldContext(ctx, fc)
 	rawArgs := field.ArgumentMap(ec.Variables)
-	args, err := ec.field_Mutation_publishStoryWithID_args(ctx, rawArgs)
+	args, err := ec.field_Mutation_updateStory_args(ctx, rawArgs)
 	if err != nil {
 		ec.Error(ctx, err)
 		return graphql.Null
@@ -4374,7 +4374,7 @@ func (ec *executionContext) _Mutation_publishStoryWithID(ctx context.Context, fi
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		directive0 := func(rctx context.Context) (interface{}, error) {
 			ctx = rctx // use context from middleware stack in children
-			return ec.resolvers.Mutation().PublishStoryWithID(rctx, args["id"].(uuid.UUID), args["target"].(uuid.UUID))
+			return ec.resolvers.Mutation().UpdateStory(rctx, args["id"].(uuid.UUID), args["target"].(uuid.UUID))
 		}
 		directive1 := func(ctx context.Context) (interface{}, error) {
 			if ec.directives.Authenticated == nil {
@@ -8281,8 +8281,8 @@ func (ec *executionContext) _Mutation(ctx context.Context, sel ast.SelectionSet)
 			if out.Values[i] == graphql.Null {
 				invalids++
 			}
-		case "publishStoryWithID":
-			out.Values[i] = ec._Mutation_publishStoryWithID(ctx, field)
+		case "updateStory":
+			out.Values[i] = ec._Mutation_updateStory(ctx, field)
 			if out.Values[i] == graphql.Null {
 				invalids++
 			}
