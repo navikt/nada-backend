@@ -2,9 +2,9 @@ package story
 
 import (
 	"encoding/json"
-	"fmt"
 	"log"
 	"net/http"
+	"strings"
 
 	"github.com/go-chi/chi"
 	"github.com/google/uuid"
@@ -48,25 +48,27 @@ func (h *Handler) Upload(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *Handler) Update(w http.ResponseWriter, r *http.Request) {
-	token := r.Header.Get("Authorization")
+	authHeader := strings.Split(r.Header.Get("Authorization"), " ")
+	if strings.ToLower(authHeader[0]) != "bearer" {
+		http.Error(w, "Missing Bearer type", http.StatusForbidden)
+		return
+	}
+	token := authHeader[1]
 	storyID := chi.URLParam(r, "id")
 
 	uid, err := uuid.Parse(storyID)
 	if err != nil {
-		fmt.Println("from bytes")
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
 
 	storyToken, err := h.repo.GetStoryToken(r.Context(), uid)
 	if err != nil {
-		fmt.Println("get token")
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
 
 	if token != storyToken {
-		fmt.Println("token unauthorized")
 		http.Error(w, "Unauthorized", http.StatusUnauthorized)
 		return
 	}
