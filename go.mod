@@ -78,12 +78,5 @@ require (
 
 require (
 	cloud.google.com/go/datacatalog v1.0.0 // indirect
-	github.com/ClickHouse/clickhouse-go v1.4.5 // indirect
-	github.com/cloudflare/golz4 v0.0.0-20150217214814-ef862a3cdc58 // indirect
-	github.com/denisenkom/go-mssqldb v0.10.0 // indirect
-	github.com/go-sql-driver/mysql v1.6.0 // indirect
-	github.com/golang-sql/civil v0.0.0-20190719163853-cb61b32ac6fe // indirect
-	github.com/mattn/go-sqlite3 v1.14.8 // indirect
-	github.com/ziutek/mymysql v1.5.4 // indirect
 	google.golang.org/genproto v0.0.0-20210921142501-181ce0d877f6 // indirect
 )
