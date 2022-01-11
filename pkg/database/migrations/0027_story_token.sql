@@ -1,4 +1,6 @@
 -- +goose Up
+CREATE EXTENSION IF NOT EXISTS "pgcrypto";
+
 CREATE TABLE story_tokens (
     "id" uuid DEFAULT uuid_generate_v4(),
 	"story_id" uuid NOT NULL,
