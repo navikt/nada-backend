@@ -9,7 +9,7 @@ import (
 	"github.com/navikt/nada-backend/pkg/graph/models"
 )
 
-func (r *Repo) CreateStoryDraft(ctx context.Context, story *models.Story) (uuid.UUID, error) {
+func (r *Repo) CreateStoryDraft(ctx context.Context, story *models.DBStory) (uuid.UUID, error) {
 	tx, err := r.db.Begin()
 	if err != nil {
 		return uuid.UUID{}, err
@@ -37,22 +37,17 @@ func (r *Repo) CreateStoryDraft(ctx context.Context, story *models.Story) (uuid.
 	return ret.ID, nil
 }
 
-func (r *Repo) createStoryViewDraft(ctx context.Context, querier *gensql.Queries, storyID uuid.UUID, viewType models.StoryViewType, viewSpec map[string]interface{}, sort int) (uuid.UUID, error) {
-	payload, err := json.Marshal(viewSpec)
-	if err != nil {
-		return uuid.UUID{}, err
-	}
-
+func (r *Repo) createStoryViewDraft(ctx context.Context, querier *gensql.Queries, storyID uuid.UUID, viewType string, viewSpec json.RawMessage, sort int) (uuid.UUID, error) {
 	viewDraft, err := querier.CreateStoryViewDraft(ctx, gensql.CreateStoryViewDraftParams{
 		StoryID: storyID,
 		Type:    gensql.StoryViewType(viewType),
-		Spec:    json.RawMessage(payload),
+		Spec:    viewSpec,
 		Sort:    int32(sort),
 	})
 	return viewDraft.ID, err
 }
 
-func (r *Repo) GetStoryDraft(ctx context.Context, id uuid.UUID) (*models.Story, error) {
+func (r *Repo) GetStoryDraft(ctx context.Context, id uuid.UUID) (*models.DBStory, error) {
 	story, err := r.querier.GetStoryDraft(ctx, id)
 	if err != nil {
 		return nil, err
@@ -61,13 +56,13 @@ func (r *Repo) GetStoryDraft(ctx context.Context, id uuid.UUID) (*models.Story, 
 	return storyDraftFromSQL(story), nil
 }
 
-func (r *Repo) GetStoryDrafts(ctx context.Context) ([]*models.Story, error) {
+func (r *Repo) GetStoryDrafts(ctx context.Context) ([]*models.DBStory, error) {
 	stories, err := r.querier.GetStoryDrafts(ctx)
 	if err != nil {
 		return nil, err
 	}
 
-	ret := make([]*models.Story, len(stories))
+	ret := make([]*models.DBStory, len(stories))
 	for i, s := range stories {
 		ret[i] = storyDraftFromSQL(s)
 	}
@@ -75,7 +70,7 @@ func (r *Repo) GetStoryDrafts(ctx context.Context) ([]*models.Story, error) {
 	return ret, nil
 }
 
-func (r *Repo) GetStoryViewDraft(ctx context.Context, id uuid.UUID) (*models.StoryView, error) {
+func (r *Repo) GetStoryViewDraft(ctx context.Context, id uuid.UUID) (*models.DBStoryView, error) {
 	storyView, err := r.querier.GetStoryViewDraft(ctx, id)
 	if err != nil {
 		return nil, err
@@ -84,13 +79,13 @@ func (r *Repo) GetStoryViewDraft(ctx context.Context, id uuid.UUID) (*models.Sto
 	return storyViewDraftFromSQL(storyView), nil
 }
 
-func (r *Repo) GetStoryViewDraftsWithoutFigures(ctx context.Context, storyID uuid.UUID) ([]*models.StoryView, error) {
+func (r *Repo) GetStoryViewDraftsWithoutFigures(ctx context.Context, storyID uuid.UUID) ([]*models.DBStoryView, error) {
 	storyViews, err := r.querier.GetStoryViewDraftsWithoutFigures(ctx, storyID)
 	if err != nil {
 		return nil, err
 	}
 
-	ret := make([]*models.StoryView, len(storyViews))
+	ret := make([]*models.DBStoryView, len(storyViews))
 	for i, s := range storyViews {
 		ret[i] = storyViewDraftFromSQL(s)
 	}
@@ -98,13 +93,13 @@ func (r *Repo) GetStoryViewDraftsWithoutFigures(ctx context.Context, storyID uui
 	return ret, nil
 }
 
-func (r *Repo) GetStoryViewDrafts(ctx context.Context, storyID uuid.UUID) ([]*models.StoryView, error) {
+func (r *Repo) GetStoryViewDrafts(ctx context.Context, storyID uuid.UUID) ([]*models.DBStoryView, error) {
 	storyViews, err := r.querier.GetStoryViewDrafts(ctx, storyID)
 	if err != nil {
 		return nil, err
 	}
 
-	ret := make([]*models.StoryView, len(storyViews))
+	ret := make([]*models.DBStoryView, len(storyViews))
 	for i, s := range storyViews {
 		ret[i] = storyViewDraftFromSQL(s)
 	}
@@ -112,7 +107,7 @@ func (r *Repo) GetStoryViewDrafts(ctx context.Context, storyID uuid.UUID) ([]*mo
 	return ret, nil
 }
 
-func (r *Repo) GetStory(ctx context.Context, id uuid.UUID) (*models.Story, error) {
+func (r *Repo) GetStory(ctx context.Context, id uuid.UUID) (*models.DBStory, error) {
 	story, err := r.querier.GetStory(ctx, id)
 	if err != nil {
 		return nil, err
@@ -121,8 +116,8 @@ func (r *Repo) GetStory(ctx context.Context, id uuid.UUID) (*models.Story, error
 	return storyFromSQL(story), nil
 }
 
-func storyDraftFromSQL(s gensql.StoryDraft) *models.Story {
-	return &models.Story{
+func storyDraftFromSQL(s gensql.StoryDraft) *models.DBStory {
+	return &models.DBStory{
 		ID:      s.ID,
 		Name:    s.Name,
 		Created: s.Created,
@@ -130,11 +125,10 @@ func storyDraftFromSQL(s gensql.StoryDraft) *models.Story {
 	}
 }
 
-func storyViewDraftFromSQL(s gensql.StoryViewDraft) *models.StoryView {
-	spec := map[string]interface{}{}
-	_ = json.Unmarshal(s.Spec, &spec)
-	return &models.StoryView{
-		Type: models.StoryViewType(s.Type),
-		Spec: spec,
+func storyViewDraftFromSQL(s gensql.StoryViewDraft) *models.DBStoryView {
+	return &models.DBStoryView{
+		ID:   s.ID,
+		Type: string(s.Type),
+		Spec: s.Spec,
 	}
 }
