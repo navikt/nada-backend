@@ -128,6 +128,25 @@ func (q *Queries) GetStoryDrafts(ctx context.Context) ([]StoryDraft, error) {
 	return items, nil
 }
 
+const getStoryViewDraft = `-- name: GetStoryViewDraft :one
+SELECT id, story_id, sort, type, spec
+FROM story_view_drafts
+WHERE id = $1
+`
+
+func (q *Queries) GetStoryViewDraft(ctx context.Context, id uuid.UUID) (StoryViewDraft, error) {
+	row := q.db.QueryRowContext(ctx, getStoryViewDraft, id)
+	var i StoryViewDraft
+	err := row.Scan(
+		&i.ID,
+		&i.StoryID,
+		&i.Sort,
+		&i.Type,
+		&i.Spec,
+	)
+	return i, err
+}
+
 const getStoryViewDrafts = `-- name: GetStoryViewDrafts :many
 SELECT id, story_id, sort, type, spec
 FROM story_view_drafts

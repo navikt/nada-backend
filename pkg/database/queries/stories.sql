@@ -32,16 +32,30 @@ SELECT *
 FROM stories
 ORDER BY created DESC;
 
+-- name: GetStoryView :one
+SELECT *
+FROM story_views
+WHERE id = @id;
+
 -- name: GetStoryViews :many
 SELECT *
 FROM story_views
 WHERE story_id = @story_id
 ORDER BY sort ASC;
 
--- -- name: UpdateStory :one
--- UPDATE stories
--- SET
--- 	"name" = @name,
--- 	"group" = @grp
--- WHERE id = @id
--- RETURNING *;
+-- name: UpdateStory :one
+UPDATE stories
+SET
+	"name" = @name,
+	"group" = @grp
+WHERE id = @id
+RETURNING *;
+
+-- name: DeleteStoryViews :exec
+DELETE FROM story_views
+WHERE story_id = @story_id;
+
+-- name: GetStoryToken :one
+SELECT *
+FROM story_tokens
+WHERE story_id = @story_id;

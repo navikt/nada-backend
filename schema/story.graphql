@@ -1,4 +1,4 @@
-type Story @goModel(model: "github.com/navikt/nada-backend/pkg/graph/models.Story") {
+type Story @goModel(model: "github.com/navikt/nada-backend/pkg/graph/models.GraphStory") {
 	id: ID!
 	name: String!
 	created: Time!
@@ -7,23 +7,40 @@ type Story @goModel(model: "github.com/navikt/nada-backend/pkg/graph/models.Stor
 	views: [StoryView!]! @goField(forceResolver: true)
 }
 
-enum StoryViewType @goModel(model: "github.com/navikt/nada-backend/pkg/graph/models.StoryViewType") {
-	markdown,
-	header,
-	plotly
+interface StoryView @goModel(model: "github.com/navikt/nada-backend/pkg/graph/models.GraphStoryView") {
+	id: ID!
 }
 
-type StoryView @goModel(model: "github.com/navikt/nada-backend/pkg/graph/models.StoryView") {
-	type: StoryViewType!
-	spec: Map!
+type StoryViewHeader implements StoryView @goModel(model: "github.com/navikt/nada-backend/pkg/graph/models.StoryViewHeader") {
+	id: ID!
+	content: String!
+	level: Int!
+}
+
+type StoryViewMarkdown implements StoryView @goModel(model: "github.com/navikt/nada-backend/pkg/graph/models.StoryViewMarkdown") {
+	id: ID!
+	content: String!
+}
+
+type StoryViewPlotly implements StoryView @goModel(model: "github.com/navikt/nada-backend/pkg/graph/models.StoryViewPlotly") {
+	id: ID!
+	data: [Map!]!
+	layout: Map!
+}
+
+type StoryToken @goModel(model: "github.com/navikt/nada-backend/pkg/graph/models.StoryToken") {
+	id: ID!
+	token: String!
 }
 
 extend type Query {
 	stories(draft: Boolean): [Story!]!
 	story(id: ID!, draft: Boolean): Story!
+	storyView(id: ID!, draft: Boolean): StoryView!
+	storyToken(id: ID!): StoryToken! @authenticated
 }
 
 extend type Mutation {
 	publishStory(id: ID!, group: String!) : Story! @authenticated
-	# publishStoryWithID(id: ID!, target: ID!) : Story! @authenticated
+	updateStory(id: ID!, target: ID!) : Story! @authenticated
 }

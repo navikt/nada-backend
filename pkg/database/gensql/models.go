@@ -133,6 +133,12 @@ type StoryDraft struct {
 	Created time.Time
 }
 
+type StoryToken struct {
+	ID      uuid.UUID
+	StoryID uuid.UUID
+	Token   uuid.UUID
+}
+
 type StoryView struct {
 	ID      uuid.UUID
 	StoryID uuid.UUID

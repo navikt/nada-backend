@@ -79,6 +79,16 @@ func (q *Queries) CreateStoryView(ctx context.Context, arg CreateStoryViewParams
 	return i, err
 }
 
+const deleteStoryViews = `-- name: DeleteStoryViews :exec
+DELETE FROM story_views
+WHERE story_id = $1
+`
+
+func (q *Queries) DeleteStoryViews(ctx context.Context, storyID uuid.UUID) error {
+	_, err := q.db.ExecContext(ctx, deleteStoryViews, storyID)
+	return err
+}
+
 const getStories = `-- name: GetStories :many
 SELECT id, name, created, last_modified, "group"
 FROM stories
@@ -133,6 +143,38 @@ func (q *Queries) GetStory(ctx context.Context, id uuid.UUID) (Story, error) {
 	return i, err
 }
 
+const getStoryToken = `-- name: GetStoryToken :one
+SELECT id, story_id, token
+FROM story_tokens
+WHERE story_id = $1
+`
+
+func (q *Queries) GetStoryToken(ctx context.Context, storyID uuid.UUID) (StoryToken, error) {
+	row := q.db.QueryRowContext(ctx, getStoryToken, storyID)
+	var i StoryToken
+	err := row.Scan(&i.ID, &i.StoryID, &i.Token)
+	return i, err
+}
+
+const getStoryView = `-- name: GetStoryView :one
+SELECT id, story_id, sort, type, spec
+FROM story_views
+WHERE id = $1
+`
+
+func (q *Queries) GetStoryView(ctx context.Context, id uuid.UUID) (StoryView, error) {
+	row := q.db.QueryRowContext(ctx, getStoryView, id)
+	var i StoryView
+	err := row.Scan(
+		&i.ID,
+		&i.StoryID,
+		&i.Sort,
+		&i.Type,
+		&i.Spec,
+	)
+	return i, err
+}
+
 const getStoryViews = `-- name: GetStoryViews :many
 SELECT id, story_id, sort, type, spec
 FROM story_views
@@ -167,4 +209,32 @@ func (q *Queries) GetStoryViews(ctx context.Context, storyID uuid.UUID) ([]Story
 		return nil, err
 	}
 	return items, nil
+}
+
+const updateStory = `-- name: UpdateStory :one
+UPDATE stories
+SET
+	"name" = $1,
+	"group" = $2
+WHERE id = $3
+RETURNING id, name, created, last_modified, "group"
+`
+
+type UpdateStoryParams struct {
+	Name string
+	Grp  string
+	ID   uuid.UUID
+}
+
+func (q *Queries) UpdateStory(ctx context.Context, arg UpdateStoryParams) (Story, error) {
+	row := q.db.QueryRowContext(ctx, updateStory, arg.Name, arg.Grp, arg.ID)
+	var i Story
+	err := row.Scan(
+		&i.ID,
+		&i.Name,
+		&i.Created,
+		&i.LastModified,
+		&i.Group,
+	)
+	return i, err
 }
