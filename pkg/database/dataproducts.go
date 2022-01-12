@@ -151,6 +151,7 @@ func (r *Repo) CreateDataproduct(ctx context.Context, dp models.NewDataproduct) 
 	}
 
 	ret := dataproductFromSQL(created)
+	r.events.TriggerDataproductCreate(ret)
 	return ret, nil
 }
 

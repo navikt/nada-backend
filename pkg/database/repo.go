@@ -13,6 +13,7 @@ import (
 	"github.com/sirupsen/logrus"
 
 	"github.com/navikt/nada-backend/pkg/database/gensql"
+	"github.com/navikt/nada-backend/pkg/event"
 
 	// Pin version of sqlc and goose for cli
 	_ "github.com/kyleconroy/sqlc"
@@ -27,6 +28,8 @@ type Repo struct {
 	querier Querier
 	db      *sql.DB
 	log     *logrus.Entry
+
+	events *event.Manager
 
 	hooks *Hooks
 }
