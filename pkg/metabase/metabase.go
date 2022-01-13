@@ -96,20 +96,7 @@ func (m *Metabase) AddAllUsersDataproduct(ctx context.Context, dpID uuid.UUID) e
 	}
 
 	if dbExists(databases, dpID.String()) {
-		mbMetadata, err := m.repo.GetMetabaseMetadata(ctx, dpID)
-		if err != nil {
-			return err
-		}
-
-		if mbMetadata.PermissionGroupID == 0 {
-			// all-users access exists
-			return nil
-		}
-
-		// todo(erikvatt) handle differently when restricted db exists in metabase?
-		if err := m.delete(ctx, dpID.String(), databases); err != nil {
-			return err
-		}
+		return nil
 	}
 
 	dp, err := m.repo.GetDataproduct(ctx, dpID)
