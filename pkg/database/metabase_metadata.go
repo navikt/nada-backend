@@ -34,3 +34,7 @@ func (r *Repo) GetMetabaseMetadata(ctx context.Context, dataproductID uuid.UUID)
 		SAEmail:           meta.SaEmail,
 	}, nil
 }
+
+func (r *Repo) DeleteMetabaseMetadata(ctx context.Context, dataproductID uuid.UUID) error {
+	return r.querier.DeleteMetabaseMetadata(ctx, dataproductID)
+}

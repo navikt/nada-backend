@@ -41,6 +41,17 @@ func (q *Queries) CreateMetabaseMetadata(ctx context.Context, arg CreateMetabase
 	return err
 }
 
+const deleteMetabaseMetadata = `-- name: DeleteMetabaseMetadata :exec
+DELETE 
+FROM metabase_metadata
+WHERE "dataproduct_id" = $1
+`
+
+func (q *Queries) DeleteMetabaseMetadata(ctx context.Context, dataproductID uuid.UUID) error {
+	_, err := q.db.ExecContext(ctx, deleteMetabaseMetadata, dataproductID)
+	return err
+}
+
 const getMetabaseMetadata = `-- name: GetMetabaseMetadata :one
 SELECT dataproduct_id, database_id, permission_group_id, sa_email
 FROM metabase_metadata

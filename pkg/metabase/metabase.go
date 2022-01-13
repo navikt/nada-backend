@@ -2,7 +2,9 @@ package metabase
 
 import (
 	"context"
+	"database/sql"
 	"encoding/base64"
+	"errors"
 	"fmt"
 	"os"
 	"strings"
@@ -11,6 +13,7 @@ import (
 	"github.com/btcsuite/btcutil/base58"
 	"github.com/google/uuid"
 	"github.com/navikt/nada-backend/pkg/database"
+	"github.com/navikt/nada-backend/pkg/event"
 	"github.com/navikt/nada-backend/pkg/graph"
 	"github.com/navikt/nada-backend/pkg/graph/models"
 	"github.com/prometheus/client_golang/prometheus"
@@ -36,6 +39,7 @@ type Metabase struct {
 	repo       *database.Repo
 	client     *Client
 	accessMgr  graph.AccessManager
+	events     *event.Manager
 	sa         string
 	saEmail    string
 	errs       *prometheus.CounterVec
@@ -51,11 +55,12 @@ type dpWrapper struct {
 	MetabaseGroupID int
 }
 
-func New(repo *database.Repo, client *Client, accessMgr graph.AccessManager, serviceAccount, serviceAccountEmail string, errs *prometheus.CounterVec, iamService *iam.Service, crmService *cloudresourcemanager.Service, log *logrus.Entry) *Metabase {
+func New(repo *database.Repo, client *Client, accessMgr graph.AccessManager, eventMgr *event.Manager, serviceAccount, serviceAccountEmail string, errs *prometheus.CounterVec, iamService *iam.Service, crmService *cloudresourcemanager.Service, log *logrus.Entry) *Metabase {
 	return &Metabase{
 		repo:       repo,
 		client:     client,
 		accessMgr:  accessMgr,
+		events:     eventMgr,
 		sa:         serviceAccount,
 		saEmail:    serviceAccountEmail,
 		errs:       errs,
@@ -66,16 +71,16 @@ func New(repo *database.Repo, client *Client, accessMgr graph.AccessManager, ser
 }
 
 func (m *Metabase) Run(ctx context.Context, frequency time.Duration) {
+	m.events.ListenForDataproductGrantAllUsers(m.AddAllUsersDataproduct)
+	m.events.ListenForDataproductRevokeAllUsers(m.DeleteAllUsersDataproduct)
+	m.events.ListenForDataproductAddMetabaseMapping(m.AddDataproductMapping)
+	m.events.ListenForDataproductRemoveMetabaseMapping(m.RemoveDataproductMapping)
+	m.events.ListenForDataproductGrant(m.AddMetabaseGroupMember)
+	m.events.ListenForDataproductRevoke(m.RemoveMetabaseGroupMember)
+
 	ticker := time.NewTicker(frequency)
 	defer ticker.Stop()
 	for {
-		if err := m.run(ctx); err != nil {
-			if err, ok := err.(*metabaseError); ok {
-				m.log.WithError(err.Err).WithField("dataproduct", err.Dataproduct.String()).Error("failed to run metabase")
-			} else {
-				m.log.WithError(err).Error("failed to run metabase")
-			}
-		}
 		select {
 		case <-ctx.Done():
 			return
@@ -84,87 +89,202 @@ func (m *Metabase) Run(ctx context.Context, frequency time.Duration) {
 	}
 }
 
-func (m *Metabase) run(ctx context.Context) error {
-	openDps, err := m.repo.GetDataproductsByUserAccess(ctx, "group:all-users@nav.no")
-	if err != nil {
-		return err
-	}
-
-	restrictedDps, err := m.repo.GetDataproductsByMapping(ctx, models.MappingServiceMetabase, 1000, 0)
-	if err != nil {
-		return err
-	}
-
+func (m *Metabase) AddAllUsersDataproduct(ctx context.Context, dpID uuid.UUID) error {
 	databases, err := m.client.Databases(ctx)
 	if err != nil {
 		return err
 	}
 
-	lookup := map[string]Database{}
+	if dbExists(databases, dpID.String()) {
+		mbMetadata, err := m.repo.GetMetabaseMetadata(ctx, dpID)
+		if err != nil {
+			return err
+		}
+
+		if mbMetadata.PermissionGroupID == 0 {
+			// all-users access exists
+			return nil
+		}
+
+		// todo(erikvatt) handle differently when restricted db exists in metabase?
+		if err := m.delete(ctx, dpID.String(), databases); err != nil {
+			return err
+		}
+	}
+
+	dp, err := m.repo.GetDataproduct(ctx, dpID)
+	if err != nil {
+		return err
+	}
+
+	err = m.create(ctx, dpWrapper{
+		Dataproduct: dp,
+		Key:         m.sa,
+		Email:       m.saEmail,
+	})
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (m *Metabase) DeleteAllUsersDataproduct(ctx context.Context, dpID uuid.UUID) error {
+	databases, err := m.client.Databases(ctx)
+	if err != nil {
+		return err
+	}
+
+	if err := m.delete(ctx, dpID.String(), databases); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (m *Metabase) AddDataproductMapping(ctx context.Context, dpID uuid.UUID) error {
+	databases, err := m.client.Databases(ctx)
+	if err != nil {
+		return err
+	}
+
+	if dbExists(databases, dpID.String()) {
+		return nil
+	}
+
+	dp, err := m.repo.GetDataproduct(ctx, dpID)
+	if err != nil {
+		return err
+	}
+
+	if err := m.createRestricted(ctx, dp); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (m *Metabase) RemoveDataproductMapping(ctx context.Context, dpID uuid.UUID) error {
+	databases, err := m.client.Databases(ctx)
+	if err != nil {
+		return err
+	}
+
+	if !dbExists(databases, dpID.String()) {
+		return nil
+	}
+
+	if err := m.delete(ctx, dpID.String(), databases); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (m *Metabase) AddMetabaseGroupMember(ctx context.Context, dpID uuid.UUID, subject string) error {
+	mbMetadata, err := m.repo.GetMetabaseMetadata(ctx, dpID)
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return nil
+		}
+		return newMetabaseError(dpID, err)
+	}
+
+	s := strings.Split(subject, ":")
+	if s[0] != "user" {
+		return nil
+	}
+
+	mbGroupMembers, err := m.client.GetPermissionGroup(ctx, mbMetadata.PermissionGroupID)
+	if err != nil {
+		return newMetabaseError(dpID, err)
+	}
+
+	exists, _ := memberExists(mbGroupMembers, s[1])
+	if exists {
+		return nil
+	}
+
+	if err := m.client.AddPermissionGroupMember(ctx, mbMetadata.PermissionGroupID, s[1]); err != nil {
+		m.log.WithError(err).WithField("user", s).
+			WithField("group", mbMetadata.PermissionGroupID).
+			Warn("Unable to sync user")
+	}
+
+	return nil
+}
+
+func (m *Metabase) RemoveMetabaseGroupMember(ctx context.Context, dpID uuid.UUID, subject string) error {
+	mbMetadata, err := m.repo.GetMetabaseMetadata(ctx, dpID)
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return nil
+		}
+		return newMetabaseError(dpID, err)
+	}
+
+	s := strings.Split(subject, ":")
+	if s[0] != "user" {
+		return nil
+	}
+
+	mbGroupMembers, err := m.client.GetPermissionGroup(ctx, mbMetadata.PermissionGroupID)
+	if err != nil {
+		return newMetabaseError(dpID, err)
+	}
+
+	exists, memberID := memberExists(mbGroupMembers, s[1])
+	if !exists {
+		return nil
+	}
+
+	if err := m.client.RemovePermissionGroupMember(ctx, memberID); err != nil {
+		return newMetabaseError(dpID, err)
+	}
+
+	return nil
+}
+
+func memberExists(groupMembers []PermissionGroupMember, subject string) (bool, int) {
+	for _, m := range groupMembers {
+		if m.Email == subject {
+			return true, m.ID
+		}
+	}
+	return false, -1
+}
+
+func dbExists(databases []Database, dpID string) bool {
 	for _, d := range databases {
-		lookup[d.NadaID] = d
+		if d.NadaID == dpID {
+			return true
+		}
 	}
+	return false
+}
 
-	createDps := []dpWrapper{}
-	combinedIDs := map[string]bool{}
-
-	for _, dp := range openDps {
-		combinedIDs[dp.ID.String()] = true
-		if _, ok := lookup[dp.ID.String()]; ok {
-			// It exists in metabase
-			continue
-		}
-
-		createDps = append(createDps, dpWrapper{
-			Dataproduct: dp,
-			Key:         m.sa,
-			Email:       m.saEmail,
-		})
-	}
-
-	for _, dp := range restrictedDps {
-		if combinedIDs[dp.ID.String()] {
-			continue
-		}
-		combinedIDs[dp.ID.String()] = true
-		if _, ok := lookup[dp.ID.String()]; ok {
-			// It exists in metabase
-			continue
-		}
-
-		groupID, err := m.client.CreatePermissionGroup(ctx, dp.Name)
-		if err != nil {
-			return newMetabaseError(dp.ID, err)
-		}
-
-		_, err = m.client.CreateCollectionWithAccess(ctx, groupID, dp.Name)
-		if err != nil {
-			return newMetabaseError(dp.ID, err)
-		}
-
-		key, email, err := m.createServiceAccount(dp)
-		if err != nil {
-			return newMetabaseError(dp.ID, err)
-		}
-
-		createDps = append(createDps, dpWrapper{
-			Dataproduct:     dp,
-			Key:             string(key),
-			Email:           email,
-			MetabaseGroupID: groupID,
-		})
-	}
-
-	err = m.create(ctx, createDps)
-	if err != nil {
-		return err
-	}
-	err = m.delete(ctx, combinedIDs, databases)
+func (m *Metabase) createRestricted(ctx context.Context, dp *models.Dataproduct) error {
+	groupID, err := m.client.CreatePermissionGroup(ctx, dp.Name)
 	if err != nil {
 		return err
 	}
 
-	err = m.syncPermissionGroupMembers(ctx, restrictedDps)
+	_, err = m.client.CreateCollectionWithAccess(ctx, groupID, dp.Name)
+	if err != nil {
+		return err
+	}
+
+	key, email, err := m.createServiceAccount(dp)
+	if err != nil {
+		return err
+	}
+
+	err = m.create(ctx, dpWrapper{
+		Dataproduct:     dp,
+		Key:             string(key),
+		Email:           email,
+		MetabaseGroupID: groupID,
+	})
 	if err != nil {
 		return err
 	}
@@ -172,171 +292,112 @@ func (m *Metabase) run(ctx context.Context) error {
 	return nil
 }
 
-func (m *Metabase) create(ctx context.Context, dps []dpWrapper) error {
-	for _, dp := range dps {
-		datasource, err := m.repo.GetBigqueryDatasource(ctx, dp.Dataproduct.ID)
-		if err != nil {
-			return newMetabaseError(dp.Dataproduct.ID, err)
-		}
-
-		err = m.accessMgr.Grant(ctx, datasource.ProjectID, datasource.Dataset, datasource.Table, "serviceAccount:"+dp.Email)
-		if err != nil {
-			return newMetabaseError(dp.Dataproduct.ID, err)
-		}
-
-		dbID, err := m.client.CreateDatabase(ctx, dp.Dataproduct.Name, dp.Key, dp.Email, &datasource)
-		if err != nil {
-			return newMetabaseError(dp.Dataproduct.ID, err)
-		}
-
-		err = m.repo.CreateMetabaseMetadata(ctx, models.MetabaseMetadata{
-			DataproductID:     dp.Dataproduct.ID,
-			DatabaseID:        dbID,
-			PermissionGroupID: dp.MetabaseGroupID,
-			SAEmail:           dp.Email,
-		})
-		if err != nil {
-			return newMetabaseError(dp.Dataproduct.ID, err)
-		}
-
-		m.waitForDatabase(ctx, dbID, datasource.Table)
-
-		if dp.MetabaseGroupID > 0 {
-			err := m.client.RestrictAccessToDatabase(ctx, dp.MetabaseGroupID, dbID)
-			if err != nil {
-				return newMetabaseError(dp.Dataproduct.ID, err)
-			}
-		}
-
-		if err := m.HideOtherTables(ctx, dbID, datasource.Table); err != nil {
-			return newMetabaseError(dp.Dataproduct.ID, err)
-		}
-
-		if err := m.client.AutoMapSemanticTypes(ctx, dbID); err != nil {
-			return newMetabaseError(dp.Dataproduct.ID, err)
-		}
-
-		m.log.Infof("Created Metabase database: %v", dp.Dataproduct.Name)
+func (m *Metabase) create(ctx context.Context, dp dpWrapper) error {
+	datasource, err := m.repo.GetBigqueryDatasource(ctx, dp.Dataproduct.ID)
+	if err != nil {
+		return newMetabaseError(dp.Dataproduct.ID, err)
 	}
+
+	err = m.accessMgr.Grant(ctx, datasource.ProjectID, datasource.Dataset, datasource.Table, "serviceAccount:"+dp.Email)
+	if err != nil {
+		return newMetabaseError(dp.Dataproduct.ID, err)
+	}
+
+	dbID, err := m.client.CreateDatabase(ctx, dp.Dataproduct.Name, dp.Key, dp.Email, &datasource)
+	if err != nil {
+		return newMetabaseError(dp.Dataproduct.ID, err)
+	}
+
+	err = m.repo.CreateMetabaseMetadata(ctx, models.MetabaseMetadata{
+		DataproductID:     dp.Dataproduct.ID,
+		DatabaseID:        dbID,
+		PermissionGroupID: dp.MetabaseGroupID,
+		SAEmail:           dp.Email,
+	})
+	if err != nil {
+		return newMetabaseError(dp.Dataproduct.ID, err)
+	}
+
+	m.waitForDatabase(ctx, dbID, datasource.Table)
+
+	if dp.MetabaseGroupID > 0 {
+		err := m.client.RestrictAccessToDatabase(ctx, dp.MetabaseGroupID, dbID)
+		if err != nil {
+			return newMetabaseError(dp.Dataproduct.ID, err)
+		}
+	}
+
+	if err := m.HideOtherTables(ctx, dbID, datasource.Table); err != nil {
+		return newMetabaseError(dp.Dataproduct.ID, err)
+	}
+
+	if err := m.client.AutoMapSemanticTypes(ctx, dbID); err != nil {
+		return newMetabaseError(dp.Dataproduct.ID, err)
+	}
+
+	m.log.Infof("Created Metabase database: %v", dp.Dataproduct.Name)
 	return nil
 }
 
-func (m *Metabase) delete(ctx context.Context, dataproducts map[string]bool, databases []Database) error {
-	// Remove databases in Metabase that no longer exists or is not available to all users
-	for _, mdb := range databases {
-		if mdb.NadaID == "" || dataproducts[mdb.NadaID] {
-			continue
-		}
-
-		if err := m.client.DeleteDatabase(ctx, mdb.ID); err != nil {
-			m.log.WithError(err).Error("Deleting database in Metabase")
-			m.errs.WithLabelValues("RemoveMetabaseDatabase").Inc()
-			continue
-		}
-
-		uid, err := uuid.Parse(mdb.NadaID)
-		if err != nil {
-			m.log.WithError(err).Error("Parsing UUID")
-			m.errs.WithLabelValues("RemoveMetabaseDatabase").Inc()
-			continue
-		}
-
-		mbMetadata, err := m.repo.GetMetabaseMetadata(ctx, uid)
-		if err != nil {
-			m.log.WithError(err).Error("Get metabase metadata on delete database")
-			m.errs.WithLabelValues("RemoveMetabaseDatabase").Inc()
-			continue
-		}
-
-		if mbMetadata.PermissionGroupID > 0 {
-			if err := m.client.DeletePermissionGroup(ctx, mbMetadata.PermissionGroupID); err != nil {
-				m.log.WithError(err).Error("Deleting permission group in Metabase")
-				m.errs.WithLabelValues("RemoveMetabaseDatabase").Inc()
-				continue
-			}
-
-			if err := m.deleteServiceAccount(mbMetadata.SAEmail); err != nil {
-				m.log.WithError(err).Error("Deleting metabase permission group service account")
-				m.errs.WithLabelValues("RemoveMetabaseDatabase").Inc()
-				continue
-			}
-		}
-
-		ds, err := m.repo.GetBigqueryDatasource(ctx, uid)
-		if err != nil {
-			m.log.WithError(err).Error("Getting Bigquery datasource")
-			m.errs.WithLabelValues("RemoveMetabaseDatabase").Inc()
-			continue
-		}
-		if err := m.accessMgr.Revoke(ctx, ds.ProjectID, ds.Dataset, ds.Table, "serviceAccount:"+mdb.SAEmail); err != nil {
-			m.log.WithError(err).Error("Revoking IAM access")
-			m.errs.WithLabelValues("RemoveMetabaseDatabase").Inc()
-			continue
-		}
-		m.log.Infof("Deleted Metabase database with ID: %v", mdb.ID)
-	}
-
-	return nil
-}
-
-func (m *Metabase) syncPermissionGroupMembers(ctx context.Context, restrictedDps []*models.Dataproduct) error {
-	for _, dp := range restrictedDps {
-		subjects, err := m.repo.ListActiveAccessToDataproduct(ctx, dp.ID)
-		if err != nil {
-			return newMetabaseError(dp.ID, err)
-		}
-
-		dpGrants := []string{}
-		for _, s := range subjects {
-			subject := strings.Split(s.Subject, ":")
-			if subject[0] == "user" {
-				dpGrants = append(dpGrants, subject[1])
-			}
-		}
-
-		mbMetadata, err := m.repo.GetMetabaseMetadata(ctx, dp.ID)
-		if err != nil {
-			return newMetabaseError(dp.ID, err)
-		}
-
-		mbGroupMembers, err := m.client.GetPermissionGroup(ctx, mbMetadata.PermissionGroupID)
-		if err != nil {
-			return newMetabaseError(dp.ID, err)
-		}
-
-		err = m.removeDeletedMembersFromGroup(ctx, mbGroupMembers, dpGrants)
-		if err != nil {
-			return newMetabaseError(dp.ID, err)
-		}
-
-		err = m.addNewMembersToGroup(ctx, mbMetadata.PermissionGroupID, mbGroupMembers, dpGrants)
-		if err != nil {
-			return newMetabaseError(dp.ID, err)
-		}
-	}
-	return nil
-}
-
-func (m *Metabase) removeDeletedMembersFromGroup(ctx context.Context, groupMembers []PermissionGroupMember, dpGrants []string) error {
-	for _, s := range groupMembers {
-		if !contains(dpGrants, s.Email) {
-			m.client.RemovePermissionGroupMember(ctx, s.ID)
+func (m *Metabase) delete(ctx context.Context, dataproductID string, databases []Database) error {
+	var mdb Database
+	for _, db := range databases {
+		if db.NadaID == dataproductID {
+			mdb = db
 		}
 	}
 
-	return nil
-}
+	if err := m.client.DeleteDatabase(ctx, mdb.ID); err != nil {
+		m.log.WithError(err).Error("Deleting database in Metabase")
+		m.errs.WithLabelValues("RemoveMetabaseDatabase").Inc()
+		return nil
+	}
 
-func (m *Metabase) addNewMembersToGroup(ctx context.Context, groupID int, groupMembers []PermissionGroupMember, dpGrants []string) error {
-	for _, s := range dpGrants {
-		if !groupContainsUser(groupMembers, s) {
-			if err := m.client.AddPermissionGroupMember(ctx, groupID, s); err != nil {
-				m.log.WithError(err).WithField("user", s).
-					WithField("group", groupID).
-					Warn("Unable to sync user")
-			}
+	uid, err := uuid.Parse(dataproductID)
+	if err != nil {
+		m.log.WithError(err).Error("Parsing UUID")
+		m.errs.WithLabelValues("RemoveMetabaseDatabase").Inc()
+		return nil
+	}
+
+	mbMetadata, err := m.repo.GetMetabaseMetadata(ctx, uid)
+	if err != nil {
+		m.log.WithError(err).Error("Get metabase metadata on delete database")
+		m.errs.WithLabelValues("RemoveMetabaseDatabase").Inc()
+		return nil
+	}
+
+	if mbMetadata.PermissionGroupID > 0 {
+		if err := m.client.DeletePermissionGroup(ctx, mbMetadata.PermissionGroupID); err != nil {
+			m.log.WithError(err).Error("Deleting permission group in Metabase")
+			m.errs.WithLabelValues("RemoveMetabaseDatabase").Inc()
+			return nil
+		}
+
+		if err := m.deleteServiceAccount(mbMetadata.SAEmail); err != nil {
+			m.log.WithError(err).Error("Deleting metabase permission group service account")
+			m.errs.WithLabelValues("RemoveMetabaseDatabase").Inc()
+			return nil
 		}
 	}
+
+	ds, err := m.repo.GetBigqueryDatasource(ctx, uid)
+	if err != nil {
+		m.log.WithError(err).Error("Getting Bigquery datasource")
+		m.errs.WithLabelValues("RemoveMetabaseDatabase").Inc()
+		return nil
+	}
+	if err := m.accessMgr.Revoke(ctx, ds.ProjectID, ds.Dataset, ds.Table, "serviceAccount:"+mdb.SAEmail); err != nil {
+		m.log.WithError(err).Error("Revoking IAM access")
+		m.errs.WithLabelValues("RemoveMetabaseDatabase").Inc()
+		return nil
+	}
+
+	if err := m.repo.DeleteMetabaseMetadata(ctx, uid); err != nil {
+		return err
+	}
+
+	m.log.Infof("Deleted Metabase database with ID: %v", mdb.ID)
 
 	return nil
 }
@@ -429,24 +490,6 @@ func (m *Metabase) waitForDatabase(ctx context.Context, dbID int, tableName stri
 			}
 		}
 	}
-}
-
-func groupContainsUser(mbGroups []PermissionGroupMember, email string) bool {
-	for _, a := range mbGroups {
-		if a.Email == email {
-			return true
-		}
-	}
-	return false
-}
-
-func contains(list []string, value string) bool {
-	for _, g := range list {
-		if value == g {
-			return true
-		}
-	}
-	return false
 }
 
 func MarshalUUID(id uuid.UUID) string {

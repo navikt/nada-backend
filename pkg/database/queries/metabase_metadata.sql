@@ -15,3 +15,8 @@ INSERT INTO metabase_metadata (
 SELECT *
 FROM metabase_metadata
 WHERE "dataproduct_id" = @dataproduct_id;
+
+-- name: DeleteMetabaseMetadata :exec
+DELETE 
+FROM metabase_metadata
+WHERE "dataproduct_id" = @dataproduct_id;
