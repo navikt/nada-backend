@@ -3,11 +3,13 @@ INSERT INTO metabase_metadata (
     "dataproduct_id",
     "database_id",
     "permission_group_id",
+    "collection_id",
     "sa_email"
 ) VALUES (
     @dataproduct_id,
     @database_id,
     @permission_group_id,
+    @collection_id,
     @sa_email
 );
 

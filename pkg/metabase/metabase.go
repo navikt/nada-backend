@@ -53,6 +53,7 @@ type dpWrapper struct {
 	Key             string
 	Email           string
 	MetabaseGroupID int
+	CollectionID    int
 }
 
 func New(repo *database.Repo, client *Client, accessMgr graph.AccessManager, eventMgr *event.Manager, serviceAccount, serviceAccountEmail string, errs *prometheus.CounterVec, iamService *iam.Service, crmService *cloudresourcemanager.Service, log *logrus.Entry) *Metabase {
@@ -256,7 +257,7 @@ func (m *Metabase) createRestricted(ctx context.Context, dp *models.Dataproduct)
 		return err
 	}
 
-	_, err = m.client.CreateCollectionWithAccess(ctx, groupID, dp.Name)
+	colID, err := m.client.CreateCollectionWithAccess(ctx, groupID, dp.Name)
 	if err != nil {
 		return err
 	}
@@ -271,6 +272,7 @@ func (m *Metabase) createRestricted(ctx context.Context, dp *models.Dataproduct)
 		Key:             string(key),
 		Email:           email,
 		MetabaseGroupID: groupID,
+		CollectionID:    colID,
 	})
 	if err != nil {
 		return err
@@ -299,6 +301,7 @@ func (m *Metabase) create(ctx context.Context, dp dpWrapper) error {
 		DataproductID:     dp.Dataproduct.ID,
 		DatabaseID:        dbID,
 		PermissionGroupID: dp.MetabaseGroupID,
+		CollectionID:      dp.CollectionID,
 		SAEmail:           dp.Email,
 	})
 	if err != nil {
@@ -357,6 +360,12 @@ func (m *Metabase) delete(ctx context.Context, dataproductID string, databases [
 	if mbMetadata.PermissionGroupID > 0 {
 		if err := m.client.DeletePermissionGroup(ctx, mbMetadata.PermissionGroupID); err != nil {
 			m.log.WithError(err).Error("Deleting permission group in Metabase")
+			m.errs.WithLabelValues("RemoveMetabaseDatabase").Inc()
+			return nil
+		}
+
+		if err := m.client.ArchiveCollection(ctx, mbMetadata.CollectionID); err != nil {
+			m.log.WithError(err).Error("Archiving collection in Metabase")
 			m.errs.WithLabelValues("RemoveMetabaseDatabase").Inc()
 			return nil
 		}
