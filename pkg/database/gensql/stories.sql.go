@@ -79,6 +79,16 @@ func (q *Queries) CreateStoryView(ctx context.Context, arg CreateStoryViewParams
 	return i, err
 }
 
+const deleteStory = `-- name: DeleteStory :exec
+DELETE FROM stories
+WHERE id = $1
+`
+
+func (q *Queries) DeleteStory(ctx context.Context, id uuid.UUID) error {
+	_, err := q.db.ExecContext(ctx, deleteStory, id)
+	return err
+}
+
 const deleteStoryViews = `-- name: DeleteStoryViews :exec
 DELETE FROM story_views
 WHERE story_id = $1

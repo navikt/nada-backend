@@ -41,6 +41,7 @@ extend type Query {
 }
 
 extend type Mutation {
-	publishStory(id: ID!, group: String!) : Story! @authenticated
-	updateStory(id: ID!, target: ID!) : Story! @authenticated
+	publishStory(id: ID!, group: String!): Story! @authenticated
+	updateStory(id: ID!, target: ID!): Story! @authenticated
+	deleteStory(id: ID!): Boolean! @authenticated
 }

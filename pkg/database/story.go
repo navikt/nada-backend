@@ -151,6 +151,35 @@ func (r *Repo) GetStoryToken(ctx context.Context, storyID uuid.UUID) (*models.St
 	}, nil
 }
 
+func (r *Repo) DeleteStory(ctx context.Context, id uuid.UUID) error {
+	tx, err := r.db.Begin()
+	if err != nil {
+		return err
+	}
+
+	querier := r.querier.WithTx(tx)
+
+	if err := querier.DeleteStory(ctx, id); err != nil {
+		if err := tx.Rollback(); err != nil {
+			r.log.WithError(err).Error("unable to roll back when delete story failed")
+		}
+		return err
+	}
+
+	if err := querier.DeleteStoryViews(ctx, id); err != nil {
+		if err := tx.Rollback(); err != nil {
+			r.log.WithError(err).Error("unable to roll back when delete story views failed")
+		}
+		return err
+	}
+
+	if err := tx.Commit(); err != nil {
+		return err
+	}
+
+	return nil
+}
+
 func storyViewFromSQL(s gensql.StoryView) *models.DBStoryView {
 	return &models.DBStoryView{
 		ID:   s.ID,

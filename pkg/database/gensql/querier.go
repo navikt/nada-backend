@@ -24,6 +24,7 @@ type Querier interface {
 	DeleteDataproduct(ctx context.Context, id uuid.UUID) error
 	DeleteDataproductRequester(ctx context.Context, arg DeleteDataproductRequesterParams) error
 	DeleteSession(ctx context.Context, token string) error
+	DeleteStory(ctx context.Context, id uuid.UUID) error
 	DeleteStoryDraft(ctx context.Context, id uuid.UUID) error
 	DeleteStoryViewDraft(ctx context.Context, storyID uuid.UUID) error
 	DeleteStoryViews(ctx context.Context, storyID uuid.UUID) error
