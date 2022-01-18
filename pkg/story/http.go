@@ -39,9 +39,9 @@ func (h *Handler) Upload(w http.ResponseWriter, r *http.Request) {
 
 	w.Header().Add("content-type", "application/json")
 
-	host := "https://data.dev.intern.nav.no/api"
+	host := "https://data.dev.intern.nav.no"
 	if os.Getenv("NAIS_CLUSTER_NAME") == "prod-gcp" {
-		host = "https://data.intern.nav.no/api"
+		host = "https://data.intern.nav.no"
 	}
 
 	resp := map[string]string{
@@ -98,9 +98,9 @@ func (h *Handler) Update(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	host := "https://data.dev.intern.nav.no/api"
+	host := "https://data.dev.intern.nav.no"
 	if os.Getenv("NAIS_CLUSTER_NAME") == "prod-gcp" {
-		host = "https://data.intern.nav.no/api"
+		host = "https://data.intern.nav.no"
 	}
 
 	resp := map[string]string{
