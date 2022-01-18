@@ -151,6 +151,36 @@ func (r *Repo) GetStoryToken(ctx context.Context, storyID uuid.UUID) (*models.St
 	}, nil
 }
 
+func (r *Repo) GetStoryFromToken(ctx context.Context, token uuid.UUID) (*models.DBStory, error) {
+	story, err := r.querier.GetStoryFromToken(ctx, token)
+	if err != nil {
+		return nil, err
+	}
+
+	views, err := r.querier.GetStoryViews(ctx, story.ID)
+	if err != nil {
+		return nil, err
+	}
+
+	var vs []models.DBStoryView
+	for _, v := range views {
+		vs = append(vs, models.DBStoryView{
+			ID:   v.ID,
+			Type: string(v.Type),
+			Spec: v.Spec,
+		})
+	}
+
+	return &models.DBStory{
+		ID:           story.ID,
+		Name:         story.Name,
+		Group:        story.Group,
+		Created:      story.Created,
+		LastModified: story.LastModified,
+		Views:        vs,
+	}, err
+}
+
 func (r *Repo) DeleteStory(ctx context.Context, id uuid.UUID) error {
 	tx, err := r.db.Begin()
 	if err != nil {

@@ -56,7 +56,7 @@ func New(
 		r.HandleFunc("/logout", httpAPI.Logout)
 		r.HandleFunc("/nav-interndata/*", datapackageRedirect)
 		r.Post("/story", storyHandler.Upload)
-		r.Put("/story/{id}", storyHandler.Update)
+		r.Put("/story", storyHandler.Update)
 	})
 	router.Route("/internal", func(r chi.Router) {
 		r.Handle("/metrics", promhttp.HandlerFor(promReg, promhttp.HandlerOpts{}))
