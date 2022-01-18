@@ -5,6 +5,7 @@ package graph
 
 import (
 	"context"
+
 	"github.com/google/uuid"
 	"github.com/navikt/nada-backend/pkg/auth"
 	"github.com/navikt/nada-backend/pkg/graph/generated"
@@ -40,6 +41,24 @@ func (r *mutationResolver) UpdateStory(ctx context.Context, id uuid.UUID, target
 		return nil, err
 	}
 	return storyFromDB(s)
+}
+
+func (r *mutationResolver) DeleteStory(ctx context.Context, id uuid.UUID) (bool, error) {
+	s, err := r.repo.GetStory(ctx, id)
+	if err != nil {
+		return false, err
+	}
+
+	user := auth.GetUser(ctx)
+	if !user.Groups.Contains(s.Group) {
+		return false, ErrUnauthorized
+	}
+
+	if err := r.repo.DeleteStory(ctx, id); err != nil {
+		return false, err
+	}
+
+	return true, nil
 }
 
 func (r *queryResolver) Stories(ctx context.Context, draft *bool) ([]*models.GraphStory, error) {

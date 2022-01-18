@@ -51,6 +51,10 @@ SET
 WHERE id = @id
 RETURNING *;
 
+-- name: DeleteStory :exec
+DELETE FROM stories
+WHERE id = @id;
+
 -- name: DeleteStoryViews :exec
 DELETE FROM story_views
 WHERE story_id = @story_id;
