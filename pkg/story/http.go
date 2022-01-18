@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"log"
 	"net/http"
+	"os"
 	"strings"
 
 	"github.com/go-chi/chi"
@@ -38,8 +39,13 @@ func (h *Handler) Upload(w http.ResponseWriter, r *http.Request) {
 
 	w.Header().Add("content-type", "application/json")
 
+	host := "https://data.intern.nav.no/api"
+	if os.Getenv("NAIS_CLUSTER_NAME") == "prod-gcp" {
+		host = "https://data.dev.intern.nav.no/api"
+	}
+
 	resp := map[string]string{
-		"url": r.Host + "/story/draft/" + id.String(),
+		"url": host + "/story/draft/" + id.String(),
 		"id":  id.String(),
 	}
 	if err := json.NewEncoder(w).Encode(resp); err != nil {
@@ -92,8 +98,13 @@ func (h *Handler) Update(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	host := "https://data.intern.nav.no/api"
+	if os.Getenv("NAIS_CLUSTER_NAME") == "prod-gcp" {
+		host = "https://data.dev.intern.nav.no/api"
+	}
+
 	resp := map[string]string{
-		"url": r.Host + "/story/" + storyID,
+		"url": host + "/story/" + storyID,
 		"id":  storyID,
 	}
 	if err := json.NewEncoder(w).Encode(resp); err != nil {
