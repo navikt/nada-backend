@@ -153,6 +153,25 @@ func (q *Queries) GetStory(ctx context.Context, id uuid.UUID) (Story, error) {
 	return i, err
 }
 
+const getStoryFromToken = `-- name: GetStoryFromToken :one
+SELECT id, name, created, last_modified, "group"
+FROM stories
+WHERE id = (SELECT story_id FROM story_tokens WHERE token = $1)
+`
+
+func (q *Queries) GetStoryFromToken(ctx context.Context, token uuid.UUID) (Story, error) {
+	row := q.db.QueryRowContext(ctx, getStoryFromToken, token)
+	var i Story
+	err := row.Scan(
+		&i.ID,
+		&i.Name,
+		&i.Created,
+		&i.LastModified,
+		&i.Group,
+	)
+	return i, err
+}
+
 const getStoryToken = `-- name: GetStoryToken :one
 SELECT id, story_id, token
 FROM story_tokens

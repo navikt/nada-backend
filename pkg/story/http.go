@@ -7,7 +7,6 @@ import (
 	"os"
 	"strings"
 
-	"github.com/go-chi/chi"
 	"github.com/google/uuid"
 	"github.com/navikt/nada-backend/pkg/database"
 	"github.com/navikt/nada-backend/pkg/graph/models"
@@ -60,39 +59,33 @@ func (h *Handler) Update(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	token := authHeader[1]
-	storyID := chi.URLParam(r, "id")
 
-	uid, err := uuid.Parse(storyID)
+	tokenUID, err := uuid.Parse(token)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
 
-	storyToken, err := h.repo.GetStoryToken(r.Context(), uid)
+	story, err := h.repo.GetStoryFromToken(r.Context(), tokenUID)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
 
-	if token != storyToken.Token {
-		http.Error(w, "Unauthorized", http.StatusUnauthorized)
-		return
-	}
+	newStory := &models.DBStory{}
 
-	story := &models.DBStory{}
-
-	if err := json.NewDecoder(r.Body).Decode(story); err != nil {
+	if err := json.NewDecoder(r.Body).Decode(newStory); err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
 
-	draftID, err := h.repo.CreateStoryDraft(r.Context(), story)
+	draftID, err := h.repo.CreateStoryDraft(r.Context(), newStory)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
 
-	_, err = h.repo.UpdateStory(r.Context(), draftID, uid)
+	_, err = h.repo.UpdateStory(r.Context(), draftID, story.ID)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
@@ -104,8 +97,8 @@ func (h *Handler) Update(w http.ResponseWriter, r *http.Request) {
 	}
 
 	resp := map[string]string{
-		"url": host + "/story/" + storyID,
-		"id":  storyID,
+		"url": host + "/story/" + story.ID.String(),
+		"id":  story.ID.String(),
 	}
 	if err := json.NewEncoder(w).Encode(resp); err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
