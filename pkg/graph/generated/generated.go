@@ -193,6 +193,18 @@ type ComplexityRoot struct {
 		Layout func(childComplexity int) int
 	}
 
+	StoryViewVega struct {
+		Config   func(childComplexity int) int
+		Data     func(childComplexity int) int
+		Encoding func(childComplexity int) int
+		Height   func(childComplexity int) int
+		ID       func(childComplexity int) int
+		Mark     func(childComplexity int) int
+		Schema   func(childComplexity int) int
+		Title    func(childComplexity int) int
+		Width    func(childComplexity int) int
+	}
+
 	TableColumn struct {
 		Description func(childComplexity int) int
 		Mode        func(childComplexity int) int
@@ -1012,6 +1024,69 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.StoryViewPlotly.Layout(childComplexity), true
 
+	case "StoryViewVega.Config":
+		if e.complexity.StoryViewVega.Config == nil {
+			break
+		}
+
+		return e.complexity.StoryViewVega.Config(childComplexity), true
+
+	case "StoryViewVega.Data":
+		if e.complexity.StoryViewVega.Data == nil {
+			break
+		}
+
+		return e.complexity.StoryViewVega.Data(childComplexity), true
+
+	case "StoryViewVega.Encoding":
+		if e.complexity.StoryViewVega.Encoding == nil {
+			break
+		}
+
+		return e.complexity.StoryViewVega.Encoding(childComplexity), true
+
+	case "StoryViewVega.Height":
+		if e.complexity.StoryViewVega.Height == nil {
+			break
+		}
+
+		return e.complexity.StoryViewVega.Height(childComplexity), true
+
+	case "StoryViewVega.id":
+		if e.complexity.StoryViewVega.ID == nil {
+			break
+		}
+
+		return e.complexity.StoryViewVega.ID(childComplexity), true
+
+	case "StoryViewVega.Mark":
+		if e.complexity.StoryViewVega.Mark == nil {
+			break
+		}
+
+		return e.complexity.StoryViewVega.Mark(childComplexity), true
+
+	case "StoryViewVega.Schema":
+		if e.complexity.StoryViewVega.Schema == nil {
+			break
+		}
+
+		return e.complexity.StoryViewVega.Schema(childComplexity), true
+
+	case "StoryViewVega.Title":
+		if e.complexity.StoryViewVega.Title == nil {
+			break
+		}
+
+		return e.complexity.StoryViewVega.Title(childComplexity), true
+
+	case "StoryViewVega.Width":
+		if e.complexity.StoryViewVega.Width == nil {
+			break
+		}
+
+		return e.complexity.StoryViewVega.Width(childComplexity), true
+
 	case "TableColumn.description":
 		if e.complexity.TableColumn.Description == nil {
 			break
@@ -1690,6 +1765,18 @@ type StoryViewPlotly implements StoryView @goModel(model: "github.com/navikt/nad
 	id: ID!
 	data: [Map!]!
 	layout: Map!
+}
+
+type StoryViewVega implements StoryView @goModel(model: "github.com/navikt/nada-backend/pkg/graph/models.StoryViewVega") {
+	id: ID!
+	Schema: String!
+	Config: Map!
+	Data: Map!
+	Encoding: Map!
+	Height: Int!
+	Mark: Map!
+	Title: String!
+	Width: Int!
 }
 
 type StoryToken @goModel(model: "github.com/navikt/nada-backend/pkg/graph/models.StoryToken") {
@@ -5918,6 +6005,321 @@ func (ec *executionContext) _StoryViewPlotly_layout(ctx context.Context, field g
 	return ec.marshalNMap2map(ctx, field.Selections, res)
 }
 
+func (ec *executionContext) _StoryViewVega_id(ctx context.Context, field graphql.CollectedField, obj *models.StoryViewVega) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "StoryViewVega",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   false,
+		IsResolver: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.ID, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(uuid.UUID)
+	fc.Result = res
+	return ec.marshalNID2githubᚗcomᚋgoogleᚋuuidᚐUUID(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _StoryViewVega_Schema(ctx context.Context, field graphql.CollectedField, obj *models.StoryViewVega) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "StoryViewVega",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   false,
+		IsResolver: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Schema, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(string)
+	fc.Result = res
+	return ec.marshalNString2string(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _StoryViewVega_Config(ctx context.Context, field graphql.CollectedField, obj *models.StoryViewVega) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "StoryViewVega",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   false,
+		IsResolver: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Config, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(map[string]interface{})
+	fc.Result = res
+	return ec.marshalNMap2map(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _StoryViewVega_Data(ctx context.Context, field graphql.CollectedField, obj *models.StoryViewVega) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "StoryViewVega",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   false,
+		IsResolver: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Data, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(map[string]interface{})
+	fc.Result = res
+	return ec.marshalNMap2map(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _StoryViewVega_Encoding(ctx context.Context, field graphql.CollectedField, obj *models.StoryViewVega) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "StoryViewVega",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   false,
+		IsResolver: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Encoding, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(map[string]interface{})
+	fc.Result = res
+	return ec.marshalNMap2map(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _StoryViewVega_Height(ctx context.Context, field graphql.CollectedField, obj *models.StoryViewVega) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "StoryViewVega",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   false,
+		IsResolver: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Height, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(int)
+	fc.Result = res
+	return ec.marshalNInt2int(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _StoryViewVega_Mark(ctx context.Context, field graphql.CollectedField, obj *models.StoryViewVega) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "StoryViewVega",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   false,
+		IsResolver: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Mark, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(map[string]interface{})
+	fc.Result = res
+	return ec.marshalNMap2map(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _StoryViewVega_Title(ctx context.Context, field graphql.CollectedField, obj *models.StoryViewVega) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "StoryViewVega",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   false,
+		IsResolver: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Title, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(string)
+	fc.Result = res
+	return ec.marshalNString2string(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _StoryViewVega_Width(ctx context.Context, field graphql.CollectedField, obj *models.StoryViewVega) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "StoryViewVega",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   false,
+		IsResolver: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Width, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(int)
+	fc.Result = res
+	return ec.marshalNInt2int(ctx, field.Selections, res)
+}
+
 func (ec *executionContext) _TableColumn_name(ctx context.Context, field graphql.CollectedField, obj *models.TableColumn) (ret graphql.Marshaler) {
 	defer func() {
 		if r := recover(); r != nil {
@@ -7863,6 +8265,13 @@ func (ec *executionContext) _StoryView(ctx context.Context, sel ast.SelectionSet
 			return graphql.Null
 		}
 		return ec._StoryViewPlotly(ctx, sel, obj)
+	case models.StoryViewVega:
+		return ec._StoryViewVega(ctx, sel, &obj)
+	case *models.StoryViewVega:
+		if obj == nil {
+			return graphql.Null
+		}
+		return ec._StoryViewVega(ctx, sel, obj)
 	default:
 		panic(fmt.Errorf("unexpected type %T", obj))
 	}
@@ -9366,6 +9775,117 @@ func (ec *executionContext) _StoryViewPlotly(ctx context.Context, sel ast.Select
 		case "layout":
 			innerFunc := func(ctx context.Context) (res graphql.Marshaler) {
 				return ec._StoryViewPlotly_layout(ctx, field, obj)
+			}
+
+			out.Values[i] = innerFunc(ctx)
+
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
+		default:
+			panic("unknown field " + strconv.Quote(field.Name))
+		}
+	}
+	out.Dispatch()
+	if invalids > 0 {
+		return graphql.Null
+	}
+	return out
+}
+
+var storyViewVegaImplementors = []string{"StoryViewVega", "StoryView"}
+
+func (ec *executionContext) _StoryViewVega(ctx context.Context, sel ast.SelectionSet, obj *models.StoryViewVega) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, storyViewVegaImplementors)
+	out := graphql.NewFieldSet(fields)
+	var invalids uint32
+	for i, field := range fields {
+		switch field.Name {
+		case "__typename":
+			out.Values[i] = graphql.MarshalString("StoryViewVega")
+		case "id":
+			innerFunc := func(ctx context.Context) (res graphql.Marshaler) {
+				return ec._StoryViewVega_id(ctx, field, obj)
+			}
+
+			out.Values[i] = innerFunc(ctx)
+
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
+		case "Schema":
+			innerFunc := func(ctx context.Context) (res graphql.Marshaler) {
+				return ec._StoryViewVega_Schema(ctx, field, obj)
+			}
+
+			out.Values[i] = innerFunc(ctx)
+
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
+		case "Config":
+			innerFunc := func(ctx context.Context) (res graphql.Marshaler) {
+				return ec._StoryViewVega_Config(ctx, field, obj)
+			}
+
+			out.Values[i] = innerFunc(ctx)
+
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
+		case "Data":
+			innerFunc := func(ctx context.Context) (res graphql.Marshaler) {
+				return ec._StoryViewVega_Data(ctx, field, obj)
+			}
+
+			out.Values[i] = innerFunc(ctx)
+
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
+		case "Encoding":
+			innerFunc := func(ctx context.Context) (res graphql.Marshaler) {
+				return ec._StoryViewVega_Encoding(ctx, field, obj)
+			}
+
+			out.Values[i] = innerFunc(ctx)
+
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
+		case "Height":
+			innerFunc := func(ctx context.Context) (res graphql.Marshaler) {
+				return ec._StoryViewVega_Height(ctx, field, obj)
+			}
+
+			out.Values[i] = innerFunc(ctx)
+
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
+		case "Mark":
+			innerFunc := func(ctx context.Context) (res graphql.Marshaler) {
+				return ec._StoryViewVega_Mark(ctx, field, obj)
+			}
+
+			out.Values[i] = innerFunc(ctx)
+
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
+		case "Title":
+			innerFunc := func(ctx context.Context) (res graphql.Marshaler) {
+				return ec._StoryViewVega_Title(ctx, field, obj)
+			}
+
+			out.Values[i] = innerFunc(ctx)
+
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
+		case "Width":
+			innerFunc := func(ctx context.Context) (res graphql.Marshaler) {
+				return ec._StoryViewVega_Width(ctx, field, obj)
 			}
 
 			out.Values[i] = innerFunc(ctx)

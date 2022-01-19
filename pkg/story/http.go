@@ -2,6 +2,7 @@ package story
 
 import (
 	"encoding/json"
+	"fmt"
 	"log"
 	"net/http"
 	"os"
@@ -32,6 +33,7 @@ func (h *Handler) Upload(w http.ResponseWriter, r *http.Request) {
 
 	id, err := h.repo.CreateStoryDraft(r.Context(), story)
 	if err != nil {
+		fmt.Println(err)
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}

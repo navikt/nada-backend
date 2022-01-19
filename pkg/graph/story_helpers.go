@@ -64,6 +64,14 @@ func storyViewFromDB(view *models.DBStoryView) (models.GraphStoryView, error) {
 			return nil, err
 		}
 		ret = sv
+	case "vega":
+		sv := models.StoryViewVega{
+			ID: view.ID,
+		}
+		if err := json.Unmarshal(view.Spec, &sv); err != nil {
+			return nil, err
+		}
+		ret = sv
 	default:
 		return nil, fmt.Errorf("unknown story type %q", view.Type)
 	}
