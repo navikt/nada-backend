@@ -156,7 +156,7 @@ func (q *Queries) GetStory(ctx context.Context, id uuid.UUID) (Story, error) {
 const getStoryFromToken = `-- name: GetStoryFromToken :one
 SELECT id, name, created, last_modified, "group"
 FROM stories
-WHERE (SELECT story_id FROM story_tokens WHERE token = $1)
+WHERE id = (SELECT story_id FROM story_tokens WHERE token = $1)
 `
 
 func (q *Queries) GetStoryFromToken(ctx context.Context, token uuid.UUID) (Story, error) {

@@ -67,4 +67,4 @@ WHERE story_id = @story_id;
 -- name: GetStoryFromToken :one
 SELECT *
 FROM stories
-WHERE (SELECT story_id FROM story_tokens WHERE token = @token);
+WHERE id = (SELECT story_id FROM story_tokens WHERE token = @token);
