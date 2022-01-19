@@ -37,6 +37,7 @@ type BigqueryMetadata struct {
 	LastModified time.Time
 	Created      time.Time
 	Expires      time.Time
+	Description  string
 }
 
 type BigqueryColumn struct {

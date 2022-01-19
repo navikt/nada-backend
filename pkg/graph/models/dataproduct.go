@@ -39,6 +39,7 @@ type BigQuery struct {
 	LastModified  time.Time    `json:"lastModified"`
 	Created       time.Time    `json:"created"`
 	Expires       *time.Time   `json:"expired"`
+	Description   string       `json:"description"`
 }
 
 func (BigQuery) IsDatasource() {}

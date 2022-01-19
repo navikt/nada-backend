@@ -34,7 +34,7 @@ type Bigquerier interface {
 
 type Metadatastorer interface {
 	GetBigqueryDatasources(ctx context.Context) ([]gensql.DatasourceBigquery, error)
-	UpdateBigqueryDatasource(ctx context.Context, id uuid.UUID, schema json.RawMessage, lastModified, expires time.Time) error
+	UpdateBigqueryDatasource(ctx context.Context, id uuid.UUID, schema json.RawMessage, lastModified, expires time.Time, description string) error
 }
 
 func NewDatasetEnricher(bigquery Bigquerier, repo Metadatastorer, log *logrus.Entry) *DatasetEnricher {
@@ -100,7 +100,7 @@ func (d *DatasetEnricher) UpdateMetadata(ctx context.Context, ds gensql.Datasour
 		return fmt.Errorf("marshalling schema: %w", err)
 	}
 
-	if err := d.repo.UpdateBigqueryDatasource(ctx, ds.DataproductID, schemaJSON, metadata.LastModified, metadata.Expires); err != nil {
+	if err := d.repo.UpdateBigqueryDatasource(ctx, ds.DataproductID, schemaJSON, metadata.LastModified, metadata.Expires, metadata.Description); err != nil {
 		return fmt.Errorf("writing metadata to database: %w", err)
 	}
 

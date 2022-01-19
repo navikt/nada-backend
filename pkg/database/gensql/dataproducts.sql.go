@@ -32,7 +32,7 @@ VALUES ($1,
         $7,
         $8,
         $9)
-RETURNING dataproduct_id, project_id, dataset, table_name, schema, last_modified, created, expires, table_type
+RETURNING dataproduct_id, project_id, dataset, table_name, schema, last_modified, created, expires, table_type, description
 `
 
 type CreateBigqueryDatasourceParams struct {
@@ -70,6 +70,7 @@ func (q *Queries) CreateBigqueryDatasource(ctx context.Context, arg CreateBigque
 		&i.Created,
 		&i.Expires,
 		&i.TableType,
+		&i.Description,
 	)
 	return i, err
 }
@@ -319,7 +320,7 @@ func (q *Queries) DeleteDataproductRequester(ctx context.Context, arg DeleteData
 }
 
 const getBigqueryDatasource = `-- name: GetBigqueryDatasource :one
-SELECT dataproduct_id, project_id, dataset, table_name, schema, last_modified, created, expires, table_type
+SELECT dataproduct_id, project_id, dataset, table_name, schema, last_modified, created, expires, table_type, description
 FROM datasource_bigquery
 WHERE dataproduct_id = $1
 `
@@ -337,12 +338,13 @@ func (q *Queries) GetBigqueryDatasource(ctx context.Context, dataproductID uuid.
 		&i.Created,
 		&i.Expires,
 		&i.TableType,
+		&i.Description,
 	)
 	return i, err
 }
 
 const getBigqueryDatasources = `-- name: GetBigqueryDatasources :many
-SELECT dataproduct_id, project_id, dataset, table_name, schema, last_modified, created, expires, table_type
+SELECT dataproduct_id, project_id, dataset, table_name, schema, last_modified, created, expires, table_type, description
 FROM datasource_bigquery
 `
 
@@ -365,6 +367,7 @@ func (q *Queries) GetBigqueryDatasources(ctx context.Context) ([]DatasourceBigqu
 			&i.Created,
 			&i.Expires,
 			&i.TableType,
+			&i.Description,
 		); err != nil {
 			return nil, err
 		}
@@ -624,14 +627,16 @@ const updateBigqueryDatasourceSchema = `-- name: UpdateBigqueryDatasourceSchema 
 UPDATE datasource_bigquery
 SET "schema"        = $1,
     "last_modified" = $2,
-    "expires"       = $3
-WHERE dataproduct_id = $4
+    "expires"       = $3,
+    "description"   = $4
+WHERE dataproduct_id = $5
 `
 
 type UpdateBigqueryDatasourceSchemaParams struct {
 	Schema        pqtype.NullRawMessage
 	LastModified  time.Time
 	Expires       sql.NullTime
+	Description   sql.NullString
 	DataproductID uuid.UUID
 }
 
@@ -640,6 +645,7 @@ func (q *Queries) UpdateBigqueryDatasourceSchema(ctx context.Context, arg Update
 		arg.Schema,
 		arg.LastModified,
 		arg.Expires,
+		arg.Description,
 		arg.DataproductID,
 	)
 	return err

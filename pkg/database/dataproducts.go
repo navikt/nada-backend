@@ -203,10 +203,11 @@ func (r *Repo) GetBigqueryDatasource(ctx context.Context, dataproductID uuid.UUI
 		LastModified:  bq.LastModified,
 		Created:       bq.Created,
 		Expires:       nullTimeToPtr(bq.Expires),
+		Description:   bq.Description.String,
 	}, nil
 }
 
-func (r *Repo) UpdateBigqueryDatasource(ctx context.Context, id uuid.UUID, schema json.RawMessage, lastModified, expires time.Time) error {
+func (r *Repo) UpdateBigqueryDatasource(ctx context.Context, id uuid.UUID, schema json.RawMessage, lastModified, expires time.Time, description string) error {
 	err := r.querier.UpdateBigqueryDatasourceSchema(ctx, gensql.UpdateBigqueryDatasourceSchemaParams{
 		DataproductID: id,
 		Schema: pqtype.NullRawMessage{
@@ -215,6 +216,7 @@ func (r *Repo) UpdateBigqueryDatasource(ctx context.Context, id uuid.UUID, schem
 		},
 		LastModified: lastModified,
 		Expires:      sql.NullTime{Time: expires, Valid: !expires.IsZero()},
+		Description:  sql.NullString{String: description, Valid: true},
 	})
 	if err != nil {
 		return fmt.Errorf("updating datasource_bigquery schema: %w", err)

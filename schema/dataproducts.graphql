@@ -81,6 +81,8 @@ type BigQuery @goModel(model: "github.com/navikt/nada-backend/pkg/graph/models.B
     expires: Time
     "tableType is what type the table is"
     tableType: BigQueryType!
+    "description is the description of the BigQuery table"
+    description: String!
 }
 
 """

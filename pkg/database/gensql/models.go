@@ -36,6 +36,7 @@ const (
 	StoryViewTypeMarkdown StoryViewType = "markdown"
 	StoryViewTypeHeader   StoryViewType = "header"
 	StoryViewTypePlotly   StoryViewType = "plotly"
+	StoryViewTypeVega     StoryViewType = "vega"
 )
 
 func (e *StoryViewType) Scan(src interface{}) error {
@@ -91,6 +92,7 @@ type DatasourceBigquery struct {
 	Created       time.Time
 	Expires       sql.NullTime
 	TableType     string
+	Description   sql.NullString
 }
 
 type MetabaseMetadatum struct {

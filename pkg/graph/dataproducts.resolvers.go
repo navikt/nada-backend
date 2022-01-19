@@ -269,5 +269,7 @@ func (r *Resolver) BigQuery() generated.BigQueryResolver { return &bigQueryResol
 // Dataproduct returns generated.DataproductResolver implementation.
 func (r *Resolver) Dataproduct() generated.DataproductResolver { return &dataproductResolver{r} }
 
-type bigQueryResolver struct{ *Resolver }
-type dataproductResolver struct{ *Resolver }
+type (
+	bigQueryResolver    struct{ *Resolver }
+	dataproductResolver struct{ *Resolver }
+)

@@ -50,6 +50,7 @@ func (c *Bigquery) TableMetadata(ctx context.Context, projectID string, datasetI
 		Created:      m.CreationTime,
 		Expires:      m.ExpirationTime,
 		TableType:    m.Type,
+		Description:  m.Description,
 	}
 
 	return metadata, nil

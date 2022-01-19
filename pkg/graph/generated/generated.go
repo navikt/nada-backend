@@ -64,6 +64,7 @@ type ComplexityRoot struct {
 	BigQuery struct {
 		Created      func(childComplexity int) int
 		Dataset      func(childComplexity int) int
+		Description  func(childComplexity int) int
 		Expires      func(childComplexity int) int
 		LastModified func(childComplexity int) int
 		ProjectID    func(childComplexity int) int
@@ -350,6 +351,13 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 		}
 
 		return e.complexity.BigQuery.Dataset(childComplexity), true
+
+	case "BigQuery.description":
+		if e.complexity.BigQuery.Description == nil {
+			break
+		}
+
+		return e.complexity.BigQuery.Description(childComplexity), true
 
 	case "BigQuery.expires":
 		if e.complexity.BigQuery.Expires == nil {
@@ -1332,6 +1340,8 @@ type BigQuery @goModel(model: "github.com/navikt/nada-backend/pkg/graph/models.B
     expires: Time
     "tableType is what type the table is"
     tableType: BigQueryType!
+    "description is the description of the BigQuery table"
+    description: String!
 }
 
 """
@@ -2910,6 +2920,41 @@ func (ec *executionContext) _BigQuery_tableType(ctx context.Context, field graph
 	res := resTmp.(models.BigQueryType)
 	fc.Result = res
 	return ec.marshalNBigQueryType2githubᚗcomᚋnaviktᚋnadaᚑbackendᚋpkgᚋgraphᚋmodelsᚐBigQueryType(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _BigQuery_description(ctx context.Context, field graphql.CollectedField, obj *models.BigQuery) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "BigQuery",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   false,
+		IsResolver: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Description, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(string)
+	fc.Result = res
+	return ec.marshalNString2string(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _BigQueryTable_name(ctx context.Context, field graphql.CollectedField, obj *models.BigQueryTable) (ret graphql.Marshaler) {
@@ -8446,6 +8491,16 @@ func (ec *executionContext) _BigQuery(ctx context.Context, sel ast.SelectionSet,
 		case "tableType":
 			innerFunc := func(ctx context.Context) (res graphql.Marshaler) {
 				return ec._BigQuery_tableType(ctx, field, obj)
+			}
+
+			out.Values[i] = innerFunc(ctx)
+
+			if out.Values[i] == graphql.Null {
+				atomic.AddUint32(&invalids, 1)
+			}
+		case "description":
+			innerFunc := func(ctx context.Context) (res graphql.Marshaler) {
+				return ec._BigQuery_description(ctx, field, obj)
 			}
 
 			out.Values[i] = innerFunc(ctx)

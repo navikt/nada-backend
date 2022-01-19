@@ -104,7 +104,8 @@ RETURNING *;
 UPDATE datasource_bigquery
 SET "schema"        = @schema,
     "last_modified" = @last_modified,
-    "expires"       = @expires
+    "expires"       = @expires,
+    "description"   = @description
 WHERE dataproduct_id = @dataproduct_id;
 
 -- name: GetDataproductRequesters :many
