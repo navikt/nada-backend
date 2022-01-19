@@ -6,5 +6,6 @@ type MetabaseMetadata struct {
 	DataproductID     uuid.UUID
 	DatabaseID        int
 	PermissionGroupID int
+	CollectionID      int
 	SAEmail           string
 }

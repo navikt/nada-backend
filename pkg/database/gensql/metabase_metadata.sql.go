@@ -15,12 +15,14 @@ INSERT INTO metabase_metadata (
     "dataproduct_id",
     "database_id",
     "permission_group_id",
+    "collection_id",
     "sa_email"
 ) VALUES (
     $1,
     $2,
     $3,
-    $4
+    $4,
+    $5
 )
 `
 
@@ -28,6 +30,7 @@ type CreateMetabaseMetadataParams struct {
 	DataproductID     uuid.UUID
 	DatabaseID        int32
 	PermissionGroupID sql.NullInt32
+	CollectionID      sql.NullInt32
 	SaEmail           string
 }
 
@@ -36,13 +39,25 @@ func (q *Queries) CreateMetabaseMetadata(ctx context.Context, arg CreateMetabase
 		arg.DataproductID,
 		arg.DatabaseID,
 		arg.PermissionGroupID,
+		arg.CollectionID,
 		arg.SaEmail,
 	)
 	return err
 }
 
+const deleteMetabaseMetadata = `-- name: DeleteMetabaseMetadata :exec
+DELETE 
+FROM metabase_metadata
+WHERE "dataproduct_id" = $1
+`
+
+func (q *Queries) DeleteMetabaseMetadata(ctx context.Context, dataproductID uuid.UUID) error {
+	_, err := q.db.ExecContext(ctx, deleteMetabaseMetadata, dataproductID)
+	return err
+}
+
 const getMetabaseMetadata = `-- name: GetMetabaseMetadata :one
-SELECT dataproduct_id, database_id, permission_group_id, sa_email
+SELECT dataproduct_id, database_id, permission_group_id, sa_email, collection_id
 FROM metabase_metadata
 WHERE "dataproduct_id" = $1
 `
@@ -55,6 +70,7 @@ func (q *Queries) GetMetabaseMetadata(ctx context.Context, dataproductID uuid.UU
 		&i.DatabaseID,
 		&i.PermissionGroupID,
 		&i.SaEmail,
+		&i.CollectionID,
 	)
 	return i, err
 }

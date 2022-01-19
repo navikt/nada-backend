@@ -372,6 +372,28 @@ func (c *Client) DeletePermissionGroup(ctx context.Context, groupID int) error {
 	return c.request(ctx, http.MethodDelete, fmt.Sprintf("/permissions/group/%v", groupID), nil, nil)
 }
 
+func (c *Client) ArchiveCollection(ctx context.Context, colID int) error {
+	var collection struct {
+		Name        string `json:"name"`
+		Description string `json:"description"`
+		Color       string `json:"color"`
+		ID          int    `json:"id"`
+		Archived    bool   `json:"archived"`
+	}
+
+	if err := c.request(ctx, http.MethodGet, "/collection/"+strconv.Itoa(colID), nil, &collection); err != nil {
+		return err
+	}
+
+	collection.Archived = true
+
+	if err := c.request(ctx, http.MethodPut, "/collection/"+strconv.Itoa(colID), collection, nil); err != nil {
+		return err
+	}
+
+	return nil
+}
+
 func (c *Client) CreateCollection(ctx context.Context, name string) (int, error) {
 	collection := struct {
 		Name        string `json:"name"`

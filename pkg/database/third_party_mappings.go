@@ -50,8 +50,29 @@ func (r *Repo) MapDataproduct(ctx context.Context, dataproductID uuid.UUID, serv
 	for _, s := range services {
 		svcs = append(svcs, string(s))
 	}
-	return r.querier.MapDataproduct(ctx, gensql.MapDataproductParams{
+
+	err := r.querier.MapDataproduct(ctx, gensql.MapDataproductParams{
 		DataproductID: dataproductID,
 		Services:      svcs,
 	})
+	if err != nil {
+		return err
+	}
+
+	if contains(svcs, models.MappingServiceMetabase) {
+		r.events.TriggerDataproductAddMetabaseMapping(ctx, dataproductID)
+	} else {
+		r.events.TriggerDataproductRemoveMetabaseMapping(ctx, dataproductID)
+	}
+
+	return nil
+}
+
+func contains(svcList []string, svc models.MappingService) bool {
+	for _, s := range svcList {
+		if s == string(svc) {
+			return true
+		}
+	}
+	return false
 }

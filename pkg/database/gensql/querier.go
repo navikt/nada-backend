@@ -23,6 +23,7 @@ type Querier interface {
 	DataproductsByMetabase(ctx context.Context, arg DataproductsByMetabaseParams) ([]Dataproduct, error)
 	DeleteDataproduct(ctx context.Context, id uuid.UUID) error
 	DeleteDataproductRequester(ctx context.Context, arg DeleteDataproductRequesterParams) error
+	DeleteMetabaseMetadata(ctx context.Context, dataproductID uuid.UUID) error
 	DeleteSession(ctx context.Context, token string) error
 	DeleteStory(ctx context.Context, id uuid.UUID) error
 	DeleteStoryDraft(ctx context.Context, id uuid.UUID) error

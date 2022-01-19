@@ -13,6 +13,7 @@ import (
 
 	_ "github.com/lib/pq"
 	"github.com/navikt/nada-backend/pkg/auth"
+	"github.com/navikt/nada-backend/pkg/event"
 	"github.com/navikt/nada-backend/pkg/graph/models"
 	"github.com/ory/dockertest/v3"
 	"github.com/sirupsen/logrus"
@@ -57,7 +58,7 @@ func TestMain(m *testing.M) {
 }
 
 func TestRepo(t *testing.T) {
-	repo, err := New(dbString, logrus.NewEntry(logrus.StandardLogger()))
+	repo, err := New(dbString, &event.Manager{}, logrus.NewEntry(logrus.StandardLogger()))
 	if err != nil {
 		t.Fatal(err)
 	}

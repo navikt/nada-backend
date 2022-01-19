@@ -18,6 +18,7 @@ import (
 	"github.com/navikt/nada-backend/pkg/bigquery"
 	"github.com/navikt/nada-backend/pkg/database"
 	"github.com/navikt/nada-backend/pkg/database/gensql"
+	"github.com/navikt/nada-backend/pkg/event"
 	"github.com/navikt/nada-backend/pkg/graph"
 	"github.com/navikt/nada-backend/pkg/teamkatalogen"
 	"github.com/ory/dockertest/v3"
@@ -57,7 +58,7 @@ func TestMain(m *testing.M) {
 		log.Fatalf("Could not connect to docker: %s", err)
 	}
 
-	repo, err = database.New(dbString, logrus.NewEntry(logrus.StandardLogger()))
+	repo, err = database.New(dbString, &event.Manager{}, logrus.NewEntry(logrus.StandardLogger()))
 	if err != nil {
 		panic(err)
 	}

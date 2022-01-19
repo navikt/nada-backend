@@ -17,6 +17,7 @@ import (
 	"github.com/navikt/nada-backend/pkg/bigquery"
 	"github.com/navikt/nada-backend/pkg/database"
 	"github.com/navikt/nada-backend/pkg/database/gensql"
+	"github.com/navikt/nada-backend/pkg/event"
 	"github.com/navikt/nada-backend/pkg/graph"
 	"github.com/navikt/nada-backend/pkg/metabase"
 	"github.com/navikt/nada-backend/pkg/teamkatalogen"
@@ -72,8 +73,9 @@ func main() {
 	defer cancel()
 
 	log := newLogger()
+	eventMgr := &event.Manager{}
 
-	repo, err := database.New(cfg.DBConnectionDSN, log.WithField("subsystem", "repo"))
+	repo, err := database.New(cfg.DBConnectionDSN, eventMgr, log.WithField("subsystem", "repo"))
 	if err != nil {
 		log.WithError(err).Fatal("setting up database")
 	}
@@ -102,7 +104,7 @@ func main() {
 		accessMgr = access.NewBigquery()
 	}
 
-	if err := runMetabase(ctx, log.WithField("subsystem", "metabase"), cfg, repo, accessMgr); err != nil {
+	if err := runMetabase(ctx, log.WithField("subsystem", "metabase"), cfg, repo, accessMgr, eventMgr); err != nil {
 		log.WithError(err).Fatal("running metabase")
 	}
 
@@ -170,7 +172,7 @@ func getEnv(key, fallback string) string {
 	return fallback
 }
 
-func runMetabase(ctx context.Context, log *logrus.Entry, cfg Config, repo *database.Repo, accessMgr graph.AccessManager) error {
+func runMetabase(ctx context.Context, log *logrus.Entry, cfg Config, repo *database.Repo, accessMgr graph.AccessManager, eventMgr *event.Manager) error {
 	if cfg.MetabaseServiceAccountFile == "" {
 		log.Info("metabase sync disabled")
 		return nil
@@ -203,7 +205,7 @@ func runMetabase(ctx context.Context, log *logrus.Entry, cfg Config, repo *datab
 		return err
 	}
 
-	metabase := metabase.New(repo, client, accessMgr, string(sa), metabaseSA.ClientEmail, promErrs, iamService, crmService, log.WithField("subsystem", "metabase"))
+	metabase := metabase.New(repo, client, accessMgr, eventMgr, string(sa), metabaseSA.ClientEmail, promErrs, iamService, crmService, log.WithField("subsystem", "metabase"))
 	go metabase.Run(ctx, MetabaseUpdateFrequency)
 	return nil
 }
