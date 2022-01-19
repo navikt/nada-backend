@@ -1024,28 +1024,28 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.StoryViewPlotly.Layout(childComplexity), true
 
-	case "StoryViewVega.Config":
+	case "StoryViewVega.config":
 		if e.complexity.StoryViewVega.Config == nil {
 			break
 		}
 
 		return e.complexity.StoryViewVega.Config(childComplexity), true
 
-	case "StoryViewVega.Data":
+	case "StoryViewVega.data":
 		if e.complexity.StoryViewVega.Data == nil {
 			break
 		}
 
 		return e.complexity.StoryViewVega.Data(childComplexity), true
 
-	case "StoryViewVega.Encoding":
+	case "StoryViewVega.encoding":
 		if e.complexity.StoryViewVega.Encoding == nil {
 			break
 		}
 
 		return e.complexity.StoryViewVega.Encoding(childComplexity), true
 
-	case "StoryViewVega.Height":
+	case "StoryViewVega.height":
 		if e.complexity.StoryViewVega.Height == nil {
 			break
 		}
@@ -1059,28 +1059,28 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.StoryViewVega.ID(childComplexity), true
 
-	case "StoryViewVega.Mark":
+	case "StoryViewVega.mark":
 		if e.complexity.StoryViewVega.Mark == nil {
 			break
 		}
 
 		return e.complexity.StoryViewVega.Mark(childComplexity), true
 
-	case "StoryViewVega.Schema":
+	case "StoryViewVega.schema":
 		if e.complexity.StoryViewVega.Schema == nil {
 			break
 		}
 
 		return e.complexity.StoryViewVega.Schema(childComplexity), true
 
-	case "StoryViewVega.Title":
+	case "StoryViewVega.title":
 		if e.complexity.StoryViewVega.Title == nil {
 			break
 		}
 
 		return e.complexity.StoryViewVega.Title(childComplexity), true
 
-	case "StoryViewVega.Width":
+	case "StoryViewVega.width":
 		if e.complexity.StoryViewVega.Width == nil {
 			break
 		}
@@ -1769,14 +1769,14 @@ type StoryViewPlotly implements StoryView @goModel(model: "github.com/navikt/nad
 
 type StoryViewVega implements StoryView @goModel(model: "github.com/navikt/nada-backend/pkg/graph/models.StoryViewVega") {
 	id: ID!
-	Schema: String!
-	Config: Map!
-	Data: Map!
-	Encoding: Map!
-	Height: Int!
-	Mark: Map!
-	Title: String!
-	Width: Int!
+	schema: String!
+	config: Map!
+	data: Map!
+	encoding: Map!
+	height: Int!
+	mark: Map!
+	title: String!
+	width: Int!
 }
 
 type StoryToken @goModel(model: "github.com/navikt/nada-backend/pkg/graph/models.StoryToken") {
@@ -6040,7 +6040,7 @@ func (ec *executionContext) _StoryViewVega_id(ctx context.Context, field graphql
 	return ec.marshalNID2githubᚗcomᚋgoogleᚋuuidᚐUUID(ctx, field.Selections, res)
 }
 
-func (ec *executionContext) _StoryViewVega_Schema(ctx context.Context, field graphql.CollectedField, obj *models.StoryViewVega) (ret graphql.Marshaler) {
+func (ec *executionContext) _StoryViewVega_schema(ctx context.Context, field graphql.CollectedField, obj *models.StoryViewVega) (ret graphql.Marshaler) {
 	defer func() {
 		if r := recover(); r != nil {
 			ec.Error(ctx, ec.Recover(ctx, r))
@@ -6075,7 +6075,7 @@ func (ec *executionContext) _StoryViewVega_Schema(ctx context.Context, field gra
 	return ec.marshalNString2string(ctx, field.Selections, res)
 }
 
-func (ec *executionContext) _StoryViewVega_Config(ctx context.Context, field graphql.CollectedField, obj *models.StoryViewVega) (ret graphql.Marshaler) {
+func (ec *executionContext) _StoryViewVega_config(ctx context.Context, field graphql.CollectedField, obj *models.StoryViewVega) (ret graphql.Marshaler) {
 	defer func() {
 		if r := recover(); r != nil {
 			ec.Error(ctx, ec.Recover(ctx, r))
@@ -6110,7 +6110,7 @@ func (ec *executionContext) _StoryViewVega_Config(ctx context.Context, field gra
 	return ec.marshalNMap2map(ctx, field.Selections, res)
 }
 
-func (ec *executionContext) _StoryViewVega_Data(ctx context.Context, field graphql.CollectedField, obj *models.StoryViewVega) (ret graphql.Marshaler) {
+func (ec *executionContext) _StoryViewVega_data(ctx context.Context, field graphql.CollectedField, obj *models.StoryViewVega) (ret graphql.Marshaler) {
 	defer func() {
 		if r := recover(); r != nil {
 			ec.Error(ctx, ec.Recover(ctx, r))
@@ -6145,7 +6145,7 @@ func (ec *executionContext) _StoryViewVega_Data(ctx context.Context, field graph
 	return ec.marshalNMap2map(ctx, field.Selections, res)
 }
 
-func (ec *executionContext) _StoryViewVega_Encoding(ctx context.Context, field graphql.CollectedField, obj *models.StoryViewVega) (ret graphql.Marshaler) {
+func (ec *executionContext) _StoryViewVega_encoding(ctx context.Context, field graphql.CollectedField, obj *models.StoryViewVega) (ret graphql.Marshaler) {
 	defer func() {
 		if r := recover(); r != nil {
 			ec.Error(ctx, ec.Recover(ctx, r))
@@ -6180,7 +6180,7 @@ func (ec *executionContext) _StoryViewVega_Encoding(ctx context.Context, field g
 	return ec.marshalNMap2map(ctx, field.Selections, res)
 }
 
-func (ec *executionContext) _StoryViewVega_Height(ctx context.Context, field graphql.CollectedField, obj *models.StoryViewVega) (ret graphql.Marshaler) {
+func (ec *executionContext) _StoryViewVega_height(ctx context.Context, field graphql.CollectedField, obj *models.StoryViewVega) (ret graphql.Marshaler) {
 	defer func() {
 		if r := recover(); r != nil {
 			ec.Error(ctx, ec.Recover(ctx, r))
@@ -6215,7 +6215,7 @@ func (ec *executionContext) _StoryViewVega_Height(ctx context.Context, field gra
 	return ec.marshalNInt2int(ctx, field.Selections, res)
 }
 
-func (ec *executionContext) _StoryViewVega_Mark(ctx context.Context, field graphql.CollectedField, obj *models.StoryViewVega) (ret graphql.Marshaler) {
+func (ec *executionContext) _StoryViewVega_mark(ctx context.Context, field graphql.CollectedField, obj *models.StoryViewVega) (ret graphql.Marshaler) {
 	defer func() {
 		if r := recover(); r != nil {
 			ec.Error(ctx, ec.Recover(ctx, r))
@@ -6250,7 +6250,7 @@ func (ec *executionContext) _StoryViewVega_Mark(ctx context.Context, field graph
 	return ec.marshalNMap2map(ctx, field.Selections, res)
 }
 
-func (ec *executionContext) _StoryViewVega_Title(ctx context.Context, field graphql.CollectedField, obj *models.StoryViewVega) (ret graphql.Marshaler) {
+func (ec *executionContext) _StoryViewVega_title(ctx context.Context, field graphql.CollectedField, obj *models.StoryViewVega) (ret graphql.Marshaler) {
 	defer func() {
 		if r := recover(); r != nil {
 			ec.Error(ctx, ec.Recover(ctx, r))
@@ -6285,7 +6285,7 @@ func (ec *executionContext) _StoryViewVega_Title(ctx context.Context, field grap
 	return ec.marshalNString2string(ctx, field.Selections, res)
 }
 
-func (ec *executionContext) _StoryViewVega_Width(ctx context.Context, field graphql.CollectedField, obj *models.StoryViewVega) (ret graphql.Marshaler) {
+func (ec *executionContext) _StoryViewVega_width(ctx context.Context, field graphql.CollectedField, obj *models.StoryViewVega) (ret graphql.Marshaler) {
 	defer func() {
 		if r := recover(); r != nil {
 			ec.Error(ctx, ec.Recover(ctx, r))
@@ -9813,9 +9813,9 @@ func (ec *executionContext) _StoryViewVega(ctx context.Context, sel ast.Selectio
 			if out.Values[i] == graphql.Null {
 				invalids++
 			}
-		case "Schema":
+		case "schema":
 			innerFunc := func(ctx context.Context) (res graphql.Marshaler) {
-				return ec._StoryViewVega_Schema(ctx, field, obj)
+				return ec._StoryViewVega_schema(ctx, field, obj)
 			}
 
 			out.Values[i] = innerFunc(ctx)
@@ -9823,9 +9823,9 @@ func (ec *executionContext) _StoryViewVega(ctx context.Context, sel ast.Selectio
 			if out.Values[i] == graphql.Null {
 				invalids++
 			}
-		case "Config":
+		case "config":
 			innerFunc := func(ctx context.Context) (res graphql.Marshaler) {
-				return ec._StoryViewVega_Config(ctx, field, obj)
+				return ec._StoryViewVega_config(ctx, field, obj)
 			}
 
 			out.Values[i] = innerFunc(ctx)
@@ -9833,9 +9833,9 @@ func (ec *executionContext) _StoryViewVega(ctx context.Context, sel ast.Selectio
 			if out.Values[i] == graphql.Null {
 				invalids++
 			}
-		case "Data":
+		case "data":
 			innerFunc := func(ctx context.Context) (res graphql.Marshaler) {
-				return ec._StoryViewVega_Data(ctx, field, obj)
+				return ec._StoryViewVega_data(ctx, field, obj)
 			}
 
 			out.Values[i] = innerFunc(ctx)
@@ -9843,9 +9843,9 @@ func (ec *executionContext) _StoryViewVega(ctx context.Context, sel ast.Selectio
 			if out.Values[i] == graphql.Null {
 				invalids++
 			}
-		case "Encoding":
+		case "encoding":
 			innerFunc := func(ctx context.Context) (res graphql.Marshaler) {
-				return ec._StoryViewVega_Encoding(ctx, field, obj)
+				return ec._StoryViewVega_encoding(ctx, field, obj)
 			}
 
 			out.Values[i] = innerFunc(ctx)
@@ -9853,9 +9853,9 @@ func (ec *executionContext) _StoryViewVega(ctx context.Context, sel ast.Selectio
 			if out.Values[i] == graphql.Null {
 				invalids++
 			}
-		case "Height":
+		case "height":
 			innerFunc := func(ctx context.Context) (res graphql.Marshaler) {
-				return ec._StoryViewVega_Height(ctx, field, obj)
+				return ec._StoryViewVega_height(ctx, field, obj)
 			}
 
 			out.Values[i] = innerFunc(ctx)
@@ -9863,9 +9863,9 @@ func (ec *executionContext) _StoryViewVega(ctx context.Context, sel ast.Selectio
 			if out.Values[i] == graphql.Null {
 				invalids++
 			}
-		case "Mark":
+		case "mark":
 			innerFunc := func(ctx context.Context) (res graphql.Marshaler) {
-				return ec._StoryViewVega_Mark(ctx, field, obj)
+				return ec._StoryViewVega_mark(ctx, field, obj)
 			}
 
 			out.Values[i] = innerFunc(ctx)
@@ -9873,9 +9873,9 @@ func (ec *executionContext) _StoryViewVega(ctx context.Context, sel ast.Selectio
 			if out.Values[i] == graphql.Null {
 				invalids++
 			}
-		case "Title":
+		case "title":
 			innerFunc := func(ctx context.Context) (res graphql.Marshaler) {
-				return ec._StoryViewVega_Title(ctx, field, obj)
+				return ec._StoryViewVega_title(ctx, field, obj)
 			}
 
 			out.Values[i] = innerFunc(ctx)
@@ -9883,9 +9883,9 @@ func (ec *executionContext) _StoryViewVega(ctx context.Context, sel ast.Selectio
 			if out.Values[i] == graphql.Null {
 				invalids++
 			}
-		case "Width":
+		case "width":
 			innerFunc := func(ctx context.Context) (res graphql.Marshaler) {
-				return ec._StoryViewVega_Width(ctx, field, obj)
+				return ec._StoryViewVega_width(ctx, field, obj)
 			}
 
 			out.Values[i] = innerFunc(ctx)
