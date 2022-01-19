@@ -97,11 +97,7 @@ func (r *Repo) GrantAccessToDataproduct(ctx context.Context, dataproductID uuid.
 		return nil, err
 	}
 
-	if subject == "group:all-users@nav.no" {
-		r.events.TriggerDataproductGrantAllUsers(ctx, dataproductID)
-	} else {
-		r.events.TriggerDataproductGrant(ctx, dataproductID, subject)
-	}
+	r.events.TriggerDataproductGrant(ctx, dataproductID, subject)
 
 	return accessFromSQL(access), nil
 }
@@ -137,11 +133,8 @@ func (r *Repo) RevokeAccessToDataproduct(ctx context.Context, id uuid.UUID) erro
 	if err != nil {
 		return err
 	}
-	if access.Subject == "group:all-users@nav.no" {
-		r.events.TriggerDataproductRevokeAllUsers(ctx, access.DataproductID)
-	} else {
-		r.events.TriggerDataproductRevoke(ctx, access.DataproductID, access.Subject)
-	}
+
+	r.events.TriggerDataproductRevoke(ctx, access.DataproductID, access.Subject)
 
 	return nil
 }

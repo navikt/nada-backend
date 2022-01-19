@@ -2,61 +2,24 @@ package event
 
 import (
 	"context"
-	"fmt"
 	"sync"
 
 	"github.com/google/uuid"
 )
 
 type (
-	DataproductListenerGrantAccessAllUsers   func(context.Context, uuid.UUID) error
-	DataproductListenerRevokeAccessAllUsers  func(context.Context, uuid.UUID) error
-	DataproductListenerGrantAccess           func(context.Context, uuid.UUID, string) error
-	DataproductListenerRevokeAccess          func(context.Context, uuid.UUID, string) error
-	DataproductListenerAddMetabaseMapping    func(context.Context, uuid.UUID) error
-	DataproductListenerRemoveMetabaseMapping func(context.Context, uuid.UUID) error
+	DataproductListenerGrantAccess           func(ctx context.Context, dpID uuid.UUID, subject string)
+	DataproductListenerRevokeAccess          func(ctx context.Context, dpID uuid.UUID, subject string)
+	DataproductListenerAddMetabaseMapping    func(ctx context.Context, dpID uuid.UUID)
+	DataproductListenerRemoveMetabaseMapping func(ctx context.Context, dpID uuid.UUID)
 )
 
 type Manager struct {
 	lock                                              sync.RWMutex
-	dataproductGrantAllUsersAccessListeners           []DataproductListenerGrantAccessAllUsers
-	dataproductRevokeAllUsersAccessListeners          []DataproductListenerRevokeAccessAllUsers
 	dataproductGrantAccessListeners                   []DataproductListenerGrantAccess
 	dataproductRevokeAccessListeners                  []DataproductListenerRevokeAccess
 	dataproductListenerAddMetabaseMappingListeners    []DataproductListenerAddMetabaseMapping
 	dataproductListenerRemoveMetabaseMappingListeners []DataproductListenerRemoveMetabaseMapping
-}
-
-func (m *Manager) ListenForDataproductGrantAllUsers(fn DataproductListenerGrantAccessAllUsers) {
-	m.lock.Lock()
-	defer m.lock.Unlock()
-	m.dataproductGrantAllUsersAccessListeners = append(m.dataproductGrantAllUsersAccessListeners, fn)
-}
-
-func (m *Manager) TriggerDataproductGrantAllUsers(ctx context.Context, dpID uuid.UUID) {
-	m.lock.RLock()
-	defer m.lock.RUnlock()
-	for _, fn := range m.dataproductGrantAllUsersAccessListeners {
-		if err := fn(ctx, dpID); err != nil {
-			fmt.Println(err)
-		}
-	}
-}
-
-func (m *Manager) ListenForDataproductRevokeAllUsers(fn DataproductListenerRevokeAccessAllUsers) {
-	m.lock.Lock()
-	defer m.lock.Unlock()
-	m.dataproductRevokeAllUsersAccessListeners = append(m.dataproductRevokeAllUsersAccessListeners, fn)
-}
-
-func (m *Manager) TriggerDataproductRevokeAllUsers(ctx context.Context, dpID uuid.UUID) {
-	m.lock.RLock()
-	defer m.lock.RUnlock()
-	for _, fn := range m.dataproductRevokeAllUsersAccessListeners {
-		if err := fn(ctx, dpID); err != nil {
-			fmt.Println(err)
-		}
-	}
 }
 
 func (m *Manager) ListenForDataproductGrant(fn DataproductListenerGrantAccess) {
@@ -69,9 +32,7 @@ func (m *Manager) TriggerDataproductGrant(ctx context.Context, dpID uuid.UUID, s
 	m.lock.RLock()
 	defer m.lock.RUnlock()
 	for _, fn := range m.dataproductGrantAccessListeners {
-		if err := fn(ctx, dpID, subject); err != nil {
-			fmt.Println(err)
-		}
+		fn(ctx, dpID, subject)
 	}
 }
 
@@ -85,9 +46,7 @@ func (m *Manager) TriggerDataproductRevoke(ctx context.Context, dpID uuid.UUID, 
 	m.lock.RLock()
 	defer m.lock.RUnlock()
 	for _, fn := range m.dataproductRevokeAccessListeners {
-		if err := fn(ctx, dpID, subject); err != nil {
-			fmt.Println(err)
-		}
+		fn(ctx, dpID, subject)
 	}
 }
 
@@ -101,9 +60,7 @@ func (m *Manager) TriggerDataproductAddMetabaseMapping(ctx context.Context, dpID
 	m.lock.RLock()
 	defer m.lock.RUnlock()
 	for _, fn := range m.dataproductListenerAddMetabaseMappingListeners {
-		if err := fn(ctx, dpID); err != nil {
-			fmt.Println(err)
-		}
+		fn(ctx, dpID)
 	}
 }
 
@@ -117,8 +74,6 @@ func (m *Manager) TriggerDataproductRemoveMetabaseMapping(ctx context.Context, d
 	m.lock.RLock()
 	defer m.lock.RUnlock()
 	for _, fn := range m.dataproductListenerRemoveMetabaseMappingListeners {
-		if err := fn(ctx, dpID); err != nil {
-			fmt.Println(err)
-		}
+		fn(ctx, dpID)
 	}
 }
