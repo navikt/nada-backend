@@ -3,7 +3,6 @@ package graph
 import (
 	"context"
 	"fmt"
-
 	"github.com/99designs/gqlgen-contrib/prometheus"
 	"github.com/99designs/gqlgen/graphql"
 	"github.com/99designs/gqlgen/graphql/handler"
@@ -32,22 +31,28 @@ type Teamkatalogen interface {
 	Search(ctx context.Context, query string) ([]*models.TeamkatalogenResult, error)
 }
 
+type Slack interface {
+	NewDataProdukt(dp *models.Dataproduct) error
+}
+
 type Resolver struct {
 	repo          *database.Repo
 	bigquery      Bigquery
 	gcpProjects   *auth.TeamProjectsUpdater
 	accessMgr     AccessManager
 	teamkatalogen Teamkatalogen
+	slack         Slack
 	log           *logrus.Entry
 }
 
-func New(repo *database.Repo, gcp Bigquery, gcpProjects *auth.TeamProjectsUpdater, accessMgr AccessManager, tk Teamkatalogen, log *logrus.Entry) *handler.Server {
+func New(repo *database.Repo, gcp Bigquery, gcpProjects *auth.TeamProjectsUpdater, accessMgr AccessManager, tk Teamkatalogen, slack Slack, log *logrus.Entry) *handler.Server {
 	resolver := &Resolver{
 		repo:          repo,
 		bigquery:      gcp,
 		gcpProjects:   gcpProjects,
 		accessMgr:     accessMgr,
 		teamkatalogen: tk,
+		slack:         slack,
 		log:           log,
 	}
 

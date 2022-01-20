@@ -20,6 +20,7 @@ import (
 	"github.com/navikt/nada-backend/pkg/event"
 	"github.com/navikt/nada-backend/pkg/graph"
 	"github.com/navikt/nada-backend/pkg/metabase"
+	"github.com/navikt/nada-backend/pkg/slack"
 	"github.com/navikt/nada-backend/pkg/teamkatalogen"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/sirupsen/logrus"
@@ -64,6 +65,7 @@ func init() {
 	flag.StringVar(&cfg.MetabaseUsername, "metabase-username", os.Getenv("METABASE_USERNAME"), "Username for metabase api")
 	flag.StringVar(&cfg.MetabasePassword, "metabase-password", os.Getenv("METABASE_PASSWORD"), "Password for metabase api")
 	flag.StringVar(&cfg.MetabaseAPI, "metabase-api", os.Getenv("METABASE_API"), "URL to Metabase API, including scheme and `/api`")
+	flag.StringVar(&cfg.SlackUrl, "slack-url", os.Getenv("SLACK_URL"), "Url for slack webhook")
 }
 
 func main() {
@@ -73,6 +75,7 @@ func main() {
 	defer cancel()
 
 	log := newLogger()
+	slackClient := newSlackClient(log)
 	eventMgr := &event.Manager{}
 
 	repo, err := database.New(cfg.DBConnectionDSN, eventMgr, log.WithField("subsystem", "repo"))
@@ -123,7 +126,7 @@ func main() {
 	}
 
 	log.Info("Listening on :8080")
-	gqlServer := graph.New(repo, gcp, teamProjectsMapping, accessMgr, teamcatalogue, log.WithField("subsystem", "graph"))
+	gqlServer := graph.New(repo, gcp, teamProjectsMapping, accessMgr, teamcatalogue, slackClient, log.WithField("subsystem", "graph"))
 	srv := api.New(repo, httpAPI, authenticatorMiddleware, gqlServer, prom(promErrs, repo.Metrics()), log)
 
 	server := http.Server{
@@ -163,6 +166,10 @@ func newLogger() *logrus.Logger {
 	}
 	log.SetLevel(l)
 	return log
+}
+
+func newSlackClient(log *logrus.Logger) *slack.SlackClient {
+	return slack.NewSlackClient(log, cfg.SlackUrl, cfg.Hostname)
 }
 
 func getEnv(key, fallback string) string {
