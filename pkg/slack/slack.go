@@ -20,7 +20,7 @@ func NewSlackClient(log *logrus.Logger, webhookurl string, datakatalogurl string
 		datakatalogurl: datakatalogurl,
 	}
 }
-func (s SlackClient) NewDataProdukt(dp *models.Dataproduct) error {
+func (s SlackClient) NewDataproduct(dp *models.Dataproduct) error {
 	message :=
 		"Noen har lagd et dataprodukt \nNavn: " + dp.Name + ", beskrivelse: " + *dp.Description + "\nLink: " + s.datakatalogurl + "/dataproducts/" + dp.ID.String()
 
