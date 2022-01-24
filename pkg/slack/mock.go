@@ -15,7 +15,7 @@ func NewMockSlackClient(log *logrus.Logger) *MockSlackClient {
 	}
 }
 
-func (m MockSlackClient) NewDataProduct(dp *models.Dataproduct) error {
+func (m MockSlackClient) NewDataproduct(dp *models.Dataproduct) error {
 	m.log.Info("NewDataProduct")
 	return nil
 }

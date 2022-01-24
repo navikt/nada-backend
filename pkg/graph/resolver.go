@@ -32,7 +32,7 @@ type Teamkatalogen interface {
 }
 
 type Slack interface {
-	NewDataProduct(dp *models.Dataproduct) error
+	NewDataproduct(dp *models.Dataproduct) error
 }
 
 type Resolver struct {

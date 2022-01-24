@@ -111,7 +111,7 @@ func (r *mutationResolver) CreateDataproduct(ctx context.Context, input models.N
 	if err != nil {
 		return nil, err
 	}
-	err = r.slack.NewDataProduct(dp)
+	err = r.slack.NewDataproduct(dp)
 	if err != nil {
 		log.Errorf("failed to send slack notification: %v", err)
 	}
