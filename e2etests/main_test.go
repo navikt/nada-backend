@@ -20,6 +20,7 @@ import (
 	"github.com/navikt/nada-backend/pkg/database/gensql"
 	"github.com/navikt/nada-backend/pkg/event"
 	"github.com/navikt/nada-backend/pkg/graph"
+	"github.com/navikt/nada-backend/pkg/slack"
 	"github.com/navikt/nada-backend/pkg/teamkatalogen"
 	"github.com/ory/dockertest/v3"
 	"github.com/prometheus/client_golang/prometheus"
@@ -72,6 +73,7 @@ func TestMain(m *testing.M) {
 		&auth.MockTeamProjectsUpdater,
 		access.NewNoop(),
 		teamkatalogen.NewMock(),
+		slack.NewMockSlackClient(logrus.StandardLogger()),
 		logrus.StandardLogger().WithField("subsystem", "graphql"),
 	)
 	srv := api.New(

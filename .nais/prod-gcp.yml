@@ -30,6 +30,7 @@ spec:
     - secret: github-read-token
     - secret: google-oauth
     - secret: metabase-sa
+    - secret: slack
   filesFrom:
     - secret: google-credentials
       mountPath: /var/run/secrets/google-credentials

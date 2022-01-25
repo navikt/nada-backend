@@ -8,6 +8,7 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
+	log "github.com/sirupsen/logrus"
 	"os"
 	"strings"
 	"time"
@@ -110,7 +111,10 @@ func (r *mutationResolver) CreateDataproduct(ctx context.Context, input models.N
 	if err != nil {
 		return nil, err
 	}
-
+	err = r.slack.NewDataproduct(dp)
+	if err != nil {
+		log.Errorf("failed to send slack notification: %v", err)
+	}
 	return dp, nil
 }
 
