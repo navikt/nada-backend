@@ -13,13 +13,14 @@ require (
 	github.com/pressly/goose/v3 v3.1.0
 	github.com/prometheus/client_golang v1.10.0
 	github.com/sirupsen/logrus v1.8.1
+	github.com/slack-go/slack v0.10.1
 	github.com/spf13/pflag v1.0.5
 	golang.org/x/oauth2 v0.0.0-20210819190943-2bc19b11175f
 )
 
 require (
 	cloud.google.com/go v0.94.1
-	github.com/99designs/gqlgen v0.15.1
+	github.com/99designs/gqlgen v0.16.0
 	github.com/Azure/go-ansiterm v0.0.0-20170929234023-d6e3b3328b78 // indirect
 	github.com/Microsoft/go-winio v0.5.0 // indirect
 	github.com/Nvveen/Gotty v0.0.0-20120604004816-cd527374f1e5 // indirect
@@ -78,6 +79,5 @@ require (
 
 require (
 	cloud.google.com/go/datacatalog v1.0.0 // indirect
-	github.com/slack-go/slack v0.10.1 // indirect
 	google.golang.org/genproto v0.0.0-20210921142501-181ce0d877f6 // indirect
 )

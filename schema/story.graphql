@@ -30,14 +30,7 @@ type StoryViewPlotly implements StoryView @goModel(model: "github.com/navikt/nad
 
 type StoryViewVega implements StoryView @goModel(model: "github.com/navikt/nada-backend/pkg/graph/models.StoryViewVega") {
 	id: ID!
-	schema: String!
-	config: Map!
-	data: Map!
-	encoding: Map!
-	height: Int!
-	mark: Map!
-	title: String!
-	width: Int!
+	spec: Map!
 }
 
 type StoryToken @goModel(model: "github.com/navikt/nada-backend/pkg/graph/models.StoryToken") {

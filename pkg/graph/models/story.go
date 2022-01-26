@@ -61,15 +61,8 @@ type StoryViewPlotly struct {
 func (StoryViewPlotly) IsStoryView() {}
 
 type StoryViewVega struct {
-	ID       uuid.UUID              `json:"id"`
-	Schema   string                 `json:"$schema"`
-	Config   map[string]interface{} `json:"config"`
-	Data     map[string]interface{} `json:"data"`
-	Encoding map[string]interface{} `json:"encoding"`
-	Height   int                    `json:"height"`
-	Mark     map[string]interface{} `json:"mark"`
-	Title    string                 `json:"title"`
-	Width    int                    `json:"width"`
+	ID   uuid.UUID              `json:"id"`
+	Spec map[string]interface{} `json:"spec"`
 }
 
 func (StoryViewVega) IsStoryView() {}

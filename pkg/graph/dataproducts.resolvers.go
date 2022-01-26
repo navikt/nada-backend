@@ -8,7 +8,6 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
-	log "github.com/sirupsen/logrus"
 	"os"
 	"strings"
 	"time"
@@ -18,6 +17,7 @@ import (
 	"github.com/navikt/nada-backend/pkg/auth"
 	"github.com/navikt/nada-backend/pkg/graph/generated"
 	"github.com/navikt/nada-backend/pkg/graph/models"
+	log "github.com/sirupsen/logrus"
 )
 
 func (r *bigQueryResolver) Schema(ctx context.Context, obj *models.BigQuery) ([]*models.TableColumn, error) {
@@ -273,7 +273,5 @@ func (r *Resolver) BigQuery() generated.BigQueryResolver { return &bigQueryResol
 // Dataproduct returns generated.DataproductResolver implementation.
 func (r *Resolver) Dataproduct() generated.DataproductResolver { return &dataproductResolver{r} }
 
-type (
-	bigQueryResolver    struct{ *Resolver }
-	dataproductResolver struct{ *Resolver }
-)
+type bigQueryResolver struct{ *Resolver }
+type dataproductResolver struct{ *Resolver }

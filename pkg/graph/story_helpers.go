@@ -68,7 +68,7 @@ func storyViewFromDB(view *models.DBStoryView) (models.GraphStoryView, error) {
 		sv := models.StoryViewVega{
 			ID: view.ID,
 		}
-		if err := json.Unmarshal(view.Spec, &sv); err != nil {
+		if err := json.Unmarshal(view.Spec, &sv.Spec); err != nil {
 			return nil, err
 		}
 		ret = sv
