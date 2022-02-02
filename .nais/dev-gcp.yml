@@ -62,4 +62,4 @@ spec:
         - application: nada-frontend
     outbound:
       rules:
-        - application: metabase
+        - application: nada-metabase
