@@ -41,11 +41,16 @@ spec:
     - secret: google-credentials
       mountPath: /var/run/secrets/google-credentials
     - secret: metabase-google-sa
+      mountPath: /var/run/secrets/nada-credentials
   env:
     - name: GOOGLE_ADMIN_CREDENTIALS_PATH
       value: /var/run/secrets/google-credentials/sa.json
     - name: HOSTNAME
       value: "data.dev.intern.nav.no"
+    - name: METABASE_API
+      value: "http://nada-metabase/api"
+    - name: METABASE_GOOGLE_CREDENTIALS_PATH
+      value: /var/run/secrets/nada-credentials/meta_creds.json
   gcp:
     sqlInstances:
       - type: POSTGRES_12
