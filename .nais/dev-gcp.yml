@@ -34,11 +34,13 @@ spec:
   envFrom:
     - secret: impersonation-subject
     - secret: github-read-token
+    - secret: metabase-sa
     - secret: google-oauth
     - secret: slack
   filesFrom:
     - secret: google-credentials
       mountPath: /var/run/secrets/google-credentials
+    - secret: metabase-google-sa
   env:
     - name: GOOGLE_ADMIN_CREDENTIALS_PATH
       value: /var/run/secrets/google-credentials/sa.json
