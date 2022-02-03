@@ -42,6 +42,7 @@ type Querier interface {
 	GetDataproductsByMapping(ctx context.Context, arg GetDataproductsByMappingParams) ([]Dataproduct, error)
 	GetDataproductsByUserAccess(ctx context.Context, id string) ([]Dataproduct, error)
 	GetMetabaseMetadata(ctx context.Context, dataproductID uuid.UUID) (MetabaseMetadatum, error)
+	GetMetabaseMetadataWithDeleted(ctx context.Context, dataproductID uuid.UUID) (MetabaseMetadatum, error)
 	GetSession(ctx context.Context, token string) (Session, error)
 	GetStories(ctx context.Context) ([]Story, error)
 	GetStory(ctx context.Context, id uuid.UUID) (Story, error)
@@ -58,8 +59,11 @@ type Querier interface {
 	ListActiveAccessToDataproduct(ctx context.Context, dataproductID uuid.UUID) ([]DataproductAccess, error)
 	ListUnrevokedExpiredAccessEntries(ctx context.Context) ([]DataproductAccess, error)
 	MapDataproduct(ctx context.Context, arg MapDataproductParams) error
+	RestoreMetabaseMetadata(ctx context.Context, dataproductID uuid.UUID) error
 	RevokeAccessToDataproduct(ctx context.Context, id uuid.UUID) error
 	Search(ctx context.Context, arg SearchParams) ([]SearchRow, error)
+	SetPermissionGroupMetabaseMetadata(ctx context.Context, arg SetPermissionGroupMetabaseMetadataParams) error
+	SoftDeleteMetabaseMetadata(ctx context.Context, dataproductID uuid.UUID) error
 	UpdateBigqueryDatasourceSchema(ctx context.Context, arg UpdateBigqueryDatasourceSchemaParams) error
 	UpdateDataproduct(ctx context.Context, arg UpdateDataproductParams) (Dataproduct, error)
 	UpdateStory(ctx context.Context, arg UpdateStoryParams) (Story, error)

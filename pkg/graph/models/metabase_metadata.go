@@ -1,6 +1,10 @@
 package models
 
-import "github.com/google/uuid"
+import (
+	"time"
+
+	"github.com/google/uuid"
+)
 
 type MetabaseMetadata struct {
 	DataproductID     uuid.UUID
@@ -8,4 +12,5 @@ type MetabaseMetadata struct {
 	PermissionGroupID int
 	CollectionID      int
 	SAEmail           string
+	DeletedAt         *time.Time
 }

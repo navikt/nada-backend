@@ -7,12 +7,13 @@ require (
 	github.com/99designs/gqlgen-contrib v0.1.1-0.20200601100547-7a955d321bbd
 	github.com/go-chi/chi v4.1.2+incompatible
 	github.com/google/uuid v1.1.2
-	github.com/kyleconroy/sqlc v1.10.0
-	github.com/lib/pq v1.10.3
+	github.com/kyleconroy/sqlc v1.11.0
+	github.com/lib/pq v1.10.4
 	github.com/ory/dockertest/v3 v3.8.0
 	github.com/pressly/goose/v3 v3.1.0
 	github.com/prometheus/client_golang v1.10.0
 	github.com/sirupsen/logrus v1.8.1
+	github.com/slack-go/slack v0.10.1
 	github.com/spf13/pflag v1.0.5
 	golang.org/x/oauth2 v0.0.0-20210819190943-2bc19b11175f
 )
@@ -59,7 +60,7 @@ require (
 	golang.org/x/crypto v0.0.0-20210711020723-a769d52b0f97 // indirect
 	golang.org/x/net v0.0.0-20210805182204-aaa1db679c0d // indirect
 	golang.org/x/sys v0.0.0-20210917161153-d61c044b1678 // indirect
-	golang.org/x/text v0.3.6 // indirect
+	golang.org/x/text v0.3.7 // indirect
 	google.golang.org/api v0.58.0
 	google.golang.org/appengine v1.6.7 // indirect
 	google.golang.org/grpc v1.40.0 // indirect
@@ -78,6 +79,5 @@ require (
 
 require (
 	cloud.google.com/go/datacatalog v1.0.0 // indirect
-	github.com/slack-go/slack v0.10.1 // indirect
 	google.golang.org/genproto v0.0.0-20210921142501-181ce0d877f6 // indirect
 )

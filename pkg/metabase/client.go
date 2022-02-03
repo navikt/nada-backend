@@ -116,6 +116,7 @@ func (c *Client) ensureValidSession(ctx context.Context) error {
 
 type Database struct {
 	ID        int
+	Name      string
 	DatasetID string
 	ProjectID string
 	NadaID    string
@@ -131,7 +132,8 @@ func (c *Client) Databases(ctx context.Context) ([]Database, error) {
 				NadaID    string `json:"nada-id"`
 				SAEmail   string `json:"sa-email"`
 			} `json:"details"`
-			ID int `json:"id"`
+			ID   int    `json:"id"`
+			Name string `json:"name"`
 		} `json:"data"`
 	}{}
 
@@ -143,6 +145,7 @@ func (c *Client) Databases(ctx context.Context) ([]Database, error) {
 	for _, db := range v.Data {
 		ret = append(ret, Database{
 			ID:        db.ID,
+			Name:      db.Name,
 			DatasetID: db.Details.DatasetID,
 			ProjectID: db.Details.ProjectID,
 			NadaID:    db.Details.NadaID,
@@ -359,6 +362,37 @@ func (c *Client) RestrictAccessToDatabase(ctx context.Context, groupID, database
 		if gid != grpSID {
 			permission[dbSID] = permissions{Native: "none", Schemas: "none"}
 		}
+	}
+
+	if err := c.request(ctx, http.MethodPut, "/permissions/graph", permissionGraph, nil); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (c *Client) OpenAccessToDatabase(ctx context.Context, databaseID int) error {
+	type permissions struct {
+		Native  string `json:"native,omitempty"`
+		Schemas string `json:"schemas,omitempty"`
+	}
+	var permissionGraph struct {
+		Groups   map[string]map[string]permissions `json:"groups"`
+		Revision int                               `json:"revision"`
+	}
+
+	err := c.request(ctx, http.MethodGet, "/permissions/graph", nil, &permissionGraph)
+	if err != nil {
+		return err
+	}
+
+	dbSID := strconv.Itoa(databaseID)
+	for gid, permission := range permissionGraph.Groups {
+		if gid == "2" {
+			// admin group
+			continue
+		}
+		permission[dbSID] = permissions{Native: "write", Schemas: "all"}
 	}
 
 	if err := c.request(ctx, http.MethodPut, "/permissions/graph", permissionGraph, nil); err != nil {

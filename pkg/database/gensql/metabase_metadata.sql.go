@@ -16,13 +16,15 @@ INSERT INTO metabase_metadata (
     "database_id",
     "permission_group_id",
     "collection_id",
-    "sa_email"
+    "sa_email",
+    "deleted_at"
 ) VALUES (
     $1,
     $2,
     $3,
     $4,
-    $5
+    $5,
+    $6
 )
 `
 
@@ -32,6 +34,7 @@ type CreateMetabaseMetadataParams struct {
 	PermissionGroupID sql.NullInt32
 	CollectionID      sql.NullInt32
 	SaEmail           string
+	DeletedAt         sql.NullTime
 }
 
 func (q *Queries) CreateMetabaseMetadata(ctx context.Context, arg CreateMetabaseMetadataParams) error {
@@ -41,6 +44,7 @@ func (q *Queries) CreateMetabaseMetadata(ctx context.Context, arg CreateMetabase
 		arg.PermissionGroupID,
 		arg.CollectionID,
 		arg.SaEmail,
+		arg.DeletedAt,
 	)
 	return err
 }
@@ -57,9 +61,9 @@ func (q *Queries) DeleteMetabaseMetadata(ctx context.Context, dataproductID uuid
 }
 
 const getMetabaseMetadata = `-- name: GetMetabaseMetadata :one
-SELECT dataproduct_id, database_id, permission_group_id, sa_email, collection_id
+SELECT dataproduct_id, database_id, permission_group_id, sa_email, collection_id, deleted_at
 FROM metabase_metadata
-WHERE "dataproduct_id" = $1
+WHERE "dataproduct_id" = $1 AND "deleted_at" IS NULL
 `
 
 func (q *Queries) GetMetabaseMetadata(ctx context.Context, dataproductID uuid.UUID) (MetabaseMetadatum, error) {
@@ -71,6 +75,65 @@ func (q *Queries) GetMetabaseMetadata(ctx context.Context, dataproductID uuid.UU
 		&i.PermissionGroupID,
 		&i.SaEmail,
 		&i.CollectionID,
+		&i.DeletedAt,
 	)
 	return i, err
+}
+
+const getMetabaseMetadataWithDeleted = `-- name: GetMetabaseMetadataWithDeleted :one
+SELECT dataproduct_id, database_id, permission_group_id, sa_email, collection_id, deleted_at
+FROM metabase_metadata
+WHERE "dataproduct_id" = $1
+`
+
+func (q *Queries) GetMetabaseMetadataWithDeleted(ctx context.Context, dataproductID uuid.UUID) (MetabaseMetadatum, error) {
+	row := q.db.QueryRowContext(ctx, getMetabaseMetadataWithDeleted, dataproductID)
+	var i MetabaseMetadatum
+	err := row.Scan(
+		&i.DataproductID,
+		&i.DatabaseID,
+		&i.PermissionGroupID,
+		&i.SaEmail,
+		&i.CollectionID,
+		&i.DeletedAt,
+	)
+	return i, err
+}
+
+const restoreMetabaseMetadata = `-- name: RestoreMetabaseMetadata :exec
+UPDATE metabase_metadata
+SET "deleted_at" = null
+WHERE dataproduct_id = $1
+`
+
+func (q *Queries) RestoreMetabaseMetadata(ctx context.Context, dataproductID uuid.UUID) error {
+	_, err := q.db.ExecContext(ctx, restoreMetabaseMetadata, dataproductID)
+	return err
+}
+
+const setPermissionGroupMetabaseMetadata = `-- name: SetPermissionGroupMetabaseMetadata :exec
+UPDATE metabase_metadata
+SET "permission_group_id" = $1
+WHERE dataproduct_id = $2
+`
+
+type SetPermissionGroupMetabaseMetadataParams struct {
+	ID            sql.NullInt32
+	DataproductID uuid.UUID
+}
+
+func (q *Queries) SetPermissionGroupMetabaseMetadata(ctx context.Context, arg SetPermissionGroupMetabaseMetadataParams) error {
+	_, err := q.db.ExecContext(ctx, setPermissionGroupMetabaseMetadata, arg.ID, arg.DataproductID)
+	return err
+}
+
+const softDeleteMetabaseMetadata = `-- name: SoftDeleteMetabaseMetadata :exec
+UPDATE metabase_metadata
+SET "deleted_at" = NOW()
+WHERE dataproduct_id = $1
+`
+
+func (q *Queries) SoftDeleteMetabaseMetadata(ctx context.Context, dataproductID uuid.UUID) error {
+	_, err := q.db.ExecContext(ctx, softDeleteMetabaseMetadata, dataproductID)
+	return err
 }
