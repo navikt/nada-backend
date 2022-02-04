@@ -44,6 +44,7 @@ type Querier interface {
 	GetMetabaseMetadata(ctx context.Context, dataproductID uuid.UUID) (MetabaseMetadatum, error)
 	GetSession(ctx context.Context, token string) (Session, error)
 	GetStories(ctx context.Context) ([]Story, error)
+	GetStoriesByIDs(ctx context.Context, ids []uuid.UUID) ([]Story, error)
 	GetStory(ctx context.Context, id uuid.UUID) (Story, error)
 	GetStoryDraft(ctx context.Context, id uuid.UUID) (StoryDraft, error)
 	GetStoryDrafts(ctx context.Context) ([]StoryDraft, error)

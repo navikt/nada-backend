@@ -10,7 +10,13 @@ FROM
 WHERE
 	(
 		CASE
-			WHEN @keyword :: text != '' THEN @keyword = ANY(keywords)
+			WHEN array_length(@types::text[], 1) > 0 THEN "element_type" = ANY(@types)
+			ELSE TRUE
+		END
+	)
+	AND (
+		CASE
+			WHEN array_length(@keyword::text[], 1) > 0 THEN "keywords" && @keyword
 			ELSE TRUE
 		END
 	)
@@ -22,7 +28,13 @@ WHERE
 	)
 	AND (
 		CASE
-			WHEN @grp :: text != '' THEN "group" = @grp
+			WHEN array_length(@grp::text[], 1) > 0 THEN "group" = ANY(@grp)
+			ELSE TRUE
+		END
+	)
+	AND (
+		CASE
+			WHEN array_length(@service::text[], 1) > 0 THEN "services" && @service
 			ELSE TRUE
 		END
 	)

@@ -11,29 +11,52 @@ import (
 )
 
 func (r *Repo) Search(ctx context.Context, query *models.SearchQuery) ([]*models.SearchResultRow, error) {
+	services := []string{}
+	for _, s := range query.Services {
+		services = append(services, string(s))
+	}
+
+	types := []string{}
+	for _, s := range query.Types {
+		types = append(types, string(s))
+	}
+
 	res, err := r.querier.Search(ctx, gensql.SearchParams{
 		Query:   ptrToString(query.Text),
-		Keyword: ptrToString(query.Keyword),
-		Grp:     ptrToString(query.Group),
+		Keyword: query.Keywords,
+		Grp:     query.Groups,
+		Service: services,
+		Types:   types,
 		Lim:     int32(ptrToIntDefault(query.Limit, 24)),
 		Offs:    int32(ptrToIntDefault(query.Offset, 0)),
 	})
 	if err != nil {
 		return nil, err
 	}
-	ranks := map[string]float32{}
+	order := map[string]int{}
 	var dataproducts []uuid.UUID
+	var stories []uuid.UUID
 	excerpts := map[uuid.UUID]string{}
-	for _, sr := range res {
+	for i, sr := range res {
 		switch sr.ElementType {
 		case "dataproduct":
 			dataproducts = append(dataproducts, sr.ElementID)
+		case "story":
+			stories = append(stories, sr.ElementID)
+		default:
+			r.log.Error("unknown search result type", sr.ElementType)
+			continue
 		}
-		ranks[sr.ElementType+sr.ElementID.String()] = sr.Rank
+		order[sr.ElementType+sr.ElementID.String()] = i
 		excerpts[sr.ElementID] = sr.Excerpt
 	}
 
 	dps, err := r.querier.GetDataproductsByIDs(ctx, dataproducts)
+	if err != nil {
+		return nil, err
+	}
+
+	ss, err := r.querier.GetStoriesByIDs(ctx, stories)
 	if err != nil {
 		return nil, err
 	}
@@ -45,17 +68,31 @@ func (r *Repo) Search(ctx context.Context, query *models.SearchQuery) ([]*models
 			Result:  dataproductFromSQL(d),
 		})
 	}
+	for _, s := range ss {
+		ret = append(ret, &models.SearchResultRow{
+			Excerpt: excerpts[s.ID],
+			Result: &models.GraphStory{
+				ID:           s.ID,
+				Name:         s.Name,
+				Created:      s.Created,
+				LastModified: &s.LastModified,
+				Group:        s.Group,
+			},
+		})
+	}
 
-	sortSearch(ret, ranks)
+	sortSearch(ret, order)
 
 	return ret, nil
 }
 
-func sortSearch(ret []*models.SearchResultRow, ranks map[string]float32) {
-	getRank := func(m models.SearchResult) float32 {
+func sortSearch(ret []*models.SearchResultRow, order map[string]int) {
+	getRank := func(m models.SearchResult) int {
 		switch m := m.(type) {
 		case *models.Dataproduct:
-			return ranks["dataproduct"+m.ID.String()]
+			return order["dataproduct"+m.ID.String()]
+		case *models.GraphStory:
+			return order["story"+m.ID.String()]
 		default:
 			return -1
 		}

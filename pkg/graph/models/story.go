@@ -33,6 +33,8 @@ type GraphStory struct {
 	Draft        bool
 }
 
+func (GraphStory) IsSearchResult() {}
+
 type GraphStoryView interface {
 	IsStoryView()
 }
