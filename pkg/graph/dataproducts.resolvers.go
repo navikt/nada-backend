@@ -8,6 +8,7 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
+	"html"
 	"os"
 	"strings"
 	"time"
@@ -107,6 +108,9 @@ func (r *mutationResolver) CreateDataproduct(ctx context.Context, input models.N
 	}
 
 	input.Metadata = metadata
+	if input.Description != nil && *input.Description != "" {
+		*input.Description = html.EscapeString(*input.Description)
+	}
 	dp, err := r.repo.CreateDataproduct(ctx, input)
 	if err != nil {
 		return nil, err
@@ -273,5 +277,7 @@ func (r *Resolver) BigQuery() generated.BigQueryResolver { return &bigQueryResol
 // Dataproduct returns generated.DataproductResolver implementation.
 func (r *Resolver) Dataproduct() generated.DataproductResolver { return &dataproductResolver{r} }
 
-type bigQueryResolver struct{ *Resolver }
-type dataproductResolver struct{ *Resolver }
+type (
+	bigQueryResolver    struct{ *Resolver }
+	dataproductResolver struct{ *Resolver }
+)
