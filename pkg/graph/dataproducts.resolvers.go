@@ -130,6 +130,9 @@ func (r *mutationResolver) UpdateDataproduct(ctx context.Context, id uuid.UUID, 
 	if err := ensureUserInGroup(ctx, dp.Owner.Group); err != nil {
 		return nil, err
 	}
+	if input.Description != nil && *input.Description != "" {
+		*input.Description = html.EscapeString(*input.Description)
+	}
 	return r.repo.UpdateDataproduct(ctx, id, input)
 }
 
