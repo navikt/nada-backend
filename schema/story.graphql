@@ -1,52 +1,152 @@
+"""
+Story contains the metadata and content of data stories.
+"""
 type Story @goModel(model: "github.com/navikt/nada-backend/pkg/graph/models.GraphStory") {
+	"id of the data story."
 	id: ID!
+	"name of the data story."
 	name: String!
+	"created is the timestamp for when the data story was created."
 	created: Time!
+	"lastModified is the timestamp for when the data story was last modified."
 	lastModified: Time
+	"owner of the data story. Changes to the data story can only be done by a member of the owner."
 	owner: Owner
+	"views contains a list of the different view data in the data story."
 	views: [StoryView!]! @goField(forceResolver: true)
 }
 
 interface StoryView @goModel(model: "github.com/navikt/nada-backend/pkg/graph/models.GraphStoryView") {
+	"id of the story view."
 	id: ID!
 }
 
+"""
+StoryViewHeader contains the metadata and content of a header story view.
+"""
 type StoryViewHeader implements StoryView @goModel(model: "github.com/navikt/nada-backend/pkg/graph/models.StoryViewHeader") {
+	"id of the header story view."
 	id: ID!
+	"content contains the header text."
 	content: String!
+	"level is the size of the header text."
 	level: Int!
 }
 
+"""
+StoryViewMarkdown contains the metadata and content of a markdown story view.
+"""
 type StoryViewMarkdown implements StoryView @goModel(model: "github.com/navikt/nada-backend/pkg/graph/models.StoryViewMarkdown") {
+	"id of the markdown story view."
 	id: ID!
+	"content contains the markdown text."
 	content: String!
 }
 
+"""
+StoryViewPlotly contains the metadata and content of a plotly story view.
+"""
 type StoryViewPlotly implements StoryView @goModel(model: "github.com/navikt/nada-backend/pkg/graph/models.StoryViewPlotly") {
+	"id of the plotly story view."
 	id: ID!
+	"data view data for the plotly graph."
 	data: [Map!]!
+	"layout contains metadata on the plotly graph layout."
 	layout: Map!
 }
 
+"""
+StoryViewVega contains the metadata and content of a vega story view.
+"""
 type StoryViewVega implements StoryView @goModel(model: "github.com/navikt/nada-backend/pkg/graph/models.StoryViewVega") {
+	"id of the vega story view."
 	id: ID!
+	"spec contains data and metadata on the vega graph."
 	spec: Map!
 }
 
+"""
+StoryToken contains the token used for updating a data story.
+"""
 type StoryToken @goModel(model: "github.com/navikt/nada-backend/pkg/graph/models.StoryToken") {
+	"id of the story token."
 	id: ID!
+	"token is the update token for the data story."
 	token: String!
 }
 
 extend type Query {
-	stories(draft: Boolean): [Story!]!
-	story(id: ID!, draft: Boolean): Story!
-	storyView(id: ID!, draft: Boolean): StoryView!
-	storyToken(id: ID!): StoryToken! @authenticated
+	"""
+    stories returns all either draft or published stories depending on the draft boolean.
+    """
+	stories(
+		"draft is a boolean indicating whether to return drafts or published stories."
+		draft: Boolean
+	): [Story!]!
+
+	"""
+    story returns the given story.
+    """
+	story(
+		"id of the story."
+		id: ID!
+		"draft is a boolean indicating whether to return a draft or a published story."
+		draft: Boolean
+	): Story!
+
+	"""
+    storyView returns the given story view.
+    """
+	storyView(
+		"id of the story view."
+		id: ID!
+		"draft is a boolean indicating whether to return a draft or a published story view."
+		draft: Boolean
+	): StoryView!
+
+	"""
+    storyToken returns the update token for the data story.
+
+    Requires authentication.
+    """
+	storyToken(
+		"id of story."
+		id: ID!
+	): StoryToken! @authenticated
 }
 
 extend type Mutation {
-	publishStory(id: ID!, group: String!): Story! @authenticated
-	updateStory(id: ID!, target: ID!): Story! @authenticated
-	deleteStory(id: ID!): Boolean! @authenticated
+	"""
+    publishStory publishes a story draft.
+
+    Requires authentication.
+    """
+	publishStory(
+		"id is the id for the draft story."
+		id: ID!
+		"group is the owner group for the story."
+		group: String!
+	): Story! @authenticated
+
+	"""
+    updateStory updates an existing story.
+
+    Requires authentication.
+    """
+	updateStory(
+		"id is the id for the draft story."
+		id: ID!
+		"target is the id for the published story you want to update."
+		target: ID!
+	): Story! @authenticated
+
+	"""
+    deleteStory deletes an existing story.
+
+    Requires authentication.
+    """
+	deleteStory(
+		"id is the id for the published story."
+		id: ID!
+	): Boolean! @authenticated
 }
