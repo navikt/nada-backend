@@ -12,7 +12,7 @@ enum SearchType @goModel(
 
 
 type SearchResultRow  @goModel(model: "github.com/navikt/nada-backend/pkg/graph/models.SearchResultRow") {
-    excerpt: String!
+    excerpt: String! @goField(forceResolver: true)
     result: SearchResult!
 }
 

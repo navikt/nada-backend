@@ -43,6 +43,7 @@ type ResolverRoot interface {
 	Dataproduct() DataproductResolver
 	Mutation() MutationResolver
 	Query() QueryResolver
+	SearchResultRow() SearchResultRowResolver
 	Story() StoryResolver
 	UserInfo() UserInfoResolver
 }
@@ -262,6 +263,9 @@ type QueryResolver interface {
 	StoryToken(ctx context.Context, id uuid.UUID) (*models.StoryToken, error)
 	Teamkatalogen(ctx context.Context, q string) ([]*models.TeamkatalogenResult, error)
 	UserInfo(ctx context.Context) (*models.UserInfo, error)
+}
+type SearchResultRowResolver interface {
+	Excerpt(ctx context.Context, obj *models.SearchResultRow) (string, error)
 }
 type StoryResolver interface {
 	Owner(ctx context.Context, obj *models.GraphStory) (*models.Owner, error)
@@ -1663,7 +1667,7 @@ enum SearchType @goModel(
 
 
 type SearchResultRow  @goModel(model: "github.com/navikt/nada-backend/pkg/graph/models.SearchResultRow") {
-    excerpt: String!
+    excerpt: String! @goField(forceResolver: true)
     result: SearchResult!
 }
 
@@ -5425,14 +5429,14 @@ func (ec *executionContext) _SearchResultRow_excerpt(ctx context.Context, field 
 		Object:     "SearchResultRow",
 		Field:      field,
 		Args:       nil,
-		IsMethod:   false,
-		IsResolver: false,
+		IsMethod:   true,
+		IsResolver: true,
 	}
 
 	ctx = graphql.WithFieldContext(ctx, fc)
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
-		return obj.Excerpt, nil
+		return ec.resolvers.SearchResultRow().Excerpt(rctx, obj)
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -9360,15 +9364,25 @@ func (ec *executionContext) _SearchResultRow(ctx context.Context, sel ast.Select
 		case "__typename":
 			out.Values[i] = graphql.MarshalString("SearchResultRow")
 		case "excerpt":
+			field := field
+
 			innerFunc := func(ctx context.Context) (res graphql.Marshaler) {
-				return ec._SearchResultRow_excerpt(ctx, field, obj)
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._SearchResultRow_excerpt(ctx, field, obj)
+				if res == graphql.Null {
+					atomic.AddUint32(&invalids, 1)
+				}
+				return res
 			}
 
-			out.Values[i] = innerFunc(ctx)
+			out.Concurrently(i, func() graphql.Marshaler {
+				return innerFunc(ctx)
 
-			if out.Values[i] == graphql.Null {
-				invalids++
-			}
+			})
 		case "result":
 			innerFunc := func(ctx context.Context) (res graphql.Marshaler) {
 				return ec._SearchResultRow_result(ctx, field, obj)
@@ -9377,7 +9391,7 @@ func (ec *executionContext) _SearchResultRow(ctx context.Context, sel ast.Select
 			out.Values[i] = innerFunc(ctx)
 
 			if out.Values[i] == graphql.Null {
-				invalids++
+				atomic.AddUint32(&invalids, 1)
 			}
 		default:
 			panic("unknown field " + strconv.Quote(field.Name))
