@@ -12,6 +12,7 @@ type (
 	DataproductListenerRevokeAccess          func(ctx context.Context, dpID uuid.UUID, subject string)
 	DataproductListenerAddMetabaseMapping    func(ctx context.Context, dpID uuid.UUID)
 	DataproductListenerRemoveMetabaseMapping func(ctx context.Context, dpID uuid.UUID)
+	DataproductListenerDelete                func(ctx context.Context, dpID uuid.UUID)
 )
 
 type Manager struct {
@@ -20,6 +21,7 @@ type Manager struct {
 	dataproductRevokeAccessListeners                  []DataproductListenerRevokeAccess
 	dataproductListenerAddMetabaseMappingListeners    []DataproductListenerAddMetabaseMapping
 	dataproductListenerRemoveMetabaseMappingListeners []DataproductListenerRemoveMetabaseMapping
+	dataproductDeleteListeners                        []DataproductListenerDelete
 }
 
 func (m *Manager) ListenForDataproductGrant(fn DataproductListenerGrantAccess) {
@@ -74,6 +76,20 @@ func (m *Manager) TriggerDataproductRemoveMetabaseMapping(ctx context.Context, d
 	m.lock.RLock()
 	defer m.lock.RUnlock()
 	for _, fn := range m.dataproductListenerRemoveMetabaseMappingListeners {
+		fn(ctx, dpID)
+	}
+}
+
+func (m *Manager) ListenForDataproductDelete(fn DataproductListenerDelete) {
+	m.lock.Lock()
+	defer m.lock.Unlock()
+	m.dataproductDeleteListeners = append(m.dataproductDeleteListeners, fn)
+}
+
+func (m *Manager) TriggerDataproductDelete(ctx context.Context, dpID uuid.UUID) {
+	m.lock.RLock()
+	defer m.lock.RUnlock()
+	for _, fn := range m.dataproductDeleteListeners {
 		fn(ctx, dpID)
 	}
 }

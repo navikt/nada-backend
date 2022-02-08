@@ -244,6 +244,7 @@ FROM dataproducts
 WHERE id IN (
 	SELECT dataproduct_id
 	FROM metabase_metadata
+  WHERE "deleted_at" IS NULL
 )
 ORDER BY last_modified DESC
 LIMIT $2 OFFSET $1

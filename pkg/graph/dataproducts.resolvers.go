@@ -12,6 +12,8 @@ import (
 	"strings"
 	"time"
 
+	log "github.com/sirupsen/logrus"
+
 	"cloud.google.com/go/bigquery"
 	"github.com/google/uuid"
 	"github.com/navikt/nada-backend/pkg/auth"
@@ -56,7 +58,7 @@ func (r *dataproductResolver) Access(ctx context.Context, obj *models.Dataproduc
 }
 
 func (r *dataproductResolver) Services(ctx context.Context, obj *models.Dataproduct) (*models.DataproductServices, error) {
-	meta, err := r.repo.GetMetabaseMetadata(ctx, obj.ID)
+	meta, err := r.repo.GetMetabaseMetadata(ctx, obj.ID, false)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return &models.DataproductServices{}, nil
