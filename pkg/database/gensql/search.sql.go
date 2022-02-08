@@ -15,7 +15,7 @@ SELECT
 	element_id::uuid,
 	element_type::text,
 	ts_rank_cd(tsv_document, query) AS rank,
-	ts_headline('norwegian', "description", query, 'MinWords=14, MaxWords=15, MaxFragments=2 FragmentDelimiter=" … " StartSel="**" StopSel="**"')::text AS excerpt
+	ts_headline('norwegian', "description", query, 'MinWords=10, MaxWords=20, MaxFragments=2 FragmentDelimiter=" … " StartSel="((START))" StopSel="((STOP))"')::text AS excerpt
 FROM
 	search,
 	websearch_to_tsquery('norwegian', $1) query
