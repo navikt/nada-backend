@@ -1658,6 +1658,7 @@ enum SearchType @goModel(
     model: "github.com/navikt/nada-backend/pkg/graph/models.SearchType"
 ) {
     dataproduct
+    story
 }
 
 
