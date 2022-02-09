@@ -3,12 +3,12 @@ INSERT INTO stories (
 	"name",
 	"group",
 	"description",
-    "keywords"
+	"keywords"
 ) VALUES (
 	@name,
 	@grp,
-    @description,
-    @keywords
+	@description,
+	@keywords
 )
 RETURNING *;
 
