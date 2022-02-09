@@ -12,13 +12,13 @@ import (
 	"github.com/navikt/nada-backend/pkg/graph/models"
 )
 
-func (r *mutationResolver) PublishStory(ctx context.Context, id uuid.UUID, group string) (*models.GraphStory, error) {
+func (r *mutationResolver) PublishStory(ctx context.Context, id uuid.UUID, group string, description string, keywords []string) (*models.GraphStory, error) {
 	user := auth.GetUser(ctx)
 	if !user.Groups.Contains(group) {
 		return nil, ErrUnauthorized
 	}
 
-	s, err := r.repo.PublishStory(ctx, id, group)
+	s, err := r.repo.PublishStory(ctx, id, group, description, keywords)
 	if err != nil {
 		return nil, err
 	}
@@ -41,6 +41,25 @@ func (r *mutationResolver) UpdateStory(ctx context.Context, id uuid.UUID, target
 		return nil, err
 	}
 	return storyFromDB(s)
+}
+
+func (r *mutationResolver) UpdateStoryMetadata(ctx context.Context, id uuid.UUID, name string, description string, keywords []string) (*models.GraphStory, error) {
+	existing, err := r.repo.GetStory(ctx, id)
+	if err != nil {
+		return nil, err
+	}
+
+	user := auth.GetUser(ctx)
+	if !user.Groups.Contains(existing.Group) {
+		return nil, ErrUnauthorized
+	}
+
+	story, err := r.repo.UpdateStoryMetadata(ctx, id, name, description, keywords)
+	if err != nil {
+		return nil, err
+	}
+
+	return storyFromDB(story)
 }
 
 func (r *mutationResolver) DeleteStory(ctx context.Context, id uuid.UUID) (bool, error) {

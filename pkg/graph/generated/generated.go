@@ -130,11 +130,12 @@ type ComplexityRoot struct {
 		Dummy                          func(childComplexity int, no *string) int
 		GrantAccessToDataproduct       func(childComplexity int, dataproductID uuid.UUID, expires *time.Time, subject *string, subjectType *models.SubjectType) int
 		MapDataproduct                 func(childComplexity int, dataproductID uuid.UUID, services []models.MappingService) int
-		PublishStory                   func(childComplexity int, id uuid.UUID, group string) int
+		PublishStory                   func(childComplexity int, id uuid.UUID, group string, description string, keywords []string) int
 		RemoveRequesterFromDataproduct func(childComplexity int, dataproductID uuid.UUID, subject string) int
 		RevokeAccessToDataproduct      func(childComplexity int, id uuid.UUID) int
 		UpdateDataproduct              func(childComplexity int, id uuid.UUID, input models.UpdateDataproduct) int
 		UpdateStory                    func(childComplexity int, id uuid.UUID, target uuid.UUID) int
+		UpdateStoryMetadata            func(childComplexity int, id uuid.UUID, name string, description string, keywords []string) int
 	}
 
 	Owner struct {
@@ -246,8 +247,9 @@ type MutationResolver interface {
 	GrantAccessToDataproduct(ctx context.Context, dataproductID uuid.UUID, expires *time.Time, subject *string, subjectType *models.SubjectType) (*models.Access, error)
 	RevokeAccessToDataproduct(ctx context.Context, id uuid.UUID) (bool, error)
 	MapDataproduct(ctx context.Context, dataproductID uuid.UUID, services []models.MappingService) (bool, error)
-	PublishStory(ctx context.Context, id uuid.UUID, group string) (*models.GraphStory, error)
+	PublishStory(ctx context.Context, id uuid.UUID, group string, description string, keywords []string) (*models.GraphStory, error)
 	UpdateStory(ctx context.Context, id uuid.UUID, target uuid.UUID) (*models.GraphStory, error)
+	UpdateStoryMetadata(ctx context.Context, id uuid.UUID, name string, description string, keywords []string) (*models.GraphStory, error)
 	DeleteStory(ctx context.Context, id uuid.UUID) (bool, error)
 }
 type QueryResolver interface {
@@ -271,6 +273,7 @@ type SearchResultRowResolver interface {
 }
 type StoryResolver interface {
 	Owner(ctx context.Context, obj *models.GraphStory) (*models.Owner, error)
+
 	Views(ctx context.Context, obj *models.GraphStory) ([]models.GraphStoryView, error)
 }
 type UserInfoResolver interface {
@@ -683,7 +686,7 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 			return 0, false
 		}
 
-		return e.complexity.Mutation.PublishStory(childComplexity, args["id"].(uuid.UUID), args["group"].(string)), true
+		return e.complexity.Mutation.PublishStory(childComplexity, args["id"].(uuid.UUID), args["group"].(string), args["description"].(string), args["keywords"].([]string)), true
 
 	case "Mutation.removeRequesterFromDataproduct":
 		if e.complexity.Mutation.RemoveRequesterFromDataproduct == nil {
@@ -732,6 +735,18 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 		}
 
 		return e.complexity.Mutation.UpdateStory(childComplexity, args["id"].(uuid.UUID), args["target"].(uuid.UUID)), true
+
+	case "Mutation.updateStoryMetadata":
+		if e.complexity.Mutation.UpdateStoryMetadata == nil {
+			break
+		}
+
+		args, err := ec.field_Mutation_updateStoryMetadata_args(context.TODO(), rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Mutation.UpdateStoryMetadata(childComplexity, args["id"].(uuid.UUID), args["name"].(string), args["description"].(string), args["keywords"].([]string)), true
 
 	case "Owner.group":
 		if e.complexity.Owner.Group == nil {
@@ -1885,6 +1900,10 @@ extend type Mutation {
 		id: ID!
 		"group is the owner group for the story."
 		group: String!
+		"description of the datastory"
+		description: String!
+		"keywords for the datastory used as tags."
+    	keywords: [String!]!
 	): Story! @authenticated
 
 	"""
@@ -1897,6 +1916,22 @@ extend type Mutation {
 		id: ID!
 		"target is the id for the published story you want to update."
 		target: ID!
+	): Story! @authenticated
+
+	"""
+    updateStoryMetadata updates metadata on an existing story.
+
+    Requires authentication.
+    """
+	updateStoryMetadata(
+		"target is the id for the published story you want to update."
+		id: ID!
+		"name of the datastory"
+		name: String!
+		"description of the datastory"
+		description: String!
+		"keywords for the datastory used as tags."
+    	keywords: [String!]!
 	): Story! @authenticated
 
 	"""
@@ -2167,6 +2202,24 @@ func (ec *executionContext) field_Mutation_publishStory_args(ctx context.Context
 		}
 	}
 	args["group"] = arg1
+	var arg2 string
+	if tmp, ok := rawArgs["description"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("description"))
+		arg2, err = ec.unmarshalNString2string(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["description"] = arg2
+	var arg3 []string
+	if tmp, ok := rawArgs["keywords"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("keywords"))
+		arg3, err = ec.unmarshalNString2ᚕstringᚄ(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["keywords"] = arg3
 	return args, nil
 }
 
@@ -2230,6 +2283,48 @@ func (ec *executionContext) field_Mutation_updateDataproduct_args(ctx context.Co
 		}
 	}
 	args["input"] = arg1
+	return args, nil
+}
+
+func (ec *executionContext) field_Mutation_updateStoryMetadata_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
+	var err error
+	args := map[string]interface{}{}
+	var arg0 uuid.UUID
+	if tmp, ok := rawArgs["id"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("id"))
+		arg0, err = ec.unmarshalNID2githubᚗcomᚋgoogleᚋuuidᚐUUID(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["id"] = arg0
+	var arg1 string
+	if tmp, ok := rawArgs["name"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("name"))
+		arg1, err = ec.unmarshalNString2string(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["name"] = arg1
+	var arg2 string
+	if tmp, ok := rawArgs["description"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("description"))
+		arg2, err = ec.unmarshalNString2string(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["description"] = arg2
+	var arg3 []string
+	if tmp, ok := rawArgs["keywords"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("keywords"))
+		arg3, err = ec.unmarshalNString2ᚕstringᚄ(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["keywords"] = arg3
 	return args, nil
 }
 
@@ -4586,7 +4681,7 @@ func (ec *executionContext) _Mutation_publishStory(ctx context.Context, field gr
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		directive0 := func(rctx context.Context) (interface{}, error) {
 			ctx = rctx // use context from middleware stack in children
-			return ec.resolvers.Mutation().PublishStory(rctx, args["id"].(uuid.UUID), args["group"].(string))
+			return ec.resolvers.Mutation().PublishStory(rctx, args["id"].(uuid.UUID), args["group"].(string), args["description"].(string), args["keywords"].([]string))
 		}
 		directive1 := func(ctx context.Context) (interface{}, error) {
 			if ec.directives.Authenticated == nil {
@@ -4649,6 +4744,68 @@ func (ec *executionContext) _Mutation_updateStory(ctx context.Context, field gra
 		directive0 := func(rctx context.Context) (interface{}, error) {
 			ctx = rctx // use context from middleware stack in children
 			return ec.resolvers.Mutation().UpdateStory(rctx, args["id"].(uuid.UUID), args["target"].(uuid.UUID))
+		}
+		directive1 := func(ctx context.Context) (interface{}, error) {
+			if ec.directives.Authenticated == nil {
+				return nil, errors.New("directive authenticated is not implemented")
+			}
+			return ec.directives.Authenticated(ctx, nil, directive0, nil)
+		}
+
+		tmp, err := directive1(rctx)
+		if err != nil {
+			return nil, graphql.ErrorOnPath(ctx, err)
+		}
+		if tmp == nil {
+			return nil, nil
+		}
+		if data, ok := tmp.(*models.GraphStory); ok {
+			return data, nil
+		}
+		return nil, fmt.Errorf(`unexpected type %T from directive, should be *github.com/navikt/nada-backend/pkg/graph/models.GraphStory`, tmp)
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(*models.GraphStory)
+	fc.Result = res
+	return ec.marshalNStory2ᚖgithubᚗcomᚋnaviktᚋnadaᚑbackendᚋpkgᚋgraphᚋmodelsᚐGraphStory(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _Mutation_updateStoryMetadata(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "Mutation",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   true,
+		IsResolver: true,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	rawArgs := field.ArgumentMap(ec.Variables)
+	args, err := ec.field_Mutation_updateStoryMetadata_args(ctx, rawArgs)
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	fc.Args = args
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		directive0 := func(rctx context.Context) (interface{}, error) {
+			ctx = rctx // use context from middleware stack in children
+			return ec.resolvers.Mutation().UpdateStoryMetadata(rctx, args["id"].(uuid.UUID), args["name"].(string), args["description"].(string), args["keywords"].([]string))
 		}
 		directive1 := func(ctx context.Context) (interface{}, error) {
 			if ec.directives.Authenticated == nil {
@@ -9111,6 +9268,16 @@ func (ec *executionContext) _Mutation(ctx context.Context, sel ast.SelectionSet)
 		case "updateStory":
 			innerFunc := func(ctx context.Context) (res graphql.Marshaler) {
 				return ec._Mutation_updateStory(ctx, field)
+			}
+
+			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, innerFunc)
+
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
+		case "updateStoryMetadata":
+			innerFunc := func(ctx context.Context) (res graphql.Marshaler) {
+				return ec._Mutation_updateStoryMetadata(ctx, field)
 			}
 
 			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, innerFunc)

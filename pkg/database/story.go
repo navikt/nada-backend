@@ -2,6 +2,7 @@ package database
 
 import (
 	"context"
+	"database/sql"
 
 	"github.com/google/uuid"
 	"github.com/navikt/nada-backend/pkg/database/gensql"
@@ -45,7 +46,7 @@ func (r *Repo) GetStoryViews(ctx context.Context, storyID uuid.UUID) ([]*models.
 	return ret, nil
 }
 
-func (r *Repo) PublishStory(ctx context.Context, draftID uuid.UUID, group string) (*models.DBStory, error) {
+func (r *Repo) PublishStory(ctx context.Context, draftID uuid.UUID, group, description string, keywords []string) (*models.DBStory, error) {
 	draft, err := r.querier.GetStoryDraft(ctx, draftID)
 	if err != nil {
 		return nil, err
@@ -63,8 +64,10 @@ func (r *Repo) PublishStory(ctx context.Context, draftID uuid.UUID, group string
 
 	querier := r.querier.WithTx(tx)
 	story, err := querier.CreateStory(ctx, gensql.CreateStoryParams{
-		Name: draft.Name,
-		Grp:  group,
+		Name:        draft.Name,
+		Grp:         group,
+		Description: sql.NullString{String: description, Valid: true},
+		Keywords:    keywords,
 	})
 	if err != nil {
 		if err := tx.Rollback(); err != nil {
@@ -140,6 +143,26 @@ func (r *Repo) UpdateStory(ctx context.Context, draftID, target uuid.UUID) (*mod
 	return storyFromSQL(story), nil
 }
 
+func (r *Repo) UpdateStoryMetadata(ctx context.Context, id uuid.UUID, name, description string, keywords []string) (*models.DBStory, error) {
+	story, err := r.querier.GetStory(ctx, id)
+	if err != nil {
+		return nil, err
+	}
+
+	updated, err := r.querier.UpdateStory(ctx, gensql.UpdateStoryParams{
+		Name:        name,
+		Grp:         story.Group,
+		Description: sql.NullString{String: description, Valid: true},
+		Keywords:    keywords,
+		ID:          id,
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	return storyFromSQL(updated), nil
+}
+
 func (r *Repo) GetStoryToken(ctx context.Context, storyID uuid.UUID) (*models.StoryToken, error) {
 	token, err := r.querier.GetStoryToken(ctx, storyID)
 	if err != nil {
@@ -175,6 +198,8 @@ func (r *Repo) GetStoryFromToken(ctx context.Context, token uuid.UUID) (*models.
 		ID:           story.ID,
 		Name:         story.Name,
 		Group:        story.Group,
+		Description:  story.Description.String,
+		Keywords:     story.Keywords,
 		Created:      story.Created,
 		LastModified: story.LastModified,
 		Views:        vs,
@@ -223,6 +248,8 @@ func storyFromSQL(s gensql.Story) *models.DBStory {
 		ID:           s.ID,
 		Name:         s.Name,
 		Group:        s.Group,
+		Description:  s.Description.String,
+		Keywords:     s.Keywords,
 		Created:      s.Created,
 		LastModified: s.LastModified,
 	}

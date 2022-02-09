@@ -19,6 +19,8 @@ func storyFromDB(story *models.DBStory) (*models.GraphStory, error) {
 		Name:         story.Name,
 		Created:      story.Created,
 		LastModified: ptrTime(story.LastModified),
+		Description:  story.Description,
+		Keywords:     story.Keywords,
 		Group:        story.Group,
 		Views:        views,
 		Draft:        story.Draft,

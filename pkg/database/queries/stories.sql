@@ -57,7 +57,9 @@ ORDER BY sort ASC;
 UPDATE stories
 SET
 	"name" = @name,
-	"group" = @grp
+	"group" = @grp,
+	"description" = @description,
+	"keywords" = @keywords
 WHERE id = @id
 RETURNING *;
 

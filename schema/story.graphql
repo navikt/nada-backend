@@ -130,6 +130,10 @@ extend type Mutation {
 		id: ID!
 		"group is the owner group for the story."
 		group: String!
+		"description of the datastory"
+		description: String!
+		"keywords for the datastory used as tags."
+    	keywords: [String!]!
 	): Story! @authenticated
 
 	"""
@@ -142,6 +146,22 @@ extend type Mutation {
 		id: ID!
 		"target is the id for the published story you want to update."
 		target: ID!
+	): Story! @authenticated
+
+	"""
+    updateStoryMetadata updates metadata on an existing story.
+
+    Requires authentication.
+    """
+	updateStoryMetadata(
+		"target is the id for the published story you want to update."
+		id: ID!
+		"name of the datastory"
+		name: String!
+		"description of the datastory"
+		description: String!
+		"keywords for the datastory used as tags."
+    	keywords: [String!]!
 	): Story! @authenticated
 
 	"""

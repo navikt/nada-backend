@@ -17,12 +17,12 @@ INSERT INTO stories (
 	"name",
 	"group",
 	"description",
-    "keywords"
+	"keywords"
 ) VALUES (
 	$1,
 	$2,
-    $3,
-    $4
+	$3,
+	$4
 )
 RETURNING id, name, created, last_modified, "group", description, keywords
 `
@@ -303,19 +303,29 @@ const updateStory = `-- name: UpdateStory :one
 UPDATE stories
 SET
 	"name" = $1,
-	"group" = $2
-WHERE id = $3
+	"group" = $2,
+	"description" = $3,
+	"keywords" = $4
+WHERE id = $5
 RETURNING id, name, created, last_modified, "group", description, keywords
 `
 
 type UpdateStoryParams struct {
-	Name string
-	Grp  string
-	ID   uuid.UUID
+	Name        string
+	Grp         string
+	Description sql.NullString
+	Keywords    []string
+	ID          uuid.UUID
 }
 
 func (q *Queries) UpdateStory(ctx context.Context, arg UpdateStoryParams) (Story, error) {
-	row := q.db.QueryRowContext(ctx, updateStory, arg.Name, arg.Grp, arg.ID)
+	row := q.db.QueryRowContext(ctx, updateStory,
+		arg.Name,
+		arg.Grp,
+		arg.Description,
+		pq.Array(arg.Keywords),
+		arg.ID,
+	)
 	var i Story
 	err := row.Scan(
 		&i.ID,

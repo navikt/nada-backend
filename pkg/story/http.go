@@ -68,7 +68,7 @@ func (h *Handler) Update(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	story, err := h.repo.GetStoryFromToken(r.Context(), tokenUID)
+	existing, err := h.repo.GetStoryFromToken(r.Context(), tokenUID)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
@@ -87,7 +87,7 @@ func (h *Handler) Update(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	_, err = h.repo.UpdateStory(r.Context(), draftID, story.ID)
+	_, err = h.repo.UpdateStory(r.Context(), draftID, existing.ID)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
@@ -99,8 +99,8 @@ func (h *Handler) Update(w http.ResponseWriter, r *http.Request) {
 	}
 
 	resp := map[string]string{
-		"url": host + "/story/" + story.ID.String(),
-		"id":  story.ID.String(),
+		"url": host + "/story/" + existing.ID.String(),
+		"id":  existing.ID.String(),
 	}
 	if err := json.NewEncoder(w).Encode(resp); err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
