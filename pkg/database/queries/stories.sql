@@ -32,6 +32,12 @@ SELECT *
 FROM stories
 ORDER BY created DESC;
 
+-- name: GetStoriesByIDs :many
+SELECT *
+FROM stories
+WHERE id = ANY (@ids::uuid[])
+ORDER BY created DESC;
+
 -- name: GetStoryView :one
 SELECT *
 FROM story_views

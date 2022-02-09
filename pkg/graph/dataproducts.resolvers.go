@@ -8,6 +8,7 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
+	"html"
 	"os"
 	"strings"
 	"time"
@@ -107,6 +108,9 @@ func (r *mutationResolver) CreateDataproduct(ctx context.Context, input models.N
 	}
 
 	input.Metadata = metadata
+	if input.Description != nil && *input.Description != "" {
+		*input.Description = html.EscapeString(*input.Description)
+	}
 	dp, err := r.repo.CreateDataproduct(ctx, input)
 	if err != nil {
 		return nil, err
@@ -125,6 +129,9 @@ func (r *mutationResolver) UpdateDataproduct(ctx context.Context, id uuid.UUID, 
 	}
 	if err := ensureUserInGroup(ctx, dp.Owner.Group); err != nil {
 		return nil, err
+	}
+	if input.Description != nil && *input.Description != "" {
+		*input.Description = html.EscapeString(*input.Description)
 	}
 	return r.repo.UpdateDataproduct(ctx, id, input)
 }

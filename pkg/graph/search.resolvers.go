@@ -6,12 +6,42 @@ package graph
 import (
 	"context"
 
+	"github.com/navikt/nada-backend/pkg/graph/generated"
 	"github.com/navikt/nada-backend/pkg/graph/models"
+	stripmd "github.com/writeas/go-strip-markdown/v2"
 )
 
-func (r *queryResolver) Search(ctx context.Context, q *models.SearchQuery) ([]*models.SearchResultRow, error) {
+func (r *queryResolver) Search(ctx context.Context, q *models.SearchQueryOld, options *models.SearchQuery) ([]*models.SearchResultRow, error) {
 	if q == nil {
-		q = &models.SearchQuery{}
+		q = &models.SearchQueryOld{}
 	}
-	return r.repo.Search(ctx, q)
+	if options == nil {
+		options = &models.SearchQuery{
+			Text:   q.Text,
+			Limit:  q.Limit,
+			Offset: q.Offset,
+			Types: []models.SearchType{
+				models.SearchTypeDataproduct,
+			},
+		}
+
+		if q.Keyword != nil {
+			options.Keywords = []string{*q.Keyword}
+		}
+		if q.Group != nil {
+			options.Groups = []string{*q.Group}
+		}
+	}
+	return r.repo.Search(ctx, options)
 }
+
+func (r *searchResultRowResolver) Excerpt(ctx context.Context, obj *models.SearchResultRow) (string, error) {
+	return stripmd.Strip(obj.Excerpt), nil
+}
+
+// SearchResultRow returns generated.SearchResultRowResolver implementation.
+func (r *Resolver) SearchResultRow() generated.SearchResultRowResolver {
+	return &searchResultRowResolver{r}
+}
+
+type searchResultRowResolver struct{ *Resolver }

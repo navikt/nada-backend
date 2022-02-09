@@ -8,6 +8,7 @@ import (
 	"encoding/json"
 
 	"github.com/google/uuid"
+	"github.com/lib/pq"
 )
 
 const createStory = `-- name: CreateStory :one
@@ -107,6 +108,42 @@ ORDER BY created DESC
 
 func (q *Queries) GetStories(ctx context.Context) ([]Story, error) {
 	rows, err := q.db.QueryContext(ctx, getStories)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []Story{}
+	for rows.Next() {
+		var i Story
+		if err := rows.Scan(
+			&i.ID,
+			&i.Name,
+			&i.Created,
+			&i.LastModified,
+			&i.Group,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const getStoriesByIDs = `-- name: GetStoriesByIDs :many
+SELECT id, name, created, last_modified, "group"
+FROM stories
+WHERE id = ANY ($1::uuid[])
+ORDER BY created DESC
+`
+
+func (q *Queries) GetStoriesByIDs(ctx context.Context, ids []uuid.UUID) ([]Story, error) {
+	rows, err := q.db.QueryContext(ctx, getStoriesByIDs, pq.Array(ids))
 	if err != nil {
 		return nil, err
 	}

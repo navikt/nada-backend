@@ -79,5 +79,7 @@ require (
 
 require (
 	cloud.google.com/go/datacatalog v1.0.0 // indirect
+	github.com/writeas/go-strip-markdown v2.0.1+incompatible // indirect
+	github.com/writeas/go-strip-markdown/v2 v2.1.1 // indirect
 	google.golang.org/genproto v0.0.0-20210921142501-181ce0d877f6 // indirect
 )

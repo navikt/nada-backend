@@ -113,6 +113,7 @@ type Search struct {
 	Created      time.Time
 	LastModified time.Time
 	TsvDocument  interface{}
+	Services     []string
 }
 
 type Session struct {

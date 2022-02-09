@@ -7,6 +7,7 @@ import (
 	"context"
 
 	"github.com/google/uuid"
+	"github.com/lib/pq"
 )
 
 const search = `-- name: Search :many
@@ -14,14 +15,20 @@ SELECT
 	element_id::uuid,
 	element_type::text,
 	ts_rank_cd(tsv_document, query) AS rank,
-	ts_headline('norwegian', "description", query, 'MinWords=14, MaxWords=15, MaxFragments=2 FragmentDelimiter=" … " StartSel="**" StopSel="**"')::text AS excerpt
+	ts_headline('norwegian', "description", query, 'MinWords=10, MaxWords=20, MaxFragments=2 FragmentDelimiter=" … " StartSel="((START))" StopSel="((STOP))"')::text AS excerpt
 FROM
 	search,
 	websearch_to_tsquery('norwegian', $1) query
 WHERE
 	(
 		CASE
-			WHEN $2 :: text != '' THEN $2 = ANY(keywords)
+			WHEN array_length($2::text[], 1) > 0 THEN "element_type" = ANY($2)
+			ELSE TRUE
+		END
+	)
+	AND (
+		CASE
+			WHEN array_length($3::text[], 1) > 0 THEN "keywords" && $3
 			ELSE TRUE
 		END
 	)
@@ -33,18 +40,26 @@ WHERE
 	)
 	AND (
 		CASE
-			WHEN $3 :: text != '' THEN "group" = $3
+			WHEN array_length($4::text[], 1) > 0 THEN "group" = ANY($4)
+			ELSE TRUE
+		END
+	)
+	AND (
+		CASE
+			WHEN array_length($5::text[], 1) > 0 THEN "services" && $5
 			ELSE TRUE
 		END
 	)
 ORDER BY rank DESC, created DESC
-LIMIT $5 OFFSET $4
+LIMIT $7 OFFSET $6
 `
 
 type SearchParams struct {
 	Query   string
-	Keyword string
-	Grp     string
+	Types   []string
+	Keyword []string
+	Grp     []string
+	Service []string
 	Offs    int32
 	Lim     int32
 }
@@ -59,8 +74,10 @@ type SearchRow struct {
 func (q *Queries) Search(ctx context.Context, arg SearchParams) ([]SearchRow, error) {
 	rows, err := q.db.QueryContext(ctx, search,
 		arg.Query,
-		arg.Keyword,
-		arg.Grp,
+		pq.Array(arg.Types),
+		pq.Array(arg.Keyword),
+		pq.Array(arg.Grp),
+		pq.Array(arg.Service),
 		arg.Offs,
 		arg.Lim,
 	)
