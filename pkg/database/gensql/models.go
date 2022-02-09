@@ -130,6 +130,8 @@ type Story struct {
 	Created      time.Time
 	LastModified time.Time
 	Group        string
+	Description  sql.NullString
+	Keywords     []string
 }
 
 type StoryDraft struct {

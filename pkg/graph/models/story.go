@@ -17,6 +17,8 @@ type DBStory struct {
 	ID           uuid.UUID     `json:"id"`
 	Name         string        `json:"name"`
 	Group        string        `json:"group"`
+	Description  string        `json:"description"`
+	Keywords     []string      `json:"keywords"`
 	Created      time.Time     `json:"created"`
 	LastModified time.Time     `json:"lastModified"`
 	Views        []DBStoryView `json:"views"`
@@ -27,6 +29,8 @@ type GraphStory struct {
 	ID           uuid.UUID        `json:"id"`
 	Name         string           `json:"name"`
 	Group        string           `json:"group"`
+	Description  string           `json:"description"`
+	Keywords     []string         `json:"keywords"`
 	Created      time.Time        `json:"created"`
 	LastModified *time.Time       `json:"lastModified"`
 	Views        []GraphStoryView `json:"views"`

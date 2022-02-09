@@ -1,10 +1,14 @@
 -- name: CreateStory :one
 INSERT INTO stories (
 	"name",
-	"group"
+	"group",
+	"description",
+    "keywords"
 ) VALUES (
 	@name,
-	@grp
+	@grp,
+    @description,
+    @keywords
 )
 RETURNING *;
 
