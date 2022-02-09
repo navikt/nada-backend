@@ -5,6 +5,7 @@ package gensql
 
 import (
 	"context"
+	"database/sql"
 	"encoding/json"
 
 	"github.com/google/uuid"
@@ -14,21 +15,32 @@ import (
 const createStory = `-- name: CreateStory :one
 INSERT INTO stories (
 	"name",
-	"group"
+	"group",
+	"description",
+    "keywords"
 ) VALUES (
 	$1,
-	$2
+	$2,
+    $3,
+    $4
 )
-RETURNING id, name, created, last_modified, "group"
+RETURNING id, name, created, last_modified, "group", description, keywords
 `
 
 type CreateStoryParams struct {
-	Name string
-	Grp  string
+	Name        string
+	Grp         string
+	Description sql.NullString
+	Keywords    []string
 }
 
 func (q *Queries) CreateStory(ctx context.Context, arg CreateStoryParams) (Story, error) {
-	row := q.db.QueryRowContext(ctx, createStory, arg.Name, arg.Grp)
+	row := q.db.QueryRowContext(ctx, createStory,
+		arg.Name,
+		arg.Grp,
+		arg.Description,
+		pq.Array(arg.Keywords),
+	)
 	var i Story
 	err := row.Scan(
 		&i.ID,
@@ -36,6 +48,8 @@ func (q *Queries) CreateStory(ctx context.Context, arg CreateStoryParams) (Story
 		&i.Created,
 		&i.LastModified,
 		&i.Group,
+		&i.Description,
+		pq.Array(&i.Keywords),
 	)
 	return i, err
 }
@@ -101,7 +115,7 @@ func (q *Queries) DeleteStoryViews(ctx context.Context, storyID uuid.UUID) error
 }
 
 const getStories = `-- name: GetStories :many
-SELECT id, name, created, last_modified, "group"
+SELECT id, name, created, last_modified, "group", description, keywords
 FROM stories
 ORDER BY created DESC
 `
@@ -121,6 +135,8 @@ func (q *Queries) GetStories(ctx context.Context) ([]Story, error) {
 			&i.Created,
 			&i.LastModified,
 			&i.Group,
+			&i.Description,
+			pq.Array(&i.Keywords),
 		); err != nil {
 			return nil, err
 		}
@@ -136,7 +152,7 @@ func (q *Queries) GetStories(ctx context.Context) ([]Story, error) {
 }
 
 const getStoriesByIDs = `-- name: GetStoriesByIDs :many
-SELECT id, name, created, last_modified, "group"
+SELECT id, name, created, last_modified, "group", description, keywords
 FROM stories
 WHERE id = ANY ($1::uuid[])
 ORDER BY created DESC
@@ -157,6 +173,8 @@ func (q *Queries) GetStoriesByIDs(ctx context.Context, ids []uuid.UUID) ([]Story
 			&i.Created,
 			&i.LastModified,
 			&i.Group,
+			&i.Description,
+			pq.Array(&i.Keywords),
 		); err != nil {
 			return nil, err
 		}
@@ -172,7 +190,7 @@ func (q *Queries) GetStoriesByIDs(ctx context.Context, ids []uuid.UUID) ([]Story
 }
 
 const getStory = `-- name: GetStory :one
-SELECT id, name, created, last_modified, "group"
+SELECT id, name, created, last_modified, "group", description, keywords
 FROM stories
 WHERE id = $1
 `
@@ -186,12 +204,14 @@ func (q *Queries) GetStory(ctx context.Context, id uuid.UUID) (Story, error) {
 		&i.Created,
 		&i.LastModified,
 		&i.Group,
+		&i.Description,
+		pq.Array(&i.Keywords),
 	)
 	return i, err
 }
 
 const getStoryFromToken = `-- name: GetStoryFromToken :one
-SELECT id, name, created, last_modified, "group"
+SELECT id, name, created, last_modified, "group", description, keywords
 FROM stories
 WHERE id = (SELECT story_id FROM story_tokens WHERE token = $1)
 `
@@ -205,6 +225,8 @@ func (q *Queries) GetStoryFromToken(ctx context.Context, token uuid.UUID) (Story
 		&i.Created,
 		&i.LastModified,
 		&i.Group,
+		&i.Description,
+		pq.Array(&i.Keywords),
 	)
 	return i, err
 }
@@ -283,7 +305,7 @@ SET
 	"name" = $1,
 	"group" = $2
 WHERE id = $3
-RETURNING id, name, created, last_modified, "group"
+RETURNING id, name, created, last_modified, "group", description, keywords
 `
 
 type UpdateStoryParams struct {
@@ -301,6 +323,8 @@ func (q *Queries) UpdateStory(ctx context.Context, arg UpdateStoryParams) (Story
 		&i.Created,
 		&i.LastModified,
 		&i.Group,
+		&i.Description,
+		pq.Array(&i.Keywords),
 	)
 	return i, err
 }

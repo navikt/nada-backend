@@ -166,7 +166,9 @@ type ComplexityRoot struct {
 
 	Story struct {
 		Created      func(childComplexity int) int
+		Description  func(childComplexity int) int
 		ID           func(childComplexity int) int
+		Keywords     func(childComplexity int) int
 		LastModified func(childComplexity int) int
 		Name         func(childComplexity int) int
 		Owner        func(childComplexity int) int
@@ -924,12 +926,26 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.Story.Created(childComplexity), true
 
+	case "Story.description":
+		if e.complexity.Story.Description == nil {
+			break
+		}
+
+		return e.complexity.Story.Description(childComplexity), true
+
 	case "Story.id":
 		if e.complexity.Story.ID == nil {
 			break
 		}
 
 		return e.complexity.Story.ID(childComplexity), true
+
+	case "Story.keywords":
+		if e.complexity.Story.Keywords == nil {
+			break
+		}
+
+		return e.complexity.Story.Keywords(childComplexity), true
 
 	case "Story.lastModified":
 		if e.complexity.Story.LastModified == nil {
@@ -1737,57 +1753,161 @@ extend type Query {
     ): [SearchResultRow!]!
 }
 `, BuiltIn: false},
-	{Name: "schema/story.graphql", Input: `type Story @goModel(model: "github.com/navikt/nada-backend/pkg/graph/models.GraphStory") {
+	{Name: "schema/story.graphql", Input: `"""
+Story contains the metadata and content of data stories.
+"""
+type Story @goModel(model: "github.com/navikt/nada-backend/pkg/graph/models.GraphStory") {
+	"id of the data story."
 	id: ID!
+	"name of the data story."
 	name: String!
+	"created is the timestamp for when the data story was created."
 	created: Time!
+	"lastModified is the timestamp for when the data story was last modified."
 	lastModified: Time
+	"owner of the data story. Changes to the data story can only be done by a member of the owner."
 	owner: Owner
+	"description of the story"
+	description: String!
+	"keywords for the story used as tags."
+	keywords: [String!]!
+	"views contains a list of the different view data in the data story."
 	views: [StoryView!]! @goField(forceResolver: true)
 }
 
 interface StoryView @goModel(model: "github.com/navikt/nada-backend/pkg/graph/models.GraphStoryView") {
+	"id of the story view."
 	id: ID!
 }
 
+"""
+StoryViewHeader contains the metadata and content of a header story view.
+"""
 type StoryViewHeader implements StoryView @goModel(model: "github.com/navikt/nada-backend/pkg/graph/models.StoryViewHeader") {
+	"id of the header story view."
 	id: ID!
+	"content contains the header text."
 	content: String!
+	"level is the size of the header text."
 	level: Int!
 }
 
+"""
+StoryViewMarkdown contains the metadata and content of a markdown story view.
+"""
 type StoryViewMarkdown implements StoryView @goModel(model: "github.com/navikt/nada-backend/pkg/graph/models.StoryViewMarkdown") {
+	"id of the markdown story view."
 	id: ID!
+	"content contains the markdown text."
 	content: String!
 }
 
+"""
+StoryViewPlotly contains the metadata and content of a plotly story view.
+"""
 type StoryViewPlotly implements StoryView @goModel(model: "github.com/navikt/nada-backend/pkg/graph/models.StoryViewPlotly") {
+	"id of the plotly story view."
 	id: ID!
+	"data view data for the plotly graph."
 	data: [Map!]!
+	"layout contains metadata on the plotly graph layout."
 	layout: Map!
 }
 
+"""
+StoryViewVega contains the metadata and content of a vega story view.
+"""
 type StoryViewVega implements StoryView @goModel(model: "github.com/navikt/nada-backend/pkg/graph/models.StoryViewVega") {
+	"id of the vega story view."
 	id: ID!
+	"spec contains data and metadata on the vega graph."
 	spec: Map!
 }
 
+"""
+StoryToken contains the token used for updating a data story.
+"""
 type StoryToken @goModel(model: "github.com/navikt/nada-backend/pkg/graph/models.StoryToken") {
+	"id of the story token."
 	id: ID!
+	"token is the update token for the data story."
 	token: String!
 }
 
 extend type Query {
-	stories(draft: Boolean): [Story!]!
-	story(id: ID!, draft: Boolean): Story!
-	storyView(id: ID!, draft: Boolean): StoryView!
-	storyToken(id: ID!): StoryToken! @authenticated
+	"""
+    stories returns all either draft or published stories depending on the draft boolean.
+    """
+	stories(
+		"draft is a boolean indicating whether to return drafts or published stories."
+		draft: Boolean
+	): [Story!]!
+
+	"""
+    story returns the given story.
+    """
+	story(
+		"id of the story."
+		id: ID!
+		"draft is a boolean indicating whether to return a draft or a published story."
+		draft: Boolean
+	): Story!
+
+	"""
+    storyView returns the given story view.
+    """
+	storyView(
+		"id of the story view."
+		id: ID!
+		"draft is a boolean indicating whether to return a draft or a published story view."
+		draft: Boolean
+	): StoryView!
+
+	"""
+    storyToken returns the update token for the data story.
+
+    Requires authentication.
+    """
+	storyToken(
+		"id of story."
+		id: ID!
+	): StoryToken! @authenticated
 }
 
 extend type Mutation {
-	publishStory(id: ID!, group: String!): Story! @authenticated
-	updateStory(id: ID!, target: ID!): Story! @authenticated
-	deleteStory(id: ID!): Boolean! @authenticated
+	"""
+    publishStory publishes a story draft.
+
+    Requires authentication.
+    """
+	publishStory(
+		"id is the id for the draft story."
+		id: ID!
+		"group is the owner group for the story."
+		group: String!
+	): Story! @authenticated
+
+	"""
+    updateStory updates an existing story.
+
+    Requires authentication.
+    """
+	updateStory(
+		"id is the id for the draft story."
+		id: ID!
+		"target is the id for the published story you want to update."
+		target: ID!
+	): Story! @authenticated
+
+	"""
+    deleteStory deletes an existing story.
+
+    Requires authentication.
+    """
+	deleteStory(
+		"id is the id for the published story."
+		id: ID!
+	): Boolean! @authenticated
 }
 `, BuiltIn: false},
 	{Name: "schema/teamkatalogen.graphql", Input: `type TeamkatalogenResult @goModel(model: "github.com/navikt/nada-backend/pkg/graph/models.TeamkatalogenResult") {
@@ -5657,6 +5777,76 @@ func (ec *executionContext) _Story_owner(ctx context.Context, field graphql.Coll
 	return ec.marshalOOwner2ᚖgithubᚗcomᚋnaviktᚋnadaᚑbackendᚋpkgᚋgraphᚋmodelsᚐOwner(ctx, field.Selections, res)
 }
 
+func (ec *executionContext) _Story_description(ctx context.Context, field graphql.CollectedField, obj *models.GraphStory) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "Story",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   false,
+		IsResolver: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Description, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(string)
+	fc.Result = res
+	return ec.marshalNString2string(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _Story_keywords(ctx context.Context, field graphql.CollectedField, obj *models.GraphStory) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "Story",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   false,
+		IsResolver: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Keywords, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.([]string)
+	fc.Result = res
+	return ec.marshalNString2ᚕstringᚄ(ctx, field.Selections, res)
+}
+
 func (ec *executionContext) _Story_views(ctx context.Context, field graphql.CollectedField, obj *models.GraphStory) (ret graphql.Marshaler) {
 	defer func() {
 		if r := recover(); r != nil {
@@ -9468,6 +9658,26 @@ func (ec *executionContext) _Story(ctx context.Context, sel ast.SelectionSet, ob
 				return innerFunc(ctx)
 
 			})
+		case "description":
+			innerFunc := func(ctx context.Context) (res graphql.Marshaler) {
+				return ec._Story_description(ctx, field, obj)
+			}
+
+			out.Values[i] = innerFunc(ctx)
+
+			if out.Values[i] == graphql.Null {
+				atomic.AddUint32(&invalids, 1)
+			}
+		case "keywords":
+			innerFunc := func(ctx context.Context) (res graphql.Marshaler) {
+				return ec._Story_keywords(ctx, field, obj)
+			}
+
+			out.Values[i] = innerFunc(ctx)
+
+			if out.Values[i] == graphql.Null {
+				atomic.AddUint32(&invalids, 1)
+			}
 		case "views":
 			field := field
 

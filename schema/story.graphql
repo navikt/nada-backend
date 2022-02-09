@@ -12,6 +12,10 @@ type Story @goModel(model: "github.com/navikt/nada-backend/pkg/graph/models.Grap
 	lastModified: Time
 	"owner of the data story. Changes to the data story can only be done by a member of the owner."
 	owner: Owner
+	"description of the story"
+	description: String!
+	"keywords for the story used as tags."
+	keywords: [String!]!
 	"views contains a list of the different view data in the data story."
 	views: [StoryView!]! @goField(forceResolver: true)
 }

@@ -15,6 +15,7 @@ require (
 	github.com/sirupsen/logrus v1.8.1
 	github.com/slack-go/slack v0.10.1
 	github.com/spf13/pflag v1.0.5
+	github.com/writeas/go-strip-markdown/v2 v2.1.1
 	golang.org/x/oauth2 v0.0.0-20210819190943-2bc19b11175f
 )
 
@@ -79,7 +80,5 @@ require (
 
 require (
 	cloud.google.com/go/datacatalog v1.0.0 // indirect
-	github.com/writeas/go-strip-markdown v2.0.1+incompatible // indirect
-	github.com/writeas/go-strip-markdown/v2 v2.1.1 // indirect
 	google.golang.org/genproto v0.0.0-20210921142501-181ce0d877f6 // indirect
 )
