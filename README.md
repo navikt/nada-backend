@@ -13,7 +13,6 @@ This assumes that you have `gcloud` installed, and that [Google Cloud Platform h
 We require the login to be done in two steps now, apparently.
 ```bash
 gcloud auth login --update-adc
-gcloud auth application-default login
 ```
 
 
