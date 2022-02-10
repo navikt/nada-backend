@@ -86,3 +86,10 @@ func ptrTime(t time.Time) *time.Time {
 	}
 	return &t
 }
+
+func ptrToString(s *string) string {
+	if s != nil {
+		return *s
+	}
+	return ""
+}

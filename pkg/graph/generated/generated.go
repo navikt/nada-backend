@@ -130,7 +130,7 @@ type ComplexityRoot struct {
 		Dummy                          func(childComplexity int, no *string) int
 		GrantAccessToDataproduct       func(childComplexity int, dataproductID uuid.UUID, expires *time.Time, subject *string, subjectType *models.SubjectType) int
 		MapDataproduct                 func(childComplexity int, dataproductID uuid.UUID, services []models.MappingService) int
-		PublishStory                   func(childComplexity int, id uuid.UUID, group string, description string, keywords []string) int
+		PublishStory                   func(childComplexity int, id uuid.UUID, group string, description *string, keywords []string) int
 		RemoveRequesterFromDataproduct func(childComplexity int, dataproductID uuid.UUID, subject string) int
 		RevokeAccessToDataproduct      func(childComplexity int, id uuid.UUID) int
 		UpdateDataproduct              func(childComplexity int, id uuid.UUID, input models.UpdateDataproduct) int
@@ -247,7 +247,7 @@ type MutationResolver interface {
 	GrantAccessToDataproduct(ctx context.Context, dataproductID uuid.UUID, expires *time.Time, subject *string, subjectType *models.SubjectType) (*models.Access, error)
 	RevokeAccessToDataproduct(ctx context.Context, id uuid.UUID) (bool, error)
 	MapDataproduct(ctx context.Context, dataproductID uuid.UUID, services []models.MappingService) (bool, error)
-	PublishStory(ctx context.Context, id uuid.UUID, group string, description string, keywords []string) (*models.GraphStory, error)
+	PublishStory(ctx context.Context, id uuid.UUID, group string, description *string, keywords []string) (*models.GraphStory, error)
 	UpdateStory(ctx context.Context, id uuid.UUID, target uuid.UUID) (*models.GraphStory, error)
 	UpdateStoryMetadata(ctx context.Context, id uuid.UUID, name string, description string, keywords []string) (*models.GraphStory, error)
 	DeleteStory(ctx context.Context, id uuid.UUID) (bool, error)
@@ -686,7 +686,7 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 			return 0, false
 		}
 
-		return e.complexity.Mutation.PublishStory(childComplexity, args["id"].(uuid.UUID), args["group"].(string), args["description"].(string), args["keywords"].([]string)), true
+		return e.complexity.Mutation.PublishStory(childComplexity, args["id"].(uuid.UUID), args["group"].(string), args["description"].(*string), args["keywords"].([]string)), true
 
 	case "Mutation.removeRequesterFromDataproduct":
 		if e.complexity.Mutation.RemoveRequesterFromDataproduct == nil {
@@ -1901,9 +1901,9 @@ extend type Mutation {
 		"group is the owner group for the story."
 		group: String!
 		"description of the datastory"
-		description: String!
+		description: String
 		"keywords for the datastory used as tags."
-    	keywords: [String!]!
+    	keywords: [String!]
 	): Story! @authenticated
 
 	"""
@@ -2202,10 +2202,10 @@ func (ec *executionContext) field_Mutation_publishStory_args(ctx context.Context
 		}
 	}
 	args["group"] = arg1
-	var arg2 string
+	var arg2 *string
 	if tmp, ok := rawArgs["description"]; ok {
 		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("description"))
-		arg2, err = ec.unmarshalNString2string(ctx, tmp)
+		arg2, err = ec.unmarshalOString2ᚖstring(ctx, tmp)
 		if err != nil {
 			return nil, err
 		}
@@ -2214,7 +2214,7 @@ func (ec *executionContext) field_Mutation_publishStory_args(ctx context.Context
 	var arg3 []string
 	if tmp, ok := rawArgs["keywords"]; ok {
 		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("keywords"))
-		arg3, err = ec.unmarshalNString2ᚕstringᚄ(ctx, tmp)
+		arg3, err = ec.unmarshalOString2ᚕstringᚄ(ctx, tmp)
 		if err != nil {
 			return nil, err
 		}
@@ -4681,7 +4681,7 @@ func (ec *executionContext) _Mutation_publishStory(ctx context.Context, field gr
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		directive0 := func(rctx context.Context) (interface{}, error) {
 			ctx = rctx // use context from middleware stack in children
-			return ec.resolvers.Mutation().PublishStory(rctx, args["id"].(uuid.UUID), args["group"].(string), args["description"].(string), args["keywords"].([]string))
+			return ec.resolvers.Mutation().PublishStory(rctx, args["id"].(uuid.UUID), args["group"].(string), args["description"].(*string), args["keywords"].([]string))
 		}
 		directive1 := func(ctx context.Context) (interface{}, error) {
 			if ec.directives.Authenticated == nil {

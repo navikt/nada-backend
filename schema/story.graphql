@@ -131,9 +131,9 @@ extend type Mutation {
 		"group is the owner group for the story."
 		group: String!
 		"description of the datastory"
-		description: String!
+		description: String
 		"keywords for the datastory used as tags."
-    	keywords: [String!]!
+    	keywords: [String!]
 	): Story! @authenticated
 
 	"""

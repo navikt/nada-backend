@@ -12,13 +12,17 @@ import (
 	"github.com/navikt/nada-backend/pkg/graph/models"
 )
 
-func (r *mutationResolver) PublishStory(ctx context.Context, id uuid.UUID, group string, description string, keywords []string) (*models.GraphStory, error) {
+func (r *mutationResolver) PublishStory(ctx context.Context, id uuid.UUID, group string, description *string, keywords []string) (*models.GraphStory, error) {
 	user := auth.GetUser(ctx)
 	if !user.Groups.Contains(group) {
 		return nil, ErrUnauthorized
 	}
 
-	s, err := r.repo.PublishStory(ctx, id, group, description, keywords)
+	if keywords == nil {
+		keywords = []string{}
+	}
+
+	s, err := r.repo.PublishStory(ctx, id, group, ptrToString(description), keywords)
 	if err != nil {
 		return nil, err
 	}
