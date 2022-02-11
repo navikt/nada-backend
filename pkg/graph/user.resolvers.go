@@ -62,6 +62,24 @@ func (r *userInfoResolver) Accessable(ctx context.Context, obj *models.UserInfo)
 	return r.repo.GetDataproductsByUserAccess(ctx, "user:"+user.Email)
 }
 
+func (r *userInfoResolver) Stories(ctx context.Context, obj *models.UserInfo) ([]*models.GraphStory, error) {
+	user := auth.GetUser(ctx)
+
+	stories, err := r.repo.GetStoriesByGroups(ctx, user.Groups.Emails())
+	if err != nil {
+		return nil, err
+	}
+
+	gqlStories := make([]*models.GraphStory, len(stories))
+	for i, s := range stories {
+		gqlStories[i], err = storyFromDB(s)
+		if err != nil {
+			return nil, err
+		}
+	}
+	return gqlStories, nil
+}
+
 // UserInfo returns generated.UserInfoResolver implementation.
 func (r *Resolver) UserInfo() generated.UserInfoResolver { return &userInfoResolver{r} }
 

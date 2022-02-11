@@ -224,6 +224,7 @@ type ComplexityRoot struct {
 		Groups          func(childComplexity int) int
 		LoginExpiration func(childComplexity int) int
 		Name            func(childComplexity int) int
+		Stories         func(childComplexity int) int
 	}
 }
 
@@ -281,6 +282,7 @@ type UserInfoResolver interface {
 
 	Dataproducts(ctx context.Context, obj *models.UserInfo) ([]*models.Dataproduct, error)
 	Accessable(ctx context.Context, obj *models.UserInfo) ([]*models.Dataproduct, error)
+	Stories(ctx context.Context, obj *models.UserInfo) ([]*models.GraphStory, error)
 }
 
 type executableSchema struct {
@@ -1172,6 +1174,13 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.UserInfo.Name(childComplexity), true
 
+	case "UserInfo.stories":
+		if e.complexity.UserInfo.Stories == nil {
+			break
+		}
+
+		return e.complexity.UserInfo.Stories(childComplexity), true
+
 	}
 	return 0, false
 }
@@ -1990,6 +1999,8 @@ type UserInfo @goModel(model: "github.com/navikt/nada-backend/pkg/graph/models.U
 	dataproducts: [Dataproduct!]!
 	"accessable is a list of dataproducts which the user has explicit access to"
 	accessable: [Dataproduct!]!
+	"stories is a list of stories with one of the users groups as owner"
+	stories: [Story!]!
 }
 
 """
@@ -6969,6 +6980,41 @@ func (ec *executionContext) _UserInfo_accessable(ctx context.Context, field grap
 	return ec.marshalNDataproduct2ᚕᚖgithubᚗcomᚋnaviktᚋnadaᚑbackendᚋpkgᚋgraphᚋmodelsᚐDataproductᚄ(ctx, field.Selections, res)
 }
 
+func (ec *executionContext) _UserInfo_stories(ctx context.Context, field graphql.CollectedField, obj *models.UserInfo) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "UserInfo",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   true,
+		IsResolver: true,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.UserInfo().Stories(rctx, obj)
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.([]*models.GraphStory)
+	fc.Result = res
+	return ec.marshalNStory2ᚕᚖgithubᚗcomᚋnaviktᚋnadaᚑbackendᚋpkgᚋgraphᚋmodelsᚐGraphStoryᚄ(ctx, field.Selections, res)
+}
+
 func (ec *executionContext) ___Directive_name(ctx context.Context, field graphql.CollectedField, obj *introspection.Directive) (ret graphql.Marshaler) {
 	defer func() {
 		if r := recover(); r != nil {
@@ -10313,6 +10359,26 @@ func (ec *executionContext) _UserInfo(ctx context.Context, sel ast.SelectionSet,
 					}
 				}()
 				res = ec._UserInfo_accessable(ctx, field, obj)
+				if res == graphql.Null {
+					atomic.AddUint32(&invalids, 1)
+				}
+				return res
+			}
+
+			out.Concurrently(i, func() graphql.Marshaler {
+				return innerFunc(ctx)
+
+			})
+		case "stories":
+			field := field
+
+			innerFunc := func(ctx context.Context) (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._UserInfo_stories(ctx, field, obj)
 				if res == graphql.Null {
 					atomic.AddUint32(&invalids, 1)
 				}
