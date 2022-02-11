@@ -151,6 +151,44 @@ func (q *Queries) GetStories(ctx context.Context) ([]Story, error) {
 	return items, nil
 }
 
+const getStoriesByGroups = `-- name: GetStoriesByGroups :many
+SELECT id, name, created, last_modified, "group", description, keywords
+FROM stories
+WHERE "group" = ANY ($1::text[])
+ORDER BY last_modified DESC
+`
+
+func (q *Queries) GetStoriesByGroups(ctx context.Context, groups []string) ([]Story, error) {
+	rows, err := q.db.QueryContext(ctx, getStoriesByGroups, pq.Array(groups))
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []Story{}
+	for rows.Next() {
+		var i Story
+		if err := rows.Scan(
+			&i.ID,
+			&i.Name,
+			&i.Created,
+			&i.LastModified,
+			&i.Group,
+			&i.Description,
+			pq.Array(&i.Keywords),
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const getStoriesByIDs = `-- name: GetStoriesByIDs :many
 SELECT id, name, created, last_modified, "group", description, keywords
 FROM stories

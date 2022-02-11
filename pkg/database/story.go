@@ -174,6 +174,19 @@ func (r *Repo) GetStoryToken(ctx context.Context, storyID uuid.UUID) (*models.St
 	}, nil
 }
 
+func (r *Repo) GetStoriesByGroups(ctx context.Context, groups []string) ([]*models.DBStory, error) {
+	stories, err := r.querier.GetStoriesByGroups(ctx, groups)
+	if err != nil {
+		return nil, err
+	}
+
+	dbStories := make([]*models.DBStory, len(stories))
+	for i, s := range stories {
+		dbStories[i] = storyFromSQL(s)
+	}
+	return dbStories, nil
+}
+
 func (r *Repo) GetStoryFromToken(ctx context.Context, token uuid.UUID) (*models.DBStory, error) {
 	story, err := r.querier.GetStoryFromToken(ctx, token)
 	if err != nil {

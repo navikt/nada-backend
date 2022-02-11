@@ -80,3 +80,9 @@ WHERE story_id = @story_id;
 SELECT *
 FROM stories
 WHERE id = (SELECT story_id FROM story_tokens WHERE token = @token);
+
+-- name: GetStoriesByGroups :many
+SELECT *
+FROM stories
+WHERE "group" = ANY (@groups::text[])
+ORDER BY last_modified DESC;
