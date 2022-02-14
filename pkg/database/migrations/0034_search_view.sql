@@ -28,15 +28,30 @@ AS (
 	SELECT
 		"s"."id" AS "element_id",
 		'story' AS "element_type",
-		'' AS "description",
+		coalesce("s"."description", '') AS "description",
 		'{}' AS "keywords",
 		"s"."group",
 		"s"."created",
 		"s"."last_modified",
 		(
 			setweight(to_tsvector('norwegian', "s"."name"), 'A')
+				|| setweight(to_tsvector('norwegian', coalesce("s"."description", '')), 'B')
+				|| setweight(to_tsvector('norwegian', coalesce(f_arr2text("s"."keywords"), '')), 'C')
 				|| setweight(to_tsvector('norwegian', split_part(coalesce("s"."group", ''), '@', 1)), 'D')
 		) AS tsv_document,
 		'{}' AS "services"
-	FROM "stories" "s"
+	FROM (
+		SELECT "id", "name", "group", "created", "last_modified", "keywords",
+		(
+			SELECT string_agg("spec"->>'content', ' ')
+			FROM (
+				SELECT "spec"
+				FROM "story_views"
+				WHERE "story_id" = "story"."id"
+				AND "type" IN ('markdown', 'header')
+				ORDER BY "sort" ASC
+			) "views"
+		) AS "description"
+		FROM "stories" "story"
+	) "s"
 );

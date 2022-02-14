@@ -12,8 +12,6 @@ type Story @goModel(model: "github.com/navikt/nada-backend/pkg/graph/models.Grap
 	lastModified: Time
 	"owner of the data story. Changes to the data story can only be done by a member of the owner."
 	owner: Owner
-	"description of the story"
-	description: String!
 	"keywords for the story used as tags."
 	keywords: [String!]!
 	"views contains a list of the different view data in the data story."
@@ -132,10 +130,8 @@ extend type Mutation {
 		id: ID!
 		"group is the owner group for the story."
 		group: String!
-		"description of the datastory"
-		description: String
 		"keywords for the datastory used as tags."
-    	keywords: [String!]
+		keywords: [String!]
 	): Story! @authenticated
 
 	"""
@@ -160,10 +156,8 @@ extend type Mutation {
 		id: ID!
 		"name of the datastory"
 		name: String!
-		"description of the datastory"
-		description: String!
 		"keywords for the datastory used as tags."
-    	keywords: [String!]!
+		keywords: [String!]!
 	): Story! @authenticated
 
 	"""
