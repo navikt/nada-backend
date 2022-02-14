@@ -62,6 +62,7 @@ type StoryViewPlotly struct {
 	ID     uuid.UUID                `json:"id"`
 	Data   []map[string]interface{} `json:"data"`
 	Layout map[string]interface{}   `json:"layout"`
+	Frames []map[string]interface{} `json:"frames"`
 }
 
 func (StoryViewPlotly) IsStoryView() {}

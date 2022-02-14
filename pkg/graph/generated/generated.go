@@ -194,6 +194,7 @@ type ComplexityRoot struct {
 
 	StoryViewPlotly struct {
 		Data   func(childComplexity int) int
+		Frames func(childComplexity int) int
 		ID     func(childComplexity int) int
 		Layout func(childComplexity int) int
 	}
@@ -1048,6 +1049,13 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.StoryViewPlotly.Data(childComplexity), true
 
+	case "StoryViewPlotly.frames":
+		if e.complexity.StoryViewPlotly.Frames == nil {
+			break
+		}
+
+		return e.complexity.StoryViewPlotly.Frames(childComplexity), true
+
 	case "StoryViewPlotly.id":
 		if e.complexity.StoryViewPlotly.ID == nil {
 			break
@@ -1832,10 +1840,12 @@ StoryViewPlotly contains the metadata and content of a plotly story view.
 type StoryViewPlotly implements StoryView @goModel(model: "github.com/navikt/nada-backend/pkg/graph/models.StoryViewPlotly") {
 	"id of the plotly story view."
 	id: ID!
-	"data view data for the plotly graph."
+	"view data for the plotly graph."
 	data: [Map!]!
 	"layout contains metadata on the plotly graph layout."
 	layout: Map!
+	"frames contains view data when plotly figures has different views"
+	frames: [Map!]!
 }
 
 """
@@ -6400,6 +6410,41 @@ func (ec *executionContext) _StoryViewPlotly_layout(ctx context.Context, field g
 	return ec.marshalNMap2map(ctx, field.Selections, res)
 }
 
+func (ec *executionContext) _StoryViewPlotly_frames(ctx context.Context, field graphql.CollectedField, obj *models.StoryViewPlotly) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "StoryViewPlotly",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   false,
+		IsResolver: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Frames, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.([]map[string]interface{})
+	fc.Result = res
+	return ec.marshalNMap2ᚕmapᚄ(ctx, field.Selections, res)
+}
+
 func (ec *executionContext) _StoryViewVega_id(ctx context.Context, field graphql.CollectedField, obj *models.StoryViewVega) (ret graphql.Marshaler) {
 	defer func() {
 		if r := recover(); r != nil {
@@ -10088,6 +10133,16 @@ func (ec *executionContext) _StoryViewPlotly(ctx context.Context, sel ast.Select
 		case "layout":
 			innerFunc := func(ctx context.Context) (res graphql.Marshaler) {
 				return ec._StoryViewPlotly_layout(ctx, field, obj)
+			}
+
+			out.Values[i] = innerFunc(ctx)
+
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
+		case "frames":
+			innerFunc := func(ctx context.Context) (res graphql.Marshaler) {
+				return ec._StoryViewPlotly_frames(ctx, field, obj)
 			}
 
 			out.Values[i] = innerFunc(ctx)

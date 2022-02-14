@@ -53,10 +53,12 @@ StoryViewPlotly contains the metadata and content of a plotly story view.
 type StoryViewPlotly implements StoryView @goModel(model: "github.com/navikt/nada-backend/pkg/graph/models.StoryViewPlotly") {
 	"id of the plotly story view."
 	id: ID!
-	"data view data for the plotly graph."
+	"view data for the plotly graph."
 	data: [Map!]!
 	"layout contains metadata on the plotly graph layout."
 	layout: Map!
+	"frames contains view data when plotly figures has different views"
+	frames: [Map!]!
 }
 
 """
