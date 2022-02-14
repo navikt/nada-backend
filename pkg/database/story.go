@@ -46,7 +46,7 @@ func (r *Repo) GetStoryViews(ctx context.Context, storyID uuid.UUID) ([]*models.
 	return ret, nil
 }
 
-func (r *Repo) PublishStory(ctx context.Context, draftID uuid.UUID, group, description string, keywords []string) (*models.DBStory, error) {
+func (r *Repo) PublishStory(ctx context.Context, draftID uuid.UUID, group string, keywords []string) (*models.DBStory, error) {
 	draft, err := r.querier.GetStoryDraft(ctx, draftID)
 	if err != nil {
 		return nil, err
@@ -66,7 +66,7 @@ func (r *Repo) PublishStory(ctx context.Context, draftID uuid.UUID, group, descr
 	story, err := querier.CreateStory(ctx, gensql.CreateStoryParams{
 		Name:        draft.Name,
 		Grp:         group,
-		Description: sql.NullString{String: description, Valid: true},
+		Description: sql.NullString{String: "", Valid: false},
 		Keywords:    keywords,
 	})
 	if err != nil {
@@ -143,7 +143,7 @@ func (r *Repo) UpdateStory(ctx context.Context, draftID, target uuid.UUID) (*mod
 	return storyFromSQL(story), nil
 }
 
-func (r *Repo) UpdateStoryMetadata(ctx context.Context, id uuid.UUID, name, description string, keywords []string) (*models.DBStory, error) {
+func (r *Repo) UpdateStoryMetadata(ctx context.Context, id uuid.UUID, name string, keywords []string) (*models.DBStory, error) {
 	story, err := r.querier.GetStory(ctx, id)
 	if err != nil {
 		return nil, err
@@ -152,7 +152,7 @@ func (r *Repo) UpdateStoryMetadata(ctx context.Context, id uuid.UUID, name, desc
 	updated, err := r.querier.UpdateStory(ctx, gensql.UpdateStoryParams{
 		Name:        name,
 		Grp:         story.Group,
-		Description: sql.NullString{String: description, Valid: true},
+		Description: sql.NullString{String: "", Valid: false},
 		Keywords:    keywords,
 		ID:          id,
 	})
