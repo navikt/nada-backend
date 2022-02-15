@@ -3,6 +3,8 @@ apiVersion: "nais.io/v1alpha1"
 metadata:
   name: nada-backend
   namespace: nada
+  annotations:
+    nginx.ingress.kubernetes.io/proxy-body-size: 100M
   labels:
     team: nada
 spec:
