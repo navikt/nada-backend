@@ -23,7 +23,7 @@ type Dataproduct @goModel(model: "github.com/navikt/nada-backend/pkg/graph/model
     "datasource contains metadata on the datasource"
     datasource: Datasource!
     "requesters contains list of users, groups and service accounts which can request access to the dataproduct"
-    requesters: [String!]!
+    requesters: [String!]! @authenticated
     "access contains list of users, groups and service accounts which have access to the dataproduct"
     access: [Access!]! @authenticated
     "services contains links to this dataproduct in other services"
