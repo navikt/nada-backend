@@ -77,6 +77,7 @@ func (r *Repo) Search(ctx context.Context, query *models.SearchQuery) ([]*models
 				Created:      s.Created,
 				LastModified: &s.LastModified,
 				Group:        s.Group,
+				Keywords:     s.Keywords,
 			},
 		})
 	}
