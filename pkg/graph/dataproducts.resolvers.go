@@ -30,7 +30,26 @@ func (r *dataproductResolver) Datasource(ctx context.Context, obj *models.Datapr
 }
 
 func (r *dataproductResolver) Requesters(ctx context.Context, obj *models.Dataproduct) ([]string, error) {
-	return r.repo.GetDataproductRequesters(ctx, obj.ID)
+	allRequesters, err := r.repo.GetDataproductRequesters(ctx, obj.ID)
+	if err != nil {
+		return nil, err
+	}
+
+	user := auth.GetUser(ctx)
+	if user.Groups.Contains(obj.Owner.Group) {
+		return allRequesters, nil
+	}
+
+	ret := []string{}
+	for _, r := range allRequesters {
+		if strings.EqualFold(r, user.Email) {
+			ret = append(ret, r)
+		} else if user.Groups.Contains(r) {
+			ret = append(ret, r)
+		}
+	}
+
+	return ret, nil
 }
 
 func (r *dataproductResolver) Access(ctx context.Context, obj *models.Dataproduct) ([]*models.Access, error) {
