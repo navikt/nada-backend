@@ -131,6 +131,13 @@ func (r *Repo) UpdateStory(ctx context.Context, draftID, target uuid.UUID) (*mod
 		}
 	}
 
+	if err := querier.UpdateLastModifiedOnStory(ctx, target); err != nil {
+		if err := tx.Rollback(); err != nil {
+			r.log.WithError(err).Error("unable to roll back when create story view failed")
+		}
+		return nil, err
+	}
+
 	if err := tx.Commit(); err != nil {
 		return nil, err
 	}

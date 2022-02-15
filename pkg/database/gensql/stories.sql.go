@@ -337,6 +337,18 @@ func (q *Queries) GetStoryViews(ctx context.Context, storyID uuid.UUID) ([]Story
 	return items, nil
 }
 
+const updateLastModifiedOnStory = `-- name: UpdateLastModifiedOnStory :exec
+UPDATE stories
+SET 
+	"last_modified" = NOW()
+WHERE id = $1
+`
+
+func (q *Queries) UpdateLastModifiedOnStory(ctx context.Context, id uuid.UUID) error {
+	_, err := q.db.ExecContext(ctx, updateLastModifiedOnStory, id)
+	return err
+}
+
 const updateStory = `-- name: UpdateStory :one
 UPDATE stories
 SET
