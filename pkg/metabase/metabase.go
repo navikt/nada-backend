@@ -309,7 +309,7 @@ func (m *Metabase) create(ctx context.Context, dp dpWrapper) error {
 		return err
 	}
 
-	dbID, err := m.client.CreateDatabase(ctx, dp.Dataproduct.Name, dp.Key, dp.Email, &datasource)
+	dbID, err := m.client.CreateDatabase(ctx, dp.Dataproduct.Owner.Group, dp.Dataproduct.Name, dp.Key, dp.Email, &datasource)
 	if err != nil {
 		return err
 	}

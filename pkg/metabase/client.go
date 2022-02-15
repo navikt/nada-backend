@@ -172,9 +172,9 @@ type Details struct {
 	SAEmail            string `json:"sa-email"`
 }
 
-func (c *Client) CreateDatabase(ctx context.Context, name, saJSON, saEmail string, ds *models.BigQuery) (int, error) {
+func (c *Client) CreateDatabase(ctx context.Context, team, name, saJSON, saEmail string, ds *models.BigQuery) (int, error) {
 	db := NewDatabase{
-		Name: name,
+		Name: strings.Split(team, "@")[0] + ": " + name,
 		Details: Details{
 			DatasetID:          ds.Dataset,
 			NadaID:             ds.DataproductID.String(),
