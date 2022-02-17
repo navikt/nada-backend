@@ -165,6 +165,7 @@ func (m *Metabase) addDataproductMapping(ctx context.Context, dpID uuid.UUID) {
 			log.WithError(err).Error("create restricted database")
 			return
 		}
+		return
 	} else if err != nil {
 		log.WithError(err).Error("get metabase metadata")
 		return
