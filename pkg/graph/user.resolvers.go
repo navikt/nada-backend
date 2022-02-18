@@ -5,6 +5,8 @@ package graph
 
 import (
 	"context"
+	"os"
+	"strings"
 
 	"github.com/navikt/nada-backend/pkg/auth"
 	"github.com/navikt/nada-backend/pkg/graph/generated"
@@ -33,12 +35,19 @@ func (r *userInfoResolver) GCPProjects(ctx context.Context, obj *models.UserInfo
 	user := auth.GetUser(ctx)
 	ret := []*models.GCPProject{}
 
+	isProd := strings.Contains(os.Getenv("NAIS_CLUSTER_NAME"), "prod-")
+
 	for _, grp := range user.Groups {
 		proj, ok := r.gcpProjects.Get(grp.Email)
 		if !ok {
 			continue
 		}
 		for _, p := range proj {
+			if isProd && strings.Contains(p, "-dev-") {
+				continue
+			} else if !isProd && strings.Contains(p, "-prod-") {
+				continue
+			}
 			ret = append(ret, &models.GCPProject{
 				ID: p,
 				Group: &models.Group{
