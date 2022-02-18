@@ -40,14 +40,14 @@ RETURNS
 			],
 			"gcpProjects": [
 				{
-					"id": "team-dev",
+					"id": "team-dev-1337",
 					"group": {
 						"name": "team",
 						"email": "team@nav.no"
 					}
 				},
 				{
-					"id": "team-prod",
+					"id": "team-prod-4242",
 					"group": {
 						"name": "team",
 						"email": "team@nav.no"
