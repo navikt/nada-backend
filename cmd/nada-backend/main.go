@@ -16,7 +16,6 @@ import (
 	"github.com/navikt/nada-backend/pkg/auth"
 	"github.com/navikt/nada-backend/pkg/bigquery"
 	"github.com/navikt/nada-backend/pkg/database"
-	"github.com/navikt/nada-backend/pkg/database/gensql"
 	"github.com/navikt/nada-backend/pkg/event"
 	"github.com/navikt/nada-backend/pkg/graph"
 	"github.com/navikt/nada-backend/pkg/metabase"
@@ -214,11 +213,5 @@ func runMetabase(ctx context.Context, log *logrus.Entry, cfg Config, repo *datab
 
 	metabase := metabase.New(repo, client, accessMgr, eventMgr, string(sa), metabaseSA.ClientEmail, promErrs, iamService, crmService, log.WithField("subsystem", "metabase"))
 	go metabase.Run(ctx, MetabaseUpdateFrequency)
-	return nil
-}
-
-type noopDatasetEnricher struct{}
-
-func (n noopDatasetEnricher) UpdateSchema(ctx context.Context, ds gensql.DatasourceBigquery) error {
 	return nil
 }
