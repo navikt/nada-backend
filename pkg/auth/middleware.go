@@ -15,7 +15,7 @@ import (
 
 type contextKey int
 
-const contextUserKey contextKey = 1
+const ContextUserKey contextKey = 1
 
 type User struct {
 	Name   string `json:"name"`
@@ -25,7 +25,7 @@ type User struct {
 }
 
 func GetUser(ctx context.Context) *User {
-	user := ctx.Value(contextUserKey)
+	user := ctx.Value(ContextUserKey)
 	if user == nil {
 		return nil
 	}
@@ -111,7 +111,7 @@ func (m *Middleware) handle(next http.Handler) http.Handler {
 		}
 
 		ctx := r.Context()
-		r = r.WithContext(context.WithValue(ctx, contextUserKey, user))
+		r = r.WithContext(context.WithValue(ctx, ContextUserKey, user))
 		next.ServeHTTP(w, r)
 	})
 }

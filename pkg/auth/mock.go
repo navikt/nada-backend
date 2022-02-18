@@ -48,7 +48,7 @@ func MockJWTValidatorMiddleware() MiddlewareHandler {
 				return
 			}
 
-			ctx := context.WithValue(r.Context(), contextUserKey, &MockUser)
+			ctx := context.WithValue(r.Context(), ContextUserKey, &MockUser)
 			r = r.WithContext(ctx)
 			next.ServeHTTP(w, r)
 		})

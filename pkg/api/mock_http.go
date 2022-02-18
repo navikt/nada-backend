@@ -1,6 +1,7 @@
 package api
 
 import (
+	"context"
 	"net/http"
 	"strings"
 	"time"
@@ -63,7 +64,7 @@ func (h *MockHTTP) Callback(w http.ResponseWriter, r *http.Request) {
 
 func (h *MockHTTP) Logout(w http.ResponseWriter, r *http.Request) {
 	http.SetCookie(w, &http.Cookie{
-		Name:     "nada_backend",
+		Name:     "nada_session",
 		Value:    "",
 		Path:     "/",
 		Domain:   r.Host,
@@ -80,4 +81,24 @@ func (h *MockHTTP) Logout(w http.ResponseWriter, r *http.Request) {
 	}
 
 	http.Redirect(w, r, loginPage, http.StatusFound)
+}
+
+func (h *MockHTTP) Middleware(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		c, err := r.Cookie("nada_session")
+		if err != nil {
+			next.ServeHTTP(w, r)
+			return
+		}
+
+		session, err := h.repo.GetSession(r.Context(), c.Value)
+		if err != nil || session.Expires.Before(time.Now()) {
+			next.ServeHTTP(w, r)
+			return
+		}
+
+		ctx := context.WithValue(r.Context(), auth.ContextUserKey, &auth.MockUser)
+		r = r.WithContext(ctx)
+		next.ServeHTTP(w, r)
+	})
 }

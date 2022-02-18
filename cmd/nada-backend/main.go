@@ -82,10 +82,12 @@ func main() {
 		log.WithError(err).Fatal("setting up database")
 	}
 
-	authenticatorMiddleware := auth.MockJWTValidatorMiddleware()
+	mockHTTP := api.NewMockHTTP(repo, log.WithField("subsystem", "mockhttp"))
+	var httpAPI api.HTTPAPI = mockHTTP
+	authenticatorMiddleware := mockHTTP.Middleware
+
 	teamProjectsMapping := &auth.MockTeamProjectsUpdater
 	var oauth2Config api.OAuth2
-	var httpAPI api.HTTPAPI = api.NewMockHTTP(repo, log.WithField("subsystem", "mockhttp"))
 	var accessMgr graph.AccessManager
 	accessMgr = access.NewNoop()
 	var teamcatalogue graph.Teamkatalogen = teamkatalogen.NewMock()
