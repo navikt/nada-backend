@@ -47,13 +47,6 @@ RETURNS
 					}
 				},
 				{
-					"id": "team-prod-4242",
-					"group": {
-						"name": "team",
-						"email": "team@nav.no"
-					}
-				},
-				{
 					"id": "dataplattform-dev-9da3",
 					"group": {
 						"name": "nada",

@@ -61,7 +61,47 @@ func (m *Mock) TableMetadata(ctx context.Context, projectID string, datasetID st
 	}
 
 	return models.BigqueryMetadata{
-		TableType:    bigquery.TableType(strings.ToUpper(string(table.Type))),
+		TableType:   bigquery.TableType(strings.ToUpper(string(table.Type))),
+		Created:     time.Now(),
+		Expires:     time.Date(2033, time.April, 14, 18, 00, 00, 00, time.UTC),
+		Description: "This is a table description explaining the contents of the table",
+		Schema: models.BigquerySchema{
+			Columns: []models.BigqueryColumn{
+				{
+					Name: "test_column_1",
+					Type: "STRING",
+					Mode: "NULLABLE",
+				},
+				{
+					Name:        "test_column_2",
+					Type:        "INTEGER",
+					Mode:        "",
+					Description: "Some column description that explains this column",
+				},
+				{
+					Name: "test_column_3",
+					Type: "STRING",
+					Mode: "NULLABLE",
+				},
+				{
+					Name:        "test_column_4",
+					Type:        "TIMESTAMP",
+					Mode:        "",
+					Description: "Some column description",
+				},
+				{
+					Name: "test_column_5",
+					Type: "FLOAT",
+					Mode: "NULLABLE",
+				},
+				{
+					Name:        "test_column_6",
+					Type:        "INTEGER",
+					Mode:        "",
+					Description: "Some column description with more text than might be possible to apply, but might still be a good test for the frontend to receive",
+				},
+			},
+		},
 		LastModified: table.LastModified,
 	}, nil
 }
