@@ -31,7 +31,9 @@ func (s SlackClient) NewDataproduct(dp *models.Dataproduct) error {
 	var link string
 	if dp.Owner != nil {
 		owner = dp.Owner.Group
-		link = " (" + *dp.Owner.TeamkatalogenURL + ")"
+		if dp.Owner.TeamkatalogenURL != nil {
+			link = " (" + *dp.Owner.TeamkatalogenURL + ")"
+		}
 
 	} else {
 		owner = "Noen"
