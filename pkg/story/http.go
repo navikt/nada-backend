@@ -87,7 +87,7 @@ func (h *Handler) Update(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	_, err = h.repo.UpdateStory(r.Context(), draftID, existing.ID)
+	_, err = h.repo.UpdateStory(r.Context(), draftID, existing.ID, existing.Keywords)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return

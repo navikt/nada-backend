@@ -97,7 +97,7 @@ func (r *Repo) PublishStory(ctx context.Context, draftID uuid.UUID, group string
 	return storyFromSQL(story), nil
 }
 
-func (r *Repo) UpdateStory(ctx context.Context, draftID, target uuid.UUID) (*models.DBStory, error) {
+func (r *Repo) UpdateStory(ctx context.Context, draftID, target uuid.UUID, keywords []string) (*models.DBStory, error) {
 	draftViews, err := r.querier.GetStoryViewDrafts(ctx, draftID)
 	if err != nil {
 		return nil, err

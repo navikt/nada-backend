@@ -40,7 +40,7 @@ func (r *mutationResolver) UpdateStory(ctx context.Context, id uuid.UUID, target
 		return nil, ErrUnauthorized
 	}
 
-	s, err := r.repo.UpdateStory(ctx, id, target)
+	s, err := r.repo.UpdateStory(ctx, id, target, t.Keywords)
 	if err != nil {
 		return nil, err
 	}
