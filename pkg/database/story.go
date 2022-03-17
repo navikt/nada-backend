@@ -131,9 +131,24 @@ func (r *Repo) UpdateStory(ctx context.Context, draftID, target uuid.UUID, keywo
 		}
 	}
 
-	if err := querier.UpdateLastModifiedOnStory(ctx, target); err != nil {
+	existing, err := querier.GetStory(ctx, target)
+	if err != nil {
 		if err := tx.Rollback(); err != nil {
-			r.log.WithError(err).Error("unable to roll back when create story view failed")
+			r.log.WithError(err).Error("unable to roll back when getting existing story")
+		}
+		return nil, err
+	}
+
+	updated, err := querier.UpdateStory(ctx, gensql.UpdateStoryParams{
+		Name:        existing.Name,
+		Grp:         existing.Group,
+		Description: existing.Description,
+		Keywords:    keywords,
+		ID:          target,
+	})
+	if err != nil {
+		if err := tx.Rollback(); err != nil {
+			r.log.WithError(err).Error("unable to roll back when updating")
 		}
 		return nil, err
 	}
@@ -142,12 +157,7 @@ func (r *Repo) UpdateStory(ctx context.Context, draftID, target uuid.UUID, keywo
 		return nil, err
 	}
 
-	story, err := r.querier.GetStory(ctx, target)
-	if err != nil {
-		return nil, err
-	}
-
-	return storyFromSQL(story), nil
+	return storyFromSQL(updated), nil
 }
 
 func (r *Repo) UpdateStoryMetadata(ctx context.Context, id uuid.UUID, name string, keywords []string) (*models.DBStory, error) {

@@ -128,22 +128,12 @@ extend type Mutation {
 	publishStory(
 		"id is the id for the draft story."
 		id: ID!
+		"target is the id of the published story to overwrite. Keep empty to create new story."
+		target: ID
 		"group is the owner group for the story."
 		group: String!
 		"keywords for the datastory used as tags."
 		keywords: [String!]
-	): Story! @authenticated
-
-	"""
-    updateStory updates an existing story.
-
-    Requires authentication.
-    """
-	updateStory(
-		"id is the id for the draft story."
-		id: ID!
-		"target is the id for the published story you want to update."
-		target: ID!
 	): Story! @authenticated
 
 	"""

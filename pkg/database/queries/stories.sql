@@ -86,9 +86,3 @@ SELECT *
 FROM stories
 WHERE "group" = ANY (@groups::text[])
 ORDER BY last_modified DESC;
-
--- name: UpdateLastModifiedOnStory :exec
-UPDATE stories
-SET 
-	"last_modified" = NOW()
-WHERE id = @id;
