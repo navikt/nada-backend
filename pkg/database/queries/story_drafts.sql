@@ -48,3 +48,7 @@ WHERE id = @id;
 -- name: DeleteStoryViewDraft :exec
 DELETE FROM story_view_drafts
 WHERE story_id = @story_id;
+
+-- name: CleanupStoryDrafts :exec
+DELETE FROM story_drafts
+WHERE created < (NOW() - '7 day'::interval);
