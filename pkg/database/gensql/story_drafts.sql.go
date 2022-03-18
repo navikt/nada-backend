@@ -10,6 +10,16 @@ import (
 	"github.com/google/uuid"
 )
 
+const cleanupStoryDrafts = `-- name: CleanupStoryDrafts :exec
+DELETE FROM story_drafts
+WHERE created < (NOW() - '7 day'::interval)
+`
+
+func (q *Queries) CleanupStoryDrafts(ctx context.Context) error {
+	_, err := q.db.ExecContext(ctx, cleanupStoryDrafts)
+	return err
+}
+
 const createStoryDraft = `-- name: CreateStoryDraft :one
 INSERT INTO story_drafts (
 	"name"

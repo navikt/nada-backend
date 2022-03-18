@@ -9,6 +9,7 @@ import (
 )
 
 type Querier interface {
+	CleanupStoryDrafts(ctx context.Context) error
 	CreateBigqueryDatasource(ctx context.Context, arg CreateBigqueryDatasourceParams) (DatasourceBigquery, error)
 	CreateDataproduct(ctx context.Context, arg CreateDataproductParams) (Dataproduct, error)
 	CreateDataproductRequester(ctx context.Context, arg CreateDataproductRequesterParams) error
@@ -68,7 +69,6 @@ type Querier interface {
 	SoftDeleteMetabaseMetadata(ctx context.Context, dataproductID uuid.UUID) error
 	UpdateBigqueryDatasourceSchema(ctx context.Context, arg UpdateBigqueryDatasourceSchemaParams) error
 	UpdateDataproduct(ctx context.Context, arg UpdateDataproductParams) (Dataproduct, error)
-	UpdateLastModifiedOnStory(ctx context.Context, id uuid.UUID) error
 	UpdateStory(ctx context.Context, arg UpdateStoryParams) (Story, error)
 }
 

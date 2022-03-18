@@ -20,6 +20,7 @@ import (
 	"github.com/navikt/nada-backend/pkg/graph"
 	"github.com/navikt/nada-backend/pkg/metabase"
 	"github.com/navikt/nada-backend/pkg/slack"
+	"github.com/navikt/nada-backend/pkg/story"
 	"github.com/navikt/nada-backend/pkg/teamkatalogen"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/sirupsen/logrus"
@@ -42,6 +43,7 @@ const (
 	DatasetMetadataUpdateFrequency = 1 * time.Hour
 	AccessEnsurerFrequency         = 5 * time.Minute
 	MetabaseUpdateFrequency        = 5 * time.Minute
+	StoryDraftCleanerFrequency     = 24 * time.Hour
 )
 
 func init() {
@@ -125,6 +127,8 @@ func main() {
 		de := bigquery.NewDatasetEnricher(datacatalogClient, repo, log.WithField("subsystem", "datasetenricher"))
 		go de.Run(ctx, DatasetMetadataUpdateFrequency)
 	}
+
+	go story.NewDraftCleaner(repo, log.WithField("subsystem", "storydraftcleaner")).Run(ctx, StoryDraftCleanerFrequency)
 
 	log.Info("Listening on :8080")
 	gqlServer := graph.New(repo, gcp, teamProjectsMapping, accessMgr, teamcatalogue, slackClient, log.WithField("subsystem", "graph"))

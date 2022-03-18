@@ -102,6 +102,10 @@ func (r *Repo) GetStory(ctx context.Context, id uuid.UUID) (*models.DBStory, err
 	return storyFromSQL(story), nil
 }
 
+func (r *Repo) CleanupStoryDrafts(ctx context.Context) error {
+	return r.querier.CleanupStoryDrafts(ctx)
+}
+
 func storyDraftFromSQL(s gensql.StoryDraft) *models.DBStory {
 	return &models.DBStory{
 		ID:      s.ID,
