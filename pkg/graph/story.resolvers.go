@@ -12,18 +12,18 @@ import (
 	"github.com/navikt/nada-backend/pkg/graph/models"
 )
 
-func (r *mutationResolver) PublishStory(ctx context.Context, id uuid.UUID, target *uuid.UUID, group string, keywords []string) (*models.GraphStory, error) {
+func (r *mutationResolver) PublishStory(ctx context.Context, input models.NewStory) (*models.GraphStory, error) {
 	user := auth.GetUser(ctx)
-	if !user.Groups.Contains(group) {
+	if !user.Groups.Contains(input.Group) {
 		return nil, ErrUnauthorized
 	}
 
-	if keywords == nil {
-		keywords = []string{}
+	if input.Keywords == nil {
+		input.Keywords = []string{}
 	}
 
-	if target == nil {
-		s, err := r.repo.PublishStory(ctx, id, group, keywords)
+	if input.Target == nil {
+		s, err := r.repo.PublishStory(ctx, input)
 		if err != nil {
 			return nil, err
 		}
@@ -31,16 +31,16 @@ func (r *mutationResolver) PublishStory(ctx context.Context, id uuid.UUID, targe
 		return storyFromDB(s)
 	}
 
-	existing, err := r.repo.GetStory(ctx, *target)
+	existing, err := r.repo.GetStory(ctx, *input.Target)
 	if err != nil {
 		return nil, err
 	}
 
-	if !user.Groups.Contains(existing.Group) {
+	if !user.Groups.Contains(existing.Owner.Group) {
 		return nil, ErrUnauthorized
 	}
 
-	s, err := r.repo.UpdateStory(ctx, id, *target, keywords)
+	s, err := r.repo.UpdateStory(ctx, input)
 	if err != nil {
 		return nil, err
 	}
@@ -48,14 +48,14 @@ func (r *mutationResolver) PublishStory(ctx context.Context, id uuid.UUID, targe
 	return storyFromDB(s)
 }
 
-func (r *mutationResolver) UpdateStoryMetadata(ctx context.Context, id uuid.UUID, name string, keywords []string) (*models.GraphStory, error) {
+func (r *mutationResolver) UpdateStoryMetadata(ctx context.Context, id uuid.UUID, name string, keywords []string, teamkatalogenURL *string) (*models.GraphStory, error) {
 	existing, err := r.repo.GetStory(ctx, id)
 	if err != nil {
 		return nil, err
 	}
 
 	user := auth.GetUser(ctx)
-	if !user.Groups.Contains(existing.Group) {
+	if !user.Groups.Contains(existing.Owner.Group) {
 		return nil, ErrUnauthorized
 	}
 
@@ -74,7 +74,7 @@ func (r *mutationResolver) DeleteStory(ctx context.Context, id uuid.UUID) (bool,
 	}
 
 	user := auth.GetUser(ctx)
-	if !user.Groups.Contains(s.Group) {
+	if !user.Groups.Contains(s.Owner.Group) {
 		return false, ErrUnauthorized
 	}
 
@@ -151,17 +151,11 @@ func (r *queryResolver) StoryToken(ctx context.Context, id uuid.UUID) (*models.S
 	}
 
 	user := auth.GetUser(ctx)
-	if !user.Groups.Contains(story.Group) {
+	if !user.Groups.Contains(story.Owner.Group) {
 		return nil, ErrUnauthorized
 	}
 
 	return r.repo.GetStoryToken(ctx, id)
-}
-
-func (r *storyResolver) Owner(ctx context.Context, obj *models.GraphStory) (*models.Owner, error) {
-	return &models.Owner{
-		Group: obj.Group,
-	}, nil
 }
 
 func (r *storyResolver) Views(ctx context.Context, obj *models.GraphStory) ([]models.GraphStoryView, error) {

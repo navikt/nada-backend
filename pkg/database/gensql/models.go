@@ -125,13 +125,14 @@ type Session struct {
 }
 
 type Story struct {
-	ID           uuid.UUID
-	Name         string
-	Created      time.Time
-	LastModified time.Time
-	Group        string
-	Description  sql.NullString
-	Keywords     []string
+	ID               uuid.UUID
+	Name             string
+	Created          time.Time
+	LastModified     time.Time
+	Group            string
+	Description      sql.NullString
+	Keywords         []string
+	TeamkatalogenUrl sql.NullString
 }
 
 type StoryDraft struct {

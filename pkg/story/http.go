@@ -87,7 +87,13 @@ func (h *Handler) Update(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	_, err = h.repo.UpdateStory(r.Context(), draftID, existing.ID, existing.Keywords)
+	_, err = h.repo.UpdateStory(r.Context(), models.NewStory{
+		ID:               draftID,
+		Target:           &existing.ID,
+		Group:            existing.Owner.Group,
+		Keywords:         existing.Keywords,
+		TeamkatalogenURL: existing.Owner.TeamkatalogenURL,
+	})
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return

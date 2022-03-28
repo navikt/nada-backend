@@ -130,11 +130,11 @@ type ComplexityRoot struct {
 		Dummy                          func(childComplexity int, no *string) int
 		GrantAccessToDataproduct       func(childComplexity int, dataproductID uuid.UUID, expires *time.Time, subject *string, subjectType *models.SubjectType) int
 		MapDataproduct                 func(childComplexity int, dataproductID uuid.UUID, services []models.MappingService) int
-		PublishStory                   func(childComplexity int, id uuid.UUID, target *uuid.UUID, group string, keywords []string) int
+		PublishStory                   func(childComplexity int, input models.NewStory) int
 		RemoveRequesterFromDataproduct func(childComplexity int, dataproductID uuid.UUID, subject string) int
 		RevokeAccessToDataproduct      func(childComplexity int, id uuid.UUID) int
 		UpdateDataproduct              func(childComplexity int, id uuid.UUID, input models.UpdateDataproduct) int
-		UpdateStoryMetadata            func(childComplexity int, id uuid.UUID, name string, keywords []string) int
+		UpdateStoryMetadata            func(childComplexity int, id uuid.UUID, name string, keywords []string, teamkatalogenURL *string) int
 	}
 
 	Owner struct {
@@ -247,8 +247,8 @@ type MutationResolver interface {
 	GrantAccessToDataproduct(ctx context.Context, dataproductID uuid.UUID, expires *time.Time, subject *string, subjectType *models.SubjectType) (*models.Access, error)
 	RevokeAccessToDataproduct(ctx context.Context, id uuid.UUID) (bool, error)
 	MapDataproduct(ctx context.Context, dataproductID uuid.UUID, services []models.MappingService) (bool, error)
-	PublishStory(ctx context.Context, id uuid.UUID, target *uuid.UUID, group string, keywords []string) (*models.GraphStory, error)
-	UpdateStoryMetadata(ctx context.Context, id uuid.UUID, name string, keywords []string) (*models.GraphStory, error)
+	PublishStory(ctx context.Context, input models.NewStory) (*models.GraphStory, error)
+	UpdateStoryMetadata(ctx context.Context, id uuid.UUID, name string, keywords []string, teamkatalogenURL *string) (*models.GraphStory, error)
 	DeleteStory(ctx context.Context, id uuid.UUID) (bool, error)
 }
 type QueryResolver interface {
@@ -271,8 +271,6 @@ type SearchResultRowResolver interface {
 	Excerpt(ctx context.Context, obj *models.SearchResultRow) (string, error)
 }
 type StoryResolver interface {
-	Owner(ctx context.Context, obj *models.GraphStory) (*models.Owner, error)
-
 	Views(ctx context.Context, obj *models.GraphStory) ([]models.GraphStoryView, error)
 }
 type UserInfoResolver interface {
@@ -686,7 +684,7 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 			return 0, false
 		}
 
-		return e.complexity.Mutation.PublishStory(childComplexity, args["id"].(uuid.UUID), args["target"].(*uuid.UUID), args["group"].(string), args["keywords"].([]string)), true
+		return e.complexity.Mutation.PublishStory(childComplexity, args["input"].(models.NewStory)), true
 
 	case "Mutation.removeRequesterFromDataproduct":
 		if e.complexity.Mutation.RemoveRequesterFromDataproduct == nil {
@@ -734,7 +732,7 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 			return 0, false
 		}
 
-		return e.complexity.Mutation.UpdateStoryMetadata(childComplexity, args["id"].(uuid.UUID), args["name"].(string), args["keywords"].([]string)), true
+		return e.complexity.Mutation.UpdateStoryMetadata(childComplexity, args["id"].(uuid.UUID), args["name"].(string), args["keywords"].([]string), args["teamkatalogenURL"].(*string)), true
 
 	case "Owner.group":
 		if e.complexity.Owner.Group == nil {
@@ -1271,16 +1269,6 @@ type DataproductServices @goModel(model: "github.com/navikt/nada-backend/pkg/gra
 }
 
 """
-Owner contains metadata on the owner of the dataproduct.
-"""
-type Owner @goModel(model: "github.com/navikt/nada-backend/pkg/graph/models.Owner"){
-    "owner group is the email for the group."
-    group: String!
-    "teamkatalogenURL is url for the team in the NAV team catalog."
-    teamkatalogenURL: String
-}
-
-"""
 TableColumn contains metadata on a BigQuery table column.
 """
 type TableColumn @goModel(model: "github.com/navikt/nada-backend/pkg/graph/models.TableColumn") {
@@ -1620,6 +1608,16 @@ extend type Query {
 	): [String!]! @authenticated
 }
 `, BuiltIn: false},
+	{Name: "schema/group.graphql", Input: `"""
+Owner contains metadata on the owner of the dataproduct/datastory.
+"""
+type Owner @goModel(model: "github.com/navikt/nada-backend/pkg/graph/models.Owner"){
+    "owner group is the email for the group."
+    group: String!
+    "teamkatalogenURL is url for the team in the NAV team catalog."
+    teamkatalogenURL: String
+}
+`, BuiltIn: false},
 	{Name: "schema/keywords.graphql", Input: `"""
 Keyword represents a keyword used by other dataproducts
 """
@@ -1776,7 +1774,7 @@ type Story @goModel(model: "github.com/navikt/nada-backend/pkg/graph/models.Grap
 	"lastModified is the timestamp for when the data story was last modified."
 	lastModified: Time
 	"owner of the data story. Changes to the data story can only be done by a member of the owner."
-	owner: Owner
+	owner: Owner!
 	"keywords for the story used as tags."
 	keywords: [String!]!
 	"views contains a list of the different view data in the data story."
@@ -1884,13 +1882,7 @@ extend type Query {
 	): StoryToken! @authenticated
 }
 
-extend type Mutation {
-	"""
-    publishStory publishes a story draft.
-
-    Requires authentication.
-    """
-	publishStory(
+input NewStory @goModel(model: "github.com/navikt/nada-backend/pkg/graph/models.NewStory") {
 		"id is the id for the draft story."
 		id: ID!
 		"target is the id of the published story to overwrite. Keep empty to create new story."
@@ -1899,6 +1891,19 @@ extend type Mutation {
 		group: String!
 		"keywords for the datastory used as tags."
 		keywords: [String!]
+		"owner Teamkatalogen URL for the dataproduct."
+    	teamkatalogenURL: String
+}
+
+extend type Mutation {
+	"""
+    publishStory publishes a story draft.
+
+    Requires authentication.
+    """
+	publishStory(
+		"input contains information about the new story."
+		input: NewStory!
 	): Story! @authenticated
 
 	"""
@@ -1913,6 +1918,8 @@ extend type Mutation {
 		name: String!
 		"keywords for the datastory used as tags."
 		keywords: [String!]!
+		"owner Teamkatalogen URL for the dataproduct."
+    	teamkatalogenURL: String
 	): Story! @authenticated
 
 	"""
@@ -2167,42 +2174,15 @@ func (ec *executionContext) field_Mutation_mapDataproduct_args(ctx context.Conte
 func (ec *executionContext) field_Mutation_publishStory_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
 	var err error
 	args := map[string]interface{}{}
-	var arg0 uuid.UUID
-	if tmp, ok := rawArgs["id"]; ok {
-		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("id"))
-		arg0, err = ec.unmarshalNID2githubᚗcomᚋgoogleᚋuuidᚐUUID(ctx, tmp)
+	var arg0 models.NewStory
+	if tmp, ok := rawArgs["input"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("input"))
+		arg0, err = ec.unmarshalNNewStory2githubᚗcomᚋnaviktᚋnadaᚑbackendᚋpkgᚋgraphᚋmodelsᚐNewStory(ctx, tmp)
 		if err != nil {
 			return nil, err
 		}
 	}
-	args["id"] = arg0
-	var arg1 *uuid.UUID
-	if tmp, ok := rawArgs["target"]; ok {
-		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("target"))
-		arg1, err = ec.unmarshalOID2ᚖgithubᚗcomᚋgoogleᚋuuidᚐUUID(ctx, tmp)
-		if err != nil {
-			return nil, err
-		}
-	}
-	args["target"] = arg1
-	var arg2 string
-	if tmp, ok := rawArgs["group"]; ok {
-		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("group"))
-		arg2, err = ec.unmarshalNString2string(ctx, tmp)
-		if err != nil {
-			return nil, err
-		}
-	}
-	args["group"] = arg2
-	var arg3 []string
-	if tmp, ok := rawArgs["keywords"]; ok {
-		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("keywords"))
-		arg3, err = ec.unmarshalOString2ᚕstringᚄ(ctx, tmp)
-		if err != nil {
-			return nil, err
-		}
-	}
-	args["keywords"] = arg3
+	args["input"] = arg0
 	return args, nil
 }
 
@@ -2299,6 +2279,15 @@ func (ec *executionContext) field_Mutation_updateStoryMetadata_args(ctx context.
 		}
 	}
 	args["keywords"] = arg2
+	var arg3 *string
+	if tmp, ok := rawArgs["teamkatalogenURL"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("teamkatalogenURL"))
+		arg3, err = ec.unmarshalOString2ᚖstring(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["teamkatalogenURL"] = arg3
 	return args, nil
 }
 
@@ -4651,7 +4640,7 @@ func (ec *executionContext) _Mutation_publishStory(ctx context.Context, field gr
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		directive0 := func(rctx context.Context) (interface{}, error) {
 			ctx = rctx // use context from middleware stack in children
-			return ec.resolvers.Mutation().PublishStory(rctx, args["id"].(uuid.UUID), args["target"].(*uuid.UUID), args["group"].(string), args["keywords"].([]string))
+			return ec.resolvers.Mutation().PublishStory(rctx, args["input"].(models.NewStory))
 		}
 		directive1 := func(ctx context.Context) (interface{}, error) {
 			if ec.directives.Authenticated == nil {
@@ -4713,7 +4702,7 @@ func (ec *executionContext) _Mutation_updateStoryMetadata(ctx context.Context, f
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		directive0 := func(rctx context.Context) (interface{}, error) {
 			ctx = rctx // use context from middleware stack in children
-			return ec.resolvers.Mutation().UpdateStoryMetadata(rctx, args["id"].(uuid.UUID), args["name"].(string), args["keywords"].([]string))
+			return ec.resolvers.Mutation().UpdateStoryMetadata(rctx, args["id"].(uuid.UUID), args["name"].(string), args["keywords"].([]string), args["teamkatalogenURL"].(*string))
 		}
 		directive1 := func(ctx context.Context) (interface{}, error) {
 			if ec.directives.Authenticated == nil {
@@ -5821,25 +5810,28 @@ func (ec *executionContext) _Story_owner(ctx context.Context, field graphql.Coll
 		Object:     "Story",
 		Field:      field,
 		Args:       nil,
-		IsMethod:   true,
-		IsResolver: true,
+		IsMethod:   false,
+		IsResolver: false,
 	}
 
 	ctx = graphql.WithFieldContext(ctx, fc)
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.Story().Owner(rctx, obj)
+		return obj.Owner, nil
 	})
 	if err != nil {
 		ec.Error(ctx, err)
 		return graphql.Null
 	}
 	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
 		return graphql.Null
 	}
-	res := resTmp.(*models.Owner)
+	res := resTmp.(models.Owner)
 	fc.Result = res
-	return ec.marshalOOwner2ᚖgithubᚗcomᚋnaviktᚋnadaᚑbackendᚋpkgᚋgraphᚋmodelsᚐOwner(ctx, field.Selections, res)
+	return ec.marshalNOwner2githubᚗcomᚋnaviktᚋnadaᚑbackendᚋpkgᚋgraphᚋmodelsᚐOwner(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _Story_keywords(ctx context.Context, field graphql.CollectedField, obj *models.GraphStory) (ret graphql.Marshaler) {
@@ -8224,6 +8216,61 @@ func (ec *executionContext) unmarshalInputNewDataproduct(ctx context.Context, ob
 	return it, nil
 }
 
+func (ec *executionContext) unmarshalInputNewStory(ctx context.Context, obj interface{}) (models.NewStory, error) {
+	var it models.NewStory
+	asMap := map[string]interface{}{}
+	for k, v := range obj.(map[string]interface{}) {
+		asMap[k] = v
+	}
+
+	for k, v := range asMap {
+		switch k {
+		case "id":
+			var err error
+
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("id"))
+			it.ID, err = ec.unmarshalNID2githubᚗcomᚋgoogleᚋuuidᚐUUID(ctx, v)
+			if err != nil {
+				return it, err
+			}
+		case "target":
+			var err error
+
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("target"))
+			it.Target, err = ec.unmarshalOID2ᚖgithubᚗcomᚋgoogleᚋuuidᚐUUID(ctx, v)
+			if err != nil {
+				return it, err
+			}
+		case "group":
+			var err error
+
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("group"))
+			it.Group, err = ec.unmarshalNString2string(ctx, v)
+			if err != nil {
+				return it, err
+			}
+		case "keywords":
+			var err error
+
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("keywords"))
+			it.Keywords, err = ec.unmarshalOString2ᚕstringᚄ(ctx, v)
+			if err != nil {
+				return it, err
+			}
+		case "teamkatalogenURL":
+			var err error
+
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("teamkatalogenURL"))
+			it.TeamkatalogenURL, err = ec.unmarshalOString2ᚖstring(ctx, v)
+			if err != nil {
+				return it, err
+			}
+		}
+	}
+
+	return it, nil
+}
+
 func (ec *executionContext) unmarshalInputSearchOptions(ctx context.Context, obj interface{}) (models.SearchQuery, error) {
 	var it models.SearchQuery
 	asMap := map[string]interface{}{}
@@ -9806,22 +9853,15 @@ func (ec *executionContext) _Story(ctx context.Context, sel ast.SelectionSet, ob
 			out.Values[i] = innerFunc(ctx)
 
 		case "owner":
-			field := field
-
 			innerFunc := func(ctx context.Context) (res graphql.Marshaler) {
-				defer func() {
-					if r := recover(); r != nil {
-						ec.Error(ctx, ec.Recover(ctx, r))
-					}
-				}()
-				res = ec._Story_owner(ctx, field, obj)
-				return res
+				return ec._Story_owner(ctx, field, obj)
 			}
 
-			out.Concurrently(i, func() graphql.Marshaler {
-				return innerFunc(ctx)
+			out.Values[i] = innerFunc(ctx)
 
-			})
+			if out.Values[i] == graphql.Null {
+				atomic.AddUint32(&invalids, 1)
+			}
 		case "keywords":
 			innerFunc := func(ctx context.Context) (res graphql.Marshaler) {
 				return ec._Story_keywords(ctx, field, obj)
@@ -11373,6 +11413,15 @@ func (ec *executionContext) unmarshalNNewDataproduct2githubᚗcomᚋnaviktᚋnad
 	return res, graphql.ErrorOnPath(ctx, err)
 }
 
+func (ec *executionContext) unmarshalNNewStory2githubᚗcomᚋnaviktᚋnadaᚑbackendᚋpkgᚋgraphᚋmodelsᚐNewStory(ctx context.Context, v interface{}) (models.NewStory, error) {
+	res, err := ec.unmarshalInputNewStory(ctx, v)
+	return res, graphql.ErrorOnPath(ctx, err)
+}
+
+func (ec *executionContext) marshalNOwner2githubᚗcomᚋnaviktᚋnadaᚑbackendᚋpkgᚋgraphᚋmodelsᚐOwner(ctx context.Context, sel ast.SelectionSet, v models.Owner) graphql.Marshaler {
+	return ec._Owner(ctx, sel, &v)
+}
+
 func (ec *executionContext) marshalNOwner2ᚖgithubᚗcomᚋnaviktᚋnadaᚑbackendᚋpkgᚋgraphᚋmodelsᚐOwner(ctx context.Context, sel ast.SelectionSet, v *models.Owner) graphql.Marshaler {
 	if v == nil {
 		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
@@ -12164,13 +12213,6 @@ func (ec *executionContext) marshalOMappingService2ᚖgithubᚗcomᚋnaviktᚋna
 		return graphql.Null
 	}
 	return v
-}
-
-func (ec *executionContext) marshalOOwner2ᚖgithubᚗcomᚋnaviktᚋnadaᚑbackendᚋpkgᚋgraphᚋmodelsᚐOwner(ctx context.Context, sel ast.SelectionSet, v *models.Owner) graphql.Marshaler {
-	if v == nil {
-		return graphql.Null
-	}
-	return ec._Owner(ctx, sel, v)
 }
 
 func (ec *executionContext) unmarshalOSearchOptions2ᚖgithubᚗcomᚋnaviktᚋnadaᚑbackendᚋpkgᚋgraphᚋmodelsᚐSearchQuery(ctx context.Context, v interface{}) (*models.SearchQuery, error) {
