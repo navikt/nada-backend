@@ -59,7 +59,7 @@ func (r *mutationResolver) UpdateStoryMetadata(ctx context.Context, id uuid.UUID
 		return nil, ErrUnauthorized
 	}
 
-	story, err := r.repo.UpdateStoryMetadata(ctx, id, name, keywords)
+	story, err := r.repo.UpdateStoryMetadata(ctx, id, name, keywords, teamkatalogenURL)
 	if err != nil {
 		return nil, err
 	}

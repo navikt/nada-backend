@@ -162,18 +162,19 @@ func (r *Repo) UpdateStory(ctx context.Context, ds models.NewStory) (*models.DBS
 	return storyFromSQL(updated), nil
 }
 
-func (r *Repo) UpdateStoryMetadata(ctx context.Context, id uuid.UUID, name string, keywords []string) (*models.DBStory, error) {
+func (r *Repo) UpdateStoryMetadata(ctx context.Context, id uuid.UUID, name string, keywords []string, teamkatalogenURL *string) (*models.DBStory, error) {
 	story, err := r.querier.GetStory(ctx, id)
 	if err != nil {
 		return nil, err
 	}
 
 	updated, err := r.querier.UpdateStory(ctx, gensql.UpdateStoryParams{
-		Name:        name,
-		Grp:         story.Group,
-		Description: sql.NullString{String: "", Valid: false},
-		Keywords:    keywords,
-		ID:          id,
+		Name:             name,
+		Grp:              story.Group,
+		Description:      sql.NullString{String: "", Valid: false},
+		Keywords:         keywords,
+		ID:               id,
+		TeamkatalogenUrl: ptrToNullString(teamkatalogenURL),
 	})
 	if err != nil {
 		return nil, err
