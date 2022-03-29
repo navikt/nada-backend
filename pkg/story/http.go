@@ -40,8 +40,10 @@ func (h *Handler) Upload(w http.ResponseWriter, r *http.Request) {
 
 	w.Header().Add("content-type", "application/json")
 
-	host := "https://data.dev.intern.nav.no"
-	if os.Getenv("NAIS_CLUSTER_NAME") == "prod-gcp" {
+	host := "http://localhost:3000"
+	if os.Getenv("NAIS_CLUSTER_NAME") == "dev-gcp" {
+		host = "https://data.dev.intern.nav.no"
+	} else if os.Getenv("NAIS_CLUSTER_NAME") == "prod-gcp" {
 		host = "https://data.intern.nav.no"
 	}
 
@@ -99,8 +101,10 @@ func (h *Handler) Update(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	host := "https://data.dev.intern.nav.no"
-	if os.Getenv("NAIS_CLUSTER_NAME") == "prod-gcp" {
+	host := "http://localhost:3000"
+	if os.Getenv("NAIS_CLUSTER_NAME") == "dev-gcp" {
+		host = "https://data.dev.intern.nav.no"
+	} else if os.Getenv("NAIS_CLUSTER_NAME") == "prod-gcp" {
 		host = "https://data.intern.nav.no"
 	}
 
