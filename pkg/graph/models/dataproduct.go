@@ -146,3 +146,13 @@ type GroupStats struct {
 	Email        string `json:"email"`
 	Dataproducts int    `json:"dataproducts"`
 }
+
+type DataproductExtractInfo struct {
+	ID            uuid.UUID `json:"id"`
+	DataproductID uuid.UUID `json:"dataproduct_id"`
+	Email         string    `json:"email"`
+	Created       time.Time `json:"created"`
+	Object        string    `json:"object"`
+	Ready         bool      `json:"ready"`
+	Expired       bool      `json:"expired"`
+}

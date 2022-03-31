@@ -140,6 +140,46 @@ func (q *Queries) CreateDataproduct(ctx context.Context, arg CreateDataproductPa
 	return i, err
 }
 
+const createDataproductExtract = `-- name: CreateDataproductExtract :one
+INSERT INTO dataproduct_extractions ("dataproduct_id",
+                                     "email",
+                                     "object",
+                                     "job_id")
+VALUES ($1,
+        $2,
+        $3,
+        $4)
+RETURNING id, dataproduct_id, email, object, job_id, created, ready, expired
+`
+
+type CreateDataproductExtractParams struct {
+	DataproductID uuid.UUID
+	Email         string
+	Object        string
+	JobID         string
+}
+
+func (q *Queries) CreateDataproductExtract(ctx context.Context, arg CreateDataproductExtractParams) (DataproductExtraction, error) {
+	row := q.db.QueryRowContext(ctx, createDataproductExtract,
+		arg.DataproductID,
+		arg.Email,
+		arg.Object,
+		arg.JobID,
+	)
+	var i DataproductExtraction
+	err := row.Scan(
+		&i.ID,
+		&i.DataproductID,
+		&i.Email,
+		&i.Object,
+		&i.JobID,
+		&i.Created,
+		&i.Ready,
+		&i.Expired,
+	)
+	return i, err
+}
+
 const createDataproductRequester = `-- name: CreateDataproductRequester :exec
 INSERT INTO dataproduct_requesters (dataproduct_id, "subject")
 VALUES ($1, LOWER($2))
@@ -622,6 +662,82 @@ func (q *Queries) GetDataproductsByUserAccess(ctx context.Context, id string) ([
 		return nil, err
 	}
 	return items, nil
+}
+
+const getReadyDataproductExtraction = `-- name: GetReadyDataproductExtraction :one
+SELECT id, dataproduct_id, email, object, job_id, created, ready, expired 
+FROM dataproduct_extractions 
+WHERE ready = true AND email = $1 AND dataproduct_id = $2
+`
+
+type GetReadyDataproductExtractionParams struct {
+	Email         string
+	DataproductID uuid.UUID
+}
+
+func (q *Queries) GetReadyDataproductExtraction(ctx context.Context, arg GetReadyDataproductExtractionParams) (DataproductExtraction, error) {
+	row := q.db.QueryRowContext(ctx, getReadyDataproductExtraction, arg.Email, arg.DataproductID)
+	var i DataproductExtraction
+	err := row.Scan(
+		&i.ID,
+		&i.DataproductID,
+		&i.Email,
+		&i.Object,
+		&i.JobID,
+		&i.Created,
+		&i.Ready,
+		&i.Expired,
+	)
+	return i, err
+}
+
+const getUnreadyDataproductExtractions = `-- name: GetUnreadyDataproductExtractions :many
+SELECT id, dataproduct_id, email, object, job_id, created, ready, expired 
+FROM dataproduct_extractions 
+WHERE ready = false
+`
+
+func (q *Queries) GetUnreadyDataproductExtractions(ctx context.Context) ([]DataproductExtraction, error) {
+	rows, err := q.db.QueryContext(ctx, getUnreadyDataproductExtractions)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []DataproductExtraction{}
+	for rows.Next() {
+		var i DataproductExtraction
+		if err := rows.Scan(
+			&i.ID,
+			&i.DataproductID,
+			&i.Email,
+			&i.Object,
+			&i.JobID,
+			&i.Created,
+			&i.Ready,
+			&i.Expired,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const setDataproductExtractReady = `-- name: SetDataproductExtractReady :exec
+UPDATE dataproduct_extractions 
+SET ready = true
+WHERE "id" = $1
+`
+
+func (q *Queries) SetDataproductExtractReady(ctx context.Context, id uuid.UUID) error {
+	_, err := q.db.ExecContext(ctx, setDataproductExtractReady, id)
+	return err
 }
 
 const updateBigqueryDatasourceSchema = `-- name: UpdateBigqueryDatasourceSchema :exec

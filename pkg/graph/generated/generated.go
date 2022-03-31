@@ -41,6 +41,7 @@ type Config struct {
 type ResolverRoot interface {
 	BigQuery() BigQueryResolver
 	Dataproduct() DataproductResolver
+	DataproductExtractInfo() DataproductExtractInfoResolver
 	Mutation() MutationResolver
 	Query() QueryResolver
 	SearchResultRow() SearchResultRowResolver
@@ -98,6 +99,17 @@ type ComplexityRoot struct {
 		Services     func(childComplexity int) int
 	}
 
+	DataproductExtractInfo struct {
+		Created       func(childComplexity int) int
+		DataproductID func(childComplexity int) int
+		Email         func(childComplexity int) int
+		Expired       func(childComplexity int) int
+		ID            func(childComplexity int) int
+		Object        func(childComplexity int) int
+		Ready         func(childComplexity int) int
+		SignedURL     func(childComplexity int) int
+	}
+
 	DataproductServices struct {
 		Metabase func(childComplexity int) int
 	}
@@ -128,6 +140,7 @@ type ComplexityRoot struct {
 		DeleteDataproduct              func(childComplexity int, id uuid.UUID) int
 		DeleteStory                    func(childComplexity int, id uuid.UUID) int
 		Dummy                          func(childComplexity int, no *string) int
+		ExtractDataproduct             func(childComplexity int, dataproductID uuid.UUID) int
 		GrantAccessToDataproduct       func(childComplexity int, dataproductID uuid.UUID, expires *time.Time, subject *string, subjectType *models.SubjectType) int
 		MapDataproduct                 func(childComplexity int, dataproductID uuid.UUID, services []models.MappingService) int
 		PublishStory                   func(childComplexity int, id uuid.UUID, target *uuid.UUID, group string, keywords []string) int
@@ -237,6 +250,9 @@ type DataproductResolver interface {
 	Services(ctx context.Context, obj *models.Dataproduct) (*models.DataproductServices, error)
 	Mappings(ctx context.Context, obj *models.Dataproduct) ([]models.MappingService, error)
 }
+type DataproductExtractInfoResolver interface {
+	SignedURL(ctx context.Context, obj *models.DataproductExtractInfo) (string, error)
+}
 type MutationResolver interface {
 	Dummy(ctx context.Context, no *string) (*string, error)
 	CreateDataproduct(ctx context.Context, input models.NewDataproduct) (*models.Dataproduct, error)
@@ -247,6 +263,7 @@ type MutationResolver interface {
 	GrantAccessToDataproduct(ctx context.Context, dataproductID uuid.UUID, expires *time.Time, subject *string, subjectType *models.SubjectType) (*models.Access, error)
 	RevokeAccessToDataproduct(ctx context.Context, id uuid.UUID) (bool, error)
 	MapDataproduct(ctx context.Context, dataproductID uuid.UUID, services []models.MappingService) (bool, error)
+	ExtractDataproduct(ctx context.Context, dataproductID uuid.UUID) (*models.DataproductExtractInfo, error)
 	PublishStory(ctx context.Context, id uuid.UUID, target *uuid.UUID, group string, keywords []string) (*models.GraphStory, error)
 	UpdateStoryMetadata(ctx context.Context, id uuid.UUID, name string, keywords []string) (*models.GraphStory, error)
 	DeleteStory(ctx context.Context, id uuid.UUID) (bool, error)
@@ -529,6 +546,62 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.Dataproduct.Services(childComplexity), true
 
+	case "DataproductExtractInfo.created":
+		if e.complexity.DataproductExtractInfo.Created == nil {
+			break
+		}
+
+		return e.complexity.DataproductExtractInfo.Created(childComplexity), true
+
+	case "DataproductExtractInfo.dataproductID":
+		if e.complexity.DataproductExtractInfo.DataproductID == nil {
+			break
+		}
+
+		return e.complexity.DataproductExtractInfo.DataproductID(childComplexity), true
+
+	case "DataproductExtractInfo.email":
+		if e.complexity.DataproductExtractInfo.Email == nil {
+			break
+		}
+
+		return e.complexity.DataproductExtractInfo.Email(childComplexity), true
+
+	case "DataproductExtractInfo.expired":
+		if e.complexity.DataproductExtractInfo.Expired == nil {
+			break
+		}
+
+		return e.complexity.DataproductExtractInfo.Expired(childComplexity), true
+
+	case "DataproductExtractInfo.id":
+		if e.complexity.DataproductExtractInfo.ID == nil {
+			break
+		}
+
+		return e.complexity.DataproductExtractInfo.ID(childComplexity), true
+
+	case "DataproductExtractInfo.object":
+		if e.complexity.DataproductExtractInfo.Object == nil {
+			break
+		}
+
+		return e.complexity.DataproductExtractInfo.Object(childComplexity), true
+
+	case "DataproductExtractInfo.ready":
+		if e.complexity.DataproductExtractInfo.Ready == nil {
+			break
+		}
+
+		return e.complexity.DataproductExtractInfo.Ready(childComplexity), true
+
+	case "DataproductExtractInfo.signedURL":
+		if e.complexity.DataproductExtractInfo.SignedURL == nil {
+			break
+		}
+
+		return e.complexity.DataproductExtractInfo.SignedURL(childComplexity), true
+
 	case "DataproductServices.metabase":
 		if e.complexity.DataproductServices.Metabase == nil {
 			break
@@ -651,6 +724,18 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 		}
 
 		return e.complexity.Mutation.Dummy(childComplexity, args["no"].(*string)), true
+
+	case "Mutation.extractDataproduct":
+		if e.complexity.Mutation.ExtractDataproduct == nil {
+			break
+		}
+
+		args, err := ec.field_Mutation_extractDataproduct_args(context.TODO(), rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Mutation.ExtractDataproduct(childComplexity, args["dataproductID"].(uuid.UUID)), true
 
 	case "Mutation.grantAccessToDataproduct":
 		if e.complexity.Mutation.GrantAccessToDataproduct == nil {
@@ -1351,6 +1436,28 @@ type GroupStats @goModel(model: "github.com/navikt/nada-backend/pkg/graph/models
 	dataproducts: Int!
 }
 
+"""
+DataproductExtractInfo contains information on the dataproduct extract to csv.
+"""
+type DataproductExtractInfo @goModel(model: "github.com/navikt/nada-backend/pkg/graph/models.DataproductExtractInfo") {
+    "id is det id of the extract request"
+    id: ID!
+    "dataproductID id is the id of the dataproductd extracted to csv"
+    dataproductID: ID!
+    "email of the user requesting export"
+	email: String!
+    "created is the timestamp when the extract request was created"
+    created: Time!
+    "object is the object name in the gcs storage"
+    object: String!
+    "ready is a boolean indicating whether the table extraction has finished"
+    ready: Boolean!
+    "expired is a boolean indicating whether the table export has expired"
+    expired: Boolean!
+    "signedURL is the download url created"
+    signedURL: String! @authenticated
+}
+
 extend type Query {
     """
     dataproduct returns the given dataproduct.
@@ -1550,6 +1657,16 @@ extend type Mutation {
         "service is the type of third party service for which the dataproduct should be exposed."
         services: [MappingService!]!
     ): Boolean! @authenticated
+
+    """
+    extractDataproduct extracts a bigquery table to a storage bucket as csv.
+
+    Requires authentication
+    """
+    extractDataproduct(
+        "id of dataproduct."     
+        dataproductID: ID!
+    ): DataproductExtractInfo! @authenticated
 }
 `, BuiltIn: false},
 	{Name: "schema/gcp.graphql", Input: `"""
@@ -2095,6 +2212,21 @@ func (ec *executionContext) field_Mutation_dummy_args(ctx context.Context, rawAr
 		}
 	}
 	args["no"] = arg0
+	return args, nil
+}
+
+func (ec *executionContext) field_Mutation_extractDataproduct_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
+	var err error
+	args := map[string]interface{}{}
+	var arg0 uuid.UUID
+	if tmp, ok := rawArgs["dataproductID"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("dataproductID"))
+		arg0, err = ec.unmarshalNID2githubᚗcomᚋgoogleᚋuuidᚐUUID(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["dataproductID"] = arg0
 	return args, nil
 }
 
@@ -3778,6 +3910,306 @@ func (ec *executionContext) _Dataproduct_mappings(ctx context.Context, field gra
 	return ec.marshalNMappingService2ᚕgithubᚗcomᚋnaviktᚋnadaᚑbackendᚋpkgᚋgraphᚋmodelsᚐMappingServiceᚄ(ctx, field.Selections, res)
 }
 
+func (ec *executionContext) _DataproductExtractInfo_id(ctx context.Context, field graphql.CollectedField, obj *models.DataproductExtractInfo) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "DataproductExtractInfo",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   false,
+		IsResolver: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.ID, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(uuid.UUID)
+	fc.Result = res
+	return ec.marshalNID2githubᚗcomᚋgoogleᚋuuidᚐUUID(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _DataproductExtractInfo_dataproductID(ctx context.Context, field graphql.CollectedField, obj *models.DataproductExtractInfo) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "DataproductExtractInfo",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   false,
+		IsResolver: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.DataproductID, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(uuid.UUID)
+	fc.Result = res
+	return ec.marshalNID2githubᚗcomᚋgoogleᚋuuidᚐUUID(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _DataproductExtractInfo_email(ctx context.Context, field graphql.CollectedField, obj *models.DataproductExtractInfo) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "DataproductExtractInfo",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   false,
+		IsResolver: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Email, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(string)
+	fc.Result = res
+	return ec.marshalNString2string(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _DataproductExtractInfo_created(ctx context.Context, field graphql.CollectedField, obj *models.DataproductExtractInfo) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "DataproductExtractInfo",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   false,
+		IsResolver: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Created, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(time.Time)
+	fc.Result = res
+	return ec.marshalNTime2timeᚐTime(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _DataproductExtractInfo_object(ctx context.Context, field graphql.CollectedField, obj *models.DataproductExtractInfo) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "DataproductExtractInfo",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   false,
+		IsResolver: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Object, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(string)
+	fc.Result = res
+	return ec.marshalNString2string(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _DataproductExtractInfo_ready(ctx context.Context, field graphql.CollectedField, obj *models.DataproductExtractInfo) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "DataproductExtractInfo",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   false,
+		IsResolver: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Ready, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(bool)
+	fc.Result = res
+	return ec.marshalNBoolean2bool(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _DataproductExtractInfo_expired(ctx context.Context, field graphql.CollectedField, obj *models.DataproductExtractInfo) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "DataproductExtractInfo",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   false,
+		IsResolver: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Expired, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(bool)
+	fc.Result = res
+	return ec.marshalNBoolean2bool(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _DataproductExtractInfo_signedURL(ctx context.Context, field graphql.CollectedField, obj *models.DataproductExtractInfo) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "DataproductExtractInfo",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   true,
+		IsResolver: true,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		directive0 := func(rctx context.Context) (interface{}, error) {
+			ctx = rctx // use context from middleware stack in children
+			return ec.resolvers.DataproductExtractInfo().SignedURL(rctx, obj)
+		}
+		directive1 := func(ctx context.Context) (interface{}, error) {
+			if ec.directives.Authenticated == nil {
+				return nil, errors.New("directive authenticated is not implemented")
+			}
+			return ec.directives.Authenticated(ctx, obj, directive0, nil)
+		}
+
+		tmp, err := directive1(rctx)
+		if err != nil {
+			return nil, graphql.ErrorOnPath(ctx, err)
+		}
+		if tmp == nil {
+			return nil, nil
+		}
+		if data, ok := tmp.(string); ok {
+			return data, nil
+		}
+		return nil, fmt.Errorf(`unexpected type %T from directive, should be string`, tmp)
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(string)
+	fc.Result = res
+	return ec.marshalNString2string(ctx, field.Selections, res)
+}
+
 func (ec *executionContext) _DataproductServices_metabase(ctx context.Context, field graphql.CollectedField, obj *models.DataproductServices) (ret graphql.Marshaler) {
 	defer func() {
 		if r := recover(); r != nil {
@@ -4623,6 +5055,68 @@ func (ec *executionContext) _Mutation_mapDataproduct(ctx context.Context, field 
 	res := resTmp.(bool)
 	fc.Result = res
 	return ec.marshalNBoolean2bool(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _Mutation_extractDataproduct(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "Mutation",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   true,
+		IsResolver: true,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	rawArgs := field.ArgumentMap(ec.Variables)
+	args, err := ec.field_Mutation_extractDataproduct_args(ctx, rawArgs)
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	fc.Args = args
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		directive0 := func(rctx context.Context) (interface{}, error) {
+			ctx = rctx // use context from middleware stack in children
+			return ec.resolvers.Mutation().ExtractDataproduct(rctx, args["dataproductID"].(uuid.UUID))
+		}
+		directive1 := func(ctx context.Context) (interface{}, error) {
+			if ec.directives.Authenticated == nil {
+				return nil, errors.New("directive authenticated is not implemented")
+			}
+			return ec.directives.Authenticated(ctx, nil, directive0, nil)
+		}
+
+		tmp, err := directive1(rctx)
+		if err != nil {
+			return nil, graphql.ErrorOnPath(ctx, err)
+		}
+		if tmp == nil {
+			return nil, nil
+		}
+		if data, ok := tmp.(*models.DataproductExtractInfo); ok {
+			return data, nil
+		}
+		return nil, fmt.Errorf(`unexpected type %T from directive, should be *github.com/navikt/nada-backend/pkg/graph/models.DataproductExtractInfo`, tmp)
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(*models.DataproductExtractInfo)
+	fc.Result = res
+	return ec.marshalNDataproductExtractInfo2ᚖgithubᚗcomᚋnaviktᚋnadaᚑbackendᚋpkgᚋgraphᚋmodelsᚐDataproductExtractInfo(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _Mutation_publishStory(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
@@ -8964,6 +9458,117 @@ func (ec *executionContext) _Dataproduct(ctx context.Context, sel ast.SelectionS
 	return out
 }
 
+var dataproductExtractInfoImplementors = []string{"DataproductExtractInfo"}
+
+func (ec *executionContext) _DataproductExtractInfo(ctx context.Context, sel ast.SelectionSet, obj *models.DataproductExtractInfo) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, dataproductExtractInfoImplementors)
+	out := graphql.NewFieldSet(fields)
+	var invalids uint32
+	for i, field := range fields {
+		switch field.Name {
+		case "__typename":
+			out.Values[i] = graphql.MarshalString("DataproductExtractInfo")
+		case "id":
+			innerFunc := func(ctx context.Context) (res graphql.Marshaler) {
+				return ec._DataproductExtractInfo_id(ctx, field, obj)
+			}
+
+			out.Values[i] = innerFunc(ctx)
+
+			if out.Values[i] == graphql.Null {
+				atomic.AddUint32(&invalids, 1)
+			}
+		case "dataproductID":
+			innerFunc := func(ctx context.Context) (res graphql.Marshaler) {
+				return ec._DataproductExtractInfo_dataproductID(ctx, field, obj)
+			}
+
+			out.Values[i] = innerFunc(ctx)
+
+			if out.Values[i] == graphql.Null {
+				atomic.AddUint32(&invalids, 1)
+			}
+		case "email":
+			innerFunc := func(ctx context.Context) (res graphql.Marshaler) {
+				return ec._DataproductExtractInfo_email(ctx, field, obj)
+			}
+
+			out.Values[i] = innerFunc(ctx)
+
+			if out.Values[i] == graphql.Null {
+				atomic.AddUint32(&invalids, 1)
+			}
+		case "created":
+			innerFunc := func(ctx context.Context) (res graphql.Marshaler) {
+				return ec._DataproductExtractInfo_created(ctx, field, obj)
+			}
+
+			out.Values[i] = innerFunc(ctx)
+
+			if out.Values[i] == graphql.Null {
+				atomic.AddUint32(&invalids, 1)
+			}
+		case "object":
+			innerFunc := func(ctx context.Context) (res graphql.Marshaler) {
+				return ec._DataproductExtractInfo_object(ctx, field, obj)
+			}
+
+			out.Values[i] = innerFunc(ctx)
+
+			if out.Values[i] == graphql.Null {
+				atomic.AddUint32(&invalids, 1)
+			}
+		case "ready":
+			innerFunc := func(ctx context.Context) (res graphql.Marshaler) {
+				return ec._DataproductExtractInfo_ready(ctx, field, obj)
+			}
+
+			out.Values[i] = innerFunc(ctx)
+
+			if out.Values[i] == graphql.Null {
+				atomic.AddUint32(&invalids, 1)
+			}
+		case "expired":
+			innerFunc := func(ctx context.Context) (res graphql.Marshaler) {
+				return ec._DataproductExtractInfo_expired(ctx, field, obj)
+			}
+
+			out.Values[i] = innerFunc(ctx)
+
+			if out.Values[i] == graphql.Null {
+				atomic.AddUint32(&invalids, 1)
+			}
+		case "signedURL":
+			field := field
+
+			innerFunc := func(ctx context.Context) (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._DataproductExtractInfo_signedURL(ctx, field, obj)
+				if res == graphql.Null {
+					atomic.AddUint32(&invalids, 1)
+				}
+				return res
+			}
+
+			out.Concurrently(i, func() graphql.Marshaler {
+				return innerFunc(ctx)
+
+			})
+		default:
+			panic("unknown field " + strconv.Quote(field.Name))
+		}
+	}
+	out.Dispatch()
+	if invalids > 0 {
+		return graphql.Null
+	}
+	return out
+}
+
 var dataproductServicesImplementors = []string{"DataproductServices"}
 
 func (ec *executionContext) _DataproductServices(ctx context.Context, sel ast.SelectionSet, obj *models.DataproductServices) graphql.Marshaler {
@@ -9255,6 +9860,16 @@ func (ec *executionContext) _Mutation(ctx context.Context, sel ast.SelectionSet)
 		case "mapDataproduct":
 			innerFunc := func(ctx context.Context) (res graphql.Marshaler) {
 				return ec._Mutation_mapDataproduct(ctx, field)
+			}
+
+			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, innerFunc)
+
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
+		case "extractDataproduct":
+			innerFunc := func(ctx context.Context) (res graphql.Marshaler) {
+				return ec._Mutation_extractDataproduct(ctx, field)
 			}
 
 			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, innerFunc)
@@ -10967,6 +11582,20 @@ func (ec *executionContext) marshalNDataproduct2ᚖgithubᚗcomᚋnaviktᚋnada�
 		return graphql.Null
 	}
 	return ec._Dataproduct(ctx, sel, v)
+}
+
+func (ec *executionContext) marshalNDataproductExtractInfo2githubᚗcomᚋnaviktᚋnadaᚑbackendᚋpkgᚋgraphᚋmodelsᚐDataproductExtractInfo(ctx context.Context, sel ast.SelectionSet, v models.DataproductExtractInfo) graphql.Marshaler {
+	return ec._DataproductExtractInfo(ctx, sel, &v)
+}
+
+func (ec *executionContext) marshalNDataproductExtractInfo2ᚖgithubᚗcomᚋnaviktᚋnadaᚑbackendᚋpkgᚋgraphᚋmodelsᚐDataproductExtractInfo(ctx context.Context, sel ast.SelectionSet, v *models.DataproductExtractInfo) graphql.Marshaler {
+	if v == nil {
+		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	return ec._DataproductExtractInfo(ctx, sel, v)
 }
 
 func (ec *executionContext) marshalNDataproductServices2githubᚗcomᚋnaviktᚋnadaᚑbackendᚋpkgᚋgraphᚋmodelsᚐDataproductServices(ctx context.Context, sel ast.SelectionSet, v models.DataproductServices) graphql.Marshaler {

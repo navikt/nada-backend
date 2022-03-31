@@ -153,3 +153,29 @@ FROM "dataproducts"
 GROUP BY "group"
 ORDER BY "count" DESC
 LIMIT @lim OFFSET @offs;
+
+-- name: CreateDataproductExtract :one
+INSERT INTO dataproduct_extractions ("dataproduct_id",
+                                     "email",
+                                     "object",
+                                     "job_id")
+VALUES (@dataproduct_id,
+        @email,
+        @object,
+        @job_id)
+RETURNING *;
+
+-- name: SetDataproductExtractReady :exec
+UPDATE dataproduct_extractions 
+SET ready = true
+WHERE "id" = @id;
+
+-- name: GetUnreadyDataproductExtractions :many
+SELECT * 
+FROM dataproduct_extractions 
+WHERE ready = false;
+
+-- name: GetReadyDataproductExtraction :one
+SELECT * 
+FROM dataproduct_extractions 
+WHERE ready = true AND email = @email AND dataproduct_id = @dataproduct_id;

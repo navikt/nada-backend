@@ -5,6 +5,7 @@ import (
 	"sync"
 
 	"github.com/google/uuid"
+	"github.com/navikt/nada-backend/pkg/graph/models"
 )
 
 type (
@@ -13,6 +14,7 @@ type (
 	DataproductListenerAddMetabaseMapping    func(ctx context.Context, dpID uuid.UUID)
 	DataproductListenerRemoveMetabaseMapping func(ctx context.Context, dpID uuid.UUID)
 	DataproductListenerDelete                func(ctx context.Context, dpID uuid.UUID)
+	DataproductListenerExtract               func(ctx context.Context, ds *models.BigQuery, bucket, email string)
 )
 
 type Manager struct {
@@ -22,6 +24,7 @@ type Manager struct {
 	dataproductListenerAddMetabaseMappingListeners    []DataproductListenerAddMetabaseMapping
 	dataproductListenerRemoveMetabaseMappingListeners []DataproductListenerRemoveMetabaseMapping
 	dataproductDeleteListeners                        []DataproductListenerDelete
+	dataproductExtractListeners                       []DataproductListenerExtract
 }
 
 func (m *Manager) ListenForDataproductGrant(fn DataproductListenerGrantAccess) {
@@ -91,5 +94,19 @@ func (m *Manager) TriggerDataproductDelete(ctx context.Context, dpID uuid.UUID) 
 	defer m.lock.RUnlock()
 	for _, fn := range m.dataproductDeleteListeners {
 		fn(ctx, dpID)
+	}
+}
+
+func (m *Manager) ListenForDataproductExtract(fn DataproductListenerExtract) {
+	m.lock.Lock()
+	defer m.lock.Unlock()
+	m.dataproductExtractListeners = append(m.dataproductExtractListeners, fn)
+}
+
+func (m *Manager) TriggerDataproductExtract(ctx context.Context, bq *models.BigQuery, bucket, email string) {
+	m.lock.RLock()
+	defer m.lock.RUnlock()
+	for _, fn := range m.dataproductExtractListeners {
+		fn(ctx, bq, bucket, email)
 	}
 }

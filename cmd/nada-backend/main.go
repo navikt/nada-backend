@@ -16,6 +16,7 @@ import (
 	"github.com/navikt/nada-backend/pkg/auth"
 	"github.com/navikt/nada-backend/pkg/bigquery"
 	"github.com/navikt/nada-backend/pkg/database"
+	"github.com/navikt/nada-backend/pkg/dpextracter"
 	"github.com/navikt/nada-backend/pkg/event"
 	"github.com/navikt/nada-backend/pkg/graph"
 	"github.com/navikt/nada-backend/pkg/metabase"
@@ -44,6 +45,7 @@ const (
 	AccessEnsurerFrequency         = 5 * time.Minute
 	MetabaseUpdateFrequency        = 5 * time.Minute
 	StoryDraftCleanerFrequency     = 24 * time.Hour
+	CSVExtractMonitorFrequency     = 5 * time.Minute
 )
 
 func init() {
@@ -67,6 +69,7 @@ func init() {
 	flag.StringVar(&cfg.MetabasePassword, "metabase-password", os.Getenv("METABASE_PASSWORD"), "Password for metabase api")
 	flag.StringVar(&cfg.MetabaseAPI, "metabase-api", os.Getenv("METABASE_API"), "URL to Metabase API, including scheme and `/api`")
 	flag.StringVar(&cfg.SlackUrl, "slack-url", os.Getenv("SLACK_URL"), "Url for slack webhook")
+	flag.StringVar(&cfg.NadaExtractBucket, "extract-bucket", os.Getenv("NADA_EXTRACT_BUCKET"), "Bucket for csv extracts of bigquery tables")
 }
 
 func main() {
@@ -128,10 +131,25 @@ func main() {
 		go de.Run(ctx, DatasetMetadataUpdateFrequency)
 	}
 
+	var dpExtracter *dpextracter.DPExtracter
+	if cfg.NadaExtractBucket != "" {
+		dpExtracter, err := dpextracter.New(ctx, "nada-dev-db2e", cfg.NadaExtractBucket)
+		if err != nil {
+			log.WithError(err).Fatal("dpExtracter")
+		}
+
+		dm := dpextracter.NewMonitor(repo, dpExtracter, log.WithField("subsystem", "dp_extract_monitor"))
+		if err != nil {
+			log.WithError(err).Fatal("Creating dp extracter monitor")
+		}
+
+		go dm.Run(ctx, CSVExtractMonitorFrequency)
+	}
+
 	go story.NewDraftCleaner(repo, log.WithField("subsystem", "storydraftcleaner")).Run(ctx, StoryDraftCleanerFrequency)
 
 	log.Info("Listening on :8080")
-	gqlServer := graph.New(repo, gcp, teamProjectsMapping, accessMgr, teamcatalogue, slackClient, log.WithField("subsystem", "graph"))
+	gqlServer := graph.New(repo, dpExtracter, gcp, teamProjectsMapping, accessMgr, teamcatalogue, slackClient, log.WithField("subsystem", "graph"))
 	srv := api.New(repo, httpAPI, authenticatorMiddleware, gqlServer, prom(promErrs, repo.Metrics()), log)
 
 	server := http.Server{

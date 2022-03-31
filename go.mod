@@ -16,12 +16,11 @@ require (
 	github.com/slack-go/slack v0.10.1
 	github.com/spf13/pflag v1.0.5
 	github.com/writeas/go-strip-markdown/v2 v2.1.1
-	golang.org/x/oauth2 v0.0.0-20210819190943-2bc19b11175f
+	golang.org/x/oauth2 v0.0.0-20211104180415-d3ed0bb246c8
 )
 
 require (
-	cloud.google.com/go v0.94.1
-	github.com/99designs/gqlgen v0.17.1
+	github.com/99designs/gqlgen v0.17.2
 	github.com/Azure/go-ansiterm v0.0.0-20170929234023-d6e3b3328b78 // indirect
 	github.com/Microsoft/go-winio v0.5.0 // indirect
 	github.com/Nvveen/Gotty v0.0.0-20120604004816-cd527374f1e5 // indirect
@@ -38,7 +37,7 @@ require (
 	github.com/gogo/protobuf v1.3.2 // indirect
 	github.com/golang/groupcache v0.0.0-20200121045136-8c9f03a8e57e // indirect
 	github.com/golang/protobuf v1.5.2 // indirect
-	github.com/google/go-cmp v0.5.6
+	github.com/google/go-cmp v0.5.7
 	github.com/google/shlex v0.0.0-20191202100458-e7afc7fbc510 // indirect
 	github.com/googleapis/gax-go/v2 v2.1.1 // indirect
 	github.com/imdario/mergo v0.3.12 // indirect
@@ -59,17 +58,19 @@ require (
 	github.com/xeipuuv/gojsonschema v1.2.0 // indirect
 	go.opencensus.io v0.23.0 // indirect
 	golang.org/x/crypto v0.0.0-20210711020723-a769d52b0f97 // indirect
-	golang.org/x/net v0.0.0-20211015210444-4f30a5c0130f // indirect
-	golang.org/x/sys v0.0.0-20211019181941-9d821ace8654 // indirect
+	golang.org/x/net v0.0.0-20220127200216-cd36cc0744dd // indirect
+	golang.org/x/sys v0.0.0-20220209214540-3681064d5158 // indirect
 	golang.org/x/text v0.3.7 // indirect
-	google.golang.org/api v0.58.0
+	google.golang.org/api v0.69.0
 	google.golang.org/appengine v1.6.7 // indirect
-	google.golang.org/grpc v1.40.0 // indirect
+	google.golang.org/grpc v1.44.0 // indirect
 	google.golang.org/protobuf v1.27.1 // indirect
 	gopkg.in/yaml.v2 v2.4.0 // indirect
 )
 
 require (
+	cloud.google.com/go/iam v0.1.1
+	cloud.google.com/go/storage v1.21.0
 	github.com/agnivade/levenshtein v1.1.0 // indirect
 	github.com/btcsuite/btcutil v1.0.2
 	github.com/gorilla/websocket v1.4.2 // indirect
@@ -79,6 +80,9 @@ require (
 )
 
 require (
+	cloud.google.com/go v0.100.2 // indirect
+	cloud.google.com/go/compute v1.2.0 // indirect
 	cloud.google.com/go/datacatalog v1.0.0 // indirect
-	google.golang.org/genproto v0.0.0-20210921142501-181ce0d877f6 // indirect
+	golang.org/x/xerrors v0.0.0-20200804184101-5ec99f83aff1 // indirect
+	google.golang.org/genproto v0.0.0-20220216160803-4663080d8bc8 // indirect
 )

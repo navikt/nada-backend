@@ -12,6 +12,7 @@ type Querier interface {
 	CleanupStoryDrafts(ctx context.Context) error
 	CreateBigqueryDatasource(ctx context.Context, arg CreateBigqueryDatasourceParams) (DatasourceBigquery, error)
 	CreateDataproduct(ctx context.Context, arg CreateDataproductParams) (Dataproduct, error)
+	CreateDataproductExtract(ctx context.Context, arg CreateDataproductExtractParams) (DataproductExtraction, error)
 	CreateDataproductRequester(ctx context.Context, arg CreateDataproductRequesterParams) error
 	CreateMetabaseMetadata(ctx context.Context, arg CreateMetabaseMetadataParams) error
 	CreateSession(ctx context.Context, arg CreateSessionParams) error
@@ -44,6 +45,7 @@ type Querier interface {
 	GetDataproductsByUserAccess(ctx context.Context, id string) ([]Dataproduct, error)
 	GetMetabaseMetadata(ctx context.Context, dataproductID uuid.UUID) (MetabaseMetadatum, error)
 	GetMetabaseMetadataWithDeleted(ctx context.Context, dataproductID uuid.UUID) (MetabaseMetadatum, error)
+	GetReadyDataproductExtraction(ctx context.Context, arg GetReadyDataproductExtractionParams) (DataproductExtraction, error)
 	GetSession(ctx context.Context, token string) (Session, error)
 	GetStories(ctx context.Context) ([]Story, error)
 	GetStoriesByGroups(ctx context.Context, groups []string) ([]Story, error)
@@ -57,6 +59,7 @@ type Querier interface {
 	GetStoryViewDraft(ctx context.Context, id uuid.UUID) (StoryViewDraft, error)
 	GetStoryViewDrafts(ctx context.Context, storyID uuid.UUID) ([]StoryViewDraft, error)
 	GetStoryViews(ctx context.Context, storyID uuid.UUID) ([]StoryView, error)
+	GetUnreadyDataproductExtractions(ctx context.Context) ([]DataproductExtraction, error)
 	GrantAccessToDataproduct(ctx context.Context, arg GrantAccessToDataproductParams) (DataproductAccess, error)
 	ListAccessToDataproduct(ctx context.Context, dataproductID uuid.UUID) ([]DataproductAccess, error)
 	ListActiveAccessToDataproduct(ctx context.Context, dataproductID uuid.UUID) ([]DataproductAccess, error)
@@ -65,6 +68,7 @@ type Querier interface {
 	RestoreMetabaseMetadata(ctx context.Context, dataproductID uuid.UUID) error
 	RevokeAccessToDataproduct(ctx context.Context, id uuid.UUID) error
 	Search(ctx context.Context, arg SearchParams) ([]SearchRow, error)
+	SetDataproductExtractReady(ctx context.Context, id uuid.UUID) error
 	SetPermissionGroupMetabaseMetadata(ctx context.Context, arg SetPermissionGroupMetabaseMetadataParams) error
 	SoftDeleteMetabaseMetadata(ctx context.Context, dataproductID uuid.UUID) error
 	UpdateBigqueryDatasourceSchema(ctx context.Context, arg UpdateBigqueryDatasourceSchemaParams) error

@@ -101,6 +101,20 @@ func (r *dataproductResolver) Mappings(ctx context.Context, obj *models.Dataprod
 	return r.repo.GetDataproductMappings(ctx, obj.ID)
 }
 
+func (r *dataproductExtractInfoResolver) SignedURL(ctx context.Context, obj *models.DataproductExtractInfo) (string, error) {
+	user := auth.GetUser(ctx)
+
+	extract, err := r.repo.GetReadyDataproductExtraction(ctx, user.Email, obj.DataproductID)
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return "", nil
+		}
+		return "", err
+	}
+
+	return r.dpExtracter.CreateSignedURL(ctx, extract.Object)
+}
+
 func (r *mutationResolver) CreateDataproduct(ctx context.Context, input models.NewDataproduct) (*models.Dataproduct, error) {
 	if err := ensureUserInGroup(ctx, input.Group); err != nil {
 		return nil, err
@@ -271,6 +285,26 @@ func (r *mutationResolver) MapDataproduct(ctx context.Context, dataproductID uui
 	return true, nil
 }
 
+func (r *mutationResolver) ExtractDataproduct(ctx context.Context, dataproductID uuid.UUID) (*models.DataproductExtractInfo, error) {
+	user := auth.GetUser(ctx)
+
+	if err := isAllowedToExtractTable(ctx, r.repo, dataproductID); err != nil {
+		return nil, err
+	}
+
+	bq, err := r.repo.GetBigqueryDatasource(ctx, dataproductID)
+	if err != nil {
+		return nil, err
+	}
+
+	jobID, err := r.dpExtracter.CreateExtractJob(ctx, &bq, user.Email)
+	if err != nil {
+		return nil, err
+	}
+
+	return r.repo.CreateDataproductExtract(ctx, &bq, jobID, user.Email)
+}
+
 func (r *queryResolver) Dataproduct(ctx context.Context, id uuid.UUID) (*models.Dataproduct, error) {
 	return r.repo.GetDataproduct(ctx, id)
 }
@@ -299,5 +333,13 @@ func (r *Resolver) BigQuery() generated.BigQueryResolver { return &bigQueryResol
 // Dataproduct returns generated.DataproductResolver implementation.
 func (r *Resolver) Dataproduct() generated.DataproductResolver { return &dataproductResolver{r} }
 
-type bigQueryResolver struct{ *Resolver }
-type dataproductResolver struct{ *Resolver }
+// DataproductExtractInfo returns generated.DataproductExtractInfoResolver implementation.
+func (r *Resolver) DataproductExtractInfo() generated.DataproductExtractInfoResolver {
+	return &dataproductExtractInfoResolver{r}
+}
+
+type (
+	bigQueryResolver               struct{ *Resolver }
+	dataproductResolver            struct{ *Resolver }
+	dataproductExtractInfoResolver struct{ *Resolver }
+)

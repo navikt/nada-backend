@@ -278,6 +278,43 @@ func (r *Repo) DataproductGroupStats(ctx context.Context, limit, offset int) ([]
 	return ret, nil
 }
 
+func (r *Repo) CreateDataproductExtract(ctx context.Context, bq *models.BigQuery, jobID, email string) (*models.DataproductExtractInfo, error) {
+	extract, err := r.querier.CreateDataproductExtract(ctx, gensql.CreateDataproductExtractParams{
+		DataproductID: bq.DataproductID,
+		Email:         email,
+		Object:        bq.Table + ".csv",
+		JobID:         jobID,
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	return &models.DataproductExtractInfo{
+		ID:            extract.ID,
+		DataproductID: extract.DataproductID,
+		Email:         extract.Email,
+		Created:       extract.Created,
+		Object:        extract.Object,
+		Ready:         extract.Ready,
+		Expired:       extract.Expired,
+	}, nil
+}
+
+func (r *Repo) GetUnreadyDataproductExtractions(ctx context.Context) ([]gensql.DataproductExtraction, error) {
+	return r.querier.GetUnreadyDataproductExtractions(ctx)
+}
+
+func (r *Repo) SetDataproductExtractReady(ctx context.Context, id uuid.UUID) error {
+	return r.querier.SetDataproductExtractReady(ctx, id)
+}
+
+func (r *Repo) GetReadyDataproductExtraction(ctx context.Context, email string, dpID uuid.UUID) (gensql.DataproductExtraction, error) {
+	return r.querier.GetReadyDataproductExtraction(ctx, gensql.GetReadyDataproductExtractionParams{
+		Email:         email,
+		DataproductID: dpID,
+	})
+}
+
 func dataproductFromSQL(dp gensql.Dataproduct) *models.Dataproduct {
 	return &models.Dataproduct{
 		ID:           dp.ID,
