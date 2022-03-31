@@ -153,3 +153,34 @@ FROM "dataproducts"
 GROUP BY "group"
 ORDER BY "count" DESC
 LIMIT @lim OFFSET @offs;
+
+-- name: CreateDataproductExtract :one
+INSERT INTO dataproduct_extractions ("dataproduct_id",
+                                     "email",
+                                     "bucket_path",
+                                     "job_id")
+VALUES (@dataproduct_id,
+        @email,
+        @bucket_path,
+        @job_id)
+RETURNING *;
+
+-- name: SetDataproductExtractReady :exec
+UPDATE dataproduct_extractions 
+SET ready_at = NOW()
+WHERE "id" = @id;
+
+-- name: SetDataproductExtractExpired :exec
+UPDATE dataproduct_extractions 
+SET expired_at = NOW() + '7 day'::interval
+WHERE "id" = @id;
+
+-- name: GetUnreadyDataproductExtractions :many
+SELECT * 
+FROM dataproduct_extractions 
+WHERE ready = false;
+
+-- name: GetDataproductExtractionsForUser :many
+SELECT * 
+FROM dataproduct_extractions 
+WHERE (expired_at IS NOT NULL OR expired_at > NOW()) AND email = @email;

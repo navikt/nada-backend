@@ -3,11 +3,13 @@ package graph
 import (
 	"context"
 	"fmt"
+
 	"github.com/99designs/gqlgen-contrib/prometheus"
 	"github.com/99designs/gqlgen/graphql"
 	"github.com/99designs/gqlgen/graphql/handler"
 	"github.com/navikt/nada-backend/pkg/auth"
 	"github.com/navikt/nada-backend/pkg/database"
+	"github.com/navikt/nada-backend/pkg/dpextracter"
 	"github.com/navikt/nada-backend/pkg/graph/generated"
 	"github.com/navikt/nada-backend/pkg/graph/models"
 	"github.com/sirupsen/logrus"
@@ -37,6 +39,7 @@ type Slack interface {
 
 type Resolver struct {
 	repo          *database.Repo
+	dpExtracter   *dpextracter.DPExtracter
 	bigquery      Bigquery
 	gcpProjects   *auth.TeamProjectsUpdater
 	accessMgr     AccessManager
@@ -45,9 +48,10 @@ type Resolver struct {
 	log           *logrus.Entry
 }
 
-func New(repo *database.Repo, gcp Bigquery, gcpProjects *auth.TeamProjectsUpdater, accessMgr AccessManager, tk Teamkatalogen, slack Slack, log *logrus.Entry) *handler.Server {
+func New(repo *database.Repo, dpExtracter *dpextracter.DPExtracter, gcp Bigquery, gcpProjects *auth.TeamProjectsUpdater, accessMgr AccessManager, tk Teamkatalogen, slack Slack, log *logrus.Entry) *handler.Server {
 	resolver := &Resolver{
 		repo:          repo,
+		dpExtracter:   dpExtracter,
 		bigquery:      gcp,
 		gcpProjects:   gcpProjects,
 		accessMgr:     accessMgr,

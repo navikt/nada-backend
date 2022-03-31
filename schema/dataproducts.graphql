@@ -118,6 +118,28 @@ type GroupStats @goModel(model: "github.com/navikt/nada-backend/pkg/graph/models
 	dataproducts: Int!
 }
 
+"""
+DataproductExtractInfo contains information on the dataproduct extract to csv.
+"""
+type DataproductExtractInfo @goModel(model: "github.com/navikt/nada-backend/pkg/graph/models.DataproductExtractInfo") {
+    "id is det id of the extract request"
+    id: ID!
+    "dataproductID id is the id of the dataproductd extracted to csv"
+    dataproductID: ID!
+    "email of the user requesting export"
+    email: String!
+    "created is the timestamp when the extract request was created"
+    created: Time!
+    "bucketPath is the bucket path in the gcs storage bucket"
+    bucketPath: String!
+    "ready is a boolean indicating whether the table extraction has finished"
+    ready: Time
+    "expired is a boolean indicating whether the table export has expired"
+    expired: Time
+    "signedURL is the download url created"
+    signedURL: String! @authenticated
+}
+
 extend type Query {
     """
     dataproduct returns the given dataproduct.
@@ -317,4 +339,14 @@ extend type Mutation {
         "service is the type of third party service for which the dataproduct should be exposed."
         services: [MappingService!]!
     ): Boolean! @authenticated
+
+    """
+    extractDataproduct extracts a bigquery table to a storage bucket as csv.
+
+    Requires authentication
+    """
+    extractDataproduct(
+        "id of dataproduct."     
+        dataproductID: ID!
+    ): DataproductExtractInfo! @authenticated
 }

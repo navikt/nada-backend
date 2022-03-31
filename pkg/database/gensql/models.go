@@ -77,6 +77,17 @@ type DataproductAccess struct {
 	Revoked       sql.NullTime
 }
 
+type DataproductExtraction struct {
+	ID            uuid.UUID
+	DataproductID uuid.UUID
+	Email         string
+	BucketPath    string
+	JobID         string
+	Created       time.Time
+	ReadyAt       sql.NullTime
+	ExpiredAt     sql.NullTime
+}
+
 type DataproductRequester struct {
 	DataproductID uuid.UUID
 	Subject       string

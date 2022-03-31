@@ -18,6 +18,7 @@ import (
 	"github.com/navikt/nada-backend/pkg/bigquery"
 	"github.com/navikt/nada-backend/pkg/database"
 	"github.com/navikt/nada-backend/pkg/database/gensql"
+	"github.com/navikt/nada-backend/pkg/dpextracter"
 	"github.com/navikt/nada-backend/pkg/event"
 	"github.com/navikt/nada-backend/pkg/graph"
 	"github.com/navikt/nada-backend/pkg/slack"
@@ -77,6 +78,7 @@ func TestMain(m *testing.M) {
 
 	gqlServer := graph.New(
 		repo,
+		&dpextracter.DPExtracter{},
 		bigquery.NewMock(),
 		&auth.MockTeamProjectsUpdater,
 		access.NewNoop(),
