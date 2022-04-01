@@ -7,6 +7,7 @@ import (
 
 	"cloud.google.com/go/bigquery"
 	"cloud.google.com/go/storage"
+	"github.com/google/uuid"
 	"github.com/navikt/nada-backend/pkg/graph/models"
 )
 
@@ -30,13 +31,13 @@ func New(ctx context.Context, project, bucket string) (*DPExtracter, error) {
 	}, nil
 }
 
-func (d *DPExtracter) CreateExtractJob(ctx context.Context, bq *models.BigQuery, email string) (string, error) {
-	object := fmt.Sprintf("%v.csv", bq.Table)
-	gcsURI := fmt.Sprintf("gs://%v/%v.csv", d.bucket, object)
+func (d *DPExtracter) CreateExtractJob(ctx context.Context, bq *models.BigQuery, email string) (string, string, error) {
+	bucketPath := fmt.Sprintf("%v/%v.csv", bq.DataproductID, uuid.New())
+	gcsURI := fmt.Sprintf("gs://%v/%v", d.bucket, bucketPath)
 
 	client, err := bigquery.NewClient(ctx, bq.ProjectID)
 	if err != nil {
-		return "", err
+		return "", "", err
 	}
 	defer client.Close()
 
@@ -48,10 +49,10 @@ func (d *DPExtracter) CreateExtractJob(ctx context.Context, bq *models.BigQuery,
 
 	job, err := extractor.Run(ctx)
 	if err != nil {
-		return "", err
+		return "", "", err
 	}
 
-	return job.ID(), nil
+	return bucketPath, job.ID(), nil
 }
 
 func (d *DPExtracter) CreateSignedURL(ctx context.Context, object string) (string, error) {

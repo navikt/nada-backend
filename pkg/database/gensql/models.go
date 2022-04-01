@@ -81,11 +81,11 @@ type DataproductExtraction struct {
 	ID            uuid.UUID
 	DataproductID uuid.UUID
 	Email         string
-	Object        string
+	BucketPath    string
 	JobID         string
 	Created       time.Time
-	Ready         bool
-	Expired       bool
+	ReadyAt       sql.NullTime
+	ExpiredAt     sql.NullTime
 }
 
 type DataproductRequester struct {

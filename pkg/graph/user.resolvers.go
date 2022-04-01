@@ -89,6 +89,10 @@ func (r *userInfoResolver) Stories(ctx context.Context, obj *models.UserInfo) ([
 	return gqlStories, nil
 }
 
+func (r *userInfoResolver) DataproductExtracts(ctx context.Context, obj *models.UserInfo) ([]*models.DataproductExtractInfo, error) {
+	return r.repo.GetDataproductExtractionsForUser(ctx, obj.Email)
+}
+
 // UserInfo returns generated.UserInfoResolver implementation.
 func (r *Resolver) UserInfo() generated.UserInfoResolver { return &userInfoResolver{r} }
 

@@ -100,12 +100,12 @@ type ComplexityRoot struct {
 	}
 
 	DataproductExtractInfo struct {
+		BucketPath    func(childComplexity int) int
 		Created       func(childComplexity int) int
 		DataproductID func(childComplexity int) int
 		Email         func(childComplexity int) int
 		Expired       func(childComplexity int) int
 		ID            func(childComplexity int) int
-		Object        func(childComplexity int) int
 		Ready         func(childComplexity int) int
 		SignedURL     func(childComplexity int) int
 	}
@@ -229,14 +229,15 @@ type ComplexityRoot struct {
 	}
 
 	UserInfo struct {
-		Accessable      func(childComplexity int) int
-		Dataproducts    func(childComplexity int) int
-		Email           func(childComplexity int) int
-		GCPProjects     func(childComplexity int) int
-		Groups          func(childComplexity int) int
-		LoginExpiration func(childComplexity int) int
-		Name            func(childComplexity int) int
-		Stories         func(childComplexity int) int
+		Accessable          func(childComplexity int) int
+		DataproductExtracts func(childComplexity int) int
+		Dataproducts        func(childComplexity int) int
+		Email               func(childComplexity int) int
+		GCPProjects         func(childComplexity int) int
+		Groups              func(childComplexity int) int
+		LoginExpiration     func(childComplexity int) int
+		Name                func(childComplexity int) int
+		Stories             func(childComplexity int) int
 	}
 }
 
@@ -298,6 +299,7 @@ type UserInfoResolver interface {
 	Dataproducts(ctx context.Context, obj *models.UserInfo) ([]*models.Dataproduct, error)
 	Accessable(ctx context.Context, obj *models.UserInfo) ([]*models.Dataproduct, error)
 	Stories(ctx context.Context, obj *models.UserInfo) ([]*models.GraphStory, error)
+	DataproductExtracts(ctx context.Context, obj *models.UserInfo) ([]*models.DataproductExtractInfo, error)
 }
 
 type executableSchema struct {
@@ -546,6 +548,13 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.Dataproduct.Services(childComplexity), true
 
+	case "DataproductExtractInfo.bucketPath":
+		if e.complexity.DataproductExtractInfo.BucketPath == nil {
+			break
+		}
+
+		return e.complexity.DataproductExtractInfo.BucketPath(childComplexity), true
+
 	case "DataproductExtractInfo.created":
 		if e.complexity.DataproductExtractInfo.Created == nil {
 			break
@@ -580,13 +589,6 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 		}
 
 		return e.complexity.DataproductExtractInfo.ID(childComplexity), true
-
-	case "DataproductExtractInfo.object":
-		if e.complexity.DataproductExtractInfo.Object == nil {
-			break
-		}
-
-		return e.complexity.DataproductExtractInfo.Object(childComplexity), true
 
 	case "DataproductExtractInfo.ready":
 		if e.complexity.DataproductExtractInfo.Ready == nil {
@@ -1203,6 +1205,13 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.UserInfo.Accessable(childComplexity), true
 
+	case "UserInfo.dataproductExtracts":
+		if e.complexity.UserInfo.DataproductExtracts == nil {
+			break
+		}
+
+		return e.complexity.UserInfo.DataproductExtracts(childComplexity), true
+
 	case "UserInfo.dataproducts":
 		if e.complexity.UserInfo.Dataproducts == nil {
 			break
@@ -1445,15 +1454,15 @@ type DataproductExtractInfo @goModel(model: "github.com/navikt/nada-backend/pkg/
     "dataproductID id is the id of the dataproductd extracted to csv"
     dataproductID: ID!
     "email of the user requesting export"
-	email: String!
+    email: String!
     "created is the timestamp when the extract request was created"
     created: Time!
-    "object is the object name in the gcs storage"
-    object: String!
+    "bucketPath is the bucket path in the gcs storage bucket"
+    bucketPath: String!
     "ready is a boolean indicating whether the table extraction has finished"
-    ready: Boolean!
+    ready: Time
     "expired is a boolean indicating whether the table export has expired"
-    expired: Boolean!
+    expired: Time
     "signedURL is the download url created"
     signedURL: String! @authenticated
 }
@@ -2090,6 +2099,11 @@ type UserInfo @goModel(model: "github.com/navikt/nada-backend/pkg/graph/models.U
 	accessable: [Dataproduct!]!
 	"stories is a list of stories with one of the users groups as owner"
 	stories: [Story!]!
+
+    """
+    dataproductExtracts returns information on the users dataproduct extracts.
+    """
+	dataproductExtracts: [DataproductExtractInfo!]! @authenticated
 }
 
 """
@@ -4050,7 +4064,7 @@ func (ec *executionContext) _DataproductExtractInfo_created(ctx context.Context,
 	return ec.marshalNTime2timeᚐTime(ctx, field.Selections, res)
 }
 
-func (ec *executionContext) _DataproductExtractInfo_object(ctx context.Context, field graphql.CollectedField, obj *models.DataproductExtractInfo) (ret graphql.Marshaler) {
+func (ec *executionContext) _DataproductExtractInfo_bucketPath(ctx context.Context, field graphql.CollectedField, obj *models.DataproductExtractInfo) (ret graphql.Marshaler) {
 	defer func() {
 		if r := recover(); r != nil {
 			ec.Error(ctx, ec.Recover(ctx, r))
@@ -4068,7 +4082,7 @@ func (ec *executionContext) _DataproductExtractInfo_object(ctx context.Context, 
 	ctx = graphql.WithFieldContext(ctx, fc)
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
-		return obj.Object, nil
+		return obj.BucketPath, nil
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -4110,14 +4124,11 @@ func (ec *executionContext) _DataproductExtractInfo_ready(ctx context.Context, f
 		return graphql.Null
 	}
 	if resTmp == nil {
-		if !graphql.HasFieldError(ctx, fc) {
-			ec.Errorf(ctx, "must not be null")
-		}
 		return graphql.Null
 	}
-	res := resTmp.(bool)
+	res := resTmp.(*time.Time)
 	fc.Result = res
-	return ec.marshalNBoolean2bool(ctx, field.Selections, res)
+	return ec.marshalOTime2ᚖtimeᚐTime(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _DataproductExtractInfo_expired(ctx context.Context, field graphql.CollectedField, obj *models.DataproductExtractInfo) (ret graphql.Marshaler) {
@@ -4145,14 +4156,11 @@ func (ec *executionContext) _DataproductExtractInfo_expired(ctx context.Context,
 		return graphql.Null
 	}
 	if resTmp == nil {
-		if !graphql.HasFieldError(ctx, fc) {
-			ec.Errorf(ctx, "must not be null")
-		}
 		return graphql.Null
 	}
-	res := resTmp.(bool)
+	res := resTmp.(*time.Time)
 	fc.Result = res
-	return ec.marshalNBoolean2bool(ctx, field.Selections, res)
+	return ec.marshalOTime2ᚖtimeᚐTime(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _DataproductExtractInfo_signedURL(ctx context.Context, field graphql.CollectedField, obj *models.DataproductExtractInfo) (ret graphql.Marshaler) {
@@ -7406,6 +7414,61 @@ func (ec *executionContext) _UserInfo_stories(ctx context.Context, field graphql
 	return ec.marshalNStory2ᚕᚖgithubᚗcomᚋnaviktᚋnadaᚑbackendᚋpkgᚋgraphᚋmodelsᚐGraphStoryᚄ(ctx, field.Selections, res)
 }
 
+func (ec *executionContext) _UserInfo_dataproductExtracts(ctx context.Context, field graphql.CollectedField, obj *models.UserInfo) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "UserInfo",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   true,
+		IsResolver: true,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		directive0 := func(rctx context.Context) (interface{}, error) {
+			ctx = rctx // use context from middleware stack in children
+			return ec.resolvers.UserInfo().DataproductExtracts(rctx, obj)
+		}
+		directive1 := func(ctx context.Context) (interface{}, error) {
+			if ec.directives.Authenticated == nil {
+				return nil, errors.New("directive authenticated is not implemented")
+			}
+			return ec.directives.Authenticated(ctx, obj, directive0, nil)
+		}
+
+		tmp, err := directive1(rctx)
+		if err != nil {
+			return nil, graphql.ErrorOnPath(ctx, err)
+		}
+		if tmp == nil {
+			return nil, nil
+		}
+		if data, ok := tmp.([]*models.DataproductExtractInfo); ok {
+			return data, nil
+		}
+		return nil, fmt.Errorf(`unexpected type %T from directive, should be []*github.com/navikt/nada-backend/pkg/graph/models.DataproductExtractInfo`, tmp)
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.([]*models.DataproductExtractInfo)
+	fc.Result = res
+	return ec.marshalNDataproductExtractInfo2ᚕᚖgithubᚗcomᚋnaviktᚋnadaᚑbackendᚋpkgᚋgraphᚋmodelsᚐDataproductExtractInfoᚄ(ctx, field.Selections, res)
+}
+
 func (ec *executionContext) ___Directive_name(ctx context.Context, field graphql.CollectedField, obj *introspection.Directive) (ret graphql.Marshaler) {
 	defer func() {
 		if r := recover(); r != nil {
@@ -9508,9 +9571,9 @@ func (ec *executionContext) _DataproductExtractInfo(ctx context.Context, sel ast
 			if out.Values[i] == graphql.Null {
 				atomic.AddUint32(&invalids, 1)
 			}
-		case "object":
+		case "bucketPath":
 			innerFunc := func(ctx context.Context) (res graphql.Marshaler) {
-				return ec._DataproductExtractInfo_object(ctx, field, obj)
+				return ec._DataproductExtractInfo_bucketPath(ctx, field, obj)
 			}
 
 			out.Values[i] = innerFunc(ctx)
@@ -9525,9 +9588,6 @@ func (ec *executionContext) _DataproductExtractInfo(ctx context.Context, sel ast
 
 			out.Values[i] = innerFunc(ctx)
 
-			if out.Values[i] == graphql.Null {
-				atomic.AddUint32(&invalids, 1)
-			}
 		case "expired":
 			innerFunc := func(ctx context.Context) (res graphql.Marshaler) {
 				return ec._DataproductExtractInfo_expired(ctx, field, obj)
@@ -9535,9 +9595,6 @@ func (ec *executionContext) _DataproductExtractInfo(ctx context.Context, sel ast
 
 			out.Values[i] = innerFunc(ctx)
 
-			if out.Values[i] == graphql.Null {
-				atomic.AddUint32(&invalids, 1)
-			}
 		case "signedURL":
 			field := field
 
@@ -10955,6 +11012,26 @@ func (ec *executionContext) _UserInfo(ctx context.Context, sel ast.SelectionSet,
 				return innerFunc(ctx)
 
 			})
+		case "dataproductExtracts":
+			field := field
+
+			innerFunc := func(ctx context.Context) (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._UserInfo_dataproductExtracts(ctx, field, obj)
+				if res == graphql.Null {
+					atomic.AddUint32(&invalids, 1)
+				}
+				return res
+			}
+
+			out.Concurrently(i, func() graphql.Marshaler {
+				return innerFunc(ctx)
+
+			})
 		default:
 			panic("unknown field " + strconv.Quote(field.Name))
 		}
@@ -11586,6 +11663,50 @@ func (ec *executionContext) marshalNDataproduct2ᚖgithubᚗcomᚋnaviktᚋnada�
 
 func (ec *executionContext) marshalNDataproductExtractInfo2githubᚗcomᚋnaviktᚋnadaᚑbackendᚋpkgᚋgraphᚋmodelsᚐDataproductExtractInfo(ctx context.Context, sel ast.SelectionSet, v models.DataproductExtractInfo) graphql.Marshaler {
 	return ec._DataproductExtractInfo(ctx, sel, &v)
+}
+
+func (ec *executionContext) marshalNDataproductExtractInfo2ᚕᚖgithubᚗcomᚋnaviktᚋnadaᚑbackendᚋpkgᚋgraphᚋmodelsᚐDataproductExtractInfoᚄ(ctx context.Context, sel ast.SelectionSet, v []*models.DataproductExtractInfo) graphql.Marshaler {
+	ret := make(graphql.Array, len(v))
+	var wg sync.WaitGroup
+	isLen1 := len(v) == 1
+	if !isLen1 {
+		wg.Add(len(v))
+	}
+	for i := range v {
+		i := i
+		fc := &graphql.FieldContext{
+			Index:  &i,
+			Result: &v[i],
+		}
+		ctx := graphql.WithFieldContext(ctx, fc)
+		f := func(i int) {
+			defer func() {
+				if r := recover(); r != nil {
+					ec.Error(ctx, ec.Recover(ctx, r))
+					ret = nil
+				}
+			}()
+			if !isLen1 {
+				defer wg.Done()
+			}
+			ret[i] = ec.marshalNDataproductExtractInfo2ᚖgithubᚗcomᚋnaviktᚋnadaᚑbackendᚋpkgᚋgraphᚋmodelsᚐDataproductExtractInfo(ctx, sel, v[i])
+		}
+		if isLen1 {
+			f(i)
+		} else {
+			go f(i)
+		}
+
+	}
+	wg.Wait()
+
+	for _, e := range ret {
+		if e == graphql.Null {
+			return graphql.Null
+		}
+	}
+
+	return ret
 }
 
 func (ec *executionContext) marshalNDataproductExtractInfo2ᚖgithubᚗcomᚋnaviktᚋnadaᚑbackendᚋpkgᚋgraphᚋmodelsᚐDataproductExtractInfo(ctx context.Context, sel ast.SelectionSet, v *models.DataproductExtractInfo) graphql.Marshaler {

@@ -45,10 +45,15 @@ func (d *DPExtractMonitor) run(ctx context.Context) {
 
 	for _, e := range extractions {
 		if d.jobDone(ctx, e.JobID) {
-			d.repo.SetDataproductExtractReady(ctx, e.ID)
+			if err := d.repo.SetDataproductExtractReady(ctx, e.ID); err != nil {
+				d.log.WithField("dataproductID", e.DataproductID).Errorf("set dataproduct ready", err)
+			}
+
+			if err := d.repo.SetDataproductExtractExpired(ctx, e.ID); err != nil {
+				d.log.WithField("dataproductID", e.DataproductID).Errorf("set dataproduct expired", err)
+			}
 		}
 	}
-	// todo(erikvatt) set expired in db
 }
 
 func (d *DPExtractMonitor) jobDone(ctx context.Context, jobID string) bool {

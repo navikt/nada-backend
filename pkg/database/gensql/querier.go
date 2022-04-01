@@ -36,6 +36,7 @@ type Querier interface {
 	GetBigqueryDatasource(ctx context.Context, dataproductID uuid.UUID) (DatasourceBigquery, error)
 	GetBigqueryDatasources(ctx context.Context) ([]DatasourceBigquery, error)
 	GetDataproduct(ctx context.Context, id uuid.UUID) (Dataproduct, error)
+	GetDataproductExtractionsForUser(ctx context.Context, email string) ([]DataproductExtraction, error)
 	GetDataproductMappings(ctx context.Context, dataproductID uuid.UUID) (ThirdPartyMapping, error)
 	GetDataproductRequesters(ctx context.Context, dataproductID uuid.UUID) ([]string, error)
 	GetDataproducts(ctx context.Context, arg GetDataproductsParams) ([]Dataproduct, error)
@@ -45,7 +46,6 @@ type Querier interface {
 	GetDataproductsByUserAccess(ctx context.Context, id string) ([]Dataproduct, error)
 	GetMetabaseMetadata(ctx context.Context, dataproductID uuid.UUID) (MetabaseMetadatum, error)
 	GetMetabaseMetadataWithDeleted(ctx context.Context, dataproductID uuid.UUID) (MetabaseMetadatum, error)
-	GetReadyDataproductExtraction(ctx context.Context, arg GetReadyDataproductExtractionParams) (DataproductExtraction, error)
 	GetSession(ctx context.Context, token string) (Session, error)
 	GetStories(ctx context.Context) ([]Story, error)
 	GetStoriesByGroups(ctx context.Context, groups []string) ([]Story, error)
@@ -68,6 +68,7 @@ type Querier interface {
 	RestoreMetabaseMetadata(ctx context.Context, dataproductID uuid.UUID) error
 	RevokeAccessToDataproduct(ctx context.Context, id uuid.UUID) error
 	Search(ctx context.Context, arg SearchParams) ([]SearchRow, error)
+	SetDataproductExtractExpired(ctx context.Context, id uuid.UUID) error
 	SetDataproductExtractReady(ctx context.Context, id uuid.UUID) error
 	SetPermissionGroupMetabaseMetadata(ctx context.Context, arg SetPermissionGroupMetabaseMetadataParams) error
 	SoftDeleteMetabaseMetadata(ctx context.Context, dataproductID uuid.UUID) error

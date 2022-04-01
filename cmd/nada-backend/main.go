@@ -45,7 +45,7 @@ const (
 	AccessEnsurerFrequency         = 5 * time.Minute
 	MetabaseUpdateFrequency        = 5 * time.Minute
 	StoryDraftCleanerFrequency     = 24 * time.Hour
-	CSVExtractMonitorFrequency     = 5 * time.Minute
+	ExtractMonitorFrequency        = 5 * time.Minute
 )
 
 func init() {
@@ -143,7 +143,7 @@ func main() {
 			log.WithError(err).Fatal("Creating dp extracter monitor")
 		}
 
-		go dm.Run(ctx, CSVExtractMonitorFrequency)
+		go dm.Run(ctx, ExtractMonitorFrequency)
 	}
 
 	go story.NewDraftCleaner(repo, log.WithField("subsystem", "storydraftcleaner")).Run(ctx, StoryDraftCleanerFrequency)

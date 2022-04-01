@@ -102,17 +102,11 @@ func (r *dataproductResolver) Mappings(ctx context.Context, obj *models.Dataprod
 }
 
 func (r *dataproductExtractInfoResolver) SignedURL(ctx context.Context, obj *models.DataproductExtractInfo) (string, error) {
-	user := auth.GetUser(ctx)
-
-	extract, err := r.repo.GetReadyDataproductExtraction(ctx, user.Email, obj.DataproductID)
-	if err != nil {
-		if errors.Is(err, sql.ErrNoRows) {
-			return "", nil
-		}
-		return "", err
+	if obj.Ready == nil {
+		return "", nil
 	}
 
-	return r.dpExtracter.CreateSignedURL(ctx, extract.Object)
+	return r.dpExtracter.CreateSignedURL(ctx, obj.BucketPath)
 }
 
 func (r *mutationResolver) CreateDataproduct(ctx context.Context, input models.NewDataproduct) (*models.Dataproduct, error) {
@@ -297,12 +291,12 @@ func (r *mutationResolver) ExtractDataproduct(ctx context.Context, dataproductID
 		return nil, err
 	}
 
-	jobID, err := r.dpExtracter.CreateExtractJob(ctx, &bq, user.Email)
+	bucketPath, jobID, err := r.dpExtracter.CreateExtractJob(ctx, &bq, user.Email)
 	if err != nil {
 		return nil, err
 	}
 
-	return r.repo.CreateDataproductExtract(ctx, &bq, jobID, user.Email)
+	return r.repo.CreateDataproductExtract(ctx, &bq, bucketPath, jobID, user.Email)
 }
 
 func (r *queryResolver) Dataproduct(ctx context.Context, id uuid.UUID) (*models.Dataproduct, error) {
@@ -338,8 +332,6 @@ func (r *Resolver) DataproductExtractInfo() generated.DataproductExtractInfoReso
 	return &dataproductExtractInfoResolver{r}
 }
 
-type (
-	bigQueryResolver               struct{ *Resolver }
-	dataproductResolver            struct{ *Resolver }
-	dataproductExtractInfoResolver struct{ *Resolver }
-)
+type bigQueryResolver struct{ *Resolver }
+type dataproductResolver struct{ *Resolver }
+type dataproductExtractInfoResolver struct{ *Resolver }

@@ -278,11 +278,11 @@ func (r *Repo) DataproductGroupStats(ctx context.Context, limit, offset int) ([]
 	return ret, nil
 }
 
-func (r *Repo) CreateDataproductExtract(ctx context.Context, bq *models.BigQuery, jobID, email string) (*models.DataproductExtractInfo, error) {
+func (r *Repo) CreateDataproductExtract(ctx context.Context, bq *models.BigQuery, bucketPath, jobID, email string) (*models.DataproductExtractInfo, error) {
 	extract, err := r.querier.CreateDataproductExtract(ctx, gensql.CreateDataproductExtractParams{
 		DataproductID: bq.DataproductID,
 		Email:         email,
-		Object:        bq.Table + ".csv",
+		BucketPath:    bucketPath,
 		JobID:         jobID,
 	})
 	if err != nil {
@@ -294,9 +294,9 @@ func (r *Repo) CreateDataproductExtract(ctx context.Context, bq *models.BigQuery
 		DataproductID: extract.DataproductID,
 		Email:         extract.Email,
 		Created:       extract.Created,
-		Object:        extract.Object,
-		Ready:         extract.Ready,
-		Expired:       extract.Expired,
+		BucketPath:    extract.BucketPath,
+		Ready:         nullTimeToPtr(extract.ReadyAt),
+		Expired:       nullTimeToPtr(extract.ExpiredAt),
 	}, nil
 }
 
@@ -308,11 +308,29 @@ func (r *Repo) SetDataproductExtractReady(ctx context.Context, id uuid.UUID) err
 	return r.querier.SetDataproductExtractReady(ctx, id)
 }
 
-func (r *Repo) GetReadyDataproductExtraction(ctx context.Context, email string, dpID uuid.UUID) (gensql.DataproductExtraction, error) {
-	return r.querier.GetReadyDataproductExtraction(ctx, gensql.GetReadyDataproductExtractionParams{
-		Email:         email,
-		DataproductID: dpID,
-	})
+func (r *Repo) SetDataproductExtractExpired(ctx context.Context, id uuid.UUID) error {
+	return r.querier.SetDataproductExtractExpired(ctx, id)
+}
+
+func (r *Repo) GetDataproductExtractionsForUser(ctx context.Context, email string) ([]*models.DataproductExtractInfo, error) {
+	extractionsSQL, err := r.querier.GetDataproductExtractionsForUser(ctx, email)
+	if err != nil {
+		return nil, err
+	}
+
+	extractions := make([]*models.DataproductExtractInfo, len(extractionsSQL))
+	for _, e := range extractionsSQL {
+		extractions = append(extractions, &models.DataproductExtractInfo{
+			ID:            e.ID,
+			DataproductID: e.DataproductID,
+			Email:         e.Email,
+			Created:       e.Created,
+			BucketPath:    e.BucketPath,
+			Ready:         nullTimeToPtr(e.ReadyAt),
+			Expired:       nullTimeToPtr(e.ExpiredAt),
+		})
+	}
+	return extractions, nil
 }
 
 func dataproductFromSQL(dp gensql.Dataproduct) *models.Dataproduct {

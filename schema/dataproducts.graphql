@@ -127,15 +127,15 @@ type DataproductExtractInfo @goModel(model: "github.com/navikt/nada-backend/pkg/
     "dataproductID id is the id of the dataproductd extracted to csv"
     dataproductID: ID!
     "email of the user requesting export"
-	email: String!
+    email: String!
     "created is the timestamp when the extract request was created"
     created: Time!
-    "object is the object name in the gcs storage"
-    object: String!
+    "bucketPath is the bucket path in the gcs storage bucket"
+    bucketPath: String!
     "ready is a boolean indicating whether the table extraction has finished"
-    ready: Boolean!
+    ready: Time
     "expired is a boolean indicating whether the table export has expired"
-    expired: Boolean!
+    expired: Time
     "signedURL is the download url created"
     signedURL: String! @authenticated
 }
