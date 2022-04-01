@@ -705,7 +705,7 @@ func (q *Queries) GetDataproductsByUserAccess(ctx context.Context, id string) ([
 const getUnreadyDataproductExtractions = `-- name: GetUnreadyDataproductExtractions :many
 SELECT id, dataproduct_id, email, bucket_path, job_id, created, ready_at, expired_at 
 FROM dataproduct_extractions 
-WHERE ready = false
+WHERE ready_at IS NULL
 `
 
 func (q *Queries) GetUnreadyDataproductExtractions(ctx context.Context) ([]DataproductExtraction, error) {

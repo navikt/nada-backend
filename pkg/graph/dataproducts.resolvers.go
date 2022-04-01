@@ -332,6 +332,8 @@ func (r *Resolver) DataproductExtractInfo() generated.DataproductExtractInfoReso
 	return &dataproductExtractInfoResolver{r}
 }
 
-type bigQueryResolver struct{ *Resolver }
-type dataproductResolver struct{ *Resolver }
-type dataproductExtractInfoResolver struct{ *Resolver }
+type (
+	bigQueryResolver               struct{ *Resolver }
+	dataproductResolver            struct{ *Resolver }
+	dataproductExtractInfoResolver struct{ *Resolver }
+)

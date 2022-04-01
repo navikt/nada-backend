@@ -178,7 +178,7 @@ WHERE "id" = @id;
 -- name: GetUnreadyDataproductExtractions :many
 SELECT * 
 FROM dataproduct_extractions 
-WHERE ready = false;
+WHERE ready_at IS NULL;
 
 -- name: GetDataproductExtractionsForUser :many
 SELECT * 

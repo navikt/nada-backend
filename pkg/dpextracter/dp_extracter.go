@@ -12,22 +12,27 @@ import (
 )
 
 type DPExtracter struct {
-	project  string
-	bucket   string
-	bqClient *bigquery.Client
+	bucket        string
+	bqClient      *bigquery.Client
+	storageClient *storage.Client
 }
 
 func New(ctx context.Context, project, bucket string) (*DPExtracter, error) {
-	bqClient, err := bigquery.NewClient(ctx, bucket)
+	bqClient, err := bigquery.NewClient(ctx, project)
 	if err != nil {
 		return nil, err
 	}
 	bqClient.Location = "europe-north1"
 
+	storageClient, err := storage.NewClient(ctx)
+	if err != nil {
+		return nil, err
+	}
+
 	return &DPExtracter{
-		project:  project,
-		bucket:   bucket,
-		bqClient: bqClient,
+		bucket:        bucket,
+		bqClient:      bqClient,
+		storageClient: storageClient,
 	}, nil
 }
 
@@ -35,16 +40,10 @@ func (d *DPExtracter) CreateExtractJob(ctx context.Context, bq *models.BigQuery,
 	bucketPath := fmt.Sprintf("%v/%v.csv", bq.DataproductID, uuid.New())
 	gcsURI := fmt.Sprintf("gs://%v/%v", d.bucket, bucketPath)
 
-	client, err := bigquery.NewClient(ctx, bq.ProjectID)
-	if err != nil {
-		return "", "", err
-	}
-	defer client.Close()
-
 	gcsRef := bigquery.NewGCSReference(gcsURI)
 	gcsRef.FieldDelimiter = ";"
 
-	extractor := client.DatasetInProject(bq.ProjectID, bq.Dataset).Table(bq.Table).ExtractorTo(gcsRef)
+	extractor := d.bqClient.DatasetInProject(bq.ProjectID, bq.Dataset).Table(bq.Table).ExtractorTo(gcsRef)
 	extractor.Location = "europe-north1"
 
 	job, err := extractor.Run(ctx)
@@ -55,20 +54,14 @@ func (d *DPExtracter) CreateExtractJob(ctx context.Context, bq *models.BigQuery,
 	return bucketPath, job.ID(), nil
 }
 
-func (d *DPExtracter) CreateSignedURL(ctx context.Context, object string) (string, error) {
-	client, err := storage.NewClient(ctx)
-	if err != nil {
-		return "", err
-	}
-	defer client.Close()
-
+func (d *DPExtracter) CreateSignedURL(ctx context.Context, bucketPath string) (string, error) {
 	opts := &storage.SignedURLOptions{
 		Scheme:  storage.SigningSchemeV4,
 		Method:  "GET",
 		Expires: time.Now().Add(15 * time.Minute),
 	}
 
-	url, err := client.Bucket(d.bucket).SignedURL(object, opts)
+	url, err := d.storageClient.Bucket(d.bucket).SignedURL(bucketPath, opts)
 	if err != nil {
 		return "", err
 	}

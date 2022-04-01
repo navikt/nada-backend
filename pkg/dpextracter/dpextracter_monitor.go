@@ -23,9 +23,8 @@ func NewMonitor(repo *database.Repo, dpExtracter *DPExtracter, log *logrus.Entry
 }
 
 func (d *DPExtractMonitor) Run(ctx context.Context, frequency time.Duration) {
-	// d.dpExtracter.eventMgr.ListenForDataproductExtract(d.createDataproductExtract)
-
 	ticker := time.NewTicker(frequency)
+
 	defer ticker.Stop()
 	for {
 		d.run(ctx)
@@ -40,6 +39,7 @@ func (d *DPExtractMonitor) Run(ctx context.Context, frequency time.Duration) {
 func (d *DPExtractMonitor) run(ctx context.Context) {
 	extractions, err := d.repo.GetUnreadyDataproductExtractions(ctx)
 	if err != nil {
+		d.log.Errorf("get unready dataproduct extractions: %v", err)
 		return
 	}
 
@@ -59,6 +59,7 @@ func (d *DPExtractMonitor) run(ctx context.Context) {
 func (d *DPExtractMonitor) jobDone(ctx context.Context, jobID string) bool {
 	job, err := d.dpExtracter.bqClient.JobFromID(ctx, jobID)
 	if err != nil {
+		d.log.Errorf("get job from jobID: %v", err)
 		return false
 	}
 

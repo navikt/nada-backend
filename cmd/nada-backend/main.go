@@ -133,7 +133,7 @@ func main() {
 
 	var dpExtracter *dpextracter.DPExtracter
 	if cfg.NadaExtractBucket != "" {
-		dpExtracter, err := dpextracter.New(ctx, "nada-dev-db2e", cfg.NadaExtractBucket)
+		dpExtracter, err = dpextracter.New(ctx, os.Getenv("GCP_TEAM_PROJECT_ID"), cfg.NadaExtractBucket)
 		if err != nil {
 			log.WithError(err).Fatal("dpExtracter")
 		}
