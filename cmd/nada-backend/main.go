@@ -96,6 +96,7 @@ func main() {
 	var accessMgr graph.AccessManager
 	accessMgr = access.NewNoop()
 	var teamcatalogue graph.Teamkatalogen = teamkatalogen.NewMock()
+	var dpExtracter *dpextracter.DPExtracter
 	if !cfg.MockAuth {
 		teamcatalogue = teamkatalogen.New(cfg.TeamkatalogenURL)
 		teamProjectsMapping = auth.NewTeamProjectsUpdater(cfg.DevTeamProjectsOutputURL, cfg.ProdTeamProjectsOutputURL, cfg.TeamsToken, http.DefaultClient)
@@ -111,6 +112,8 @@ func main() {
 		httpAPI = api.NewHTTP(oauth2Config, repo, log.WithField("subsystem", "api"))
 		authenticatorMiddleware = gauth.Middleware(googleGroups, repo)
 		accessMgr = access.NewBigquery()
+
+		dpExtracter = newDataproductExporter(ctx, repo, log.WithField("subsystem", "dp_extract_monitor"))
 	}
 
 	if err := runMetabase(ctx, log.WithField("subsystem", "metabase"), cfg, repo, accessMgr, eventMgr); err != nil {
@@ -129,21 +132,6 @@ func main() {
 		gcp = datacatalogClient
 		de := bigquery.NewDatasetEnricher(datacatalogClient, repo, log.WithField("subsystem", "datasetenricher"))
 		go de.Run(ctx, DatasetMetadataUpdateFrequency)
-	}
-
-	var dpExtracter *dpextracter.DPExtracter
-	if cfg.NadaExtractBucket != "" {
-		dpExtracter, err = dpextracter.New(ctx, os.Getenv("GCP_TEAM_PROJECT_ID"), cfg.NadaExtractBucket)
-		if err != nil {
-			log.WithError(err).Fatal("dpExtracter")
-		}
-
-		dm := dpextracter.NewMonitor(repo, dpExtracter, log.WithField("subsystem", "dp_extract_monitor"))
-		if err != nil {
-			log.WithError(err).Fatal("Creating dp extracter monitor")
-		}
-
-		go dm.Run(ctx, ExtractMonitorFrequency)
 	}
 
 	go story.NewDraftCleaner(repo, log.WithField("subsystem", "storydraftcleaner")).Run(ctx, StoryDraftCleanerFrequency)
@@ -200,6 +188,27 @@ func getEnv(key, fallback string) string {
 		return env
 	}
 	return fallback
+}
+
+func newDataproductExporter(ctx context.Context, repo *database.Repo, log *logrus.Entry) *dpextracter.DPExtracter {
+	if cfg.NadaExtractBucket == "" || os.Getenv("GCP_TEAM_PROJECT_ID") == "" {
+		log.Info("dataproduct export monitor disabled")
+		return nil
+	}
+
+	dpExtracter, err := dpextracter.New(ctx, os.Getenv("GCP_TEAM_PROJECT_ID"), cfg.NadaExtractBucket)
+	if err != nil {
+		log.WithError(err).Fatal("dpExtracter")
+	}
+
+	dm := dpextracter.NewMonitor(repo, dpExtracter, log)
+	if err != nil {
+		log.WithError(err).Fatal("Creating dp extracter monitor")
+	}
+
+	go dm.Run(ctx, ExtractMonitorFrequency)
+
+	return dpExtracter
 }
 
 func runMetabase(ctx context.Context, log *logrus.Entry, cfg Config, repo *database.Repo, accessMgr graph.AccessManager, eventMgr *event.Manager) error {
