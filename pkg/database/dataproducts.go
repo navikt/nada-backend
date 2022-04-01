@@ -318,9 +318,9 @@ func (r *Repo) GetDataproductExtractionsForUser(ctx context.Context, email strin
 		return nil, err
 	}
 
-	extractions := []*models.DataproductExtractInfo{}
-	for _, e := range extractionsSQL {
-		extractions = append(extractions, &models.DataproductExtractInfo{
+	extractions := make([]*models.DataproductExtractInfo, len(extractionsSQL))
+	for i, e := range extractionsSQL {
+		extractions[i] = &models.DataproductExtractInfo{
 			ID:            e.ID,
 			DataproductID: e.DataproductID,
 			Email:         e.Email,
@@ -328,8 +328,10 @@ func (r *Repo) GetDataproductExtractionsForUser(ctx context.Context, email strin
 			BucketPath:    e.BucketPath,
 			Ready:         nullTimeToPtr(e.ReadyAt),
 			Expired:       nullTimeToPtr(e.ExpiredAt),
-		})
+		}
 	}
+
+	fmt.Println(extractions)
 
 	return extractions, nil
 }
