@@ -331,8 +331,6 @@ func (r *Repo) GetDataproductExtractionsForUser(ctx context.Context, email strin
 		}
 	}
 
-	fmt.Println(extractions)
-
 	return extractions, nil
 }
 
