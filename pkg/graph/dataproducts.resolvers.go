@@ -321,6 +321,10 @@ func (r *queryResolver) GroupStats(ctx context.Context, limit *int, offset *int)
 	return r.repo.DataproductGroupStats(ctx, l, o)
 }
 
+func (r *queryResolver) DataproductExtract(ctx context.Context, id uuid.UUID) (*models.DataproductExtractInfo, error) {
+	return r.repo.GetDataproductExtractionForUser(ctx, id)
+}
+
 // BigQuery returns generated.BigQueryResolver implementation.
 func (r *Resolver) BigQuery() generated.BigQueryResolver { return &bigQueryResolver{r} }
 

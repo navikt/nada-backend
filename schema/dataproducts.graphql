@@ -170,6 +170,14 @@ extend type Query {
         "offset the list of returned groups. Used as pagination with PAGE-INDEX * limit."
         offset: Int
     ): [GroupStats!]!
+
+    """
+    dataproductExtract returns a dataproduct extract.
+    """
+	dataproductExtract(
+        "id of the dataproduct extract"
+        id: ID!
+    ): DataproductExtractInfo! @authenticated
 }
 
 """

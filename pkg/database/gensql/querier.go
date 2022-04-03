@@ -36,6 +36,7 @@ type Querier interface {
 	GetBigqueryDatasource(ctx context.Context, dataproductID uuid.UUID) (DatasourceBigquery, error)
 	GetBigqueryDatasources(ctx context.Context) ([]DatasourceBigquery, error)
 	GetDataproduct(ctx context.Context, id uuid.UUID) (Dataproduct, error)
+	GetDataproductExtractionForUser(ctx context.Context, id uuid.UUID) (DataproductExtraction, error)
 	GetDataproductExtractionsForUser(ctx context.Context, email string) ([]DataproductExtraction, error)
 	GetDataproductMappings(ctx context.Context, dataproductID uuid.UUID) (ThirdPartyMapping, error)
 	GetDataproductRequesters(ctx context.Context, dataproductID uuid.UUID) ([]string, error)

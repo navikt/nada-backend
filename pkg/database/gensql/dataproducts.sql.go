@@ -450,6 +450,28 @@ func (q *Queries) GetDataproduct(ctx context.Context, id uuid.UUID) (Dataproduct
 	return i, err
 }
 
+const getDataproductExtractionForUser = `-- name: GetDataproductExtractionForUser :one
+SELECT id, dataproduct_id, email, bucket_path, job_id, created, ready_at, expired_at 
+FROM dataproduct_extractions 
+WHERE (expired_at IS NOT NULL OR expired_at > NOW()) AND id = $1
+`
+
+func (q *Queries) GetDataproductExtractionForUser(ctx context.Context, id uuid.UUID) (DataproductExtraction, error) {
+	row := q.db.QueryRowContext(ctx, getDataproductExtractionForUser, id)
+	var i DataproductExtraction
+	err := row.Scan(
+		&i.ID,
+		&i.DataproductID,
+		&i.Email,
+		&i.BucketPath,
+		&i.JobID,
+		&i.Created,
+		&i.ReadyAt,
+		&i.ExpiredAt,
+	)
+	return i, err
+}
+
 const getDataproductExtractionsForUser = `-- name: GetDataproductExtractionsForUser :many
 SELECT id, dataproduct_id, email, bucket_path, job_id, created, ready_at, expired_at 
 FROM dataproduct_extractions 

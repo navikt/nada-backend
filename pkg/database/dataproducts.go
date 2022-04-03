@@ -320,18 +320,19 @@ func (r *Repo) GetDataproductExtractionsForUser(ctx context.Context, email strin
 
 	extractions := make([]*models.DataproductExtractInfo, len(extractionsSQL))
 	for i, e := range extractionsSQL {
-		extractions[i] = &models.DataproductExtractInfo{
-			ID:            e.ID,
-			DataproductID: e.DataproductID,
-			Email:         e.Email,
-			Created:       e.Created,
-			BucketPath:    e.BucketPath,
-			Ready:         nullTimeToPtr(e.ReadyAt),
-			Expired:       nullTimeToPtr(e.ExpiredAt),
-		}
+		extractions[i] = dataproductExtractionFromSQL(e)
 	}
 
 	return extractions, nil
+}
+
+func (r *Repo) GetDataproductExtractionForUser(ctx context.Context, id uuid.UUID) (*models.DataproductExtractInfo, error) {
+	extractionSQL, err := r.querier.GetDataproductExtractionForUser(ctx, id)
+	if err != nil {
+		return nil, err
+	}
+
+	return dataproductExtractionFromSQL(extractionSQL), nil
 }
 
 func dataproductFromSQL(dp gensql.Dataproduct) *models.Dataproduct {
@@ -350,5 +351,17 @@ func dataproductFromSQL(dp gensql.Dataproduct) *models.Dataproduct {
 			TeamkatalogenURL: nullStringToPtr(dp.TeamkatalogenUrl),
 		},
 		Type: dp.Type,
+	}
+}
+
+func dataproductExtractionFromSQL(de gensql.DataproductExtraction) *models.DataproductExtractInfo {
+	return &models.DataproductExtractInfo{
+		ID:            de.ID,
+		DataproductID: de.DataproductID,
+		Email:         de.Email,
+		Created:       de.Created,
+		BucketPath:    de.BucketPath,
+		Ready:         nullTimeToPtr(de.ReadyAt),
+		Expired:       nullTimeToPtr(de.ExpiredAt),
 	}
 }

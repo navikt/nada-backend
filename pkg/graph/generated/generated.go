@@ -156,20 +156,21 @@ type ComplexityRoot struct {
 	}
 
 	Query struct {
-		Dataproduct    func(childComplexity int, id uuid.UUID) int
-		Dataproducts   func(childComplexity int, limit *int, offset *int, service *models.MappingService) int
-		GcpGetDatasets func(childComplexity int, projectID string) int
-		GcpGetTables   func(childComplexity int, projectID string, datasetID string) int
-		GroupStats     func(childComplexity int, limit *int, offset *int) int
-		Keywords       func(childComplexity int, prefix *string) int
-		Search         func(childComplexity int, q *models.SearchQueryOld, options *models.SearchQuery) int
-		Stories        func(childComplexity int, draft *bool) int
-		Story          func(childComplexity int, id uuid.UUID, draft *bool) int
-		StoryToken     func(childComplexity int, id uuid.UUID) int
-		StoryView      func(childComplexity int, id uuid.UUID, draft *bool) int
-		Teamkatalogen  func(childComplexity int, q string) int
-		UserInfo       func(childComplexity int) int
-		Version        func(childComplexity int) int
+		Dataproduct        func(childComplexity int, id uuid.UUID) int
+		DataproductExtract func(childComplexity int, id uuid.UUID) int
+		Dataproducts       func(childComplexity int, limit *int, offset *int, service *models.MappingService) int
+		GcpGetDatasets     func(childComplexity int, projectID string) int
+		GcpGetTables       func(childComplexity int, projectID string, datasetID string) int
+		GroupStats         func(childComplexity int, limit *int, offset *int) int
+		Keywords           func(childComplexity int, prefix *string) int
+		Search             func(childComplexity int, q *models.SearchQueryOld, options *models.SearchQuery) int
+		Stories            func(childComplexity int, draft *bool) int
+		Story              func(childComplexity int, id uuid.UUID, draft *bool) int
+		StoryToken         func(childComplexity int, id uuid.UUID) int
+		StoryView          func(childComplexity int, id uuid.UUID, draft *bool) int
+		Teamkatalogen      func(childComplexity int, q string) int
+		UserInfo           func(childComplexity int) int
+		Version            func(childComplexity int) int
 	}
 
 	SearchResultRow struct {
@@ -274,6 +275,7 @@ type QueryResolver interface {
 	Dataproduct(ctx context.Context, id uuid.UUID) (*models.Dataproduct, error)
 	Dataproducts(ctx context.Context, limit *int, offset *int, service *models.MappingService) ([]*models.Dataproduct, error)
 	GroupStats(ctx context.Context, limit *int, offset *int) ([]*models.GroupStats, error)
+	DataproductExtract(ctx context.Context, id uuid.UUID) (*models.DataproductExtractInfo, error)
 	GcpGetTables(ctx context.Context, projectID string, datasetID string) ([]*models.BigQueryTable, error)
 	GcpGetDatasets(ctx context.Context, projectID string) ([]string, error)
 	Keywords(ctx context.Context, prefix *string) ([]*models.Keyword, error)
@@ -848,6 +850,18 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 		}
 
 		return e.complexity.Query.Dataproduct(childComplexity, args["id"].(uuid.UUID)), true
+
+	case "Query.dataproductExtract":
+		if e.complexity.Query.DataproductExtract == nil {
+			break
+		}
+
+		args, err := ec.field_Query_dataproductExtract_args(context.TODO(), rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Query.DataproductExtract(childComplexity, args["id"].(uuid.UUID)), true
 
 	case "Query.dataproducts":
 		if e.complexity.Query.Dataproducts == nil {
@@ -1497,6 +1511,14 @@ extend type Query {
         "offset the list of returned groups. Used as pagination with PAGE-INDEX * limit."
         offset: Int
     ): [GroupStats!]!
+
+    """
+    dataproductExtract returns a dataproduct extract.
+    """
+	dataproductExtract(
+        "id of thew dataproduct extract"
+        id: ID!
+    ): DataproductExtractInfo! @authenticated
 }
 
 """
@@ -2460,6 +2482,21 @@ func (ec *executionContext) field_Query___type_args(ctx context.Context, rawArgs
 		}
 	}
 	args["name"] = arg0
+	return args, nil
+}
+
+func (ec *executionContext) field_Query_dataproductExtract_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
+	var err error
+	args := map[string]interface{}{}
+	var arg0 uuid.UUID
+	if tmp, ok := rawArgs["id"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("id"))
+		arg0, err = ec.unmarshalNID2githubᚗcomᚋgoogleᚋuuidᚐUUID(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["id"] = arg0
 	return args, nil
 }
 
@@ -5539,6 +5576,68 @@ func (ec *executionContext) _Query_groupStats(ctx context.Context, field graphql
 	res := resTmp.([]*models.GroupStats)
 	fc.Result = res
 	return ec.marshalNGroupStats2ᚕᚖgithubᚗcomᚋnaviktᚋnadaᚑbackendᚋpkgᚋgraphᚋmodelsᚐGroupStatsᚄ(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _Query_dataproductExtract(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "Query",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   true,
+		IsResolver: true,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	rawArgs := field.ArgumentMap(ec.Variables)
+	args, err := ec.field_Query_dataproductExtract_args(ctx, rawArgs)
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	fc.Args = args
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		directive0 := func(rctx context.Context) (interface{}, error) {
+			ctx = rctx // use context from middleware stack in children
+			return ec.resolvers.Query().DataproductExtract(rctx, args["id"].(uuid.UUID))
+		}
+		directive1 := func(ctx context.Context) (interface{}, error) {
+			if ec.directives.Authenticated == nil {
+				return nil, errors.New("directive authenticated is not implemented")
+			}
+			return ec.directives.Authenticated(ctx, nil, directive0, nil)
+		}
+
+		tmp, err := directive1(rctx)
+		if err != nil {
+			return nil, graphql.ErrorOnPath(ctx, err)
+		}
+		if tmp == nil {
+			return nil, nil
+		}
+		if data, ok := tmp.(*models.DataproductExtractInfo); ok {
+			return data, nil
+		}
+		return nil, fmt.Errorf(`unexpected type %T from directive, should be *github.com/navikt/nada-backend/pkg/graph/models.DataproductExtractInfo`, tmp)
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(*models.DataproductExtractInfo)
+	fc.Result = res
+	return ec.marshalNDataproductExtractInfo2ᚖgithubᚗcomᚋnaviktᚋnadaᚑbackendᚋpkgᚋgraphᚋmodelsᚐDataproductExtractInfo(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _Query_gcpGetTables(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
@@ -10111,6 +10210,29 @@ func (ec *executionContext) _Query(ctx context.Context, sel ast.SelectionSet) gr
 					}
 				}()
 				res = ec._Query_groupStats(ctx, field)
+				if res == graphql.Null {
+					atomic.AddUint32(&invalids, 1)
+				}
+				return res
+			}
+
+			rrm := func(ctx context.Context) graphql.Marshaler {
+				return ec.OperationContext.RootResolverMiddleware(ctx, innerFunc)
+			}
+
+			out.Concurrently(i, func() graphql.Marshaler {
+				return rrm(innerCtx)
+			})
+		case "dataproductExtract":
+			field := field
+
+			innerFunc := func(ctx context.Context) (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._Query_dataproductExtract(ctx, field)
 				if res == graphql.Null {
 					atomic.AddUint32(&invalids, 1)
 				}
