@@ -355,7 +355,7 @@ func (m *Metabase) restore(ctx context.Context, dataproductID uuid.UUID, mbMetad
 
 	err = m.accessMgr.Grant(ctx, ds.ProjectID, ds.Dataset, ds.Table, "serviceAccount:"+mbMetadata.SAEmail)
 	if err != nil {
-		m.log.Error("Unable to revoke access")
+		m.log.Error("Unable to restore access")
 		return err
 	}
 

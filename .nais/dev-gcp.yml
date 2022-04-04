@@ -51,11 +51,19 @@ spec:
       value: "http://nada-metabase/api"
     - name: METABASE_GOOGLE_CREDENTIALS_PATH
       value: /var/run/secrets/nada-credentials/meta_creds.json
+    - name: NADA_EXTRACT_BUCKET
+      value: nada-export-dev
   gcp:
     sqlInstances:
       - type: POSTGRES_12
         databases:
           - name: nada
+    buckets:
+      - cascadingDelete: true
+        lifecycleCondition:
+          age: 7
+        name: nada-export-dev
+        uniformBucketLevelAccess: true
   accessPolicy:
     inbound:
       rules:

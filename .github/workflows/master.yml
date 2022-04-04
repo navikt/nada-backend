@@ -29,7 +29,6 @@ jobs:
   build-and-deploy:
     name: Build and deploy
     runs-on: ubuntu-20.04
-    if: github.ref == 'refs/heads/main'
     needs: set-version
     steps:
     - uses: actions/checkout@master
@@ -60,6 +59,7 @@ jobs:
         CLUSTER: dev-gcp
         RESOURCE: .nais/dev-gcp.yml
     - name: Deploy to prod-gcp
+      if: github.ref == 'refs/heads/main'
       uses: nais/deploy/actions/deploy@master
       env:
         APIKEY: ${{ secrets.NAIS_DEPLOY_APIKEY }}

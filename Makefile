@@ -42,6 +42,7 @@ local-with-auth:
 	--metabase-username=$(METABASE_USERNAME) \
 	--metabase-password=$(METABASE_PASSWORD) \
 	--teamkatalogen-url=https://teamkatalog-api.intern.nav.no \
+	--extract-bucket=nada-csv-export-dev \
 	--log-level=debug
 
 local:
