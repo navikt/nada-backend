@@ -183,9 +183,9 @@ WHERE ready_at IS NULL;
 -- name: GetDataproductExtractionsForUser :many
 SELECT * 
 FROM dataproduct_extractions 
-WHERE (expired_at IS NOT NULL OR expired_at > NOW()) AND email = @email;
+WHERE (expired_at IS NULL OR expired_at > NOW()) AND email = @email;
 
 -- name: GetDataproductExtractionForUser :one
 SELECT * 
 FROM dataproduct_extractions 
-WHERE (expired_at IS NOT NULL OR expired_at > NOW()) AND id = @id;
+WHERE (expired_at IS NULL OR expired_at > NOW()) AND id = @id;

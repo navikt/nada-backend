@@ -453,7 +453,7 @@ func (q *Queries) GetDataproduct(ctx context.Context, id uuid.UUID) (Dataproduct
 const getDataproductExtractionForUser = `-- name: GetDataproductExtractionForUser :one
 SELECT id, dataproduct_id, email, bucket_path, job_id, created, ready_at, expired_at 
 FROM dataproduct_extractions 
-WHERE (expired_at IS NOT NULL OR expired_at > NOW()) AND id = $1
+WHERE (expired_at IS NULL OR expired_at > NOW()) AND id = $1
 `
 
 func (q *Queries) GetDataproductExtractionForUser(ctx context.Context, id uuid.UUID) (DataproductExtraction, error) {
@@ -475,7 +475,7 @@ func (q *Queries) GetDataproductExtractionForUser(ctx context.Context, id uuid.U
 const getDataproductExtractionsForUser = `-- name: GetDataproductExtractionsForUser :many
 SELECT id, dataproduct_id, email, bucket_path, job_id, created, ready_at, expired_at 
 FROM dataproduct_extractions 
-WHERE (expired_at IS NOT NULL OR expired_at > NOW()) AND email = $1
+WHERE (expired_at IS NULL OR expired_at > NOW()) AND email = $1
 `
 
 func (q *Queries) GetDataproductExtractionsForUser(ctx context.Context, email string) ([]DataproductExtraction, error) {
