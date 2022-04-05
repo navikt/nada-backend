@@ -46,13 +46,13 @@ func (r *Repo) GetStoryViews(ctx context.Context, storyID uuid.UUID) ([]*models.
 	return ret, nil
 }
 
-func (r *Repo) PublishStory(ctx context.Context, draftID uuid.UUID, group string, keywords []string) (*models.DBStory, error) {
-	draft, err := r.querier.GetStoryDraft(ctx, draftID)
+func (r *Repo) PublishStory(ctx context.Context, ds models.NewStory) (*models.DBStory, error) {
+	draft, err := r.querier.GetStoryDraft(ctx, ds.ID)
 	if err != nil {
 		return nil, err
 	}
 
-	draftViews, err := r.querier.GetStoryViewDrafts(ctx, draftID)
+	draftViews, err := r.querier.GetStoryViewDrafts(ctx, ds.ID)
 	if err != nil {
 		return nil, err
 	}
@@ -64,10 +64,11 @@ func (r *Repo) PublishStory(ctx context.Context, draftID uuid.UUID, group string
 
 	querier := r.querier.WithTx(tx)
 	story, err := querier.CreateStory(ctx, gensql.CreateStoryParams{
-		Name:        draft.Name,
-		Grp:         group,
-		Description: sql.NullString{String: "", Valid: false},
-		Keywords:    keywords,
+		Name:             draft.Name,
+		Grp:              ds.Group,
+		Description:      sql.NullString{String: "", Valid: false},
+		Keywords:         ds.Keywords,
+		TeamkatalogenUrl: ptrToNullString(ds.TeamkatalogenURL),
 	})
 	if err != nil {
 		if err := tx.Rollback(); err != nil {
@@ -97,8 +98,8 @@ func (r *Repo) PublishStory(ctx context.Context, draftID uuid.UUID, group string
 	return storyFromSQL(story), nil
 }
 
-func (r *Repo) UpdateStory(ctx context.Context, draftID, target uuid.UUID, keywords []string) (*models.DBStory, error) {
-	draftViews, err := r.querier.GetStoryViewDrafts(ctx, draftID)
+func (r *Repo) UpdateStory(ctx context.Context, ds models.NewStory) (*models.DBStory, error) {
+	draftViews, err := r.querier.GetStoryViewDrafts(ctx, ds.ID)
 	if err != nil {
 		return nil, err
 	}
@@ -109,7 +110,7 @@ func (r *Repo) UpdateStory(ctx context.Context, draftID, target uuid.UUID, keywo
 	}
 
 	querier := r.querier.WithTx(tx)
-	if err := querier.DeleteStoryViews(ctx, target); err != nil {
+	if err := querier.DeleteStoryViews(ctx, *ds.Target); err != nil {
 		if err := tx.Rollback(); err != nil {
 			r.log.WithError(err).Error("unable to roll back when delete story views failed")
 		}
@@ -118,7 +119,7 @@ func (r *Repo) UpdateStory(ctx context.Context, draftID, target uuid.UUID, keywo
 
 	for _, view := range draftViews {
 		_, err := querier.CreateStoryView(ctx, gensql.CreateStoryViewParams{
-			StoryID: target,
+			StoryID: *ds.Target,
 			Sort:    view.Sort,
 			Type:    view.Type,
 			Spec:    view.Spec,
@@ -131,7 +132,7 @@ func (r *Repo) UpdateStory(ctx context.Context, draftID, target uuid.UUID, keywo
 		}
 	}
 
-	existing, err := querier.GetStory(ctx, target)
+	existing, err := querier.GetStory(ctx, *ds.Target)
 	if err != nil {
 		if err := tx.Rollback(); err != nil {
 			r.log.WithError(err).Error("unable to roll back when getting existing story")
@@ -140,11 +141,12 @@ func (r *Repo) UpdateStory(ctx context.Context, draftID, target uuid.UUID, keywo
 	}
 
 	updated, err := querier.UpdateStory(ctx, gensql.UpdateStoryParams{
-		Name:        existing.Name,
-		Grp:         existing.Group,
-		Description: existing.Description,
-		Keywords:    keywords,
-		ID:          target,
+		Name:             existing.Name,
+		Grp:              existing.Group,
+		Description:      existing.Description,
+		Keywords:         ds.Keywords,
+		ID:               *ds.Target,
+		TeamkatalogenUrl: ptrToNullString(ds.TeamkatalogenURL),
 	})
 	if err != nil {
 		if err := tx.Rollback(); err != nil {
@@ -160,18 +162,19 @@ func (r *Repo) UpdateStory(ctx context.Context, draftID, target uuid.UUID, keywo
 	return storyFromSQL(updated), nil
 }
 
-func (r *Repo) UpdateStoryMetadata(ctx context.Context, id uuid.UUID, name string, keywords []string) (*models.DBStory, error) {
+func (r *Repo) UpdateStoryMetadata(ctx context.Context, id uuid.UUID, name string, keywords []string, teamkatalogenURL *string) (*models.DBStory, error) {
 	story, err := r.querier.GetStory(ctx, id)
 	if err != nil {
 		return nil, err
 	}
 
 	updated, err := r.querier.UpdateStory(ctx, gensql.UpdateStoryParams{
-		Name:        name,
-		Grp:         story.Group,
-		Description: sql.NullString{String: "", Valid: false},
-		Keywords:    keywords,
-		ID:          id,
+		Name:             name,
+		Grp:              story.Group,
+		Description:      sql.NullString{String: "", Valid: false},
+		Keywords:         keywords,
+		ID:               id,
+		TeamkatalogenUrl: ptrToNullString(teamkatalogenURL),
 	})
 	if err != nil {
 		return nil, err
@@ -225,9 +228,12 @@ func (r *Repo) GetStoryFromToken(ctx context.Context, token uuid.UUID) (*models.
 	}
 
 	return &models.DBStory{
-		ID:           story.ID,
-		Name:         story.Name,
-		Group:        story.Group,
+		ID:   story.ID,
+		Name: story.Name,
+		Owner: models.Owner{
+			Group:            story.Group,
+			TeamkatalogenURL: nullStringToPtr(story.TeamkatalogenUrl),
+		},
 		Description:  story.Description.String,
 		Keywords:     story.Keywords,
 		Created:      story.Created,
@@ -275,9 +281,12 @@ func storyViewFromSQL(s gensql.StoryView) *models.DBStoryView {
 
 func storyFromSQL(s gensql.Story) *models.DBStory {
 	return &models.DBStory{
-		ID:           s.ID,
-		Name:         s.Name,
-		Group:        s.Group,
+		ID:   s.ID,
+		Name: s.Name,
+		Owner: models.Owner{
+			Group:            s.Group,
+			TeamkatalogenURL: nullStringToPtr(s.TeamkatalogenUrl),
+		},
 		Description:  s.Description.String,
 		Keywords:     s.Keywords,
 		Created:      s.Created,

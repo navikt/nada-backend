@@ -76,8 +76,11 @@ func (r *Repo) Search(ctx context.Context, query *models.SearchQuery) ([]*models
 				Name:         s.Name,
 				Created:      s.Created,
 				LastModified: &s.LastModified,
-				Group:        s.Group,
-				Keywords:     s.Keywords,
+				Owner: models.Owner{
+					Group:            s.Group,
+					TeamkatalogenURL: nullStringToPtr(s.TeamkatalogenUrl),
+				},
+				Keywords: s.Keywords,
 			},
 		})
 	}

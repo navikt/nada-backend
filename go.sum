@@ -50,8 +50,8 @@ cloud.google.com/go/storage v1.10.0 h1:STgFzyU5/8miMl0//zKh2aQeTyeaUH3WN9bSUiJ09
 cloud.google.com/go/storage v1.10.0/go.mod h1:FLPqc6j+Ki4BU591ie1oL6qBQGu2Bl/tZ9ullr3+Kg0=
 dmitri.shuralyov.com/gpu/mtl v0.0.0-20190408044501-666a987793e9/go.mod h1:H6x//7gZCb22OMCxBHrMx7a5I7Hp++hsVxbQ4BYO7hU=
 github.com/99designs/gqlgen v0.11.3/go.mod h1:RgX5GRRdDWNkh4pBrdzNpNPFVsdoUFY2+adM6nb1N+4=
-github.com/99designs/gqlgen v0.17.1 h1:i2qQMPKHQjHgBWYIpO4TsaQpPqMHCPK1+h95ipvH8VU=
-github.com/99designs/gqlgen v0.17.1/go.mod h1:K5fzLKwtph+FFgh9j7nFbRUdBKvTcGnsta51fsMTn3o=
+github.com/99designs/gqlgen v0.17.2 h1:yczvlwMsfcVu/JtejqfrLwXuSP0yZFhmcss3caEvHw8=
+github.com/99designs/gqlgen v0.17.2/go.mod h1:K5fzLKwtph+FFgh9j7nFbRUdBKvTcGnsta51fsMTn3o=
 github.com/99designs/gqlgen-contrib v0.1.1-0.20200601100547-7a955d321bbd h1:jtzFT7TsrvMTGwBn8DvwMFDowJ2INPqtP7HpL1R9TIY=
 github.com/99designs/gqlgen-contrib v0.1.1-0.20200601100547-7a955d321bbd/go.mod h1:ud8RnaGvSBJFGEIfo0gMid33OUXXb68bNJlWUUZARGY=
 github.com/Azure/go-ansiterm v0.0.0-20170929234023-d6e3b3328b78 h1:w+iIsaOQNcT7OZ575w+acHgRric5iCyQh+xv+KJ4HB8=

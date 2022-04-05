@@ -16,7 +16,7 @@ type DBStoryView struct {
 type DBStory struct {
 	ID           uuid.UUID     `json:"id"`
 	Name         string        `json:"name"`
-	Group        string        `json:"group"`
+	Owner        Owner         `json:"owner"`
 	Description  string        `json:"description"`
 	Keywords     []string      `json:"keywords"`
 	Created      time.Time     `json:"created"`
@@ -28,13 +28,21 @@ type DBStory struct {
 type GraphStory struct {
 	ID           uuid.UUID        `json:"id"`
 	Name         string           `json:"name"`
-	Group        string           `json:"group"`
+	Owner        Owner            `json:"owner"`
 	Description  string           `json:"description"`
 	Keywords     []string         `json:"keywords"`
 	Created      time.Time        `json:"created"`
 	LastModified *time.Time       `json:"lastModified"`
 	Views        []GraphStoryView `json:"views"`
 	Draft        bool
+}
+
+type NewStory struct {
+	ID               uuid.UUID  `json:"id"`
+	Target           *uuid.UUID `json:"target"`
+	Group            string     `json:"group"`
+	Keywords         []string   `json:"keywords"`
+	TeamkatalogenURL *string    `json:"teamkatalogenURL"`
 }
 
 func (GraphStory) IsSearchResult() {}

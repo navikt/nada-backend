@@ -3,12 +3,14 @@ INSERT INTO stories (
 	"name",
 	"group",
 	"description",
-	"keywords"
+	"keywords",
+	"teamkatalogen_url"
 ) VALUES (
 	@name,
 	@grp,
 	@description,
-	@keywords
+	@keywords,
+	@teamkatalogen_url
 )
 RETURNING *;
 
@@ -59,7 +61,8 @@ SET
 	"name" = @name,
 	"group" = @grp,
 	"description" = @description,
-	"keywords" = @keywords
+	"keywords" = @keywords,
+	"teamkatalogen_url" = @teamkatalogen_url
 WHERE id = @id
 RETURNING *;
 

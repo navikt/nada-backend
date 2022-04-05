@@ -1,0 +1,9 @@
+"""
+Owner contains metadata on the owner of the dataproduct/datastory.
+"""
+type Owner @goModel(model: "github.com/navikt/nada-backend/pkg/graph/models.Owner"){
+    "owner group is the email for the group."
+    group: String!
+    "teamkatalogenURL is url for the team in the NAV team catalog."
+    teamkatalogenURL: String
+}

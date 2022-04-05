@@ -85,11 +85,6 @@ type Access struct {
 	DataproductID uuid.UUID
 }
 
-type Owner struct {
-	Group            string  `json:"group"`
-	TeamkatalogenURL *string `json:"teamkatalogenURL"`
-}
-
 type DataproductServices struct {
 	Metabase *string `json:"metabase"`
 }

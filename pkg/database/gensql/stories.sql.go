@@ -17,21 +17,24 @@ INSERT INTO stories (
 	"name",
 	"group",
 	"description",
-	"keywords"
+	"keywords",
+	"teamkatalogen_url"
 ) VALUES (
 	$1,
 	$2,
 	$3,
-	$4
+	$4,
+	$5
 )
-RETURNING id, name, created, last_modified, "group", description, keywords
+RETURNING id, name, created, last_modified, "group", description, keywords, teamkatalogen_url
 `
 
 type CreateStoryParams struct {
-	Name        string
-	Grp         string
-	Description sql.NullString
-	Keywords    []string
+	Name             string
+	Grp              string
+	Description      sql.NullString
+	Keywords         []string
+	TeamkatalogenUrl sql.NullString
 }
 
 func (q *Queries) CreateStory(ctx context.Context, arg CreateStoryParams) (Story, error) {
@@ -40,6 +43,7 @@ func (q *Queries) CreateStory(ctx context.Context, arg CreateStoryParams) (Story
 		arg.Grp,
 		arg.Description,
 		pq.Array(arg.Keywords),
+		arg.TeamkatalogenUrl,
 	)
 	var i Story
 	err := row.Scan(
@@ -50,6 +54,7 @@ func (q *Queries) CreateStory(ctx context.Context, arg CreateStoryParams) (Story
 		&i.Group,
 		&i.Description,
 		pq.Array(&i.Keywords),
+		&i.TeamkatalogenUrl,
 	)
 	return i, err
 }
@@ -115,7 +120,7 @@ func (q *Queries) DeleteStoryViews(ctx context.Context, storyID uuid.UUID) error
 }
 
 const getStories = `-- name: GetStories :many
-SELECT id, name, created, last_modified, "group", description, keywords
+SELECT id, name, created, last_modified, "group", description, keywords, teamkatalogen_url
 FROM stories
 ORDER BY created DESC
 `
@@ -137,6 +142,7 @@ func (q *Queries) GetStories(ctx context.Context) ([]Story, error) {
 			&i.Group,
 			&i.Description,
 			pq.Array(&i.Keywords),
+			&i.TeamkatalogenUrl,
 		); err != nil {
 			return nil, err
 		}
@@ -152,7 +158,7 @@ func (q *Queries) GetStories(ctx context.Context) ([]Story, error) {
 }
 
 const getStoriesByGroups = `-- name: GetStoriesByGroups :many
-SELECT id, name, created, last_modified, "group", description, keywords
+SELECT id, name, created, last_modified, "group", description, keywords, teamkatalogen_url
 FROM stories
 WHERE "group" = ANY ($1::text[])
 ORDER BY last_modified DESC
@@ -175,6 +181,7 @@ func (q *Queries) GetStoriesByGroups(ctx context.Context, groups []string) ([]St
 			&i.Group,
 			&i.Description,
 			pq.Array(&i.Keywords),
+			&i.TeamkatalogenUrl,
 		); err != nil {
 			return nil, err
 		}
@@ -190,7 +197,7 @@ func (q *Queries) GetStoriesByGroups(ctx context.Context, groups []string) ([]St
 }
 
 const getStoriesByIDs = `-- name: GetStoriesByIDs :many
-SELECT id, name, created, last_modified, "group", description, keywords
+SELECT id, name, created, last_modified, "group", description, keywords, teamkatalogen_url
 FROM stories
 WHERE id = ANY ($1::uuid[])
 ORDER BY created DESC
@@ -213,6 +220,7 @@ func (q *Queries) GetStoriesByIDs(ctx context.Context, ids []uuid.UUID) ([]Story
 			&i.Group,
 			&i.Description,
 			pq.Array(&i.Keywords),
+			&i.TeamkatalogenUrl,
 		); err != nil {
 			return nil, err
 		}
@@ -228,7 +236,7 @@ func (q *Queries) GetStoriesByIDs(ctx context.Context, ids []uuid.UUID) ([]Story
 }
 
 const getStory = `-- name: GetStory :one
-SELECT id, name, created, last_modified, "group", description, keywords
+SELECT id, name, created, last_modified, "group", description, keywords, teamkatalogen_url
 FROM stories
 WHERE id = $1
 `
@@ -244,12 +252,13 @@ func (q *Queries) GetStory(ctx context.Context, id uuid.UUID) (Story, error) {
 		&i.Group,
 		&i.Description,
 		pq.Array(&i.Keywords),
+		&i.TeamkatalogenUrl,
 	)
 	return i, err
 }
 
 const getStoryFromToken = `-- name: GetStoryFromToken :one
-SELECT id, name, created, last_modified, "group", description, keywords
+SELECT id, name, created, last_modified, "group", description, keywords, teamkatalogen_url
 FROM stories
 WHERE id = (SELECT story_id FROM story_tokens WHERE token = $1)
 `
@@ -265,6 +274,7 @@ func (q *Queries) GetStoryFromToken(ctx context.Context, token uuid.UUID) (Story
 		&i.Group,
 		&i.Description,
 		pq.Array(&i.Keywords),
+		&i.TeamkatalogenUrl,
 	)
 	return i, err
 }
@@ -343,17 +353,19 @@ SET
 	"name" = $1,
 	"group" = $2,
 	"description" = $3,
-	"keywords" = $4
-WHERE id = $5
-RETURNING id, name, created, last_modified, "group", description, keywords
+	"keywords" = $4,
+	"teamkatalogen_url" = $5
+WHERE id = $6
+RETURNING id, name, created, last_modified, "group", description, keywords, teamkatalogen_url
 `
 
 type UpdateStoryParams struct {
-	Name        string
-	Grp         string
-	Description sql.NullString
-	Keywords    []string
-	ID          uuid.UUID
+	Name             string
+	Grp              string
+	Description      sql.NullString
+	Keywords         []string
+	TeamkatalogenUrl sql.NullString
+	ID               uuid.UUID
 }
 
 func (q *Queries) UpdateStory(ctx context.Context, arg UpdateStoryParams) (Story, error) {
@@ -362,6 +374,7 @@ func (q *Queries) UpdateStory(ctx context.Context, arg UpdateStoryParams) (Story
 		arg.Grp,
 		arg.Description,
 		pq.Array(arg.Keywords),
+		arg.TeamkatalogenUrl,
 		arg.ID,
 	)
 	var i Story
@@ -373,6 +386,7 @@ func (q *Queries) UpdateStory(ctx context.Context, arg UpdateStoryParams) (Story
 		&i.Group,
 		&i.Description,
 		pq.Array(&i.Keywords),
+		&i.TeamkatalogenUrl,
 	)
 	return i, err
 }
