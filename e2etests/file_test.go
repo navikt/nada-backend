@@ -209,20 +209,29 @@ func doQuery(state *state, q string, store []storeRequest) (map[string]interface
 			root = ret
 			val  interface{}
 		)
+
 		pathParts := strings.Split(s.path, ".")
 
-		for i, kp := range pathParts {
+		for i := 0; i < len(pathParts); i++ {
 			if i == len(pathParts)-1 {
 				// Last element of pathParts
-				val = root[kp]
+				val = root[pathParts[i]]
 				break
+			} else if i < len(pathParts)-2 {
+				// check if next value is a list
+				intVal, err := strconv.Atoi(pathParts[i+1])
+				if err == nil {
+					slice := root[pathParts[i]].([]interface{})
+					root = slice[intVal].(map[string]interface{})
+					// skip one iteration on lists
+					i += 1
+					continue
+				}
 			}
-			root = root[kp].(map[string]interface{})
+			root = root[pathParts[i]].(map[string]interface{})
 		}
-
 		state.data[s.key] = val
 	}
-
 	return ret, nil
 }
 

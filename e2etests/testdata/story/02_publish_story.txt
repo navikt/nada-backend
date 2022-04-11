@@ -1,0 +1,50 @@
+mutation{
+  publishStory(input: {
+    id: "{{ .draft_id }}",
+    group: "nada@nav.no",
+  }){
+    id
+    name
+    owner{
+      group
+      teamkatalogenURL
+    }
+    views{
+      ... on StoryViewHeader{
+        content
+        level
+      }
+      ... on StoryViewMarkdown{
+        content
+      }
+    }
+  }
+}
+
+RETURNS
+
+OPTION data.publishStory.id=IGNORE
+
+ENDOPTS
+{
+  "data": {
+    "publishStory": {
+      "name": "mystory",
+      "owner": {
+        "group": "nada@nav.no",
+        "teamkatalogenURL": null
+      },
+      "views": [
+        {
+          "content": "Header",
+          "level": 1
+        },
+        {
+          "content": "Markdown description"
+        }
+      ]
+    }
+  }
+}
+
+STORE story_id=data.publishStory.id

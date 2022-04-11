@@ -5,6 +5,7 @@ package e2etests
 import (
 	"context"
 	"database/sql"
+	"encoding/json"
 	"log"
 	"net/http"
 	"net/http/httptest"
@@ -12,6 +13,7 @@ import (
 	"testing"
 
 	graphProm "github.com/99designs/gqlgen-contrib/prometheus"
+	"github.com/google/uuid"
 	"github.com/navikt/nada-backend/pkg/access"
 	"github.com/navikt/nada-backend/pkg/api"
 	"github.com/navikt/nada-backend/pkg/auth"
@@ -20,6 +22,7 @@ import (
 	"github.com/navikt/nada-backend/pkg/database/gensql"
 	"github.com/navikt/nada-backend/pkg/event"
 	"github.com/navikt/nada-backend/pkg/graph"
+	"github.com/navikt/nada-backend/pkg/graph/models"
 	"github.com/navikt/nada-backend/pkg/slack"
 	"github.com/navikt/nada-backend/pkg/teamkatalogen"
 	"github.com/ory/dockertest/v3"
@@ -93,7 +96,17 @@ func TestMain(m *testing.M) {
 	)
 
 	server = httptest.NewServer(srv)
+
+	ctx := context.Background()
+	draftID, err := createStoryDraft(ctx, repo)
+	if err != nil {
+		log.Fatalf("Could not create story draft for e2e tests: %s", err)
+	}
 	code := m.Run()
+
+	if err := deleteStoryDraft(ctx, repo, draftID); err != nil {
+		log.Fatalf("Could not delete story draft after e2e tests: %s", err)
+	}
 
 	// You can't defer this because os.Exit doesn't care for defer
 	if err := pool.Purge(resource); err != nil {
@@ -101,6 +114,41 @@ func TestMain(m *testing.M) {
 	}
 
 	os.Exit(code)
+}
+
+func createStoryDraft(ctx context.Context, repo *database.Repo) (uuid.UUID, error) {
+	headerView := map[string]interface{}{
+		"content": "Header",
+		"level":   1,
+	}
+	headerBytes, err := json.Marshal(headerView)
+	if err != nil {
+		return uuid.UUID{}, err
+	}
+
+	mdView := map[string]interface{}{
+		"content": "Markdown description",
+	}
+	mdBytes, err := json.Marshal(mdView)
+	if err != nil {
+		return uuid.UUID{}, err
+	}
+
+	draftID, err := repo.CreateStoryDraft(ctx, &models.DBStory{
+		Name: "mystory",
+		Views: []models.DBStoryView{
+			{Type: "header", Spec: headerBytes},
+			{Type: "markdown", Spec: mdBytes},
+		},
+	})
+	if err != nil {
+		return uuid.UUID{}, err
+	}
+	return draftID, nil
+}
+
+func deleteStoryDraft(ctx context.Context, repo *database.Repo, draftID uuid.UUID) error {
+	return repo.DeleteStoryDraft(ctx, draftID)
 }
 
 type noopDatasetEnricher struct{}

@@ -102,6 +102,10 @@ func (r *Repo) GetStory(ctx context.Context, id uuid.UUID) (*models.DBStory, err
 	return storyFromSQL(story), nil
 }
 
+func (r *Repo) DeleteStoryDraft(ctx context.Context, id uuid.UUID) error {
+	return r.querier.DeleteStoryDraft(ctx, id)
+}
+
 func (r *Repo) CleanupStoryDrafts(ctx context.Context) error {
 	return r.querier.CleanupStoryDrafts(ctx)
 }

@@ -1,0 +1,37 @@
+mutation {
+  updateStoryMetadata(
+    id: "{{ .story_id }}"
+    keywords: ["key1", "key2"]
+    name: "mystory"
+    teamkatalogenURL: "https://some.url"
+  ) {
+    id
+    name
+    owner {
+      group
+      teamkatalogenURL
+    }
+    keywords
+  }
+}
+
+RETURNS
+
+OPTION data.updateStoryMetadata.id=IGNORE
+
+ENDOPTS
+{
+  "data": {
+    "updateStoryMetadata": {
+      "name": "mystory",
+      "owner": {
+        "group": "nada@nav.no",
+        "teamkatalogenURL": "https://some.url"
+      },
+      "keywords": [
+        "key1",
+        "key2"
+      ]
+    }
+  }
+}
