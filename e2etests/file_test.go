@@ -64,7 +64,6 @@ func testFile(t *testing.T, state *state, fname string) {
 			t.Fatal(err)
 		}
 		val, err := doQuery(state, q, store)
-		fmt.Println(err)
 		if err != nil {
 			t.Fatal(err)
 		}
