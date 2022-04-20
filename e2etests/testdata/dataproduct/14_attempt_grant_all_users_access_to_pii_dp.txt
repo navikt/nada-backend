@@ -11,9 +11,6 @@ mutation {
 
 RETURNS
 
-OPTION data.grantAccessToDataproduct.id=IGNORE
-
-ENDOPTS
 {
   "errors": [
     {
