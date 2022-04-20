@@ -64,6 +64,7 @@ func testFile(t *testing.T, state *state, fname string) {
 			t.Fatal(err)
 		}
 		val, err := doQuery(state, q, store)
+		fmt.Println(err)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -199,9 +200,8 @@ func doQuery(state *state, q string, store []storeRequest) (map[string]interface
 		return nil, err
 	}
 
-	if e, ok := ret["errors"]; ok {
-		fj, _ := json.MarshalIndent(e, "", "  ")
-		panic(string(fj))
+	if _, ok := ret["errors"]; ok {
+		return ret, nil
 	}
 
 	for _, s := range store {
