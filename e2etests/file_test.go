@@ -199,9 +199,8 @@ func doQuery(state *state, q string, store []storeRequest) (map[string]interface
 		return nil, err
 	}
 
-	if e, ok := ret["errors"]; ok {
-		fj, _ := json.MarshalIndent(e, "", "  ")
-		panic(string(fj))
+	if _, ok := ret["errors"]; ok {
+		return ret, nil
 	}
 
 	for _, s := range store {

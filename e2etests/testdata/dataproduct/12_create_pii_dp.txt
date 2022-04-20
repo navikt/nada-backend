@@ -1,0 +1,40 @@
+mutation {
+	createDataproduct(
+		input: {
+			name: "DpWithPii"
+			description: "Description"
+			repo: "somerepo"
+			pii: true
+			group: "nada@nav.no"
+			bigquery: { projectID: "team-prod-4242", dataset: "dataset1", table: "table1" }
+		}
+	) {
+		id
+		name
+		description
+		repo
+		pii
+		owner { group }
+	}
+}
+
+RETURNS
+
+OPTION data.createDataproduct.id=IGNORE
+
+ENDOPTS
+{
+  "data": {
+    "createDataproduct": {
+      "name": "DpWithPii",
+      "description": "Description",
+      "owner": {
+        "group": "nada@nav.no"
+      },
+      "pii": true,
+      "repo": "somerepo"
+    }
+  }
+}
+
+STORE pii_dataproduct_id=data.createDataproduct.id
