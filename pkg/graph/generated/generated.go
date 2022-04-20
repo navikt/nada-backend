@@ -58,6 +58,7 @@ type ComplexityRoot struct {
 		Expires func(childComplexity int) int
 		Granter func(childComplexity int) int
 		ID      func(childComplexity int) int
+		PollyID func(childComplexity int) int
 		Revoked func(childComplexity int) int
 		Subject func(childComplexity int) int
 	}
@@ -128,7 +129,7 @@ type ComplexityRoot struct {
 		DeleteDataproduct              func(childComplexity int, id uuid.UUID) int
 		DeleteStory                    func(childComplexity int, id uuid.UUID) int
 		Dummy                          func(childComplexity int, no *string) int
-		GrantAccessToDataproduct       func(childComplexity int, dataproductID uuid.UUID, expires *time.Time, subject *string, subjectType *models.SubjectType) int
+		GrantAccessToDataproduct       func(childComplexity int, dataproductID uuid.UUID, expires *time.Time, subject *string, subjectType *models.SubjectType, pollyID *string) int
 		MapDataproduct                 func(childComplexity int, dataproductID uuid.UUID, services []models.MappingService) int
 		PublishStory                   func(childComplexity int, input models.NewStory) int
 		RemoveRequesterFromDataproduct func(childComplexity int, dataproductID uuid.UUID, subject string) int
@@ -142,6 +143,11 @@ type ComplexityRoot struct {
 		TeamkatalogenURL func(childComplexity int) int
 	}
 
+	PollyResult struct {
+		ID   func(childComplexity int) int
+		Name func(childComplexity int) int
+	}
+
 	Query struct {
 		Dataproduct    func(childComplexity int, id uuid.UUID) int
 		Dataproducts   func(childComplexity int, limit *int, offset *int, service *models.MappingService) int
@@ -149,6 +155,7 @@ type ComplexityRoot struct {
 		GcpGetTables   func(childComplexity int, projectID string, datasetID string) int
 		GroupStats     func(childComplexity int, limit *int, offset *int) int
 		Keywords       func(childComplexity int, prefix *string) int
+		Polly          func(childComplexity int, q string) int
 		Search         func(childComplexity int, q *models.SearchQueryOld, options *models.SearchQuery) int
 		Stories        func(childComplexity int, draft *bool) int
 		Story          func(childComplexity int, id uuid.UUID, draft *bool) int
@@ -244,7 +251,7 @@ type MutationResolver interface {
 	DeleteDataproduct(ctx context.Context, id uuid.UUID) (bool, error)
 	AddRequesterToDataproduct(ctx context.Context, dataproductID uuid.UUID, subject string) (bool, error)
 	RemoveRequesterFromDataproduct(ctx context.Context, dataproductID uuid.UUID, subject string) (bool, error)
-	GrantAccessToDataproduct(ctx context.Context, dataproductID uuid.UUID, expires *time.Time, subject *string, subjectType *models.SubjectType) (*models.Access, error)
+	GrantAccessToDataproduct(ctx context.Context, dataproductID uuid.UUID, expires *time.Time, subject *string, subjectType *models.SubjectType, pollyID *string) (*models.Access, error)
 	RevokeAccessToDataproduct(ctx context.Context, id uuid.UUID) (bool, error)
 	MapDataproduct(ctx context.Context, dataproductID uuid.UUID, services []models.MappingService) (bool, error)
 	PublishStory(ctx context.Context, input models.NewStory) (*models.GraphStory, error)
@@ -259,6 +266,7 @@ type QueryResolver interface {
 	GcpGetTables(ctx context.Context, projectID string, datasetID string) ([]*models.BigQueryTable, error)
 	GcpGetDatasets(ctx context.Context, projectID string) ([]string, error)
 	Keywords(ctx context.Context, prefix *string) ([]*models.Keyword, error)
+	Polly(ctx context.Context, q string) ([]*models.PollyResult, error)
 	Search(ctx context.Context, q *models.SearchQueryOld, options *models.SearchQuery) ([]*models.SearchResultRow, error)
 	Stories(ctx context.Context, draft *bool) ([]*models.GraphStory, error)
 	Story(ctx context.Context, id uuid.UUID, draft *bool) (*models.GraphStory, error)
@@ -323,6 +331,13 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 		}
 
 		return e.complexity.Access.ID(childComplexity), true
+
+	case "Access.pollyID":
+		if e.complexity.Access.PollyID == nil {
+			break
+		}
+
+		return e.complexity.Access.PollyID(childComplexity), true
 
 	case "Access.revoked":
 		if e.complexity.Access.Revoked == nil {
@@ -660,7 +675,7 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 			return 0, false
 		}
 
-		return e.complexity.Mutation.GrantAccessToDataproduct(childComplexity, args["dataproductID"].(uuid.UUID), args["expires"].(*time.Time), args["subject"].(*string), args["subjectType"].(*models.SubjectType)), true
+		return e.complexity.Mutation.GrantAccessToDataproduct(childComplexity, args["dataproductID"].(uuid.UUID), args["expires"].(*time.Time), args["subject"].(*string), args["subjectType"].(*models.SubjectType), args["pollyID"].(*string)), true
 
 	case "Mutation.mapDataproduct":
 		if e.complexity.Mutation.MapDataproduct == nil {
@@ -748,6 +763,20 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.Owner.TeamkatalogenURL(childComplexity), true
 
+	case "PollyResult.id":
+		if e.complexity.PollyResult.ID == nil {
+			break
+		}
+
+		return e.complexity.PollyResult.ID(childComplexity), true
+
+	case "PollyResult.name":
+		if e.complexity.PollyResult.Name == nil {
+			break
+		}
+
+		return e.complexity.PollyResult.Name(childComplexity), true
+
 	case "Query.dataproduct":
 		if e.complexity.Query.Dataproduct == nil {
 			break
@@ -819,6 +848,18 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 		}
 
 		return e.complexity.Query.Keywords(childComplexity, args["prefix"].(*string)), true
+
+	case "Query.polly":
+		if e.complexity.Query.Polly == nil {
+			break
+		}
+
+		args, err := ec.field_Query_polly_args(context.TODO(), rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Query.Polly(childComplexity, args["q"].(string)), true
 
 	case "Query.search":
 		if e.complexity.Query.Search == nil {
@@ -1327,6 +1368,8 @@ type Access @goModel(model: "github.com/navikt/nada-backend/pkg/graph/models.Acc
     created: Time!
     "revoked is timestamp for when access was revoked"
     revoked: Time
+    "pollyID is the id for the process purpose"
+    pollyID: String
 }
 
 """
@@ -1515,6 +1558,8 @@ extend type Mutation {
         subject: String
         "subjectType is the type of entity which should be granted access (user, group or service account)."
         subjectType: SubjectType
+        "pollyID is the id of the process policy attached to this grant"
+        pollyID: String
     ): Access! @authenticated
 
     """
@@ -1675,6 +1720,21 @@ type Mutation {
 	This mutation doesn't do anything.
 	"""
 	dummy(no: String): String
+}
+`, BuiltIn: false},
+	{Name: "schema/polly.graphql", Input: `type PollyResult @goModel(model: "github.com/navikt/nada-backend/pkg/graph/models.PollyResult") {
+    "polly id from polly"
+    id: ID!
+    "polly name from polly"
+    name: String!
+}
+
+extend type Query {
+    "searches polly for process purposes matching query input"
+    polly(
+        "q is the search query."
+        q: String!
+    ): [PollyResult!]!
 }
 `, BuiltIn: false},
 	{Name: "schema/search.graphql", Input: `union SearchResult @goModel(
@@ -1892,7 +1952,7 @@ input NewStory @goModel(model: "github.com/navikt/nada-backend/pkg/graph/models.
 		"keywords for the datastory used as tags."
 		keywords: [String!]
 		"owner Teamkatalogen URL for the dataproduct."
-    	teamkatalogenURL: String
+		teamkatalogenURL: String
 }
 
 extend type Mutation {
@@ -1919,7 +1979,7 @@ extend type Mutation {
 		"keywords for the datastory used as tags."
 		keywords: [String!]!
 		"owner Teamkatalogen URL for the dataproduct."
-    	teamkatalogenURL: String
+		teamkatalogenURL: String
 	): Story! @authenticated
 
 	"""
@@ -2144,6 +2204,15 @@ func (ec *executionContext) field_Mutation_grantAccessToDataproduct_args(ctx con
 		}
 	}
 	args["subjectType"] = arg3
+	var arg4 *string
+	if tmp, ok := rawArgs["pollyID"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("pollyID"))
+		arg4, err = ec.unmarshalOString2ᚖstring(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["pollyID"] = arg4
 	return args, nil
 }
 
@@ -2429,6 +2498,21 @@ func (ec *executionContext) field_Query_keywords_args(ctx context.Context, rawAr
 		}
 	}
 	args["prefix"] = arg0
+	return args, nil
+}
+
+func (ec *executionContext) field_Query_polly_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
+	var err error
+	args := map[string]interface{}{}
+	var arg0 string
+	if tmp, ok := rawArgs["q"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("q"))
+		arg0, err = ec.unmarshalNString2string(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["q"] = arg0
 	return args, nil
 }
 
@@ -2789,6 +2873,38 @@ func (ec *executionContext) _Access_revoked(ctx context.Context, field graphql.C
 	res := resTmp.(*time.Time)
 	fc.Result = res
 	return ec.marshalOTime2ᚖtimeᚐTime(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _Access_pollyID(ctx context.Context, field graphql.CollectedField, obj *models.Access) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "Access",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   false,
+		IsResolver: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.PollyID, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		return graphql.Null
+	}
+	res := resTmp.(*string)
+	fc.Result = res
+	return ec.marshalOString2ᚖstring(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _BigQuery_projectID(ctx context.Context, field graphql.CollectedField, obj *models.BigQuery) (ret graphql.Marshaler) {
@@ -4454,7 +4570,7 @@ func (ec *executionContext) _Mutation_grantAccessToDataproduct(ctx context.Conte
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		directive0 := func(rctx context.Context) (interface{}, error) {
 			ctx = rctx // use context from middleware stack in children
-			return ec.resolvers.Mutation().GrantAccessToDataproduct(rctx, args["dataproductID"].(uuid.UUID), args["expires"].(*time.Time), args["subject"].(*string), args["subjectType"].(*models.SubjectType))
+			return ec.resolvers.Mutation().GrantAccessToDataproduct(rctx, args["dataproductID"].(uuid.UUID), args["expires"].(*time.Time), args["subject"].(*string), args["subjectType"].(*models.SubjectType), args["pollyID"].(*string))
 		}
 		directive1 := func(ctx context.Context) (interface{}, error) {
 			if ec.directives.Authenticated == nil {
@@ -4867,6 +4983,76 @@ func (ec *executionContext) _Owner_teamkatalogenURL(ctx context.Context, field g
 	return ec.marshalOString2ᚖstring(ctx, field.Selections, res)
 }
 
+func (ec *executionContext) _PollyResult_id(ctx context.Context, field graphql.CollectedField, obj *models.PollyResult) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "PollyResult",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   false,
+		IsResolver: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.ID, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(uuid.UUID)
+	fc.Result = res
+	return ec.marshalNID2githubᚗcomᚋgoogleᚋuuidᚐUUID(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _PollyResult_name(ctx context.Context, field graphql.CollectedField, obj *models.PollyResult) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "PollyResult",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   false,
+		IsResolver: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Name, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(string)
+	fc.Result = res
+	return ec.marshalNString2string(ctx, field.Selections, res)
+}
+
 func (ec *executionContext) _Query_version(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
 	defer func() {
 		if r := recover(); r != nil {
@@ -5192,6 +5378,48 @@ func (ec *executionContext) _Query_keywords(ctx context.Context, field graphql.C
 	res := resTmp.([]*models.Keyword)
 	fc.Result = res
 	return ec.marshalNKeyword2ᚕᚖgithubᚗcomᚋnaviktᚋnadaᚑbackendᚋpkgᚋgraphᚋmodelsᚐKeywordᚄ(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _Query_polly(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "Query",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   true,
+		IsResolver: true,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	rawArgs := field.ArgumentMap(ec.Variables)
+	args, err := ec.field_Query_polly_args(ctx, rawArgs)
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	fc.Args = args
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.Query().Polly(rctx, args["q"].(string))
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.([]*models.PollyResult)
+	fc.Result = res
+	return ec.marshalNPollyResult2ᚕᚖgithubᚗcomᚋnaviktᚋnadaᚑbackendᚋpkgᚋgraphᚋmodelsᚐPollyResultᚄ(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _Query_search(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
@@ -8616,6 +8844,13 @@ func (ec *executionContext) _Access(ctx context.Context, sel ast.SelectionSet, o
 
 			out.Values[i] = innerFunc(ctx)
 
+		case "pollyID":
+			innerFunc := func(ctx context.Context) (res graphql.Marshaler) {
+				return ec._Access_pollyID(ctx, field, obj)
+			}
+
+			out.Values[i] = innerFunc(ctx)
+
 		default:
 			panic("unknown field " + strconv.Quote(field.Name))
 		}
@@ -9388,6 +9623,47 @@ func (ec *executionContext) _Owner(ctx context.Context, sel ast.SelectionSet, ob
 	return out
 }
 
+var pollyResultImplementors = []string{"PollyResult"}
+
+func (ec *executionContext) _PollyResult(ctx context.Context, sel ast.SelectionSet, obj *models.PollyResult) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, pollyResultImplementors)
+	out := graphql.NewFieldSet(fields)
+	var invalids uint32
+	for i, field := range fields {
+		switch field.Name {
+		case "__typename":
+			out.Values[i] = graphql.MarshalString("PollyResult")
+		case "id":
+			innerFunc := func(ctx context.Context) (res graphql.Marshaler) {
+				return ec._PollyResult_id(ctx, field, obj)
+			}
+
+			out.Values[i] = innerFunc(ctx)
+
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
+		case "name":
+			innerFunc := func(ctx context.Context) (res graphql.Marshaler) {
+				return ec._PollyResult_name(ctx, field, obj)
+			}
+
+			out.Values[i] = innerFunc(ctx)
+
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
+		default:
+			panic("unknown field " + strconv.Quote(field.Name))
+		}
+	}
+	out.Dispatch()
+	if invalids > 0 {
+		return graphql.Null
+	}
+	return out
+}
+
 var queryImplementors = []string{"Query"}
 
 func (ec *executionContext) _Query(ctx context.Context, sel ast.SelectionSet) graphql.Marshaler {
@@ -9555,6 +9831,29 @@ func (ec *executionContext) _Query(ctx context.Context, sel ast.SelectionSet) gr
 					}
 				}()
 				res = ec._Query_keywords(ctx, field)
+				if res == graphql.Null {
+					atomic.AddUint32(&invalids, 1)
+				}
+				return res
+			}
+
+			rrm := func(ctx context.Context) graphql.Marshaler {
+				return ec.OperationContext.RootResolverMiddleware(ctx, innerFunc)
+			}
+
+			out.Concurrently(i, func() graphql.Marshaler {
+				return rrm(innerCtx)
+			})
+		case "polly":
+			field := field
+
+			innerFunc := func(ctx context.Context) (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._Query_polly(ctx, field)
 				if res == graphql.Null {
 					atomic.AddUint32(&invalids, 1)
 				}
@@ -11430,6 +11729,60 @@ func (ec *executionContext) marshalNOwner2ᚖgithubᚗcomᚋnaviktᚋnadaᚑback
 		return graphql.Null
 	}
 	return ec._Owner(ctx, sel, v)
+}
+
+func (ec *executionContext) marshalNPollyResult2ᚕᚖgithubᚗcomᚋnaviktᚋnadaᚑbackendᚋpkgᚋgraphᚋmodelsᚐPollyResultᚄ(ctx context.Context, sel ast.SelectionSet, v []*models.PollyResult) graphql.Marshaler {
+	ret := make(graphql.Array, len(v))
+	var wg sync.WaitGroup
+	isLen1 := len(v) == 1
+	if !isLen1 {
+		wg.Add(len(v))
+	}
+	for i := range v {
+		i := i
+		fc := &graphql.FieldContext{
+			Index:  &i,
+			Result: &v[i],
+		}
+		ctx := graphql.WithFieldContext(ctx, fc)
+		f := func(i int) {
+			defer func() {
+				if r := recover(); r != nil {
+					ec.Error(ctx, ec.Recover(ctx, r))
+					ret = nil
+				}
+			}()
+			if !isLen1 {
+				defer wg.Done()
+			}
+			ret[i] = ec.marshalNPollyResult2ᚖgithubᚗcomᚋnaviktᚋnadaᚑbackendᚋpkgᚋgraphᚋmodelsᚐPollyResult(ctx, sel, v[i])
+		}
+		if isLen1 {
+			f(i)
+		} else {
+			go f(i)
+		}
+
+	}
+	wg.Wait()
+
+	for _, e := range ret {
+		if e == graphql.Null {
+			return graphql.Null
+		}
+	}
+
+	return ret
+}
+
+func (ec *executionContext) marshalNPollyResult2ᚖgithubᚗcomᚋnaviktᚋnadaᚑbackendᚋpkgᚋgraphᚋmodelsᚐPollyResult(ctx context.Context, sel ast.SelectionSet, v *models.PollyResult) graphql.Marshaler {
+	if v == nil {
+		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	return ec._PollyResult(ctx, sel, v)
 }
 
 func (ec *executionContext) marshalNSearchResult2githubᚗcomᚋnaviktᚋnadaᚑbackendᚋpkgᚋgraphᚋmodelsᚐSearchResult(ctx context.Context, sel ast.SelectionSet, v models.SearchResult) graphql.Marshaler {

@@ -3,6 +3,7 @@ package graph
 import (
 	"context"
 	"fmt"
+
 	"github.com/99designs/gqlgen-contrib/prometheus"
 	"github.com/99designs/gqlgen/graphql"
 	"github.com/99designs/gqlgen/graphql/handler"
@@ -27,6 +28,10 @@ type AccessManager interface {
 	AddToAuthorizedViews(ctx context.Context, projectID, dataset, table string) error
 }
 
+type Polly interface {
+	SearchPolly(ctx context.Context, q string) ([]*models.PollyResult, error)
+}
+
 type Teamkatalogen interface {
 	Search(ctx context.Context, query string) ([]*models.TeamkatalogenResult, error)
 }
@@ -42,10 +47,11 @@ type Resolver struct {
 	accessMgr     AccessManager
 	teamkatalogen Teamkatalogen
 	slack         Slack
+	pollyAPI      Polly
 	log           *logrus.Entry
 }
 
-func New(repo *database.Repo, gcp Bigquery, gcpProjects *auth.TeamProjectsUpdater, accessMgr AccessManager, tk Teamkatalogen, slack Slack, log *logrus.Entry) *handler.Server {
+func New(repo *database.Repo, gcp Bigquery, gcpProjects *auth.TeamProjectsUpdater, accessMgr AccessManager, tk Teamkatalogen, slack Slack, pollyAPI Polly, log *logrus.Entry) *handler.Server {
 	resolver := &Resolver{
 		repo:          repo,
 		bigquery:      gcp,
@@ -53,6 +59,7 @@ func New(repo *database.Repo, gcp Bigquery, gcpProjects *auth.TeamProjectsUpdate
 		accessMgr:     accessMgr,
 		teamkatalogen: tk,
 		slack:         slack,
+		pollyAPI:      pollyAPI,
 		log:           log,
 	}
 

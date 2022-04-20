@@ -75,6 +75,7 @@ type DataproductAccess struct {
 	Expires       sql.NullTime
 	Created       time.Time
 	Revoked       sql.NullTime
+	PollyID       sql.NullString
 }
 
 type DataproductRequester struct {

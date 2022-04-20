@@ -191,7 +191,7 @@ func (r *mutationResolver) RemoveRequesterFromDataproduct(ctx context.Context, d
 	return true, r.repo.RemoveRequesterFromDataproduct(ctx, dp.ID, subject)
 }
 
-func (r *mutationResolver) GrantAccessToDataproduct(ctx context.Context, dataproductID uuid.UUID, expires *time.Time, subject *string, subjectType *models.SubjectType) (*models.Access, error) {
+func (r *mutationResolver) GrantAccessToDataproduct(ctx context.Context, dataproductID uuid.UUID, expires *time.Time, subject *string, subjectType *models.SubjectType, pollyID *string) (*models.Access, error) {
 	if expires != nil && expires.Before(time.Now()) {
 		return nil, fmt.Errorf("expires has already expired")
 	}
@@ -229,7 +229,7 @@ func (r *mutationResolver) GrantAccessToDataproduct(ctx context.Context, datapro
 		return nil, err
 	}
 
-	return r.repo.GrantAccessToDataproduct(ctx, dataproductID, expires, subjWithType, user.Email)
+	return r.repo.GrantAccessToDataproduct(ctx, dataproductID, expires, subjWithType, user.Email, pollyID)
 }
 
 func (r *mutationResolver) RevokeAccessToDataproduct(ctx context.Context, id uuid.UUID) (bool, error) {
@@ -303,7 +303,5 @@ func (r *Resolver) BigQuery() generated.BigQueryResolver { return &bigQueryResol
 // Dataproduct returns generated.DataproductResolver implementation.
 func (r *Resolver) Dataproduct() generated.DataproductResolver { return &dataproductResolver{r} }
 
-type (
-	bigQueryResolver    struct{ *Resolver }
-	dataproductResolver struct{ *Resolver }
-)
+type bigQueryResolver struct{ *Resolver }
+type dataproductResolver struct{ *Resolver }

@@ -96,6 +96,8 @@ type Access @goModel(model: "github.com/navikt/nada-backend/pkg/graph/models.Acc
     created: Time!
     "revoked is timestamp for when access was revoked"
     revoked: Time
+    "pollyID is the id for the process purpose"
+    pollyID: String
 }
 
 """
@@ -284,6 +286,8 @@ extend type Mutation {
         subject: String
         "subjectType is the type of entity which should be granted access (user, group or service account)."
         subjectType: SubjectType
+        "pollyID is the id of the process policy attached to this grant"
+        pollyID: String
     ): Access! @authenticated
 
     """

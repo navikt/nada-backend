@@ -143,7 +143,7 @@ func TestRepo(t *testing.T) {
 			if err != nil {
 				t.Fatal(err)
 			}
-			_, err = repo.GrantAccessToDataproduct(context.Background(), dp.ID, &ti, subj, "")
+			_, err = repo.GrantAccessToDataproduct(context.Background(), dp.ID, &ti, subj, "", nil)
 			if err != nil {
 				t.Fatal(err)
 			}

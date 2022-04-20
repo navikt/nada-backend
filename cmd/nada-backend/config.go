@@ -20,6 +20,7 @@ type Config struct {
 	MetabasePassword                string
 	MetabaseAPI                     string
 	SlackUrl                        string
+	PollyURL                        string
 }
 
 type OAuth2Config struct {

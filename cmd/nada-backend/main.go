@@ -19,6 +19,7 @@ import (
 	"github.com/navikt/nada-backend/pkg/event"
 	"github.com/navikt/nada-backend/pkg/graph"
 	"github.com/navikt/nada-backend/pkg/metabase"
+	"github.com/navikt/nada-backend/pkg/polly"
 	"github.com/navikt/nada-backend/pkg/slack"
 	"github.com/navikt/nada-backend/pkg/story"
 	"github.com/navikt/nada-backend/pkg/teamkatalogen"
@@ -66,7 +67,8 @@ func init() {
 	flag.StringVar(&cfg.MetabaseUsername, "metabase-username", os.Getenv("METABASE_USERNAME"), "Username for metabase api")
 	flag.StringVar(&cfg.MetabasePassword, "metabase-password", os.Getenv("METABASE_PASSWORD"), "Password for metabase api")
 	flag.StringVar(&cfg.MetabaseAPI, "metabase-api", os.Getenv("METABASE_API"), "URL to Metabase API, including scheme and `/api`")
-	flag.StringVar(&cfg.SlackUrl, "slack-url", os.Getenv("SLACK_URL"), "Url for slack webhook")
+	flag.StringVar(&cfg.SlackUrl, "slack-url", os.Getenv("SLACK_URL"), "URL for slack webhook")
+	flag.StringVar(&cfg.PollyURL, "polly-url", os.Getenv("POLLY_URL"), "URL for polly")
 }
 
 func main() {
@@ -93,6 +95,7 @@ func main() {
 	var accessMgr graph.AccessManager
 	accessMgr = access.NewNoop()
 	var teamcatalogue graph.Teamkatalogen = teamkatalogen.NewMock()
+	var pollyAPI graph.Polly = polly.NewMock(cfg.PollyURL)
 	if !cfg.MockAuth {
 		teamcatalogue = teamkatalogen.New(cfg.TeamkatalogenURL)
 		teamProjectsMapping = auth.NewTeamProjectsUpdater(cfg.DevTeamProjectsOutputURL, cfg.ProdTeamProjectsOutputURL, cfg.TeamsToken, http.DefaultClient)
@@ -108,6 +111,7 @@ func main() {
 		httpAPI = api.NewHTTP(oauth2Config, repo, log.WithField("subsystem", "api"))
 		authenticatorMiddleware = gauth.Middleware(googleGroups, repo)
 		accessMgr = access.NewBigquery()
+		pollyAPI = polly.New(cfg.PollyURL)
 	}
 
 	if err := runMetabase(ctx, log.WithField("subsystem", "metabase"), cfg, repo, accessMgr, eventMgr); err != nil {
@@ -131,7 +135,7 @@ func main() {
 	go story.NewDraftCleaner(repo, log.WithField("subsystem", "storydraftcleaner")).Run(ctx, StoryDraftCleanerFrequency)
 
 	log.Info("Listening on :8080")
-	gqlServer := graph.New(repo, gcp, teamProjectsMapping, accessMgr, teamcatalogue, slackClient, log.WithField("subsystem", "graph"))
+	gqlServer := graph.New(repo, gcp, teamProjectsMapping, accessMgr, teamcatalogue, slackClient, pollyAPI, log.WithField("subsystem", "graph"))
 	srv := api.New(repo, httpAPI, authenticatorMiddleware, gqlServer, prom(promErrs, repo.Metrics()), log)
 
 	server := http.Server{

@@ -55,7 +55,7 @@ func (r *Repo) ListAccessToDataproduct(ctx context.Context, dataproductID uuid.U
 	return ret, nil
 }
 
-func (r *Repo) GrantAccessToDataproduct(ctx context.Context, dataproductID uuid.UUID, expires *time.Time, subject, granter string) (*models.Access, error) {
+func (r *Repo) GrantAccessToDataproduct(ctx context.Context, dataproductID uuid.UUID, expires *time.Time, subject, granter string, pollyID *string) (*models.Access, error) {
 	a, err := r.querier.GetActiveAccessToDataproductForSubject(ctx, gensql.GetActiveAccessToDataproductForSubjectParams{
 		DataproductID: dataproductID,
 		Subject:       subject,
@@ -85,6 +85,7 @@ func (r *Repo) GrantAccessToDataproduct(ctx context.Context, dataproductID uuid.
 		Subject:       subject,
 		Expires:       ptrToNullTime(expires),
 		Granter:       granter,
+		PollyID:       ptrToNullString(pollyID),
 	})
 	if err != nil {
 		if err := tx.Rollback(); err != nil {
@@ -162,5 +163,6 @@ func accessFromSQL(access gensql.DataproductAccess) *models.Access {
 		Created:       access.Created,
 		Revoked:       nullTimeToPtr(access.Revoked),
 		DataproductID: access.DataproductID,
+		PollyID:       nullStringToPtr(access.PollyID),
 	}
 }

@@ -1,0 +1,14 @@
+type PollyResult @goModel(model: "github.com/navikt/nada-backend/pkg/graph/models.PollyResult") {
+    "polly id from polly"
+    id: ID!
+    "polly name from polly"
+    name: String!
+}
+
+extend type Query {
+    "searches polly for process purposes matching query input"
+    polly(
+        "q is the search query."
+        q: String!
+    ): [PollyResult!]!
+}
