@@ -1,0 +1,13 @@
+mutation {
+	deleteDataproduct(
+		id: "{{ .pii_dataproduct_id }}"
+	)
+}
+
+RETURNS
+
+{
+  "data": {
+    "deleteDataproduct": true
+  }
+}
