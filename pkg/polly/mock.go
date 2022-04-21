@@ -7,12 +7,16 @@ import (
 )
 
 type PollyMock struct {
-	url string
+	apiURL string
+	url    string
 }
 
-func NewMock(url string) *PollyMock {
+func NewMock(apiURL string) *PollyMock {
+	url := "https://some.url"
+
 	return &PollyMock{
-		url: url,
+		apiURL: apiURL,
+		url:    url,
 	}
 }
 
