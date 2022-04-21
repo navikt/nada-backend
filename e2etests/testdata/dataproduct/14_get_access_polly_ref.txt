@@ -1,0 +1,29 @@
+{
+  dataproduct(id: "{{ .pii_dataproduct_id }}") {
+    access {
+      polly {
+          id
+          name
+          url
+      }
+    }
+  }
+}
+
+RETURNS
+
+{
+  "data": {
+    "dataproduct": {
+      "access": [
+        {
+          "polly": {
+                "id": "12345-12345-13455-13445",
+                "name": "Behandling",
+                "url": "https://some.url"
+          }
+        }
+      ]
+    }
+  }
+}
