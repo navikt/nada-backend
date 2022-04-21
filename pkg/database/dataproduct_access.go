@@ -56,7 +56,7 @@ func (r *Repo) ListAccessToDataproduct(ctx context.Context, dataproductID uuid.U
 	return ret, nil
 }
 
-func (r *Repo) GrantAccessToDataproduct(ctx context.Context, dataproductID uuid.UUID, expires *time.Time, subject, granter string, polly *models.PollyInput) (*models.Access, error) {
+func (r *Repo) GrantAccessToDataproduct(ctx context.Context, dataproductID uuid.UUID, expires *time.Time, subject, granter string, polly *models.Polly) (*models.Access, error) {
 	a, err := r.querier.GetActiveAccessToDataproductForSubject(ctx, gensql.GetActiveAccessToDataproductForSubjectParams{
 		DataproductID: dataproductID,
 		Subject:       subject,

@@ -1,4 +1,4 @@
-type PollyResult @goModel(model: "github.com/navikt/nada-backend/pkg/graph/models.PollyResult") {
+type PollyResult @goModel(model: "github.com/navikt/nada-backend/pkg/graph/models.Polly") {
     "id from polly"
     id: String!
     "name from polly"
@@ -7,7 +7,7 @@ type PollyResult @goModel(model: "github.com/navikt/nada-backend/pkg/graph/model
     url: String!
 }
 
-input PollyInput @goModel(model: "github.com/navikt/nada-backend/pkg/graph/models.PollyInput") {
+input PollyInput @goModel(model: "github.com/navikt/nada-backend/pkg/graph/models.Polly") {
     "id from polly"
     id: String!
     "name from polly"

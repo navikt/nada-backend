@@ -21,7 +21,7 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-func (r *accessResolver) Polly(ctx context.Context, obj *models.Access) (*models.PollyResult, error) {
+func (r *accessResolver) Polly(ctx context.Context, obj *models.Access) (*models.Polly, error) {
 	return r.repo.GetPolly(ctx, obj.ID)
 }
 
@@ -195,17 +195,17 @@ func (r *mutationResolver) RemoveRequesterFromDataproduct(ctx context.Context, d
 	return true, r.repo.RemoveRequesterFromDataproduct(ctx, dp.ID, subject)
 }
 
-func (r *mutationResolver) GrantAccessToDataproduct(ctx context.Context, dataproductID uuid.UUID, expires *time.Time, subject *string, subjectType *models.SubjectType, polly *models.PollyInput) (*models.Access, error) {
-	if expires != nil && expires.Before(time.Now()) {
+func (r *mutationResolver) GrantAccessToDataproduct(ctx context.Context, input models.NewGrant) (*models.Access, error) {
+	if input.Expires != nil && input.Expires.Before(time.Now()) {
 		return nil, fmt.Errorf("expires has already expired")
 	}
 
 	user := auth.GetUser(ctx)
 	subj := user.Email
-	if subject != nil {
-		subj = *subject
+	if input.Subject != nil {
+		subj = *input.Subject
 	}
-	dp, err := r.repo.GetDataproduct(ctx, dataproductID)
+	dp, err := r.repo.GetDataproduct(ctx, input.DataproductID)
 	if err != nil {
 		return nil, err
 	}
@@ -223,8 +223,8 @@ func (r *mutationResolver) GrantAccessToDataproduct(ctx context.Context, datapro
 	}
 
 	subjType := models.SubjectTypeUser
-	if subjectType != nil {
-		subjType = *subjectType
+	if input.SubjectType != nil {
+		subjType = *input.SubjectType
 	}
 
 	subjWithType := subjType.String() + ":" + subj
@@ -233,7 +233,7 @@ func (r *mutationResolver) GrantAccessToDataproduct(ctx context.Context, datapro
 		return nil, err
 	}
 
-	return r.repo.GrantAccessToDataproduct(ctx, dataproductID, expires, subjWithType, user.Email, polly)
+	return r.repo.GrantAccessToDataproduct(ctx, input.DataproductID, input.Expires, subjWithType, user.Email, input.Polly)
 }
 
 func (r *mutationResolver) RevokeAccessToDataproduct(ctx context.Context, id uuid.UUID) (bool, error) {
@@ -310,8 +310,6 @@ func (r *Resolver) BigQuery() generated.BigQueryResolver { return &bigQueryResol
 // Dataproduct returns generated.DataproductResolver implementation.
 func (r *Resolver) Dataproduct() generated.DataproductResolver { return &dataproductResolver{r} }
 
-type (
-	accessResolver      struct{ *Resolver }
-	bigQueryResolver    struct{ *Resolver }
-	dataproductResolver struct{ *Resolver }
-)
+type accessResolver struct{ *Resolver }
+type bigQueryResolver struct{ *Resolver }
+type dataproductResolver struct{ *Resolver }

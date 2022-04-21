@@ -64,6 +64,19 @@ type NewDataproduct struct {
 	Metadata         BigqueryMetadata
 }
 
+type NewGrant struct {
+	// id of dataproduct.
+	DataproductID uuid.UUID `json:"dataproductID"`
+	// expires is a timestamp for when the access expires.
+	Expires *time.Time `json:"expires"`
+	// subject to be granted access.
+	Subject *string `json:"subject"`
+	// subjectType is the type of entity which should be granted access (user, group or service account).
+	SubjectType *SubjectType `json:"subjectType"`
+	// polly is the process policy attached to this grant
+	Polly *Polly `json:"polly"`
+}
+
 type UpdateDataproduct struct {
 	Name             string   `json:"name"`
 	Description      *string  `json:"description"`

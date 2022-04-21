@@ -16,10 +16,10 @@ func NewMock(url string) *PollyMock {
 	}
 }
 
-func (m *PollyMock) SearchPolly(ctx context.Context, q string) ([]*models.PollyResult, error) {
-	ret := []*models.PollyResult{}
+func (m *PollyMock) SearchPolly(ctx context.Context, q string) ([]*models.Polly, error) {
+	ret := []*models.Polly{}
 
-	ret = append(ret, &models.PollyResult{
+	ret = append(ret, &models.Polly{
 		ID:   "28570031-e2b3-4110-8864-41ab279e2e0c",
 		Name: "Behandling",
 		URL:  m.url + "/28570031-e2b3-4110-8864-41ab279e2e0c",

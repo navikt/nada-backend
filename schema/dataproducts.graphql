@@ -179,6 +179,22 @@ input NewDataproduct @goModel(model: "github.com/navikt/nada-backend/pkg/graph/m
 }
 
 """
+NewGrant contains metadata on a dataproduct grant
+"""
+input NewGrant @goModel(model: "github.com/navikt/nada-backend/pkg/graph/models.NewGrant") {
+    "id of dataproduct."
+    dataproductID: ID!
+    "expires is a timestamp for when the access expires."
+    expires: Time
+    "subject to be granted access."
+    subject: String
+    "subjectType is the type of entity which should be granted access (user, group or service account)."
+    subjectType: SubjectType
+    "polly is the process policy attached to this grant"
+    polly: PollyInput
+}
+
+"""
 UpdateDataproduct contains metadata for updating a dataproduct
 """
 input UpdateDataproduct @goModel(model: "github.com/navikt/nada-backend/pkg/graph/models.UpdateDataproduct") {
@@ -278,16 +294,7 @@ extend type Mutation {
     Requires authentication.
     """
     grantAccessToDataproduct(
-        "id of dataproduct."
-        dataproductID: ID!
-        "expires is a timestamp for when the access expires."
-        expires: Time
-        "subject to be granted access."
-        subject: String
-        "subjectType is the type of entity which should be granted access (user, group or service account)."
-        subjectType: SubjectType
-        "polly is the process policy attached to this grant"
-        polly: PollyInput
+        input: NewGrant!
     ): Access! @authenticated
 
     """

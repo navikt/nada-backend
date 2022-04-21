@@ -39,7 +39,7 @@ func New(apiURL string) *Polly {
 	}
 }
 
-func (p *Polly) SearchPolly(ctx context.Context, q string) ([]*models.PollyResult, error) {
+func (p *Polly) SearchPolly(ctx context.Context, q string) ([]*models.Polly, error) {
 	var pr PollyResponse
 	res, err := p.client.Get(p.apiURL + "/search/" + q + "?includePurpose=true")
 	if err != nil {
@@ -55,9 +55,9 @@ func (p *Polly) SearchPolly(ctx context.Context, q string) ([]*models.PollyResul
 		return nil, err
 	}
 
-	ret := []*models.PollyResult{}
+	ret := []*models.Polly{}
 	for _, r := range pr.Content {
-		ret = append(ret, &models.PollyResult{
+		ret = append(ret, &models.Polly{
 			ID:   r.ID,
 			Name: r.Name,
 			URL:  p.url + "/" + r.Purpose.Code + "/" + r.ID,
