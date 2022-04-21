@@ -1,10 +1,7 @@
 package models
 
 type Polly struct {
-	// id from polly
-	ID string `json:"id"`
-	// name from polly
+	ID   string `json:"id"`
 	Name string `json:"name"`
-	// url from polly
-	URL string `json:"url"`
+	URL  string `json:"url"`
 }
