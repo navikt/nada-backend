@@ -9,7 +9,7 @@ VALUES (@access_id,
         @polly_url)
 RETURNING *;
 
--- name: GetPolly :one
+-- name: GetAccessDocumentation :one
 SELECT * 
 FROM access_documentation 
 WHERE access_id = @access_id;

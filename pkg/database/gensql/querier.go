@@ -31,6 +31,7 @@ type Querier interface {
 	DeleteStoryDraft(ctx context.Context, id uuid.UUID) error
 	DeleteStoryViewDraft(ctx context.Context, storyID uuid.UUID) error
 	DeleteStoryViews(ctx context.Context, storyID uuid.UUID) error
+	GetAccessDocumentation(ctx context.Context, accessID uuid.UUID) (AccessDocumentation, error)
 	GetAccessToDataproduct(ctx context.Context, id uuid.UUID) (DataproductAccess, error)
 	GetActiveAccessToDataproductForSubject(ctx context.Context, arg GetActiveAccessToDataproductForSubjectParams) (DataproductAccess, error)
 	GetBigqueryDatasource(ctx context.Context, dataproductID uuid.UUID) (DatasourceBigquery, error)
@@ -45,7 +46,6 @@ type Querier interface {
 	GetDataproductsByUserAccess(ctx context.Context, id string) ([]Dataproduct, error)
 	GetMetabaseMetadata(ctx context.Context, dataproductID uuid.UUID) (MetabaseMetadatum, error)
 	GetMetabaseMetadataWithDeleted(ctx context.Context, dataproductID uuid.UUID) (MetabaseMetadatum, error)
-	GetPolly(ctx context.Context, accessID uuid.UUID) (AccessDocumentation, error)
 	GetSession(ctx context.Context, token string) (Session, error)
 	GetStories(ctx context.Context) ([]Story, error)
 	GetStoriesByGroups(ctx context.Context, groups []string) ([]Story, error)

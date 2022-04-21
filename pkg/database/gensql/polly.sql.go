@@ -45,14 +45,14 @@ func (q *Queries) AddAccessDocumentation(ctx context.Context, arg AddAccessDocum
 	return i, err
 }
 
-const getPolly = `-- name: GetPolly :one
+const getAccessDocumentation = `-- name: GetAccessDocumentation :one
 SELECT access_id, polly_id, polly_name, polly_url 
 FROM access_documentation 
 WHERE access_id = $1
 `
 
-func (q *Queries) GetPolly(ctx context.Context, accessID uuid.UUID) (AccessDocumentation, error) {
-	row := q.db.QueryRowContext(ctx, getPolly, accessID)
+func (q *Queries) GetAccessDocumentation(ctx context.Context, accessID uuid.UUID) (AccessDocumentation, error) {
+	row := q.db.QueryRowContext(ctx, getAccessDocumentation, accessID)
 	var i AccessDocumentation
 	err := row.Scan(
 		&i.AccessID,
