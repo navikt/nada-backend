@@ -1,8 +1,19 @@
 type PollyResult @goModel(model: "github.com/navikt/nada-backend/pkg/graph/models.PollyResult") {
-    "polly id from polly"
-    id: ID!
-    "polly name from polly"
+    "id from polly"
+    id: String!
+    "name from polly"
     name: String!
+    "url from polly"
+    url: String!
+}
+
+input PollyInput @goModel(model: "github.com/navikt/nada-backend/pkg/graph/models.PollyInput") {
+    "id from polly"
+    id: String!
+    "name from polly"
+    name: String!
+    "url from polly"
+    url: String!
 }
 
 extend type Query {

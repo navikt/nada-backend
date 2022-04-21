@@ -11,7 +11,7 @@ import (
 )
 
 const getAccessToDataproduct = `-- name: GetAccessToDataproduct :one
-SELECT id, dataproduct_id, subject, granter, expires, created, revoked, polly_id
+SELECT id, dataproduct_id, subject, granter, expires, created, revoked
 FROM dataproduct_access
 WHERE id = $1
 `
@@ -27,13 +27,12 @@ func (q *Queries) GetAccessToDataproduct(ctx context.Context, id uuid.UUID) (Dat
 		&i.Expires,
 		&i.Created,
 		&i.Revoked,
-		&i.PollyID,
 	)
 	return i, err
 }
 
 const getActiveAccessToDataproductForSubject = `-- name: GetActiveAccessToDataproductForSubject :one
-SELECT id, dataproduct_id, subject, granter, expires, created, revoked, polly_id
+SELECT id, dataproduct_id, subject, granter, expires, created, revoked
 FROM dataproduct_access
 WHERE dataproduct_id = $1 
 AND "subject" = $2 
@@ -60,7 +59,6 @@ func (q *Queries) GetActiveAccessToDataproductForSubject(ctx context.Context, ar
 		&i.Expires,
 		&i.Created,
 		&i.Revoked,
-		&i.PollyID,
 	)
 	return i, err
 }
@@ -69,14 +67,12 @@ const grantAccessToDataproduct = `-- name: GrantAccessToDataproduct :one
 INSERT INTO dataproduct_access (dataproduct_id,
                                 "subject",
                                 granter,
-                                expires,
-                                polly_id)
+                                expires)
 VALUES ($1,
         LOWER($2),
         LOWER($3),
-        $4,
-        $5)
-RETURNING id, dataproduct_id, subject, granter, expires, created, revoked, polly_id
+        $4)
+RETURNING id, dataproduct_id, subject, granter, expires, created, revoked
 `
 
 type GrantAccessToDataproductParams struct {
@@ -84,7 +80,6 @@ type GrantAccessToDataproductParams struct {
 	Subject       string
 	Granter       string
 	Expires       sql.NullTime
-	PollyID       sql.NullString
 }
 
 func (q *Queries) GrantAccessToDataproduct(ctx context.Context, arg GrantAccessToDataproductParams) (DataproductAccess, error) {
@@ -93,7 +88,6 @@ func (q *Queries) GrantAccessToDataproduct(ctx context.Context, arg GrantAccessT
 		arg.Subject,
 		arg.Granter,
 		arg.Expires,
-		arg.PollyID,
 	)
 	var i DataproductAccess
 	err := row.Scan(
@@ -104,13 +98,12 @@ func (q *Queries) GrantAccessToDataproduct(ctx context.Context, arg GrantAccessT
 		&i.Expires,
 		&i.Created,
 		&i.Revoked,
-		&i.PollyID,
 	)
 	return i, err
 }
 
 const listAccessToDataproduct = `-- name: ListAccessToDataproduct :many
-SELECT id, dataproduct_id, subject, granter, expires, created, revoked, polly_id
+SELECT id, dataproduct_id, subject, granter, expires, created, revoked
 FROM dataproduct_access
 WHERE dataproduct_id = $1
 `
@@ -132,7 +125,6 @@ func (q *Queries) ListAccessToDataproduct(ctx context.Context, dataproductID uui
 			&i.Expires,
 			&i.Created,
 			&i.Revoked,
-			&i.PollyID,
 		); err != nil {
 			return nil, err
 		}
@@ -148,7 +140,7 @@ func (q *Queries) ListAccessToDataproduct(ctx context.Context, dataproductID uui
 }
 
 const listActiveAccessToDataproduct = `-- name: ListActiveAccessToDataproduct :many
-SELECT id, dataproduct_id, subject, granter, expires, created, revoked, polly_id
+SELECT id, dataproduct_id, subject, granter, expires, created, revoked
 FROM dataproduct_access
 WHERE dataproduct_id = $1 AND revoked IS NULL AND (expires IS NULL OR expires >= NOW())
 `
@@ -170,7 +162,6 @@ func (q *Queries) ListActiveAccessToDataproduct(ctx context.Context, dataproduct
 			&i.Expires,
 			&i.Created,
 			&i.Revoked,
-			&i.PollyID,
 		); err != nil {
 			return nil, err
 		}
@@ -186,7 +177,7 @@ func (q *Queries) ListActiveAccessToDataproduct(ctx context.Context, dataproduct
 }
 
 const listUnrevokedExpiredAccessEntries = `-- name: ListUnrevokedExpiredAccessEntries :many
-SELECT id, dataproduct_id, subject, granter, expires, created, revoked, polly_id
+SELECT id, dataproduct_id, subject, granter, expires, created, revoked
 FROM dataproduct_access
 WHERE revoked IS NULL
   AND expires < NOW()
@@ -209,7 +200,6 @@ func (q *Queries) ListUnrevokedExpiredAccessEntries(ctx context.Context) ([]Data
 			&i.Expires,
 			&i.Created,
 			&i.Revoked,
-			&i.PollyID,
 		); err != nil {
 			return nil, err
 		}

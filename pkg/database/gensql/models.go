@@ -51,6 +51,13 @@ func (e *StoryViewType) Scan(src interface{}) error {
 	return nil
 }
 
+type AccessDocumentation struct {
+	AccessID  uuid.UUID
+	PollyID   string
+	PollyName string
+	PollyUrl  string
+}
+
 type Dataproduct struct {
 	ID               uuid.UUID
 	Name             string
@@ -75,7 +82,6 @@ type DataproductAccess struct {
 	Expires       sql.NullTime
 	Created       time.Time
 	Revoked       sql.NullTime
-	PollyID       sql.NullString
 }
 
 type DataproductRequester struct {

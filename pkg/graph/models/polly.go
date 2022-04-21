@@ -1,10 +1,19 @@
 package models
 
-import "github.com/google/uuid"
-
 type PollyResult struct {
-	// purpose id from polly
-	ID uuid.UUID `json:"id"`
-	// purpose name from polly
+	// id from polly
+	ID string `json:"id"`
+	// name from polly
 	Name string `json:"name"`
+	// url from polly
+	URL string `json:"url"`
+}
+
+type PollyInput struct {
+	// id from polly
+	ID string `json:"id"`
+	// name from polly
+	Name string `json:"name"`
+	// url from polly
+	URL string `json:"url"`
 }

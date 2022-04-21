@@ -83,7 +83,6 @@ type Access struct {
 	Created       time.Time  `json:"created"`
 	Revoked       *time.Time `json:"revoked"`
 	DataproductID uuid.UUID
-	PollyID       *string
 }
 
 type DataproductServices struct {

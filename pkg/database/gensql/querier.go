@@ -9,6 +9,7 @@ import (
 )
 
 type Querier interface {
+	AddAccessDocumentation(ctx context.Context, arg AddAccessDocumentationParams) (AccessDocumentation, error)
 	CleanupStoryDrafts(ctx context.Context) error
 	CreateBigqueryDatasource(ctx context.Context, arg CreateBigqueryDatasourceParams) (DatasourceBigquery, error)
 	CreateDataproduct(ctx context.Context, arg CreateDataproductParams) (Dataproduct, error)
@@ -44,6 +45,7 @@ type Querier interface {
 	GetDataproductsByUserAccess(ctx context.Context, id string) ([]Dataproduct, error)
 	GetMetabaseMetadata(ctx context.Context, dataproductID uuid.UUID) (MetabaseMetadatum, error)
 	GetMetabaseMetadataWithDeleted(ctx context.Context, dataproductID uuid.UUID) (MetabaseMetadatum, error)
+	GetPolly(ctx context.Context, accessID uuid.UUID) (AccessDocumentation, error)
 	GetSession(ctx context.Context, token string) (Session, error)
 	GetStories(ctx context.Context) ([]Story, error)
 	GetStoriesByGroups(ctx context.Context, groups []string) ([]Story, error)

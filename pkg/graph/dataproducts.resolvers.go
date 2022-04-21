@@ -21,6 +21,10 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
+func (r *accessResolver) Polly(ctx context.Context, obj *models.Access) (*models.PollyResult, error) {
+	return r.repo.GetPolly(ctx, obj.ID)
+}
+
 func (r *bigQueryResolver) Schema(ctx context.Context, obj *models.BigQuery) ([]*models.TableColumn, error) {
 	return r.repo.GetDataproductMetadata(ctx, obj.DataproductID)
 }
@@ -191,7 +195,7 @@ func (r *mutationResolver) RemoveRequesterFromDataproduct(ctx context.Context, d
 	return true, r.repo.RemoveRequesterFromDataproduct(ctx, dp.ID, subject)
 }
 
-func (r *mutationResolver) GrantAccessToDataproduct(ctx context.Context, dataproductID uuid.UUID, expires *time.Time, subject *string, subjectType *models.SubjectType, pollyID *string) (*models.Access, error) {
+func (r *mutationResolver) GrantAccessToDataproduct(ctx context.Context, dataproductID uuid.UUID, expires *time.Time, subject *string, subjectType *models.SubjectType, polly *models.PollyInput) (*models.Access, error) {
 	if expires != nil && expires.Before(time.Now()) {
 		return nil, fmt.Errorf("expires has already expired")
 	}
@@ -229,7 +233,7 @@ func (r *mutationResolver) GrantAccessToDataproduct(ctx context.Context, datapro
 		return nil, err
 	}
 
-	return r.repo.GrantAccessToDataproduct(ctx, dataproductID, expires, subjWithType, user.Email, pollyID)
+	return r.repo.GrantAccessToDataproduct(ctx, dataproductID, expires, subjWithType, user.Email, polly)
 }
 
 func (r *mutationResolver) RevokeAccessToDataproduct(ctx context.Context, id uuid.UUID) (bool, error) {
@@ -297,11 +301,17 @@ func (r *queryResolver) GroupStats(ctx context.Context, limit *int, offset *int)
 	return r.repo.DataproductGroupStats(ctx, l, o)
 }
 
+// Access returns generated.AccessResolver implementation.
+func (r *Resolver) Access() generated.AccessResolver { return &accessResolver{r} }
+
 // BigQuery returns generated.BigQueryResolver implementation.
 func (r *Resolver) BigQuery() generated.BigQueryResolver { return &bigQueryResolver{r} }
 
 // Dataproduct returns generated.DataproductResolver implementation.
 func (r *Resolver) Dataproduct() generated.DataproductResolver { return &dataproductResolver{r} }
 
-type bigQueryResolver struct{ *Resolver }
-type dataproductResolver struct{ *Resolver }
+type (
+	accessResolver      struct{ *Resolver }
+	bigQueryResolver    struct{ *Resolver }
+	dataproductResolver struct{ *Resolver }
+)

@@ -5,33 +5,43 @@ import (
 	"encoding/json"
 	"io"
 	"net/http"
+	"os"
 
-	"github.com/google/uuid"
 	"github.com/navikt/nada-backend/pkg/graph/models"
 )
 
 type Polly struct {
 	client *http.Client
+	apiURL string
 	url    string
 }
 
 type PollyResponse struct {
 	Content []struct {
-		ID   string `json:"id"`
-		Name string `json:"name"`
+		ID      string `json:"id"`
+		Name    string `json:"name"`
+		Purpose struct {
+			Code string `json:"code"`
+		}
 	}
 }
 
-func New(url string) *Polly {
+func New(apiURL string) *Polly {
+	url := "https://behandlingskatalog.dev.adeo.no/process/purpose"
+	if os.Getenv("NAIS_CLUSTER_NAME") == "prod-gcp" {
+		url = "https://behandlingskatalog.adeo.no/process/purpose"
+	}
+
 	return &Polly{
 		client: &http.Client{},
+		apiURL: apiURL,
 		url:    url,
 	}
 }
 
 func (p *Polly) SearchPolly(ctx context.Context, q string) ([]*models.PollyResult, error) {
 	var pr PollyResponse
-	res, err := p.client.Get(p.url + "/" + q + "?includePurpose=true")
+	res, err := p.client.Get(p.apiURL + "/search/" + q + "?includePurpose=true")
 	if err != nil {
 		return nil, err
 	}
@@ -48,8 +58,9 @@ func (p *Polly) SearchPolly(ctx context.Context, q string) ([]*models.PollyResul
 	ret := []*models.PollyResult{}
 	for _, r := range pr.Content {
 		ret = append(ret, &models.PollyResult{
-			ID:   uuid.MustParse(r.ID),
+			ID:   r.ID,
 			Name: r.Name,
+			URL:  p.url + "/" + r.Purpose.Code + "/" + r.ID,
 		})
 	}
 
