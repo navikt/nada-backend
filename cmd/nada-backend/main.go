@@ -68,7 +68,7 @@ func init() {
 	flag.StringVar(&cfg.MetabasePassword, "metabase-password", os.Getenv("METABASE_PASSWORD"), "Password for metabase api")
 	flag.StringVar(&cfg.MetabaseAPI, "metabase-api", os.Getenv("METABASE_API"), "URL to Metabase API, including scheme and `/api`")
 	flag.StringVar(&cfg.SlackUrl, "slack-url", os.Getenv("SLACK_URL"), "URL for slack webhook")
-	flag.StringVar(&cfg.PollyURL, "polly-url", os.Getenv("POLLY_URL"), "URL for polly")
+	flag.StringVar(&cfg.PollyURL, "polly-url", cfg.PollyURL, "URL for polly")
 }
 
 func main() {

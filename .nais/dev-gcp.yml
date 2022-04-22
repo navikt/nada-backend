@@ -14,6 +14,8 @@ spec:
     - /app/nada-backend
     - --teamkatalogen-url
     - https://teamkatalog-api.dev-fss-pub.nais.io/team
+    - --polly-url
+    - https://polly.dev-fss-pub.nais.io/process
   replicas:
     min: 2
     max: 4
