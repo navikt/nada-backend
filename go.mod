@@ -6,7 +6,7 @@ require (
 	cloud.google.com/go/bigquery v1.17.0
 	github.com/99designs/gqlgen-contrib v0.1.1-0.20200601100547-7a955d321bbd
 	github.com/go-chi/chi v4.1.2+incompatible
-	github.com/google/uuid v1.1.2
+	github.com/google/uuid v1.3.0
 	github.com/kyleconroy/sqlc v1.11.0
 	github.com/lib/pq v1.10.4
 	github.com/ory/dockertest/v3 v3.8.0

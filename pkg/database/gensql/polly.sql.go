@@ -9,56 +9,48 @@ import (
 	"github.com/google/uuid"
 )
 
-const addAccessDocumentation = `-- name: AddAccessDocumentation :one
-INSERT INTO access_documentation ("access_id",
-                                  "polly_id",
-                                  "polly_name",
-                                  "polly_url") 
+const addPollyDocumentation = `-- name: AddPollyDocumentation :one
+INSERT INTO polly_documentation ("external_id",
+                                 "name",
+                                 "url")
 VALUES ($1,
         $2,
-        $3,
-        $4)
-RETURNING access_id, polly_id, polly_name, polly_url
+        $3)
+RETURNING id, external_id, name, url
 `
 
-type AddAccessDocumentationParams struct {
-	AccessID  uuid.UUID
-	PollyID   string
-	PollyName string
-	PollyUrl  string
+type AddPollyDocumentationParams struct {
+	ExternalID string
+	Name       string
+	Url        string
 }
 
-func (q *Queries) AddAccessDocumentation(ctx context.Context, arg AddAccessDocumentationParams) (AccessDocumentation, error) {
-	row := q.db.QueryRowContext(ctx, addAccessDocumentation,
-		arg.AccessID,
-		arg.PollyID,
-		arg.PollyName,
-		arg.PollyUrl,
-	)
-	var i AccessDocumentation
+func (q *Queries) AddPollyDocumentation(ctx context.Context, arg AddPollyDocumentationParams) (PollyDocumentation, error) {
+	row := q.db.QueryRowContext(ctx, addPollyDocumentation, arg.ExternalID, arg.Name, arg.Url)
+	var i PollyDocumentation
 	err := row.Scan(
-		&i.AccessID,
-		&i.PollyID,
-		&i.PollyName,
-		&i.PollyUrl,
+		&i.ID,
+		&i.ExternalID,
+		&i.Name,
+		&i.Url,
 	)
 	return i, err
 }
 
-const getAccessDocumentation = `-- name: GetAccessDocumentation :one
-SELECT access_id, polly_id, polly_name, polly_url 
-FROM access_documentation 
-WHERE access_id = $1
+const getPollyDocumentation = `-- name: GetPollyDocumentation :one
+SELECT id, external_id, name, url
+FROM polly_documentation
+WHERE id = $1
 `
 
-func (q *Queries) GetAccessDocumentation(ctx context.Context, accessID uuid.UUID) (AccessDocumentation, error) {
-	row := q.db.QueryRowContext(ctx, getAccessDocumentation, accessID)
-	var i AccessDocumentation
+func (q *Queries) GetPollyDocumentation(ctx context.Context, id uuid.UUID) (PollyDocumentation, error) {
+	row := q.db.QueryRowContext(ctx, getPollyDocumentation, id)
+	var i PollyDocumentation
 	err := row.Scan(
-		&i.AccessID,
-		&i.PollyID,
-		&i.PollyName,
-		&i.PollyUrl,
+		&i.ID,
+		&i.ExternalID,
+		&i.Name,
+		&i.Url,
 	)
 	return i, err
 }

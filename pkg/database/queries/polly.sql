@@ -1,15 +1,13 @@
--- name: AddAccessDocumentation :one
-INSERT INTO access_documentation ("access_id",
-                                  "polly_id",
-                                  "polly_name",
-                                  "polly_url") 
-VALUES (@access_id,
-        @polly_id,
-        @polly_name,
-        @polly_url)
+-- name: AddPollyDocumentation :one
+INSERT INTO polly_documentation ("external_id",
+                                 "name",
+                                 "url")
+VALUES (@external_id,
+        @name,
+        @url)
 RETURNING *;
 
--- name: GetAccessDocumentation :one
-SELECT * 
-FROM access_documentation 
-WHERE access_id = @access_id;
+-- name: GetPollyDocumentation :one
+SELECT *
+FROM polly_documentation
+WHERE id = @id;

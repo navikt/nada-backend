@@ -9,8 +9,9 @@ import (
 )
 
 type Querier interface {
-	AddAccessDocumentation(ctx context.Context, arg AddAccessDocumentationParams) (AccessDocumentation, error)
+	AddPollyDocumentation(ctx context.Context, arg AddPollyDocumentationParams) (PollyDocumentation, error)
 	CleanupStoryDrafts(ctx context.Context) error
+	CreateAccessRequestForDataproduct(ctx context.Context, arg CreateAccessRequestForDataproductParams) (DataproductAccessRequest, error)
 	CreateBigqueryDatasource(ctx context.Context, arg CreateBigqueryDatasourceParams) (DatasourceBigquery, error)
 	CreateDataproduct(ctx context.Context, arg CreateDataproductParams) (Dataproduct, error)
 	CreateDataproductRequester(ctx context.Context, arg CreateDataproductRequesterParams) error
@@ -31,7 +32,7 @@ type Querier interface {
 	DeleteStoryDraft(ctx context.Context, id uuid.UUID) error
 	DeleteStoryViewDraft(ctx context.Context, storyID uuid.UUID) error
 	DeleteStoryViews(ctx context.Context, storyID uuid.UUID) error
-	GetAccessDocumentation(ctx context.Context, accessID uuid.UUID) (AccessDocumentation, error)
+	GetAccessRequest(ctx context.Context, id uuid.UUID) (DataproductAccessRequest, error)
 	GetAccessToDataproduct(ctx context.Context, id uuid.UUID) (DataproductAccess, error)
 	GetActiveAccessToDataproductForSubject(ctx context.Context, arg GetActiveAccessToDataproductForSubjectParams) (DataproductAccess, error)
 	GetBigqueryDatasource(ctx context.Context, dataproductID uuid.UUID) (DatasourceBigquery, error)
@@ -46,6 +47,7 @@ type Querier interface {
 	GetDataproductsByUserAccess(ctx context.Context, id string) ([]Dataproduct, error)
 	GetMetabaseMetadata(ctx context.Context, dataproductID uuid.UUID) (MetabaseMetadatum, error)
 	GetMetabaseMetadataWithDeleted(ctx context.Context, dataproductID uuid.UUID) (MetabaseMetadatum, error)
+	GetPollyDocumentation(ctx context.Context, id uuid.UUID) (PollyDocumentation, error)
 	GetSession(ctx context.Context, token string) (Session, error)
 	GetStories(ctx context.Context) ([]Story, error)
 	GetStoriesByGroups(ctx context.Context, groups []string) ([]Story, error)
@@ -60,6 +62,8 @@ type Querier interface {
 	GetStoryViewDrafts(ctx context.Context, storyID uuid.UUID) ([]StoryViewDraft, error)
 	GetStoryViews(ctx context.Context, storyID uuid.UUID) ([]StoryView, error)
 	GrantAccessToDataproduct(ctx context.Context, arg GrantAccessToDataproductParams) (DataproductAccess, error)
+	ListAccessRequestsForDataproduct(ctx context.Context, dataproductID uuid.UUID) ([]DataproductAccessRequest, error)
+	ListAccessRequestsForUser(ctx context.Context, subject string) ([]DataproductAccessRequest, error)
 	ListAccessToDataproduct(ctx context.Context, dataproductID uuid.UUID) ([]DataproductAccess, error)
 	ListActiveAccessToDataproduct(ctx context.Context, dataproductID uuid.UUID) ([]DataproductAccess, error)
 	ListUnrevokedExpiredAccessEntries(ctx context.Context) ([]DataproductAccess, error)

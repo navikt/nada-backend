@@ -51,13 +51,6 @@ func (e *StoryViewType) Scan(src interface{}) error {
 	return nil
 }
 
-type AccessDocumentation struct {
-	AccessID  uuid.UUID
-	PollyID   string
-	PollyName string
-	PollyUrl  string
-}
-
 type Dataproduct struct {
 	ID               uuid.UUID
 	Name             string
@@ -82,6 +75,15 @@ type DataproductAccess struct {
 	Expires       sql.NullTime
 	Created       time.Time
 	Revoked       sql.NullTime
+}
+
+type DataproductAccessRequest struct {
+	ID            uuid.UUID
+	DataproductID uuid.UUID
+	Subject       string
+	PollyID       uuid.NullUUID
+	LastModified  time.Time
+	Created       time.Time
 }
 
 type DataproductRequester struct {
@@ -109,6 +111,13 @@ type MetabaseMetadatum struct {
 	SaEmail           string
 	CollectionID      sql.NullInt32
 	DeletedAt         sql.NullTime
+}
+
+type PollyDocumentation struct {
+	ID         uuid.UUID
+	ExternalID string
+	Name       string
+	Url        string
 }
 
 type Search struct {
