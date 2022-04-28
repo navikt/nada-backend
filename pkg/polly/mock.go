@@ -21,12 +21,12 @@ func NewMock(apiURL string) *PollyMock {
 }
 
 func (m *PollyMock) SearchPolly(ctx context.Context, q string) ([]*models.Polly, error) {
-	ret := []*models.Polly{}
+	var ret []*models.Polly
 
 	ret = append(ret, &models.Polly{
-		ID:   "28570031-e2b3-4110-8864-41ab279e2e0c",
-		Name: "Behandling",
-		URL:  m.url + "/28570031-e2b3-4110-8864-41ab279e2e0c",
+		ExternalID: "28570031-e2b3-4110-8864-41ab279e2e0c",
+		Name:       "Behandling",
+		URL:        m.url + "/28570031-e2b3-4110-8864-41ab279e2e0c",
 	})
 	return ret, nil
 }

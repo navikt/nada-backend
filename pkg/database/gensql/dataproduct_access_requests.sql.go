@@ -9,14 +9,13 @@ import (
 	"github.com/google/uuid"
 )
 
-const createAccessRequestForDataproduct = `-- name: CreateAccessRequestForDataproduct :one
+const createAccessRequestForDataproduct = `-- name: CreateAccessRequestForDataproduct :exec
 INSERT INTO dataproduct_access_request (dataproduct_id,
                                         "subject",
                                         polly_documentation_id)
 VALUES ($1,
         LOWER($2),
         $3)
-RETURNING id, dataproduct_id, subject, polly_documentation_id, last_modified, created
 `
 
 type CreateAccessRequestForDataproductParams struct {
@@ -25,18 +24,9 @@ type CreateAccessRequestForDataproductParams struct {
 	PollyDocumentationID uuid.NullUUID
 }
 
-func (q *Queries) CreateAccessRequestForDataproduct(ctx context.Context, arg CreateAccessRequestForDataproductParams) (DataproductAccessRequest, error) {
-	row := q.db.QueryRowContext(ctx, createAccessRequestForDataproduct, arg.DataproductID, arg.Subject, arg.PollyDocumentationID)
-	var i DataproductAccessRequest
-	err := row.Scan(
-		&i.ID,
-		&i.DataproductID,
-		&i.Subject,
-		&i.PollyDocumentationID,
-		&i.LastModified,
-		&i.Created,
-	)
-	return i, err
+func (q *Queries) CreateAccessRequestForDataproduct(ctx context.Context, arg CreateAccessRequestForDataproductParams) error {
+	_, err := q.db.ExecContext(ctx, createAccessRequestForDataproduct, arg.DataproductID, arg.Subject, arg.PollyDocumentationID)
+	return err
 }
 
 const getAccessRequest = `-- name: GetAccessRequest :one

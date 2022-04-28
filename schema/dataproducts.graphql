@@ -96,8 +96,20 @@ type Access @goModel(model: "github.com/navikt/nada-backend/pkg/graph/models.Acc
     created: Time!
     "revoked is timestamp for when access was revoked"
     revoked: Time
-    "polly is the documentation for the access grant"
-    polly: PollyResult
+}
+
+"""
+AccessRequest contains metadata on a request to access a dataproduct
+"""
+type AccessRequest @goModel(model: "github.com/navikt/nada-backend/pkg/graph/models.AccessRequest") {
+    "id of dataproduct."
+    dataproductID: ID!
+    "subject to be granted access."
+    subject: String
+    "subjectType is the type of entity which should be granted access (user, group or service account)."
+    subjectType: SubjectType
+    "polly is the process policy attached to this grant"
+    polly: DatabasePolly
 }
 
 """
@@ -105,9 +117,9 @@ GroupStats contains statistics on a group.
 """
 type GroupStats @goModel(model: "github.com/navikt/nada-backend/pkg/graph/models.GroupStats") {
     "email of the group"
-	email: String!
+    email: String!
     "number of dataproducts owned by the group"
-	dataproducts: Int!
+    dataproducts: Int!
 }
 
 extend type Query {
@@ -134,12 +146,20 @@ extend type Query {
     """
     groupStats returns statistics for groups that have created dataproducts.
     """
-	groupStats(
+    groupStats(
         "limit the number of returned groups."
         limit: Int
         "offset the list of returned groups. Used as pagination with PAGE-INDEX * limit."
         offset: Int
     ): [GroupStats!]!
+
+    """
+    accessRequest returns one specific access request
+    """
+    accessRequest(
+        "id of access request."
+        id: ID!
+    ): AccessRequest!
 }
 
 """
@@ -147,8 +167,8 @@ NewBigQuery contains metadata for creating a new bigquery data source
 """
 input NewBigQuery @goModel(model: "github.com/navikt/nada-backend/pkg/graph/models.NewBigQuery") {
     "projectID is the GCP project ID that contains the dataset."
-	projectID: String!
-	"dataset is the name of the dataset."
+    projectID: String!
+    "dataset is the name of the dataset."
     dataset: String!
     "table is the name of the table"
     table: String!
@@ -179,7 +199,21 @@ input NewDataproduct @goModel(model: "github.com/navikt/nada-backend/pkg/graph/m
 }
 
 """
-NewGrant contains metadata on a dataproduct grant
+NewAccessRequest contains metadata on a request to access a dataproduct
+"""
+input NewAccessRequest @goModel(model: "github.com/navikt/nada-backend/pkg/graph/models.NewAccessRequest") {
+    "id of dataproduct."
+    dataproductID: ID!
+    "subject to be granted access."
+    subject: String
+    "subjectType is the type of entity which should be granted access (user, group or service account)."
+    subjectType: SubjectType
+    "polly is the process policy attached to this grant"
+    polly: PollyInput
+}
+
+"""
+NewGrant contains metadata on a request to access a dataproduct
 """
 input NewGrant @goModel(model: "github.com/navikt/nada-backend/pkg/graph/models.NewGrant") {
     "id of dataproduct."
@@ -190,8 +224,6 @@ input NewGrant @goModel(model: "github.com/navikt/nada-backend/pkg/graph/models.
     subject: String
     "subjectType is the type of entity which should be granted access (user, group or service account)."
     subjectType: SubjectType
-    "polly is the process policy attached to this grant"
-    polly: PollyInput
 }
 
 """
@@ -317,5 +349,14 @@ extend type Mutation {
         dataproductID: ID!
         "service is the type of third party service for which the dataproduct should be exposed."
         services: [MappingService!]!
+    ): Boolean! @authenticated
+
+    """
+    createAccessRequest creates a new access request for a dataproduct
+
+    Require authentication
+    """
+    createAccessRequest(
+        input: NewAccessRequest!
     ): Boolean! @authenticated
 }

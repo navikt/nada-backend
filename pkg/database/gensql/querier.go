@@ -9,13 +9,13 @@ import (
 )
 
 type Querier interface {
-	AddPollyDocumentation(ctx context.Context, arg AddPollyDocumentationParams) (PollyDocumentation, error)
 	CleanupStoryDrafts(ctx context.Context) error
-	CreateAccessRequestForDataproduct(ctx context.Context, arg CreateAccessRequestForDataproductParams) (DataproductAccessRequest, error)
+	CreateAccessRequestForDataproduct(ctx context.Context, arg CreateAccessRequestForDataproductParams) error
 	CreateBigqueryDatasource(ctx context.Context, arg CreateBigqueryDatasourceParams) (DatasourceBigquery, error)
 	CreateDataproduct(ctx context.Context, arg CreateDataproductParams) (Dataproduct, error)
 	CreateDataproductRequester(ctx context.Context, arg CreateDataproductRequesterParams) error
 	CreateMetabaseMetadata(ctx context.Context, arg CreateMetabaseMetadataParams) error
+	CreatePollyDocumentation(ctx context.Context, arg CreatePollyDocumentationParams) (PollyDocumentation, error)
 	CreateSession(ctx context.Context, arg CreateSessionParams) error
 	CreateStory(ctx context.Context, arg CreateStoryParams) (Story, error)
 	CreateStoryDraft(ctx context.Context, name string) (StoryDraft, error)

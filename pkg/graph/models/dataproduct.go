@@ -64,12 +64,25 @@ type NewDataproduct struct {
 	Metadata         BigqueryMetadata
 }
 
+type AccessRequest struct {
+	DataproductID uuid.UUID      `json:"dataproductID"`
+	Subject       *string        `json:"subject"`
+	SubjectType   *SubjectType   `json:"subjectType"`
+	Polly         *DatabasePolly `json:"polly"`
+}
+
+type NewAccessRequest struct {
+	DataproductID uuid.UUID    `json:"dataproductID"`
+	Subject       *string      `json:"subject"`
+	SubjectType   *SubjectType `json:"subjectType"`
+	Polly         *Polly       `json:"polly"`
+}
+
 type NewGrant struct {
 	DataproductID uuid.UUID    `json:"dataproductID"`
 	Expires       *time.Time   `json:"expires"`
 	Subject       *string      `json:"subject"`
 	SubjectType   *SubjectType `json:"subjectType"`
-	Polly         *Polly       `json:"polly"`
 }
 
 type UpdateDataproduct struct {
@@ -109,6 +122,19 @@ var AllSubjectType = []SubjectType{
 	SubjectTypeUser,
 	SubjectTypeGroup,
 	SubjectTypeServiceAccount,
+}
+
+func StringToSubjectType(subjectType string) SubjectType {
+	switch subjectType {
+	case "user":
+		return SubjectTypeUser
+	case "group":
+		return SubjectTypeGroup
+	case "serviceAccount":
+		return SubjectTypeServiceAccount
+	default:
+		return ""
+	}
 }
 
 func (e SubjectType) IsValid() bool {

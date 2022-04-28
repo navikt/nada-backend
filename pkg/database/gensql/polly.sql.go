@@ -9,7 +9,7 @@ import (
 	"github.com/google/uuid"
 )
 
-const addPollyDocumentation = `-- name: AddPollyDocumentation :one
+const createPollyDocumentation = `-- name: CreatePollyDocumentation :one
 INSERT INTO polly_documentation ("external_id",
                                  "name",
                                  "url")
@@ -19,14 +19,14 @@ VALUES ($1,
 RETURNING id, external_id, name, url
 `
 
-type AddPollyDocumentationParams struct {
+type CreatePollyDocumentationParams struct {
 	ExternalID string
 	Name       string
 	Url        string
 }
 
-func (q *Queries) AddPollyDocumentation(ctx context.Context, arg AddPollyDocumentationParams) (PollyDocumentation, error) {
-	row := q.db.QueryRowContext(ctx, addPollyDocumentation, arg.ExternalID, arg.Name, arg.Url)
+func (q *Queries) CreatePollyDocumentation(ctx context.Context, arg CreatePollyDocumentationParams) (PollyDocumentation, error) {
+	row := q.db.QueryRowContext(ctx, createPollyDocumentation, arg.ExternalID, arg.Name, arg.Url)
 	var i PollyDocumentation
 	err := row.Scan(
 		&i.ID,

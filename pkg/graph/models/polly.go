@@ -1,7 +1,14 @@
 package models
 
+import "github.com/google/uuid"
+
+type DatabasePolly struct {
+	ID uuid.UUID `json:"id"`
+	Polly
+}
+
 type Polly struct {
-	ID   string `json:"id"`
-	Name string `json:"name"`
-	URL  string `json:"url"`
+	ExternalID string `json:"external_id"`
+	Name       string `json:"name"`
+	URL        string `json:"url"`
 }

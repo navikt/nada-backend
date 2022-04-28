@@ -55,12 +55,12 @@ func (p *Polly) SearchPolly(ctx context.Context, q string) ([]*models.Polly, err
 		return nil, err
 	}
 
-	ret := []*models.Polly{}
+	var ret []*models.Polly
 	for _, r := range pr.Content {
 		ret = append(ret, &models.Polly{
-			ID:   r.ID,
-			Name: r.Name,
-			URL:  p.url + "/" + r.Purpose.Code + "/" + r.ID,
+			ExternalID: r.ID,
+			Name:       r.Name,
+			URL:        p.url + "/" + r.Purpose.Code + "/" + r.ID,
 		})
 	}
 

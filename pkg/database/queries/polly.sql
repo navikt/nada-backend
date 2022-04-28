@@ -1,4 +1,4 @@
--- name: AddPollyDocumentation :one
+-- name: CreatePollyDocumentation :one
 INSERT INTO polly_documentation ("external_id",
                                  "name",
                                  "url")

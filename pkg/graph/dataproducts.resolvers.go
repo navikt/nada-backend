@@ -21,10 +21,6 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-func (r *accessResolver) Polly(ctx context.Context, obj *models.Access) (*models.Polly, error) {
-	return r.repo.GetAccessDocumentation(ctx, obj.ID)
-}
-
 func (r *bigQueryResolver) Schema(ctx context.Context, obj *models.BigQuery) ([]*models.TableColumn, error) {
 	return r.repo.GetDataproductMetadata(ctx, obj.DataproductID)
 }
@@ -44,7 +40,7 @@ func (r *dataproductResolver) Requesters(ctx context.Context, obj *models.Datapr
 		return allRequesters, nil
 	}
 
-	ret := []string{}
+	var ret []string
 	for _, r := range allRequesters {
 		if strings.EqualFold(r, user.Email) {
 			ret = append(ret, r)
@@ -67,7 +63,7 @@ func (r *dataproductResolver) Access(ctx context.Context, obj *models.Dataproduc
 		return all, nil
 	}
 
-	ret := []*models.Access{}
+	var ret []*models.Access
 	for _, a := range all {
 		if strings.EqualFold(a.Subject, "user:"+user.Email) {
 			ret = append(ret, a)
@@ -233,7 +229,7 @@ func (r *mutationResolver) GrantAccessToDataproduct(ctx context.Context, input m
 		return nil, err
 	}
 
-	return r.repo.GrantAccessToDataproduct(ctx, input.DataproductID, input.Expires, subjWithType, user.Email, input.Polly)
+	return r.repo.GrantAccessToDataproduct(ctx, input.DataproductID, input.Expires, subjWithType, user.Email)
 }
 
 func (r *mutationResolver) RevokeAccessToDataproduct(ctx context.Context, id uuid.UUID) (bool, error) {
@@ -279,6 +275,37 @@ func (r *mutationResolver) MapDataproduct(ctx context.Context, dataproductID uui
 	return true, nil
 }
 
+func (r *mutationResolver) CreateAccessRequest(ctx context.Context, input models.NewAccessRequest) (bool, error) {
+	user := auth.GetUser(ctx)
+	subj := user.Email
+	if input.Subject != nil {
+		subj = *input.Subject
+	}
+
+	subjType := models.SubjectTypeUser
+	if input.SubjectType != nil {
+		subjType = *input.SubjectType
+	}
+
+	subjWithType := subjType.String() + ":" + subj
+
+	var pollyID uuid.NullUUID
+	if input.Polly != nil {
+		dbPolly, err := r.repo.CreatePollyDocumentation(ctx, *input.Polly)
+		if err != nil {
+			return false, err
+		}
+
+		pollyID = uuid.NullUUID{UUID: dbPolly.ID, Valid: true}
+	}
+
+	err := r.repo.CreateAccessRequestForDataproduct(ctx, input.DataproductID, pollyID, subjWithType)
+	if err != nil {
+		return false, err
+	}
+	return true, nil
+}
+
 func (r *queryResolver) Dataproduct(ctx context.Context, id uuid.UUID) (*models.Dataproduct, error) {
 	return r.repo.GetDataproduct(ctx, id)
 }
@@ -301,8 +328,9 @@ func (r *queryResolver) GroupStats(ctx context.Context, limit *int, offset *int)
 	return r.repo.DataproductGroupStats(ctx, l, o)
 }
 
-// Access returns generated.AccessResolver implementation.
-func (r *Resolver) Access() generated.AccessResolver { return &accessResolver{r} }
+func (r *queryResolver) AccessRequest(ctx context.Context, id uuid.UUID) (*models.AccessRequest, error) {
+	return r.repo.GetAccessRequest(ctx, id)
+}
 
 // BigQuery returns generated.BigQueryResolver implementation.
 func (r *Resolver) BigQuery() generated.BigQueryResolver { return &bigQueryResolver{r} }
@@ -310,8 +338,5 @@ func (r *Resolver) BigQuery() generated.BigQueryResolver { return &bigQueryResol
 // Dataproduct returns generated.DataproductResolver implementation.
 func (r *Resolver) Dataproduct() generated.DataproductResolver { return &dataproductResolver{r} }
 
-type (
-	accessResolver      struct{ *Resolver }
-	bigQueryResolver    struct{ *Resolver }
-	dataproductResolver struct{ *Resolver }
-)
+type bigQueryResolver struct{ *Resolver }
+type dataproductResolver struct{ *Resolver }

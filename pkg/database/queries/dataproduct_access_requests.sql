@@ -1,11 +1,10 @@
--- name: CreateAccessRequestForDataproduct :one
+-- name: CreateAccessRequestForDataproduct :exec
 INSERT INTO dataproduct_access_request (dataproduct_id,
                                         "subject",
                                         polly_documentation_id)
 VALUES (@dataproduct_id,
         LOWER(@subject),
-        @polly_documentation_id)
-RETURNING *;
+        @polly_documentation_id);
 
 -- name: ListAccessRequestsForDataproduct :many
 SELECT *

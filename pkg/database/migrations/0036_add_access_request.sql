@@ -27,4 +27,4 @@ CREATE TRIGGER dataproduct_access_request_set_modified
     BEFORE UPDATE
     ON dataproduct_access_request
     FOR EACH ROW
-EXECUTE PROCEDURE update_dataproduct_modified_timestamp();
+EXECUTE PROCEDURE update_modified_timestamp();

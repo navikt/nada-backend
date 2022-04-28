@@ -1,6 +1,8 @@
-type PollyResult @goModel(model: "github.com/navikt/nada-backend/pkg/graph/models.Polly") {
-    "id from polly"
+type DatabasePolly @goModel(model: "github.com/navikt/nada-backend/pkg/graph/models.DatabasePolly") {
+    "database id"
     id: String!
+    "id from polly"
+    externalID: String!
     "name from polly"
     name: String!
     "url from polly"
@@ -9,7 +11,16 @@ type PollyResult @goModel(model: "github.com/navikt/nada-backend/pkg/graph/model
 
 input PollyInput @goModel(model: "github.com/navikt/nada-backend/pkg/graph/models.Polly") {
     "id from polly"
-    id: String!
+    externalID: String!
+    "name from polly"
+    name: String!
+    "url from polly"
+    url: String!
+}
+
+type QueryPolly @goModel(model: "github.com/navikt/nada-backend/pkg/graph/models.Polly") {
+    "id from polly"
+    externalID: String!
     "name from polly"
     name: String!
     "url from polly"
@@ -21,5 +32,5 @@ extend type Query {
     polly(
         "q is the search query."
         q: String!
-    ): [PollyResult!]!
+    ): [QueryPolly!]!
 }
