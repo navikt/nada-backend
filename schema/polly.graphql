@@ -1,4 +1,4 @@
-type DatabasePolly @goModel(model: "github.com/navikt/nada-backend/pkg/graph/models.DatabasePolly") {
+type Polly @goModel(model: "github.com/navikt/nada-backend/pkg/graph/models.Polly") {
     "database id"
     id: ID!
     "id from polly"
@@ -9,7 +9,7 @@ type DatabasePolly @goModel(model: "github.com/navikt/nada-backend/pkg/graph/mod
     url: String!
 }
 
-input PollyInput @goModel(model: "github.com/navikt/nada-backend/pkg/graph/models.Polly") {
+input NewPolly @goModel(model: "github.com/navikt/nada-backend/pkg/graph/models.NewPolly") {
     "id from polly"
     externalID: String!
     "name from polly"
@@ -18,7 +18,18 @@ input PollyInput @goModel(model: "github.com/navikt/nada-backend/pkg/graph/model
     url: String!
 }
 
-type QueryPolly @goModel(model: "github.com/navikt/nada-backend/pkg/graph/models.Polly") {
+input UpdatePolly @goModel(model: "github.com/navikt/nada-backend/pkg/graph/models.UpdatePolly") {
+    "database id"
+    id: ID
+    "id from polly"
+    externalID: String!
+    "name from polly"
+    name: String!
+    "url from polly"
+    url: String!
+}
+
+type QueryPolly @goModel(model: "github.com/navikt/nada-backend/pkg/graph/models.NewPolly") {
     "id from polly"
     externalID: String!
     "name from polly"

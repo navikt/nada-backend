@@ -5,11 +5,6 @@ mutation {
         expires:"2048-12-24T00:00:00Z"
         subject: "santa@nav.no"
         subjectType: user
-        polly: {
-            id: "12345-12345-13455-13445"
-            name: "Behandling"
-            url: "https://some.url"
-        }
     }
   ) {
     id
@@ -17,11 +12,6 @@ mutation {
     granter
     expires
     revoked
-    polly {
-        id
-        name
-        url
-    }
   }
 }
 
@@ -37,12 +27,7 @@ ENDOPTS
       "subject": "user:santa@nav.no",
       "granter": "mock.anderson@email.com",
       "expires": "2048-12-24T00:00:00Z",
-      "revoked": null,
-      "polly": {
-            "id": "12345-12345-13455-13445",
-            "name": "Behandling",
-            "url": "https://some.url"
-        }
+      "revoked": null
     }
   }
 }

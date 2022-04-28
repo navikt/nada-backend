@@ -65,10 +65,11 @@ type NewDataproduct struct {
 }
 
 type AccessRequest struct {
-	DataproductID uuid.UUID      `json:"dataproductID"`
-	Subject       *string        `json:"subject"`
-	SubjectType   *SubjectType   `json:"subjectType"`
-	Polly         *DatabasePolly `json:"polly"`
+	DataproductID uuid.UUID    `json:"dataproductID"`
+	Subject       *string      `json:"subject"`
+	SubjectType   *SubjectType `json:"subjectType"`
+	Owner         *string      `json:"owner"`
+	Polly         *Polly       `json:"polly"`
 }
 
 type NewAccessRequest struct {
@@ -76,7 +77,13 @@ type NewAccessRequest struct {
 	Subject       *string      `json:"subject"`
 	SubjectType   *SubjectType `json:"subjectType"`
 	Owner         *string      `json:"owner"`
-	Polly         *Polly       `json:"polly"`
+	Polly         *NewPolly    `json:"polly"`
+}
+
+type UpdateAccessRequest struct {
+	ID    uuid.UUID    `json:"id"`
+	Owner string       `json:"owner"`
+	Polly *UpdatePolly `json:"polly"`
 }
 
 type NewGrant struct {

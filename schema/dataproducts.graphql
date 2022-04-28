@@ -108,8 +108,10 @@ type AccessRequest @goModel(model: "github.com/navikt/nada-backend/pkg/graph/mod
     subject: String
     "subjectType is the type of entity which should be granted access (user, group or service account)."
     subjectType: SubjectType
+    "owner of the access request"
+    owner: String
     "polly is the process policy attached to this grant"
-    polly: DatabasePolly
+    polly: Polly
 }
 
 """
@@ -224,7 +226,20 @@ input NewAccessRequest @goModel(model: "github.com/navikt/nada-backend/pkg/graph
     "owner is the owner of the access request"
     owner: String
     "polly is the process policy attached to this grant"
-    polly: PollyInput
+    polly: NewPolly
+}
+
+
+"""
+UpdateAccessRequest contains metadata on a request to access a dataproduct
+"""
+input UpdateAccessRequest @goModel(model: "github.com/navikt/nada-backend/pkg/graph/models.UpdateAccessRequest") {
+    "id of access request"
+    id: ID!
+    "owner is the owner of the access request"
+    owner: String!
+    "polly is the process policy attached to this grant"
+    polly: UpdatePolly
 }
 
 """
@@ -373,5 +388,14 @@ extend type Mutation {
     """
     createAccessRequest(
         input: NewAccessRequest!
+    ): Boolean! @authenticated
+
+    """
+    createAccessRequest creates a new access request for a dataproduct
+
+    Require authentication
+    """
+    updateAccessRequest(
+        input: UpdateAccessRequest!
     ): Boolean! @authenticated
 }

@@ -29,7 +29,7 @@ type AccessManager interface {
 }
 
 type Polly interface {
-	SearchPolly(ctx context.Context, q string) ([]*models.Polly, error)
+	SearchPolly(ctx context.Context, q string) ([]*models.NewPolly, error)
 }
 
 type Teamkatalogen interface {

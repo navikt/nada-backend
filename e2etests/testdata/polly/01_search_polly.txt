@@ -1,6 +1,6 @@
 {
   polly(q: "something"){
-    id
+    externalID
     name
     url
   }
@@ -12,7 +12,7 @@ RETURNS
   "data": {
     "polly": [
       {
-        "id": "28570031-e2b3-4110-8864-41ab279e2e0c",
+        "externalID": "28570031-e2b3-4110-8864-41ab279e2e0c",
         "name": "Behandling",
         "url": "https://some.url/28570031-e2b3-4110-8864-41ab279e2e0c"
       }

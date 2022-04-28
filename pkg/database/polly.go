@@ -10,19 +10,19 @@ import (
 	"github.com/navikt/nada-backend/pkg/graph/models"
 )
 
-func (r *Repo) CreatePollyDocumentation(ctx context.Context, polly models.Polly) (models.DatabasePolly, error) {
+func (r *Repo) CreatePollyDocumentation(ctx context.Context, polly models.NewPolly) (models.Polly, error) {
 	pollyDocumentation, err := r.querier.CreatePollyDocumentation(ctx, gensql.CreatePollyDocumentationParams{
 		ExternalID: polly.ExternalID,
 		Name:       polly.Name,
 		Url:        polly.URL,
 	})
 	if err != nil {
-		return models.DatabasePolly{}, err
+		return models.Polly{}, err
 	}
 
-	return models.DatabasePolly{
+	return models.Polly{
 		ID: pollyDocumentation.ID,
-		Polly: models.Polly{
+		NewPolly: models.NewPolly{
 			ExternalID: pollyDocumentation.ExternalID,
 			Name:       pollyDocumentation.Name,
 			URL:        pollyDocumentation.Url,
@@ -30,7 +30,7 @@ func (r *Repo) CreatePollyDocumentation(ctx context.Context, polly models.Polly)
 	}, nil
 }
 
-func (r *Repo) GetPollyDocumentation(ctx context.Context, accessID uuid.UUID) (*models.DatabasePolly, error) {
+func (r *Repo) GetPollyDocumentation(ctx context.Context, accessID uuid.UUID) (*models.Polly, error) {
 	pollySQL, err := r.querier.GetPollyDocumentation(ctx, accessID)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
@@ -39,9 +39,9 @@ func (r *Repo) GetPollyDocumentation(ctx context.Context, accessID uuid.UUID) (*
 		return nil, err
 	}
 
-	return &models.DatabasePolly{
+	return &models.Polly{
 		ID: pollySQL.ID,
-		Polly: models.Polly{
+		NewPolly: models.NewPolly{
 			ExternalID: pollySQL.ExternalID,
 			Name:       pollySQL.Name,
 			URL:        pollySQL.Url,

@@ -133,3 +133,21 @@ func (q *Queries) ListAccessRequestsForOwner(ctx context.Context, owner []string
 	}
 	return items, nil
 }
+
+const updateAccessRequest = `-- name: UpdateAccessRequest :exec
+UPDATE dataproduct_access_request
+SET owner                  = $1,
+    polly_documentation_id = $2
+WHERE id = $3
+`
+
+type UpdateAccessRequestParams struct {
+	Owner                string
+	PollyDocumentationID uuid.NullUUID
+	ID                   uuid.UUID
+}
+
+func (q *Queries) UpdateAccessRequest(ctx context.Context, arg UpdateAccessRequestParams) error {
+	_, err := q.db.ExecContext(ctx, updateAccessRequest, arg.Owner, arg.PollyDocumentationID, arg.ID)
+	return err
+}

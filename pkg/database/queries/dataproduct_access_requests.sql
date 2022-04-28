@@ -23,3 +23,9 @@ ORDER BY last_modified DESC;
 SELECT *
 FROM dataproduct_access_request
 WHERE id = @id;
+
+-- name: UpdateAccessRequest :exec
+UPDATE dataproduct_access_request
+SET owner                  = @owner,
+    polly_documentation_id = @polly_documentation_id
+WHERE id = @id;

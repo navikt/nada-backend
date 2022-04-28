@@ -73,6 +73,7 @@ type Querier interface {
 	Search(ctx context.Context, arg SearchParams) ([]SearchRow, error)
 	SetPermissionGroupMetabaseMetadata(ctx context.Context, arg SetPermissionGroupMetabaseMetadataParams) error
 	SoftDeleteMetabaseMetadata(ctx context.Context, dataproductID uuid.UUID) error
+	UpdateAccessRequest(ctx context.Context, arg UpdateAccessRequestParams) error
 	UpdateBigqueryDatasourceSchema(ctx context.Context, arg UpdateBigqueryDatasourceSchemaParams) error
 	UpdateDataproduct(ctx context.Context, arg UpdateDataproductParams) (Dataproduct, error)
 	UpdateStory(ctx context.Context, arg UpdateStoryParams) (Story, error)

@@ -64,6 +64,7 @@ type ComplexityRoot struct {
 
 	AccessRequest struct {
 		DataproductID func(childComplexity int) int
+		Owner         func(childComplexity int) int
 		Polly         func(childComplexity int) int
 		Subject       func(childComplexity int) int
 		SubjectType   func(childComplexity int) int
@@ -86,13 +87,6 @@ type ComplexityRoot struct {
 		LastModified func(childComplexity int) int
 		Name         func(childComplexity int) int
 		Type         func(childComplexity int) int
-	}
-
-	DatabasePolly struct {
-		ExternalID func(childComplexity int) int
-		ID         func(childComplexity int) int
-		Name       func(childComplexity int) int
-		URL        func(childComplexity int) int
 	}
 
 	Dataproduct struct {
@@ -148,6 +142,7 @@ type ComplexityRoot struct {
 		PublishStory                   func(childComplexity int, input models.NewStory) int
 		RemoveRequesterFromDataproduct func(childComplexity int, dataproductID uuid.UUID, subject string) int
 		RevokeAccessToDataproduct      func(childComplexity int, id uuid.UUID) int
+		UpdateAccessRequest            func(childComplexity int, input models.UpdateAccessRequest) int
 		UpdateDataproduct              func(childComplexity int, id uuid.UUID, input models.UpdateDataproduct) int
 		UpdateStoryMetadata            func(childComplexity int, id uuid.UUID, name string, keywords []string, teamkatalogenURL *string) int
 	}
@@ -155,6 +150,13 @@ type ComplexityRoot struct {
 	Owner struct {
 		Group            func(childComplexity int) int
 		TeamkatalogenURL func(childComplexity int) int
+	}
+
+	Polly struct {
+		ExternalID func(childComplexity int) int
+		ID         func(childComplexity int) int
+		Name       func(childComplexity int) int
+		URL        func(childComplexity int) int
 	}
 
 	Query struct {
@@ -273,6 +275,7 @@ type MutationResolver interface {
 	RevokeAccessToDataproduct(ctx context.Context, id uuid.UUID) (bool, error)
 	MapDataproduct(ctx context.Context, dataproductID uuid.UUID, services []models.MappingService) (bool, error)
 	CreateAccessRequest(ctx context.Context, input models.NewAccessRequest) (bool, error)
+	UpdateAccessRequest(ctx context.Context, input models.UpdateAccessRequest) (bool, error)
 	PublishStory(ctx context.Context, input models.NewStory) (*models.GraphStory, error)
 	UpdateStoryMetadata(ctx context.Context, id uuid.UUID, name string, keywords []string, teamkatalogenURL *string) (*models.GraphStory, error)
 	DeleteStory(ctx context.Context, id uuid.UUID) (bool, error)
@@ -288,7 +291,7 @@ type QueryResolver interface {
 	GcpGetTables(ctx context.Context, projectID string, datasetID string) ([]*models.BigQueryTable, error)
 	GcpGetDatasets(ctx context.Context, projectID string) ([]string, error)
 	Keywords(ctx context.Context, prefix *string) ([]*models.Keyword, error)
-	Polly(ctx context.Context, q string) ([]*models.Polly, error)
+	Polly(ctx context.Context, q string) ([]*models.NewPolly, error)
 	Search(ctx context.Context, q *models.SearchQueryOld, options *models.SearchQuery) ([]*models.SearchResultRow, error)
 	Stories(ctx context.Context, draft *bool) ([]*models.GraphStory, error)
 	Story(ctx context.Context, id uuid.UUID, draft *bool) (*models.GraphStory, error)
@@ -374,6 +377,13 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 		}
 
 		return e.complexity.AccessRequest.DataproductID(childComplexity), true
+
+	case "AccessRequest.owner":
+		if e.complexity.AccessRequest.Owner == nil {
+			break
+		}
+
+		return e.complexity.AccessRequest.Owner(childComplexity), true
 
 	case "AccessRequest.polly":
 		if e.complexity.AccessRequest.Polly == nil {
@@ -486,34 +496,6 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 		}
 
 		return e.complexity.BigQueryTable.Type(childComplexity), true
-
-	case "DatabasePolly.externalID":
-		if e.complexity.DatabasePolly.ExternalID == nil {
-			break
-		}
-
-		return e.complexity.DatabasePolly.ExternalID(childComplexity), true
-
-	case "DatabasePolly.id":
-		if e.complexity.DatabasePolly.ID == nil {
-			break
-		}
-
-		return e.complexity.DatabasePolly.ID(childComplexity), true
-
-	case "DatabasePolly.name":
-		if e.complexity.DatabasePolly.Name == nil {
-			break
-		}
-
-		return e.complexity.DatabasePolly.Name(childComplexity), true
-
-	case "DatabasePolly.url":
-		if e.complexity.DatabasePolly.URL == nil {
-			break
-		}
-
-		return e.complexity.DatabasePolly.URL(childComplexity), true
 
 	case "Dataproduct.access":
 		if e.complexity.Dataproduct.Access == nil {
@@ -808,6 +790,18 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.Mutation.RevokeAccessToDataproduct(childComplexity, args["id"].(uuid.UUID)), true
 
+	case "Mutation.updateAccessRequest":
+		if e.complexity.Mutation.UpdateAccessRequest == nil {
+			break
+		}
+
+		args, err := ec.field_Mutation_updateAccessRequest_args(context.TODO(), rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Mutation.UpdateAccessRequest(childComplexity, args["input"].(models.UpdateAccessRequest)), true
+
 	case "Mutation.updateDataproduct":
 		if e.complexity.Mutation.UpdateDataproduct == nil {
 			break
@@ -845,6 +839,34 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 		}
 
 		return e.complexity.Owner.TeamkatalogenURL(childComplexity), true
+
+	case "Polly.externalID":
+		if e.complexity.Polly.ExternalID == nil {
+			break
+		}
+
+		return e.complexity.Polly.ExternalID(childComplexity), true
+
+	case "Polly.id":
+		if e.complexity.Polly.ID == nil {
+			break
+		}
+
+		return e.complexity.Polly.ID(childComplexity), true
+
+	case "Polly.name":
+		if e.complexity.Polly.Name == nil {
+			break
+		}
+
+		return e.complexity.Polly.Name(childComplexity), true
+
+	case "Polly.url":
+		if e.complexity.Polly.URL == nil {
+			break
+		}
+
+		return e.complexity.Polly.URL(childComplexity), true
 
 	case "Query.accessRequest":
 		if e.complexity.Query.AccessRequest == nil {
@@ -1501,8 +1523,10 @@ type AccessRequest @goModel(model: "github.com/navikt/nada-backend/pkg/graph/mod
     subject: String
     "subjectType is the type of entity which should be granted access (user, group or service account)."
     subjectType: SubjectType
+    "owner of the access request"
+    owner: String
     "polly is the process policy attached to this grant"
-    polly: DatabasePolly
+    polly: Polly
 }
 
 """
@@ -1617,7 +1641,20 @@ input NewAccessRequest @goModel(model: "github.com/navikt/nada-backend/pkg/graph
     "owner is the owner of the access request"
     owner: String
     "polly is the process policy attached to this grant"
-    polly: PollyInput
+    polly: NewPolly
+}
+
+
+"""
+UpdateAccessRequest contains metadata on a request to access a dataproduct
+"""
+input UpdateAccessRequest @goModel(model: "github.com/navikt/nada-backend/pkg/graph/models.UpdateAccessRequest") {
+    "id of access request"
+    id: ID!
+    "owner is the owner of the access request"
+    owner: String!
+    "polly is the process policy attached to this grant"
+    polly: UpdatePolly
 }
 
 """
@@ -1767,6 +1804,15 @@ extend type Mutation {
     createAccessRequest(
         input: NewAccessRequest!
     ): Boolean! @authenticated
+
+    """
+    createAccessRequest creates a new access request for a dataproduct
+
+    Require authentication
+    """
+    updateAccessRequest(
+        input: UpdateAccessRequest!
+    ): Boolean! @authenticated
 }
 `, BuiltIn: false},
 	{Name: "schema/gcp.graphql", Input: `"""
@@ -1906,7 +1952,7 @@ type Mutation {
 	dummy(no: String): String
 }
 `, BuiltIn: false},
-	{Name: "schema/polly.graphql", Input: `type DatabasePolly @goModel(model: "github.com/navikt/nada-backend/pkg/graph/models.DatabasePolly") {
+	{Name: "schema/polly.graphql", Input: `type Polly @goModel(model: "github.com/navikt/nada-backend/pkg/graph/models.Polly") {
     "database id"
     id: ID!
     "id from polly"
@@ -1917,7 +1963,7 @@ type Mutation {
     url: String!
 }
 
-input PollyInput @goModel(model: "github.com/navikt/nada-backend/pkg/graph/models.Polly") {
+input NewPolly @goModel(model: "github.com/navikt/nada-backend/pkg/graph/models.NewPolly") {
     "id from polly"
     externalID: String!
     "name from polly"
@@ -1926,7 +1972,18 @@ input PollyInput @goModel(model: "github.com/navikt/nada-backend/pkg/graph/model
     url: String!
 }
 
-type QueryPolly @goModel(model: "github.com/navikt/nada-backend/pkg/graph/models.Polly") {
+input UpdatePolly @goModel(model: "github.com/navikt/nada-backend/pkg/graph/models.UpdatePolly") {
+    "database id"
+    id: ID
+    "id from polly"
+    externalID: String!
+    "name from polly"
+    name: String!
+    "url from polly"
+    url: String!
+}
+
+type QueryPolly @goModel(model: "github.com/navikt/nada-backend/pkg/graph/models.NewPolly") {
     "id from polly"
     externalID: String!
     "name from polly"
@@ -2476,6 +2533,21 @@ func (ec *executionContext) field_Mutation_revokeAccessToDataproduct_args(ctx co
 		}
 	}
 	args["id"] = arg0
+	return args, nil
+}
+
+func (ec *executionContext) field_Mutation_updateAccessRequest_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
+	var err error
+	args := map[string]interface{}{}
+	var arg0 models.UpdateAccessRequest
+	if tmp, ok := rawArgs["input"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("input"))
+		arg0, err = ec.unmarshalNUpdateAccessRequest2githubᚗcomᚋnaviktᚋnadaᚑbackendᚋpkgᚋgraphᚋmodelsᚐUpdateAccessRequest(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["input"] = arg0
 	return args, nil
 }
 
@@ -3270,6 +3342,47 @@ func (ec *executionContext) fieldContext_AccessRequest_subjectType(ctx context.C
 	return fc, nil
 }
 
+func (ec *executionContext) _AccessRequest_owner(ctx context.Context, field graphql.CollectedField, obj *models.AccessRequest) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_AccessRequest_owner(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Owner, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		return graphql.Null
+	}
+	res := resTmp.(*string)
+	fc.Result = res
+	return ec.marshalOString2ᚖstring(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_AccessRequest_owner(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "AccessRequest",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
 func (ec *executionContext) _AccessRequest_polly(ctx context.Context, field graphql.CollectedField, obj *models.AccessRequest) (ret graphql.Marshaler) {
 	fc, err := ec.fieldContext_AccessRequest_polly(ctx, field)
 	if err != nil {
@@ -3293,9 +3406,9 @@ func (ec *executionContext) _AccessRequest_polly(ctx context.Context, field grap
 	if resTmp == nil {
 		return graphql.Null
 	}
-	res := resTmp.(*models.DatabasePolly)
+	res := resTmp.(*models.Polly)
 	fc.Result = res
-	return ec.marshalODatabasePolly2ᚖgithubᚗcomᚋnaviktᚋnadaᚑbackendᚋpkgᚋgraphᚋmodelsᚐDatabasePolly(ctx, field.Selections, res)
+	return ec.marshalOPolly2ᚖgithubᚗcomᚋnaviktᚋnadaᚑbackendᚋpkgᚋgraphᚋmodelsᚐPolly(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) fieldContext_AccessRequest_polly(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
@@ -3307,15 +3420,15 @@ func (ec *executionContext) fieldContext_AccessRequest_polly(ctx context.Context
 		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
 			switch field.Name {
 			case "id":
-				return ec.fieldContext_DatabasePolly_id(ctx, field)
+				return ec.fieldContext_Polly_id(ctx, field)
 			case "externalID":
-				return ec.fieldContext_DatabasePolly_externalID(ctx, field)
+				return ec.fieldContext_Polly_externalID(ctx, field)
 			case "name":
-				return ec.fieldContext_DatabasePolly_name(ctx, field)
+				return ec.fieldContext_Polly_name(ctx, field)
 			case "url":
-				return ec.fieldContext_DatabasePolly_url(ctx, field)
+				return ec.fieldContext_Polly_url(ctx, field)
 			}
-			return nil, fmt.Errorf("no field named %q was found under type DatabasePolly", field.Name)
+			return nil, fmt.Errorf("no field named %q was found under type Polly", field.Name)
 		},
 	}
 	return fc, nil
@@ -3895,182 +4008,6 @@ func (ec *executionContext) fieldContext_BigQueryTable_type(ctx context.Context,
 		IsResolver: false,
 		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
 			return nil, errors.New("field of type BigQueryType does not have child fields")
-		},
-	}
-	return fc, nil
-}
-
-func (ec *executionContext) _DatabasePolly_id(ctx context.Context, field graphql.CollectedField, obj *models.DatabasePolly) (ret graphql.Marshaler) {
-	fc, err := ec.fieldContext_DatabasePolly_id(ctx, field)
-	if err != nil {
-		return graphql.Null
-	}
-	ctx = graphql.WithFieldContext(ctx, fc)
-	defer func() {
-		if r := recover(); r != nil {
-			ec.Error(ctx, ec.Recover(ctx, r))
-			ret = graphql.Null
-		}
-	}()
-	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
-		ctx = rctx // use context from middleware stack in children
-		return obj.ID, nil
-	})
-	if err != nil {
-		ec.Error(ctx, err)
-		return graphql.Null
-	}
-	if resTmp == nil {
-		if !graphql.HasFieldError(ctx, fc) {
-			ec.Errorf(ctx, "must not be null")
-		}
-		return graphql.Null
-	}
-	res := resTmp.(uuid.UUID)
-	fc.Result = res
-	return ec.marshalNID2githubᚗcomᚋgoogleᚋuuidᚐUUID(ctx, field.Selections, res)
-}
-
-func (ec *executionContext) fieldContext_DatabasePolly_id(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "DatabasePolly",
-		Field:      field,
-		IsMethod:   false,
-		IsResolver: false,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type ID does not have child fields")
-		},
-	}
-	return fc, nil
-}
-
-func (ec *executionContext) _DatabasePolly_externalID(ctx context.Context, field graphql.CollectedField, obj *models.DatabasePolly) (ret graphql.Marshaler) {
-	fc, err := ec.fieldContext_DatabasePolly_externalID(ctx, field)
-	if err != nil {
-		return graphql.Null
-	}
-	ctx = graphql.WithFieldContext(ctx, fc)
-	defer func() {
-		if r := recover(); r != nil {
-			ec.Error(ctx, ec.Recover(ctx, r))
-			ret = graphql.Null
-		}
-	}()
-	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
-		ctx = rctx // use context from middleware stack in children
-		return obj.ExternalID, nil
-	})
-	if err != nil {
-		ec.Error(ctx, err)
-		return graphql.Null
-	}
-	if resTmp == nil {
-		if !graphql.HasFieldError(ctx, fc) {
-			ec.Errorf(ctx, "must not be null")
-		}
-		return graphql.Null
-	}
-	res := resTmp.(string)
-	fc.Result = res
-	return ec.marshalNString2string(ctx, field.Selections, res)
-}
-
-func (ec *executionContext) fieldContext_DatabasePolly_externalID(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "DatabasePolly",
-		Field:      field,
-		IsMethod:   false,
-		IsResolver: false,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type String does not have child fields")
-		},
-	}
-	return fc, nil
-}
-
-func (ec *executionContext) _DatabasePolly_name(ctx context.Context, field graphql.CollectedField, obj *models.DatabasePolly) (ret graphql.Marshaler) {
-	fc, err := ec.fieldContext_DatabasePolly_name(ctx, field)
-	if err != nil {
-		return graphql.Null
-	}
-	ctx = graphql.WithFieldContext(ctx, fc)
-	defer func() {
-		if r := recover(); r != nil {
-			ec.Error(ctx, ec.Recover(ctx, r))
-			ret = graphql.Null
-		}
-	}()
-	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
-		ctx = rctx // use context from middleware stack in children
-		return obj.Name, nil
-	})
-	if err != nil {
-		ec.Error(ctx, err)
-		return graphql.Null
-	}
-	if resTmp == nil {
-		if !graphql.HasFieldError(ctx, fc) {
-			ec.Errorf(ctx, "must not be null")
-		}
-		return graphql.Null
-	}
-	res := resTmp.(string)
-	fc.Result = res
-	return ec.marshalNString2string(ctx, field.Selections, res)
-}
-
-func (ec *executionContext) fieldContext_DatabasePolly_name(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "DatabasePolly",
-		Field:      field,
-		IsMethod:   false,
-		IsResolver: false,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type String does not have child fields")
-		},
-	}
-	return fc, nil
-}
-
-func (ec *executionContext) _DatabasePolly_url(ctx context.Context, field graphql.CollectedField, obj *models.DatabasePolly) (ret graphql.Marshaler) {
-	fc, err := ec.fieldContext_DatabasePolly_url(ctx, field)
-	if err != nil {
-		return graphql.Null
-	}
-	ctx = graphql.WithFieldContext(ctx, fc)
-	defer func() {
-		if r := recover(); r != nil {
-			ec.Error(ctx, ec.Recover(ctx, r))
-			ret = graphql.Null
-		}
-	}()
-	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
-		ctx = rctx // use context from middleware stack in children
-		return obj.URL, nil
-	})
-	if err != nil {
-		ec.Error(ctx, err)
-		return graphql.Null
-	}
-	if resTmp == nil {
-		if !graphql.HasFieldError(ctx, fc) {
-			ec.Errorf(ctx, "must not be null")
-		}
-		return graphql.Null
-	}
-	res := resTmp.(string)
-	fc.Result = res
-	return ec.marshalNString2string(ctx, field.Selections, res)
-}
-
-func (ec *executionContext) fieldContext_DatabasePolly_url(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "DatabasePolly",
-		Field:      field,
-		IsMethod:   false,
-		IsResolver: false,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type String does not have child fields")
 		},
 	}
 	return fc, nil
@@ -5950,6 +5887,81 @@ func (ec *executionContext) fieldContext_Mutation_createAccessRequest(ctx contex
 	return fc, nil
 }
 
+func (ec *executionContext) _Mutation_updateAccessRequest(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_Mutation_updateAccessRequest(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		directive0 := func(rctx context.Context) (interface{}, error) {
+			ctx = rctx // use context from middleware stack in children
+			return ec.resolvers.Mutation().UpdateAccessRequest(rctx, fc.Args["input"].(models.UpdateAccessRequest))
+		}
+		directive1 := func(ctx context.Context) (interface{}, error) {
+			if ec.directives.Authenticated == nil {
+				return nil, errors.New("directive authenticated is not implemented")
+			}
+			return ec.directives.Authenticated(ctx, nil, directive0, nil)
+		}
+
+		tmp, err := directive1(rctx)
+		if err != nil {
+			return nil, graphql.ErrorOnPath(ctx, err)
+		}
+		if tmp == nil {
+			return nil, nil
+		}
+		if data, ok := tmp.(bool); ok {
+			return data, nil
+		}
+		return nil, fmt.Errorf(`unexpected type %T from directive, should be bool`, tmp)
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(bool)
+	fc.Result = res
+	return ec.marshalNBoolean2bool(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_Mutation_updateAccessRequest(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Mutation",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Boolean does not have child fields")
+		},
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			err = ec.Recover(ctx, r)
+			ec.Error(ctx, err)
+		}
+	}()
+	ctx = graphql.WithFieldContext(ctx, fc)
+	if fc.Args, err = ec.field_Mutation_updateAccessRequest_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+		ec.Error(ctx, err)
+		return
+	}
+	return fc, nil
+}
+
 func (ec *executionContext) _Mutation_publishStory(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
 	fc, err := ec.fieldContext_Mutation_publishStory(ctx, field)
 	if err != nil {
@@ -6282,6 +6294,182 @@ func (ec *executionContext) _Owner_teamkatalogenURL(ctx context.Context, field g
 func (ec *executionContext) fieldContext_Owner_teamkatalogenURL(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
 	fc = &graphql.FieldContext{
 		Object:     "Owner",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Polly_id(ctx context.Context, field graphql.CollectedField, obj *models.Polly) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_Polly_id(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.ID, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(uuid.UUID)
+	fc.Result = res
+	return ec.marshalNID2githubᚗcomᚋgoogleᚋuuidᚐUUID(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_Polly_id(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Polly",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type ID does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Polly_externalID(ctx context.Context, field graphql.CollectedField, obj *models.Polly) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_Polly_externalID(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.ExternalID, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(string)
+	fc.Result = res
+	return ec.marshalNString2string(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_Polly_externalID(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Polly",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Polly_name(ctx context.Context, field graphql.CollectedField, obj *models.Polly) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_Polly_name(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Name, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(string)
+	fc.Result = res
+	return ec.marshalNString2string(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_Polly_name(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Polly",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Polly_url(ctx context.Context, field graphql.CollectedField, obj *models.Polly) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_Polly_url(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.URL, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(string)
+	fc.Result = res
+	return ec.marshalNString2string(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_Polly_url(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Polly",
 		Field:      field,
 		IsMethod:   false,
 		IsResolver: false,
@@ -6632,6 +6820,8 @@ func (ec *executionContext) fieldContext_Query_accessRequest(ctx context.Context
 				return ec.fieldContext_AccessRequest_subject(ctx, field)
 			case "subjectType":
 				return ec.fieldContext_AccessRequest_subjectType(ctx, field)
+			case "owner":
+				return ec.fieldContext_AccessRequest_owner(ctx, field)
 			case "polly":
 				return ec.fieldContext_AccessRequest_polly(ctx, field)
 			}
@@ -6717,6 +6907,8 @@ func (ec *executionContext) fieldContext_Query_accessRequestsForOwner(ctx contex
 				return ec.fieldContext_AccessRequest_subject(ctx, field)
 			case "subjectType":
 				return ec.fieldContext_AccessRequest_subjectType(ctx, field)
+			case "owner":
+				return ec.fieldContext_AccessRequest_owner(ctx, field)
 			case "polly":
 				return ec.fieldContext_AccessRequest_polly(ctx, field)
 			}
@@ -6791,6 +6983,8 @@ func (ec *executionContext) fieldContext_Query_accessRequestsForDataproduct(ctx 
 				return ec.fieldContext_AccessRequest_subject(ctx, field)
 			case "subjectType":
 				return ec.fieldContext_AccessRequest_subjectType(ctx, field)
+			case "owner":
+				return ec.fieldContext_AccessRequest_owner(ctx, field)
 			case "polly":
 				return ec.fieldContext_AccessRequest_polly(ctx, field)
 			}
@@ -7058,9 +7252,9 @@ func (ec *executionContext) _Query_polly(ctx context.Context, field graphql.Coll
 		}
 		return graphql.Null
 	}
-	res := resTmp.([]*models.Polly)
+	res := resTmp.([]*models.NewPolly)
 	fc.Result = res
-	return ec.marshalNQueryPolly2ᚕᚖgithubᚗcomᚋnaviktᚋnadaᚑbackendᚋpkgᚋgraphᚋmodelsᚐPollyᚄ(ctx, field.Selections, res)
+	return ec.marshalNQueryPolly2ᚕᚖgithubᚗcomᚋnaviktᚋnadaᚑbackendᚋpkgᚋgraphᚋmodelsᚐNewPollyᚄ(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) fieldContext_Query_polly(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
@@ -7708,7 +7902,7 @@ func (ec *executionContext) fieldContext_Query___schema(ctx context.Context, fie
 	return fc, nil
 }
 
-func (ec *executionContext) _QueryPolly_externalID(ctx context.Context, field graphql.CollectedField, obj *models.Polly) (ret graphql.Marshaler) {
+func (ec *executionContext) _QueryPolly_externalID(ctx context.Context, field graphql.CollectedField, obj *models.NewPolly) (ret graphql.Marshaler) {
 	fc, err := ec.fieldContext_QueryPolly_externalID(ctx, field)
 	if err != nil {
 		return graphql.Null
@@ -7752,7 +7946,7 @@ func (ec *executionContext) fieldContext_QueryPolly_externalID(ctx context.Conte
 	return fc, nil
 }
 
-func (ec *executionContext) _QueryPolly_name(ctx context.Context, field graphql.CollectedField, obj *models.Polly) (ret graphql.Marshaler) {
+func (ec *executionContext) _QueryPolly_name(ctx context.Context, field graphql.CollectedField, obj *models.NewPolly) (ret graphql.Marshaler) {
 	fc, err := ec.fieldContext_QueryPolly_name(ctx, field)
 	if err != nil {
 		return graphql.Null
@@ -7796,7 +7990,7 @@ func (ec *executionContext) fieldContext_QueryPolly_name(ctx context.Context, fi
 	return fc, nil
 }
 
-func (ec *executionContext) _QueryPolly_url(ctx context.Context, field graphql.CollectedField, obj *models.Polly) (ret graphql.Marshaler) {
+func (ec *executionContext) _QueryPolly_url(ctx context.Context, field graphql.CollectedField, obj *models.NewPolly) (ret graphql.Marshaler) {
 	fc, err := ec.fieldContext_QueryPolly_url(ctx, field)
 	if err != nil {
 		return graphql.Null
@@ -11397,7 +11591,7 @@ func (ec *executionContext) unmarshalInputNewAccessRequest(ctx context.Context, 
 			var err error
 
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("polly"))
-			it.Polly, err = ec.unmarshalOPollyInput2ᚖgithubᚗcomᚋnaviktᚋnadaᚑbackendᚋpkgᚋgraphᚋmodelsᚐPolly(ctx, v)
+			it.Polly, err = ec.unmarshalONewPolly2ᚖgithubᚗcomᚋnaviktᚋnadaᚑbackendᚋpkgᚋgraphᚋmodelsᚐNewPolly(ctx, v)
 			if err != nil {
 				return it, err
 			}
@@ -11580,6 +11774,45 @@ func (ec *executionContext) unmarshalInputNewGrant(ctx context.Context, obj inte
 	return it, nil
 }
 
+func (ec *executionContext) unmarshalInputNewPolly(ctx context.Context, obj interface{}) (models.NewPolly, error) {
+	var it models.NewPolly
+	asMap := map[string]interface{}{}
+	for k, v := range obj.(map[string]interface{}) {
+		asMap[k] = v
+	}
+
+	for k, v := range asMap {
+		switch k {
+		case "externalID":
+			var err error
+
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("externalID"))
+			it.ExternalID, err = ec.unmarshalNString2string(ctx, v)
+			if err != nil {
+				return it, err
+			}
+		case "name":
+			var err error
+
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("name"))
+			it.Name, err = ec.unmarshalNString2string(ctx, v)
+			if err != nil {
+				return it, err
+			}
+		case "url":
+			var err error
+
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("url"))
+			it.URL, err = ec.unmarshalNString2string(ctx, v)
+			if err != nil {
+				return it, err
+			}
+		}
+	}
+
+	return it, nil
+}
+
 func (ec *executionContext) unmarshalInputNewStory(ctx context.Context, obj interface{}) (models.NewStory, error) {
 	var it models.NewStory
 	asMap := map[string]interface{}{}
@@ -11626,45 +11859,6 @@ func (ec *executionContext) unmarshalInputNewStory(ctx context.Context, obj inte
 
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("teamkatalogenURL"))
 			it.TeamkatalogenURL, err = ec.unmarshalOString2ᚖstring(ctx, v)
-			if err != nil {
-				return it, err
-			}
-		}
-	}
-
-	return it, nil
-}
-
-func (ec *executionContext) unmarshalInputPollyInput(ctx context.Context, obj interface{}) (models.Polly, error) {
-	var it models.Polly
-	asMap := map[string]interface{}{}
-	for k, v := range obj.(map[string]interface{}) {
-		asMap[k] = v
-	}
-
-	for k, v := range asMap {
-		switch k {
-		case "externalID":
-			var err error
-
-			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("externalID"))
-			it.ExternalID, err = ec.unmarshalNString2string(ctx, v)
-			if err != nil {
-				return it, err
-			}
-		case "name":
-			var err error
-
-			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("name"))
-			it.Name, err = ec.unmarshalNString2string(ctx, v)
-			if err != nil {
-				return it, err
-			}
-		case "url":
-			var err error
-
-			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("url"))
-			it.URL, err = ec.unmarshalNString2string(ctx, v)
 			if err != nil {
 				return it, err
 			}
@@ -11800,6 +11994,45 @@ func (ec *executionContext) unmarshalInputSearchQuery(ctx context.Context, obj i
 	return it, nil
 }
 
+func (ec *executionContext) unmarshalInputUpdateAccessRequest(ctx context.Context, obj interface{}) (models.UpdateAccessRequest, error) {
+	var it models.UpdateAccessRequest
+	asMap := map[string]interface{}{}
+	for k, v := range obj.(map[string]interface{}) {
+		asMap[k] = v
+	}
+
+	for k, v := range asMap {
+		switch k {
+		case "id":
+			var err error
+
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("id"))
+			it.ID, err = ec.unmarshalNID2githubᚗcomᚋgoogleᚋuuidᚐUUID(ctx, v)
+			if err != nil {
+				return it, err
+			}
+		case "owner":
+			var err error
+
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("owner"))
+			it.Owner, err = ec.unmarshalNString2string(ctx, v)
+			if err != nil {
+				return it, err
+			}
+		case "polly":
+			var err error
+
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("polly"))
+			it.Polly, err = ec.unmarshalOUpdatePolly2ᚖgithubᚗcomᚋnaviktᚋnadaᚑbackendᚋpkgᚋgraphᚋmodelsᚐUpdatePolly(ctx, v)
+			if err != nil {
+				return it, err
+			}
+		}
+	}
+
+	return it, nil
+}
+
 func (ec *executionContext) unmarshalInputUpdateDataproduct(ctx context.Context, obj interface{}) (models.UpdateDataproduct, error) {
 	var it models.UpdateDataproduct
 	asMap := map[string]interface{}{}
@@ -11862,6 +12095,53 @@ func (ec *executionContext) unmarshalInputUpdateDataproduct(ctx context.Context,
 
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("requesters"))
 			it.Requesters, err = ec.unmarshalOString2ᚕstringᚄ(ctx, v)
+			if err != nil {
+				return it, err
+			}
+		}
+	}
+
+	return it, nil
+}
+
+func (ec *executionContext) unmarshalInputUpdatePolly(ctx context.Context, obj interface{}) (models.UpdatePolly, error) {
+	var it models.UpdatePolly
+	asMap := map[string]interface{}{}
+	for k, v := range obj.(map[string]interface{}) {
+		asMap[k] = v
+	}
+
+	for k, v := range asMap {
+		switch k {
+		case "id":
+			var err error
+
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("id"))
+			it.ID, err = ec.unmarshalOID2ᚖgithubᚗcomᚋgoogleᚋuuidᚐUUID(ctx, v)
+			if err != nil {
+				return it, err
+			}
+		case "externalID":
+			var err error
+
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("externalID"))
+			it.ExternalID, err = ec.unmarshalNString2string(ctx, v)
+			if err != nil {
+				return it, err
+			}
+		case "name":
+			var err error
+
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("name"))
+			it.Name, err = ec.unmarshalNString2string(ctx, v)
+			if err != nil {
+				return it, err
+			}
+		case "url":
+			var err error
+
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("url"))
+			it.URL, err = ec.unmarshalNString2string(ctx, v)
 			if err != nil {
 				return it, err
 			}
@@ -12037,6 +12317,10 @@ func (ec *executionContext) _AccessRequest(ctx context.Context, sel ast.Selectio
 
 			out.Values[i] = ec._AccessRequest_subjectType(ctx, field, obj)
 
+		case "owner":
+
+			out.Values[i] = ec._AccessRequest_owner(ctx, field, obj)
+
 		case "polly":
 
 			out.Values[i] = ec._AccessRequest_polly(ctx, field, obj)
@@ -12180,55 +12464,6 @@ func (ec *executionContext) _BigQueryTable(ctx context.Context, sel ast.Selectio
 		case "type":
 
 			out.Values[i] = ec._BigQueryTable_type(ctx, field, obj)
-
-			if out.Values[i] == graphql.Null {
-				invalids++
-			}
-		default:
-			panic("unknown field " + strconv.Quote(field.Name))
-		}
-	}
-	out.Dispatch()
-	if invalids > 0 {
-		return graphql.Null
-	}
-	return out
-}
-
-var databasePollyImplementors = []string{"DatabasePolly"}
-
-func (ec *executionContext) _DatabasePolly(ctx context.Context, sel ast.SelectionSet, obj *models.DatabasePolly) graphql.Marshaler {
-	fields := graphql.CollectFields(ec.OperationContext, sel, databasePollyImplementors)
-	out := graphql.NewFieldSet(fields)
-	var invalids uint32
-	for i, field := range fields {
-		switch field.Name {
-		case "__typename":
-			out.Values[i] = graphql.MarshalString("DatabasePolly")
-		case "id":
-
-			out.Values[i] = ec._DatabasePolly_id(ctx, field, obj)
-
-			if out.Values[i] == graphql.Null {
-				invalids++
-			}
-		case "externalID":
-
-			out.Values[i] = ec._DatabasePolly_externalID(ctx, field, obj)
-
-			if out.Values[i] == graphql.Null {
-				invalids++
-			}
-		case "name":
-
-			out.Values[i] = ec._DatabasePolly_name(ctx, field, obj)
-
-			if out.Values[i] == graphql.Null {
-				invalids++
-			}
-		case "url":
-
-			out.Values[i] = ec._DatabasePolly_url(ctx, field, obj)
 
 			if out.Values[i] == graphql.Null {
 				invalids++
@@ -12693,6 +12928,15 @@ func (ec *executionContext) _Mutation(ctx context.Context, sel ast.SelectionSet)
 			if out.Values[i] == graphql.Null {
 				invalids++
 			}
+		case "updateAccessRequest":
+
+			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
+				return ec._Mutation_updateAccessRequest(ctx, field)
+			})
+
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
 		case "publishStory":
 
 			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
@@ -12752,6 +12996,55 @@ func (ec *executionContext) _Owner(ctx context.Context, sel ast.SelectionSet, ob
 
 			out.Values[i] = ec._Owner_teamkatalogenURL(ctx, field, obj)
 
+		default:
+			panic("unknown field " + strconv.Quote(field.Name))
+		}
+	}
+	out.Dispatch()
+	if invalids > 0 {
+		return graphql.Null
+	}
+	return out
+}
+
+var pollyImplementors = []string{"Polly"}
+
+func (ec *executionContext) _Polly(ctx context.Context, sel ast.SelectionSet, obj *models.Polly) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, pollyImplementors)
+	out := graphql.NewFieldSet(fields)
+	var invalids uint32
+	for i, field := range fields {
+		switch field.Name {
+		case "__typename":
+			out.Values[i] = graphql.MarshalString("Polly")
+		case "id":
+
+			out.Values[i] = ec._Polly_id(ctx, field, obj)
+
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
+		case "externalID":
+
+			out.Values[i] = ec._Polly_externalID(ctx, field, obj)
+
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
+		case "name":
+
+			out.Values[i] = ec._Polly_name(ctx, field, obj)
+
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
+		case "url":
+
+			out.Values[i] = ec._Polly_url(ctx, field, obj)
+
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
 		default:
 			panic("unknown field " + strconv.Quote(field.Name))
 		}
@@ -13221,7 +13514,7 @@ func (ec *executionContext) _Query(ctx context.Context, sel ast.SelectionSet) gr
 
 var queryPollyImplementors = []string{"QueryPolly"}
 
-func (ec *executionContext) _QueryPolly(ctx context.Context, sel ast.SelectionSet, obj *models.Polly) graphql.Marshaler {
+func (ec *executionContext) _QueryPolly(ctx context.Context, sel ast.SelectionSet, obj *models.NewPolly) graphql.Marshaler {
 	fields := graphql.CollectFields(ec.OperationContext, sel, queryPollyImplementors)
 	out := graphql.NewFieldSet(fields)
 	var invalids uint32
@@ -14809,7 +15102,7 @@ func (ec *executionContext) marshalNOwner2ᚖgithubᚗcomᚋnaviktᚋnadaᚑback
 	return ec._Owner(ctx, sel, v)
 }
 
-func (ec *executionContext) marshalNQueryPolly2ᚕᚖgithubᚗcomᚋnaviktᚋnadaᚑbackendᚋpkgᚋgraphᚋmodelsᚐPollyᚄ(ctx context.Context, sel ast.SelectionSet, v []*models.Polly) graphql.Marshaler {
+func (ec *executionContext) marshalNQueryPolly2ᚕᚖgithubᚗcomᚋnaviktᚋnadaᚑbackendᚋpkgᚋgraphᚋmodelsᚐNewPollyᚄ(ctx context.Context, sel ast.SelectionSet, v []*models.NewPolly) graphql.Marshaler {
 	ret := make(graphql.Array, len(v))
 	var wg sync.WaitGroup
 	isLen1 := len(v) == 1
@@ -14833,7 +15126,7 @@ func (ec *executionContext) marshalNQueryPolly2ᚕᚖgithubᚗcomᚋnaviktᚋnad
 			if !isLen1 {
 				defer wg.Done()
 			}
-			ret[i] = ec.marshalNQueryPolly2ᚖgithubᚗcomᚋnaviktᚋnadaᚑbackendᚋpkgᚋgraphᚋmodelsᚐPolly(ctx, sel, v[i])
+			ret[i] = ec.marshalNQueryPolly2ᚖgithubᚗcomᚋnaviktᚋnadaᚑbackendᚋpkgᚋgraphᚋmodelsᚐNewPolly(ctx, sel, v[i])
 		}
 		if isLen1 {
 			f(i)
@@ -14853,7 +15146,7 @@ func (ec *executionContext) marshalNQueryPolly2ᚕᚖgithubᚗcomᚋnaviktᚋnad
 	return ret
 }
 
-func (ec *executionContext) marshalNQueryPolly2ᚖgithubᚗcomᚋnaviktᚋnadaᚑbackendᚋpkgᚋgraphᚋmodelsᚐPolly(ctx context.Context, sel ast.SelectionSet, v *models.Polly) graphql.Marshaler {
+func (ec *executionContext) marshalNQueryPolly2ᚖgithubᚗcomᚋnaviktᚋnadaᚑbackendᚋpkgᚋgraphᚋmodelsᚐNewPolly(ctx context.Context, sel ast.SelectionSet, v *models.NewPolly) graphql.Marshaler {
 	if v == nil {
 		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
 			ec.Errorf(ctx, "the requested element is null which the schema does not allow")
@@ -15233,6 +15526,11 @@ func (ec *executionContext) marshalNTime2timeᚐTime(ctx context.Context, sel as
 	return res
 }
 
+func (ec *executionContext) unmarshalNUpdateAccessRequest2githubᚗcomᚋnaviktᚋnadaᚑbackendᚋpkgᚋgraphᚋmodelsᚐUpdateAccessRequest(ctx context.Context, v interface{}) (models.UpdateAccessRequest, error) {
+	res, err := ec.unmarshalInputUpdateAccessRequest(ctx, v)
+	return res, graphql.ErrorOnPath(ctx, err)
+}
+
 func (ec *executionContext) unmarshalNUpdateDataproduct2githubᚗcomᚋnaviktᚋnadaᚑbackendᚋpkgᚋgraphᚋmodelsᚐUpdateDataproduct(ctx context.Context, v interface{}) (models.UpdateDataproduct, error) {
 	res, err := ec.unmarshalInputUpdateDataproduct(ctx, v)
 	return res, graphql.ErrorOnPath(ctx, err)
@@ -15531,13 +15829,6 @@ func (ec *executionContext) marshalOBoolean2ᚖbool(ctx context.Context, sel ast
 	return res
 }
 
-func (ec *executionContext) marshalODatabasePolly2ᚖgithubᚗcomᚋnaviktᚋnadaᚑbackendᚋpkgᚋgraphᚋmodelsᚐDatabasePolly(ctx context.Context, sel ast.SelectionSet, v *models.DatabasePolly) graphql.Marshaler {
-	if v == nil {
-		return graphql.Null
-	}
-	return ec._DatabasePolly(ctx, sel, v)
-}
-
 func (ec *executionContext) unmarshalOID2ᚖgithubᚗcomᚋgoogleᚋuuidᚐUUID(ctx context.Context, v interface{}) (*uuid.UUID, error) {
 	if v == nil {
 		return nil, nil
@@ -15653,12 +15944,19 @@ func (ec *executionContext) marshalOMappingService2ᚖgithubᚗcomᚋnaviktᚋna
 	return v
 }
 
-func (ec *executionContext) unmarshalOPollyInput2ᚖgithubᚗcomᚋnaviktᚋnadaᚑbackendᚋpkgᚋgraphᚋmodelsᚐPolly(ctx context.Context, v interface{}) (*models.Polly, error) {
+func (ec *executionContext) unmarshalONewPolly2ᚖgithubᚗcomᚋnaviktᚋnadaᚑbackendᚋpkgᚋgraphᚋmodelsᚐNewPolly(ctx context.Context, v interface{}) (*models.NewPolly, error) {
 	if v == nil {
 		return nil, nil
 	}
-	res, err := ec.unmarshalInputPollyInput(ctx, v)
+	res, err := ec.unmarshalInputNewPolly(ctx, v)
 	return &res, graphql.ErrorOnPath(ctx, err)
+}
+
+func (ec *executionContext) marshalOPolly2ᚖgithubᚗcomᚋnaviktᚋnadaᚑbackendᚋpkgᚋgraphᚋmodelsᚐPolly(ctx context.Context, sel ast.SelectionSet, v *models.Polly) graphql.Marshaler {
+	if v == nil {
+		return graphql.Null
+	}
+	return ec._Polly(ctx, sel, v)
 }
 
 func (ec *executionContext) unmarshalOSearchOptions2ᚖgithubᚗcomᚋnaviktᚋnadaᚑbackendᚋpkgᚋgraphᚋmodelsᚐSearchQuery(ctx context.Context, v interface{}) (*models.SearchQuery, error) {
@@ -15828,6 +16126,14 @@ func (ec *executionContext) marshalOTime2ᚖtimeᚐTime(ctx context.Context, sel
 	}
 	res := graphql.MarshalTime(*v)
 	return res
+}
+
+func (ec *executionContext) unmarshalOUpdatePolly2ᚖgithubᚗcomᚋnaviktᚋnadaᚑbackendᚋpkgᚋgraphᚋmodelsᚐUpdatePolly(ctx context.Context, v interface{}) (*models.UpdatePolly, error) {
+	if v == nil {
+		return nil, nil
+	}
+	res, err := ec.unmarshalInputUpdatePolly(ctx, v)
+	return &res, graphql.ErrorOnPath(ctx, err)
 }
 
 func (ec *executionContext) marshalO__EnumValue2ᚕgithubᚗcomᚋ99designsᚋgqlgenᚋgraphqlᚋintrospectionᚐEnumValueᚄ(ctx context.Context, sel ast.SelectionSet, v []introspection.EnumValue) graphql.Marshaler {

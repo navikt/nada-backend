@@ -46,6 +46,14 @@ func (r *Repo) GetAccessRequest(ctx context.Context, id uuid.UUID) (*models.Acce
 	return r.accessRequestSQLToGraphql(ctx, dataproductAccessRequest)
 }
 
+func (r *Repo) UpdateAccessRequest(ctx context.Context, id uuid.UUID, pollyID uuid.NullUUID, owner string) error {
+	return r.querier.UpdateAccessRequest(ctx, gensql.UpdateAccessRequestParams{
+		Owner:                owner,
+		PollyDocumentationID: pollyID,
+		ID:                   id,
+	})
+}
+
 func (r *Repo) accessRequestSQLsToGraphql(ctx context.Context, accessRequestSQLs []gensql.DataproductAccessRequest) ([]*models.AccessRequest, error) {
 	var accessRequests []*models.AccessRequest
 	for _, ar := range accessRequestSQLs {
@@ -79,8 +87,8 @@ func (r *Repo) accessRequestSQLToGraphql(ctx context.Context, dataproductAccessR
 	}, nil
 }
 
-func (r *Repo) pollySQLToGraphql(ctx context.Context, id uuid.NullUUID) (*models.DatabasePolly, error) {
-	var polly models.DatabasePolly
+func (r *Repo) pollySQLToGraphql(ctx context.Context, id uuid.NullUUID) (*models.Polly, error) {
+	var polly models.Polly
 	if id.Valid {
 		pollyDoc, err := r.querier.GetPollyDocumentation(ctx, id.UUID)
 		if err != nil {
