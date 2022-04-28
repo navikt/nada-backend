@@ -11,12 +11,12 @@ CREATE TABLE polly_documentation
 
 CREATE TABLE dataproduct_access_request
 (
-    "id"             uuid                 DEFAULT uuid_generate_v4(),
-    "dataproduct_id" uuid        NOT NULL,
-    "subject"        TEXT        NOT NULL,
-    "polly_id"       uuid,
-    "last_modified"  TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-    "created"        TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    "id"                     uuid                 DEFAULT uuid_generate_v4(),
+    "dataproduct_id"         uuid        NOT NULL,
+    "subject"                TEXT        NOT NULL,
+    "polly_documentation_id" uuid,
+    "last_modified"          TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    "created"                TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     PRIMARY KEY (id),
     CONSTRAINT fk_requester_dataproduct
         FOREIGN KEY (dataproduct_id)

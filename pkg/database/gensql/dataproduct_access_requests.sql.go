@@ -12,27 +12,27 @@ import (
 const createAccessRequestForDataproduct = `-- name: CreateAccessRequestForDataproduct :one
 INSERT INTO dataproduct_access_request (dataproduct_id,
                                         "subject",
-                                        polly_id)
+                                        polly_documentation_id)
 VALUES ($1,
         LOWER($2),
         $3)
-RETURNING id, dataproduct_id, subject, polly_id, last_modified, created
+RETURNING id, dataproduct_id, subject, polly_documentation_id, last_modified, created
 `
 
 type CreateAccessRequestForDataproductParams struct {
-	DataproductID uuid.UUID
-	Subject       string
-	PollyID       uuid.NullUUID
+	DataproductID        uuid.UUID
+	Subject              string
+	PollyDocumentationID uuid.NullUUID
 }
 
 func (q *Queries) CreateAccessRequestForDataproduct(ctx context.Context, arg CreateAccessRequestForDataproductParams) (DataproductAccessRequest, error) {
-	row := q.db.QueryRowContext(ctx, createAccessRequestForDataproduct, arg.DataproductID, arg.Subject, arg.PollyID)
+	row := q.db.QueryRowContext(ctx, createAccessRequestForDataproduct, arg.DataproductID, arg.Subject, arg.PollyDocumentationID)
 	var i DataproductAccessRequest
 	err := row.Scan(
 		&i.ID,
 		&i.DataproductID,
 		&i.Subject,
-		&i.PollyID,
+		&i.PollyDocumentationID,
 		&i.LastModified,
 		&i.Created,
 	)
@@ -40,7 +40,7 @@ func (q *Queries) CreateAccessRequestForDataproduct(ctx context.Context, arg Cre
 }
 
 const getAccessRequest = `-- name: GetAccessRequest :one
-SELECT id, dataproduct_id, subject, polly_id, last_modified, created
+SELECT id, dataproduct_id, subject, polly_documentation_id, last_modified, created
 FROM dataproduct_access_request
 WHERE id = $1
 `
@@ -52,7 +52,7 @@ func (q *Queries) GetAccessRequest(ctx context.Context, id uuid.UUID) (Dataprodu
 		&i.ID,
 		&i.DataproductID,
 		&i.Subject,
-		&i.PollyID,
+		&i.PollyDocumentationID,
 		&i.LastModified,
 		&i.Created,
 	)
@@ -60,7 +60,7 @@ func (q *Queries) GetAccessRequest(ctx context.Context, id uuid.UUID) (Dataprodu
 }
 
 const listAccessRequestsForDataproduct = `-- name: ListAccessRequestsForDataproduct :many
-SELECT id, dataproduct_id, subject, polly_id, last_modified, created
+SELECT id, dataproduct_id, subject, polly_documentation_id, last_modified, created
 FROM dataproduct_access_request
 WHERE dataproduct_id = $1
 `
@@ -78,7 +78,7 @@ func (q *Queries) ListAccessRequestsForDataproduct(ctx context.Context, dataprod
 			&i.ID,
 			&i.DataproductID,
 			&i.Subject,
-			&i.PollyID,
+			&i.PollyDocumentationID,
 			&i.LastModified,
 			&i.Created,
 		); err != nil {
@@ -96,7 +96,7 @@ func (q *Queries) ListAccessRequestsForDataproduct(ctx context.Context, dataprod
 }
 
 const listAccessRequestsForUser = `-- name: ListAccessRequestsForUser :many
-SELECT id, dataproduct_id, subject, polly_id, last_modified, created
+SELECT id, dataproduct_id, subject, polly_documentation_id, last_modified, created
 FROM dataproduct_access_request
 WHERE subject = $1
 `
@@ -114,7 +114,7 @@ func (q *Queries) ListAccessRequestsForUser(ctx context.Context, subject string)
 			&i.ID,
 			&i.DataproductID,
 			&i.Subject,
-			&i.PollyID,
+			&i.PollyDocumentationID,
 			&i.LastModified,
 			&i.Created,
 		); err != nil {

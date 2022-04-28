@@ -78,12 +78,12 @@ type DataproductAccess struct {
 }
 
 type DataproductAccessRequest struct {
-	ID            uuid.UUID
-	DataproductID uuid.UUID
-	Subject       string
-	PollyID       uuid.NullUUID
-	LastModified  time.Time
-	Created       time.Time
+	ID                   uuid.UUID
+	DataproductID        uuid.UUID
+	Subject              string
+	PollyDocumentationID uuid.NullUUID
+	LastModified         time.Time
+	Created              time.Time
 }
 
 type DataproductRequester struct {
