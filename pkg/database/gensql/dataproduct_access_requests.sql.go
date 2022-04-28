@@ -7,30 +7,39 @@ import (
 	"context"
 
 	"github.com/google/uuid"
+	"github.com/lib/pq"
 )
 
 const createAccessRequestForDataproduct = `-- name: CreateAccessRequestForDataproduct :exec
 INSERT INTO dataproduct_access_request (dataproduct_id,
                                         "subject",
+                                        "owner",
                                         polly_documentation_id)
 VALUES ($1,
         LOWER($2),
-        $3)
+        LOWER($3),
+        $4)
 `
 
 type CreateAccessRequestForDataproductParams struct {
 	DataproductID        uuid.UUID
 	Subject              string
+	Owner                string
 	PollyDocumentationID uuid.NullUUID
 }
 
 func (q *Queries) CreateAccessRequestForDataproduct(ctx context.Context, arg CreateAccessRequestForDataproductParams) error {
-	_, err := q.db.ExecContext(ctx, createAccessRequestForDataproduct, arg.DataproductID, arg.Subject, arg.PollyDocumentationID)
+	_, err := q.db.ExecContext(ctx, createAccessRequestForDataproduct,
+		arg.DataproductID,
+		arg.Subject,
+		arg.Owner,
+		arg.PollyDocumentationID,
+	)
 	return err
 }
 
 const getAccessRequest = `-- name: GetAccessRequest :one
-SELECT id, dataproduct_id, subject, polly_documentation_id, last_modified, created
+SELECT id, dataproduct_id, subject, owner, polly_documentation_id, last_modified, created
 FROM dataproduct_access_request
 WHERE id = $1
 `
@@ -42,6 +51,7 @@ func (q *Queries) GetAccessRequest(ctx context.Context, id uuid.UUID) (Dataprodu
 		&i.ID,
 		&i.DataproductID,
 		&i.Subject,
+		&i.Owner,
 		&i.PollyDocumentationID,
 		&i.LastModified,
 		&i.Created,
@@ -50,7 +60,7 @@ func (q *Queries) GetAccessRequest(ctx context.Context, id uuid.UUID) (Dataprodu
 }
 
 const listAccessRequestsForDataproduct = `-- name: ListAccessRequestsForDataproduct :many
-SELECT id, dataproduct_id, subject, polly_documentation_id, last_modified, created
+SELECT id, dataproduct_id, subject, owner, polly_documentation_id, last_modified, created
 FROM dataproduct_access_request
 WHERE dataproduct_id = $1
 `
@@ -68,6 +78,7 @@ func (q *Queries) ListAccessRequestsForDataproduct(ctx context.Context, dataprod
 			&i.ID,
 			&i.DataproductID,
 			&i.Subject,
+			&i.Owner,
 			&i.PollyDocumentationID,
 			&i.LastModified,
 			&i.Created,
@@ -85,14 +96,15 @@ func (q *Queries) ListAccessRequestsForDataproduct(ctx context.Context, dataprod
 	return items, nil
 }
 
-const listAccessRequestsForUser = `-- name: ListAccessRequestsForUser :many
-SELECT id, dataproduct_id, subject, polly_documentation_id, last_modified, created
+const listAccessRequestsForOwner = `-- name: ListAccessRequestsForOwner :many
+SELECT id, dataproduct_id, subject, owner, polly_documentation_id, last_modified, created
 FROM dataproduct_access_request
-WHERE subject = $1
+WHERE "owner" = ANY ($1::text[])
+ORDER BY last_modified DESC
 `
 
-func (q *Queries) ListAccessRequestsForUser(ctx context.Context, subject string) ([]DataproductAccessRequest, error) {
-	rows, err := q.db.QueryContext(ctx, listAccessRequestsForUser, subject)
+func (q *Queries) ListAccessRequestsForOwner(ctx context.Context, owner []string) ([]DataproductAccessRequest, error) {
+	rows, err := q.db.QueryContext(ctx, listAccessRequestsForOwner, pq.Array(owner))
 	if err != nil {
 		return nil, err
 	}
@@ -104,6 +116,7 @@ func (q *Queries) ListAccessRequestsForUser(ctx context.Context, subject string)
 			&i.ID,
 			&i.DataproductID,
 			&i.Subject,
+			&i.Owner,
 			&i.PollyDocumentationID,
 			&i.LastModified,
 			&i.Created,

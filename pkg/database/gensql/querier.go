@@ -63,7 +63,7 @@ type Querier interface {
 	GetStoryViews(ctx context.Context, storyID uuid.UUID) ([]StoryView, error)
 	GrantAccessToDataproduct(ctx context.Context, arg GrantAccessToDataproductParams) (DataproductAccess, error)
 	ListAccessRequestsForDataproduct(ctx context.Context, dataproductID uuid.UUID) ([]DataproductAccessRequest, error)
-	ListAccessRequestsForUser(ctx context.Context, subject string) ([]DataproductAccessRequest, error)
+	ListAccessRequestsForOwner(ctx context.Context, owner []string) ([]DataproductAccessRequest, error)
 	ListAccessToDataproduct(ctx context.Context, dataproductID uuid.UUID) ([]DataproductAccess, error)
 	ListActiveAccessToDataproduct(ctx context.Context, dataproductID uuid.UUID) ([]DataproductAccess, error)
 	ListUnrevokedExpiredAccessEntries(ctx context.Context) ([]DataproductAccess, error)

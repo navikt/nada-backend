@@ -282,6 +282,11 @@ func (r *mutationResolver) CreateAccessRequest(ctx context.Context, input models
 		subj = *input.Subject
 	}
 
+	owner := "user:" + user.Email
+	if input.Owner != nil {
+		owner = "group:" + *input.Owner
+	}
+
 	subjType := models.SubjectTypeUser
 	if input.SubjectType != nil {
 		subjType = *input.SubjectType
@@ -299,7 +304,7 @@ func (r *mutationResolver) CreateAccessRequest(ctx context.Context, input models
 		pollyID = uuid.NullUUID{UUID: dbPolly.ID, Valid: true}
 	}
 
-	err := r.repo.CreateAccessRequestForDataproduct(ctx, input.DataproductID, pollyID, subjWithType)
+	err := r.repo.CreateAccessRequestForDataproduct(ctx, input.DataproductID, pollyID, subjWithType, owner)
 	if err != nil {
 		return false, err
 	}
@@ -332,11 +337,37 @@ func (r *queryResolver) AccessRequest(ctx context.Context, id uuid.UUID) (*model
 	return r.repo.GetAccessRequest(ctx, id)
 }
 
+func (r *queryResolver) AccessRequestsForOwner(ctx context.Context) ([]*models.AccessRequest, error) {
+	user := auth.GetUser(ctx)
+
+	groups := []string{"user:" + user.Email}
+	for _, g := range user.Groups {
+		groups = append(groups, "group:"+g.Email)
+	}
+
+	return r.repo.ListAccessRequestsForOwner(ctx, groups)
+}
+
+func (r *queryResolver) AccessRequestsForDataproduct(ctx context.Context, dataproductID uuid.UUID) ([]*models.AccessRequest, error) {
+	dp, err := r.repo.GetDataproduct(ctx, dataproductID)
+	if err != nil {
+		return nil, err
+	}
+
+	if err := ensureUserInGroup(ctx, dp.Owner.Group); err != nil {
+		return nil, err
+	}
+
+	return r.repo.ListAccessRequestsForDataproduct(ctx, dataproductID)
+}
+
 // BigQuery returns generated.BigQueryResolver implementation.
 func (r *Resolver) BigQuery() generated.BigQueryResolver { return &bigQueryResolver{r} }
 
 // Dataproduct returns generated.DataproductResolver implementation.
 func (r *Resolver) Dataproduct() generated.DataproductResolver { return &dataproductResolver{r} }
 
-type bigQueryResolver struct{ *Resolver }
-type dataproductResolver struct{ *Resolver }
+type (
+	bigQueryResolver    struct{ *Resolver }
+	dataproductResolver struct{ *Resolver }
+)

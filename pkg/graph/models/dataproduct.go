@@ -75,6 +75,7 @@ type NewAccessRequest struct {
 	DataproductID uuid.UUID    `json:"dataproductID"`
 	Subject       *string      `json:"subject"`
 	SubjectType   *SubjectType `json:"subjectType"`
+	Owner         *string      `json:"owner"`
 	Polly         *Polly       `json:"polly"`
 }
 

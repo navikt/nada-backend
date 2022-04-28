@@ -81,6 +81,7 @@ type DataproductAccessRequest struct {
 	ID                   uuid.UUID
 	DataproductID        uuid.UUID
 	Subject              string
+	Owner                string
 	PollyDocumentationID uuid.NullUUID
 	LastModified         time.Time
 	Created              time.Time

@@ -40,7 +40,6 @@ type Config struct {
 
 type ResolverRoot interface {
 	BigQuery() BigQueryResolver
-	DatabasePolly() DatabasePollyResolver
 	Dataproduct() DataproductResolver
 	Mutation() MutationResolver
 	Query() QueryResolver
@@ -159,22 +158,24 @@ type ComplexityRoot struct {
 	}
 
 	Query struct {
-		AccessRequest  func(childComplexity int, id uuid.UUID) int
-		Dataproduct    func(childComplexity int, id uuid.UUID) int
-		Dataproducts   func(childComplexity int, limit *int, offset *int, service *models.MappingService) int
-		GcpGetDatasets func(childComplexity int, projectID string) int
-		GcpGetTables   func(childComplexity int, projectID string, datasetID string) int
-		GroupStats     func(childComplexity int, limit *int, offset *int) int
-		Keywords       func(childComplexity int, prefix *string) int
-		Polly          func(childComplexity int, q string) int
-		Search         func(childComplexity int, q *models.SearchQueryOld, options *models.SearchQuery) int
-		Stories        func(childComplexity int, draft *bool) int
-		Story          func(childComplexity int, id uuid.UUID, draft *bool) int
-		StoryToken     func(childComplexity int, id uuid.UUID) int
-		StoryView      func(childComplexity int, id uuid.UUID, draft *bool) int
-		Teamkatalogen  func(childComplexity int, q string) int
-		UserInfo       func(childComplexity int) int
-		Version        func(childComplexity int) int
+		AccessRequest                func(childComplexity int, id uuid.UUID) int
+		AccessRequestsForDataproduct func(childComplexity int, dataproductID uuid.UUID) int
+		AccessRequestsForOwner       func(childComplexity int) int
+		Dataproduct                  func(childComplexity int, id uuid.UUID) int
+		Dataproducts                 func(childComplexity int, limit *int, offset *int, service *models.MappingService) int
+		GcpGetDatasets               func(childComplexity int, projectID string) int
+		GcpGetTables                 func(childComplexity int, projectID string, datasetID string) int
+		GroupStats                   func(childComplexity int, limit *int, offset *int) int
+		Keywords                     func(childComplexity int, prefix *string) int
+		Polly                        func(childComplexity int, q string) int
+		Search                       func(childComplexity int, q *models.SearchQueryOld, options *models.SearchQuery) int
+		Stories                      func(childComplexity int, draft *bool) int
+		Story                        func(childComplexity int, id uuid.UUID, draft *bool) int
+		StoryToken                   func(childComplexity int, id uuid.UUID) int
+		StoryView                    func(childComplexity int, id uuid.UUID, draft *bool) int
+		Teamkatalogen                func(childComplexity int, q string) int
+		UserInfo                     func(childComplexity int) int
+		Version                      func(childComplexity int) int
 	}
 
 	QueryPolly struct {
@@ -254,9 +255,6 @@ type ComplexityRoot struct {
 type BigQueryResolver interface {
 	Schema(ctx context.Context, obj *models.BigQuery) ([]*models.TableColumn, error)
 }
-type DatabasePollyResolver interface {
-	ID(ctx context.Context, obj *models.DatabasePolly) (string, error)
-}
 type DataproductResolver interface {
 	Datasource(ctx context.Context, obj *models.Dataproduct) (models.Datasource, error)
 	Requesters(ctx context.Context, obj *models.Dataproduct) ([]string, error)
@@ -285,6 +283,8 @@ type QueryResolver interface {
 	Dataproducts(ctx context.Context, limit *int, offset *int, service *models.MappingService) ([]*models.Dataproduct, error)
 	GroupStats(ctx context.Context, limit *int, offset *int) ([]*models.GroupStats, error)
 	AccessRequest(ctx context.Context, id uuid.UUID) (*models.AccessRequest, error)
+	AccessRequestsForOwner(ctx context.Context) ([]*models.AccessRequest, error)
+	AccessRequestsForDataproduct(ctx context.Context, dataproductID uuid.UUID) ([]*models.AccessRequest, error)
 	GcpGetTables(ctx context.Context, projectID string, datasetID string) ([]*models.BigQueryTable, error)
 	GcpGetDatasets(ctx context.Context, projectID string) ([]string, error)
 	Keywords(ctx context.Context, prefix *string) ([]*models.Keyword, error)
@@ -857,6 +857,25 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 		}
 
 		return e.complexity.Query.AccessRequest(childComplexity, args["id"].(uuid.UUID)), true
+
+	case "Query.accessRequestsForDataproduct":
+		if e.complexity.Query.AccessRequestsForDataproduct == nil {
+			break
+		}
+
+		args, err := ec.field_Query_accessRequestsForDataproduct_args(context.TODO(), rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Query.AccessRequestsForDataproduct(childComplexity, args["dataproductID"].(uuid.UUID)), true
+
+	case "Query.accessRequestsForOwner":
+		if e.complexity.Query.AccessRequestsForOwner == nil {
+			break
+		}
+
+		return e.complexity.Query.AccessRequestsForOwner(childComplexity), true
 
 	case "Query.dataproduct":
 		if e.complexity.Query.Dataproduct == nil {
@@ -1533,7 +1552,20 @@ extend type Query {
     accessRequest(
         "id of access request."
         id: ID!
-    ): AccessRequest!
+    ): AccessRequest! @authenticated
+
+    """
+    accessRequests returns all access requests for an owner
+    """
+    accessRequestsForOwner: [AccessRequest!]! @authenticated
+
+    """
+    accessRequests returns all access requests for a dataproduct
+    """
+    accessRequestsForDataproduct(
+        "dataproductID of the requested dataproduct."
+        dataproductID: ID!
+    ): [AccessRequest!]! @authenticated
 }
 
 """
@@ -1582,6 +1614,8 @@ input NewAccessRequest @goModel(model: "github.com/navikt/nada-backend/pkg/graph
     subject: String
     "subjectType is the type of entity which should be granted access (user, group or service account)."
     subjectType: SubjectType
+    "owner is the owner of the access request"
+    owner: String
     "polly is the process policy attached to this grant"
     polly: PollyInput
 }
@@ -1874,7 +1908,7 @@ type Mutation {
 `, BuiltIn: false},
 	{Name: "schema/polly.graphql", Input: `type DatabasePolly @goModel(model: "github.com/navikt/nada-backend/pkg/graph/models.DatabasePolly") {
     "database id"
-    id: String!
+    id: ID!
     "id from polly"
     externalID: String!
     "name from polly"
@@ -2538,6 +2572,21 @@ func (ec *executionContext) field_Query_accessRequest_args(ctx context.Context, 
 		}
 	}
 	args["id"] = arg0
+	return args, nil
+}
+
+func (ec *executionContext) field_Query_accessRequestsForDataproduct_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
+	var err error
+	args := map[string]interface{}{}
+	var arg0 uuid.UUID
+	if tmp, ok := rawArgs["dataproductID"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("dataproductID"))
+		arg0, err = ec.unmarshalNID2githubᚗcomᚋgoogleᚋuuidᚐUUID(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["dataproductID"] = arg0
 	return args, nil
 }
 
@@ -3865,7 +3914,7 @@ func (ec *executionContext) _DatabasePolly_id(ctx context.Context, field graphql
 	}()
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.DatabasePolly().ID(rctx, obj)
+		return obj.ID, nil
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -3877,19 +3926,19 @@ func (ec *executionContext) _DatabasePolly_id(ctx context.Context, field graphql
 		}
 		return graphql.Null
 	}
-	res := resTmp.(string)
+	res := resTmp.(uuid.UUID)
 	fc.Result = res
-	return ec.marshalNString2string(ctx, field.Selections, res)
+	return ec.marshalNID2githubᚗcomᚋgoogleᚋuuidᚐUUID(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) fieldContext_DatabasePolly_id(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
 	fc = &graphql.FieldContext{
 		Object:     "DatabasePolly",
 		Field:      field,
-		IsMethod:   true,
-		IsResolver: true,
+		IsMethod:   false,
+		IsResolver: false,
 		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type String does not have child fields")
+			return nil, errors.New("field of type ID does not have child fields")
 		},
 	}
 	return fc, nil
@@ -6531,8 +6580,28 @@ func (ec *executionContext) _Query_accessRequest(ctx context.Context, field grap
 		}
 	}()
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
-		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.Query().AccessRequest(rctx, fc.Args["id"].(uuid.UUID))
+		directive0 := func(rctx context.Context) (interface{}, error) {
+			ctx = rctx // use context from middleware stack in children
+			return ec.resolvers.Query().AccessRequest(rctx, fc.Args["id"].(uuid.UUID))
+		}
+		directive1 := func(ctx context.Context) (interface{}, error) {
+			if ec.directives.Authenticated == nil {
+				return nil, errors.New("directive authenticated is not implemented")
+			}
+			return ec.directives.Authenticated(ctx, nil, directive0, nil)
+		}
+
+		tmp, err := directive1(rctx)
+		if err != nil {
+			return nil, graphql.ErrorOnPath(ctx, err)
+		}
+		if tmp == nil {
+			return nil, nil
+		}
+		if data, ok := tmp.(*models.AccessRequest); ok {
+			return data, nil
+		}
+		return nil, fmt.Errorf(`unexpected type %T from directive, should be *github.com/navikt/nada-backend/pkg/graph/models.AccessRequest`, tmp)
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -6577,6 +6646,165 @@ func (ec *executionContext) fieldContext_Query_accessRequest(ctx context.Context
 	}()
 	ctx = graphql.WithFieldContext(ctx, fc)
 	if fc.Args, err = ec.field_Query_accessRequest_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+		ec.Error(ctx, err)
+		return
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Query_accessRequestsForOwner(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_Query_accessRequestsForOwner(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		directive0 := func(rctx context.Context) (interface{}, error) {
+			ctx = rctx // use context from middleware stack in children
+			return ec.resolvers.Query().AccessRequestsForOwner(rctx)
+		}
+		directive1 := func(ctx context.Context) (interface{}, error) {
+			if ec.directives.Authenticated == nil {
+				return nil, errors.New("directive authenticated is not implemented")
+			}
+			return ec.directives.Authenticated(ctx, nil, directive0, nil)
+		}
+
+		tmp, err := directive1(rctx)
+		if err != nil {
+			return nil, graphql.ErrorOnPath(ctx, err)
+		}
+		if tmp == nil {
+			return nil, nil
+		}
+		if data, ok := tmp.([]*models.AccessRequest); ok {
+			return data, nil
+		}
+		return nil, fmt.Errorf(`unexpected type %T from directive, should be []*github.com/navikt/nada-backend/pkg/graph/models.AccessRequest`, tmp)
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.([]*models.AccessRequest)
+	fc.Result = res
+	return ec.marshalNAccessRequest2ᚕᚖgithubᚗcomᚋnaviktᚋnadaᚑbackendᚋpkgᚋgraphᚋmodelsᚐAccessRequestᚄ(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_Query_accessRequestsForOwner(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Query",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "dataproductID":
+				return ec.fieldContext_AccessRequest_dataproductID(ctx, field)
+			case "subject":
+				return ec.fieldContext_AccessRequest_subject(ctx, field)
+			case "subjectType":
+				return ec.fieldContext_AccessRequest_subjectType(ctx, field)
+			case "polly":
+				return ec.fieldContext_AccessRequest_polly(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type AccessRequest", field.Name)
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Query_accessRequestsForDataproduct(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_Query_accessRequestsForDataproduct(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		directive0 := func(rctx context.Context) (interface{}, error) {
+			ctx = rctx // use context from middleware stack in children
+			return ec.resolvers.Query().AccessRequestsForDataproduct(rctx, fc.Args["dataproductID"].(uuid.UUID))
+		}
+		directive1 := func(ctx context.Context) (interface{}, error) {
+			if ec.directives.Authenticated == nil {
+				return nil, errors.New("directive authenticated is not implemented")
+			}
+			return ec.directives.Authenticated(ctx, nil, directive0, nil)
+		}
+
+		tmp, err := directive1(rctx)
+		if err != nil {
+			return nil, graphql.ErrorOnPath(ctx, err)
+		}
+		if tmp == nil {
+			return nil, nil
+		}
+		if data, ok := tmp.([]*models.AccessRequest); ok {
+			return data, nil
+		}
+		return nil, fmt.Errorf(`unexpected type %T from directive, should be []*github.com/navikt/nada-backend/pkg/graph/models.AccessRequest`, tmp)
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.([]*models.AccessRequest)
+	fc.Result = res
+	return ec.marshalNAccessRequest2ᚕᚖgithubᚗcomᚋnaviktᚋnadaᚑbackendᚋpkgᚋgraphᚋmodelsᚐAccessRequestᚄ(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_Query_accessRequestsForDataproduct(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Query",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "dataproductID":
+				return ec.fieldContext_AccessRequest_dataproductID(ctx, field)
+			case "subject":
+				return ec.fieldContext_AccessRequest_subject(ctx, field)
+			case "subjectType":
+				return ec.fieldContext_AccessRequest_subjectType(ctx, field)
+			case "polly":
+				return ec.fieldContext_AccessRequest_polly(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type AccessRequest", field.Name)
+		},
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			err = ec.Recover(ctx, r)
+			ec.Error(ctx, err)
+		}
+	}()
+	ctx = graphql.WithFieldContext(ctx, fc)
+	if fc.Args, err = ec.field_Query_accessRequestsForDataproduct_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
 		ec.Error(ctx, err)
 		return
 	}
@@ -11157,6 +11385,14 @@ func (ec *executionContext) unmarshalInputNewAccessRequest(ctx context.Context, 
 			if err != nil {
 				return it, err
 			}
+		case "owner":
+			var err error
+
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("owner"))
+			it.Owner, err = ec.unmarshalOString2ᚖstring(ctx, v)
+			if err != nil {
+				return it, err
+			}
 		case "polly":
 			var err error
 
@@ -11970,45 +12206,32 @@ func (ec *executionContext) _DatabasePolly(ctx context.Context, sel ast.Selectio
 		case "__typename":
 			out.Values[i] = graphql.MarshalString("DatabasePolly")
 		case "id":
-			field := field
 
-			innerFunc := func(ctx context.Context) (res graphql.Marshaler) {
-				defer func() {
-					if r := recover(); r != nil {
-						ec.Error(ctx, ec.Recover(ctx, r))
-					}
-				}()
-				res = ec._DatabasePolly_id(ctx, field, obj)
-				if res == graphql.Null {
-					atomic.AddUint32(&invalids, 1)
-				}
-				return res
+			out.Values[i] = ec._DatabasePolly_id(ctx, field, obj)
+
+			if out.Values[i] == graphql.Null {
+				invalids++
 			}
-
-			out.Concurrently(i, func() graphql.Marshaler {
-				return innerFunc(ctx)
-
-			})
 		case "externalID":
 
 			out.Values[i] = ec._DatabasePolly_externalID(ctx, field, obj)
 
 			if out.Values[i] == graphql.Null {
-				atomic.AddUint32(&invalids, 1)
+				invalids++
 			}
 		case "name":
 
 			out.Values[i] = ec._DatabasePolly_name(ctx, field, obj)
 
 			if out.Values[i] == graphql.Null {
-				atomic.AddUint32(&invalids, 1)
+				invalids++
 			}
 		case "url":
 
 			out.Values[i] = ec._DatabasePolly_url(ctx, field, obj)
 
 			if out.Values[i] == graphql.Null {
-				atomic.AddUint32(&invalids, 1)
+				invalids++
 			}
 		default:
 			panic("unknown field " + strconv.Quote(field.Name))
@@ -12661,6 +12884,52 @@ func (ec *executionContext) _Query(ctx context.Context, sel ast.SelectionSet) gr
 					}
 				}()
 				res = ec._Query_accessRequest(ctx, field)
+				if res == graphql.Null {
+					atomic.AddUint32(&invalids, 1)
+				}
+				return res
+			}
+
+			rrm := func(ctx context.Context) graphql.Marshaler {
+				return ec.OperationContext.RootResolverMiddleware(ctx, innerFunc)
+			}
+
+			out.Concurrently(i, func() graphql.Marshaler {
+				return rrm(innerCtx)
+			})
+		case "accessRequestsForOwner":
+			field := field
+
+			innerFunc := func(ctx context.Context) (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._Query_accessRequestsForOwner(ctx, field)
+				if res == graphql.Null {
+					atomic.AddUint32(&invalids, 1)
+				}
+				return res
+			}
+
+			rrm := func(ctx context.Context) graphql.Marshaler {
+				return ec.OperationContext.RootResolverMiddleware(ctx, innerFunc)
+			}
+
+			out.Concurrently(i, func() graphql.Marshaler {
+				return rrm(innerCtx)
+			})
+		case "accessRequestsForDataproduct":
+			field := field
+
+			innerFunc := func(ctx context.Context) (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._Query_accessRequestsForDataproduct(ctx, field)
 				if res == graphql.Null {
 					atomic.AddUint32(&invalids, 1)
 				}
@@ -13914,6 +14183,50 @@ func (ec *executionContext) marshalNAccess2ᚖgithubᚗcomᚋnaviktᚋnadaᚑbac
 
 func (ec *executionContext) marshalNAccessRequest2githubᚗcomᚋnaviktᚋnadaᚑbackendᚋpkgᚋgraphᚋmodelsᚐAccessRequest(ctx context.Context, sel ast.SelectionSet, v models.AccessRequest) graphql.Marshaler {
 	return ec._AccessRequest(ctx, sel, &v)
+}
+
+func (ec *executionContext) marshalNAccessRequest2ᚕᚖgithubᚗcomᚋnaviktᚋnadaᚑbackendᚋpkgᚋgraphᚋmodelsᚐAccessRequestᚄ(ctx context.Context, sel ast.SelectionSet, v []*models.AccessRequest) graphql.Marshaler {
+	ret := make(graphql.Array, len(v))
+	var wg sync.WaitGroup
+	isLen1 := len(v) == 1
+	if !isLen1 {
+		wg.Add(len(v))
+	}
+	for i := range v {
+		i := i
+		fc := &graphql.FieldContext{
+			Index:  &i,
+			Result: &v[i],
+		}
+		ctx := graphql.WithFieldContext(ctx, fc)
+		f := func(i int) {
+			defer func() {
+				if r := recover(); r != nil {
+					ec.Error(ctx, ec.Recover(ctx, r))
+					ret = nil
+				}
+			}()
+			if !isLen1 {
+				defer wg.Done()
+			}
+			ret[i] = ec.marshalNAccessRequest2ᚖgithubᚗcomᚋnaviktᚋnadaᚑbackendᚋpkgᚋgraphᚋmodelsᚐAccessRequest(ctx, sel, v[i])
+		}
+		if isLen1 {
+			f(i)
+		} else {
+			go f(i)
+		}
+
+	}
+	wg.Wait()
+
+	for _, e := range ret {
+		if e == graphql.Null {
+			return graphql.Null
+		}
+	}
+
+	return ret
 }
 
 func (ec *executionContext) marshalNAccessRequest2ᚖgithubᚗcomᚋnaviktᚋnadaᚑbackendᚋpkgᚋgraphᚋmodelsᚐAccessRequest(ctx context.Context, sel ast.SelectionSet, v *models.AccessRequest) graphql.Marshaler {

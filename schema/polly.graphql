@@ -1,6 +1,6 @@
 type DatabasePolly @goModel(model: "github.com/navikt/nada-backend/pkg/graph/models.DatabasePolly") {
     "database id"
-    id: String!
+    id: ID!
     "id from polly"
     externalID: String!
     "name from polly"

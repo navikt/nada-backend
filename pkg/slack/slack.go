@@ -39,8 +39,7 @@ func (s SlackClient) NewDataproduct(dp *models.Dataproduct) error {
 		owner = "Noen"
 		link = ""
 	}
-	message :=
-		owner + link + " har lagd et dataprodukt \nNavn: " + dp.Name + ", beskrivelse: " + desc + "\nLink: " + s.datakatalogurl + "/dataproduct/" + dp.ID.String()
+	message := owner + link + " har lagd et dataprodukt \nNavn: " + dp.Name + ", beskrivelse: " + desc + "\nLink: " + s.datakatalogurl + "/dataproduct/" + dp.ID.String()
 
 	err := slack.PostWebhook(s.webhookurl, &slack.WebhookMessage{
 		Username: "NadaBot",

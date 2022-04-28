@@ -14,6 +14,7 @@ CREATE TABLE dataproduct_access_request
     "id"                     uuid                 DEFAULT uuid_generate_v4(),
     "dataproduct_id"         uuid        NOT NULL,
     "subject"                TEXT        NOT NULL,
+    "owner"                  TEXT        NOT NULL,
     "polly_documentation_id" uuid,
     "last_modified"          TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     "created"                TIMESTAMPTZ NOT NULL DEFAULT NOW(),

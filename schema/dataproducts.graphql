@@ -159,7 +159,20 @@ extend type Query {
     accessRequest(
         "id of access request."
         id: ID!
-    ): AccessRequest!
+    ): AccessRequest! @authenticated
+
+    """
+    accessRequests returns all access requests for an owner
+    """
+    accessRequestsForOwner: [AccessRequest!]! @authenticated
+
+    """
+    accessRequests returns all access requests for a dataproduct
+    """
+    accessRequestsForDataproduct(
+        "dataproductID of the requested dataproduct."
+        dataproductID: ID!
+    ): [AccessRequest!]! @authenticated
 }
 
 """
@@ -208,6 +221,8 @@ input NewAccessRequest @goModel(model: "github.com/navikt/nada-backend/pkg/graph
     subject: String
     "subjectType is the type of entity which should be granted access (user, group or service account)."
     subjectType: SubjectType
+    "owner is the owner of the access request"
+    owner: String
     "polly is the process policy attached to this grant"
     polly: PollyInput
 }
