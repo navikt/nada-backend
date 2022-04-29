@@ -29,3 +29,10 @@ CREATE TRIGGER dataproduct_access_request_set_modified
     ON dataproduct_access_request
     FOR EACH ROW
 EXECUTE PROCEDURE update_modified_timestamp();
+
+-- +goose Down
+DROP TRIGGER dataproduct_access_request_set_modified ON dataproduct_access_request;
+
+DROP TABLE polly_documentation;
+
+DROP TABLE dataproduct_access_request;
