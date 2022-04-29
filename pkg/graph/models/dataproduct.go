@@ -65,6 +65,7 @@ type NewDataproduct struct {
 }
 
 type AccessRequest struct {
+	ID            uuid.UUID    `json:"id"`
 	DataproductID uuid.UUID    `json:"dataproductID"`
 	Subject       *string      `json:"subject"`
 	SubjectType   *SubjectType `json:"subjectType"`
@@ -139,7 +140,7 @@ func StringToSubjectType(subjectType string) SubjectType {
 		return SubjectTypeUser
 	case "group":
 		return SubjectTypeGroup
-	case "serviceAccount":
+	case "serviceaccount":
 		return SubjectTypeServiceAccount
 	default:
 		return ""

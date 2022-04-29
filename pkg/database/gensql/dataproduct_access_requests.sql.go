@@ -10,7 +10,7 @@ import (
 	"github.com/lib/pq"
 )
 
-const createAccessRequestForDataproduct = `-- name: CreateAccessRequestForDataproduct :exec
+const createAccessRequestForDataproduct = `-- name: CreateAccessRequestForDataproduct :one
 INSERT INTO dataproduct_access_request (dataproduct_id,
                                         "subject",
                                         "owner",
@@ -19,6 +19,7 @@ VALUES ($1,
         LOWER($2),
         LOWER($3),
         $4)
+RETURNING id, dataproduct_id, subject, owner, polly_documentation_id, last_modified, created
 `
 
 type CreateAccessRequestForDataproductParams struct {
@@ -28,13 +29,33 @@ type CreateAccessRequestForDataproductParams struct {
 	PollyDocumentationID uuid.NullUUID
 }
 
-func (q *Queries) CreateAccessRequestForDataproduct(ctx context.Context, arg CreateAccessRequestForDataproductParams) error {
-	_, err := q.db.ExecContext(ctx, createAccessRequestForDataproduct,
+func (q *Queries) CreateAccessRequestForDataproduct(ctx context.Context, arg CreateAccessRequestForDataproductParams) (DataproductAccessRequest, error) {
+	row := q.db.QueryRowContext(ctx, createAccessRequestForDataproduct,
 		arg.DataproductID,
 		arg.Subject,
 		arg.Owner,
 		arg.PollyDocumentationID,
 	)
+	var i DataproductAccessRequest
+	err := row.Scan(
+		&i.ID,
+		&i.DataproductID,
+		&i.Subject,
+		&i.Owner,
+		&i.PollyDocumentationID,
+		&i.LastModified,
+		&i.Created,
+	)
+	return i, err
+}
+
+const deleteAccessRequest = `-- name: DeleteAccessRequest :exec
+DELETE FROM dataproduct_access_request
+WHERE id = $1
+`
+
+func (q *Queries) DeleteAccessRequest(ctx context.Context, id uuid.UUID) error {
+	_, err := q.db.ExecContext(ctx, deleteAccessRequest, id)
 	return err
 }
 
@@ -134,11 +155,12 @@ func (q *Queries) ListAccessRequestsForOwner(ctx context.Context, owner []string
 	return items, nil
 }
 
-const updateAccessRequest = `-- name: UpdateAccessRequest :exec
+const updateAccessRequest = `-- name: UpdateAccessRequest :one
 UPDATE dataproduct_access_request
 SET owner                  = $1,
     polly_documentation_id = $2
 WHERE id = $3
+RETURNING id, dataproduct_id, subject, owner, polly_documentation_id, last_modified, created
 `
 
 type UpdateAccessRequestParams struct {
@@ -147,7 +169,17 @@ type UpdateAccessRequestParams struct {
 	ID                   uuid.UUID
 }
 
-func (q *Queries) UpdateAccessRequest(ctx context.Context, arg UpdateAccessRequestParams) error {
-	_, err := q.db.ExecContext(ctx, updateAccessRequest, arg.Owner, arg.PollyDocumentationID, arg.ID)
-	return err
+func (q *Queries) UpdateAccessRequest(ctx context.Context, arg UpdateAccessRequestParams) (DataproductAccessRequest, error) {
+	row := q.db.QueryRowContext(ctx, updateAccessRequest, arg.Owner, arg.PollyDocumentationID, arg.ID)
+	var i DataproductAccessRequest
+	err := row.Scan(
+		&i.ID,
+		&i.DataproductID,
+		&i.Subject,
+		&i.Owner,
+		&i.PollyDocumentationID,
+		&i.LastModified,
+		&i.Created,
+	)
+	return i, err
 }

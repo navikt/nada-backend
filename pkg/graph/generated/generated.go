@@ -64,6 +64,7 @@ type ComplexityRoot struct {
 
 	AccessRequest struct {
 		DataproductID func(childComplexity int) int
+		ID            func(childComplexity int) int
 		Owner         func(childComplexity int) int
 		Polly         func(childComplexity int) int
 		Subject       func(childComplexity int) int
@@ -134,6 +135,7 @@ type ComplexityRoot struct {
 		AddRequesterToDataproduct      func(childComplexity int, dataproductID uuid.UUID, subject string) int
 		CreateAccessRequest            func(childComplexity int, input models.NewAccessRequest) int
 		CreateDataproduct              func(childComplexity int, input models.NewDataproduct) int
+		DeleteAccessRequest            func(childComplexity int, id uuid.UUID) int
 		DeleteDataproduct              func(childComplexity int, id uuid.UUID) int
 		DeleteStory                    func(childComplexity int, id uuid.UUID) int
 		Dummy                          func(childComplexity int, no *string) int
@@ -274,8 +276,9 @@ type MutationResolver interface {
 	GrantAccessToDataproduct(ctx context.Context, input models.NewGrant) (*models.Access, error)
 	RevokeAccessToDataproduct(ctx context.Context, id uuid.UUID) (bool, error)
 	MapDataproduct(ctx context.Context, dataproductID uuid.UUID, services []models.MappingService) (bool, error)
-	CreateAccessRequest(ctx context.Context, input models.NewAccessRequest) (bool, error)
-	UpdateAccessRequest(ctx context.Context, input models.UpdateAccessRequest) (bool, error)
+	CreateAccessRequest(ctx context.Context, input models.NewAccessRequest) (*models.AccessRequest, error)
+	UpdateAccessRequest(ctx context.Context, input models.UpdateAccessRequest) (*models.AccessRequest, error)
+	DeleteAccessRequest(ctx context.Context, id uuid.UUID) (bool, error)
 	PublishStory(ctx context.Context, input models.NewStory) (*models.GraphStory, error)
 	UpdateStoryMetadata(ctx context.Context, id uuid.UUID, name string, keywords []string, teamkatalogenURL *string) (*models.GraphStory, error)
 	DeleteStory(ctx context.Context, id uuid.UUID) (bool, error)
@@ -377,6 +380,13 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 		}
 
 		return e.complexity.AccessRequest.DataproductID(childComplexity), true
+
+	case "AccessRequest.id":
+		if e.complexity.AccessRequest.ID == nil {
+			break
+		}
+
+		return e.complexity.AccessRequest.ID(childComplexity), true
 
 	case "AccessRequest.owner":
 		if e.complexity.AccessRequest.Owner == nil {
@@ -693,6 +703,18 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 		}
 
 		return e.complexity.Mutation.CreateDataproduct(childComplexity, args["input"].(models.NewDataproduct)), true
+
+	case "Mutation.deleteAccessRequest":
+		if e.complexity.Mutation.DeleteAccessRequest == nil {
+			break
+		}
+
+		args, err := ec.field_Mutation_deleteAccessRequest_args(context.TODO(), rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Mutation.DeleteAccessRequest(childComplexity, args["id"].(uuid.UUID)), true
 
 	case "Mutation.deleteDataproduct":
 		if e.complexity.Mutation.DeleteDataproduct == nil {
@@ -1517,6 +1539,8 @@ type Access @goModel(model: "github.com/navikt/nada-backend/pkg/graph/models.Acc
 AccessRequest contains metadata on a request to access a dataproduct
 """
 type AccessRequest @goModel(model: "github.com/navikt/nada-backend/pkg/graph/models.AccessRequest") {
+    "id of access request."
+    id: ID!
     "id of dataproduct."
     dataproductID: ID!
     "subject to be granted access."
@@ -1644,17 +1668,17 @@ input NewAccessRequest @goModel(model: "github.com/navikt/nada-backend/pkg/graph
     polly: NewPolly
 }
 
-
 """
 UpdateAccessRequest contains metadata on a request to access a dataproduct
 """
 input UpdateAccessRequest @goModel(model: "github.com/navikt/nada-backend/pkg/graph/models.UpdateAccessRequest") {
-    "id of access request"
+    "id of access request."
     id: ID!
-    "owner is the owner of the access request"
+    "owner is the owner of the access request."
     owner: String!
+    "pollyID is the id of the existing polly documentation."
     pollyID: ID
-    "polly is the process policy attached to this grant"
+    "newPolly is the new polly documentation for this access request."
     newPolly: NewPolly
 }
 
@@ -1800,19 +1824,28 @@ extend type Mutation {
     """
     createAccessRequest creates a new access request for a dataproduct
 
-    Require authentication
+    Requires authentication
     """
     createAccessRequest(
         input: NewAccessRequest!
-    ): Boolean! @authenticated
+    ): AccessRequest! @authenticated
 
     """
     createAccessRequest creates a new access request for a dataproduct
 
-    Require authentication
+    Requires authentication
     """
     updateAccessRequest(
         input: UpdateAccessRequest!
+    ): AccessRequest! @authenticated
+
+    """
+    deleteAccessRequest deletes a dataproduct access request.
+
+    Requires authentication
+    """
+    deleteAccessRequest(
+        id: ID!
     ): Boolean! @authenticated
 }
 `, BuiltIn: false},
@@ -2385,6 +2418,21 @@ func (ec *executionContext) field_Mutation_createDataproduct_args(ctx context.Co
 		}
 	}
 	args["input"] = arg0
+	return args, nil
+}
+
+func (ec *executionContext) field_Mutation_deleteAccessRequest_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
+	var err error
+	args := map[string]interface{}{}
+	var arg0 uuid.UUID
+	if tmp, ok := rawArgs["id"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("id"))
+		arg0, err = ec.unmarshalNID2githubᚗcomᚋgoogleᚋuuidᚐUUID(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["id"] = arg0
 	return args, nil
 }
 
@@ -3201,6 +3249,50 @@ func (ec *executionContext) fieldContext_Access_revoked(ctx context.Context, fie
 		IsResolver: false,
 		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
 			return nil, errors.New("field of type Time does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _AccessRequest_id(ctx context.Context, field graphql.CollectedField, obj *models.AccessRequest) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_AccessRequest_id(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.ID, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(uuid.UUID)
+	fc.Result = res
+	return ec.marshalNID2githubᚗcomᚋgoogleᚋuuidᚐUUID(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_AccessRequest_id(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "AccessRequest",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type ID does not have child fields")
 		},
 	}
 	return fc, nil
@@ -5833,10 +5925,10 @@ func (ec *executionContext) _Mutation_createAccessRequest(ctx context.Context, f
 		if tmp == nil {
 			return nil, nil
 		}
-		if data, ok := tmp.(bool); ok {
+		if data, ok := tmp.(*models.AccessRequest); ok {
 			return data, nil
 		}
-		return nil, fmt.Errorf(`unexpected type %T from directive, should be bool`, tmp)
+		return nil, fmt.Errorf(`unexpected type %T from directive, should be *github.com/navikt/nada-backend/pkg/graph/models.AccessRequest`, tmp)
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -5848,9 +5940,9 @@ func (ec *executionContext) _Mutation_createAccessRequest(ctx context.Context, f
 		}
 		return graphql.Null
 	}
-	res := resTmp.(bool)
+	res := resTmp.(*models.AccessRequest)
 	fc.Result = res
-	return ec.marshalNBoolean2bool(ctx, field.Selections, res)
+	return ec.marshalNAccessRequest2ᚖgithubᚗcomᚋnaviktᚋnadaᚑbackendᚋpkgᚋgraphᚋmodelsᚐAccessRequest(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) fieldContext_Mutation_createAccessRequest(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
@@ -5860,7 +5952,21 @@ func (ec *executionContext) fieldContext_Mutation_createAccessRequest(ctx contex
 		IsMethod:   true,
 		IsResolver: true,
 		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type Boolean does not have child fields")
+			switch field.Name {
+			case "id":
+				return ec.fieldContext_AccessRequest_id(ctx, field)
+			case "dataproductID":
+				return ec.fieldContext_AccessRequest_dataproductID(ctx, field)
+			case "subject":
+				return ec.fieldContext_AccessRequest_subject(ctx, field)
+			case "subjectType":
+				return ec.fieldContext_AccessRequest_subjectType(ctx, field)
+			case "owner":
+				return ec.fieldContext_AccessRequest_owner(ctx, field)
+			case "polly":
+				return ec.fieldContext_AccessRequest_polly(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type AccessRequest", field.Name)
 		},
 	}
 	defer func() {
@@ -5908,6 +6014,95 @@ func (ec *executionContext) _Mutation_updateAccessRequest(ctx context.Context, f
 		if tmp == nil {
 			return nil, nil
 		}
+		if data, ok := tmp.(*models.AccessRequest); ok {
+			return data, nil
+		}
+		return nil, fmt.Errorf(`unexpected type %T from directive, should be *github.com/navikt/nada-backend/pkg/graph/models.AccessRequest`, tmp)
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(*models.AccessRequest)
+	fc.Result = res
+	return ec.marshalNAccessRequest2ᚖgithubᚗcomᚋnaviktᚋnadaᚑbackendᚋpkgᚋgraphᚋmodelsᚐAccessRequest(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_Mutation_updateAccessRequest(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Mutation",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "id":
+				return ec.fieldContext_AccessRequest_id(ctx, field)
+			case "dataproductID":
+				return ec.fieldContext_AccessRequest_dataproductID(ctx, field)
+			case "subject":
+				return ec.fieldContext_AccessRequest_subject(ctx, field)
+			case "subjectType":
+				return ec.fieldContext_AccessRequest_subjectType(ctx, field)
+			case "owner":
+				return ec.fieldContext_AccessRequest_owner(ctx, field)
+			case "polly":
+				return ec.fieldContext_AccessRequest_polly(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type AccessRequest", field.Name)
+		},
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			err = ec.Recover(ctx, r)
+			ec.Error(ctx, err)
+		}
+	}()
+	ctx = graphql.WithFieldContext(ctx, fc)
+	if fc.Args, err = ec.field_Mutation_updateAccessRequest_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+		ec.Error(ctx, err)
+		return
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Mutation_deleteAccessRequest(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_Mutation_deleteAccessRequest(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		directive0 := func(rctx context.Context) (interface{}, error) {
+			ctx = rctx // use context from middleware stack in children
+			return ec.resolvers.Mutation().DeleteAccessRequest(rctx, fc.Args["id"].(uuid.UUID))
+		}
+		directive1 := func(ctx context.Context) (interface{}, error) {
+			if ec.directives.Authenticated == nil {
+				return nil, errors.New("directive authenticated is not implemented")
+			}
+			return ec.directives.Authenticated(ctx, nil, directive0, nil)
+		}
+
+		tmp, err := directive1(rctx)
+		if err != nil {
+			return nil, graphql.ErrorOnPath(ctx, err)
+		}
+		if tmp == nil {
+			return nil, nil
+		}
 		if data, ok := tmp.(bool); ok {
 			return data, nil
 		}
@@ -5928,7 +6123,7 @@ func (ec *executionContext) _Mutation_updateAccessRequest(ctx context.Context, f
 	return ec.marshalNBoolean2bool(ctx, field.Selections, res)
 }
 
-func (ec *executionContext) fieldContext_Mutation_updateAccessRequest(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+func (ec *executionContext) fieldContext_Mutation_deleteAccessRequest(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
 	fc = &graphql.FieldContext{
 		Object:     "Mutation",
 		Field:      field,
@@ -5945,7 +6140,7 @@ func (ec *executionContext) fieldContext_Mutation_updateAccessRequest(ctx contex
 		}
 	}()
 	ctx = graphql.WithFieldContext(ctx, fc)
-	if fc.Args, err = ec.field_Mutation_updateAccessRequest_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+	if fc.Args, err = ec.field_Mutation_deleteAccessRequest_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
 		ec.Error(ctx, err)
 		return
 	}
@@ -6804,6 +6999,8 @@ func (ec *executionContext) fieldContext_Query_accessRequest(ctx context.Context
 		IsResolver: true,
 		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
 			switch field.Name {
+			case "id":
+				return ec.fieldContext_AccessRequest_id(ctx, field)
 			case "dataproductID":
 				return ec.fieldContext_AccessRequest_dataproductID(ctx, field)
 			case "subject":
@@ -6891,6 +7088,8 @@ func (ec *executionContext) fieldContext_Query_accessRequestsForOwner(ctx contex
 		IsResolver: true,
 		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
 			switch field.Name {
+			case "id":
+				return ec.fieldContext_AccessRequest_id(ctx, field)
 			case "dataproductID":
 				return ec.fieldContext_AccessRequest_dataproductID(ctx, field)
 			case "subject":
@@ -6967,6 +7166,8 @@ func (ec *executionContext) fieldContext_Query_accessRequestsForDataproduct(ctx 
 		IsResolver: true,
 		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
 			switch field.Name {
+			case "id":
+				return ec.fieldContext_AccessRequest_id(ctx, field)
 			case "dataproductID":
 				return ec.fieldContext_AccessRequest_dataproductID(ctx, field)
 			case "subject":
@@ -12253,6 +12454,13 @@ func (ec *executionContext) _AccessRequest(ctx context.Context, sel ast.Selectio
 		switch field.Name {
 		case "__typename":
 			out.Values[i] = graphql.MarshalString("AccessRequest")
+		case "id":
+
+			out.Values[i] = ec._AccessRequest_id(ctx, field, obj)
+
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
 		case "dataproductID":
 
 			out.Values[i] = ec._AccessRequest_dataproductID(ctx, field, obj)
@@ -12883,6 +13091,15 @@ func (ec *executionContext) _Mutation(ctx context.Context, sel ast.SelectionSet)
 
 			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
 				return ec._Mutation_updateAccessRequest(ctx, field)
+			})
+
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
+		case "deleteAccessRequest":
+
+			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
+				return ec._Mutation_deleteAccessRequest(ctx, field)
 			})
 
 			if out.Values[i] == graphql.Null {

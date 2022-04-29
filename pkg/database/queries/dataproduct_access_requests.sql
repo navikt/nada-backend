@@ -1,4 +1,4 @@
--- name: CreateAccessRequestForDataproduct :exec
+-- name: CreateAccessRequestForDataproduct :one
 INSERT INTO dataproduct_access_request (dataproduct_id,
                                         "subject",
                                         "owner",
@@ -6,7 +6,8 @@ INSERT INTO dataproduct_access_request (dataproduct_id,
 VALUES (@dataproduct_id,
         LOWER(@subject),
         LOWER(@owner),
-        @polly_documentation_id);
+        @polly_documentation_id)
+RETURNING *;
 
 -- name: ListAccessRequestsForDataproduct :many
 SELECT *
@@ -24,8 +25,13 @@ SELECT *
 FROM dataproduct_access_request
 WHERE id = @id;
 
--- name: UpdateAccessRequest :exec
+-- name: UpdateAccessRequest :one
 UPDATE dataproduct_access_request
 SET owner                  = @owner,
     polly_documentation_id = @polly_documentation_id
+WHERE id = @id
+RETURNING *;
+
+-- name: DeleteAccessRequest :exec
+DELETE FROM dataproduct_access_request
 WHERE id = @id;

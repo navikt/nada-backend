@@ -102,6 +102,8 @@ type Access @goModel(model: "github.com/navikt/nada-backend/pkg/graph/models.Acc
 AccessRequest contains metadata on a request to access a dataproduct
 """
 type AccessRequest @goModel(model: "github.com/navikt/nada-backend/pkg/graph/models.AccessRequest") {
+    "id of access request."
+    id: ID!
     "id of dataproduct."
     dataproductID: ID!
     "subject to be granted access."
@@ -228,7 +230,6 @@ input NewAccessRequest @goModel(model: "github.com/navikt/nada-backend/pkg/graph
     "polly is the process policy attached to this grant"
     polly: NewPolly
 }
-
 
 """
 UpdateAccessRequest contains metadata on a request to access a dataproduct
@@ -386,18 +387,27 @@ extend type Mutation {
     """
     createAccessRequest creates a new access request for a dataproduct
 
-    Require authentication
+    Requires authentication
     """
     createAccessRequest(
         input: NewAccessRequest!
-    ): Boolean! @authenticated
+    ): AccessRequest! @authenticated
 
     """
     createAccessRequest creates a new access request for a dataproduct
 
-    Require authentication
+    Requires authentication
     """
     updateAccessRequest(
         input: UpdateAccessRequest!
+    ): AccessRequest! @authenticated
+
+    """
+    deleteAccessRequest deletes a dataproduct access request.
+
+    Requires authentication
+    """
+    deleteAccessRequest(
+        id: ID!
     ): Boolean! @authenticated
 }

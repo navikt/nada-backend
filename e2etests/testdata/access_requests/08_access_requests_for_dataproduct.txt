@@ -1,0 +1,53 @@
+{
+  accessRequestsForDataproduct(dataproductID: "{{ .dataproduct_id }}"){
+    subject
+    subjectType
+    owner
+    polly{
+      externalID
+      name
+      url
+    }
+  }
+}
+
+RETURNS
+
+{
+  "data": {
+    "accessRequestsForDataproduct": [
+      {
+        "subject": "mock.anderson@email.com",
+        "subjectType": "user",
+        "owner": "user:mock.anderson@email.com",
+        "polly": null
+      },
+      {
+        "subject": "serviceaccount@email.com",
+        "subjectType": "serviceAccount",
+        "owner": "user:mock.anderson@email.com",
+        "polly": {
+          "externalID": "28570031-e2b3-4110-8864-41ab279e2e0c",
+          "name": "Behandling",
+          "url": "https://some.url/28570031-e2b3-4110-8864-41ab279e2e0c"
+        }
+      },
+      {
+        "subject": "serviceaccount@email.com",
+        "subjectType": "serviceAccount",
+        "owner": "group:mock-andersons-team@email.com",
+        "polly": null
+      },
+      {
+        "subject": "mock.anderson@email.com",
+        "subjectType": "user",
+        "owner": "group:new-owner-team@email.com",
+        "polly": {
+          "externalID": "020d0b4b-8fd3-4514-b1f5-8c090c3d9f07",
+          "name": "Ny Behandling",
+          "url": "https://some.url/020d0b4b-8fd3-4514-b1f5-8c090c3d9f07"
+        }
+      }
+    ]
+  }
+}

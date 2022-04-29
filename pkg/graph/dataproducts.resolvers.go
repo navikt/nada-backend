@@ -275,7 +275,7 @@ func (r *mutationResolver) MapDataproduct(ctx context.Context, dataproductID uui
 	return true, nil
 }
 
-func (r *mutationResolver) CreateAccessRequest(ctx context.Context, input models.NewAccessRequest) (bool, error) {
+func (r *mutationResolver) CreateAccessRequest(ctx context.Context, input models.NewAccessRequest) (*models.AccessRequest, error) {
 	user := auth.GetUser(ctx)
 	subj := user.Email
 	if input.Subject != nil {
@@ -298,33 +298,51 @@ func (r *mutationResolver) CreateAccessRequest(ctx context.Context, input models
 	if input.Polly != nil {
 		dbPolly, err := r.repo.CreatePollyDocumentation(ctx, *input.Polly)
 		if err != nil {
-			return false, err
+			return nil, err
 		}
 
 		pollyID = uuid.NullUUID{UUID: dbPolly.ID, Valid: true}
 	}
 
-	err := r.repo.CreateAccessRequestForDataproduct(ctx, input.DataproductID, pollyID, subjWithType, owner)
-	if err != nil {
-		return false, err
-	}
-	return true, nil
+	return r.repo.CreateAccessRequestForDataproduct(ctx, input.DataproductID, pollyID, subjWithType, owner)
 }
 
-func (r *mutationResolver) UpdateAccessRequest(ctx context.Context, input models.UpdateAccessRequest) (bool, error) {
+func (r *mutationResolver) UpdateAccessRequest(ctx context.Context, input models.UpdateAccessRequest) (*models.AccessRequest, error) {
 	var pollyID uuid.NullUUID
 	if input.NewPolly != nil {
 		dbPolly, err := r.repo.CreatePollyDocumentation(ctx, *input.NewPolly)
 		if err != nil {
-			return false, err
+			return nil, err
 		}
 		pollyID = uuid.NullUUID{UUID: dbPolly.ID, Valid: true}
 	} else if input.PollyID != nil {
 		pollyID = uuid.NullUUID{UUID: *input.PollyID, Valid: true}
 	}
 
-	err := r.repo.UpdateAccessRequest(ctx, input.ID, pollyID, input.Owner)
-	return err == nil, err
+	return r.repo.UpdateAccessRequest(ctx, input.ID, pollyID, input.Owner)
+}
+
+func (r *mutationResolver) DeleteAccessRequest(ctx context.Context, id uuid.UUID) (bool, error) {
+	accessRequest, err := r.repo.GetAccessRequest(ctx, id)
+	if err != nil {
+		return false, err
+	}
+
+	splits := strings.Split(*accessRequest.Owner, ":")
+	if len(splits) != 2 {
+		return false, fmt.Errorf("%v is not a valid owner format (cannot split on :)", *accessRequest.Owner)
+	}
+	owner := splits[1]
+
+	if err := ensureOwner(ctx, owner); err != nil {
+		return false, err
+	}
+
+	if err := r.repo.DeleteAccessRequest(ctx, id); err != nil {
+		return false, err
+	}
+
+	return true, nil
 }
 
 func (r *queryResolver) Dataproduct(ctx context.Context, id uuid.UUID) (*models.Dataproduct, error) {
@@ -383,5 +401,7 @@ func (r *Resolver) BigQuery() generated.BigQueryResolver { return &bigQueryResol
 // Dataproduct returns generated.DataproductResolver implementation.
 func (r *Resolver) Dataproduct() generated.DataproductResolver { return &dataproductResolver{r} }
 
-type bigQueryResolver struct{ *Resolver }
-type dataproductResolver struct{ *Resolver }
+type (
+	bigQueryResolver    struct{ *Resolver }
+	dataproductResolver struct{ *Resolver }
+)

@@ -1,0 +1,17 @@
+mutation{
+  deleteAccessRequest(id: "{{ .access_request }}")
+}
+
+RETURNS
+
+{
+  "errors": [
+    {
+      "message": "unauthorized",
+      "path": [
+        "deleteAccessRequest"
+      ]
+    }
+  ],
+  "data": null
+}

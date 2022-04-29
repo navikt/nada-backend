@@ -10,7 +10,7 @@ import (
 
 type Querier interface {
 	CleanupStoryDrafts(ctx context.Context) error
-	CreateAccessRequestForDataproduct(ctx context.Context, arg CreateAccessRequestForDataproductParams) error
+	CreateAccessRequestForDataproduct(ctx context.Context, arg CreateAccessRequestForDataproductParams) (DataproductAccessRequest, error)
 	CreateBigqueryDatasource(ctx context.Context, arg CreateBigqueryDatasourceParams) (DatasourceBigquery, error)
 	CreateDataproduct(ctx context.Context, arg CreateDataproductParams) (Dataproduct, error)
 	CreateDataproductRequester(ctx context.Context, arg CreateDataproductRequesterParams) error
@@ -24,6 +24,7 @@ type Querier interface {
 	DataproductGroupStats(ctx context.Context, arg DataproductGroupStatsParams) ([]DataproductGroupStatsRow, error)
 	DataproductKeywords(ctx context.Context, keyword string) ([]DataproductKeywordsRow, error)
 	DataproductsByMetabase(ctx context.Context, arg DataproductsByMetabaseParams) ([]Dataproduct, error)
+	DeleteAccessRequest(ctx context.Context, id uuid.UUID) error
 	DeleteDataproduct(ctx context.Context, id uuid.UUID) error
 	DeleteDataproductRequester(ctx context.Context, arg DeleteDataproductRequesterParams) error
 	DeleteMetabaseMetadata(ctx context.Context, dataproductID uuid.UUID) error
@@ -73,7 +74,7 @@ type Querier interface {
 	Search(ctx context.Context, arg SearchParams) ([]SearchRow, error)
 	SetPermissionGroupMetabaseMetadata(ctx context.Context, arg SetPermissionGroupMetabaseMetadataParams) error
 	SoftDeleteMetabaseMetadata(ctx context.Context, dataproductID uuid.UUID) error
-	UpdateAccessRequest(ctx context.Context, arg UpdateAccessRequestParams) error
+	UpdateAccessRequest(ctx context.Context, arg UpdateAccessRequestParams) (DataproductAccessRequest, error)
 	UpdateBigqueryDatasourceSchema(ctx context.Context, arg UpdateBigqueryDatasourceSchemaParams) error
 	UpdateDataproduct(ctx context.Context, arg UpdateDataproductParams) (Dataproduct, error)
 	UpdateStory(ctx context.Context, arg UpdateStoryParams) (Story, error)

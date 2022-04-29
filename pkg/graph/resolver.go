@@ -100,6 +100,16 @@ func pagination(limit *int, offset *int) (int, int) {
 	return l, o
 }
 
+func ensureOwner(ctx context.Context, owner string) error {
+	user := auth.GetUser(ctx)
+
+	if user != nil && (user.Groups.Contains(owner) || owner == user.Email) {
+		return nil
+	}
+
+	return ErrUnauthorized
+}
+
 func ensureUserInGroup(ctx context.Context, group string) error {
 	user := auth.GetUser(ctx)
 	if user == nil || !user.Groups.Contains(group) {
