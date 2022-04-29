@@ -20,3 +20,9 @@ CREATE TRIGGER story_token
     ON stories
     FOR EACH ROW
 EXECUTE PROCEDURE create_story_token();
+
+-- +goose Down
+DROP TRIGGER story_token ON stories;
+DROP FUNCTION create_story_token();
+DROP TABLE story_tokens;
+DROP EXTENSION "pgcrypto";
