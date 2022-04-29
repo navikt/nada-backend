@@ -81,9 +81,10 @@ type NewAccessRequest struct {
 }
 
 type UpdateAccessRequest struct {
-	ID    uuid.UUID    `json:"id"`
-	Owner string       `json:"owner"`
-	Polly *UpdatePolly `json:"polly"`
+	ID       uuid.UUID  `json:"id"`
+	Owner    string     `json:"owner"`
+	PollyID  *uuid.UUID `json:"polly_id"`
+	NewPolly *NewPolly  `json:"new_polly"`
 }
 
 type NewGrant struct {

@@ -7,11 +7,6 @@ type Polly struct {
 	NewPolly
 }
 
-type UpdatePolly struct {
-	ID *uuid.UUID `json:"id"`
-	NewPolly
-}
-
 type NewPolly struct {
 	ExternalID string `json:"external_id"`
 	Name       string `json:"name"`

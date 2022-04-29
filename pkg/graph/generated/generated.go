@@ -1653,8 +1653,9 @@ input UpdateAccessRequest @goModel(model: "github.com/navikt/nada-backend/pkg/gr
     id: ID!
     "owner is the owner of the access request"
     owner: String!
+    pollyID: ID
     "polly is the process policy attached to this grant"
-    polly: UpdatePolly
+    newPolly: NewPolly
 }
 
 """
@@ -1964,17 +1965,6 @@ type Mutation {
 }
 
 input NewPolly @goModel(model: "github.com/navikt/nada-backend/pkg/graph/models.NewPolly") {
-    "id from polly"
-    externalID: String!
-    "name from polly"
-    name: String!
-    "url from polly"
-    url: String!
-}
-
-input UpdatePolly @goModel(model: "github.com/navikt/nada-backend/pkg/graph/models.UpdatePolly") {
-    "database id"
-    id: ID
     "id from polly"
     externalID: String!
     "name from polly"
@@ -12019,11 +12009,19 @@ func (ec *executionContext) unmarshalInputUpdateAccessRequest(ctx context.Contex
 			if err != nil {
 				return it, err
 			}
-		case "polly":
+		case "pollyID":
 			var err error
 
-			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("polly"))
-			it.Polly, err = ec.unmarshalOUpdatePolly2ᚖgithubᚗcomᚋnaviktᚋnadaᚑbackendᚋpkgᚋgraphᚋmodelsᚐUpdatePolly(ctx, v)
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("pollyID"))
+			it.PollyID, err = ec.unmarshalOID2ᚖgithubᚗcomᚋgoogleᚋuuidᚐUUID(ctx, v)
+			if err != nil {
+				return it, err
+			}
+		case "newPolly":
+			var err error
+
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("newPolly"))
+			it.NewPolly, err = ec.unmarshalONewPolly2ᚖgithubᚗcomᚋnaviktᚋnadaᚑbackendᚋpkgᚋgraphᚋmodelsᚐNewPolly(ctx, v)
 			if err != nil {
 				return it, err
 			}
@@ -12095,53 +12093,6 @@ func (ec *executionContext) unmarshalInputUpdateDataproduct(ctx context.Context,
 
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("requesters"))
 			it.Requesters, err = ec.unmarshalOString2ᚕstringᚄ(ctx, v)
-			if err != nil {
-				return it, err
-			}
-		}
-	}
-
-	return it, nil
-}
-
-func (ec *executionContext) unmarshalInputUpdatePolly(ctx context.Context, obj interface{}) (models.UpdatePolly, error) {
-	var it models.UpdatePolly
-	asMap := map[string]interface{}{}
-	for k, v := range obj.(map[string]interface{}) {
-		asMap[k] = v
-	}
-
-	for k, v := range asMap {
-		switch k {
-		case "id":
-			var err error
-
-			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("id"))
-			it.ID, err = ec.unmarshalOID2ᚖgithubᚗcomᚋgoogleᚋuuidᚐUUID(ctx, v)
-			if err != nil {
-				return it, err
-			}
-		case "externalID":
-			var err error
-
-			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("externalID"))
-			it.ExternalID, err = ec.unmarshalNString2string(ctx, v)
-			if err != nil {
-				return it, err
-			}
-		case "name":
-			var err error
-
-			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("name"))
-			it.Name, err = ec.unmarshalNString2string(ctx, v)
-			if err != nil {
-				return it, err
-			}
-		case "url":
-			var err error
-
-			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("url"))
-			it.URL, err = ec.unmarshalNString2string(ctx, v)
 			if err != nil {
 				return it, err
 			}
@@ -16126,14 +16077,6 @@ func (ec *executionContext) marshalOTime2ᚖtimeᚐTime(ctx context.Context, sel
 	}
 	res := graphql.MarshalTime(*v)
 	return res
-}
-
-func (ec *executionContext) unmarshalOUpdatePolly2ᚖgithubᚗcomᚋnaviktᚋnadaᚑbackendᚋpkgᚋgraphᚋmodelsᚐUpdatePolly(ctx context.Context, v interface{}) (*models.UpdatePolly, error) {
-	if v == nil {
-		return nil, nil
-	}
-	res, err := ec.unmarshalInputUpdatePolly(ctx, v)
-	return &res, graphql.ErrorOnPath(ctx, err)
 }
 
 func (ec *executionContext) marshalO__EnumValue2ᚕgithubᚗcomᚋ99designsᚋgqlgenᚋgraphqlᚋintrospectionᚐEnumValueᚄ(ctx context.Context, sel ast.SelectionSet, v []introspection.EnumValue) graphql.Marshaler {

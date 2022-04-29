@@ -234,12 +234,14 @@ input NewAccessRequest @goModel(model: "github.com/navikt/nada-backend/pkg/graph
 UpdateAccessRequest contains metadata on a request to access a dataproduct
 """
 input UpdateAccessRequest @goModel(model: "github.com/navikt/nada-backend/pkg/graph/models.UpdateAccessRequest") {
-    "id of access request"
+    "id of access request."
     id: ID!
-    "owner is the owner of the access request"
+    "owner is the owner of the access request."
     owner: String!
-    "polly is the process policy attached to this grant"
-    polly: UpdatePolly
+    "pollyID is the id of the existing polly documentation."
+    pollyID: ID
+    "newPolly is the new polly documentation for this access request."
+    newPolly: NewPolly
 }
 
 """

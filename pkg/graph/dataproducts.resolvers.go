@@ -313,21 +313,14 @@ func (r *mutationResolver) CreateAccessRequest(ctx context.Context, input models
 
 func (r *mutationResolver) UpdateAccessRequest(ctx context.Context, input models.UpdateAccessRequest) (bool, error) {
 	var pollyID uuid.NullUUID
-	if input.Polly != nil {
-		// TODO: skriv denne om til å bli enklere med færre if/else
-		if input.Polly.ID == nil {
-			dbPolly, err := r.repo.CreatePollyDocumentation(ctx, input.Polly.NewPolly)
-			if err != nil {
-				return false, err
-			}
-
-			pollyID = uuid.NullUUID{UUID: dbPolly.ID, Valid: true}
-		} else {
-			pollyID = uuid.NullUUID{
-				UUID:  *input.Polly.ID,
-				Valid: true,
-			}
+	if input.NewPolly != nil {
+		dbPolly, err := r.repo.CreatePollyDocumentation(ctx, *input.NewPolly)
+		if err != nil {
+			return false, err
 		}
+		pollyID = uuid.NullUUID{UUID: dbPolly.ID, Valid: true}
+	} else if input.PollyID != nil {
+		pollyID = uuid.NullUUID{UUID: *input.PollyID, Valid: true}
 	}
 
 	err := r.repo.UpdateAccessRequest(ctx, input.ID, pollyID, input.Owner)
