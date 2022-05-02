@@ -1,5 +1,5 @@
 {
-  accessRequest(id: "{{ .access_request_for_approval }}"){
+  accessRequest(id: "{{ .access_request_for_denial }}"){
     subject
     subjectType
     owner
@@ -16,7 +16,7 @@ RETURNS
       "subject": "mock.anderson@email.com",
       "subjectType": "user",
       "owner": "user:mock.anderson@email.com",
-      "status": "approved",
+      "status": "denied",
       "granter": "mock.anderson@email.com"
     }
   }
