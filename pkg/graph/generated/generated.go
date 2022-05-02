@@ -63,6 +63,7 @@ type ComplexityRoot struct {
 	}
 
 	AccessRequest struct {
+		Created       func(childComplexity int) int
 		DataproductID func(childComplexity int) int
 		ID            func(childComplexity int) int
 		Owner         func(childComplexity int) int
@@ -133,11 +134,13 @@ type ComplexityRoot struct {
 
 	Mutation struct {
 		AddRequesterToDataproduct      func(childComplexity int, dataproductID uuid.UUID, subject string) int
+		ApproveAccessRequest           func(childComplexity int, id uuid.UUID) int
 		CreateAccessRequest            func(childComplexity int, input models.NewAccessRequest) int
 		CreateDataproduct              func(childComplexity int, input models.NewDataproduct) int
 		DeleteAccessRequest            func(childComplexity int, id uuid.UUID) int
 		DeleteDataproduct              func(childComplexity int, id uuid.UUID) int
 		DeleteStory                    func(childComplexity int, id uuid.UUID) int
+		DenyAccessRequest              func(childComplexity int, id uuid.UUID) int
 		Dummy                          func(childComplexity int, no *string) int
 		GrantAccessToDataproduct       func(childComplexity int, input models.NewGrant) int
 		MapDataproduct                 func(childComplexity int, dataproductID uuid.UUID, services []models.MappingService) int
@@ -279,6 +282,8 @@ type MutationResolver interface {
 	CreateAccessRequest(ctx context.Context, input models.NewAccessRequest) (*models.AccessRequest, error)
 	UpdateAccessRequest(ctx context.Context, input models.UpdateAccessRequest) (*models.AccessRequest, error)
 	DeleteAccessRequest(ctx context.Context, id uuid.UUID) (bool, error)
+	ApproveAccessRequest(ctx context.Context, id uuid.UUID) (bool, error)
+	DenyAccessRequest(ctx context.Context, id uuid.UUID) (bool, error)
 	PublishStory(ctx context.Context, input models.NewStory) (*models.GraphStory, error)
 	UpdateStoryMetadata(ctx context.Context, id uuid.UUID, name string, keywords []string, teamkatalogenURL *string) (*models.GraphStory, error)
 	DeleteStory(ctx context.Context, id uuid.UUID) (bool, error)
@@ -373,6 +378,13 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 		}
 
 		return e.complexity.Access.Subject(childComplexity), true
+
+	case "AccessRequest.created":
+		if e.complexity.AccessRequest.Created == nil {
+			break
+		}
+
+		return e.complexity.AccessRequest.Created(childComplexity), true
 
 	case "AccessRequest.dataproductID":
 		if e.complexity.AccessRequest.DataproductID == nil {
@@ -680,6 +692,18 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.Mutation.AddRequesterToDataproduct(childComplexity, args["dataproductID"].(uuid.UUID), args["subject"].(string)), true
 
+	case "Mutation.approveAccessRequest":
+		if e.complexity.Mutation.ApproveAccessRequest == nil {
+			break
+		}
+
+		args, err := ec.field_Mutation_approveAccessRequest_args(context.TODO(), rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Mutation.ApproveAccessRequest(childComplexity, args["id"].(uuid.UUID)), true
+
 	case "Mutation.createAccessRequest":
 		if e.complexity.Mutation.CreateAccessRequest == nil {
 			break
@@ -739,6 +763,18 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 		}
 
 		return e.complexity.Mutation.DeleteStory(childComplexity, args["id"].(uuid.UUID)), true
+
+	case "Mutation.denyAccessRequest":
+		if e.complexity.Mutation.DenyAccessRequest == nil {
+			break
+		}
+
+		args, err := ec.field_Mutation_denyAccessRequest_args(context.TODO(), rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Mutation.DenyAccessRequest(childComplexity, args["id"].(uuid.UUID)), true
 
 	case "Mutation.dummy":
 		if e.complexity.Mutation.Dummy == nil {
@@ -1561,6 +1597,8 @@ type AccessRequest @goModel(model: "github.com/navikt/nada-backend/pkg/graph/mod
     subject: String
     "subjectType is the type of entity which should be granted access (user, group or service account)."
     subjectType: SubjectType
+    "created is a timestamp for when the access request was created"
+    created: Time
     "owner of the access request"
     owner: String
     "polly is the process policy attached to this grant"
@@ -1854,6 +1892,24 @@ extend type Mutation {
     Requires authentication
     """
     deleteAccessRequest(
+        id: ID!
+    ): Boolean! @authenticated
+
+    """
+    approveAccessRequest approves an access request.
+
+    Requires authentication
+    """
+    approveAccessRequest(
+        id: ID!
+    ): Boolean! @authenticated
+
+    """
+    denyAccessRequest denies an access request.
+
+    Requires authentication
+    """
+    denyAccessRequest(
         id: ID!
     ): Boolean! @authenticated
 }
@@ -2402,6 +2458,21 @@ func (ec *executionContext) field_Mutation_addRequesterToDataproduct_args(ctx co
 	return args, nil
 }
 
+func (ec *executionContext) field_Mutation_approveAccessRequest_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
+	var err error
+	args := map[string]interface{}{}
+	var arg0 uuid.UUID
+	if tmp, ok := rawArgs["id"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("id"))
+		arg0, err = ec.unmarshalNID2githubᚗcomᚋgoogleᚋuuidᚐUUID(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["id"] = arg0
+	return args, nil
+}
+
 func (ec *executionContext) field_Mutation_createAccessRequest_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
 	var err error
 	args := map[string]interface{}{}
@@ -2463,6 +2534,21 @@ func (ec *executionContext) field_Mutation_deleteDataproduct_args(ctx context.Co
 }
 
 func (ec *executionContext) field_Mutation_deleteStory_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
+	var err error
+	args := map[string]interface{}{}
+	var arg0 uuid.UUID
+	if tmp, ok := rawArgs["id"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("id"))
+		arg0, err = ec.unmarshalNID2githubᚗcomᚋgoogleᚋuuidᚐUUID(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["id"] = arg0
+	return args, nil
+}
+
+func (ec *executionContext) field_Mutation_denyAccessRequest_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
 	var err error
 	args := map[string]interface{}{}
 	var arg0 uuid.UUID
@@ -3430,6 +3516,47 @@ func (ec *executionContext) fieldContext_AccessRequest_subjectType(ctx context.C
 		IsResolver: false,
 		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
 			return nil, errors.New("field of type SubjectType does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _AccessRequest_created(ctx context.Context, field graphql.CollectedField, obj *models.AccessRequest) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_AccessRequest_created(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Created, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		return graphql.Null
+	}
+	res := resTmp.(*time.Time)
+	fc.Result = res
+	return ec.marshalOTime2ᚖtimeᚐTime(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_AccessRequest_created(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "AccessRequest",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Time does not have child fields")
 		},
 	}
 	return fc, nil
@@ -5972,6 +6099,8 @@ func (ec *executionContext) fieldContext_Mutation_createAccessRequest(ctx contex
 				return ec.fieldContext_AccessRequest_subject(ctx, field)
 			case "subjectType":
 				return ec.fieldContext_AccessRequest_subjectType(ctx, field)
+			case "created":
+				return ec.fieldContext_AccessRequest_created(ctx, field)
 			case "owner":
 				return ec.fieldContext_AccessRequest_owner(ctx, field)
 			case "polly":
@@ -6061,6 +6190,8 @@ func (ec *executionContext) fieldContext_Mutation_updateAccessRequest(ctx contex
 				return ec.fieldContext_AccessRequest_subject(ctx, field)
 			case "subjectType":
 				return ec.fieldContext_AccessRequest_subjectType(ctx, field)
+			case "created":
+				return ec.fieldContext_AccessRequest_created(ctx, field)
 			case "owner":
 				return ec.fieldContext_AccessRequest_owner(ctx, field)
 			case "polly":
@@ -6152,6 +6283,156 @@ func (ec *executionContext) fieldContext_Mutation_deleteAccessRequest(ctx contex
 	}()
 	ctx = graphql.WithFieldContext(ctx, fc)
 	if fc.Args, err = ec.field_Mutation_deleteAccessRequest_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+		ec.Error(ctx, err)
+		return
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Mutation_approveAccessRequest(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_Mutation_approveAccessRequest(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		directive0 := func(rctx context.Context) (interface{}, error) {
+			ctx = rctx // use context from middleware stack in children
+			return ec.resolvers.Mutation().ApproveAccessRequest(rctx, fc.Args["id"].(uuid.UUID))
+		}
+		directive1 := func(ctx context.Context) (interface{}, error) {
+			if ec.directives.Authenticated == nil {
+				return nil, errors.New("directive authenticated is not implemented")
+			}
+			return ec.directives.Authenticated(ctx, nil, directive0, nil)
+		}
+
+		tmp, err := directive1(rctx)
+		if err != nil {
+			return nil, graphql.ErrorOnPath(ctx, err)
+		}
+		if tmp == nil {
+			return nil, nil
+		}
+		if data, ok := tmp.(bool); ok {
+			return data, nil
+		}
+		return nil, fmt.Errorf(`unexpected type %T from directive, should be bool`, tmp)
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(bool)
+	fc.Result = res
+	return ec.marshalNBoolean2bool(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_Mutation_approveAccessRequest(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Mutation",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Boolean does not have child fields")
+		},
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			err = ec.Recover(ctx, r)
+			ec.Error(ctx, err)
+		}
+	}()
+	ctx = graphql.WithFieldContext(ctx, fc)
+	if fc.Args, err = ec.field_Mutation_approveAccessRequest_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+		ec.Error(ctx, err)
+		return
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Mutation_denyAccessRequest(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_Mutation_denyAccessRequest(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		directive0 := func(rctx context.Context) (interface{}, error) {
+			ctx = rctx // use context from middleware stack in children
+			return ec.resolvers.Mutation().DenyAccessRequest(rctx, fc.Args["id"].(uuid.UUID))
+		}
+		directive1 := func(ctx context.Context) (interface{}, error) {
+			if ec.directives.Authenticated == nil {
+				return nil, errors.New("directive authenticated is not implemented")
+			}
+			return ec.directives.Authenticated(ctx, nil, directive0, nil)
+		}
+
+		tmp, err := directive1(rctx)
+		if err != nil {
+			return nil, graphql.ErrorOnPath(ctx, err)
+		}
+		if tmp == nil {
+			return nil, nil
+		}
+		if data, ok := tmp.(bool); ok {
+			return data, nil
+		}
+		return nil, fmt.Errorf(`unexpected type %T from directive, should be bool`, tmp)
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(bool)
+	fc.Result = res
+	return ec.marshalNBoolean2bool(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_Mutation_denyAccessRequest(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Mutation",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Boolean does not have child fields")
+		},
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			err = ec.Recover(ctx, r)
+			ec.Error(ctx, err)
+		}
+	}()
+	ctx = graphql.WithFieldContext(ctx, fc)
+	if fc.Args, err = ec.field_Mutation_denyAccessRequest_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
 		ec.Error(ctx, err)
 		return
 	}
@@ -7018,6 +7299,8 @@ func (ec *executionContext) fieldContext_Query_accessRequest(ctx context.Context
 				return ec.fieldContext_AccessRequest_subject(ctx, field)
 			case "subjectType":
 				return ec.fieldContext_AccessRequest_subjectType(ctx, field)
+			case "created":
+				return ec.fieldContext_AccessRequest_created(ctx, field)
 			case "owner":
 				return ec.fieldContext_AccessRequest_owner(ctx, field)
 			case "polly":
@@ -7107,6 +7390,8 @@ func (ec *executionContext) fieldContext_Query_accessRequestsForDataproduct(ctx 
 				return ec.fieldContext_AccessRequest_subject(ctx, field)
 			case "subjectType":
 				return ec.fieldContext_AccessRequest_subjectType(ctx, field)
+			case "created":
+				return ec.fieldContext_AccessRequest_created(ctx, field)
 			case "owner":
 				return ec.fieldContext_AccessRequest_owner(ctx, field)
 			case "polly":
@@ -9946,6 +10231,8 @@ func (ec *executionContext) fieldContext_UserInfo_accessRequests(ctx context.Con
 				return ec.fieldContext_AccessRequest_subject(ctx, field)
 			case "subjectType":
 				return ec.fieldContext_AccessRequest_subjectType(ctx, field)
+			case "created":
+				return ec.fieldContext_AccessRequest_created(ctx, field)
 			case "owner":
 				return ec.fieldContext_AccessRequest_owner(ctx, field)
 			case "polly":
@@ -12469,6 +12756,10 @@ func (ec *executionContext) _AccessRequest(ctx context.Context, sel ast.Selectio
 
 			out.Values[i] = ec._AccessRequest_subjectType(ctx, field, obj)
 
+		case "created":
+
+			out.Values[i] = ec._AccessRequest_created(ctx, field, obj)
+
 		case "owner":
 
 			out.Values[i] = ec._AccessRequest_owner(ctx, field, obj)
@@ -13093,6 +13384,24 @@ func (ec *executionContext) _Mutation(ctx context.Context, sel ast.SelectionSet)
 
 			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
 				return ec._Mutation_deleteAccessRequest(ctx, field)
+			})
+
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
+		case "approveAccessRequest":
+
+			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
+				return ec._Mutation_approveAccessRequest(ctx, field)
+			})
+
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
+		case "denyAccessRequest":
+
+			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
+				return ec._Mutation_denyAccessRequest(ctx, field)
 			})
 
 			if out.Values[i] == graphql.Null {

@@ -110,6 +110,8 @@ type AccessRequest @goModel(model: "github.com/navikt/nada-backend/pkg/graph/mod
     subject: String
     "subjectType is the type of entity which should be granted access (user, group or service account)."
     subjectType: SubjectType
+    "created is a timestamp for when the access request was created"
+    created: Time
     "owner of the access request"
     owner: String
     "polly is the process policy attached to this grant"
@@ -403,6 +405,24 @@ extend type Mutation {
     Requires authentication
     """
     deleteAccessRequest(
+        id: ID!
+    ): Boolean! @authenticated
+
+    """
+    approveAccessRequest approves an access request.
+
+    Requires authentication
+    """
+    approveAccessRequest(
+        id: ID!
+    ): Boolean! @authenticated
+
+    """
+    denyAccessRequest denies an access request.
+
+    Requires authentication
+    """
+    denyAccessRequest(
         id: ID!
     ): Boolean! @authenticated
 }

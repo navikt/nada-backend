@@ -35,3 +35,15 @@ RETURNING *;
 -- name: DeleteAccessRequest :exec
 DELETE FROM dataproduct_access_request
 WHERE id = @id;
+
+-- name: DenyAccessRequest :exec
+UPDATE dataproduct_access_request
+SET status = "denied",
+    granter = @granter
+WHERE id = @id;
+
+-- name: ApproveAccessRequest :exec
+UPDATE dataproduct_access_request
+SET status = "approved",
+    granter = @granter
+WHERE id = @id;

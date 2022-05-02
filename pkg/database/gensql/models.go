@@ -12,6 +12,26 @@ import (
 	"github.com/tabbed/pqtype"
 )
 
+type AccessRequestStatusType string
+
+const (
+	AccessRequestStatusTypePending  AccessRequestStatusType = "pending"
+	AccessRequestStatusTypeApproved AccessRequestStatusType = "approved"
+	AccessRequestStatusTypeDenied   AccessRequestStatusType = "denied"
+)
+
+func (e *AccessRequestStatusType) Scan(src interface{}) error {
+	switch s := src.(type) {
+	case []byte:
+		*e = AccessRequestStatusType(s)
+	case string:
+		*e = AccessRequestStatusType(s)
+	default:
+		return fmt.Errorf("unsupported scan type for AccessRequestStatusType: %T", src)
+	}
+	return nil
+}
+
 type DatasourceType string
 
 const (
@@ -85,6 +105,10 @@ type DataproductAccessRequest struct {
 	PollyDocumentationID uuid.NullUUID
 	LastModified         time.Time
 	Created              time.Time
+	Expires              sql.NullTime
+	Status               AccessRequestStatusType
+	Closed               sql.NullTime
+	Granter              sql.NullString
 }
 
 type DataproductRequester struct {

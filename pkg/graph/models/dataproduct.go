@@ -69,6 +69,7 @@ type AccessRequest struct {
 	DataproductID uuid.UUID    `json:"dataproductID"`
 	Subject       *string      `json:"subject"`
 	SubjectType   *SubjectType `json:"subjectType"`
+	Created       *time.Time   `json:"created"`
 	Owner         *string      `json:"owner"`
 	Polly         *Polly       `json:"polly"`
 }

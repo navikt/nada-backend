@@ -5,10 +5,28 @@ package gensql
 
 import (
 	"context"
+	"database/sql"
 
 	"github.com/google/uuid"
 	"github.com/lib/pq"
 )
+
+const approveAccessRequest = `-- name: ApproveAccessRequest :exec
+UPDATE dataproduct_access_request
+SET status = "approved",
+    granter = $1
+WHERE id = $2
+`
+
+type ApproveAccessRequestParams struct {
+	Granter sql.NullString
+	ID      uuid.UUID
+}
+
+func (q *Queries) ApproveAccessRequest(ctx context.Context, arg ApproveAccessRequestParams) error {
+	_, err := q.db.ExecContext(ctx, approveAccessRequest, arg.Granter, arg.ID)
+	return err
+}
 
 const createAccessRequestForDataproduct = `-- name: CreateAccessRequestForDataproduct :one
 INSERT INTO dataproduct_access_request (dataproduct_id,
@@ -19,7 +37,7 @@ VALUES ($1,
         LOWER($2),
         LOWER($3),
         $4)
-RETURNING id, dataproduct_id, subject, owner, polly_documentation_id, last_modified, created
+RETURNING id, dataproduct_id, subject, owner, polly_documentation_id, last_modified, created, expires, status, closed, granter
 `
 
 type CreateAccessRequestForDataproductParams struct {
@@ -45,6 +63,10 @@ func (q *Queries) CreateAccessRequestForDataproduct(ctx context.Context, arg Cre
 		&i.PollyDocumentationID,
 		&i.LastModified,
 		&i.Created,
+		&i.Expires,
+		&i.Status,
+		&i.Closed,
+		&i.Granter,
 	)
 	return i, err
 }
@@ -59,8 +81,25 @@ func (q *Queries) DeleteAccessRequest(ctx context.Context, id uuid.UUID) error {
 	return err
 }
 
+const denyAccessRequest = `-- name: DenyAccessRequest :exec
+UPDATE dataproduct_access_request
+SET status = "denied",
+    granter = $1
+WHERE id = $2
+`
+
+type DenyAccessRequestParams struct {
+	Granter sql.NullString
+	ID      uuid.UUID
+}
+
+func (q *Queries) DenyAccessRequest(ctx context.Context, arg DenyAccessRequestParams) error {
+	_, err := q.db.ExecContext(ctx, denyAccessRequest, arg.Granter, arg.ID)
+	return err
+}
+
 const getAccessRequest = `-- name: GetAccessRequest :one
-SELECT id, dataproduct_id, subject, owner, polly_documentation_id, last_modified, created
+SELECT id, dataproduct_id, subject, owner, polly_documentation_id, last_modified, created, expires, status, closed, granter
 FROM dataproduct_access_request
 WHERE id = $1
 `
@@ -76,12 +115,16 @@ func (q *Queries) GetAccessRequest(ctx context.Context, id uuid.UUID) (Dataprodu
 		&i.PollyDocumentationID,
 		&i.LastModified,
 		&i.Created,
+		&i.Expires,
+		&i.Status,
+		&i.Closed,
+		&i.Granter,
 	)
 	return i, err
 }
 
 const listAccessRequestsForDataproduct = `-- name: ListAccessRequestsForDataproduct :many
-SELECT id, dataproduct_id, subject, owner, polly_documentation_id, last_modified, created
+SELECT id, dataproduct_id, subject, owner, polly_documentation_id, last_modified, created, expires, status, closed, granter
 FROM dataproduct_access_request
 WHERE dataproduct_id = $1
 `
@@ -103,6 +146,10 @@ func (q *Queries) ListAccessRequestsForDataproduct(ctx context.Context, dataprod
 			&i.PollyDocumentationID,
 			&i.LastModified,
 			&i.Created,
+			&i.Expires,
+			&i.Status,
+			&i.Closed,
+			&i.Granter,
 		); err != nil {
 			return nil, err
 		}
@@ -118,7 +165,7 @@ func (q *Queries) ListAccessRequestsForDataproduct(ctx context.Context, dataprod
 }
 
 const listAccessRequestsForOwner = `-- name: ListAccessRequestsForOwner :many
-SELECT id, dataproduct_id, subject, owner, polly_documentation_id, last_modified, created
+SELECT id, dataproduct_id, subject, owner, polly_documentation_id, last_modified, created, expires, status, closed, granter
 FROM dataproduct_access_request
 WHERE "owner" = ANY ($1::text[])
 ORDER BY last_modified DESC
@@ -141,6 +188,10 @@ func (q *Queries) ListAccessRequestsForOwner(ctx context.Context, owner []string
 			&i.PollyDocumentationID,
 			&i.LastModified,
 			&i.Created,
+			&i.Expires,
+			&i.Status,
+			&i.Closed,
+			&i.Granter,
 		); err != nil {
 			return nil, err
 		}
@@ -160,7 +211,7 @@ UPDATE dataproduct_access_request
 SET owner                  = $1,
     polly_documentation_id = $2
 WHERE id = $3
-RETURNING id, dataproduct_id, subject, owner, polly_documentation_id, last_modified, created
+RETURNING id, dataproduct_id, subject, owner, polly_documentation_id, last_modified, created, expires, status, closed, granter
 `
 
 type UpdateAccessRequestParams struct {
@@ -180,6 +231,10 @@ func (q *Queries) UpdateAccessRequest(ctx context.Context, arg UpdateAccessReque
 		&i.PollyDocumentationID,
 		&i.LastModified,
 		&i.Created,
+		&i.Expires,
+		&i.Status,
+		&i.Closed,
+		&i.Granter,
 	)
 	return i, err
 }

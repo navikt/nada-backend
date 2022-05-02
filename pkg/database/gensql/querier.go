@@ -9,6 +9,7 @@ import (
 )
 
 type Querier interface {
+	ApproveAccessRequest(ctx context.Context, arg ApproveAccessRequestParams) error
 	CleanupStoryDrafts(ctx context.Context) error
 	CreateAccessRequestForDataproduct(ctx context.Context, arg CreateAccessRequestForDataproductParams) (DataproductAccessRequest, error)
 	CreateBigqueryDatasource(ctx context.Context, arg CreateBigqueryDatasourceParams) (DatasourceBigquery, error)
@@ -33,6 +34,7 @@ type Querier interface {
 	DeleteStoryDraft(ctx context.Context, id uuid.UUID) error
 	DeleteStoryViewDraft(ctx context.Context, storyID uuid.UUID) error
 	DeleteStoryViews(ctx context.Context, storyID uuid.UUID) error
+	DenyAccessRequest(ctx context.Context, arg DenyAccessRequestParams) error
 	GetAccessRequest(ctx context.Context, id uuid.UUID) (DataproductAccessRequest, error)
 	GetAccessToDataproduct(ctx context.Context, id uuid.UUID) (DataproductAccess, error)
 	GetActiveAccessToDataproductForSubject(ctx context.Context, arg GetActiveAccessToDataproductForSubjectParams) (DataproductAccess, error)

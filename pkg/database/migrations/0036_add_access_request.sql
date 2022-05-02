@@ -1,4 +1,5 @@
 -- +goose Up
+CREATE TYPE access_request_status_type AS ENUM ('pending', 'approved', 'denied');
 
 CREATE TABLE polly_documentation
 (
@@ -11,13 +12,17 @@ CREATE TABLE polly_documentation
 
 CREATE TABLE dataproduct_access_request
 (
-    "id"                     uuid                 DEFAULT uuid_generate_v4(),
-    "dataproduct_id"         uuid        NOT NULL,
-    "subject"                TEXT        NOT NULL,
-    "owner"                  TEXT        NOT NULL,
+    "id"                     uuid                                 DEFAULT uuid_generate_v4(),
+    "dataproduct_id"         uuid                       NOT NULL, 
+    "subject"                TEXT                       NOT NULL,
+    "owner"                  TEXT                       NOT NULL,
     "polly_documentation_id" uuid,
-    "last_modified"          TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-    "created"                TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    "last_modified"          TIMESTAMPTZ                NOT NULL  DEFAULT NOW(),
+    "created"                TIMESTAMPTZ                NOT NULL  DEFAULT NOW(),
+    "expires"                TIMESTAMPTZ,
+    "status"                 access_request_status_type NOT NULL  DEFAULT 'pending',
+    "closed"                 TIMESTAMPTZ,
+    "granter"                TEXT,
     PRIMARY KEY (id),
     CONSTRAINT fk_requester_dataproduct
         FOREIGN KEY (dataproduct_id)

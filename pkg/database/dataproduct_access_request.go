@@ -2,6 +2,7 @@ package database
 
 import (
 	"context"
+	"database/sql"
 	"fmt"
 	"strings"
 
@@ -49,6 +50,57 @@ func (r *Repo) GetAccessRequest(ctx context.Context, id uuid.UUID) (*models.Acce
 	}
 
 	return r.accessRequestSQLToGraphql(ctx, dataproductAccessRequest)
+}
+
+func (r *Repo) DenyAccessRequest(ctx context.Context, id uuid.UUID, granter string) error {
+	return r.querier.DenyAccessRequest(ctx, gensql.DenyAccessRequestParams{
+		ID:      id,
+		Granter: sql.NullString{String: granter, Valid: true},
+	})
+}
+
+func (r *Repo) ApproveAccessRequest(ctx context.Context, id uuid.UUID, granter string) error {
+	ar, err := r.querier.GetAccessRequest(ctx, id)
+	if err != nil {
+		return err
+	}
+
+	tx, err := r.db.Begin()
+	if err != nil {
+		return err
+	}
+
+	querier := r.querier.WithTx(tx)
+
+	_, err = querier.GrantAccessToDataproduct(ctx, gensql.GrantAccessToDataproductParams{
+		DataproductID: ar.DataproductID,
+		Subject:       ar.Subject,
+		Granter:       granter,
+		Expires:       ar.Expires,
+	})
+	if err != nil {
+		if err := tx.Rollback(); err != nil {
+			r.log.WithError(err).Error("Rolling back grant access request transaction")
+		}
+		return err
+	}
+
+	err = querier.ApproveAccessRequest(ctx, gensql.ApproveAccessRequestParams{
+		ID:      id,
+		Granter: sql.NullString{String: granter, Valid: true},
+	})
+	if err != nil {
+		if err := tx.Rollback(); err != nil {
+			r.log.WithError(err).Error("Rolling back grant access request transaction")
+		}
+		return err
+	}
+
+	if err := tx.Commit(); err != nil {
+		return err
+	}
+
+	return nil
 }
 
 func (r *Repo) UpdateAccessRequest(ctx context.Context, id uuid.UUID, pollyID uuid.NullUUID, owner string) (*models.AccessRequest, error) {
@@ -99,6 +151,7 @@ func (r *Repo) accessRequestSQLToGraphql(ctx context.Context, dataproductAccessR
 		DataproductID: dataproductAccessRequest.DataproductID,
 		Subject:       &subject,
 		SubjectType:   &subjectType,
+		Created:       &dataproductAccessRequest.Created,
 		Owner:         &dataproductAccessRequest.Owner,
 		Polly:         polly,
 	}, nil

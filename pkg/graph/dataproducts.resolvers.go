@@ -345,6 +345,32 @@ func (r *mutationResolver) DeleteAccessRequest(ctx context.Context, id uuid.UUID
 	return true, nil
 }
 
+func (r *mutationResolver) ApproveAccessRequest(ctx context.Context, id uuid.UUID) (bool, error) {
+	ar, err := r.repo.GetAccessRequest(ctx, id)
+	if err != nil {
+		return false, err
+	}
+
+	dp, err := r.repo.GetDataproduct(ctx, ar.DataproductID)
+	if err != nil {
+		return false, err
+	}
+
+	if err := ensureUserInGroup(ctx, dp.Owner.Group); err != nil {
+		return false, err
+	}
+
+	_ = auth.GetUser(ctx)
+
+	// if r.repo.ApproveAccessRequest(ctx, id, granter)
+
+	return true, nil
+}
+
+func (r *mutationResolver) DenyAccessRequest(ctx context.Context, id uuid.UUID) (bool, error) {
+	panic(fmt.Errorf("not implemented"))
+}
+
 func (r *queryResolver) Dataproduct(ctx context.Context, id uuid.UUID) (*models.Dataproduct, error) {
 	return r.repo.GetDataproduct(ctx, id)
 }
