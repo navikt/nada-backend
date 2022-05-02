@@ -1,35 +1,38 @@
 {
-  accessRequestsForOwner(){
-    subject
-    subjectType
-    owner
-    polly{
-      id
-      externalID
-      name
-      url
+  userInfo{
+    accessRequests{
+      subject
+      subjectType
+      owner
+      polly{
+        externalID
+        name
+        url
+      }
     }
   }
 }
 
 RETURNS
 
-OPTION data.accessRequestsForOwner.*.polly.id=IGNORE
+OPTION data.userInfo.*.polly.id=IGNORE
 
 ENDOPTS
 {
   "data": {
-    "accessRequestsForOwner": [
-      {
-        "subject": "serviceaccount@email.com",
-        "subjectType": "serviceAccount",
-        "owner": "user:mock.anderson@email.com",
-        "polly": {
-          "externalID": "28570031-e2b3-4110-8864-41ab279e2e0c",
-          "name": "Behandling",
-          "url": "https://some.url/28570031-e2b3-4110-8864-41ab279e2e0c"
+    "userInfo": {
+        "accessRequests": [
+        {
+            "subject": "serviceaccount@email.com",
+            "subjectType": "serviceAccount",
+            "owner": "user:mock.anderson@email.com",
+            "polly": {
+            "externalID": "28570031-e2b3-4110-8864-41ab279e2e0c",
+            "name": "Behandling",
+            "url": "https://some.url/28570031-e2b3-4110-8864-41ab279e2e0c"
+            }
         }
-      }
-    ]
+        ]
+    }
   }
 }
