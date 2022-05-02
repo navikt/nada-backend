@@ -146,12 +146,20 @@ func (r *Repo) accessRequestSQLToGraphql(ctx context.Context, dataproductAccessR
 		return nil, err
 	}
 
+	status, err := accessRequestStatusToGraphql(dataproductAccessRequest.Status)
+	if err != nil {
+		return nil, err
+	}
+
 	return &models.AccessRequest{
 		ID:            dataproductAccessRequest.ID,
 		DataproductID: dataproductAccessRequest.DataproductID,
 		Subject:       &subject,
 		SubjectType:   &subjectType,
 		Created:       &dataproductAccessRequest.Created,
+		Status:        &status,
+		Closed:        nullTimeToPtr(dataproductAccessRequest.Closed),
+		Granter:       nullStringToPtr(dataproductAccessRequest.Granter),
 		Owner:         &dataproductAccessRequest.Owner,
 		Polly:         polly,
 	}, nil
@@ -175,4 +183,17 @@ func (r *Repo) pollySQLToGraphql(ctx context.Context, id uuid.NullUUID) (*models
 			URL:        pollyDoc.Url,
 		},
 	}, nil
+}
+
+func accessRequestStatusToGraphql(sqlStatus gensql.AccessRequestStatusType) (models.AccessRequestStatus, error) {
+	switch sqlStatus {
+	case gensql.AccessRequestStatusTypePending:
+		return models.AccessRequestStatusPending, nil
+	case gensql.AccessRequestStatusTypeApproved:
+		return models.AccessRequestStatusApproved, nil
+	case gensql.AccessRequestStatusTypeDenied:
+		return models.AccessRequestStatusDenied, nil
+	default:
+		return "", fmt.Errorf("unknown access request status %q", sqlStatus)
+	}
 }

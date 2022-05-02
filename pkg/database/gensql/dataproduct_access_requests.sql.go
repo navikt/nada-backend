@@ -13,8 +13,9 @@ import (
 
 const approveAccessRequest = `-- name: ApproveAccessRequest :exec
 UPDATE dataproduct_access_request
-SET status = "approved",
-    granter = $1
+SET status = 'approved',
+    granter = $1,
+    closed = NOW()
 WHERE id = $2
 `
 
@@ -83,8 +84,9 @@ func (q *Queries) DeleteAccessRequest(ctx context.Context, id uuid.UUID) error {
 
 const denyAccessRequest = `-- name: DenyAccessRequest :exec
 UPDATE dataproduct_access_request
-SET status = "denied",
-    granter = $1
+SET status = 'denied',
+    granter = $1,
+    closed = NOW()
 WHERE id = $2
 `
 
@@ -126,7 +128,7 @@ func (q *Queries) GetAccessRequest(ctx context.Context, id uuid.UUID) (Dataprodu
 const listAccessRequestsForDataproduct = `-- name: ListAccessRequestsForDataproduct :many
 SELECT id, dataproduct_id, subject, owner, polly_documentation_id, last_modified, created, expires, status, closed, granter
 FROM dataproduct_access_request
-WHERE dataproduct_id = $1
+WHERE dataproduct_id = $1 AND status = 'pending'
 `
 
 func (q *Queries) ListAccessRequestsForDataproduct(ctx context.Context, dataproductID uuid.UUID) ([]DataproductAccessRequest, error) {
@@ -167,8 +169,7 @@ func (q *Queries) ListAccessRequestsForDataproduct(ctx context.Context, dataprod
 const listAccessRequestsForOwner = `-- name: ListAccessRequestsForOwner :many
 SELECT id, dataproduct_id, subject, owner, polly_documentation_id, last_modified, created, expires, status, closed, granter
 FROM dataproduct_access_request
-WHERE "owner" = ANY ($1::text[])
-ORDER BY last_modified DESC
+WHERE "owner" = ANY ($1::text[]) AND status = 'pending'
 `
 
 func (q *Queries) ListAccessRequestsForOwner(ctx context.Context, owner []string) ([]DataproductAccessRequest, error) {

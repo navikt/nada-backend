@@ -63,11 +63,14 @@ type ComplexityRoot struct {
 	}
 
 	AccessRequest struct {
+		Closed        func(childComplexity int) int
 		Created       func(childComplexity int) int
 		DataproductID func(childComplexity int) int
+		Granter       func(childComplexity int) int
 		ID            func(childComplexity int) int
 		Owner         func(childComplexity int) int
 		Polly         func(childComplexity int) int
+		Status        func(childComplexity int) int
 		Subject       func(childComplexity int) int
 		SubjectType   func(childComplexity int) int
 	}
@@ -379,6 +382,13 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.Access.Subject(childComplexity), true
 
+	case "AccessRequest.closed":
+		if e.complexity.AccessRequest.Closed == nil {
+			break
+		}
+
+		return e.complexity.AccessRequest.Closed(childComplexity), true
+
 	case "AccessRequest.created":
 		if e.complexity.AccessRequest.Created == nil {
 			break
@@ -392,6 +402,13 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 		}
 
 		return e.complexity.AccessRequest.DataproductID(childComplexity), true
+
+	case "AccessRequest.granter":
+		if e.complexity.AccessRequest.Granter == nil {
+			break
+		}
+
+		return e.complexity.AccessRequest.Granter(childComplexity), true
 
 	case "AccessRequest.id":
 		if e.complexity.AccessRequest.ID == nil {
@@ -413,6 +430,13 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 		}
 
 		return e.complexity.AccessRequest.Polly(childComplexity), true
+
+	case "AccessRequest.status":
+		if e.complexity.AccessRequest.Status == nil {
+			break
+		}
+
+		return e.complexity.AccessRequest.Status(childComplexity), true
 
 	case "AccessRequest.subject":
 		if e.complexity.AccessRequest.Subject == nil {
@@ -1562,6 +1586,12 @@ type BigQuery @goModel(model: "github.com/navikt/nada-backend/pkg/graph/models.B
     description: String!
 }
 
+enum AccessRequestStatus {
+    pending
+    approved
+    denied
+}
+
 """
 Datasource defines types that can be returned as a dataproduct datasource.
 """
@@ -1597,11 +1627,17 @@ type AccessRequest @goModel(model: "github.com/navikt/nada-backend/pkg/graph/mod
     subject: String
     "subjectType is the type of entity which should be granted access (user, group or service account)."
     subjectType: SubjectType
-    "created is a timestamp for when the access request was created"
+    "created is a timestamp for when the access request was created."
     created: Time
-    "owner of the access request"
+    "status is the status of the access request (can be pending, approved or denied)."
+    status: AccessRequestStatus
+    "closed is a timestamp for when the access request was closed."
+    closed: Time
+    "granter is the email of the person who granted/denied the access request."
+    granter: String
+    "owner of the access request."
     owner: String
-    "polly is the process policy attached to this grant"
+    "polly is the process policy attached to this grant."
     polly: Polly
 }
 
@@ -3557,6 +3593,129 @@ func (ec *executionContext) fieldContext_AccessRequest_created(ctx context.Conte
 		IsResolver: false,
 		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
 			return nil, errors.New("field of type Time does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _AccessRequest_status(ctx context.Context, field graphql.CollectedField, obj *models.AccessRequest) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_AccessRequest_status(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Status, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		return graphql.Null
+	}
+	res := resTmp.(*models.AccessRequestStatus)
+	fc.Result = res
+	return ec.marshalOAccessRequestStatus2ᚖgithubᚗcomᚋnaviktᚋnadaᚑbackendᚋpkgᚋgraphᚋmodelsᚐAccessRequestStatus(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_AccessRequest_status(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "AccessRequest",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type AccessRequestStatus does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _AccessRequest_closed(ctx context.Context, field graphql.CollectedField, obj *models.AccessRequest) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_AccessRequest_closed(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Closed, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		return graphql.Null
+	}
+	res := resTmp.(*time.Time)
+	fc.Result = res
+	return ec.marshalOTime2ᚖtimeᚐTime(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_AccessRequest_closed(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "AccessRequest",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Time does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _AccessRequest_granter(ctx context.Context, field graphql.CollectedField, obj *models.AccessRequest) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_AccessRequest_granter(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Granter, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		return graphql.Null
+	}
+	res := resTmp.(*string)
+	fc.Result = res
+	return ec.marshalOString2ᚖstring(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_AccessRequest_granter(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "AccessRequest",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
 		},
 	}
 	return fc, nil
@@ -6101,6 +6260,12 @@ func (ec *executionContext) fieldContext_Mutation_createAccessRequest(ctx contex
 				return ec.fieldContext_AccessRequest_subjectType(ctx, field)
 			case "created":
 				return ec.fieldContext_AccessRequest_created(ctx, field)
+			case "status":
+				return ec.fieldContext_AccessRequest_status(ctx, field)
+			case "closed":
+				return ec.fieldContext_AccessRequest_closed(ctx, field)
+			case "granter":
+				return ec.fieldContext_AccessRequest_granter(ctx, field)
 			case "owner":
 				return ec.fieldContext_AccessRequest_owner(ctx, field)
 			case "polly":
@@ -6192,6 +6357,12 @@ func (ec *executionContext) fieldContext_Mutation_updateAccessRequest(ctx contex
 				return ec.fieldContext_AccessRequest_subjectType(ctx, field)
 			case "created":
 				return ec.fieldContext_AccessRequest_created(ctx, field)
+			case "status":
+				return ec.fieldContext_AccessRequest_status(ctx, field)
+			case "closed":
+				return ec.fieldContext_AccessRequest_closed(ctx, field)
+			case "granter":
+				return ec.fieldContext_AccessRequest_granter(ctx, field)
 			case "owner":
 				return ec.fieldContext_AccessRequest_owner(ctx, field)
 			case "polly":
@@ -7301,6 +7472,12 @@ func (ec *executionContext) fieldContext_Query_accessRequest(ctx context.Context
 				return ec.fieldContext_AccessRequest_subjectType(ctx, field)
 			case "created":
 				return ec.fieldContext_AccessRequest_created(ctx, field)
+			case "status":
+				return ec.fieldContext_AccessRequest_status(ctx, field)
+			case "closed":
+				return ec.fieldContext_AccessRequest_closed(ctx, field)
+			case "granter":
+				return ec.fieldContext_AccessRequest_granter(ctx, field)
 			case "owner":
 				return ec.fieldContext_AccessRequest_owner(ctx, field)
 			case "polly":
@@ -7392,6 +7569,12 @@ func (ec *executionContext) fieldContext_Query_accessRequestsForDataproduct(ctx 
 				return ec.fieldContext_AccessRequest_subjectType(ctx, field)
 			case "created":
 				return ec.fieldContext_AccessRequest_created(ctx, field)
+			case "status":
+				return ec.fieldContext_AccessRequest_status(ctx, field)
+			case "closed":
+				return ec.fieldContext_AccessRequest_closed(ctx, field)
+			case "granter":
+				return ec.fieldContext_AccessRequest_granter(ctx, field)
 			case "owner":
 				return ec.fieldContext_AccessRequest_owner(ctx, field)
 			case "polly":
@@ -10233,6 +10416,12 @@ func (ec *executionContext) fieldContext_UserInfo_accessRequests(ctx context.Con
 				return ec.fieldContext_AccessRequest_subjectType(ctx, field)
 			case "created":
 				return ec.fieldContext_AccessRequest_created(ctx, field)
+			case "status":
+				return ec.fieldContext_AccessRequest_status(ctx, field)
+			case "closed":
+				return ec.fieldContext_AccessRequest_closed(ctx, field)
+			case "granter":
+				return ec.fieldContext_AccessRequest_granter(ctx, field)
 			case "owner":
 				return ec.fieldContext_AccessRequest_owner(ctx, field)
 			case "polly":
@@ -12759,6 +12948,18 @@ func (ec *executionContext) _AccessRequest(ctx context.Context, sel ast.Selectio
 		case "created":
 
 			out.Values[i] = ec._AccessRequest_created(ctx, field, obj)
+
+		case "status":
+
+			out.Values[i] = ec._AccessRequest_status(ctx, field, obj)
+
+		case "closed":
+
+			out.Values[i] = ec._AccessRequest_closed(ctx, field, obj)
+
+		case "granter":
+
+			out.Values[i] = ec._AccessRequest_granter(ctx, field, obj)
 
 		case "owner":
 
@@ -16268,6 +16469,22 @@ func (ec *executionContext) marshalN__TypeKind2string(ctx context.Context, sel a
 		}
 	}
 	return res
+}
+
+func (ec *executionContext) unmarshalOAccessRequestStatus2ᚖgithubᚗcomᚋnaviktᚋnadaᚑbackendᚋpkgᚋgraphᚋmodelsᚐAccessRequestStatus(ctx context.Context, v interface{}) (*models.AccessRequestStatus, error) {
+	if v == nil {
+		return nil, nil
+	}
+	var res = new(models.AccessRequestStatus)
+	err := res.UnmarshalGQL(v)
+	return res, graphql.ErrorOnPath(ctx, err)
+}
+
+func (ec *executionContext) marshalOAccessRequestStatus2ᚖgithubᚗcomᚋnaviktᚋnadaᚑbackendᚋpkgᚋgraphᚋmodelsᚐAccessRequestStatus(ctx context.Context, sel ast.SelectionSet, v *models.AccessRequestStatus) graphql.Marshaler {
+	if v == nil {
+		return graphql.Null
+	}
+	return v
 }
 
 func (ec *executionContext) unmarshalOBoolean2bool(ctx context.Context, v interface{}) (bool, error) {

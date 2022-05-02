@@ -75,6 +75,12 @@ type BigQuery @goModel(model: "github.com/navikt/nada-backend/pkg/graph/models.B
     description: String!
 }
 
+enum AccessRequestStatus {
+    pending
+    approved
+    denied
+}
+
 """
 Datasource defines types that can be returned as a dataproduct datasource.
 """
@@ -110,11 +116,17 @@ type AccessRequest @goModel(model: "github.com/navikt/nada-backend/pkg/graph/mod
     subject: String
     "subjectType is the type of entity which should be granted access (user, group or service account)."
     subjectType: SubjectType
-    "created is a timestamp for when the access request was created"
+    "created is a timestamp for when the access request was created."
     created: Time
-    "owner of the access request"
+    "status is the status of the access request (can be pending, approved or denied)."
+    status: AccessRequestStatus
+    "closed is a timestamp for when the access request was closed."
+    closed: Time
+    "granter is the email of the person who granted/denied the access request."
+    granter: String
+    "owner of the access request."
     owner: String
-    "polly is the process policy attached to this grant"
+    "polly is the process policy attached to this grant."
     polly: Polly
 }
 

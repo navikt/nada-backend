@@ -1,0 +1,11 @@
+mutation{
+  approveAccessRequest(id: "{{ .access_request_for_approval }}")
+}
+
+RETURNS
+
+{
+  "data": {
+    "approveAccessRequest": true
+  }
+}

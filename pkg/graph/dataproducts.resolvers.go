@@ -360,15 +360,35 @@ func (r *mutationResolver) ApproveAccessRequest(ctx context.Context, id uuid.UUI
 		return false, err
 	}
 
-	_ = auth.GetUser(ctx)
-
-	// if r.repo.ApproveAccessRequest(ctx, id, granter)
+	user := auth.GetUser(ctx)
+	if err := r.repo.ApproveAccessRequest(ctx, id, user.Email); err != nil {
+		return false, err
+	}
 
 	return true, nil
 }
 
 func (r *mutationResolver) DenyAccessRequest(ctx context.Context, id uuid.UUID) (bool, error) {
-	panic(fmt.Errorf("not implemented"))
+	ar, err := r.repo.GetAccessRequest(ctx, id)
+	if err != nil {
+		return false, err
+	}
+
+	dp, err := r.repo.GetDataproduct(ctx, ar.DataproductID)
+	if err != nil {
+		return false, err
+	}
+
+	if err := ensureUserInGroup(ctx, dp.Owner.Group); err != nil {
+		return false, err
+	}
+
+	user := auth.GetUser(ctx)
+	if err := r.repo.DenyAccessRequest(ctx, id, user.Email); err != nil {
+		return false, err
+	}
+
+	return true, nil
 }
 
 func (r *queryResolver) Dataproduct(ctx context.Context, id uuid.UUID) (*models.Dataproduct, error) {

@@ -12,13 +12,12 @@ RETURNING *;
 -- name: ListAccessRequestsForDataproduct :many
 SELECT *
 FROM dataproduct_access_request
-WHERE dataproduct_id = @dataproduct_id;
+WHERE dataproduct_id = @dataproduct_id AND status = 'pending';
 
 -- name: ListAccessRequestsForOwner :many
 SELECT *
 FROM dataproduct_access_request
-WHERE "owner" = ANY (@owner::text[])
-ORDER BY last_modified DESC;
+WHERE "owner" = ANY (@owner::text[]) AND status = 'pending';
 
 -- name: GetAccessRequest :one
 SELECT *
@@ -38,12 +37,14 @@ WHERE id = @id;
 
 -- name: DenyAccessRequest :exec
 UPDATE dataproduct_access_request
-SET status = "denied",
-    granter = @granter
+SET status = 'denied',
+    granter = @granter,
+    closed = NOW()
 WHERE id = @id;
 
 -- name: ApproveAccessRequest :exec
 UPDATE dataproduct_access_request
-SET status = "approved",
-    granter = @granter
+SET status = 'approved',
+    granter = @granter,
+    closed = NOW()
 WHERE id = @id;
