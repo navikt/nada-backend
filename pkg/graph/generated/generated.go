@@ -164,7 +164,6 @@ type ComplexityRoot struct {
 	Query struct {
 		AccessRequest                func(childComplexity int, id uuid.UUID) int
 		AccessRequestsForDataproduct func(childComplexity int, dataproductID uuid.UUID) int
-		AccessRequestsForOwner       func(childComplexity int) int
 		Dataproduct                  func(childComplexity int, id uuid.UUID) int
 		Dataproducts                 func(childComplexity int, limit *int, offset *int, service *models.MappingService) int
 		GcpGetDatasets               func(childComplexity int, projectID string) int
@@ -245,6 +244,7 @@ type ComplexityRoot struct {
 	}
 
 	UserInfo struct {
+		AccessRequests  func(childComplexity int) int
 		Accessable      func(childComplexity int) int
 		Dataproducts    func(childComplexity int) int
 		Email           func(childComplexity int) int
@@ -289,7 +289,6 @@ type QueryResolver interface {
 	Dataproducts(ctx context.Context, limit *int, offset *int, service *models.MappingService) ([]*models.Dataproduct, error)
 	GroupStats(ctx context.Context, limit *int, offset *int) ([]*models.GroupStats, error)
 	AccessRequest(ctx context.Context, id uuid.UUID) (*models.AccessRequest, error)
-	AccessRequestsForOwner(ctx context.Context) ([]*models.AccessRequest, error)
 	AccessRequestsForDataproduct(ctx context.Context, dataproductID uuid.UUID) ([]*models.AccessRequest, error)
 	GcpGetTables(ctx context.Context, projectID string, datasetID string) ([]*models.BigQueryTable, error)
 	GcpGetDatasets(ctx context.Context, projectID string) ([]string, error)
@@ -315,6 +314,7 @@ type UserInfoResolver interface {
 	Dataproducts(ctx context.Context, obj *models.UserInfo) ([]*models.Dataproduct, error)
 	Accessable(ctx context.Context, obj *models.UserInfo) ([]*models.Dataproduct, error)
 	Stories(ctx context.Context, obj *models.UserInfo) ([]*models.GraphStory, error)
+	AccessRequests(ctx context.Context, obj *models.UserInfo) ([]*models.AccessRequest, error)
 }
 
 type executableSchema struct {
@@ -914,13 +914,6 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.Query.AccessRequestsForDataproduct(childComplexity, args["dataproductID"].(uuid.UUID)), true
 
-	case "Query.accessRequestsForOwner":
-		if e.complexity.Query.AccessRequestsForOwner == nil {
-			break
-		}
-
-		return e.complexity.Query.AccessRequestsForOwner(childComplexity), true
-
 	case "Query.dataproduct":
 		if e.complexity.Query.Dataproduct == nil {
 			break
@@ -1315,6 +1308,13 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.TeamkatalogenResult.URL(childComplexity), true
 
+	case "UserInfo.accessRequests":
+		if e.complexity.UserInfo.AccessRequests == nil {
+			break
+		}
+
+		return e.complexity.UserInfo.AccessRequests(childComplexity), true
+
 	case "UserInfo.accessable":
 		if e.complexity.UserInfo.Accessable == nil {
 			break
@@ -1378,6 +1378,18 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 func (e *executableSchema) Exec(ctx context.Context) graphql.ResponseHandler {
 	rc := graphql.GetOperationContext(ctx)
 	ec := executionContext{rc, e}
+	inputUnmarshalMap := graphql.BuildUnmarshalerMap(
+		ec.unmarshalInputNewAccessRequest,
+		ec.unmarshalInputNewBigQuery,
+		ec.unmarshalInputNewDataproduct,
+		ec.unmarshalInputNewGrant,
+		ec.unmarshalInputNewPolly,
+		ec.unmarshalInputNewStory,
+		ec.unmarshalInputSearchOptions,
+		ec.unmarshalInputSearchQuery,
+		ec.unmarshalInputUpdateAccessRequest,
+		ec.unmarshalInputUpdateDataproduct,
+	)
 	first := true
 
 	switch rc.Operation.Operation {
@@ -1387,6 +1399,7 @@ func (e *executableSchema) Exec(ctx context.Context) graphql.ResponseHandler {
 				return nil
 			}
 			first = false
+			ctx = graphql.WithUnmarshalerMap(ctx, inputUnmarshalMap)
 			data := ec._Query(ctx, rc.Operation.SelectionSet)
 			var buf bytes.Buffer
 			data.MarshalGQL(&buf)
@@ -1401,6 +1414,7 @@ func (e *executableSchema) Exec(ctx context.Context) graphql.ResponseHandler {
 				return nil
 			}
 			first = false
+			ctx = graphql.WithUnmarshalerMap(ctx, inputUnmarshalMap)
 			data := ec._Mutation(ctx, rc.Operation.SelectionSet)
 			var buf bytes.Buffer
 			data.MarshalGQL(&buf)
@@ -1601,11 +1615,6 @@ extend type Query {
         "id of access request."
         id: ID!
     ): AccessRequest! @authenticated
-
-    """
-    accessRequests returns all access requests for an owner
-    """
-    accessRequestsForOwner: [AccessRequest!]! @authenticated
 
     """
     accessRequests returns all access requests for a dataproduct
@@ -2318,14 +2327,16 @@ type UserInfo @goModel(model: "github.com/navikt/nada-backend/pkg/graph/models.U
 	groups: [Group!]!
 	"gcpProjects is GCP projects the user is a member of."
 	gcpProjects: [GCPProject!]!  @goField(name: "GCPProjects") @authenticated
-	"loginExpiration is when the token expires"
+	"loginExpiration is when the token expires."
 	loginExpiration: Time!
-	"dataproducts is a list of dataproducts with one of the users groups as owner"
+	"dataproducts is a list of dataproducts with one of the users groups as owner."
 	dataproducts: [Dataproduct!]!
-	"accessable is a list of dataproducts which the user has explicit access to"
+	"accessable is a list of dataproducts which the user has explicit access to."
 	accessable: [Dataproduct!]!
-	"stories is a list of stories with one of the users groups as owner"
+	"stories is a list of stories with one of the users groups as owner."
 	stories: [Story!]!
+    "accessRequests is a list of access requests where either the user or one of the users groups is owner."
+    accessRequests: [AccessRequest!]!
 }
 
 """
@@ -7029,84 +7040,6 @@ func (ec *executionContext) fieldContext_Query_accessRequest(ctx context.Context
 	return fc, nil
 }
 
-func (ec *executionContext) _Query_accessRequestsForOwner(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
-	fc, err := ec.fieldContext_Query_accessRequestsForOwner(ctx, field)
-	if err != nil {
-		return graphql.Null
-	}
-	ctx = graphql.WithFieldContext(ctx, fc)
-	defer func() {
-		if r := recover(); r != nil {
-			ec.Error(ctx, ec.Recover(ctx, r))
-			ret = graphql.Null
-		}
-	}()
-	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
-		directive0 := func(rctx context.Context) (interface{}, error) {
-			ctx = rctx // use context from middleware stack in children
-			return ec.resolvers.Query().AccessRequestsForOwner(rctx)
-		}
-		directive1 := func(ctx context.Context) (interface{}, error) {
-			if ec.directives.Authenticated == nil {
-				return nil, errors.New("directive authenticated is not implemented")
-			}
-			return ec.directives.Authenticated(ctx, nil, directive0, nil)
-		}
-
-		tmp, err := directive1(rctx)
-		if err != nil {
-			return nil, graphql.ErrorOnPath(ctx, err)
-		}
-		if tmp == nil {
-			return nil, nil
-		}
-		if data, ok := tmp.([]*models.AccessRequest); ok {
-			return data, nil
-		}
-		return nil, fmt.Errorf(`unexpected type %T from directive, should be []*github.com/navikt/nada-backend/pkg/graph/models.AccessRequest`, tmp)
-	})
-	if err != nil {
-		ec.Error(ctx, err)
-		return graphql.Null
-	}
-	if resTmp == nil {
-		if !graphql.HasFieldError(ctx, fc) {
-			ec.Errorf(ctx, "must not be null")
-		}
-		return graphql.Null
-	}
-	res := resTmp.([]*models.AccessRequest)
-	fc.Result = res
-	return ec.marshalNAccessRequest2ᚕᚖgithubᚗcomᚋnaviktᚋnadaᚑbackendᚋpkgᚋgraphᚋmodelsᚐAccessRequestᚄ(ctx, field.Selections, res)
-}
-
-func (ec *executionContext) fieldContext_Query_accessRequestsForOwner(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "Query",
-		Field:      field,
-		IsMethod:   true,
-		IsResolver: true,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			switch field.Name {
-			case "id":
-				return ec.fieldContext_AccessRequest_id(ctx, field)
-			case "dataproductID":
-				return ec.fieldContext_AccessRequest_dataproductID(ctx, field)
-			case "subject":
-				return ec.fieldContext_AccessRequest_subject(ctx, field)
-			case "subjectType":
-				return ec.fieldContext_AccessRequest_subjectType(ctx, field)
-			case "owner":
-				return ec.fieldContext_AccessRequest_owner(ctx, field)
-			case "polly":
-				return ec.fieldContext_AccessRequest_polly(ctx, field)
-			}
-			return nil, fmt.Errorf("no field named %q was found under type AccessRequest", field.Name)
-		},
-	}
-	return fc, nil
-}
-
 func (ec *executionContext) _Query_accessRequestsForDataproduct(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
 	fc, err := ec.fieldContext_Query_accessRequestsForDataproduct(ctx, field)
 	if err != nil {
@@ -7957,6 +7890,8 @@ func (ec *executionContext) fieldContext_Query_userInfo(ctx context.Context, fie
 				return ec.fieldContext_UserInfo_accessable(ctx, field)
 			case "stories":
 				return ec.fieldContext_UserInfo_stories(ctx, field)
+			case "accessRequests":
+				return ec.fieldContext_UserInfo_accessRequests(ctx, field)
 			}
 			return nil, fmt.Errorf("no field named %q was found under type UserInfo", field.Name)
 		},
@@ -9959,6 +9894,64 @@ func (ec *executionContext) fieldContext_UserInfo_stories(ctx context.Context, f
 				return ec.fieldContext_Story_views(ctx, field)
 			}
 			return nil, fmt.Errorf("no field named %q was found under type Story", field.Name)
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _UserInfo_accessRequests(ctx context.Context, field graphql.CollectedField, obj *models.UserInfo) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_UserInfo_accessRequests(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.UserInfo().AccessRequests(rctx, obj)
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.([]*models.AccessRequest)
+	fc.Result = res
+	return ec.marshalNAccessRequest2ᚕᚖgithubᚗcomᚋnaviktᚋnadaᚑbackendᚋpkgᚋgraphᚋmodelsᚐAccessRequestᚄ(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_UserInfo_accessRequests(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "UserInfo",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "id":
+				return ec.fieldContext_AccessRequest_id(ctx, field)
+			case "dataproductID":
+				return ec.fieldContext_AccessRequest_dataproductID(ctx, field)
+			case "subject":
+				return ec.fieldContext_AccessRequest_subject(ctx, field)
+			case "subjectType":
+				return ec.fieldContext_AccessRequest_subjectType(ctx, field)
+			case "owner":
+				return ec.fieldContext_AccessRequest_owner(ctx, field)
+			case "polly":
+				return ec.fieldContext_AccessRequest_polly(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type AccessRequest", field.Name)
 		},
 	}
 	return fc, nil
@@ -13358,29 +13351,6 @@ func (ec *executionContext) _Query(ctx context.Context, sel ast.SelectionSet) gr
 			out.Concurrently(i, func() graphql.Marshaler {
 				return rrm(innerCtx)
 			})
-		case "accessRequestsForOwner":
-			field := field
-
-			innerFunc := func(ctx context.Context) (res graphql.Marshaler) {
-				defer func() {
-					if r := recover(); r != nil {
-						ec.Error(ctx, ec.Recover(ctx, r))
-					}
-				}()
-				res = ec._Query_accessRequestsForOwner(ctx, field)
-				if res == graphql.Null {
-					atomic.AddUint32(&invalids, 1)
-				}
-				return res
-			}
-
-			rrm := func(ctx context.Context) graphql.Marshaler {
-				return ec.OperationContext.RootResolverMiddleware(ctx, innerFunc)
-			}
-
-			out.Concurrently(i, func() graphql.Marshaler {
-				return rrm(innerCtx)
-			})
 		case "accessRequestsForDataproduct":
 			field := field
 
@@ -14245,6 +14215,26 @@ func (ec *executionContext) _UserInfo(ctx context.Context, sel ast.SelectionSet,
 					}
 				}()
 				res = ec._UserInfo_stories(ctx, field, obj)
+				if res == graphql.Null {
+					atomic.AddUint32(&invalids, 1)
+				}
+				return res
+			}
+
+			out.Concurrently(i, func() graphql.Marshaler {
+				return innerFunc(ctx)
+
+			})
+		case "accessRequests":
+			field := field
+
+			innerFunc := func(ctx context.Context) (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._UserInfo_accessRequests(ctx, field, obj)
 				if res == graphql.Null {
 					atomic.AddUint32(&invalids, 1)
 				}

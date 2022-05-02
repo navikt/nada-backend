@@ -371,17 +371,6 @@ func (r *queryResolver) AccessRequest(ctx context.Context, id uuid.UUID) (*model
 	return r.repo.GetAccessRequest(ctx, id)
 }
 
-func (r *queryResolver) AccessRequestsForOwner(ctx context.Context) ([]*models.AccessRequest, error) {
-	user := auth.GetUser(ctx)
-
-	groups := []string{"user:" + user.Email}
-	for _, g := range user.Groups {
-		groups = append(groups, "group:"+g.Email)
-	}
-
-	return r.repo.ListAccessRequestsForOwner(ctx, groups)
-}
-
 func (r *queryResolver) AccessRequestsForDataproduct(ctx context.Context, dataproductID uuid.UUID) ([]*models.AccessRequest, error) {
 	dp, err := r.repo.GetDataproduct(ctx, dataproductID)
 	if err != nil {
@@ -401,7 +390,5 @@ func (r *Resolver) BigQuery() generated.BigQueryResolver { return &bigQueryResol
 // Dataproduct returns generated.DataproductResolver implementation.
 func (r *Resolver) Dataproduct() generated.DataproductResolver { return &dataproductResolver{r} }
 
-type (
-	bigQueryResolver    struct{ *Resolver }
-	dataproductResolver struct{ *Resolver }
-)
+type bigQueryResolver struct{ *Resolver }
+type dataproductResolver struct{ *Resolver }

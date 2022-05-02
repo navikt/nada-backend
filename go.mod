@@ -21,7 +21,7 @@ require (
 
 require (
 	cloud.google.com/go v0.94.1
-	github.com/99designs/gqlgen v0.17.4
+	github.com/99designs/gqlgen v0.17.5
 	github.com/Azure/go-ansiterm v0.0.0-20170929234023-d6e3b3328b78 // indirect
 	github.com/Microsoft/go-winio v0.5.0 // indirect
 	github.com/Nvveen/Gotty v0.0.0-20120604004816-cd527374f1e5 // indirect
@@ -65,7 +65,7 @@ require (
 	google.golang.org/api v0.58.0
 	google.golang.org/appengine v1.6.7 // indirect
 	google.golang.org/grpc v1.40.0 // indirect
-	google.golang.org/protobuf v1.27.1 // indirect
+	google.golang.org/protobuf v1.28.0 // indirect
 	gopkg.in/yaml.v2 v2.4.0 // indirect
 )
 

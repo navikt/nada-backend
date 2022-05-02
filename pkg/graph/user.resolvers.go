@@ -89,6 +89,17 @@ func (r *userInfoResolver) Stories(ctx context.Context, obj *models.UserInfo) ([
 	return gqlStories, nil
 }
 
+func (r *userInfoResolver) AccessRequests(ctx context.Context, obj *models.UserInfo) ([]*models.AccessRequest, error) {
+	user := auth.GetUser(ctx)
+
+	groups := []string{"user:" + user.Email}
+	for _, g := range user.Groups {
+		groups = append(groups, "group:"+g.Email)
+	}
+
+	return r.repo.ListAccessRequestsForOwner(ctx, groups)
+}
+
 // UserInfo returns generated.UserInfoResolver implementation.
 func (r *Resolver) UserInfo() generated.UserInfoResolver { return &userInfoResolver{r} }
 

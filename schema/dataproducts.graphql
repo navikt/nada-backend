@@ -166,11 +166,6 @@ extend type Query {
     ): AccessRequest! @authenticated
 
     """
-    accessRequests returns all access requests for an owner
-    """
-    accessRequestsForOwner: [AccessRequest!]! @authenticated
-
-    """
     accessRequests returns all access requests for a dataproduct
     """
     accessRequestsForDataproduct(
