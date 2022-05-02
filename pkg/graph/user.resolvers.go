@@ -92,9 +92,9 @@ func (r *userInfoResolver) Stories(ctx context.Context, obj *models.UserInfo) ([
 func (r *userInfoResolver) AccessRequests(ctx context.Context, obj *models.UserInfo) ([]*models.AccessRequest, error) {
 	user := auth.GetUser(ctx)
 
-	groups := []string{"user:" + user.Email}
+	groups := []string{"user:" + strings.ToLower(user.Email)}
 	for _, g := range user.Groups {
-		groups = append(groups, "group:"+g.Email)
+		groups = append(groups, "group:"+strings.ToLower(g.Email))
 	}
 
 	return r.repo.ListAccessRequestsForOwner(ctx, groups)
