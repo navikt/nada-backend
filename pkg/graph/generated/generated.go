@@ -1624,19 +1624,19 @@ type AccessRequest @goModel(model: "github.com/navikt/nada-backend/pkg/graph/mod
     "id of dataproduct."
     dataproductID: ID!
     "subject to be granted access."
-    subject: String
+    subject: String!
     "subjectType is the type of entity which should be granted access (user, group or service account)."
-    subjectType: SubjectType
+    subjectType: SubjectType!
     "created is a timestamp for when the access request was created."
-    created: Time
+    created: Time!
     "status is the status of the access request (can be pending, approved or denied)."
-    status: AccessRequestStatus
+    status: AccessRequestStatus!
     "closed is a timestamp for when the access request was closed."
     closed: Time
     "granter is the email of the person who granted/denied the access request."
     granter: String
     "owner of the access request."
-    owner: String
+    owner: String!
     "polly is the process policy attached to this grant."
     polly: Polly
 }
@@ -3500,11 +3500,14 @@ func (ec *executionContext) _AccessRequest_subject(ctx context.Context, field gr
 		return graphql.Null
 	}
 	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
 		return graphql.Null
 	}
-	res := resTmp.(*string)
+	res := resTmp.(string)
 	fc.Result = res
-	return ec.marshalOString2ᚖstring(ctx, field.Selections, res)
+	return ec.marshalNString2string(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) fieldContext_AccessRequest_subject(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
@@ -3541,11 +3544,14 @@ func (ec *executionContext) _AccessRequest_subjectType(ctx context.Context, fiel
 		return graphql.Null
 	}
 	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
 		return graphql.Null
 	}
-	res := resTmp.(*models.SubjectType)
+	res := resTmp.(models.SubjectType)
 	fc.Result = res
-	return ec.marshalOSubjectType2ᚖgithubᚗcomᚋnaviktᚋnadaᚑbackendᚋpkgᚋgraphᚋmodelsᚐSubjectType(ctx, field.Selections, res)
+	return ec.marshalNSubjectType2githubᚗcomᚋnaviktᚋnadaᚑbackendᚋpkgᚋgraphᚋmodelsᚐSubjectType(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) fieldContext_AccessRequest_subjectType(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
@@ -3582,11 +3588,14 @@ func (ec *executionContext) _AccessRequest_created(ctx context.Context, field gr
 		return graphql.Null
 	}
 	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
 		return graphql.Null
 	}
-	res := resTmp.(*time.Time)
+	res := resTmp.(time.Time)
 	fc.Result = res
-	return ec.marshalOTime2ᚖtimeᚐTime(ctx, field.Selections, res)
+	return ec.marshalNTime2timeᚐTime(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) fieldContext_AccessRequest_created(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
@@ -3623,11 +3632,14 @@ func (ec *executionContext) _AccessRequest_status(ctx context.Context, field gra
 		return graphql.Null
 	}
 	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
 		return graphql.Null
 	}
-	res := resTmp.(*models.AccessRequestStatus)
+	res := resTmp.(models.AccessRequestStatus)
 	fc.Result = res
-	return ec.marshalOAccessRequestStatus2ᚖgithubᚗcomᚋnaviktᚋnadaᚑbackendᚋpkgᚋgraphᚋmodelsᚐAccessRequestStatus(ctx, field.Selections, res)
+	return ec.marshalNAccessRequestStatus2githubᚗcomᚋnaviktᚋnadaᚑbackendᚋpkgᚋgraphᚋmodelsᚐAccessRequestStatus(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) fieldContext_AccessRequest_status(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
@@ -3746,11 +3758,14 @@ func (ec *executionContext) _AccessRequest_owner(ctx context.Context, field grap
 		return graphql.Null
 	}
 	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
 		return graphql.Null
 	}
-	res := resTmp.(*string)
+	res := resTmp.(string)
 	fc.Result = res
-	return ec.marshalOString2ᚖstring(ctx, field.Selections, res)
+	return ec.marshalNString2string(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) fieldContext_AccessRequest_owner(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
@@ -12961,18 +12976,30 @@ func (ec *executionContext) _AccessRequest(ctx context.Context, sel ast.Selectio
 
 			out.Values[i] = ec._AccessRequest_subject(ctx, field, obj)
 
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
 		case "subjectType":
 
 			out.Values[i] = ec._AccessRequest_subjectType(ctx, field, obj)
 
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
 		case "created":
 
 			out.Values[i] = ec._AccessRequest_created(ctx, field, obj)
 
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
 		case "status":
 
 			out.Values[i] = ec._AccessRequest_status(ctx, field, obj)
 
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
 		case "closed":
 
 			out.Values[i] = ec._AccessRequest_closed(ctx, field, obj)
@@ -12985,6 +13012,9 @@ func (ec *executionContext) _AccessRequest(ctx context.Context, sel ast.Selectio
 
 			out.Values[i] = ec._AccessRequest_owner(ctx, field, obj)
 
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
 		case "polly":
 
 			out.Values[i] = ec._AccessRequest_polly(ctx, field, obj)
@@ -15220,6 +15250,16 @@ func (ec *executionContext) marshalNAccessRequest2ᚖgithubᚗcomᚋnaviktᚋnad
 	return ec._AccessRequest(ctx, sel, v)
 }
 
+func (ec *executionContext) unmarshalNAccessRequestStatus2githubᚗcomᚋnaviktᚋnadaᚑbackendᚋpkgᚋgraphᚋmodelsᚐAccessRequestStatus(ctx context.Context, v interface{}) (models.AccessRequestStatus, error) {
+	var res models.AccessRequestStatus
+	err := res.UnmarshalGQL(v)
+	return res, graphql.ErrorOnPath(ctx, err)
+}
+
+func (ec *executionContext) marshalNAccessRequestStatus2githubᚗcomᚋnaviktᚋnadaᚑbackendᚋpkgᚋgraphᚋmodelsᚐAccessRequestStatus(ctx context.Context, sel ast.SelectionSet, v models.AccessRequestStatus) graphql.Marshaler {
+	return v
+}
+
 func (ec *executionContext) marshalNBigQueryTable2ᚕᚖgithubᚗcomᚋnaviktᚋnadaᚑbackendᚋpkgᚋgraphᚋmodelsᚐBigQueryTableᚄ(ctx context.Context, sel ast.SelectionSet, v []*models.BigQueryTable) graphql.Marshaler {
 	ret := make(graphql.Array, len(v))
 	var wg sync.WaitGroup
@@ -16091,6 +16131,16 @@ func (ec *executionContext) marshalNString2ᚕstringᚄ(ctx context.Context, sel
 	return ret
 }
 
+func (ec *executionContext) unmarshalNSubjectType2githubᚗcomᚋnaviktᚋnadaᚑbackendᚋpkgᚋgraphᚋmodelsᚐSubjectType(ctx context.Context, v interface{}) (models.SubjectType, error) {
+	var res models.SubjectType
+	err := res.UnmarshalGQL(v)
+	return res, graphql.ErrorOnPath(ctx, err)
+}
+
+func (ec *executionContext) marshalNSubjectType2githubᚗcomᚋnaviktᚋnadaᚑbackendᚋpkgᚋgraphᚋmodelsᚐSubjectType(ctx context.Context, sel ast.SelectionSet, v models.SubjectType) graphql.Marshaler {
+	return v
+}
+
 func (ec *executionContext) marshalNTableColumn2ᚕᚖgithubᚗcomᚋnaviktᚋnadaᚑbackendᚋpkgᚋgraphᚋmodelsᚐTableColumnᚄ(ctx context.Context, sel ast.SelectionSet, v []*models.TableColumn) graphql.Marshaler {
 	ret := make(graphql.Array, len(v))
 	var wg sync.WaitGroup
@@ -16489,22 +16539,6 @@ func (ec *executionContext) marshalN__TypeKind2string(ctx context.Context, sel a
 		}
 	}
 	return res
-}
-
-func (ec *executionContext) unmarshalOAccessRequestStatus2ᚖgithubᚗcomᚋnaviktᚋnadaᚑbackendᚋpkgᚋgraphᚋmodelsᚐAccessRequestStatus(ctx context.Context, v interface{}) (*models.AccessRequestStatus, error) {
-	if v == nil {
-		return nil, nil
-	}
-	var res = new(models.AccessRequestStatus)
-	err := res.UnmarshalGQL(v)
-	return res, graphql.ErrorOnPath(ctx, err)
-}
-
-func (ec *executionContext) marshalOAccessRequestStatus2ᚖgithubᚗcomᚋnaviktᚋnadaᚑbackendᚋpkgᚋgraphᚋmodelsᚐAccessRequestStatus(ctx context.Context, sel ast.SelectionSet, v *models.AccessRequestStatus) graphql.Marshaler {
-	if v == nil {
-		return graphql.Null
-	}
-	return v
 }
 
 func (ec *executionContext) unmarshalOBoolean2bool(ctx context.Context, v interface{}) (bool, error) {

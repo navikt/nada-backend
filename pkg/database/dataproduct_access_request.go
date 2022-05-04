@@ -157,13 +157,13 @@ func (r *Repo) accessRequestSQLToGraphql(ctx context.Context, dataproductAccessR
 	return &models.AccessRequest{
 		ID:            dataproductAccessRequest.ID,
 		DataproductID: dataproductAccessRequest.DataproductID,
-		Subject:       &subject,
-		SubjectType:   &subjectType,
-		Created:       &dataproductAccessRequest.Created,
-		Status:        &status,
+		Subject:       subject,
+		SubjectType:   subjectType,
+		Created:       dataproductAccessRequest.Created,
+		Status:        status,
 		Closed:        nullTimeToPtr(dataproductAccessRequest.Closed),
 		Granter:       nullStringToPtr(dataproductAccessRequest.Granter),
-		Owner:         &dataproductAccessRequest.Owner,
+		Owner:         dataproductAccessRequest.Owner,
 		Polly:         polly,
 	}, nil
 }

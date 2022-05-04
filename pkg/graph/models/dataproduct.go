@@ -65,16 +65,16 @@ type NewDataproduct struct {
 }
 
 type AccessRequest struct {
-	ID            uuid.UUID            `json:"id"`
-	DataproductID uuid.UUID            `json:"dataproductID"`
-	Subject       *string              `json:"subject"`
-	SubjectType   *SubjectType         `json:"subjectType"`
-	Created       *time.Time           `json:"created"`
-	Status        *AccessRequestStatus `json:"status"`
-	Closed        *time.Time           `json:"closed"`
-	Granter       *string              `json:"granter"`
-	Owner         *string              `json:"owner"`
-	Polly         *Polly               `json:"polly"`
+	ID            uuid.UUID           `json:"id"`
+	DataproductID uuid.UUID           `json:"dataproductID"`
+	Subject       string              `json:"subject"`
+	SubjectType   SubjectType         `json:"subjectType"`
+	Created       time.Time           `json:"created"`
+	Status        AccessRequestStatus `json:"status"`
+	Closed        *time.Time          `json:"closed"`
+	Granter       *string             `json:"granter"`
+	Owner         string              `json:"owner"`
+	Polly         *Polly              `json:"polly"`
 }
 
 type NewAccessRequest struct {

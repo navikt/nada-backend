@@ -328,9 +328,9 @@ func (r *mutationResolver) DeleteAccessRequest(ctx context.Context, id uuid.UUID
 		return false, err
 	}
 
-	splits := strings.Split(*accessRequest.Owner, ":")
+	splits := strings.Split(accessRequest.Owner, ":")
 	if len(splits) != 2 {
-		return false, fmt.Errorf("%v is not a valid owner format (cannot split on :)", *accessRequest.Owner)
+		return false, fmt.Errorf("%v is not a valid owner format (cannot split on :)", accessRequest.Owner)
 	}
 	owner := splits[1]
 

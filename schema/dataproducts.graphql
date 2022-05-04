@@ -113,19 +113,19 @@ type AccessRequest @goModel(model: "github.com/navikt/nada-backend/pkg/graph/mod
     "id of dataproduct."
     dataproductID: ID!
     "subject to be granted access."
-    subject: String
+    subject: String!
     "subjectType is the type of entity which should be granted access (user, group or service account)."
-    subjectType: SubjectType
+    subjectType: SubjectType!
     "created is a timestamp for when the access request was created."
-    created: Time
+    created: Time!
     "status is the status of the access request (can be pending, approved or denied)."
-    status: AccessRequestStatus
+    status: AccessRequestStatus!
     "closed is a timestamp for when the access request was closed."
     closed: Time
     "granter is the email of the person who granted/denied the access request."
     granter: String
     "owner of the access request."
-    owner: String
+    owner: String!
     "polly is the process policy attached to this grant."
     polly: Polly
 }
