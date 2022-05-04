@@ -82,12 +82,14 @@ type NewAccessRequest struct {
 	Subject       *string      `json:"subject"`
 	SubjectType   *SubjectType `json:"subjectType"`
 	Owner         *string      `json:"owner"`
+	Expires       *time.Time   `json:"expires"`
 	Polly         *NewPolly    `json:"polly"`
 }
 
 type UpdateAccessRequest struct {
 	ID       uuid.UUID  `json:"id"`
 	Owner    string     `json:"owner"`
+	Expires  *time.Time `json:"expires"`
 	PollyID  *uuid.UUID `json:"polly_id"`
 	NewPolly *NewPolly  `json:"new_polly"`
 }

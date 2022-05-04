@@ -1747,6 +1747,8 @@ input NewAccessRequest @goModel(model: "github.com/navikt/nada-backend/pkg/graph
     subjectType: SubjectType
     "owner is the owner of the access request"
     owner: String
+    "expires is a timestamp for when the access expires."
+    expires: Time
     "polly is the process policy attached to this grant"
     polly: NewPolly
 }
@@ -1759,6 +1761,8 @@ input UpdateAccessRequest @goModel(model: "github.com/navikt/nada-backend/pkg/gr
     id: ID!
     "owner is the owner of the access request."
     owner: String!
+    "expires is a timestamp for when the access expires."
+    expires: Time
     "pollyID is the id of the existing polly documentation."
     pollyID: ID
     "newPolly is the new polly documentation for this access request."
@@ -12247,6 +12251,14 @@ func (ec *executionContext) unmarshalInputNewAccessRequest(ctx context.Context, 
 			if err != nil {
 				return it, err
 			}
+		case "expires":
+			var err error
+
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("expires"))
+			it.Expires, err = ec.unmarshalOTime2ᚖtimeᚐTime(ctx, v)
+			if err != nil {
+				return it, err
+			}
 		case "polly":
 			var err error
 
@@ -12676,6 +12688,14 @@ func (ec *executionContext) unmarshalInputUpdateAccessRequest(ctx context.Contex
 
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("owner"))
 			it.Owner, err = ec.unmarshalNString2string(ctx, v)
+			if err != nil {
+				return it, err
+			}
+		case "expires":
+			var err error
+
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("expires"))
+			it.Expires, err = ec.unmarshalOTime2ᚖtimeᚐTime(ctx, v)
 			if err != nil {
 				return it, err
 			}

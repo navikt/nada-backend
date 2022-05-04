@@ -2,10 +2,12 @@
 INSERT INTO dataproduct_access_request (dataproduct_id,
                                         "subject",
                                         "owner",
+                                        "expires",
                                         polly_documentation_id)
 VALUES (@dataproduct_id,
         LOWER(@subject),
         LOWER(@owner),
+        @expires,
         @polly_documentation_id)
 RETURNING *;
 
@@ -27,7 +29,8 @@ WHERE id = @id;
 -- name: UpdateAccessRequest :one
 UPDATE dataproduct_access_request
 SET owner                  = @owner,
-    polly_documentation_id = @polly_documentation_id
+    polly_documentation_id = @polly_documentation_id,
+    expires = @expires
 WHERE id = @id
 RETURNING *;
 

@@ -236,6 +236,8 @@ input NewAccessRequest @goModel(model: "github.com/navikt/nada-backend/pkg/graph
     subjectType: SubjectType
     "owner is the owner of the access request"
     owner: String
+    "expires is a timestamp for when the access expires."
+    expires: Time
     "polly is the process policy attached to this grant"
     polly: NewPolly
 }
@@ -248,6 +250,8 @@ input UpdateAccessRequest @goModel(model: "github.com/navikt/nada-backend/pkg/gr
     id: ID!
     "owner is the owner of the access request."
     owner: String!
+    "expires is a timestamp for when the access expires."
+    expires: Time
     "pollyID is the id of the existing polly documentation."
     pollyID: ID
     "newPolly is the new polly documentation for this access request."

@@ -33,11 +33,13 @@ const createAccessRequestForDataproduct = `-- name: CreateAccessRequestForDatapr
 INSERT INTO dataproduct_access_request (dataproduct_id,
                                         "subject",
                                         "owner",
+                                        "expires",
                                         polly_documentation_id)
 VALUES ($1,
         LOWER($2),
         LOWER($3),
-        $4)
+        $4,
+        $5)
 RETURNING id, dataproduct_id, subject, owner, polly_documentation_id, last_modified, created, expires, status, closed, granter
 `
 
@@ -45,6 +47,7 @@ type CreateAccessRequestForDataproductParams struct {
 	DataproductID        uuid.UUID
 	Subject              string
 	Owner                string
+	Expires              sql.NullTime
 	PollyDocumentationID uuid.NullUUID
 }
 
@@ -53,6 +56,7 @@ func (q *Queries) CreateAccessRequestForDataproduct(ctx context.Context, arg Cre
 		arg.DataproductID,
 		arg.Subject,
 		arg.Owner,
+		arg.Expires,
 		arg.PollyDocumentationID,
 	)
 	var i DataproductAccessRequest
@@ -210,19 +214,26 @@ func (q *Queries) ListAccessRequestsForOwner(ctx context.Context, owner []string
 const updateAccessRequest = `-- name: UpdateAccessRequest :one
 UPDATE dataproduct_access_request
 SET owner                  = $1,
-    polly_documentation_id = $2
-WHERE id = $3
+    polly_documentation_id = $2,
+    expires = $3
+WHERE id = $4
 RETURNING id, dataproduct_id, subject, owner, polly_documentation_id, last_modified, created, expires, status, closed, granter
 `
 
 type UpdateAccessRequestParams struct {
 	Owner                string
 	PollyDocumentationID uuid.NullUUID
+	Expires              sql.NullTime
 	ID                   uuid.UUID
 }
 
 func (q *Queries) UpdateAccessRequest(ctx context.Context, arg UpdateAccessRequestParams) (DataproductAccessRequest, error) {
-	row := q.db.QueryRowContext(ctx, updateAccessRequest, arg.Owner, arg.PollyDocumentationID, arg.ID)
+	row := q.db.QueryRowContext(ctx, updateAccessRequest,
+		arg.Owner,
+		arg.PollyDocumentationID,
+		arg.Expires,
+		arg.ID,
+	)
 	var i DataproductAccessRequest
 	err := row.Scan(
 		&i.ID,

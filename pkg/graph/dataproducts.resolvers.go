@@ -304,7 +304,7 @@ func (r *mutationResolver) CreateAccessRequest(ctx context.Context, input models
 		pollyID = uuid.NullUUID{UUID: dbPolly.ID, Valid: true}
 	}
 
-	return r.repo.CreateAccessRequestForDataproduct(ctx, input.DataproductID, pollyID, subjWithType, owner)
+	return r.repo.CreateAccessRequestForDataproduct(ctx, input.DataproductID, pollyID, subjWithType, owner, input.Expires)
 }
 
 func (r *mutationResolver) UpdateAccessRequest(ctx context.Context, input models.UpdateAccessRequest) (*models.AccessRequest, error) {
@@ -319,7 +319,7 @@ func (r *mutationResolver) UpdateAccessRequest(ctx context.Context, input models
 		pollyID = uuid.NullUUID{UUID: *input.PollyID, Valid: true}
 	}
 
-	return r.repo.UpdateAccessRequest(ctx, input.ID, pollyID, input.Owner)
+	return r.repo.UpdateAccessRequest(ctx, input.ID, pollyID, input.Owner, input.Expires)
 }
 
 func (r *mutationResolver) DeleteAccessRequest(ctx context.Context, id uuid.UUID) (bool, error) {

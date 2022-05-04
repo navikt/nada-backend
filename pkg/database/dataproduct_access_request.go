@@ -5,17 +5,19 @@ import (
 	"database/sql"
 	"fmt"
 	"strings"
+	"time"
 
 	"github.com/google/uuid"
 	"github.com/navikt/nada-backend/pkg/database/gensql"
 	"github.com/navikt/nada-backend/pkg/graph/models"
 )
 
-func (r *Repo) CreateAccessRequestForDataproduct(ctx context.Context, dataproductID uuid.UUID, pollyDocumentationID uuid.NullUUID, subject, owner string) (*models.AccessRequest, error) {
+func (r *Repo) CreateAccessRequestForDataproduct(ctx context.Context, dataproductID uuid.UUID, pollyDocumentationID uuid.NullUUID, subject, owner string, expires *time.Time) (*models.AccessRequest, error) {
 	accessRequestSQL, err := r.querier.CreateAccessRequestForDataproduct(ctx, gensql.CreateAccessRequestForDataproductParams{
 		DataproductID:        dataproductID,
 		Subject:              subject,
 		Owner:                owner,
+		Expires:              ptrToNullTime(expires),
 		PollyDocumentationID: pollyDocumentationID,
 	})
 	if err != nil {
@@ -103,9 +105,10 @@ func (r *Repo) ApproveAccessRequest(ctx context.Context, id uuid.UUID, granter s
 	return nil
 }
 
-func (r *Repo) UpdateAccessRequest(ctx context.Context, id uuid.UUID, pollyID uuid.NullUUID, owner string) (*models.AccessRequest, error) {
+func (r *Repo) UpdateAccessRequest(ctx context.Context, id uuid.UUID, pollyID uuid.NullUUID, owner string, expires *time.Time) (*models.AccessRequest, error) {
 	accessRequestSQL, err := r.querier.UpdateAccessRequest(ctx, gensql.UpdateAccessRequestParams{
 		Owner:                owner,
+		Expires:              ptrToNullTime(expires),
 		PollyDocumentationID: pollyID,
 		ID:                   id,
 	})
