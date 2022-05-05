@@ -72,6 +72,7 @@ type AccessRequest struct {
 	Created       time.Time           `json:"created"`
 	Status        AccessRequestStatus `json:"status"`
 	Closed        *time.Time          `json:"closed"`
+	Expires       *time.Time          `json:"expires"`
 	Granter       *string             `json:"granter"`
 	Owner         string              `json:"owner"`
 	Polly         *Polly              `json:"polly"`

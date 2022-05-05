@@ -122,6 +122,8 @@ type AccessRequest @goModel(model: "github.com/navikt/nada-backend/pkg/graph/mod
     status: AccessRequestStatus!
     "closed is a timestamp for when the access request was closed."
     closed: Time
+    "expires is a timestamp for when the access expires"
+    expires: Time
     "granter is the email of the person who granted/denied the access request."
     granter: String
     "owner of the access request."

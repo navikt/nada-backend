@@ -162,6 +162,7 @@ func (r *Repo) accessRequestSQLToGraphql(ctx context.Context, dataproductAccessR
 		Created:       dataproductAccessRequest.Created,
 		Status:        status,
 		Closed:        nullTimeToPtr(dataproductAccessRequest.Closed),
+		Expires:       nullTimeToPtr(dataproductAccessRequest.Expires),
 		Granter:       nullStringToPtr(dataproductAccessRequest.Granter),
 		Owner:         dataproductAccessRequest.Owner,
 		Polly:         polly,

@@ -66,6 +66,7 @@ type ComplexityRoot struct {
 		Closed        func(childComplexity int) int
 		Created       func(childComplexity int) int
 		DataproductID func(childComplexity int) int
+		Expires       func(childComplexity int) int
 		Granter       func(childComplexity int) int
 		ID            func(childComplexity int) int
 		Owner         func(childComplexity int) int
@@ -402,6 +403,13 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 		}
 
 		return e.complexity.AccessRequest.DataproductID(childComplexity), true
+
+	case "AccessRequest.expires":
+		if e.complexity.AccessRequest.Expires == nil {
+			break
+		}
+
+		return e.complexity.AccessRequest.Expires(childComplexity), true
 
 	case "AccessRequest.granter":
 		if e.complexity.AccessRequest.Granter == nil {
@@ -1633,6 +1641,8 @@ type AccessRequest @goModel(model: "github.com/navikt/nada-backend/pkg/graph/mod
     status: AccessRequestStatus!
     "closed is a timestamp for when the access request was closed."
     closed: Time
+    "expires is a timestamp for when the access expires"
+    expires: Time
     "granter is the email of the person who granted/denied the access request."
     granter: String
     "owner of the access request."
@@ -3684,6 +3694,47 @@ func (ec *executionContext) _AccessRequest_closed(ctx context.Context, field gra
 }
 
 func (ec *executionContext) fieldContext_AccessRequest_closed(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "AccessRequest",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Time does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _AccessRequest_expires(ctx context.Context, field graphql.CollectedField, obj *models.AccessRequest) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_AccessRequest_expires(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Expires, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		return graphql.Null
+	}
+	res := resTmp.(*time.Time)
+	fc.Result = res
+	return ec.marshalOTime2ᚖtimeᚐTime(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_AccessRequest_expires(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
 	fc = &graphql.FieldContext{
 		Object:     "AccessRequest",
 		Field:      field,
@@ -6283,6 +6334,8 @@ func (ec *executionContext) fieldContext_Mutation_createAccessRequest(ctx contex
 				return ec.fieldContext_AccessRequest_status(ctx, field)
 			case "closed":
 				return ec.fieldContext_AccessRequest_closed(ctx, field)
+			case "expires":
+				return ec.fieldContext_AccessRequest_expires(ctx, field)
 			case "granter":
 				return ec.fieldContext_AccessRequest_granter(ctx, field)
 			case "owner":
@@ -6380,6 +6433,8 @@ func (ec *executionContext) fieldContext_Mutation_updateAccessRequest(ctx contex
 				return ec.fieldContext_AccessRequest_status(ctx, field)
 			case "closed":
 				return ec.fieldContext_AccessRequest_closed(ctx, field)
+			case "expires":
+				return ec.fieldContext_AccessRequest_expires(ctx, field)
 			case "granter":
 				return ec.fieldContext_AccessRequest_granter(ctx, field)
 			case "owner":
@@ -7495,6 +7550,8 @@ func (ec *executionContext) fieldContext_Query_accessRequest(ctx context.Context
 				return ec.fieldContext_AccessRequest_status(ctx, field)
 			case "closed":
 				return ec.fieldContext_AccessRequest_closed(ctx, field)
+			case "expires":
+				return ec.fieldContext_AccessRequest_expires(ctx, field)
 			case "granter":
 				return ec.fieldContext_AccessRequest_granter(ctx, field)
 			case "owner":
@@ -7592,6 +7649,8 @@ func (ec *executionContext) fieldContext_Query_accessRequestsForDataproduct(ctx 
 				return ec.fieldContext_AccessRequest_status(ctx, field)
 			case "closed":
 				return ec.fieldContext_AccessRequest_closed(ctx, field)
+			case "expires":
+				return ec.fieldContext_AccessRequest_expires(ctx, field)
 			case "granter":
 				return ec.fieldContext_AccessRequest_granter(ctx, field)
 			case "owner":
@@ -10439,6 +10498,8 @@ func (ec *executionContext) fieldContext_UserInfo_accessRequests(ctx context.Con
 				return ec.fieldContext_AccessRequest_status(ctx, field)
 			case "closed":
 				return ec.fieldContext_AccessRequest_closed(ctx, field)
+			case "expires":
+				return ec.fieldContext_AccessRequest_expires(ctx, field)
 			case "granter":
 				return ec.fieldContext_AccessRequest_granter(ctx, field)
 			case "owner":
@@ -13003,6 +13064,10 @@ func (ec *executionContext) _AccessRequest(ctx context.Context, sel ast.Selectio
 		case "closed":
 
 			out.Values[i] = ec._AccessRequest_closed(ctx, field, obj)
+
+		case "expires":
+
+			out.Values[i] = ec._AccessRequest_expires(ctx, field, obj)
 
 		case "granter":
 
