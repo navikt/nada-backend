@@ -55,8 +55,13 @@ func (p *Polly) SearchPolly(ctx context.Context, q string) ([]*models.NewPolly, 
 		return nil, err
 	}
 
+	numRes := 10
+	if len(pr.Content) < 10 {
+		numRes = len(pr.Content)
+	}
+
 	var ret []*models.NewPolly
-	for _, r := range pr.Content {
+	for _, r := range pr.Content[:numRes] {
 		ret = append(ret, &models.NewPolly{
 			ExternalID: r.ID,
 			Name:       r.Name,
