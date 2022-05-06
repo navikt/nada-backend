@@ -302,7 +302,7 @@ type QueryResolver interface {
 	GcpGetTables(ctx context.Context, projectID string, datasetID string) ([]*models.BigQueryTable, error)
 	GcpGetDatasets(ctx context.Context, projectID string) ([]string, error)
 	Keywords(ctx context.Context, prefix *string) ([]*models.Keyword, error)
-	Polly(ctx context.Context, q string) ([]*models.NewPolly, error)
+	Polly(ctx context.Context, q string) ([]*models.QueryPolly, error)
 	Search(ctx context.Context, q *models.SearchQueryOld, options *models.SearchQuery) ([]*models.SearchResultRow, error)
 	Stories(ctx context.Context, draft *bool) ([]*models.GraphStory, error)
 	Story(ctx context.Context, id uuid.UUID, draft *bool) (*models.GraphStory, error)
@@ -1451,8 +1451,8 @@ func (e *executableSchema) Exec(ctx context.Context) graphql.ResponseHandler {
 		ec.unmarshalInputNewBigQuery,
 		ec.unmarshalInputNewDataproduct,
 		ec.unmarshalInputNewGrant,
-		ec.unmarshalInputNewPolly,
 		ec.unmarshalInputNewStory,
+		ec.unmarshalInputPollyInput,
 		ec.unmarshalInputSearchOptions,
 		ec.unmarshalInputSearchQuery,
 		ec.unmarshalInputUpdateAccessRequest,
@@ -1760,7 +1760,7 @@ input NewAccessRequest @goModel(model: "github.com/navikt/nada-backend/pkg/graph
     "expires is a timestamp for when the access expires."
     expires: Time
     "polly is the process policy attached to this grant"
-    polly: NewPolly
+    polly: PollyInput
 }
 
 """
@@ -1773,10 +1773,8 @@ input UpdateAccessRequest @goModel(model: "github.com/navikt/nada-backend/pkg/gr
     owner: String!
     "expires is a timestamp for when the access expires."
     expires: Time
-    "pollyID is the id of the existing polly documentation."
-    pollyID: ID
-    "newPolly is the new polly documentation for this access request."
-    newPolly: NewPolly
+    "polly is the new polly documentation for this access request."
+    polly: PollyInput
 }
 
 """
@@ -2112,7 +2110,9 @@ type Mutation {
     url: String!
 }
 
-input NewPolly @goModel(model: "github.com/navikt/nada-backend/pkg/graph/models.NewPolly") {
+input PollyInput @goModel(model: "github.com/navikt/nada-backend/pkg/graph/models.PollyInput") {
+    "database id"
+    id: ID
     "id from polly"
     externalID: String!
     "name from polly"
@@ -2121,7 +2121,7 @@ input NewPolly @goModel(model: "github.com/navikt/nada-backend/pkg/graph/models.
     url: String!
 }
 
-type QueryPolly @goModel(model: "github.com/navikt/nada-backend/pkg/graph/models.NewPolly") {
+type QueryPolly @goModel(model: "github.com/navikt/nada-backend/pkg/graph/models.QueryPolly") {
     "id from polly"
     externalID: String!
     "name from polly"
@@ -7922,9 +7922,9 @@ func (ec *executionContext) _Query_polly(ctx context.Context, field graphql.Coll
 		}
 		return graphql.Null
 	}
-	res := resTmp.([]*models.NewPolly)
+	res := resTmp.([]*models.QueryPolly)
 	fc.Result = res
-	return ec.marshalNQueryPolly2ᚕᚖgithubᚗcomᚋnaviktᚋnadaᚑbackendᚋpkgᚋgraphᚋmodelsᚐNewPollyᚄ(ctx, field.Selections, res)
+	return ec.marshalNQueryPolly2ᚕᚖgithubᚗcomᚋnaviktᚋnadaᚑbackendᚋpkgᚋgraphᚋmodelsᚐQueryPollyᚄ(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) fieldContext_Query_polly(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
@@ -8574,7 +8574,7 @@ func (ec *executionContext) fieldContext_Query___schema(ctx context.Context, fie
 	return fc, nil
 }
 
-func (ec *executionContext) _QueryPolly_externalID(ctx context.Context, field graphql.CollectedField, obj *models.NewPolly) (ret graphql.Marshaler) {
+func (ec *executionContext) _QueryPolly_externalID(ctx context.Context, field graphql.CollectedField, obj *models.QueryPolly) (ret graphql.Marshaler) {
 	fc, err := ec.fieldContext_QueryPolly_externalID(ctx, field)
 	if err != nil {
 		return graphql.Null
@@ -8618,7 +8618,7 @@ func (ec *executionContext) fieldContext_QueryPolly_externalID(ctx context.Conte
 	return fc, nil
 }
 
-func (ec *executionContext) _QueryPolly_name(ctx context.Context, field graphql.CollectedField, obj *models.NewPolly) (ret graphql.Marshaler) {
+func (ec *executionContext) _QueryPolly_name(ctx context.Context, field graphql.CollectedField, obj *models.QueryPolly) (ret graphql.Marshaler) {
 	fc, err := ec.fieldContext_QueryPolly_name(ctx, field)
 	if err != nil {
 		return graphql.Null
@@ -8662,7 +8662,7 @@ func (ec *executionContext) fieldContext_QueryPolly_name(ctx context.Context, fi
 	return fc, nil
 }
 
-func (ec *executionContext) _QueryPolly_url(ctx context.Context, field graphql.CollectedField, obj *models.NewPolly) (ret graphql.Marshaler) {
+func (ec *executionContext) _QueryPolly_url(ctx context.Context, field graphql.CollectedField, obj *models.QueryPolly) (ret graphql.Marshaler) {
 	fc, err := ec.fieldContext_QueryPolly_url(ctx, field)
 	if err != nil {
 		return graphql.Null
@@ -12339,7 +12339,7 @@ func (ec *executionContext) unmarshalInputNewAccessRequest(ctx context.Context, 
 			var err error
 
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("polly"))
-			it.Polly, err = ec.unmarshalONewPolly2ᚖgithubᚗcomᚋnaviktᚋnadaᚑbackendᚋpkgᚋgraphᚋmodelsᚐNewPolly(ctx, v)
+			it.Polly, err = ec.unmarshalOPollyInput2ᚖgithubᚗcomᚋnaviktᚋnadaᚑbackendᚋpkgᚋgraphᚋmodelsᚐPollyInput(ctx, v)
 			if err != nil {
 				return it, err
 			}
@@ -12522,45 +12522,6 @@ func (ec *executionContext) unmarshalInputNewGrant(ctx context.Context, obj inte
 	return it, nil
 }
 
-func (ec *executionContext) unmarshalInputNewPolly(ctx context.Context, obj interface{}) (models.NewPolly, error) {
-	var it models.NewPolly
-	asMap := map[string]interface{}{}
-	for k, v := range obj.(map[string]interface{}) {
-		asMap[k] = v
-	}
-
-	for k, v := range asMap {
-		switch k {
-		case "externalID":
-			var err error
-
-			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("externalID"))
-			it.ExternalID, err = ec.unmarshalNString2string(ctx, v)
-			if err != nil {
-				return it, err
-			}
-		case "name":
-			var err error
-
-			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("name"))
-			it.Name, err = ec.unmarshalNString2string(ctx, v)
-			if err != nil {
-				return it, err
-			}
-		case "url":
-			var err error
-
-			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("url"))
-			it.URL, err = ec.unmarshalNString2string(ctx, v)
-			if err != nil {
-				return it, err
-			}
-		}
-	}
-
-	return it, nil
-}
-
 func (ec *executionContext) unmarshalInputNewStory(ctx context.Context, obj interface{}) (models.NewStory, error) {
 	var it models.NewStory
 	asMap := map[string]interface{}{}
@@ -12607,6 +12568,53 @@ func (ec *executionContext) unmarshalInputNewStory(ctx context.Context, obj inte
 
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("teamkatalogenURL"))
 			it.TeamkatalogenURL, err = ec.unmarshalOString2ᚖstring(ctx, v)
+			if err != nil {
+				return it, err
+			}
+		}
+	}
+
+	return it, nil
+}
+
+func (ec *executionContext) unmarshalInputPollyInput(ctx context.Context, obj interface{}) (models.PollyInput, error) {
+	var it models.PollyInput
+	asMap := map[string]interface{}{}
+	for k, v := range obj.(map[string]interface{}) {
+		asMap[k] = v
+	}
+
+	for k, v := range asMap {
+		switch k {
+		case "id":
+			var err error
+
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("id"))
+			it.ID, err = ec.unmarshalOID2ᚖgithubᚗcomᚋgoogleᚋuuidᚐUUID(ctx, v)
+			if err != nil {
+				return it, err
+			}
+		case "externalID":
+			var err error
+
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("externalID"))
+			it.ExternalID, err = ec.unmarshalNString2string(ctx, v)
+			if err != nil {
+				return it, err
+			}
+		case "name":
+			var err error
+
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("name"))
+			it.Name, err = ec.unmarshalNString2string(ctx, v)
+			if err != nil {
+				return it, err
+			}
+		case "url":
+			var err error
+
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("url"))
+			it.URL, err = ec.unmarshalNString2string(ctx, v)
 			if err != nil {
 				return it, err
 			}
@@ -12775,19 +12783,11 @@ func (ec *executionContext) unmarshalInputUpdateAccessRequest(ctx context.Contex
 			if err != nil {
 				return it, err
 			}
-		case "pollyID":
+		case "polly":
 			var err error
 
-			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("pollyID"))
-			it.PollyID, err = ec.unmarshalOID2ᚖgithubᚗcomᚋgoogleᚋuuidᚐUUID(ctx, v)
-			if err != nil {
-				return it, err
-			}
-		case "newPolly":
-			var err error
-
-			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("newPolly"))
-			it.NewPolly, err = ec.unmarshalONewPolly2ᚖgithubᚗcomᚋnaviktᚋnadaᚑbackendᚋpkgᚋgraphᚋmodelsᚐNewPolly(ctx, v)
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("polly"))
+			it.Polly, err = ec.unmarshalOPollyInput2ᚖgithubᚗcomᚋnaviktᚋnadaᚑbackendᚋpkgᚋgraphᚋmodelsᚐPollyInput(ctx, v)
 			if err != nil {
 				return it, err
 			}
@@ -14277,7 +14277,7 @@ func (ec *executionContext) _Query(ctx context.Context, sel ast.SelectionSet) gr
 
 var queryPollyImplementors = []string{"QueryPolly"}
 
-func (ec *executionContext) _QueryPolly(ctx context.Context, sel ast.SelectionSet, obj *models.NewPolly) graphql.Marshaler {
+func (ec *executionContext) _QueryPolly(ctx context.Context, sel ast.SelectionSet, obj *models.QueryPolly) graphql.Marshaler {
 	fields := graphql.CollectFields(ec.OperationContext, sel, queryPollyImplementors)
 	out := graphql.NewFieldSet(fields)
 	var invalids uint32
@@ -15895,7 +15895,7 @@ func (ec *executionContext) marshalNOwner2ᚖgithubᚗcomᚋnaviktᚋnadaᚑback
 	return ec._Owner(ctx, sel, v)
 }
 
-func (ec *executionContext) marshalNQueryPolly2ᚕᚖgithubᚗcomᚋnaviktᚋnadaᚑbackendᚋpkgᚋgraphᚋmodelsᚐNewPollyᚄ(ctx context.Context, sel ast.SelectionSet, v []*models.NewPolly) graphql.Marshaler {
+func (ec *executionContext) marshalNQueryPolly2ᚕᚖgithubᚗcomᚋnaviktᚋnadaᚑbackendᚋpkgᚋgraphᚋmodelsᚐQueryPollyᚄ(ctx context.Context, sel ast.SelectionSet, v []*models.QueryPolly) graphql.Marshaler {
 	ret := make(graphql.Array, len(v))
 	var wg sync.WaitGroup
 	isLen1 := len(v) == 1
@@ -15919,7 +15919,7 @@ func (ec *executionContext) marshalNQueryPolly2ᚕᚖgithubᚗcomᚋnaviktᚋnad
 			if !isLen1 {
 				defer wg.Done()
 			}
-			ret[i] = ec.marshalNQueryPolly2ᚖgithubᚗcomᚋnaviktᚋnadaᚑbackendᚋpkgᚋgraphᚋmodelsᚐNewPolly(ctx, sel, v[i])
+			ret[i] = ec.marshalNQueryPolly2ᚖgithubᚗcomᚋnaviktᚋnadaᚑbackendᚋpkgᚋgraphᚋmodelsᚐQueryPolly(ctx, sel, v[i])
 		}
 		if isLen1 {
 			f(i)
@@ -15939,7 +15939,7 @@ func (ec *executionContext) marshalNQueryPolly2ᚕᚖgithubᚗcomᚋnaviktᚋnad
 	return ret
 }
 
-func (ec *executionContext) marshalNQueryPolly2ᚖgithubᚗcomᚋnaviktᚋnadaᚑbackendᚋpkgᚋgraphᚋmodelsᚐNewPolly(ctx context.Context, sel ast.SelectionSet, v *models.NewPolly) graphql.Marshaler {
+func (ec *executionContext) marshalNQueryPolly2ᚖgithubᚗcomᚋnaviktᚋnadaᚑbackendᚋpkgᚋgraphᚋmodelsᚐQueryPolly(ctx context.Context, sel ast.SelectionSet, v *models.QueryPolly) graphql.Marshaler {
 	if v == nil {
 		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
 			ec.Errorf(ctx, "the requested element is null which the schema does not allow")
@@ -16747,19 +16747,19 @@ func (ec *executionContext) marshalOMappingService2ᚖgithubᚗcomᚋnaviktᚋna
 	return v
 }
 
-func (ec *executionContext) unmarshalONewPolly2ᚖgithubᚗcomᚋnaviktᚋnadaᚑbackendᚋpkgᚋgraphᚋmodelsᚐNewPolly(ctx context.Context, v interface{}) (*models.NewPolly, error) {
-	if v == nil {
-		return nil, nil
-	}
-	res, err := ec.unmarshalInputNewPolly(ctx, v)
-	return &res, graphql.ErrorOnPath(ctx, err)
-}
-
 func (ec *executionContext) marshalOPolly2ᚖgithubᚗcomᚋnaviktᚋnadaᚑbackendᚋpkgᚋgraphᚋmodelsᚐPolly(ctx context.Context, sel ast.SelectionSet, v *models.Polly) graphql.Marshaler {
 	if v == nil {
 		return graphql.Null
 	}
 	return ec._Polly(ctx, sel, v)
+}
+
+func (ec *executionContext) unmarshalOPollyInput2ᚖgithubᚗcomᚋnaviktᚋnadaᚑbackendᚋpkgᚋgraphᚋmodelsᚐPollyInput(ctx context.Context, v interface{}) (*models.PollyInput, error) {
+	if v == nil {
+		return nil, nil
+	}
+	res, err := ec.unmarshalInputPollyInput(ctx, v)
+	return &res, graphql.ErrorOnPath(ctx, err)
 }
 
 func (ec *executionContext) unmarshalOSearchOptions2ᚖgithubᚗcomᚋnaviktᚋnadaᚑbackendᚋpkgᚋgraphᚋmodelsᚐSearchQuery(ctx context.Context, v interface{}) (*models.SearchQuery, error) {

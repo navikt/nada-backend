@@ -309,14 +309,17 @@ func (r *mutationResolver) CreateAccessRequest(ctx context.Context, input models
 
 func (r *mutationResolver) UpdateAccessRequest(ctx context.Context, input models.UpdateAccessRequest) (*models.AccessRequest, error) {
 	var pollyID uuid.NullUUID
-	if input.NewPolly != nil {
-		dbPolly, err := r.repo.CreatePollyDocumentation(ctx, *input.NewPolly)
-		if err != nil {
-			return nil, err
+	if input.Polly != nil {
+		if input.Polly.ID != nil {
+			// Keep existing polly
+			pollyID = uuid.NullUUID{UUID: *input.Polly.ID, Valid: true}
+		} else {
+			dbPolly, err := r.repo.CreatePollyDocumentation(ctx, *input.Polly)
+			if err != nil {
+				return nil, err
+			}
+			pollyID = uuid.NullUUID{UUID: dbPolly.ID, Valid: true}
 		}
-		pollyID = uuid.NullUUID{UUID: dbPolly.ID, Valid: true}
-	} else if input.PollyID != nil {
-		pollyID = uuid.NullUUID{UUID: *input.PollyID, Valid: true}
 	}
 
 	return r.repo.UpdateAccessRequest(ctx, input.ID, pollyID, input.Owner, input.Expires)
@@ -436,5 +439,7 @@ func (r *Resolver) BigQuery() generated.BigQueryResolver { return &bigQueryResol
 // Dataproduct returns generated.DataproductResolver implementation.
 func (r *Resolver) Dataproduct() generated.DataproductResolver { return &dataproductResolver{r} }
 
-type bigQueryResolver struct{ *Resolver }
-type dataproductResolver struct{ *Resolver }
+type (
+	bigQueryResolver    struct{ *Resolver }
+	dataproductResolver struct{ *Resolver }
+)

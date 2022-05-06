@@ -2,7 +2,7 @@ mutation{
   updateAccessRequest(input: {
     id: "{{ .access_request }}"
     owner: "user:mock.anderson@email.com",
-    newPolly: {
+    polly: {
       externalID: "020d0b4b-8fd3-4514-b1f5-8c090c3d9f07"
       name: "Ny Behandling"
       url: "https://some.url/020d0b4b-8fd3-4514-b1f5-8c090c3d9f07"

@@ -9,6 +9,6 @@ import (
 	"github.com/navikt/nada-backend/pkg/graph/models"
 )
 
-func (r *queryResolver) Polly(ctx context.Context, q string) ([]*models.NewPolly, error) {
+func (r *queryResolver) Polly(ctx context.Context, q string) ([]*models.QueryPolly, error) {
 	return r.pollyAPI.SearchPolly(ctx, q)
 }

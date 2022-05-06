@@ -181,7 +181,7 @@ func (r *Repo) pollySQLToGraphql(ctx context.Context, id uuid.NullUUID) (*models
 
 	return &models.Polly{
 		ID: pollyDoc.ID,
-		NewPolly: models.NewPolly{
+		QueryPolly: models.QueryPolly{
 			ExternalID: pollyDoc.ExternalID,
 			Name:       pollyDoc.Name,
 			URL:        pollyDoc.Url,

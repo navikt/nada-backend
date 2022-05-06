@@ -9,7 +9,9 @@ type Polly @goModel(model: "github.com/navikt/nada-backend/pkg/graph/models.Poll
     url: String!
 }
 
-input NewPolly @goModel(model: "github.com/navikt/nada-backend/pkg/graph/models.NewPolly") {
+input PollyInput @goModel(model: "github.com/navikt/nada-backend/pkg/graph/models.PollyInput") {
+    "database id"
+    id: ID
     "id from polly"
     externalID: String!
     "name from polly"
@@ -18,7 +20,7 @@ input NewPolly @goModel(model: "github.com/navikt/nada-backend/pkg/graph/models.
     url: String!
 }
 
-type QueryPolly @goModel(model: "github.com/navikt/nada-backend/pkg/graph/models.NewPolly") {
+type QueryPolly @goModel(model: "github.com/navikt/nada-backend/pkg/graph/models.QueryPolly") {
     "id from polly"
     externalID: String!
     "name from polly"
