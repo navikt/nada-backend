@@ -16,7 +16,6 @@ jobs:
   set-version:
     name: Set version
     runs-on: ubuntu-latest
-    if: github.ref == 'refs/heads/main'
     needs: integration-tests
     outputs:
       version: ${{ steps.set-version.outputs.version }}
