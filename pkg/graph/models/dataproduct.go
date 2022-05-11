@@ -64,6 +64,43 @@ type NewDataproduct struct {
 	Metadata         BigqueryMetadata
 }
 
+type AccessRequest struct {
+	ID            uuid.UUID           `json:"id"`
+	DataproductID uuid.UUID           `json:"dataproductID"`
+	Subject       string              `json:"subject"`
+	SubjectType   SubjectType         `json:"subjectType"`
+	Created       time.Time           `json:"created"`
+	Status        AccessRequestStatus `json:"status"`
+	Closed        *time.Time          `json:"closed"`
+	Expires       *time.Time          `json:"expires"`
+	Granter       *string             `json:"granter"`
+	Owner         string              `json:"owner"`
+	Polly         *Polly              `json:"polly"`
+}
+
+type NewAccessRequest struct {
+	DataproductID uuid.UUID    `json:"dataproductID"`
+	Subject       *string      `json:"subject"`
+	SubjectType   *SubjectType `json:"subjectType"`
+	Owner         *string      `json:"owner"`
+	Expires       *time.Time   `json:"expires"`
+	Polly         *PollyInput  `json:"polly"`
+}
+
+type UpdateAccessRequest struct {
+	ID      uuid.UUID   `json:"id"`
+	Owner   string      `json:"owner"`
+	Expires *time.Time  `json:"expires"`
+	Polly   *PollyInput `json:"polly"`
+}
+
+type NewGrant struct {
+	DataproductID uuid.UUID    `json:"dataproductID"`
+	Expires       *time.Time   `json:"expires"`
+	Subject       *string      `json:"subject"`
+	SubjectType   *SubjectType `json:"subjectType"`
+}
+
 type UpdateDataproduct struct {
 	Name             string   `json:"name"`
 	Description      *string  `json:"description"`
@@ -101,6 +138,19 @@ var AllSubjectType = []SubjectType{
 	SubjectTypeUser,
 	SubjectTypeGroup,
 	SubjectTypeServiceAccount,
+}
+
+func StringToSubjectType(subjectType string) SubjectType {
+	switch subjectType {
+	case "user":
+		return SubjectTypeUser
+	case "group":
+		return SubjectTypeGroup
+	case "serviceaccount":
+		return SubjectTypeServiceAccount
+	default:
+		return ""
+	}
 }
 
 func (e SubjectType) IsValid() bool {

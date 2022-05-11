@@ -1,0 +1,11 @@
+mutation{
+  denyAccessRequest(id: "{{ .access_request_for_denial }}")
+}
+
+RETURNS
+
+{
+  "data": {
+    "denyAccessRequest": true
+  }
+}

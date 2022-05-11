@@ -1,0 +1,11 @@
+mutation{
+  deleteAccessRequest(id: "{{ .access_request_owner }}")
+}
+
+RETURNS
+
+{
+  "data": {
+    "deleteAccessRequest": true
+  }
+}

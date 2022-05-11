@@ -1,6 +1,4 @@
 -- +goose Up
-DROP VIEW IF EXISTS search;
-
 CREATE VIEW search
 AS (
 		SELECT
@@ -55,3 +53,6 @@ AS (
 		FROM "stories" "story"
 	) "s"
 );
+
+-- +goose Down
+DROP VIEW search;

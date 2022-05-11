@@ -8,3 +8,6 @@ CREATE TABLE metabase_metadata (
     CONSTRAINT fk_metabase_metadata
     FOREIGN KEY (dataproduct_id)
         REFERENCES dataproducts (id) ON DELETE CASCADE);
+
+-- +goose Down
+DROP TABLE metabase_metadata;

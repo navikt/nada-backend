@@ -20,6 +20,7 @@ type Config struct {
 	MetabasePassword                string
 	MetabaseAPI                     string
 	SlackUrl                        string
+	PollyURL                        string
 }
 
 type OAuth2Config struct {
@@ -34,5 +35,6 @@ func DefaultConfig() Config {
 		DevTeamProjectsOutputURL:  "https://raw.githubusercontent.com/nais/teams/master/gcp-projects/dev-output.json",
 		ProdTeamProjectsOutputURL: "https://raw.githubusercontent.com/nais/teams/master/gcp-projects/prod-output.json",
 		TeamkatalogenURL:          "https://teamkatalog-api.prod-fss-pub.nais.io",
+		PollyURL:                  "https://polly.prod-fss-pub.nais.io/process",
 	}
 }

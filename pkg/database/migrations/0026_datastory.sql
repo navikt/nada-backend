@@ -46,3 +46,11 @@ CREATE TABLE story_view_drafts (
 			FOREIGN KEY (story_id)
 					REFERENCES story_drafts (id) ON DELETE CASCADE
 );
+
+-- +goose Down
+DROP TABLE story_view_drafts;
+DROP TABLE story_drafts;
+DROP TABLE story_views;
+DROP TRIGGER stories_set_modified on stories;
+DROP TABLE stories;
+DROP TYPE story_view_type;

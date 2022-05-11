@@ -12,6 +12,26 @@ import (
 	"github.com/tabbed/pqtype"
 )
 
+type AccessRequestStatusType string
+
+const (
+	AccessRequestStatusTypePending  AccessRequestStatusType = "pending"
+	AccessRequestStatusTypeApproved AccessRequestStatusType = "approved"
+	AccessRequestStatusTypeDenied   AccessRequestStatusType = "denied"
+)
+
+func (e *AccessRequestStatusType) Scan(src interface{}) error {
+	switch s := src.(type) {
+	case []byte:
+		*e = AccessRequestStatusType(s)
+	case string:
+		*e = AccessRequestStatusType(s)
+	default:
+		return fmt.Errorf("unsupported scan type for AccessRequestStatusType: %T", src)
+	}
+	return nil
+}
+
 type DatasourceType string
 
 const (
@@ -77,6 +97,20 @@ type DataproductAccess struct {
 	Revoked       sql.NullTime
 }
 
+type DataproductAccessRequest struct {
+	ID                   uuid.UUID
+	DataproductID        uuid.UUID
+	Subject              string
+	Owner                string
+	PollyDocumentationID uuid.NullUUID
+	LastModified         time.Time
+	Created              time.Time
+	Expires              sql.NullTime
+	Status               AccessRequestStatusType
+	Closed               sql.NullTime
+	Granter              sql.NullString
+}
+
 type DataproductRequester struct {
 	DataproductID uuid.UUID
 	Subject       string
@@ -102,6 +136,13 @@ type MetabaseMetadatum struct {
 	SaEmail           string
 	CollectionID      sql.NullInt32
 	DeletedAt         sql.NullTime
+}
+
+type PollyDocumentation struct {
+	ID         uuid.UUID
+	ExternalID string
+	Name       string
+	Url        string
 }
 
 type Search struct {

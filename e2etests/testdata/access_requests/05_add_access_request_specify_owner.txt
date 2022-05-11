@@ -1,0 +1,26 @@
+mutation {
+  createAccessRequest(
+    input: {
+      dataproductID: "{{ .dataproduct_id }}"
+      subject: "serviceaccount@email.com"
+      subjectType: serviceAccount
+      owner: "mock-andersons-team@email.com"
+    }
+  ){
+    subject
+    subjectType
+    owner
+  }
+}
+
+RETURNS
+
+{
+  "data": {
+    "createAccessRequest": {
+      "subject": "serviceaccount@email.com",
+      "subjectType": "serviceAccount",
+      "owner": "group:mock-andersons-team@email.com"
+    }
+  }
+}

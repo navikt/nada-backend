@@ -40,7 +40,7 @@ func (r *dataproductResolver) Requesters(ctx context.Context, obj *models.Datapr
 		return allRequesters, nil
 	}
 
-	ret := []string{}
+	var ret []string
 	for _, r := range allRequesters {
 		if strings.EqualFold(r, user.Email) {
 			ret = append(ret, r)
@@ -63,7 +63,7 @@ func (r *dataproductResolver) Access(ctx context.Context, obj *models.Dataproduc
 		return all, nil
 	}
 
-	ret := []*models.Access{}
+	var ret []*models.Access
 	for _, a := range all {
 		if strings.EqualFold(a.Subject, "user:"+user.Email) {
 			ret = append(ret, a)
@@ -191,17 +191,17 @@ func (r *mutationResolver) RemoveRequesterFromDataproduct(ctx context.Context, d
 	return true, r.repo.RemoveRequesterFromDataproduct(ctx, dp.ID, subject)
 }
 
-func (r *mutationResolver) GrantAccessToDataproduct(ctx context.Context, dataproductID uuid.UUID, expires *time.Time, subject *string, subjectType *models.SubjectType) (*models.Access, error) {
-	if expires != nil && expires.Before(time.Now()) {
+func (r *mutationResolver) GrantAccessToDataproduct(ctx context.Context, input models.NewGrant) (*models.Access, error) {
+	if input.Expires != nil && input.Expires.Before(time.Now()) {
 		return nil, fmt.Errorf("expires has already expired")
 	}
 
 	user := auth.GetUser(ctx)
 	subj := user.Email
-	if subject != nil {
-		subj = *subject
+	if input.Subject != nil {
+		subj = *input.Subject
 	}
-	dp, err := r.repo.GetDataproduct(ctx, dataproductID)
+	dp, err := r.repo.GetDataproduct(ctx, input.DataproductID)
 	if err != nil {
 		return nil, err
 	}
@@ -219,8 +219,8 @@ func (r *mutationResolver) GrantAccessToDataproduct(ctx context.Context, datapro
 	}
 
 	subjType := models.SubjectTypeUser
-	if subjectType != nil {
-		subjType = *subjectType
+	if input.SubjectType != nil {
+		subjType = *input.SubjectType
 	}
 
 	subjWithType := subjType.String() + ":" + subj
@@ -229,7 +229,7 @@ func (r *mutationResolver) GrantAccessToDataproduct(ctx context.Context, datapro
 		return nil, err
 	}
 
-	return r.repo.GrantAccessToDataproduct(ctx, dataproductID, expires, subjWithType, user.Email)
+	return r.repo.GrantAccessToDataproduct(ctx, input.DataproductID, input.Expires, subjWithType, user.Email)
 }
 
 func (r *mutationResolver) RevokeAccessToDataproduct(ctx context.Context, id uuid.UUID) (bool, error) {
@@ -275,6 +275,125 @@ func (r *mutationResolver) MapDataproduct(ctx context.Context, dataproductID uui
 	return true, nil
 }
 
+func (r *mutationResolver) CreateAccessRequest(ctx context.Context, input models.NewAccessRequest) (*models.AccessRequest, error) {
+	user := auth.GetUser(ctx)
+	subj := user.Email
+	if input.Subject != nil {
+		subj = *input.Subject
+	}
+
+	owner := "user:" + user.Email
+	if input.Owner != nil {
+		owner = "group:" + *input.Owner
+	}
+
+	subjType := models.SubjectTypeUser
+	if input.SubjectType != nil {
+		subjType = *input.SubjectType
+	}
+
+	subjWithType := subjType.String() + ":" + subj
+
+	var pollyID uuid.NullUUID
+	if input.Polly != nil {
+		dbPolly, err := r.repo.CreatePollyDocumentation(ctx, *input.Polly)
+		if err != nil {
+			return nil, err
+		}
+
+		pollyID = uuid.NullUUID{UUID: dbPolly.ID, Valid: true}
+	}
+
+	return r.repo.CreateAccessRequestForDataproduct(ctx, input.DataproductID, pollyID, subjWithType, owner, input.Expires)
+}
+
+func (r *mutationResolver) UpdateAccessRequest(ctx context.Context, input models.UpdateAccessRequest) (*models.AccessRequest, error) {
+	var pollyID uuid.NullUUID
+	if input.Polly != nil {
+		if input.Polly.ID != nil {
+			// Keep existing polly
+			pollyID = uuid.NullUUID{UUID: *input.Polly.ID, Valid: true}
+		} else {
+			dbPolly, err := r.repo.CreatePollyDocumentation(ctx, *input.Polly)
+			if err != nil {
+				return nil, err
+			}
+			pollyID = uuid.NullUUID{UUID: dbPolly.ID, Valid: true}
+		}
+	}
+
+	return r.repo.UpdateAccessRequest(ctx, input.ID, pollyID, input.Owner, input.Expires)
+}
+
+func (r *mutationResolver) DeleteAccessRequest(ctx context.Context, id uuid.UUID) (bool, error) {
+	accessRequest, err := r.repo.GetAccessRequest(ctx, id)
+	if err != nil {
+		return false, err
+	}
+
+	splits := strings.Split(accessRequest.Owner, ":")
+	if len(splits) != 2 {
+		return false, fmt.Errorf("%v is not a valid owner format (cannot split on :)", accessRequest.Owner)
+	}
+	owner := splits[1]
+
+	if err := ensureOwner(ctx, owner); err != nil {
+		return false, err
+	}
+
+	if err := r.repo.DeleteAccessRequest(ctx, id); err != nil {
+		return false, err
+	}
+
+	return true, nil
+}
+
+func (r *mutationResolver) ApproveAccessRequest(ctx context.Context, id uuid.UUID) (bool, error) {
+	ar, err := r.repo.GetAccessRequest(ctx, id)
+	if err != nil {
+		return false, err
+	}
+
+	dp, err := r.repo.GetDataproduct(ctx, ar.DataproductID)
+	if err != nil {
+		return false, err
+	}
+
+	if err := ensureUserInGroup(ctx, dp.Owner.Group); err != nil {
+		return false, err
+	}
+
+	user := auth.GetUser(ctx)
+	if err := r.repo.ApproveAccessRequest(ctx, id, user.Email); err != nil {
+		return false, err
+	}
+
+	return true, nil
+}
+
+func (r *mutationResolver) DenyAccessRequest(ctx context.Context, id uuid.UUID) (bool, error) {
+	ar, err := r.repo.GetAccessRequest(ctx, id)
+	if err != nil {
+		return false, err
+	}
+
+	dp, err := r.repo.GetDataproduct(ctx, ar.DataproductID)
+	if err != nil {
+		return false, err
+	}
+
+	if err := ensureUserInGroup(ctx, dp.Owner.Group); err != nil {
+		return false, err
+	}
+
+	user := auth.GetUser(ctx)
+	if err := r.repo.DenyAccessRequest(ctx, id, user.Email); err != nil {
+		return false, err
+	}
+
+	return true, nil
+}
+
 func (r *queryResolver) Dataproduct(ctx context.Context, id uuid.UUID) (*models.Dataproduct, error) {
 	return r.repo.GetDataproduct(ctx, id)
 }
@@ -295,6 +414,23 @@ func (r *queryResolver) Dataproducts(ctx context.Context, limit *int, offset *in
 func (r *queryResolver) GroupStats(ctx context.Context, limit *int, offset *int) ([]*models.GroupStats, error) {
 	l, o := pagination(limit, offset)
 	return r.repo.DataproductGroupStats(ctx, l, o)
+}
+
+func (r *queryResolver) AccessRequest(ctx context.Context, id uuid.UUID) (*models.AccessRequest, error) {
+	return r.repo.GetAccessRequest(ctx, id)
+}
+
+func (r *queryResolver) AccessRequestsForDataproduct(ctx context.Context, dataproductID uuid.UUID) ([]*models.AccessRequest, error) {
+	dp, err := r.repo.GetDataproduct(ctx, dataproductID)
+	if err != nil {
+		return nil, err
+	}
+
+	if err := ensureUserInGroup(ctx, dp.Owner.Group); err != nil {
+		return nil, err
+	}
+
+	return r.repo.ListAccessRequestsForDataproduct(ctx, dataproductID)
 }
 
 // BigQuery returns generated.BigQueryResolver implementation.

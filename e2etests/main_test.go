@@ -23,6 +23,7 @@ import (
 	"github.com/navikt/nada-backend/pkg/event"
 	"github.com/navikt/nada-backend/pkg/graph"
 	"github.com/navikt/nada-backend/pkg/graph/models"
+	"github.com/navikt/nada-backend/pkg/polly"
 	"github.com/navikt/nada-backend/pkg/slack"
 	"github.com/navikt/nada-backend/pkg/teamkatalogen"
 	"github.com/ory/dockertest/v3"
@@ -85,6 +86,7 @@ func TestMain(m *testing.M) {
 		access.NewNoop(),
 		teamkatalogen.NewMock(),
 		slack.NewMockSlackClient(logrus.StandardLogger()),
+		polly.NewMock("https://some.url"),
 		logrus.StandardLogger().WithField("subsystem", "graphql"),
 	)
 	srv := api.New(

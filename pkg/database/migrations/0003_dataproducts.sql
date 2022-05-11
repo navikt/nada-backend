@@ -58,8 +58,10 @@ CREATE TRIGGER datasource_bigquery_set_modified
 EXECUTE PROCEDURE update_dataproduct_modified_timestamp();
 
 -- +goose Down
-DROP TRIGGER dataproducts_set_modified ON dataproducts;
-DROP TABLE dataproducts;
 DROP TRIGGER datasource_bigquery_set_modified ON datasource_bigquery;
-DROP TABLE datasource_bigquery;
 DROP FUNCTION update_dataproduct_modified_timestamp;
+DROP TABLE datasource_bigquery;
+DROP TRIGGER dataproducts_set_modified ON dataproducts;
+DROP INDEX dataproducts_tsv_document_idx;
+DROP TABLE dataproducts;
+DROP TYPE datasource_type;

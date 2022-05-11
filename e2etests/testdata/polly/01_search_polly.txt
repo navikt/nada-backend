@@ -1,0 +1,21 @@
+{
+  polly(q: "something"){
+    externalID
+    name
+    url
+  }
+}
+
+RETURNS
+
+{
+  "data": {
+    "polly": [
+      {
+        "externalID": "28570031-e2b3-4110-8864-41ab279e2e0c",
+        "name": "Behandling",
+        "url": "https://some.url/28570031-e2b3-4110-8864-41ab279e2e0c"
+      }
+    ]
+  }
+}

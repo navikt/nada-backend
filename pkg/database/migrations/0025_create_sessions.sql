@@ -7,3 +7,6 @@ CREATE TABLE sessions (
 	"expires" TIMESTAMPTZ NOT NULL,
   PRIMARY KEY (token)
 );
+
+-- +goose Down
+DROP TABLE sessions;

@@ -13,3 +13,6 @@ CREATE TABLE dataproduct_access (
 			FOREIGN KEY (dataproduct_id)
 					REFERENCES dataproducts (id) ON DELETE CASCADE
 );
+
+-- +goose Down
+DROP TABLE dataproduct_access;

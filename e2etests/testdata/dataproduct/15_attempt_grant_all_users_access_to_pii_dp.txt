@@ -1,9 +1,11 @@
 mutation {
   grantAccessToDataproduct(
-    dataproductID: "{{ .pii_dataproduct_id }}"
-    expires:"2048-12-24T00:00:00Z"
-    subject: "all-users@nav.no"
-    subjectType: group,
+    input: {
+        dataproductID: "{{ .pii_dataproduct_id }}"
+        expires:"2048-12-24T00:00:00Z"
+        subject: "all-users@nav.no"
+        subjectType: group,
+    }
   ) {
     id
   }

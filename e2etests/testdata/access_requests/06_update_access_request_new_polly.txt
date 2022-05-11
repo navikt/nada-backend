@@ -1,0 +1,43 @@
+mutation{
+  updateAccessRequest(input: {
+    id: "{{ .access_request }}"
+    owner: "user:mock.anderson@email.com",
+    polly: {
+      externalID: "020d0b4b-8fd3-4514-b1f5-8c090c3d9f07"
+      name: "Ny Behandling"
+      url: "https://some.url/020d0b4b-8fd3-4514-b1f5-8c090c3d9f07"
+    }
+  }){
+    subject
+    subjectType
+    owner
+    polly{
+      id
+      externalID
+      name
+      url
+    }
+  }
+}
+
+RETURNS
+
+OPTION data.updateAccessRequest.polly.id=IGNORE
+
+ENDOPTS
+{
+  "data": {
+    "updateAccessRequest": {
+      "subject": "mock.anderson@email.com",
+      "subjectType": "user",
+      "owner": "user:mock.anderson@email.com",
+      "polly": {
+        "externalID": "020d0b4b-8fd3-4514-b1f5-8c090c3d9f07",
+        "name": "Ny Behandling",
+        "url": "https://some.url/020d0b4b-8fd3-4514-b1f5-8c090c3d9f07"
+      }
+    }
+  }
+}
+
+STORE polly_id=data.updateAccessRequest.polly.id

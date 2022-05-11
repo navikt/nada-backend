@@ -1,7 +1,9 @@
 mutation {
   grantAccessToDataproduct(
-    dataproductID: "{{ .dataproduct_id }}"
-    subject: "santa@nav.no"
+    input: {
+        dataproductID: "{{ .dataproduct_id }}"
+        subject: "santa@nav.no"
+    }
   ) {
     id
   }

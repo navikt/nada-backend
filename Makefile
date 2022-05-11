@@ -42,6 +42,7 @@ local-with-auth:
 	--metabase-username=$(METABASE_USERNAME) \
 	--metabase-password=$(METABASE_PASSWORD) \
 	--teamkatalogen-url=https://teamkatalog-api.intern.nav.no \
+	--polly-url=https://polly.dev-fss-pub.nais.io/process \
 	--log-level=debug
 
 local:
