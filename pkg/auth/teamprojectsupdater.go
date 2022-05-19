@@ -1,9 +1,11 @@
 package auth
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"fmt"
+	"io/ioutil"
 	"net/http"
 	"sync"
 	"time"
@@ -114,8 +116,17 @@ func getOutputFile(ctx context.Context, url, token string) (map[string]string, e
 
 	var outputFile OutputFile
 
-	if err := json.NewDecoder(response.Body).Decode(&outputFile); err != nil {
-		return nil, fmt.Errorf("unmarshalling terraform output file: %w", err)
+	bodyBytes, err := ioutil.ReadAll(response.Body)
+	if err != nil {
+		return nil, err
+	}
+
+	// Remove terraform output from file
+	woFirstLine := bytes.Split(bodyBytes, []byte("-json"))
+	body := bytes.Split(woFirstLine[1], []byte("::debug"))
+
+	if err := json.Unmarshal(body[0], &outputFile); err != nil {
+		return nil, err
 	}
 
 	return outputFile.TeamProjectIDMapping.Value, nil
