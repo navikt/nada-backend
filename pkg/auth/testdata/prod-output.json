@@ -1,3 +1,4 @@
+-json
 {
   "team_projectid_mapping": {
     "value": {
@@ -6,3 +7,4 @@
     }
   }
 }
+::debug
