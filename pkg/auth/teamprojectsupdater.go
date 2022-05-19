@@ -121,12 +121,17 @@ func getOutputFile(ctx context.Context, url, token string) (map[string]string, e
 		return nil, err
 	}
 
-	// Remove terraform output from file
 	woFirstLine := bytes.Split(bodyBytes, []byte("-json"))
-	body := bytes.Split(woFirstLine[1], []byte("::debug"))
-
-	if err := json.Unmarshal(body[0], &outputFile); err != nil {
-		return nil, err
+	if len(woFirstLine) != 1 {
+		// Remove terraform output from file
+		body := bytes.Split(woFirstLine[1], []byte("::debug"))
+		if err := json.Unmarshal(body[0], &outputFile); err != nil {
+			return nil, err
+		}
+	} else {
+		if err := json.Unmarshal(bodyBytes, &outputFile); err != nil {
+			return nil, err
+		}
 	}
 
 	return outputFile.TeamProjectIDMapping.Value, nil
