@@ -50,7 +50,7 @@ WHERE
 			ELSE TRUE
 		END
 	)
-ORDER BY rank DESC, created DESC
+ORDER BY rank DESC, created ASC
 LIMIT $7 OFFSET $6
 `
 

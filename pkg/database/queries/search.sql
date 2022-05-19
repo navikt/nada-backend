@@ -38,6 +38,6 @@ WHERE
 			ELSE TRUE
 		END
 	)
-ORDER BY rank DESC, created DESC
+ORDER BY rank DESC, created ASC
 LIMIT @lim OFFSET @offs;
 ;
