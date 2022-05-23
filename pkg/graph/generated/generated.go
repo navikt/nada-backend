@@ -110,6 +110,7 @@ type ComplexityRoot struct {
 		Repo         func(childComplexity int) int
 		Requesters   func(childComplexity int) int
 		Services     func(childComplexity int) int
+		Slug         func(childComplexity int) int
 	}
 
 	DataproductServices struct {
@@ -648,6 +649,13 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 		}
 
 		return e.complexity.Dataproduct.Services(childComplexity), true
+
+	case "Dataproduct.slug":
+		if e.complexity.Dataproduct.Slug == nil {
+			break
+		}
+
+		return e.complexity.Dataproduct.Slug(childComplexity), true
 
 	case "DataproductServices.metabase":
 		if e.complexity.DataproductServices.Metabase == nil {
@@ -1537,6 +1545,8 @@ type Dataproduct @goModel(model: "github.com/navikt/nada-backend/pkg/graph/model
     pii: Boolean!
     "keywords for the dataproduct used as tags."
     keywords: [String!]!
+    "slug is the dataproduct slug"
+    slug: String!
     "owner of the dataproduct. Changes to the dataproduct can only be done by a member of the owner."
     owner: Owner!
     "datasource contains metadata on the datasource"
@@ -4808,6 +4818,50 @@ func (ec *executionContext) fieldContext_Dataproduct_keywords(ctx context.Contex
 	return fc, nil
 }
 
+func (ec *executionContext) _Dataproduct_slug(ctx context.Context, field graphql.CollectedField, obj *models.Dataproduct) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_Dataproduct_slug(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Slug, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(string)
+	fc.Result = res
+	return ec.marshalNString2string(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_Dataproduct_slug(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Dataproduct",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
 func (ec *executionContext) _Dataproduct_owner(ctx context.Context, field graphql.CollectedField, obj *models.Dataproduct) (ret graphql.Marshaler) {
 	fc, err := ec.fieldContext_Dataproduct_owner(ctx, field)
 	if err != nil {
@@ -5662,6 +5716,8 @@ func (ec *executionContext) fieldContext_Mutation_createDataproduct(ctx context.
 				return ec.fieldContext_Dataproduct_pii(ctx, field)
 			case "keywords":
 				return ec.fieldContext_Dataproduct_keywords(ctx, field)
+			case "slug":
+				return ec.fieldContext_Dataproduct_slug(ctx, field)
 			case "owner":
 				return ec.fieldContext_Dataproduct_owner(ctx, field)
 			case "datasource":
@@ -5767,6 +5823,8 @@ func (ec *executionContext) fieldContext_Mutation_updateDataproduct(ctx context.
 				return ec.fieldContext_Dataproduct_pii(ctx, field)
 			case "keywords":
 				return ec.fieldContext_Dataproduct_keywords(ctx, field)
+			case "slug":
+				return ec.fieldContext_Dataproduct_slug(ctx, field)
 			case "owner":
 				return ec.fieldContext_Dataproduct_owner(ctx, field)
 			case "datasource":
@@ -7301,6 +7359,8 @@ func (ec *executionContext) fieldContext_Query_dataproduct(ctx context.Context, 
 				return ec.fieldContext_Dataproduct_pii(ctx, field)
 			case "keywords":
 				return ec.fieldContext_Dataproduct_keywords(ctx, field)
+			case "slug":
+				return ec.fieldContext_Dataproduct_slug(ctx, field)
 			case "owner":
 				return ec.fieldContext_Dataproduct_owner(ctx, field)
 			case "datasource":
@@ -7386,6 +7446,8 @@ func (ec *executionContext) fieldContext_Query_dataproducts(ctx context.Context,
 				return ec.fieldContext_Dataproduct_pii(ctx, field)
 			case "keywords":
 				return ec.fieldContext_Dataproduct_keywords(ctx, field)
+			case "slug":
+				return ec.fieldContext_Dataproduct_slug(ctx, field)
 			case "owner":
 				return ec.fieldContext_Dataproduct_owner(ctx, field)
 			case "datasource":
@@ -10292,6 +10354,8 @@ func (ec *executionContext) fieldContext_UserInfo_dataproducts(ctx context.Conte
 				return ec.fieldContext_Dataproduct_pii(ctx, field)
 			case "keywords":
 				return ec.fieldContext_Dataproduct_keywords(ctx, field)
+			case "slug":
+				return ec.fieldContext_Dataproduct_slug(ctx, field)
 			case "owner":
 				return ec.fieldContext_Dataproduct_owner(ctx, field)
 			case "datasource":
@@ -10366,6 +10430,8 @@ func (ec *executionContext) fieldContext_UserInfo_accessable(ctx context.Context
 				return ec.fieldContext_Dataproduct_pii(ctx, field)
 			case "keywords":
 				return ec.fieldContext_Dataproduct_keywords(ctx, field)
+			case "slug":
+				return ec.fieldContext_Dataproduct_slug(ctx, field)
 			case "owner":
 				return ec.fieldContext_Dataproduct_owner(ctx, field)
 			case "datasource":
@@ -13294,6 +13360,13 @@ func (ec *executionContext) _Dataproduct(ctx context.Context, sel ast.SelectionS
 		case "keywords":
 
 			out.Values[i] = ec._Dataproduct_keywords(ctx, field, obj)
+
+			if out.Values[i] == graphql.Null {
+				atomic.AddUint32(&invalids, 1)
+			}
+		case "slug":
+
+			out.Values[i] = ec._Dataproduct_slug(ctx, field, obj)
 
 			if out.Values[i] == graphql.Null {
 				atomic.AddUint32(&invalids, 1)

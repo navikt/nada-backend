@@ -18,6 +18,8 @@ type Dataproduct @goModel(model: "github.com/navikt/nada-backend/pkg/graph/model
     pii: Boolean!
     "keywords for the dataproduct used as tags."
     keywords: [String!]!
+    "slug is the dataproduct slug"
+    slug: String!
     "owner of the dataproduct. Changes to the dataproduct can only be done by a member of the owner."
     owner: Owner!
     "datasource contains metadata on the datasource"
