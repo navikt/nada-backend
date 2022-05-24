@@ -109,6 +109,7 @@ type DataproductAccessRequest struct {
 	Status               AccessRequestStatusType
 	Closed               sql.NullTime
 	Granter              sql.NullString
+	Reason               sql.NullString
 }
 
 type DataproductRequester struct {

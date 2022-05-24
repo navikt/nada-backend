@@ -441,6 +441,9 @@ extend type Mutation {
     Requires authentication
     """
     denyAccessRequest(
+        "id of access request."
         id: ID!
+        "reason for denying this access request."
+        reason: String
     ): Boolean! @authenticated
 }

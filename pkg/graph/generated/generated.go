@@ -145,7 +145,7 @@ type ComplexityRoot struct {
 		DeleteAccessRequest            func(childComplexity int, id uuid.UUID) int
 		DeleteDataproduct              func(childComplexity int, id uuid.UUID) int
 		DeleteStory                    func(childComplexity int, id uuid.UUID) int
-		DenyAccessRequest              func(childComplexity int, id uuid.UUID) int
+		DenyAccessRequest              func(childComplexity int, id uuid.UUID, reason *string) int
 		Dummy                          func(childComplexity int, no *string) int
 		GrantAccessToDataproduct       func(childComplexity int, input models.NewGrant) int
 		MapDataproduct                 func(childComplexity int, dataproductID uuid.UUID, services []models.MappingService) int
@@ -288,7 +288,7 @@ type MutationResolver interface {
 	UpdateAccessRequest(ctx context.Context, input models.UpdateAccessRequest) (*models.AccessRequest, error)
 	DeleteAccessRequest(ctx context.Context, id uuid.UUID) (bool, error)
 	ApproveAccessRequest(ctx context.Context, id uuid.UUID) (bool, error)
-	DenyAccessRequest(ctx context.Context, id uuid.UUID) (bool, error)
+	DenyAccessRequest(ctx context.Context, id uuid.UUID, reason *string) (bool, error)
 	PublishStory(ctx context.Context, input models.NewStory) (*models.GraphStory, error)
 	UpdateStoryMetadata(ctx context.Context, id uuid.UUID, name string, keywords []string, teamkatalogenURL *string) (*models.GraphStory, error)
 	DeleteStory(ctx context.Context, id uuid.UUID) (bool, error)
@@ -814,7 +814,7 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 			return 0, false
 		}
 
-		return e.complexity.Mutation.DenyAccessRequest(childComplexity, args["id"].(uuid.UUID)), true
+		return e.complexity.Mutation.DenyAccessRequest(childComplexity, args["id"].(uuid.UUID), args["reason"].(*string)), true
 
 	case "Mutation.dummy":
 		if e.complexity.Mutation.Dummy == nil {
@@ -1525,7 +1525,7 @@ func (ec *executionContext) introspectType(name string) (*introspection.Type, er
 }
 
 var sources = []*ast.Source{
-	{Name: "schema/dataproducts.graphql", Input: `"""
+	{Name: "../../../schema/dataproducts.graphql", Input: `"""
 Dataproduct contains metadata on a datasource.
 """
 type Dataproduct @goModel(model: "github.com/navikt/nada-backend/pkg/graph/models.Dataproduct"){
@@ -1968,11 +1968,14 @@ extend type Mutation {
     Requires authentication
     """
     denyAccessRequest(
+        "id of access request."
         id: ID!
+        "reason for denying this access request."
+        reason: String
     ): Boolean! @authenticated
 }
 `, BuiltIn: false},
-	{Name: "schema/gcp.graphql", Input: `"""
+	{Name: "../../../schema/gcp.graphql", Input: `"""
 BigQueryType defines supported table types in a BigQuery set.
 """
 enum BigQueryType @goModel(model: "github.com/navikt/nada-backend/pkg/graph/models.BigQueryType") {
@@ -2040,7 +2043,7 @@ extend type Query {
 	): [String!]! @authenticated
 }
 `, BuiltIn: false},
-	{Name: "schema/group.graphql", Input: `"""
+	{Name: "../../../schema/group.graphql", Input: `"""
 Owner contains metadata on the owner of the dataproduct/datastory.
 """
 type Owner @goModel(model: "github.com/navikt/nada-backend/pkg/graph/models.Owner"){
@@ -2050,7 +2053,7 @@ type Owner @goModel(model: "github.com/navikt/nada-backend/pkg/graph/models.Owne
     teamkatalogenURL: String
 }
 `, BuiltIn: false},
-	{Name: "schema/keywords.graphql", Input: `"""
+	{Name: "../../../schema/keywords.graphql", Input: `"""
 Keyword represents a keyword used by other dataproducts
 """
 type Keyword @goModel(model: "github.com/navikt/nada-backend/pkg/graph/models.Keyword")  {
@@ -2070,7 +2073,7 @@ extend type Query {
 	): [Keyword!]!
 }
 `, BuiltIn: false},
-	{Name: "schema/main.graphql", Input: `"""
+	{Name: "../../../schema/main.graphql", Input: `"""
 Time is a string in [RFC 3339](https://rfc-editor.org/rfc/rfc3339.html) format, with sub-second precision added if present.
 """
 scalar Time
@@ -2109,7 +2112,7 @@ type Mutation {
 	dummy(no: String): String
 }
 `, BuiltIn: false},
-	{Name: "schema/polly.graphql", Input: `type Polly @goModel(model: "github.com/navikt/nada-backend/pkg/graph/models.Polly") {
+	{Name: "../../../schema/polly.graphql", Input: `type Polly @goModel(model: "github.com/navikt/nada-backend/pkg/graph/models.Polly") {
     "database id"
     id: ID!
     "id from polly"
@@ -2148,7 +2151,7 @@ extend type Query {
     ): [QueryPolly!]!
 }
 `, BuiltIn: false},
-	{Name: "schema/search.graphql", Input: `union SearchResult @goModel(
+	{Name: "../../../schema/search.graphql", Input: `union SearchResult @goModel(
     model: "github.com/navikt/nada-backend/pkg/graph/models.SearchResult"
 ) = Dataproduct | Story
 
@@ -2232,7 +2235,7 @@ extend type Query {
     ): [SearchResultRow!]!
 }
 `, BuiltIn: false},
-	{Name: "schema/story.graphql", Input: `"""
+	{Name: "../../../schema/story.graphql", Input: `"""
 Story contains the metadata and content of data stories.
 """
 type Story @goModel(model: "github.com/navikt/nada-backend/pkg/graph/models.GraphStory") {
@@ -2404,7 +2407,7 @@ extend type Mutation {
 	): Boolean! @authenticated
 }
 `, BuiltIn: false},
-	{Name: "schema/teamkatalogen.graphql", Input: `type TeamkatalogenResult @goModel(model: "github.com/navikt/nada-backend/pkg/graph/models.TeamkatalogenResult") {
+	{Name: "../../../schema/teamkatalogen.graphql", Input: `type TeamkatalogenResult @goModel(model: "github.com/navikt/nada-backend/pkg/graph/models.TeamkatalogenResult") {
     "url to team in teamkatalogen."
     url: String!
     "team name."
@@ -2421,7 +2424,7 @@ extend type Query {
     ): [TeamkatalogenResult!]!
 }
 `, BuiltIn: false},
-	{Name: "schema/user.graphql", Input: `"""
+	{Name: "../../../schema/user.graphql", Input: `"""
 Group contains metadata on a GCP group
 """
 type Group @goModel(model: "github.com/navikt/nada-backend/pkg/graph/models.Group") {
@@ -2620,6 +2623,15 @@ func (ec *executionContext) field_Mutation_denyAccessRequest_args(ctx context.Co
 		}
 	}
 	args["id"] = arg0
+	var arg1 *string
+	if tmp, ok := rawArgs["reason"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("reason"))
+		arg1, err = ec.unmarshalOString2ᚖstring(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["reason"] = arg1
 	return args, nil
 }
 
@@ -6682,7 +6694,7 @@ func (ec *executionContext) _Mutation_denyAccessRequest(ctx context.Context, fie
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		directive0 := func(rctx context.Context) (interface{}, error) {
 			ctx = rctx // use context from middleware stack in children
-			return ec.resolvers.Mutation().DenyAccessRequest(rctx, fc.Args["id"].(uuid.UUID))
+			return ec.resolvers.Mutation().DenyAccessRequest(rctx, fc.Args["id"].(uuid.UUID), fc.Args["reason"].(*string))
 		}
 		directive1 := func(ctx context.Context) (interface{}, error) {
 			if ec.directives.Authenticated == nil {

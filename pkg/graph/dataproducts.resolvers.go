@@ -371,7 +371,7 @@ func (r *mutationResolver) ApproveAccessRequest(ctx context.Context, id uuid.UUI
 	return true, nil
 }
 
-func (r *mutationResolver) DenyAccessRequest(ctx context.Context, id uuid.UUID) (bool, error) {
+func (r *mutationResolver) DenyAccessRequest(ctx context.Context, id uuid.UUID, reason *string) (bool, error) {
 	ar, err := r.repo.GetAccessRequest(ctx, id)
 	if err != nil {
 		return false, err
@@ -387,7 +387,7 @@ func (r *mutationResolver) DenyAccessRequest(ctx context.Context, id uuid.UUID) 
 	}
 
 	user := auth.GetUser(ctx)
-	if err := r.repo.DenyAccessRequest(ctx, id, user.Email); err != nil {
+	if err := r.repo.DenyAccessRequest(ctx, id, user.Email, reason); err != nil {
 		return false, err
 	}
 

@@ -40,7 +40,7 @@ VALUES ($1,
         LOWER($3),
         $4,
         $5)
-RETURNING id, dataproduct_id, subject, owner, polly_documentation_id, last_modified, created, expires, status, closed, granter
+RETURNING id, dataproduct_id, subject, owner, polly_documentation_id, last_modified, created, expires, status, closed, granter, reason
 `
 
 type CreateAccessRequestForDataproductParams struct {
@@ -72,6 +72,7 @@ func (q *Queries) CreateAccessRequestForDataproduct(ctx context.Context, arg Cre
 		&i.Status,
 		&i.Closed,
 		&i.Granter,
+		&i.Reason,
 	)
 	return i, err
 }
@@ -90,22 +91,24 @@ const denyAccessRequest = `-- name: DenyAccessRequest :exec
 UPDATE dataproduct_access_request
 SET status = 'denied',
     granter = $1,
+    reason = $2,
     closed = NOW()
-WHERE id = $2
+WHERE id = $3
 `
 
 type DenyAccessRequestParams struct {
 	Granter sql.NullString
+	Reason  sql.NullString
 	ID      uuid.UUID
 }
 
 func (q *Queries) DenyAccessRequest(ctx context.Context, arg DenyAccessRequestParams) error {
-	_, err := q.db.ExecContext(ctx, denyAccessRequest, arg.Granter, arg.ID)
+	_, err := q.db.ExecContext(ctx, denyAccessRequest, arg.Granter, arg.Reason, arg.ID)
 	return err
 }
 
 const getAccessRequest = `-- name: GetAccessRequest :one
-SELECT id, dataproduct_id, subject, owner, polly_documentation_id, last_modified, created, expires, status, closed, granter
+SELECT id, dataproduct_id, subject, owner, polly_documentation_id, last_modified, created, expires, status, closed, granter, reason
 FROM dataproduct_access_request
 WHERE id = $1
 `
@@ -125,12 +128,13 @@ func (q *Queries) GetAccessRequest(ctx context.Context, id uuid.UUID) (Dataprodu
 		&i.Status,
 		&i.Closed,
 		&i.Granter,
+		&i.Reason,
 	)
 	return i, err
 }
 
 const listAccessRequestsForDataproduct = `-- name: ListAccessRequestsForDataproduct :many
-SELECT id, dataproduct_id, subject, owner, polly_documentation_id, last_modified, created, expires, status, closed, granter
+SELECT id, dataproduct_id, subject, owner, polly_documentation_id, last_modified, created, expires, status, closed, granter, reason
 FROM dataproduct_access_request
 WHERE dataproduct_id = $1 AND status = 'pending'
 `
@@ -156,6 +160,7 @@ func (q *Queries) ListAccessRequestsForDataproduct(ctx context.Context, dataprod
 			&i.Status,
 			&i.Closed,
 			&i.Granter,
+			&i.Reason,
 		); err != nil {
 			return nil, err
 		}
@@ -171,7 +176,7 @@ func (q *Queries) ListAccessRequestsForDataproduct(ctx context.Context, dataprod
 }
 
 const listAccessRequestsForOwner = `-- name: ListAccessRequestsForOwner :many
-SELECT id, dataproduct_id, subject, owner, polly_documentation_id, last_modified, created, expires, status, closed, granter
+SELECT id, dataproduct_id, subject, owner, polly_documentation_id, last_modified, created, expires, status, closed, granter, reason
 FROM dataproduct_access_request
 WHERE "owner" = ANY ($1::text[]) AND status = 'pending'
 `
@@ -197,6 +202,7 @@ func (q *Queries) ListAccessRequestsForOwner(ctx context.Context, owner []string
 			&i.Status,
 			&i.Closed,
 			&i.Granter,
+			&i.Reason,
 		); err != nil {
 			return nil, err
 		}
@@ -217,7 +223,7 @@ SET owner                  = $1,
     polly_documentation_id = $2,
     expires = $3
 WHERE id = $4
-RETURNING id, dataproduct_id, subject, owner, polly_documentation_id, last_modified, created, expires, status, closed, granter
+RETURNING id, dataproduct_id, subject, owner, polly_documentation_id, last_modified, created, expires, status, closed, granter, reason
 `
 
 type UpdateAccessRequestParams struct {
@@ -247,6 +253,7 @@ func (q *Queries) UpdateAccessRequest(ctx context.Context, arg UpdateAccessReque
 		&i.Status,
 		&i.Closed,
 		&i.Granter,
+		&i.Reason,
 	)
 	return i, err
 }

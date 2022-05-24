@@ -42,6 +42,7 @@ WHERE id = @id;
 UPDATE dataproduct_access_request
 SET status = 'denied',
     granter = @granter,
+    reason = @reason,
     closed = NOW()
 WHERE id = @id;
 

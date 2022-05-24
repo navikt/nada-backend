@@ -54,10 +54,11 @@ func (r *Repo) GetAccessRequest(ctx context.Context, id uuid.UUID) (*models.Acce
 	return r.accessRequestSQLToGraphql(ctx, dataproductAccessRequest)
 }
 
-func (r *Repo) DenyAccessRequest(ctx context.Context, id uuid.UUID, granter string) error {
+func (r *Repo) DenyAccessRequest(ctx context.Context, id uuid.UUID, granter string, reason *string) error {
 	return r.querier.DenyAccessRequest(ctx, gensql.DenyAccessRequestParams{
 		ID:      id,
 		Granter: sql.NullString{String: granter, Valid: true},
+		Reason: ptrToNullString(reason),
 	})
 }
 
