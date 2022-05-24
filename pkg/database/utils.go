@@ -4,6 +4,8 @@ import (
 	"database/sql"
 	"net/url"
 	"time"
+
+	"github.com/google/uuid"
 )
 
 func ptrToNullString(str *string) sql.NullString {
@@ -40,6 +42,13 @@ func nullTimeToPtr(nt sql.NullTime) *time.Time {
 	}
 
 	return &nt.Time
+}
+
+func nullUUIDToUUIDPtr(nu uuid.NullUUID) *uuid.UUID {
+	if !nu.Valid {
+		return nil
+	}
+	return &nu.UUID
 }
 
 func ptrToString(s *string) string {

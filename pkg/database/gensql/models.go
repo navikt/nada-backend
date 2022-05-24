@@ -88,13 +88,14 @@ type Dataproduct struct {
 }
 
 type DataproductAccess struct {
-	ID            uuid.UUID
-	DataproductID uuid.UUID
-	Subject       string
-	Granter       string
-	Expires       sql.NullTime
-	Created       time.Time
-	Revoked       sql.NullTime
+	ID              uuid.UUID
+	DataproductID   uuid.UUID
+	Subject         string
+	Granter         string
+	Expires         sql.NullTime
+	Created         time.Time
+	Revoked         sql.NullTime
+	AccessRequestID uuid.NullUUID
 }
 
 type DataproductAccessRequest struct {

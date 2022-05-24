@@ -155,12 +155,13 @@ func (r *Repo) GetUnrevokedExpiredAccess(ctx context.Context) ([]*models.Access,
 
 func accessFromSQL(access gensql.DataproductAccess) *models.Access {
 	return &models.Access{
-		ID:            access.ID,
-		Subject:       access.Subject,
-		Granter:       access.Granter,
-		Expires:       nullTimeToPtr(access.Expires),
-		Created:       access.Created,
-		Revoked:       nullTimeToPtr(access.Revoked),
-		DataproductID: access.DataproductID,
+		ID:              access.ID,
+		Subject:         access.Subject,
+		Granter:         access.Granter,
+		Expires:         nullTimeToPtr(access.Expires),
+		Created:         access.Created,
+		Revoked:         nullTimeToPtr(access.Revoked),
+		DataproductID:   access.DataproductID,
+		AccessRequestID: nullUUIDToUUIDPtr(access.AccessRequestID),
 	}
 }

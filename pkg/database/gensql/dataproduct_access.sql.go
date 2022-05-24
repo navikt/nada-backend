@@ -11,7 +11,7 @@ import (
 )
 
 const getAccessToDataproduct = `-- name: GetAccessToDataproduct :one
-SELECT id, dataproduct_id, subject, granter, expires, created, revoked
+SELECT id, dataproduct_id, subject, granter, expires, created, revoked, access_request_id
 FROM dataproduct_access
 WHERE id = $1
 `
@@ -27,12 +27,13 @@ func (q *Queries) GetAccessToDataproduct(ctx context.Context, id uuid.UUID) (Dat
 		&i.Expires,
 		&i.Created,
 		&i.Revoked,
+		&i.AccessRequestID,
 	)
 	return i, err
 }
 
 const getActiveAccessToDataproductForSubject = `-- name: GetActiveAccessToDataproductForSubject :one
-SELECT id, dataproduct_id, subject, granter, expires, created, revoked
+SELECT id, dataproduct_id, subject, granter, expires, created, revoked, access_request_id
 FROM dataproduct_access
 WHERE dataproduct_id = $1 
 AND "subject" = $2 
@@ -59,6 +60,7 @@ func (q *Queries) GetActiveAccessToDataproductForSubject(ctx context.Context, ar
 		&i.Expires,
 		&i.Created,
 		&i.Revoked,
+		&i.AccessRequestID,
 	)
 	return i, err
 }
@@ -67,19 +69,22 @@ const grantAccessToDataproduct = `-- name: GrantAccessToDataproduct :one
 INSERT INTO dataproduct_access (dataproduct_id,
                                 "subject",
                                 granter,
-                                expires)
+                                expires,
+                                access_request_id)
 VALUES ($1,
         LOWER($2),
         LOWER($3),
-        $4)
-RETURNING id, dataproduct_id, subject, granter, expires, created, revoked
+        $4,
+        $5)
+RETURNING id, dataproduct_id, subject, granter, expires, created, revoked, access_request_id
 `
 
 type GrantAccessToDataproductParams struct {
-	DataproductID uuid.UUID
-	Subject       string
-	Granter       string
-	Expires       sql.NullTime
+	DataproductID   uuid.UUID
+	Subject         string
+	Granter         string
+	Expires         sql.NullTime
+	AccessRequestID uuid.NullUUID
 }
 
 func (q *Queries) GrantAccessToDataproduct(ctx context.Context, arg GrantAccessToDataproductParams) (DataproductAccess, error) {
@@ -88,6 +93,7 @@ func (q *Queries) GrantAccessToDataproduct(ctx context.Context, arg GrantAccessT
 		arg.Subject,
 		arg.Granter,
 		arg.Expires,
+		arg.AccessRequestID,
 	)
 	var i DataproductAccess
 	err := row.Scan(
@@ -98,12 +104,13 @@ func (q *Queries) GrantAccessToDataproduct(ctx context.Context, arg GrantAccessT
 		&i.Expires,
 		&i.Created,
 		&i.Revoked,
+		&i.AccessRequestID,
 	)
 	return i, err
 }
 
 const listAccessToDataproduct = `-- name: ListAccessToDataproduct :many
-SELECT id, dataproduct_id, subject, granter, expires, created, revoked
+SELECT id, dataproduct_id, subject, granter, expires, created, revoked, access_request_id
 FROM dataproduct_access
 WHERE dataproduct_id = $1
 `
@@ -125,6 +132,7 @@ func (q *Queries) ListAccessToDataproduct(ctx context.Context, dataproductID uui
 			&i.Expires,
 			&i.Created,
 			&i.Revoked,
+			&i.AccessRequestID,
 		); err != nil {
 			return nil, err
 		}
@@ -140,7 +148,7 @@ func (q *Queries) ListAccessToDataproduct(ctx context.Context, dataproductID uui
 }
 
 const listActiveAccessToDataproduct = `-- name: ListActiveAccessToDataproduct :many
-SELECT id, dataproduct_id, subject, granter, expires, created, revoked
+SELECT id, dataproduct_id, subject, granter, expires, created, revoked, access_request_id
 FROM dataproduct_access
 WHERE dataproduct_id = $1 AND revoked IS NULL AND (expires IS NULL OR expires >= NOW())
 `
@@ -162,6 +170,7 @@ func (q *Queries) ListActiveAccessToDataproduct(ctx context.Context, dataproduct
 			&i.Expires,
 			&i.Created,
 			&i.Revoked,
+			&i.AccessRequestID,
 		); err != nil {
 			return nil, err
 		}
@@ -177,7 +186,7 @@ func (q *Queries) ListActiveAccessToDataproduct(ctx context.Context, dataproduct
 }
 
 const listUnrevokedExpiredAccessEntries = `-- name: ListUnrevokedExpiredAccessEntries :many
-SELECT id, dataproduct_id, subject, granter, expires, created, revoked
+SELECT id, dataproduct_id, subject, granter, expires, created, revoked, access_request_id
 FROM dataproduct_access
 WHERE revoked IS NULL
   AND expires < NOW()
@@ -200,6 +209,7 @@ func (q *Queries) ListUnrevokedExpiredAccessEntries(ctx context.Context) ([]Data
 			&i.Expires,
 			&i.Created,
 			&i.Revoked,
+			&i.AccessRequestID,
 		); err != nil {
 			return nil, err
 		}

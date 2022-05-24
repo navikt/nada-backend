@@ -76,7 +76,7 @@ type AccessRequest struct {
 	Granter       *string             `json:"granter"`
 	Owner         string              `json:"owner"`
 	Polly         *Polly              `json:"polly"`
-	Reason		  *string			  `json:"reason"`
+	Reason        *string             `json:"reason"`
 }
 
 type NewAccessRequest struct {
@@ -114,13 +114,14 @@ type UpdateDataproduct struct {
 }
 
 type Access struct {
-	ID            uuid.UUID  `json:"id"`
-	Subject       string     `json:"subject"`
-	Granter       string     `json:"granter"`
-	Expires       *time.Time `json:"expires"`
-	Created       time.Time  `json:"created"`
-	Revoked       *time.Time `json:"revoked"`
-	DataproductID uuid.UUID
+	ID              uuid.UUID  `json:"id"`
+	Subject         string     `json:"subject"`
+	Granter         string     `json:"granter"`
+	Expires         *time.Time `json:"expires"`
+	Created         time.Time  `json:"created"`
+	Revoked         *time.Time `json:"revoked"`
+	DataproductID   uuid.UUID
+	AccessRequestID *uuid.UUID `json:"accessRequestID"`
 }
 
 type DataproductServices struct {

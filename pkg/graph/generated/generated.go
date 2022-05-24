@@ -54,12 +54,13 @@ type DirectiveRoot struct {
 
 type ComplexityRoot struct {
 	Access struct {
-		Created func(childComplexity int) int
-		Expires func(childComplexity int) int
-		Granter func(childComplexity int) int
-		ID      func(childComplexity int) int
-		Revoked func(childComplexity int) int
-		Subject func(childComplexity int) int
+		AccessRequestID func(childComplexity int) int
+		Created         func(childComplexity int) int
+		Expires         func(childComplexity int) int
+		Granter         func(childComplexity int) int
+		ID              func(childComplexity int) int
+		Revoked         func(childComplexity int) int
+		Subject         func(childComplexity int) int
 	}
 
 	AccessRequest struct {
@@ -342,6 +343,13 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 	ec := executionContext{nil, e}
 	_ = ec
 	switch typeName + "." + field {
+
+	case "Access.accessRequestID":
+		if e.complexity.Access.AccessRequestID == nil {
+			break
+		}
+
+		return e.complexity.Access.AccessRequestID(childComplexity), true
 
 	case "Access.created":
 		if e.complexity.Access.Created == nil {
@@ -1639,6 +1647,8 @@ type Access @goModel(model: "github.com/navikt/nada-backend/pkg/graph/models.Acc
     created: Time!
     "revoked is timestamp for when access was revoked"
     revoked: Time
+    "accessRequestID is the id of the access request for this grant."
+    accessRequestID: ID
 }
 
 """
@@ -3433,6 +3443,47 @@ func (ec *executionContext) fieldContext_Access_revoked(ctx context.Context, fie
 	return fc, nil
 }
 
+func (ec *executionContext) _Access_accessRequestID(ctx context.Context, field graphql.CollectedField, obj *models.Access) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_Access_accessRequestID(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.AccessRequestID, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		return graphql.Null
+	}
+	res := resTmp.(*uuid.UUID)
+	fc.Result = res
+	return ec.marshalOID2ᚖgithubᚗcomᚋgoogleᚋuuidᚐUUID(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_Access_accessRequestID(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Access",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type ID does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
 func (ec *executionContext) _AccessRequest_id(ctx context.Context, field graphql.CollectedField, obj *models.AccessRequest) (ret graphql.Marshaler) {
 	fc, err := ec.fieldContext_AccessRequest_id(ctx, field)
 	if err != nil {
@@ -5154,6 +5205,8 @@ func (ec *executionContext) fieldContext_Dataproduct_access(ctx context.Context,
 				return ec.fieldContext_Access_created(ctx, field)
 			case "revoked":
 				return ec.fieldContext_Access_revoked(ctx, field)
+			case "accessRequestID":
+				return ec.fieldContext_Access_accessRequestID(ctx, field)
 			}
 			return nil, fmt.Errorf("no field named %q was found under type Access", field.Name)
 		},
@@ -6214,6 +6267,8 @@ func (ec *executionContext) fieldContext_Mutation_grantAccessToDataproduct(ctx c
 				return ec.fieldContext_Access_created(ctx, field)
 			case "revoked":
 				return ec.fieldContext_Access_revoked(ctx, field)
+			case "accessRequestID":
+				return ec.fieldContext_Access_accessRequestID(ctx, field)
 			}
 			return nil, fmt.Errorf("no field named %q was found under type Access", field.Name)
 		},
@@ -13136,6 +13191,10 @@ func (ec *executionContext) _Access(ctx context.Context, sel ast.SelectionSet, o
 		case "revoked":
 
 			out.Values[i] = ec._Access_revoked(ctx, field, obj)
+
+		case "accessRequestID":
+
+			out.Values[i] = ec._Access_accessRequestID(ctx, field, obj)
 
 		default:
 			panic("unknown field " + strconv.Quote(field.Name))

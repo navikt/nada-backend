@@ -2,11 +2,13 @@
 INSERT INTO dataproduct_access (dataproduct_id,
                                 "subject",
                                 granter,
-                                expires)
+                                expires,
+                                access_request_id)
 VALUES (@dataproduct_id,
         LOWER(@subject),
         LOWER(@granter),
-        @expires)
+        @expires,
+        @access_request_id)
 RETURNING *;
 
 -- name: RevokeAccessToDataproduct :exec

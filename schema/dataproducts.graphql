@@ -104,6 +104,8 @@ type Access @goModel(model: "github.com/navikt/nada-backend/pkg/graph/models.Acc
     created: Time!
     "revoked is timestamp for when access was revoked"
     revoked: Time
+    "accessRequestID is the id of the access request for this grant."
+    accessRequestID: ID
 }
 
 """

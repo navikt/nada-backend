@@ -58,7 +58,7 @@ func (r *Repo) DenyAccessRequest(ctx context.Context, id uuid.UUID, granter stri
 	return r.querier.DenyAccessRequest(ctx, gensql.DenyAccessRequestParams{
 		ID:      id,
 		Granter: sql.NullString{String: granter, Valid: true},
-		Reason: ptrToNullString(reason),
+		Reason:  ptrToNullString(reason),
 	})
 }
 
@@ -76,10 +76,11 @@ func (r *Repo) ApproveAccessRequest(ctx context.Context, id uuid.UUID, granter s
 	querier := r.querier.WithTx(tx)
 
 	_, err = querier.GrantAccessToDataproduct(ctx, gensql.GrantAccessToDataproductParams{
-		DataproductID: ar.DataproductID,
-		Subject:       ar.Subject,
-		Granter:       granter,
-		Expires:       ar.Expires,
+		DataproductID:   ar.DataproductID,
+		Subject:         ar.Subject,
+		Granter:         granter,
+		Expires:         ar.Expires,
+		AccessRequestID: uuid.NullUUID{UUID: ar.ID, Valid: true},
 	})
 	if err != nil {
 		if err := tx.Rollback(); err != nil {
@@ -167,7 +168,7 @@ func (r *Repo) accessRequestSQLToGraphql(ctx context.Context, dataproductAccessR
 		Granter:       nullStringToPtr(dataproductAccessRequest.Granter),
 		Owner:         dataproductAccessRequest.Owner,
 		Polly:         polly,
-		Reason:		   nullStringToPtr(dataproductAccessRequest.Reason),
+		Reason:        nullStringToPtr(dataproductAccessRequest.Reason),
 	}, nil
 }
 
