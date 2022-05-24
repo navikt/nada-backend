@@ -71,6 +71,7 @@ type ComplexityRoot struct {
 		ID            func(childComplexity int) int
 		Owner         func(childComplexity int) int
 		Polly         func(childComplexity int) int
+		Reason        func(childComplexity int) int
 		Status        func(childComplexity int) int
 		Subject       func(childComplexity int) int
 		SubjectType   func(childComplexity int) int
@@ -439,6 +440,13 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 		}
 
 		return e.complexity.AccessRequest.Polly(childComplexity), true
+
+	case "AccessRequest.reason":
+		if e.complexity.AccessRequest.Reason == nil {
+			break
+		}
+
+		return e.complexity.AccessRequest.Reason(childComplexity), true
 
 	case "AccessRequest.status":
 		if e.complexity.AccessRequest.Status == nil {
@@ -1659,6 +1667,8 @@ type AccessRequest @goModel(model: "github.com/navikt/nada-backend/pkg/graph/mod
     owner: String!
     "polly is the process policy attached to this grant."
     polly: Polly
+    "reason is the eventual reason for denying this request."
+    reason: String
 }
 
 """
@@ -3900,6 +3910,47 @@ func (ec *executionContext) fieldContext_AccessRequest_polly(ctx context.Context
 				return ec.fieldContext_Polly_url(ctx, field)
 			}
 			return nil, fmt.Errorf("no field named %q was found under type Polly", field.Name)
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _AccessRequest_reason(ctx context.Context, field graphql.CollectedField, obj *models.AccessRequest) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_AccessRequest_reason(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Reason, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		return graphql.Null
+	}
+	res := resTmp.(*string)
+	fc.Result = res
+	return ec.marshalOString2ᚖstring(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_AccessRequest_reason(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "AccessRequest",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
 		},
 	}
 	return fc, nil
@@ -6412,6 +6463,8 @@ func (ec *executionContext) fieldContext_Mutation_createAccessRequest(ctx contex
 				return ec.fieldContext_AccessRequest_owner(ctx, field)
 			case "polly":
 				return ec.fieldContext_AccessRequest_polly(ctx, field)
+			case "reason":
+				return ec.fieldContext_AccessRequest_reason(ctx, field)
 			}
 			return nil, fmt.Errorf("no field named %q was found under type AccessRequest", field.Name)
 		},
@@ -6511,6 +6564,8 @@ func (ec *executionContext) fieldContext_Mutation_updateAccessRequest(ctx contex
 				return ec.fieldContext_AccessRequest_owner(ctx, field)
 			case "polly":
 				return ec.fieldContext_AccessRequest_polly(ctx, field)
+			case "reason":
+				return ec.fieldContext_AccessRequest_reason(ctx, field)
 			}
 			return nil, fmt.Errorf("no field named %q was found under type AccessRequest", field.Name)
 		},
@@ -7632,6 +7687,8 @@ func (ec *executionContext) fieldContext_Query_accessRequest(ctx context.Context
 				return ec.fieldContext_AccessRequest_owner(ctx, field)
 			case "polly":
 				return ec.fieldContext_AccessRequest_polly(ctx, field)
+			case "reason":
+				return ec.fieldContext_AccessRequest_reason(ctx, field)
 			}
 			return nil, fmt.Errorf("no field named %q was found under type AccessRequest", field.Name)
 		},
@@ -7731,6 +7788,8 @@ func (ec *executionContext) fieldContext_Query_accessRequestsForDataproduct(ctx 
 				return ec.fieldContext_AccessRequest_owner(ctx, field)
 			case "polly":
 				return ec.fieldContext_AccessRequest_polly(ctx, field)
+			case "reason":
+				return ec.fieldContext_AccessRequest_reason(ctx, field)
 			}
 			return nil, fmt.Errorf("no field named %q was found under type AccessRequest", field.Name)
 		},
@@ -10584,6 +10643,8 @@ func (ec *executionContext) fieldContext_UserInfo_accessRequests(ctx context.Con
 				return ec.fieldContext_AccessRequest_owner(ctx, field)
 			case "polly":
 				return ec.fieldContext_AccessRequest_polly(ctx, field)
+			case "reason":
+				return ec.fieldContext_AccessRequest_reason(ctx, field)
 			}
 			return nil, fmt.Errorf("no field named %q was found under type AccessRequest", field.Name)
 		},
@@ -13161,6 +13222,10 @@ func (ec *executionContext) _AccessRequest(ctx context.Context, sel ast.Selectio
 		case "polly":
 
 			out.Values[i] = ec._AccessRequest_polly(ctx, field, obj)
+
+		case "reason":
+
+			out.Values[i] = ec._AccessRequest_reason(ctx, field, obj)
 
 		default:
 			panic("unknown field " + strconv.Quote(field.Name))

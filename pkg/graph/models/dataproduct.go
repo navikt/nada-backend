@@ -76,6 +76,7 @@ type AccessRequest struct {
 	Granter       *string             `json:"granter"`
 	Owner         string              `json:"owner"`
 	Polly         *Polly              `json:"polly"`
+	Reason		  *string			  `json:"reason"`
 }
 
 type NewAccessRequest struct {

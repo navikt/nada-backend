@@ -178,7 +178,7 @@ func (q *Queries) ListAccessRequestsForDataproduct(ctx context.Context, dataprod
 const listAccessRequestsForOwner = `-- name: ListAccessRequestsForOwner :many
 SELECT id, dataproduct_id, subject, owner, polly_documentation_id, last_modified, created, expires, status, closed, granter, reason
 FROM dataproduct_access_request
-WHERE "owner" = ANY ($1::text[]) AND status = 'pending'
+WHERE "owner" = ANY ($1::text[])
 `
 
 func (q *Queries) ListAccessRequestsForOwner(ctx context.Context, owner []string) ([]DataproductAccessRequest, error) {

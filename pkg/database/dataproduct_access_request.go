@@ -167,6 +167,7 @@ func (r *Repo) accessRequestSQLToGraphql(ctx context.Context, dataproductAccessR
 		Granter:       nullStringToPtr(dataproductAccessRequest.Granter),
 		Owner:         dataproductAccessRequest.Owner,
 		Polly:         polly,
+		Reason:		   nullStringToPtr(dataproductAccessRequest.Reason),
 	}, nil
 }
 

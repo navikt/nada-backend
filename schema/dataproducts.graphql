@@ -132,6 +132,8 @@ type AccessRequest @goModel(model: "github.com/navikt/nada-backend/pkg/graph/mod
     owner: String!
     "polly is the process policy attached to this grant."
     polly: Polly
+    "reason is the eventual reason for denying this request."
+    reason: String
 }
 
 """

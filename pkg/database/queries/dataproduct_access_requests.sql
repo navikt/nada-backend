@@ -19,7 +19,7 @@ WHERE dataproduct_id = @dataproduct_id AND status = 'pending';
 -- name: ListAccessRequestsForOwner :many
 SELECT *
 FROM dataproduct_access_request
-WHERE "owner" = ANY (@owner::text[]) AND status = 'pending';
+WHERE "owner" = ANY (@owner::text[]);
 
 -- name: GetAccessRequest :one
 SELECT *
