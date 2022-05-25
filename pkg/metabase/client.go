@@ -387,12 +387,13 @@ func (c *Client) OpenAccessToDatabase(ctx context.Context, databaseID int) error
 	}
 
 	dbSID := strconv.Itoa(databaseID)
+
 	for gid, permission := range permissionGraph.Groups {
-		if gid == "2" {
-			// admin group
-			continue
+		if gid == "1" {
+			// All users group
+			permission[dbSID] = permissions{Native: "write", Schemas: "all"}
+			break
 		}
-		permission[dbSID] = permissions{Native: "write", Schemas: "all"}
 	}
 
 	if err := c.request(ctx, http.MethodPut, "/permissions/graph", permissionGraph, nil); err != nil {
