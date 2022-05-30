@@ -32,6 +32,11 @@ WHERE id = ANY (SELECT dataset_id
                   AND (expires > NOW() OR expires IS NULL))
 ORDER BY last_modified DESC;
 
+-- name: GetDatasetsInDataproduct :many
+SELECT *
+FROM datasets
+WHERE dataproduct_id = @dataproduct_id;
+
 -- name: DeleteDataset :exec
 DELETE
 FROM datasets

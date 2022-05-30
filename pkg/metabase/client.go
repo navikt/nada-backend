@@ -177,7 +177,7 @@ func (c *Client) CreateDatabase(ctx context.Context, team, name, saJSON, saEmail
 		Name: strings.Split(team, "@")[0] + ": " + name,
 		Details: Details{
 			DatasetID:          ds.Dataset,
-			NadaID:             ds.DataproductID.String(),
+			NadaID:             ds.DatasetID.String(),
 			ProjectID:          ds.ProjectID,
 			ServiceAccountJSON: saJSON,
 			SAEmail:            saEmail,

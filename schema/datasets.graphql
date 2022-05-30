@@ -4,6 +4,8 @@ Dataset contains metadata on a dataset.
 type Dataset @goModel(model: "github.com/navikt/nada-backend/pkg/graph/models.Dataset"){
     "id is the identifier for the dataset"
     id: ID!
+    "dataproductID is the id of the dataproduct containing the dataset"
+    dataproductID: ID!
     "name of the dataset"
     name: String!
     "description of the dataset"
@@ -139,8 +141,6 @@ input UpdateDataset @goModel(model: "github.com/navikt/nada-backend/pkg/graph/mo
     description: String
     "pii indicates whether it is personal identifiable information in the dataset"
     pii: Boolean!
-    "bigquery contains metadata for the bigquery datasource added to the dataset."
-    bigquery: NewBigQuery!
     "requesters contains a list of users, groups and service accounts which can request access to the dataset"
     requesters: [String!]!
 }

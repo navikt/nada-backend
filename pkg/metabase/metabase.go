@@ -134,7 +134,7 @@ func (m *Metabase) addAllUsersDataproduct(ctx context.Context, dpID uuid.UUID) {
 			return
 		}
 
-		if err := m.repo.SetPermissionGroupMetabaseMetadata(ctx, mbMetadata.DataproductID, 0); err != nil {
+		if err := m.repo.SetPermissionGroupMetabaseMetadata(ctx, mbMetadata.DatasetID, 0); err != nil {
 			log.WithError(err).Error("setting permission group to all users")
 			return
 		}
@@ -142,7 +142,7 @@ func (m *Metabase) addAllUsersDataproduct(ctx context.Context, dpID uuid.UUID) {
 }
 
 func (m *Metabase) deleteAllUsersDataproduct(ctx context.Context, dpID uuid.UUID) {
-	log := m.log.WithField("dataproductID", dpID)
+	log := m.log.WithField("datasetID", dpID)
 
 	if err := m.softDelete(ctx, dpID); err != nil {
 		log.WithError(err).Error("softDelete all users database")
@@ -151,7 +151,7 @@ func (m *Metabase) deleteAllUsersDataproduct(ctx context.Context, dpID uuid.UUID
 }
 
 func (m *Metabase) addDataproductMapping(ctx context.Context, dpID uuid.UUID) {
-	log := m.log.WithField("dataproductID", dpID)
+	log := m.log.WithField("datasetID", dpID)
 
 	mbMeta, err := m.repo.GetMetabaseMetadata(ctx, dpID, true)
 	if errors.Is(err, sql.ErrNoRows) {
@@ -316,7 +316,7 @@ func (m *Metabase) create(ctx context.Context, dp dpWrapper) error {
 	}
 
 	err = m.repo.CreateMetabaseMetadata(ctx, models.MetabaseMetadata{
-		DataproductID:     dp.Dataproduct.ID,
+		DatasetID:         dp.Dataproduct.ID,
 		DatabaseID:        dbID,
 		PermissionGroupID: dp.MetabaseGroupID,
 		CollectionID:      dp.CollectionID,

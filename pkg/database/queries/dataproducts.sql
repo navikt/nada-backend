@@ -29,8 +29,6 @@ WHERE id = @id;
 -- name: CreateDataproduct :one
 INSERT INTO dataproducts ("name",
                           "description",
-                          "pii",
-                          "type",
                           "group",
                           "teamkatalogen_url",
                           "slug",
@@ -38,8 +36,6 @@ INSERT INTO dataproducts ("name",
                           "keywords")
 VALUES (@name,
         @description,
-        @pii,
-        @type,
         @owner_group,
         @owner_teamkatalogen_url,
         @slug,
@@ -51,7 +47,6 @@ RETURNING *;
 UPDATE dataproducts
 SET "name"              = @name,
     "description"       = @description,
-    "pii"               = @pii,
     "slug"              = @slug,
     "repo"              = @repo,
     "teamkatalogen_url" = @owner_teamkatalogen_url,

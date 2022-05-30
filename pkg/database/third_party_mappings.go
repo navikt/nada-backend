@@ -45,24 +45,24 @@ func (r *Repo) GetDataproductsByMapping(ctx context.Context, service models.Mapp
 	return dataproducts, nil
 }
 
-func (r *Repo) MapDataproduct(ctx context.Context, dataproductID uuid.UUID, services []models.MappingService) error {
+func (r *Repo) MapDataset(ctx context.Context, datasetID uuid.UUID, services []models.MappingService) error {
 	svcs := []string{}
 	for _, s := range services {
 		svcs = append(svcs, string(s))
 	}
 
-	err := r.querier.MapDataproduct(ctx, gensql.MapDataproductParams{
-		DataproductID: dataproductID,
-		Services:      svcs,
+	err := r.querier.MapDataset(ctx, gensql.MapDatasetParams{
+		DatasetID: datasetID,
+		Services:  svcs,
 	})
 	if err != nil {
 		return err
 	}
 
 	if contains(svcs, models.MappingServiceMetabase) {
-		r.events.TriggerDataproductAddMetabaseMapping(ctx, dataproductID)
+		r.events.TriggerDataproductAddMetabaseMapping(ctx, datasetID)
 	} else {
-		r.events.TriggerDataproductRemoveMetabaseMapping(ctx, dataproductID)
+		r.events.TriggerDataproductRemoveMetabaseMapping(ctx, datasetID)
 	}
 
 	return nil

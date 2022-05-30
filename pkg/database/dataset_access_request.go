@@ -12,9 +12,9 @@ import (
 	"github.com/navikt/nada-backend/pkg/graph/models"
 )
 
-func (r *Repo) CreateAccessRequestForDataproduct(ctx context.Context, dataproductID uuid.UUID, pollyDocumentationID uuid.NullUUID, subject, owner string, expires *time.Time) (*models.AccessRequest, error) {
-	accessRequestSQL, err := r.querier.CreateAccessRequestForDataproduct(ctx, gensql.CreateAccessRequestForDataproductParams{
-		DataproductID:        dataproductID,
+func (r *Repo) CreateAccessRequestForDataset(ctx context.Context, datasetID uuid.UUID, pollyDocumentationID uuid.NullUUID, subject, owner string, expires *time.Time) (*models.AccessRequest, error) {
+	accessRequestSQL, err := r.querier.CreateAccessRequestForDataset(ctx, gensql.CreateAccessRequestForDatasetParams{
+		DatasetID:            datasetID,
 		Subject:              subject,
 		Owner:                owner,
 		Expires:              ptrToNullTime(expires),
@@ -36,8 +36,8 @@ func (r *Repo) ListAccessRequestsForOwner(ctx context.Context, owners []string) 
 	return r.accessRequestSQLsToGraphql(ctx, accessRequestSQLs)
 }
 
-func (r *Repo) ListAccessRequestsForDataproduct(ctx context.Context, dataproductID uuid.UUID) ([]*models.AccessRequest, error) {
-	accessRequestSQLs, err := r.querier.ListAccessRequestsForDataproduct(ctx, dataproductID)
+func (r *Repo) ListAccessRequestsForDataset(ctx context.Context, datasetID uuid.UUID) ([]*models.AccessRequest, error) {
+	accessRequestSQLs, err := r.querier.ListAccessRequestsForDataset(ctx, datasetID)
 	if err != nil {
 		return nil, err
 	}
@@ -75,8 +75,8 @@ func (r *Repo) ApproveAccessRequest(ctx context.Context, id uuid.UUID, granter s
 
 	querier := r.querier.WithTx(tx)
 
-	_, err = querier.GrantAccessToDataproduct(ctx, gensql.GrantAccessToDataproductParams{
-		DataproductID:   ar.DataproductID,
+	_, err = querier.GrantAccessToDataset(ctx, gensql.GrantAccessToDatasetParams{
+		DatasetID:       ar.DatasetID,
 		Subject:         ar.Subject,
 		Granter:         granter,
 		Expires:         ar.Expires,
@@ -125,7 +125,7 @@ func (r *Repo) DeleteAccessRequest(ctx context.Context, id uuid.UUID) error {
 	return r.querier.DeleteAccessRequest(ctx, id)
 }
 
-func (r *Repo) accessRequestSQLsToGraphql(ctx context.Context, accessRequestSQLs []gensql.DataproductAccessRequest) ([]*models.AccessRequest, error) {
+func (r *Repo) accessRequestSQLsToGraphql(ctx context.Context, accessRequestSQLs []gensql.DatasetAccessRequest) ([]*models.AccessRequest, error) {
 	var accessRequests []*models.AccessRequest
 	for _, ar := range accessRequestSQLs {
 		accessRequestGraphql, err := r.accessRequestSQLToGraphql(ctx, ar)
@@ -137,7 +137,7 @@ func (r *Repo) accessRequestSQLsToGraphql(ctx context.Context, accessRequestSQLs
 	return accessRequests, nil
 }
 
-func (r *Repo) accessRequestSQLToGraphql(ctx context.Context, dataproductAccessRequest gensql.DataproductAccessRequest) (*models.AccessRequest, error) {
+func (r *Repo) accessRequestSQLToGraphql(ctx context.Context, dataproductAccessRequest gensql.DatasetAccessRequest) (*models.AccessRequest, error) {
 	splits := strings.Split(dataproductAccessRequest.Subject, ":")
 	if len(splits) != 2 {
 		return nil, fmt.Errorf("%v is not a valid subject (can't split on :)", dataproductAccessRequest.Subject)
@@ -157,18 +157,18 @@ func (r *Repo) accessRequestSQLToGraphql(ctx context.Context, dataproductAccessR
 	}
 
 	return &models.AccessRequest{
-		ID:            dataproductAccessRequest.ID,
-		DataproductID: dataproductAccessRequest.DataproductID,
-		Subject:       subject,
-		SubjectType:   subjectType,
-		Created:       dataproductAccessRequest.Created,
-		Status:        status,
-		Closed:        nullTimeToPtr(dataproductAccessRequest.Closed),
-		Expires:       nullTimeToPtr(dataproductAccessRequest.Expires),
-		Granter:       nullStringToPtr(dataproductAccessRequest.Granter),
-		Owner:         dataproductAccessRequest.Owner,
-		Polly:         polly,
-		Reason:        nullStringToPtr(dataproductAccessRequest.Reason),
+		ID:          dataproductAccessRequest.ID,
+		DatasetID:   dataproductAccessRequest.DatasetID,
+		Subject:     subject,
+		SubjectType: subjectType,
+		Created:     dataproductAccessRequest.Created,
+		Status:      status,
+		Closed:      nullTimeToPtr(dataproductAccessRequest.Closed),
+		Expires:     nullTimeToPtr(dataproductAccessRequest.Expires),
+		Granter:     nullStringToPtr(dataproductAccessRequest.Granter),
+		Owner:       dataproductAccessRequest.Owner,
+		Polly:       polly,
+		Reason:      nullStringToPtr(dataproductAccessRequest.Reason),
 	}, nil
 }
 

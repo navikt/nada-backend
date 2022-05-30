@@ -76,10 +76,8 @@ type Dataproduct struct {
 	Name             string
 	Description      sql.NullString
 	Group            string
-	Pii              bool
 	Created          time.Time
 	LastModified     time.Time
-	Type             DatasourceType
 	TsvDocument      interface{}
 	Slug             string
 	Repo             sql.NullString
@@ -87,9 +85,24 @@ type Dataproduct struct {
 	TeamkatalogenUrl sql.NullString
 }
 
-type DataproductAccess struct {
+type Dataset struct {
+	ID            uuid.UUID
+	Name          string
+	Description   sql.NullString
+	Pii           bool
+	Created       time.Time
+	LastModified  time.Time
+	Type          DatasourceType
+	TsvDocument   interface{}
+	Slug          string
+	Repo          sql.NullString
+	Keywords      []string
+	DataproductID uuid.UUID
+}
+
+type DatasetAccess struct {
 	ID              uuid.UUID
-	DataproductID   uuid.UUID
+	DatasetID       uuid.UUID
 	Subject         string
 	Granter         string
 	Expires         sql.NullTime
@@ -98,9 +111,9 @@ type DataproductAccess struct {
 	AccessRequestID uuid.NullUUID
 }
 
-type DataproductAccessRequest struct {
+type DatasetAccessRequest struct {
 	ID                   uuid.UUID
-	DataproductID        uuid.UUID
+	DatasetID            uuid.UUID
 	Subject              string
 	Owner                string
 	PollyDocumentationID uuid.NullUUID
@@ -113,31 +126,31 @@ type DataproductAccessRequest struct {
 	Reason               sql.NullString
 }
 
-type DataproductRequester struct {
-	DataproductID uuid.UUID
-	Subject       string
+type DatasetRequester struct {
+	Subject   string
+	DatasetID uuid.UUID
 }
 
 type DatasourceBigquery struct {
-	DataproductID uuid.UUID
-	ProjectID     string
-	Dataset       string
-	TableName     string
-	Schema        pqtype.NullRawMessage
-	LastModified  time.Time
-	Created       time.Time
-	Expires       sql.NullTime
-	TableType     string
-	Description   sql.NullString
+	DatasetID    uuid.UUID
+	ProjectID    string
+	Dataset      string
+	TableName    string
+	Schema       pqtype.NullRawMessage
+	LastModified time.Time
+	Created      time.Time
+	Expires      sql.NullTime
+	TableType    string
+	Description  sql.NullString
 }
 
 type MetabaseMetadatum struct {
-	DataproductID     uuid.UUID
 	DatabaseID        int32
 	PermissionGroupID sql.NullInt32
 	SaEmail           string
 	CollectionID      sql.NullInt32
 	DeletedAt         sql.NullTime
+	DatasetID         uuid.UUID
 }
 
 type PollyDocumentation struct {
@@ -156,7 +169,7 @@ type Search struct {
 	Created      time.Time
 	LastModified time.Time
 	TsvDocument  interface{}
-	Services     []string
+	Services     interface{}
 }
 
 type Session struct {
@@ -207,6 +220,6 @@ type StoryViewDraft struct {
 }
 
 type ThirdPartyMapping struct {
-	DataproductID uuid.UUID
-	Services      []string
+	Services  []string
+	DatasetID uuid.UUID
 }
