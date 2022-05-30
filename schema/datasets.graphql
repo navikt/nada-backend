@@ -1,0 +1,200 @@
+"""
+Dataset contains metadata on a dataset.
+"""
+type Dataset @goModel(model: "github.com/navikt/nada-backend/pkg/graph/models.Dataset"){
+    "id is the identifier for the dataset"
+    id: ID!
+    "name of the dataset"
+    name: String!
+    "description of the dataset"
+    description: String
+    "created is the timestamp for when the dataset was created"
+    created: Time!
+    "lastModified is the timestamp for when the dataset was last modified"
+    lastModified: Time!
+    "repo is the url of the repository containing the code to create the dataset"
+    repo: String
+    "pii indicates whether it is personal identifiable information in the dataset"
+    pii: Boolean!
+    "keywords for the dataset used as tags."
+    keywords: [String!]!
+    "slug is the dataset slug"
+    slug: String!
+    "datasource contains metadata on the datasource"
+    datasource: Datasource!
+    "access contains list of users, groups and service accounts which have access to the dataset"
+    access: [Access!]! @authenticated
+    "services contains links to this dataset in other services"
+    services: DatasetServices!
+    "mappings services a dataset is exposed to"
+    mappings: [MappingService!]!
+    "requesters contains a list of users, groups and service accounts which can request access to the dataset"
+    requesters: [String!]!
+}
+
+type DatasetServices @goModel(model: "github.com/navikt/nada-backend/pkg/graph/models.DatasetServices") {
+    "URL to the dataset in metabase"
+    metabase: String
+}
+
+"""
+TableColumn contains metadata on a BigQuery table column.
+"""
+type TableColumn @goModel(model: "github.com/navikt/nada-backend/pkg/graph/models.TableColumn") {
+    "name of column."
+    name: String!
+    "description of column."
+    description: String!
+    "mode of column (NULLABLE, REQUIRED or REPEATED)."
+    mode: String!
+    "type is the datatype of the column."
+    type: String!
+}
+
+"""
+BigQuery contains metadata on a BigQuery table.
+"""
+type BigQuery @goModel(model: "github.com/navikt/nada-backend/pkg/graph/models.BigQuery") {
+    "projectID is the GCP project ID that contains the BigQuery table"
+    projectID: String!
+    "dataset is the dataset that contains the BigQuery table"
+    dataset: String!
+    "table name for BigQuery table"
+    table: String!
+    "schema for the BigQuery table"
+    schema: [TableColumn!]!
+    "lastModified is the time when the table was last modified"
+    lastModified: Time!
+    "created is when the table was created"
+    created: Time!
+    "expires, if set, is when the table expires"
+    expires: Time
+    "tableType is what type the table is"
+    tableType: BigQueryType!
+    "description is the description of the BigQuery table"
+    description: String!
+}
+
+"""
+Datasource defines types that can be returned as a dataset datasource.
+"""
+union Datasource @goModel(model: "github.com/navikt/nada-backend/pkg/graph/models.Datasource") = BigQuery
+
+extend type Query {
+    """
+    dataset returns the given dataset.
+    """
+    dataset(
+        "id of the requested dataset."
+        id: ID!
+    ): Dataset!
+
+    """
+    accessRequests returns all access requests for a dataset
+    """
+    accessRequestsForDataset(
+        "datasetID of the requested dataset."
+        datasetID: ID!
+    ): [AccessRequest!]! @authenticated
+}
+
+"""
+NewBigQuery contains metadata for creating a new bigquery data source
+"""
+input NewBigQuery @goModel(model: "github.com/navikt/nada-backend/pkg/graph/models.NewBigQuery") {
+    "projectID is the GCP project ID that contains the dataset."
+    projectID: String!
+    "dataset is the name of the dataset."
+    dataset: String!
+    "table is the name of the table"
+    table: String!
+}
+
+"""
+NewDataset contains metadata for creating a new dataset
+"""
+input NewDataset @goModel(model: "github.com/navikt/nada-backend/pkg/graph/models.NewDataset") {
+    "name of dataset"
+    name: String!
+    "description of the dataset"
+    description: String
+    "repo is the url of the repository containing the code to create the dataset"
+    repo: String
+    "pii indicates whether it is personal identifiable information in the dataset"
+    pii: Boolean!
+    "bigquery contains metadata for the bigquery datasource added to the dataset."
+    bigquery: NewBigQuery!
+    "requesters contains a list of users, groups and service accounts which can request access to the dataset"
+    requesters: [String!]!
+}
+
+
+"""
+UpdateDataset contains metadata for updating a dataset
+"""
+input UpdateDataset @goModel(model: "github.com/navikt/nada-backend/pkg/graph/models.UpdateDataset") {
+    "name of dataset"
+    name: String!
+    "description of the dataset"
+    description: String
+    "pii indicates whether it is personal identifiable information in the dataset"
+    pii: Boolean!
+    "bigquery contains metadata for the bigquery datasource added to the dataset."
+    bigquery: NewBigQuery!
+    "requesters contains a list of users, groups and service accounts which can request access to the dataset"
+    requesters: [String!]!
+}
+
+"""
+MappingService defines all possible service types that a dataset can be exposed to.
+"""
+enum MappingService @goModel(model: "github.com/navikt/nada-backend/pkg/graph/models.MappingService"){
+    metabase
+}
+
+extend type Mutation {
+    """
+    createDataset creates a new dataset
+
+    Requires authentication.
+    """
+    createDataset(
+        "input contains information about the new dataset."
+        input: NewDataset!
+    ): Dataset! @authenticated
+
+    """
+    updateDataset updates an existing dataset
+
+    Requires authentication.
+    """
+    updateDataset(
+        "id of requested dataset."
+        id: ID!
+        "input contains information about the updated dataset."
+        input: UpdateDataset!
+    ): Dataset! @authenticated
+
+
+    """
+    deleteDataset deletes a dataset.
+
+    Requires authentication.
+    """
+    deleteDataset(
+        "id of dataset."
+        id: ID!
+    ) : Boolean! @authenticated
+
+    """
+    mapDataset exposes a dataset to third party services, e.g. metabase
+
+    Requires authentication
+    """
+    mapDataset(
+        "id of dataset."
+        datasetID: ID!
+        "service is the type of third party service for which the dataset should be exposed."
+        services: [MappingService!]!
+    ): Boolean! @authenticated
+}

@@ -1,0 +1,189 @@
+enum AccessRequestStatus {
+    pending
+    approved
+    denied
+}
+
+"""
+Access contains metadata on an access entry.
+"""
+type Access @goModel(model: "github.com/navikt/nada-backend/pkg/graph/models.Access") {
+    "id for the access entry"
+    id: ID!
+    "subject to grant access"
+    subject: String!
+    "name of the granter"
+    granter: String!
+    "expires is timestamp for when access expires"
+    expires: Time
+    "created is timestamp for when access was created"
+    created: Time!
+    "revoked is timestamp for when access was revoked"
+    revoked: Time
+    "accessRequestID is the id of the access request for this grant."
+    accessRequestID: ID
+}
+
+"""
+AccessRequest contains metadata on a request to access a dataset
+"""
+type AccessRequest @goModel(model: "github.com/navikt/nada-backend/pkg/graph/models.AccessRequest") {
+    "id of access request."
+    id: ID!
+    "id of dataset."
+    datasetID: ID!
+    "subject to be granted access."
+    subject: String!
+    "subjectType is the type of entity which should be granted access (user, group or service account)."
+    subjectType: SubjectType!
+    "created is a timestamp for when the access request was created."
+    created: Time!
+    "status is the status of the access request (can be pending, approved or denied)."
+    status: AccessRequestStatus!
+    "closed is a timestamp for when the access request was closed."
+    closed: Time
+    "expires is a timestamp for when the access expires"
+    expires: Time
+    "granter is the email of the person who granted/denied the access request."
+    granter: String
+    "owner of the access request."
+    owner: String!
+    "polly is the process policy attached to this grant."
+    polly: Polly
+    "reason is the eventual reason for denying this request."
+    reason: String
+}
+
+extend type Query {
+    """
+    accessRequest returns one specific access request
+    """
+    accessRequest(
+        "id of access request."
+        id: ID!
+    ): AccessRequest! @authenticated
+}
+
+"""
+NewAccessRequest contains metadata on a request to access a dataset
+"""
+input NewAccessRequest @goModel(model: "github.com/navikt/nada-backend/pkg/graph/models.NewAccessRequest") {
+    "id of dataset."
+    datasetID: ID!
+    "subject to be granted access."
+    subject: String
+    "subjectType is the type of entity which should be granted access (user, group or service account)."
+    subjectType: SubjectType
+    "owner is the owner of the access request"
+    owner: String
+    "expires is a timestamp for when the access expires."
+    expires: Time
+    "polly is the process policy attached to this grant"
+    polly: PollyInput
+}
+
+"""
+UpdateAccessRequest contains metadata on a request to access a dataset
+"""
+input UpdateAccessRequest @goModel(model: "github.com/navikt/nada-backend/pkg/graph/models.UpdateAccessRequest") {
+    "id of access request."
+    id: ID!
+    "owner is the owner of the access request."
+    owner: String!
+    "expires is a timestamp for when the access expires."
+    expires: Time
+    "polly is the new polly documentation for this access request."
+    polly: PollyInput
+}
+
+"""
+NewGrant contains metadata on a request to access a dataset
+"""
+input NewGrant @goModel(model: "github.com/navikt/nada-backend/pkg/graph/models.NewGrant") {
+    "id of dataset."
+    datasetID: ID!
+    "expires is a timestamp for when the access expires."
+    expires: Time
+    "subject to be granted access."
+    subject: String
+    "subjectType is the type of entity which should be granted access (user, group or service account)."
+    subjectType: SubjectType
+}
+
+"""
+SubjectType defines all possible types that can request access to a dataset.
+"""
+enum SubjectType @goModel(model: "github.com/navikt/nada-backend/pkg/graph/models.SubjectType"){
+    user
+    group
+    serviceAccount
+}
+
+extend type Mutation {
+    """
+    grantAccessToDataset grants access for a subject to the dataset.
+
+    Requires authentication.
+    """
+    grantAccessToDataset(
+        input: NewGrant!
+    ): Access! @authenticated
+
+    """
+    revokeAccessToDataset revokes access for a subject to the dataset.
+
+    Requires authentication.
+    """
+    revokeAccessToDataset(
+        "id for the access entry."
+        id: ID!
+    ): Boolean! @authenticated
+
+    """
+    createAccessRequest creates a new access request for a dataset
+
+    Requires authentication
+    """
+    createAccessRequest(
+        input: NewAccessRequest!
+    ): AccessRequest! @authenticated
+
+    """
+    createAccessRequest creates a new access request for a dataset
+
+    Requires authentication
+    """
+    updateAccessRequest(
+        input: UpdateAccessRequest!
+    ): AccessRequest! @authenticated
+
+    """
+    deleteAccessRequest deletes a dataset access request.
+
+    Requires authentication
+    """
+    deleteAccessRequest(
+        id: ID!
+    ): Boolean! @authenticated
+
+    """
+    approveAccessRequest approves an access request.
+
+    Requires authentication
+    """
+    approveAccessRequest(
+        id: ID!
+    ): Boolean! @authenticated
+
+    """
+    denyAccessRequest denies an access request.
+
+    Requires authentication
+    """
+    denyAccessRequest(
+        "id of access request."
+        id: ID!
+        "reason for denying this access request."
+        reason: String
+    ): Boolean! @authenticated
+}
