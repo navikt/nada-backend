@@ -3,7 +3,7 @@ CREATE VIEW search
 AS (
     SELECT
     	"dp"."id" AS "element_id",
-		'dataset' AS "element_type",
+		'dataproduct' AS "element_type",
 		coalesce("dp"."description", '') AS "description",
 		"dp"."keywords",
 		"dp"."group",

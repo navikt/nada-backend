@@ -5,12 +5,14 @@ package database
 import (
 	"context"
 	"database/sql"
+	"encoding/json"
 	"errors"
 	"log"
 	"os"
 	"testing"
 	"time"
 
+	"github.com/google/uuid"
 	_ "github.com/lib/pq"
 	"github.com/navikt/nada-backend/pkg/event"
 	"github.com/navikt/nada-backend/pkg/graph/models"
@@ -176,41 +178,98 @@ func TestRepo(t *testing.T) {
 			t.Errorf("got: %v, want: %v", len(dps), 2)
 		}
 	})
-	/*
-		t.Run("search dataproduct", func(t *testing.T) {
-			tests := map[string]struct {
-				query      models.SearchQuery
-				numResults int
-			}{
-				"empty":         {query: models.SearchQuery{Text: stringToPtr("nonexistent")}, numResults: 0},
-				"1 dataproduct": {query: models.SearchQuery{Text: stringToPtr("uniquedataproduct")}, numResults: 1},
-				"1 results":     {query: models.SearchQuery{Text: stringToPtr("uniquestring")}, numResults: 1},
-			}
 
-			dataproduct := models.NewDataproduct{
-				Name:        "new_dataproduct",
-				Description: nullStringToPtr(sql.NullString{Valid: true, String: "Uniquestring uniquedataproduct"}),
-			}
+	t.Run("search dataproduct", func(t *testing.T) {
+		tests := map[string]struct {
+			query      models.SearchQuery
+			numResults int
+		}{
+			"empty":         {query: models.SearchQuery{Text: stringToPtr("nonexistent")}, numResults: 0},
+			"1 dataproduct": {query: models.SearchQuery{Text: stringToPtr("uniquedataproduct")}, numResults: 1},
+			"1 dataset":     {query: models.SearchQuery{Text: stringToPtr("uniquedataset")}, numResults: 1},
+			"1 story":       {query: models.SearchQuery{Text: stringToPtr("uniquestory")}, numResults: 1},
+			"3 results":     {query: models.SearchQuery{Text: stringToPtr("uniquestring")}, numResults: 3},
+		}
 
-			_, err = repo.CreateDataproduct(context.Background(), dataproduct)
-			if err != nil {
-				t.Fatal(err)
-			}
+		dataproduct := models.NewDataproduct{
+			Name:        "new dataproduct",
+			Description: nullStringToPtr(sql.NullString{Valid: true, String: "Uniquestring uniquedataproduct"}),
+		}
 
-			for name, tc := range tests {
-				t.Run(name, func(t *testing.T) {
-					results, err := repo.Search(context.Background(), &tc.query)
-					if err != nil {
-						t.Fatal(err)
-					}
+		ctx := context.Background()
 
-					fmt.Println(results)
+		createdDP, err := repo.CreateDataproduct(ctx, dataproduct)
+		if err != nil {
+			t.Fatal(err)
+		}
 
-					if len(results) != tc.numResults {
-						t.Errorf("expected %v results, got %v", tc.numResults, len(results))
-					}
-				})
-			}
+		dataset := models.NewDataset{
+			DataproductID: createdDP.ID,
+			Name:          "new dataset",
+			Description:   nullStringToPtr(sql.NullString{Valid: true, String: "Uniquestring uniquedataset"}),
+		}
+
+		_, err = repo.CreateDataset(ctx, dataset)
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		draftID, err := createStoryDraft(ctx, repo)
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		_, err = repo.PublishStory(ctx, models.NewStory{
+			ID:       draftID,
+			Group:    "group@email.com",
+			Keywords: []string{},
 		})
-	*/
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		for name, tc := range tests {
+			t.Run(name, func(t *testing.T) {
+				results, err := repo.Search(ctx, &tc.query)
+				if err != nil {
+					t.Fatal(err)
+				}
+
+				if len(results) != tc.numResults {
+					t.Errorf("expected %v results, got %v", tc.numResults, len(results))
+				}
+			})
+		}
+	})
+}
+
+func createStoryDraft(ctx context.Context, repo *Repo) (uuid.UUID, error) {
+	headerView := map[string]interface{}{
+		"content": "Header",
+		"level":   1,
+	}
+	headerBytes, err := json.Marshal(headerView)
+	if err != nil {
+		return uuid.UUID{}, err
+	}
+
+	mdView := map[string]interface{}{
+		"content": "uniquestring uniquestory",
+	}
+	mdBytes, err := json.Marshal(mdView)
+	if err != nil {
+		return uuid.UUID{}, err
+	}
+
+	draftID, err := repo.CreateStoryDraft(ctx, &models.DBStory{
+		Name: "new story",
+		Views: []models.DBStoryView{
+			{Type: "header", Spec: headerBytes},
+			{Type: "markdown", Spec: mdBytes},
+		},
+	})
+	if err != nil {
+		return uuid.UUID{}, err
+	}
+	return draftID, nil
 }
