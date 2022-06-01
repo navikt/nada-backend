@@ -20,6 +20,8 @@ type Dataset @goModel(model: "github.com/navikt/nada-backend/pkg/graph/models.Da
     pii: Boolean!
     "keywords for the dataset used as tags."
     keywords: [String!]!
+    "owner is the owner of the dataproduct containing this dataset"
+    owner: Owner!
     "slug is the dataset slug"
     slug: String!
     "datasource contains metadata on the datasource"

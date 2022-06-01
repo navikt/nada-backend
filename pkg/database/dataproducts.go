@@ -96,8 +96,6 @@ func (r *Repo) UpdateDataproduct(ctx context.Context, id uuid.UUID, new models.U
 }
 
 func (r *Repo) DeleteDataproduct(ctx context.Context, id uuid.UUID) error {
-	r.events.TriggerDataproductDelete(ctx, id)
-
 	if err := r.querier.DeleteDataproduct(ctx, id); err != nil {
 		return fmt.Errorf("deleting dataproduct from database: %w", err)
 	}

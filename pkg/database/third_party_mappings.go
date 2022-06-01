@@ -60,9 +60,9 @@ func (r *Repo) MapDataset(ctx context.Context, datasetID uuid.UUID, services []m
 	}
 
 	if contains(svcs, models.MappingServiceMetabase) {
-		r.events.TriggerDataproductAddMetabaseMapping(ctx, datasetID)
+		r.events.TriggerDatasetAddMetabaseMapping(ctx, datasetID)
 	} else {
-		r.events.TriggerDataproductRemoveMetabaseMapping(ctx, datasetID)
+		r.events.TriggerDatasetRemoveMetabaseMapping(ctx, datasetID)
 	}
 
 	return nil

@@ -97,7 +97,7 @@ func (r *Repo) GrantAccessToDataset(ctx context.Context, datasetID uuid.UUID, ex
 		return nil, err
 	}
 
-	r.events.TriggerDataproductGrant(ctx, datasetID, subject)
+	r.events.TriggerDatasetGrant(ctx, datasetID, subject)
 
 	return accessFromSQL(access), nil
 }
@@ -134,7 +134,7 @@ func (r *Repo) RevokeAccessToDataset(ctx context.Context, id uuid.UUID) error {
 		return err
 	}
 
-	r.events.TriggerDataproductRevoke(ctx, access.DatasetID, access.Subject)
+	r.events.TriggerDatasetRevoke(ctx, access.DatasetID, access.Subject)
 
 	return nil
 }

@@ -23,6 +23,14 @@ func (r *bigQueryResolver) Schema(ctx context.Context, obj *models.BigQuery) ([]
 	return r.repo.GetDatasetMetadata(ctx, obj.DatasetID)
 }
 
+func (r *datasetResolver) Owner(ctx context.Context, obj *models.Dataset) (*models.Owner, error) {
+	dp, err := r.repo.GetDataproduct(ctx, obj.DataproductID)
+	if err != nil {
+		return nil, err
+	}
+	return dp.Owner, nil
+}
+
 func (r *datasetResolver) Datasource(ctx context.Context, obj *models.Dataset) (models.Datasource, error) {
 	return r.repo.GetBigqueryDatasource(ctx, obj.ID)
 }

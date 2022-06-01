@@ -8,88 +8,88 @@ import (
 )
 
 type (
-	DataproductListenerGrantAccess           func(ctx context.Context, dpID uuid.UUID, subject string)
-	DataproductListenerRevokeAccess          func(ctx context.Context, dpID uuid.UUID, subject string)
-	DataproductListenerAddMetabaseMapping    func(ctx context.Context, dpID uuid.UUID)
-	DataproductListenerRemoveMetabaseMapping func(ctx context.Context, dpID uuid.UUID)
-	DataproductListenerDelete                func(ctx context.Context, dpID uuid.UUID)
+	DatasetListenerGrantAccess           func(ctx context.Context, dpID uuid.UUID, subject string)
+	DatasetListenerRevokeAccess          func(ctx context.Context, dpID uuid.UUID, subject string)
+	DatasetListenerAddMetabaseMapping    func(ctx context.Context, dpID uuid.UUID)
+	DatasetListenerRemoveMetabaseMapping func(ctx context.Context, dpID uuid.UUID)
+	DatasetListenerDelete                func(ctx context.Context, dpID uuid.UUID)
 )
 
 type Manager struct {
-	lock                                              sync.RWMutex
-	dataproductGrantAccessListeners                   []DataproductListenerGrantAccess
-	dataproductRevokeAccessListeners                  []DataproductListenerRevokeAccess
-	dataproductListenerAddMetabaseMappingListeners    []DataproductListenerAddMetabaseMapping
-	dataproductListenerRemoveMetabaseMappingListeners []DataproductListenerRemoveMetabaseMapping
-	dataproductDeleteListeners                        []DataproductListenerDelete
+	lock                                          sync.RWMutex
+	datasetGrantAccessListeners                   []DatasetListenerGrantAccess
+	datasetRevokeAccessListeners                  []DatasetListenerRevokeAccess
+	datasetListenerAddMetabaseMappingListeners    []DatasetListenerAddMetabaseMapping
+	datasetListenerRemoveMetabaseMappingListeners []DatasetListenerRemoveMetabaseMapping
+	datasetDeleteListeners                        []DatasetListenerDelete
 }
 
-func (m *Manager) ListenForDataproductGrant(fn DataproductListenerGrantAccess) {
+func (m *Manager) ListenForDatasetGrant(fn DatasetListenerGrantAccess) {
 	m.lock.Lock()
 	defer m.lock.Unlock()
-	m.dataproductGrantAccessListeners = append(m.dataproductGrantAccessListeners, fn)
+	m.datasetGrantAccessListeners = append(m.datasetGrantAccessListeners, fn)
 }
 
-func (m *Manager) TriggerDataproductGrant(ctx context.Context, dpID uuid.UUID, subject string) {
+func (m *Manager) TriggerDatasetGrant(ctx context.Context, dpID uuid.UUID, subject string) {
 	m.lock.RLock()
 	defer m.lock.RUnlock()
-	for _, fn := range m.dataproductGrantAccessListeners {
+	for _, fn := range m.datasetGrantAccessListeners {
 		fn(ctx, dpID, subject)
 	}
 }
 
-func (m *Manager) ListenForDataproductRevoke(fn DataproductListenerRevokeAccess) {
+func (m *Manager) ListenForDatasetRevoke(fn DatasetListenerRevokeAccess) {
 	m.lock.Lock()
 	defer m.lock.Unlock()
-	m.dataproductRevokeAccessListeners = append(m.dataproductRevokeAccessListeners, fn)
+	m.datasetRevokeAccessListeners = append(m.datasetRevokeAccessListeners, fn)
 }
 
-func (m *Manager) TriggerDataproductRevoke(ctx context.Context, dpID uuid.UUID, subject string) {
+func (m *Manager) TriggerDatasetRevoke(ctx context.Context, dpID uuid.UUID, subject string) {
 	m.lock.RLock()
 	defer m.lock.RUnlock()
-	for _, fn := range m.dataproductRevokeAccessListeners {
+	for _, fn := range m.datasetRevokeAccessListeners {
 		fn(ctx, dpID, subject)
 	}
 }
 
-func (m *Manager) ListenForDataproductAddMetabaseMapping(fn DataproductListenerAddMetabaseMapping) {
+func (m *Manager) ListenForDatasetAddMetabaseMapping(fn DatasetListenerAddMetabaseMapping) {
 	m.lock.Lock()
 	defer m.lock.Unlock()
-	m.dataproductListenerAddMetabaseMappingListeners = append(m.dataproductListenerAddMetabaseMappingListeners, fn)
+	m.datasetListenerAddMetabaseMappingListeners = append(m.datasetListenerAddMetabaseMappingListeners, fn)
 }
 
-func (m *Manager) TriggerDataproductAddMetabaseMapping(ctx context.Context, dpID uuid.UUID) {
+func (m *Manager) TriggerDatasetAddMetabaseMapping(ctx context.Context, dpID uuid.UUID) {
 	m.lock.RLock()
 	defer m.lock.RUnlock()
-	for _, fn := range m.dataproductListenerAddMetabaseMappingListeners {
+	for _, fn := range m.datasetListenerAddMetabaseMappingListeners {
 		fn(ctx, dpID)
 	}
 }
 
-func (m *Manager) ListenForDataproductRemoveMetabaseMapping(fn DataproductListenerRemoveMetabaseMapping) {
+func (m *Manager) ListenForDatasetRemoveMetabaseMapping(fn DatasetListenerRemoveMetabaseMapping) {
 	m.lock.Lock()
 	defer m.lock.Unlock()
-	m.dataproductListenerRemoveMetabaseMappingListeners = append(m.dataproductListenerRemoveMetabaseMappingListeners, fn)
+	m.datasetListenerRemoveMetabaseMappingListeners = append(m.datasetListenerRemoveMetabaseMappingListeners, fn)
 }
 
-func (m *Manager) TriggerDataproductRemoveMetabaseMapping(ctx context.Context, dpID uuid.UUID) {
+func (m *Manager) TriggerDatasetRemoveMetabaseMapping(ctx context.Context, dpID uuid.UUID) {
 	m.lock.RLock()
 	defer m.lock.RUnlock()
-	for _, fn := range m.dataproductListenerRemoveMetabaseMappingListeners {
+	for _, fn := range m.datasetListenerRemoveMetabaseMappingListeners {
 		fn(ctx, dpID)
 	}
 }
 
-func (m *Manager) ListenForDataproductDelete(fn DataproductListenerDelete) {
+func (m *Manager) ListenForDatasetDelete(fn DatasetListenerDelete) {
 	m.lock.Lock()
 	defer m.lock.Unlock()
-	m.dataproductDeleteListeners = append(m.dataproductDeleteListeners, fn)
+	m.datasetDeleteListeners = append(m.datasetDeleteListeners, fn)
 }
 
-func (m *Manager) TriggerDataproductDelete(ctx context.Context, dpID uuid.UUID) {
+func (m *Manager) TriggerDatasetDelete(ctx context.Context, dpID uuid.UUID) {
 	m.lock.RLock()
 	defer m.lock.RUnlock()
-	for _, fn := range m.dataproductDeleteListeners {
+	for _, fn := range m.datasetDeleteListeners {
 		fn(ctx, dpID)
 	}
 }

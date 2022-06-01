@@ -122,6 +122,7 @@ type ComplexityRoot struct {
 		LastModified  func(childComplexity int) int
 		Mappings      func(childComplexity int) int
 		Name          func(childComplexity int) int
+		Owner         func(childComplexity int) int
 		Pii           func(childComplexity int) int
 		Repo          func(childComplexity int) int
 		Requesters    func(childComplexity int) int
@@ -289,6 +290,8 @@ type DataproductResolver interface {
 	Datasets(ctx context.Context, obj *models.Dataproduct) ([]*models.Dataset, error)
 }
 type DatasetResolver interface {
+	Owner(ctx context.Context, obj *models.Dataset) (*models.Owner, error)
+
 	Datasource(ctx context.Context, obj *models.Dataset) (models.Datasource, error)
 	Access(ctx context.Context, obj *models.Dataset) ([]*models.Access, error)
 	Services(ctx context.Context, obj *models.Dataset) (*models.DatasetServices, error)
@@ -728,6 +731,13 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 		}
 
 		return e.complexity.Dataset.Name(childComplexity), true
+
+	case "Dataset.owner":
+		if e.complexity.Dataset.Owner == nil {
+			break
+		}
+
+		return e.complexity.Dataset.Owner(childComplexity), true
 
 	case "Dataset.pii":
 		if e.complexity.Dataset.Pii == nil {
@@ -2006,6 +2016,8 @@ type Dataset @goModel(model: "github.com/navikt/nada-backend/pkg/graph/models.Da
     pii: Boolean!
     "keywords for the dataset used as tags."
     keywords: [String!]!
+    "owner is the owner of the dataproduct containing this dataset"
+    owner: Owner!
     "slug is the dataset slug"
     slug: String!
     "datasource contains metadata on the datasource"
@@ -5257,6 +5269,8 @@ func (ec *executionContext) fieldContext_Dataproduct_datasets(ctx context.Contex
 				return ec.fieldContext_Dataset_pii(ctx, field)
 			case "keywords":
 				return ec.fieldContext_Dataset_keywords(ctx, field)
+			case "owner":
+				return ec.fieldContext_Dataset_owner(ctx, field)
 			case "slug":
 				return ec.fieldContext_Dataset_slug(ctx, field)
 			case "datasource":
@@ -5661,6 +5675,56 @@ func (ec *executionContext) fieldContext_Dataset_keywords(ctx context.Context, f
 		IsResolver: false,
 		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
 			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Dataset_owner(ctx context.Context, field graphql.CollectedField, obj *models.Dataset) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_Dataset_owner(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.Dataset().Owner(rctx, obj)
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(*models.Owner)
+	fc.Result = res
+	return ec.marshalNOwner2ᚖgithubᚗcomᚋnaviktᚋnadaᚑbackendᚋpkgᚋgraphᚋmodelsᚐOwner(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_Dataset_owner(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Dataset",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "group":
+				return ec.fieldContext_Owner_group(ctx, field)
+			case "teamkatalogenURL":
+				return ec.fieldContext_Owner_teamkatalogenURL(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type Owner", field.Name)
 		},
 	}
 	return fc, nil
@@ -7360,6 +7424,8 @@ func (ec *executionContext) fieldContext_Mutation_createDataset(ctx context.Cont
 				return ec.fieldContext_Dataset_pii(ctx, field)
 			case "keywords":
 				return ec.fieldContext_Dataset_keywords(ctx, field)
+			case "owner":
+				return ec.fieldContext_Dataset_owner(ctx, field)
 			case "slug":
 				return ec.fieldContext_Dataset_slug(ctx, field)
 			case "datasource":
@@ -7467,6 +7533,8 @@ func (ec *executionContext) fieldContext_Mutation_updateDataset(ctx context.Cont
 				return ec.fieldContext_Dataset_pii(ctx, field)
 			case "keywords":
 				return ec.fieldContext_Dataset_keywords(ctx, field)
+			case "owner":
+				return ec.fieldContext_Dataset_owner(ctx, field)
 			case "slug":
 				return ec.fieldContext_Dataset_slug(ctx, field)
 			case "datasource":
@@ -8582,6 +8650,8 @@ func (ec *executionContext) fieldContext_Query_dataset(ctx context.Context, fiel
 				return ec.fieldContext_Dataset_pii(ctx, field)
 			case "keywords":
 				return ec.fieldContext_Dataset_keywords(ctx, field)
+			case "owner":
+				return ec.fieldContext_Dataset_owner(ctx, field)
 			case "slug":
 				return ec.fieldContext_Dataset_slug(ctx, field)
 			case "datasource":
@@ -14529,6 +14599,26 @@ func (ec *executionContext) _Dataset(ctx context.Context, sel ast.SelectionSet, 
 			if out.Values[i] == graphql.Null {
 				atomic.AddUint32(&invalids, 1)
 			}
+		case "owner":
+			field := field
+
+			innerFunc := func(ctx context.Context) (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._Dataset_owner(ctx, field, obj)
+				if res == graphql.Null {
+					atomic.AddUint32(&invalids, 1)
+				}
+				return res
+			}
+
+			out.Concurrently(i, func() graphql.Marshaler {
+				return innerFunc(ctx)
+
+			})
 		case "slug":
 
 			out.Values[i] = ec._Dataset_slug(ctx, field, obj)

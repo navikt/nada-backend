@@ -212,7 +212,7 @@ func (r *Repo) GetDatasetsByUserAccess(ctx context.Context, user string) ([]*mod
 }
 
 func (r *Repo) DeleteDataset(ctx context.Context, id uuid.UUID) error {
-	r.events.TriggerDataproductDelete(ctx, id)
+	r.events.TriggerDatasetDelete(ctx, id)
 
 	if err := r.querier.DeleteDataset(ctx, id); err != nil {
 		return fmt.Errorf("deleting dataset from database: %w", err)
