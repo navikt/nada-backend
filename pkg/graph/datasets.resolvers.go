@@ -213,7 +213,12 @@ func (r *queryResolver) Dataset(ctx context.Context, id uuid.UUID) (*models.Data
 }
 
 func (r *queryResolver) AccessRequestsForDataset(ctx context.Context, datasetID uuid.UUID) ([]*models.AccessRequest, error) {
-	dp, err := r.repo.GetDataproduct(ctx, datasetID)
+	ds, err := r.repo.GetDataset(ctx, datasetID)
+	if err != nil {
+		return nil, err
+	}
+
+	dp, err := r.repo.GetDataproduct(ctx, ds.DataproductID)
 	if err != nil {
 		return nil, err
 	}

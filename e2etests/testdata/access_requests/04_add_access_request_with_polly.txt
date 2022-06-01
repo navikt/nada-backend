@@ -1,7 +1,7 @@
 mutation {
   createAccessRequest(
     input: {
-      dataproductID: "{{ .dataproduct_id }}"
+      datasetID: "{{ .dataset_id }}"
       polly: {
         externalID: "28570031-e2b3-4110-8864-41ab279e2e0c"
         name: "Behandling"

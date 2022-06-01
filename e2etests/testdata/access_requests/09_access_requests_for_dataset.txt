@@ -1,5 +1,5 @@
 {
-  accessRequestsForDataproduct(dataproductID: "{{ .dataproduct_id }}"){
+  accessRequestsForDataset(datasetID: "{{ .dataset_id }}"){
     subject
     subjectType
     owner
@@ -15,7 +15,7 @@ RETURNS
 
 {
   "data": {
-    "accessRequestsForDataproduct": [
+    "accessRequestsForDataset": [
       {
         "subject": "mock.anderson@email.com",
         "subjectType": "user",

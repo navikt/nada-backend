@@ -1,0 +1,11 @@
+mutation {
+  mapDataset(datasetID: "{{ .dataset_id }}", services: [metabase])
+}
+
+RETURNS
+
+{
+  "data": {
+    "mapDataset": true
+  }
+}

@@ -3,6 +3,7 @@ package database
 import (
 	"context"
 	"database/sql"
+	"errors"
 	"fmt"
 	"strings"
 	"time"
@@ -30,6 +31,9 @@ func (r *Repo) CreateAccessRequestForDataset(ctx context.Context, datasetID uuid
 func (r *Repo) ListAccessRequestsForOwner(ctx context.Context, owners []string) ([]*models.AccessRequest, error) {
 	accessRequestSQLs, err := r.querier.ListAccessRequestsForOwner(ctx, owners)
 	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return nil, nil
+		}
 		return nil, err
 	}
 
@@ -39,6 +43,9 @@ func (r *Repo) ListAccessRequestsForOwner(ctx context.Context, owners []string) 
 func (r *Repo) ListAccessRequestsForDataset(ctx context.Context, datasetID uuid.UUID) ([]*models.AccessRequest, error) {
 	accessRequestSQLs, err := r.querier.ListAccessRequestsForDataset(ctx, datasetID)
 	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return nil, nil
+		}
 		return nil, err
 	}
 

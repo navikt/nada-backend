@@ -1,7 +1,7 @@
 mutation {
   createAccessRequest(
     input: {
-      dataproductID: "{{ .dataproduct_id }}"
+      datasetID: "{{ .dataset_id }}"
     }
   ){
     id
@@ -26,4 +26,4 @@ ENDOPTS
   }
 }
 
-STORE access_request_for_denial=data.createAccessRequest.id
+STORE access_request_owner=data.createAccessRequest.id

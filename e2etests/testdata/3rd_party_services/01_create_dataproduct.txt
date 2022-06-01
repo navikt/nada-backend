@@ -2,9 +2,8 @@ mutation {
 	createDataproduct(
 		input: {
 			name: "NewName"
+			description: "New description"
 			group: "nada@nav.no"
-			pii: false
-			bigquery: { projectID: "team-prod-4242", dataset: "dataset", table: "table1" }
 		}
 	) {
 		id

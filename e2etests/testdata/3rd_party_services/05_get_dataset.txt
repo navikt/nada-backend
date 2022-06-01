@@ -1,6 +1,6 @@
 {
-	dataproduct(
-		id: "{{ .dataproduct_id }}"
+	dataset(
+		id: "{{ .dataset_id }}"
 	) {
 		services {
 			metabase
@@ -12,7 +12,7 @@ RETURNS
 
 {
   "data": {
-    "dataproduct": {
+    "dataset": {
       "services": {
 				"metabase": null
 			}
