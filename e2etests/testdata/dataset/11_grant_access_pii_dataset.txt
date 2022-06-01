@@ -1,10 +1,10 @@
 mutation {
-  grantAccessToDataproduct(
+  grantAccessToDataset(
     input: {
-        dataproductID: "{{ .dataproduct_id }}"
+        datasetID: "{{ .pii_dataset_id }}"
         expires:"2048-12-24T00:00:00Z"
         subject: "santa@nav.no"
-        subjectType: user,
+        subjectType: user
     }
   ) {
     id
@@ -17,13 +17,13 @@ mutation {
 
 RETURNS
 
-OPTION data.grantAccessToDataproduct.id=IGNORE
+OPTION data.grantAccessToDataset.id=IGNORE
 
 ENDOPTS
 
 {
   "data": {
-    "grantAccessToDataproduct": {
+    "grantAccessToDataset": {
       "subject": "user:santa@nav.no",
       "granter": "mock.anderson@email.com",
       "expires": "2048-12-24T00:00:00Z",
@@ -32,4 +32,4 @@ ENDOPTS
   }
 }
 
-STORE access_id=data.grantAccessToDataproduct.id
+STORE pii_access_id=data.grantAccessToDataset.id

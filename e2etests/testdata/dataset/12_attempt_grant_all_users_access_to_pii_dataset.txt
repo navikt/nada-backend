@@ -1,7 +1,7 @@
 mutation {
-  grantAccessToDataproduct(
+  grantAccessToDataset(
     input: {
-        dataproductID: "{{ .pii_dataproduct_id }}"
+        datasetID: "{{ .pii_dataset_id }}"
         expires:"2048-12-24T00:00:00Z"
         subject: "all-users@nav.no"
         subjectType: group,
@@ -18,7 +18,7 @@ RETURNS
     {
       "message": "not allowed to grant all-users access to dataproduct containing pii",
       "path": [
-        "grantAccessToDataproduct"
+        "grantAccessToDataset"
       ]
     }
   ],

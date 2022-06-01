@@ -1,0 +1,24 @@
+{
+	dataset(
+		id: "{{ .pii_dataset_id }}"
+	) {
+		name
+		description
+		repo
+		pii
+		keywords
+	}
+}
+
+RETURNS
+{
+  "errors": [
+    {
+      "message": "getting dataset from database: sql: no rows in result set",
+      "path": [
+        "dataset"
+      ]
+    }
+  ],
+  "data": null
+}

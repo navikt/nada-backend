@@ -33,9 +33,11 @@ func (r *Repo) Search(ctx context.Context, query *models.SearchQuery) ([]*models
 	if err != nil {
 		return nil, err
 	}
+
 	order := map[string]int{}
 	var dataproducts []uuid.UUID
 	var stories []uuid.UUID
+	var datasets []uuid.UUID
 	excerpts := map[uuid.UUID]string{}
 	for i, sr := range res {
 		switch sr.ElementType {
@@ -43,6 +45,8 @@ func (r *Repo) Search(ctx context.Context, query *models.SearchQuery) ([]*models
 			dataproducts = append(dataproducts, sr.ElementID)
 		case "story":
 			stories = append(stories, sr.ElementID)
+		case "dataset":
+			datasets = append(datasets, sr.ElementID)
 		default:
 			r.log.Error("unknown search result type", sr.ElementType)
 			continue
@@ -57,6 +61,11 @@ func (r *Repo) Search(ctx context.Context, query *models.SearchQuery) ([]*models
 	}
 
 	ss, err := r.querier.GetStoriesByIDs(ctx, stories)
+	if err != nil {
+		return nil, err
+	}
+
+	dss, err := r.querier.GetDatasetsByIDs(ctx, datasets)
 	if err != nil {
 		return nil, err
 	}
@@ -85,6 +94,13 @@ func (r *Repo) Search(ctx context.Context, query *models.SearchQuery) ([]*models
 		})
 	}
 
+	for _, ds := range dss {
+		ret = append(ret, &models.SearchResultRow{
+			Excerpt: excerpts[ds.ID],
+			Result:  datasetFromSQL(ds),
+		})
+	}
+
 	sortSearch(ret, order)
 
 	return ret, nil
@@ -97,6 +113,8 @@ func sortSearch(ret []*models.SearchResultRow, order map[string]int) {
 			return order["dataproduct"+m.ID.String()]
 		case *models.GraphStory:
 			return order["story"+m.ID.String()]
+		case *models.Dataset:
+			return order["dataset"+m.ID.String()]
 		default:
 			return -1
 		}

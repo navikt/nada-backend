@@ -1,0 +1,24 @@
+{
+  dataproduct(id: "{{ .dataproduct_id }}"){
+    datasets{
+      id
+      name
+      dataproductID
+    }
+  }
+}
+
+RETURNS
+{
+  "data": {
+    "dataproduct": {
+      "datasets": [
+        {
+          "id": "{{ .pii_dataset_id }}",
+          "name": "DatasetWithPii",
+          "dataproductID": "{{ .dataproduct_id }}"
+        }
+      ]
+    }
+  }
+}

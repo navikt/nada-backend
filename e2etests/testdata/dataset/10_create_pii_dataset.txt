@@ -1,11 +1,11 @@
 mutation {
-	createDataproduct(
+	createDataset(
 		input: {
-			name: "DpWithPii"
+            dataproductID: "{{ .dataproduct_id }}"
+			name: "DatasetWithPii"
 			description: "Description"
 			repo: "somerepo"
 			pii: true
-			group: "nada@nav.no"
 			bigquery: { projectID: "team-prod-4242", dataset: "dataset1", table: "table1" }
 		}
 	) {
@@ -14,27 +14,23 @@ mutation {
 		description
 		repo
 		pii
-		owner { group }
 	}
 }
 
 RETURNS
 
-OPTION data.createDataproduct.id=IGNORE
+OPTION data.createDataset.id=IGNORE
 
 ENDOPTS
 {
   "data": {
-    "createDataproduct": {
-      "name": "DpWithPii",
+    "createDataset": {
+      "name": "DatasetWithPii",
       "description": "Description",
-      "owner": {
-        "group": "nada@nav.no"
-      },
       "pii": true,
       "repo": "somerepo"
     }
   }
 }
 
-STORE pii_dataproduct_id=data.createDataproduct.id
+STORE pii_dataset_id=data.createDataset.id

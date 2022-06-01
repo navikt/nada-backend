@@ -1,5 +1,5 @@
 {
-  dataproduct(id: "{{ .dataproduct_id }}") {
+  dataset(id: "{{ .dataset_id }}") {
     access {
       id
       subject
@@ -12,16 +12,20 @@
 
 RETURNS
 
+OPTION data.dataset.access.0.revoked=NOTNULL
+
+ENDOPTS
+
 {
   "data": {
-    "dataproduct": {
+    "dataset": {
       "access": [
         {
           "id": "{{ .access_id }}",
           "subject": "user:santa@nav.no",
           "granter": "mock.anderson@email.com",
           "expires": "2048-12-24T00:00:00Z",
-          "revoked": null
+          "revoked": "!NOTNULL"
         }
       ]
     }

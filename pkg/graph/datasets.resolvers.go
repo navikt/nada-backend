@@ -17,7 +17,6 @@ import (
 	"github.com/navikt/nada-backend/pkg/auth"
 	"github.com/navikt/nada-backend/pkg/graph/generated"
 	"github.com/navikt/nada-backend/pkg/graph/models"
-	log "github.com/sirupsen/logrus"
 )
 
 func (r *bigQueryResolver) Schema(ctx context.Context, obj *models.BigQuery) ([]*models.TableColumn, error) {
@@ -148,18 +147,20 @@ func (r *mutationResolver) CreateDataset(ctx context.Context, input models.NewDa
 	if err != nil {
 		return nil, err
 	}
-	err = r.slack.NewDataproduct(dp)
-	if err != nil {
-		log.Errorf("failed to send slack notification: %v", err)
-	}
 	return ds, nil
 }
 
 func (r *mutationResolver) UpdateDataset(ctx context.Context, id uuid.UUID, input models.UpdateDataset) (*models.Dataset, error) {
-	dp, err := r.repo.GetDataproduct(ctx, id)
+	ds, err := r.repo.GetDataset(ctx, id)
 	if err != nil {
 		return nil, err
 	}
+
+	dp, err := r.repo.GetDataproduct(ctx, ds.DataproductID)
+	if err != nil {
+		return nil, err
+	}
+
 	if err := ensureUserInGroup(ctx, dp.Owner.Group); err != nil {
 		return nil, err
 	}
@@ -183,7 +184,7 @@ func (r *mutationResolver) DeleteDataset(ctx context.Context, id uuid.UUID) (boo
 		return false, err
 	}
 
-	return true, r.repo.DeleteDataproduct(ctx, dp.ID)
+	return true, r.repo.DeleteDataset(ctx, ds.ID)
 }
 
 func (r *mutationResolver) MapDataset(ctx context.Context, datasetID uuid.UUID, services []models.MappingService) (bool, error) {
@@ -230,5 +231,7 @@ func (r *Resolver) BigQuery() generated.BigQueryResolver { return &bigQueryResol
 // Dataset returns generated.DatasetResolver implementation.
 func (r *Resolver) Dataset() generated.DatasetResolver { return &datasetResolver{r} }
 
-type bigQueryResolver struct{ *Resolver }
-type datasetResolver struct{ *Resolver }
+type (
+	bigQueryResolver struct{ *Resolver }
+	datasetResolver  struct{ *Resolver }
+)

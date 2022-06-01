@@ -17,7 +17,7 @@ import (
 func (r *Repo) GetDataset(ctx context.Context, id uuid.UUID) (*models.Dataset, error) {
 	res, err := r.querier.GetDataset(ctx, id)
 	if err != nil {
-		return nil, fmt.Errorf("getting dataproduct from database: %w", err)
+		return nil, fmt.Errorf("getting dataset from database: %w", err)
 	}
 
 	return datasetFromSQL(res), nil
@@ -198,17 +198,41 @@ func (r *Repo) GetDatasetsByMetabase(ctx context.Context, limit, offset int) ([]
 	return dss, nil
 }
 
+func (r *Repo) GetDatasetsByUserAccess(ctx context.Context, user string) ([]*models.Dataset, error) {
+	res, err := r.querier.GetDatasetsByUserAccess(ctx, user)
+	if err != nil {
+		return nil, err
+	}
+
+	dss := []*models.Dataset{}
+	for _, d := range res {
+		dss = append(dss, datasetFromSQL(d))
+	}
+	return dss, nil
+}
+
+func (r *Repo) DeleteDataset(ctx context.Context, id uuid.UUID) error {
+	r.events.TriggerDataproductDelete(ctx, id)
+
+	if err := r.querier.DeleteDataset(ctx, id); err != nil {
+		return fmt.Errorf("deleting dataset from database: %w", err)
+	}
+
+	return nil
+}
+
 func datasetFromSQL(ds gensql.Dataset) *models.Dataset {
 	return &models.Dataset{
-		ID:           ds.ID,
-		Name:         ds.Name,
-		Created:      ds.Created,
-		LastModified: ds.LastModified,
-		Description:  nullStringToPtr(ds.Description),
-		Slug:         ds.Slug,
-		Repo:         nullStringToPtr(ds.Repo),
-		Pii:          ds.Pii,
-		Keywords:     ds.Keywords,
-		Type:         ds.Type,
+		ID:            ds.ID,
+		Name:          ds.Name,
+		Created:       ds.Created,
+		LastModified:  ds.LastModified,
+		Description:   nullStringToPtr(ds.Description),
+		Slug:          ds.Slug,
+		Repo:          nullStringToPtr(ds.Repo),
+		Pii:           ds.Pii,
+		Keywords:      ds.Keywords,
+		Type:          ds.Type,
+		DataproductID: ds.DataproductID,
 	}
 }

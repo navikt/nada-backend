@@ -10,34 +10,34 @@ import (
 	"github.com/lib/pq"
 )
 
-const getDataproductMappings = `-- name: GetDataproductMappings :one
+const getDatasetMappings = `-- name: GetDatasetMappings :one
 SELECT services, dataset_id
 FROM third_party_mappings
 WHERE "dataset_id" = $1
 `
 
-func (q *Queries) GetDataproductMappings(ctx context.Context, datasetID uuid.UUID) (ThirdPartyMapping, error) {
-	row := q.db.QueryRowContext(ctx, getDataproductMappings, datasetID)
+func (q *Queries) GetDatasetMappings(ctx context.Context, datasetID uuid.UUID) (ThirdPartyMapping, error) {
+	row := q.db.QueryRowContext(ctx, getDatasetMappings, datasetID)
 	var i ThirdPartyMapping
 	err := row.Scan(pq.Array(&i.Services), &i.DatasetID)
 	return i, err
 }
 
-const getDataproductsByMapping = `-- name: GetDataproductsByMapping :many
+const getDatasetsByMapping = `-- name: GetDatasetsByMapping :many
 SELECT datasets.id, datasets.name, datasets.description, datasets.pii, datasets.created, datasets.last_modified, datasets.type, datasets.tsv_document, datasets.slug, datasets.repo, datasets.keywords, datasets.dataproduct_id FROM third_party_mappings
 INNER JOIN datasets ON datasets.id = third_party_mappings.dataset_id
 WHERE $1::TEXT = ANY("services")
 LIMIT $3 OFFSET $2
 `
 
-type GetDataproductsByMappingParams struct {
+type GetDatasetsByMappingParams struct {
 	Service string
 	Offs    int32
 	Lim     int32
 }
 
-func (q *Queries) GetDataproductsByMapping(ctx context.Context, arg GetDataproductsByMappingParams) ([]Dataset, error) {
-	rows, err := q.db.QueryContext(ctx, getDataproductsByMapping, arg.Service, arg.Offs, arg.Lim)
+func (q *Queries) GetDatasetsByMapping(ctx context.Context, arg GetDatasetsByMappingParams) ([]Dataset, error) {
+	rows, err := q.db.QueryContext(ctx, getDatasetsByMapping, arg.Service, arg.Offs, arg.Lim)
 	if err != nil {
 		return nil, err
 	}

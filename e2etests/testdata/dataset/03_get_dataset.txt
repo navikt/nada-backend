@@ -1,0 +1,27 @@
+{
+	dataset(
+		id: "{{ .dataset_id }}"
+	) {
+		name
+		description
+		repo
+		pii
+		keywords
+	}
+}
+
+RETURNS
+{
+  "data": {
+    "dataset": {
+      "name": "NewDataset",
+      "description": "New description",
+      "keywords": [
+        "keyword1",
+        "otherkeyword"
+      ],
+      "pii": false,
+      "repo": "somerepo"
+    }
+  }
+}

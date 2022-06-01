@@ -1,31 +1,29 @@
 {
-	dataproduct(
-		id: "{{ .dataproduct_id }}"
+	dataset(
+		id: "{{ .dataset_id }}"
 	) {
 		name
 		description
 		repo
+		pii
 		keywords
-        owner {
-            group
-        }
+        requesters
 	}
 }
 
 RETURNS
 {
   "data": {
-    "dataproduct": {
+    "dataset": {
       "name": "Updated Name",
       "description": "Updated description",
       "keywords": [
         "keyword1",
         "keyword2"
       ],
+      "pii": true,
       "repo": "someotherrepo",
-      "owner": {
-        "group": "nada@nav.no"
-      }
+      "requesters": ["all-users@nav.no", "nada@nav.no"]
     }
   }
 }

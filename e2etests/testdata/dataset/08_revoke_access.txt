@@ -1,5 +1,5 @@
 mutation {
-  revokeAccessToDataproduct(
+  revokeAccessToDataset(
     id: "{{ .access_id }}"
   )
 }
@@ -8,6 +8,6 @@ RETURNS
 
 {
   "data": {
-    "revokeAccessToDataproduct": true
+    "revokeAccessToDataset": true
   }
 }

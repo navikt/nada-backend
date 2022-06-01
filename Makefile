@@ -18,7 +18,7 @@ test:
 	go test ./... -count=1
 
 integration-test:
-	go test ./... -count=1 -tags=integration_test
+	go test ./... -count=1 -v -tags=integration_test
 
 env:
 	echo "NADA_CLIENT_ID=$(shell kubectl get --context=dev-gcp --namespace=nada secret/google-oauth -o jsonpath='{.data.CLIENT_ID}' | base64 -d)" > .env

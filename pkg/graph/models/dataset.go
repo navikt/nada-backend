@@ -48,28 +48,26 @@ type NewBigQuery struct {
 }
 
 type NewDataset struct {
-	DataproductID    uuid.UUID   `json:"dataproductID"`
-	Name             string      `json:"name"`
-	Description      *string     `json:"description"`
-	Slug             *string     `json:"slug"`
-	Repo             *string     `json:"repo"`
-	Pii              bool        `json:"pii"`
-	Keywords         []string    `json:"keywords"`
-	TeamkatalogenURL *string     `json:"teamkatalogenURL"`
-	BigQuery         NewBigQuery `json:"bigquery"`
-	Requesters       []string    `json:"requesters"`
-	Metadata         BigqueryMetadata
+	DataproductID uuid.UUID   `json:"dataproductID"`
+	Name          string      `json:"name"`
+	Description   *string     `json:"description"`
+	Slug          *string     `json:"slug"`
+	Repo          *string     `json:"repo"`
+	Pii           bool        `json:"pii"`
+	Keywords      []string    `json:"keywords"`
+	BigQuery      NewBigQuery `json:"bigquery"`
+	Requesters    []string    `json:"requesters"`
+	Metadata      BigqueryMetadata
 }
 
 type UpdateDataset struct {
-	Name             string   `json:"name"`
-	Description      *string  `json:"description"`
-	Slug             *string  `json:"slug"`
-	Repo             *string  `json:"repo"`
-	Pii              bool     `json:"pii"`
-	TeamkatalogenURL *string  `json:"teamkatalogenURL"`
-	Keywords         []string `json:"keywords"`
-	Requesters       []string `json:"requesters"`
+	Name        string   `json:"name"`
+	Description *string  `json:"description"`
+	Slug        *string  `json:"slug"`
+	Repo        *string  `json:"repo"`
+	Pii         bool     `json:"pii"`
+	Keywords    []string `json:"keywords"`
+	Requesters  []string `json:"requesters"`
 }
 
 type DatasetServices struct {

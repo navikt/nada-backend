@@ -5,7 +5,6 @@ package graph
 
 import (
 	"context"
-	"fmt"
 	"html"
 
 	"github.com/google/uuid"
@@ -77,17 +76,7 @@ func (r *queryResolver) GroupStats(ctx context.Context, limit *int, offset *int)
 	return r.repo.DataproductGroupStats(ctx, l, o)
 }
 
-func (r *newDataproductResolver) Pii(ctx context.Context, obj *models.NewDataproduct, data bool) error {
-	panic(fmt.Errorf("not implemented"))
-}
-
 // Dataproduct returns generated.DataproductResolver implementation.
 func (r *Resolver) Dataproduct() generated.DataproductResolver { return &dataproductResolver{r} }
 
-// NewDataproduct returns generated.NewDataproductResolver implementation.
-func (r *Resolver) NewDataproduct() generated.NewDataproductResolver {
-	return &newDataproductResolver{r}
-}
-
 type dataproductResolver struct{ *Resolver }
-type newDataproductResolver struct{ *Resolver }

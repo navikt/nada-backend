@@ -100,7 +100,7 @@ func (d *DatasetEnricher) UpdateMetadata(ctx context.Context, ds gensql.Datasour
 		return fmt.Errorf("marshalling schema: %w", err)
 	}
 
-	if err := d.repo.UpdateBigqueryDatasource(ctx, ds.DataproductID, schemaJSON, metadata.LastModified, metadata.Expires, metadata.Description); err != nil {
+	if err := d.repo.UpdateBigqueryDatasource(ctx, ds.DatasetID, schemaJSON, metadata.LastModified, metadata.Expires, metadata.Description); err != nil {
 		return fmt.Errorf("writing metadata to database: %w", err)
 	}
 

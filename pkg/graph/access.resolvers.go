@@ -89,7 +89,7 @@ func (r *mutationResolver) RevokeAccessToDataset(ctx context.Context, id uuid.UU
 	if err := r.accessMgr.Revoke(ctx, bq.ProjectID, bq.Dataset, bq.Table, access.Subject); err != nil {
 		return false, err
 	}
-	return true, r.repo.RevokeAccessToDataproduct(ctx, id)
+	return true, r.repo.RevokeAccessToDataset(ctx, id)
 }
 
 func (r *mutationResolver) CreateAccessRequest(ctx context.Context, input models.NewAccessRequest) (*models.AccessRequest, error) {

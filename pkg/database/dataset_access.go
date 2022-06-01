@@ -72,7 +72,7 @@ func (r *Repo) GrantAccessToDataset(ctx context.Context, datasetID uuid.UUID, ex
 	querier := r.querier.WithTx(tx)
 
 	if len(a.Subject) > 0 {
-		if err := querier.RevokeAccessToDataproduct(ctx, a.ID); err != nil {
+		if err := querier.RevokeAccessToDataset(ctx, a.ID); err != nil {
 			if err := tx.Rollback(); err != nil {
 				r.log.WithError(err).Error("Rolling back revoke and grant access to dataproduct transaction")
 			}

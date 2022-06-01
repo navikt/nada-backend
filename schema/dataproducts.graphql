@@ -76,8 +76,6 @@ input NewDataproduct @goModel(model: "github.com/navikt/nada-backend/pkg/graph/m
     description: String
     "repo is the url of the repository containing the code to create the dataproduct"
     repo: String
-    "pii indicates whether it is personal identifiable information in the dataproduct"
-    pii: Boolean!
     "keywords for the dataproduct used as tags."
     keywords: [String!]
     "owner group email for the dataproduct."
@@ -96,8 +94,6 @@ input UpdateDataproduct @goModel(model: "github.com/navikt/nada-backend/pkg/grap
     description: String
     "repo is the url of the repository containing the code to create the dataproduct"
     repo: String
-    "pii indicates whether it is personal identifiable information in the dataproduct"
-    pii: Boolean!
     "owner Teamkatalogen URL for the dataproduct."
     teamkatalogenURL: String
     "keywords for the dataproduct used as tags."

@@ -47,7 +47,6 @@ type ResolverRoot interface {
 	SearchResultRow() SearchResultRowResolver
 	Story() StoryResolver
 	UserInfo() UserInfoResolver
-	NewDataproduct() NewDataproductResolver
 }
 
 type DirectiveRoot struct {
@@ -349,10 +348,6 @@ type UserInfoResolver interface {
 	Accessable(ctx context.Context, obj *models.UserInfo) ([]*models.Dataproduct, error)
 	Stories(ctx context.Context, obj *models.UserInfo) ([]*models.GraphStory, error)
 	AccessRequests(ctx context.Context, obj *models.UserInfo) ([]*models.AccessRequest, error)
-}
-
-type NewDataproductResolver interface {
-	Pii(ctx context.Context, obj *models.NewDataproduct, data bool) error
 }
 
 type executableSchema struct {
@@ -1930,8 +1925,6 @@ input NewDataproduct @goModel(model: "github.com/navikt/nada-backend/pkg/graph/m
     description: String
     "repo is the url of the repository containing the code to create the dataproduct"
     repo: String
-    "pii indicates whether it is personal identifiable information in the dataproduct"
-    pii: Boolean!
     "keywords for the dataproduct used as tags."
     keywords: [String!]
     "owner group email for the dataproduct."
@@ -1950,8 +1943,6 @@ input UpdateDataproduct @goModel(model: "github.com/navikt/nada-backend/pkg/grap
     description: String
     "repo is the url of the repository containing the code to create the dataproduct"
     repo: String
-    "pii indicates whether it is personal identifiable information in the dataproduct"
-    pii: Boolean!
     "owner Teamkatalogen URL for the dataproduct."
     teamkatalogenURL: String
     "keywords for the dataproduct used as tags."
@@ -2111,6 +2102,8 @@ input NewBigQuery @goModel(model: "github.com/navikt/nada-backend/pkg/graph/mode
 NewDataset contains metadata for creating a new dataset
 """
 input NewDataset @goModel(model: "github.com/navikt/nada-backend/pkg/graph/models.NewDataset") {
+    "dataproductID is the id of the dataproduct containing the dataset"
+    dataproductID: ID!
     "name of dataset"
     name: String!
     "description of the dataset"
@@ -2119,10 +2112,12 @@ input NewDataset @goModel(model: "github.com/navikt/nada-backend/pkg/graph/model
     repo: String
     "pii indicates whether it is personal identifiable information in the dataset"
     pii: Boolean!
+    "keywords for the dataset used as tags."
+    keywords: [String!]
     "bigquery contains metadata for the bigquery datasource added to the dataset."
     bigquery: NewBigQuery!
-    "requesters contains a list of users, groups and service accounts which can request access to the dataset"
-    requesters: [String!]!
+    "requesters contains list of users, groups and service accounts which can request access to the dataset"
+    requesters: [String!]
 }
 
 
@@ -2134,10 +2129,12 @@ input UpdateDataset @goModel(model: "github.com/navikt/nada-backend/pkg/graph/mo
     name: String!
     "description of the dataset"
     description: String
+    "repo is the url of the repository containing the code to create the dataset"
+    repo: String
     "pii indicates whether it is personal identifiable information in the dataset"
     pii: Boolean!
-    "requesters contains a list of users, groups and service accounts which can request access to the dataset"
-    requesters: [String!]!
+    "keywords for the dataset used as tags."
+    keywords: [String!]
 }
 
 """
@@ -2380,6 +2377,7 @@ enum SearchType @goModel(
 ) {
     dataproduct
     story
+    dataset
 }
 
 
@@ -13447,17 +13445,6 @@ func (ec *executionContext) unmarshalInputNewDataproduct(ctx context.Context, ob
 			if err != nil {
 				return it, err
 			}
-		case "pii":
-			var err error
-
-			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("pii"))
-			data, err := ec.unmarshalNBoolean2bool(ctx, v)
-			if err != nil {
-				return it, err
-			}
-			if err = ec.resolvers.NewDataproduct().Pii(ctx, &it, data); err != nil {
-				return it, err
-			}
 		case "keywords":
 			var err error
 
@@ -13497,6 +13484,14 @@ func (ec *executionContext) unmarshalInputNewDataset(ctx context.Context, obj in
 
 	for k, v := range asMap {
 		switch k {
+		case "dataproductID":
+			var err error
+
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("dataproductID"))
+			it.DataproductID, err = ec.unmarshalNID2githubᚗcomᚋgoogleᚋuuidᚐUUID(ctx, v)
+			if err != nil {
+				return it, err
+			}
 		case "name":
 			var err error
 
@@ -13529,6 +13524,14 @@ func (ec *executionContext) unmarshalInputNewDataset(ctx context.Context, obj in
 			if err != nil {
 				return it, err
 			}
+		case "keywords":
+			var err error
+
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("keywords"))
+			it.Keywords, err = ec.unmarshalOString2ᚕstringᚄ(ctx, v)
+			if err != nil {
+				return it, err
+			}
 		case "bigquery":
 			var err error
 
@@ -13541,7 +13544,7 @@ func (ec *executionContext) unmarshalInputNewDataset(ctx context.Context, obj in
 			var err error
 
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("requesters"))
-			it.Requesters, err = ec.unmarshalNString2ᚕstringᚄ(ctx, v)
+			it.Requesters, err = ec.unmarshalOString2ᚕstringᚄ(ctx, v)
 			if err != nil {
 				return it, err
 			}
@@ -13906,14 +13909,6 @@ func (ec *executionContext) unmarshalInputUpdateDataproduct(ctx context.Context,
 			if err != nil {
 				return it, err
 			}
-		case "pii":
-			var err error
-
-			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("pii"))
-			it.Pii, err = ec.unmarshalNBoolean2bool(ctx, v)
-			if err != nil {
-				return it, err
-			}
 		case "teamkatalogenURL":
 			var err error
 
@@ -13961,6 +13956,14 @@ func (ec *executionContext) unmarshalInputUpdateDataset(ctx context.Context, obj
 			if err != nil {
 				return it, err
 			}
+		case "repo":
+			var err error
+
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("repo"))
+			it.Repo, err = ec.unmarshalOString2ᚖstring(ctx, v)
+			if err != nil {
+				return it, err
+			}
 		case "pii":
 			var err error
 
@@ -13969,11 +13972,11 @@ func (ec *executionContext) unmarshalInputUpdateDataset(ctx context.Context, obj
 			if err != nil {
 				return it, err
 			}
-		case "requesters":
+		case "keywords":
 			var err error
 
-			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("requesters"))
-			it.Requesters, err = ec.unmarshalNString2ᚕstringᚄ(ctx, v)
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("keywords"))
+			it.Keywords, err = ec.unmarshalOString2ᚕstringᚄ(ctx, v)
 			if err != nil {
 				return it, err
 			}

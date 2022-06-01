@@ -5,10 +5,10 @@
 		name
 		description
 		repo
-		pii
-		owner { group }
 		keywords
-    requesters
+        owner {
+            group
+        }
 	}
 }
 
@@ -23,12 +23,10 @@ RETURNS
         "keyword1",
         "otherkeyword"
       ],
+      "repo": "somerepo",
       "owner": {
         "group": "nada@nav.no"
-      },
-      "pii": false,
-      "repo": "somerepo",
-			"requesters": ["all-users@nav.no", "nada@nav.no"]
+      }
     }
   }
 }

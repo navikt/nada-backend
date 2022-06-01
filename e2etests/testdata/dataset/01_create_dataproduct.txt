@@ -31,7 +31,7 @@ ENDOPTS
       "description": "New description",
       "keywords": [
         "keyword1",
-		"otherkeyword"
+        "otherkeyword"
       ],
       "owner": {
         "group": "nada@nav.no"
@@ -42,4 +42,3 @@ ENDOPTS
 }
 
 STORE dataproduct_id=data.createDataproduct.id
-STORE dataproduct_name=data.createDataproduct.name
