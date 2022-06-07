@@ -3,7 +3,7 @@ ALTER TABLE metabase_metadata
     DROP CONSTRAINT fk_metabase_metadata;
 ALTER TABLE metabase_metadata
     ADD COLUMN dataset_id uuid;
-UPDATE metabase_metadata SET dataset_id = (SELECT id FROM datasets WHERE dataproduct_id = dataproduct_id);
+UPDATE metabase_metadata a SET dataset_id = (SELECT id FROM datasets WHERE dataproduct_id = a.dataproduct_id);
 ALTER TABLE metabase_metadata
     ALTER COLUMN dataset_id SET NOT NULL;
 ALTER TABLE metabase_metadata DROP CONSTRAINT metabase_metadata_pkey;
@@ -19,7 +19,7 @@ ALTER TABLE metabase_metadata
     DROP CONSTRAINT fk_metabase_metadata;
 ALTER TABLE metabase_metadata
     ADD COLUMN dataproduct_id uuid;
-UPDATE metabase_metadata SET dataproduct_id = (SELECT dataproduct_id FROM datasets WHERE dataset_id = dataset_id);
+UPDATE metabase_metadata a SET dataproduct_id = (SELECT dataproduct_id FROM datasets WHERE dataset_id = a.dataset_id);
 ALTER TABLE metabase_metadata
     ALTER COLUMN dataproduct_id SET NOT NULL;
 ALTER TABLE metabase_metadata DROP CONSTRAINT metabase_metadata_pkey;
