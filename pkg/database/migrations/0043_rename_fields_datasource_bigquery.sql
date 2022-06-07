@@ -19,5 +19,5 @@ ALTER TABLE datasource_bigquery
     RENAME COLUMN dataset_id TO dataproduct_id;
 
 ALTER TABLE datasource_bigquery
-    ADD CONSTRAINT fk_bigquery_dataproduct FOREIGN_KEY (dataproduct_id)
+    ADD CONSTRAINT fk_bigquery_dataproduct FOREIGN KEY (dataproduct_id)
         REFERENCES dataproducts (id) ON DELETE CASCADE;
