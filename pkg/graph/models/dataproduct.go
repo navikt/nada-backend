@@ -13,8 +13,6 @@ type Dataproduct struct {
 	LastModified time.Time `json:"lastModified"`
 	Description  *string   `json:"description"`
 	Slug         string    `json:"slug"`
-	Repo         *string   `json:"repo"`
-	Keywords     []string  `json:"keywords"`
 	Owner        *Owner    `json:"owner"`
 }
 
@@ -24,22 +22,19 @@ type NewDataproduct struct {
 	Name             string   `json:"name"`
 	Description      *string  `json:"description"`
 	Slug             *string  `json:"slug"`
-	Repo             *string  `json:"repo"`
-	Keywords         []string `json:"keywords"`
 	Group            string   `json:"group"`
 	TeamkatalogenURL *string  `json:"teamkatalogenURL"`
 	Requesters       []string `json:"requesters"`
 	Metadata         BigqueryMetadata
+	Datasets         []NewDatasetForNewDataproduct `json:"datasets"`
 }
 
 type UpdateDataproduct struct {
 	Name             string   `json:"name"`
 	Description      *string  `json:"description"`
 	Slug             *string  `json:"slug"`
-	Repo             *string  `json:"repo"`
 	Pii              bool     `json:"pii"`
 	TeamkatalogenURL *string  `json:"teamkatalogenURL"`
-	Keywords         []string `json:"keywords"`
 	Requesters       []string `json:"requesters"`
 }
 

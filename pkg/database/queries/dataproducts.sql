@@ -31,16 +31,12 @@ INSERT INTO dataproducts ("name",
                           "description",
                           "group",
                           "teamkatalogen_url",
-                          "slug",
-                          "repo",
-                          "keywords")
+                          "slug")
 VALUES (@name,
         @description,
         @owner_group,
         @owner_teamkatalogen_url,
-        @slug,
-        @repo,
-        @keywords)
+        @slug)
 RETURNING *;
 
 -- name: UpdateDataproduct :one
@@ -48,9 +44,7 @@ UPDATE dataproducts
 SET "name"              = @name,
     "description"       = @description,
     "slug"              = @slug,
-    "repo"              = @repo,
-    "teamkatalogen_url" = @owner_teamkatalogen_url,
-    "keywords"          = @keywords
+    "teamkatalogen_url" = @owner_teamkatalogen_url
 WHERE id = @id
 RETURNING *;
 
@@ -58,8 +52,9 @@ RETURNING *;
 -- name: DataproductKeywords :many
 SELECT keyword::text, count(1) as "count"
 FROM (
-	SELECT unnest(keywords) as keyword
-	FROM dataproducts
+	SELECT unnest(ds.keywords) as keyword
+	FROM dataproducts dp
+    INNER JOIN datasets ds ON ds.dataproduct_id = dp.id
 ) s
 WHERE true
 AND CASE WHEN coalesce(TRIM(@keyword), '') = '' THEN true ELSE keyword ILIKE @keyword::text || '%' END

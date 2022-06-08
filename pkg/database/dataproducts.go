@@ -10,7 +10,7 @@ import (
 )
 
 func (r *Repo) GetDataproducts(ctx context.Context, limit, offset int) ([]*models.Dataproduct, error) {
-	datasets := []*models.Dataproduct{}
+	dataproducts := []*models.Dataproduct{}
 
 	res, err := r.querier.GetDataproducts(ctx, gensql.GetDataproductsParams{Limit: int32(limit), Offset: int32(offset)})
 	if err != nil {
@@ -18,10 +18,10 @@ func (r *Repo) GetDataproducts(ctx context.Context, limit, offset int) ([]*model
 	}
 
 	for _, entry := range res {
-		datasets = append(datasets, dataproductFromSQL(entry))
+		dataproducts = append(dataproducts, dataproductFromSQL(entry))
 	}
 
-	return datasets, nil
+	return dataproducts, nil
 }
 
 func (r *Repo) GetDataproductsByUserAccess(ctx context.Context, user string) ([]*models.Dataproduct, error) {
@@ -54,30 +54,59 @@ func (r *Repo) GetDataproduct(ctx context.Context, id uuid.UUID) (*models.Datapr
 }
 
 func (r *Repo) CreateDataproduct(ctx context.Context, dp models.NewDataproduct) (*models.Dataproduct, error) {
-	if dp.Keywords == nil {
-		dp.Keywords = []string{}
+
+	tx, err := r.db.Begin()
+	if err != nil {
+		return nil, err
 	}
 
-	created, err := r.querier.CreateDataproduct(ctx, gensql.CreateDataproductParams{
+	querier := r.querier.WithTx(tx)
+
+	dataproduct, err := querier.CreateDataproduct(ctx, gensql.CreateDataproductParams{
 		Name:                  dp.Name,
 		Description:           ptrToNullString(dp.Description),
 		OwnerGroup:            dp.Group,
 		OwnerTeamkatalogenUrl: ptrToNullString(dp.TeamkatalogenURL),
 		Slug:                  slugify(dp.Slug, dp.Name),
-		Repo:                  ptrToNullString(dp.Repo),
-		Keywords:              dp.Keywords,
 	})
 	if err != nil {
+		if err := tx.Rollback(); err != nil {
+			r.log.WithError(err).Error("Rolling back dataproduct creation")
+		}
 		return nil, err
 	}
 
-	return dataproductFromSQL(created), nil
+	for _, ds := range dp.Datasets {
+		if ds.Keywords == nil {
+			ds.Keywords = []string{}
+		}
+
+		_, err := querier.CreateDataset(ctx, gensql.CreateDatasetParams{
+			Name:          ds.Name,
+			Description:   ptrToNullString(ds.Description),
+			DataproductID: dataproduct.ID,
+			Repo:          ptrToNullString(ds.Repo),
+			Keywords:      ds.Keywords,
+			Pii:           ds.Pii,
+			Type:          gensql.DatasourceTypeBigquery,
+			Slug:          slugify(nil, ds.Name),
+		})
+		if err != nil {
+			if err := tx.Rollback(); err != nil {
+				r.log.WithError(err).Error("Rolling back dataset creation")
+			}
+			return nil, err
+		}
+	}
+
+	if err := tx.Commit(); err != nil {
+		return nil, err
+	}
+
+	return dataproductFromSQL(dataproduct), nil
 }
 
 func (r *Repo) UpdateDataproduct(ctx context.Context, id uuid.UUID, new models.UpdateDataproduct) (*models.Dataproduct, error) {
-	if new.Keywords == nil {
-		new.Keywords = []string{}
-	}
 
 	res, err := r.querier.UpdateDataproduct(ctx, gensql.UpdateDataproductParams{
 		Name:                  new.Name,
@@ -85,8 +114,6 @@ func (r *Repo) UpdateDataproduct(ctx context.Context, id uuid.UUID, new models.U
 		ID:                    id,
 		OwnerTeamkatalogenUrl: ptrToNullString(new.TeamkatalogenURL),
 		Slug:                  slugify(new.Slug, new.Name),
-		Repo:                  ptrToNullString(new.Repo),
-		Keywords:              new.Keywords,
 	})
 	if err != nil {
 		return nil, fmt.Errorf("updating dataproduct in database: %w", err)
@@ -150,8 +177,6 @@ func dataproductFromSQL(dp gensql.Dataproduct) *models.Dataproduct {
 		LastModified: dp.LastModified,
 		Description:  nullStringToPtr(dp.Description),
 		Slug:         dp.Slug,
-		Repo:         nullStringToPtr(dp.Repo),
-		Keywords:     dp.Keywords,
 		Owner: &models.Owner{
 			Group:            dp.Group,
 			TeamkatalogenURL: nullStringToPtr(dp.TeamkatalogenUrl),

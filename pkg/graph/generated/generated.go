@@ -103,11 +103,9 @@ type ComplexityRoot struct {
 		Datasets     func(childComplexity int) int
 		Description  func(childComplexity int) int
 		ID           func(childComplexity int) int
-		Keywords     func(childComplexity int) int
 		LastModified func(childComplexity int) int
 		Name         func(childComplexity int) int
 		Owner        func(childComplexity int) int
-		Repo         func(childComplexity int) int
 		Slug         func(childComplexity int) int
 	}
 
@@ -620,13 +618,6 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.Dataproduct.ID(childComplexity), true
 
-	case "Dataproduct.keywords":
-		if e.complexity.Dataproduct.Keywords == nil {
-			break
-		}
-
-		return e.complexity.Dataproduct.Keywords(childComplexity), true
-
 	case "Dataproduct.lastModified":
 		if e.complexity.Dataproduct.LastModified == nil {
 			break
@@ -647,13 +638,6 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 		}
 
 		return e.complexity.Dataproduct.Owner(childComplexity), true
-
-	case "Dataproduct.repo":
-		if e.complexity.Dataproduct.Repo == nil {
-			break
-		}
-
-		return e.complexity.Dataproduct.Repo(childComplexity), true
 
 	case "Dataproduct.slug":
 		if e.complexity.Dataproduct.Slug == nil {
@@ -1600,6 +1584,7 @@ func (e *executableSchema) Exec(ctx context.Context) graphql.ResponseHandler {
 		ec.unmarshalInputNewBigQuery,
 		ec.unmarshalInputNewDataproduct,
 		ec.unmarshalInputNewDataset,
+		ec.unmarshalInputNewDatasetForNewDataproduct,
 		ec.unmarshalInputNewGrant,
 		ec.unmarshalInputNewStory,
 		ec.unmarshalInputPollyInput,
@@ -1871,10 +1856,6 @@ type Dataproduct @goModel(model: "github.com/navikt/nada-backend/pkg/graph/model
     created: Time!
     "lastModified is the timestamp for when the dataproduct was last modified"
     lastModified: Time!
-    "repo is the url of the repository containing the code to create the dataproduct"
-    repo: String
-    "keywords for the dataproduct used as tags."
-    keywords: [String!]!
     "slug is the dataproduct slug"
     slug: String!
     "owner of the dataproduct. Changes to the dataproduct can only be done by a member of the owner."
@@ -1933,14 +1914,12 @@ input NewDataproduct @goModel(model: "github.com/navikt/nada-backend/pkg/graph/m
     name: String!
     "description of the dataproduct"
     description: String
-    "repo is the url of the repository containing the code to create the dataproduct"
-    repo: String
-    "keywords for the dataproduct used as tags."
-    keywords: [String!]
     "owner group email for the dataproduct."
     group: String!
     "owner Teamkatalogen URL for the dataproduct."
     teamkatalogenURL: String
+    "datasets to associate with the dataproduct."
+    datasets: [NewDatasetForNewDataproduct!]!
 }
 
 """
@@ -1951,12 +1930,8 @@ input UpdateDataproduct @goModel(model: "github.com/navikt/nada-backend/pkg/grap
     name: String!
     "description of the dataproduct"
     description: String
-    "repo is the url of the repository containing the code to create the dataproduct"
-    repo: String
     "owner Teamkatalogen URL for the dataproduct."
     teamkatalogenURL: String
-    "keywords for the dataproduct used as tags."
-    keywords: [String!]
 }
 
 extend type Mutation {
@@ -2132,6 +2107,25 @@ input NewDataset @goModel(model: "github.com/navikt/nada-backend/pkg/graph/model
     requesters: [String!]
 }
 
+"""
+NewDatasetForNewDataproduct contains metadata for creating a new dataset for a new dataproduct
+"""
+input NewDatasetForNewDataproduct @goModel(model: "github.com/navikt/nada-backend/pkg/graph/models.NewDatasetForNewDataproduct") {
+    "name of dataset"
+    name: String!
+    "description of the dataset"
+    description: String
+    "repo is the url of the repository containing the code to create the dataset"
+    repo: String
+    "pii indicates whether it is personal identifiable information in the dataset"
+    pii: Boolean!
+    "keywords for the dataset used as tags."
+    keywords: [String!]
+    "bigquery contains metadata for the bigquery datasource added to the dataset."
+    bigquery: NewBigQuery!
+    "requesters contains list of users, groups and service accounts which can request access to the dataset"
+    requesters: [String!]
+}
 
 """
 UpdateDataset contains metadata for updating a dataset
@@ -5033,91 +5027,6 @@ func (ec *executionContext) fieldContext_Dataproduct_lastModified(ctx context.Co
 	return fc, nil
 }
 
-func (ec *executionContext) _Dataproduct_repo(ctx context.Context, field graphql.CollectedField, obj *models.Dataproduct) (ret graphql.Marshaler) {
-	fc, err := ec.fieldContext_Dataproduct_repo(ctx, field)
-	if err != nil {
-		return graphql.Null
-	}
-	ctx = graphql.WithFieldContext(ctx, fc)
-	defer func() {
-		if r := recover(); r != nil {
-			ec.Error(ctx, ec.Recover(ctx, r))
-			ret = graphql.Null
-		}
-	}()
-	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
-		ctx = rctx // use context from middleware stack in children
-		return obj.Repo, nil
-	})
-	if err != nil {
-		ec.Error(ctx, err)
-		return graphql.Null
-	}
-	if resTmp == nil {
-		return graphql.Null
-	}
-	res := resTmp.(*string)
-	fc.Result = res
-	return ec.marshalOString2ᚖstring(ctx, field.Selections, res)
-}
-
-func (ec *executionContext) fieldContext_Dataproduct_repo(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "Dataproduct",
-		Field:      field,
-		IsMethod:   false,
-		IsResolver: false,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type String does not have child fields")
-		},
-	}
-	return fc, nil
-}
-
-func (ec *executionContext) _Dataproduct_keywords(ctx context.Context, field graphql.CollectedField, obj *models.Dataproduct) (ret graphql.Marshaler) {
-	fc, err := ec.fieldContext_Dataproduct_keywords(ctx, field)
-	if err != nil {
-		return graphql.Null
-	}
-	ctx = graphql.WithFieldContext(ctx, fc)
-	defer func() {
-		if r := recover(); r != nil {
-			ec.Error(ctx, ec.Recover(ctx, r))
-			ret = graphql.Null
-		}
-	}()
-	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
-		ctx = rctx // use context from middleware stack in children
-		return obj.Keywords, nil
-	})
-	if err != nil {
-		ec.Error(ctx, err)
-		return graphql.Null
-	}
-	if resTmp == nil {
-		if !graphql.HasFieldError(ctx, fc) {
-			ec.Errorf(ctx, "must not be null")
-		}
-		return graphql.Null
-	}
-	res := resTmp.([]string)
-	fc.Result = res
-	return ec.marshalNString2ᚕstringᚄ(ctx, field.Selections, res)
-}
-
-func (ec *executionContext) fieldContext_Dataproduct_keywords(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "Dataproduct",
-		Field:      field,
-		IsMethod:   false,
-		IsResolver: false,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type String does not have child fields")
-		},
-	}
-	return fc, nil
-}
-
 func (ec *executionContext) _Dataproduct_slug(ctx context.Context, field graphql.CollectedField, obj *models.Dataproduct) (ret graphql.Marshaler) {
 	fc, err := ec.fieldContext_Dataproduct_slug(ctx, field)
 	if err != nil {
@@ -7147,10 +7056,6 @@ func (ec *executionContext) fieldContext_Mutation_createDataproduct(ctx context.
 				return ec.fieldContext_Dataproduct_created(ctx, field)
 			case "lastModified":
 				return ec.fieldContext_Dataproduct_lastModified(ctx, field)
-			case "repo":
-				return ec.fieldContext_Dataproduct_repo(ctx, field)
-			case "keywords":
-				return ec.fieldContext_Dataproduct_keywords(ctx, field)
 			case "slug":
 				return ec.fieldContext_Dataproduct_slug(ctx, field)
 			case "owner":
@@ -7244,10 +7149,6 @@ func (ec *executionContext) fieldContext_Mutation_updateDataproduct(ctx context.
 				return ec.fieldContext_Dataproduct_created(ctx, field)
 			case "lastModified":
 				return ec.fieldContext_Dataproduct_lastModified(ctx, field)
-			case "repo":
-				return ec.fieldContext_Dataproduct_repo(ctx, field)
-			case "keywords":
-				return ec.fieldContext_Dataproduct_keywords(ctx, field)
 			case "slug":
 				return ec.fieldContext_Dataproduct_slug(ctx, field)
 			case "owner":
@@ -8427,10 +8328,6 @@ func (ec *executionContext) fieldContext_Query_dataproduct(ctx context.Context, 
 				return ec.fieldContext_Dataproduct_created(ctx, field)
 			case "lastModified":
 				return ec.fieldContext_Dataproduct_lastModified(ctx, field)
-			case "repo":
-				return ec.fieldContext_Dataproduct_repo(ctx, field)
-			case "keywords":
-				return ec.fieldContext_Dataproduct_keywords(ctx, field)
 			case "slug":
 				return ec.fieldContext_Dataproduct_slug(ctx, field)
 			case "owner":
@@ -8504,10 +8401,6 @@ func (ec *executionContext) fieldContext_Query_dataproducts(ctx context.Context,
 				return ec.fieldContext_Dataproduct_created(ctx, field)
 			case "lastModified":
 				return ec.fieldContext_Dataproduct_lastModified(ctx, field)
-			case "repo":
-				return ec.fieldContext_Dataproduct_repo(ctx, field)
-			case "keywords":
-				return ec.fieldContext_Dataproduct_keywords(ctx, field)
 			case "slug":
 				return ec.fieldContext_Dataproduct_slug(ctx, field)
 			case "owner":
@@ -11394,10 +11287,6 @@ func (ec *executionContext) fieldContext_UserInfo_dataproducts(ctx context.Conte
 				return ec.fieldContext_Dataproduct_created(ctx, field)
 			case "lastModified":
 				return ec.fieldContext_Dataproduct_lastModified(ctx, field)
-			case "repo":
-				return ec.fieldContext_Dataproduct_repo(ctx, field)
-			case "keywords":
-				return ec.fieldContext_Dataproduct_keywords(ctx, field)
 			case "slug":
 				return ec.fieldContext_Dataproduct_slug(ctx, field)
 			case "owner":
@@ -11460,10 +11349,6 @@ func (ec *executionContext) fieldContext_UserInfo_accessable(ctx context.Context
 				return ec.fieldContext_Dataproduct_created(ctx, field)
 			case "lastModified":
 				return ec.fieldContext_Dataproduct_lastModified(ctx, field)
-			case "repo":
-				return ec.fieldContext_Dataproduct_repo(ctx, field)
-			case "keywords":
-				return ec.fieldContext_Dataproduct_keywords(ctx, field)
 			case "slug":
 				return ec.fieldContext_Dataproduct_slug(ctx, field)
 			case "owner":
@@ -13507,22 +13392,6 @@ func (ec *executionContext) unmarshalInputNewDataproduct(ctx context.Context, ob
 			if err != nil {
 				return it, err
 			}
-		case "repo":
-			var err error
-
-			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("repo"))
-			it.Repo, err = ec.unmarshalOString2ᚖstring(ctx, v)
-			if err != nil {
-				return it, err
-			}
-		case "keywords":
-			var err error
-
-			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("keywords"))
-			it.Keywords, err = ec.unmarshalOString2ᚕstringᚄ(ctx, v)
-			if err != nil {
-				return it, err
-			}
 		case "group":
 			var err error
 
@@ -13536,6 +13405,14 @@ func (ec *executionContext) unmarshalInputNewDataproduct(ctx context.Context, ob
 
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("teamkatalogenURL"))
 			it.TeamkatalogenURL, err = ec.unmarshalOString2ᚖstring(ctx, v)
+			if err != nil {
+				return it, err
+			}
+		case "datasets":
+			var err error
+
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("datasets"))
+			it.Datasets, err = ec.unmarshalNNewDatasetForNewDataproduct2ᚕgithubᚗcomᚋnaviktᚋnadaᚑbackendᚋpkgᚋgraphᚋmodelsᚐNewDatasetForNewDataproductᚄ(ctx, v)
 			if err != nil {
 				return it, err
 			}
@@ -13607,6 +13484,77 @@ func (ec *executionContext) unmarshalInputNewDataset(ctx context.Context, obj in
 
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("bigquery"))
 			it.BigQuery, err = ec.unmarshalNNewBigQuery2githubᚗcomᚋnaviktᚋnadaᚑbackendᚋpkgᚋgraphᚋmodelsᚐNewBigQuery(ctx, v)
+			if err != nil {
+				return it, err
+			}
+		case "requesters":
+			var err error
+
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("requesters"))
+			it.Requesters, err = ec.unmarshalOString2ᚕstringᚄ(ctx, v)
+			if err != nil {
+				return it, err
+			}
+		}
+	}
+
+	return it, nil
+}
+
+func (ec *executionContext) unmarshalInputNewDatasetForNewDataproduct(ctx context.Context, obj interface{}) (models.NewDatasetForNewDataproduct, error) {
+	var it models.NewDatasetForNewDataproduct
+	asMap := map[string]interface{}{}
+	for k, v := range obj.(map[string]interface{}) {
+		asMap[k] = v
+	}
+
+	for k, v := range asMap {
+		switch k {
+		case "name":
+			var err error
+
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("name"))
+			it.Name, err = ec.unmarshalNString2string(ctx, v)
+			if err != nil {
+				return it, err
+			}
+		case "description":
+			var err error
+
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("description"))
+			it.Description, err = ec.unmarshalOString2ᚖstring(ctx, v)
+			if err != nil {
+				return it, err
+			}
+		case "repo":
+			var err error
+
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("repo"))
+			it.Repo, err = ec.unmarshalOString2ᚖstring(ctx, v)
+			if err != nil {
+				return it, err
+			}
+		case "pii":
+			var err error
+
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("pii"))
+			it.Pii, err = ec.unmarshalNBoolean2bool(ctx, v)
+			if err != nil {
+				return it, err
+			}
+		case "keywords":
+			var err error
+
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("keywords"))
+			it.Keywords, err = ec.unmarshalOString2ᚕstringᚄ(ctx, v)
+			if err != nil {
+				return it, err
+			}
+		case "bigquery":
+			var err error
+
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("bigquery"))
+			it.Bigquery, err = ec.unmarshalNNewBigQuery2ᚖgithubᚗcomᚋnaviktᚋnadaᚑbackendᚋpkgᚋgraphᚋmodelsᚐNewBigQuery(ctx, v)
 			if err != nil {
 				return it, err
 			}
@@ -13971,27 +13919,11 @@ func (ec *executionContext) unmarshalInputUpdateDataproduct(ctx context.Context,
 			if err != nil {
 				return it, err
 			}
-		case "repo":
-			var err error
-
-			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("repo"))
-			it.Repo, err = ec.unmarshalOString2ᚖstring(ctx, v)
-			if err != nil {
-				return it, err
-			}
 		case "teamkatalogenURL":
 			var err error
 
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("teamkatalogenURL"))
 			it.TeamkatalogenURL, err = ec.unmarshalOString2ᚖstring(ctx, v)
-			if err != nil {
-				return it, err
-			}
-		case "keywords":
-			var err error
-
-			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("keywords"))
-			it.Keywords, err = ec.unmarshalOString2ᚕstringᚄ(ctx, v)
 			if err != nil {
 				return it, err
 			}
@@ -14472,17 +14404,6 @@ func (ec *executionContext) _Dataproduct(ctx context.Context, sel ast.SelectionS
 		case "lastModified":
 
 			out.Values[i] = ec._Dataproduct_lastModified(ctx, field, obj)
-
-			if out.Values[i] == graphql.Null {
-				atomic.AddUint32(&invalids, 1)
-			}
-		case "repo":
-
-			out.Values[i] = ec._Dataproduct_repo(ctx, field, obj)
-
-		case "keywords":
-
-			out.Values[i] = ec._Dataproduct_keywords(ctx, field, obj)
 
 			if out.Values[i] == graphql.Null {
 				atomic.AddUint32(&invalids, 1)
@@ -17277,6 +17198,11 @@ func (ec *executionContext) unmarshalNNewBigQuery2githubᚗcomᚋnaviktᚋnada�
 	return res, graphql.ErrorOnPath(ctx, err)
 }
 
+func (ec *executionContext) unmarshalNNewBigQuery2ᚖgithubᚗcomᚋnaviktᚋnadaᚑbackendᚋpkgᚋgraphᚋmodelsᚐNewBigQuery(ctx context.Context, v interface{}) (*models.NewBigQuery, error) {
+	res, err := ec.unmarshalInputNewBigQuery(ctx, v)
+	return &res, graphql.ErrorOnPath(ctx, err)
+}
+
 func (ec *executionContext) unmarshalNNewDataproduct2githubᚗcomᚋnaviktᚋnadaᚑbackendᚋpkgᚋgraphᚋmodelsᚐNewDataproduct(ctx context.Context, v interface{}) (models.NewDataproduct, error) {
 	res, err := ec.unmarshalInputNewDataproduct(ctx, v)
 	return res, graphql.ErrorOnPath(ctx, err)
@@ -17285,6 +17211,28 @@ func (ec *executionContext) unmarshalNNewDataproduct2githubᚗcomᚋnaviktᚋnad
 func (ec *executionContext) unmarshalNNewDataset2githubᚗcomᚋnaviktᚋnadaᚑbackendᚋpkgᚋgraphᚋmodelsᚐNewDataset(ctx context.Context, v interface{}) (models.NewDataset, error) {
 	res, err := ec.unmarshalInputNewDataset(ctx, v)
 	return res, graphql.ErrorOnPath(ctx, err)
+}
+
+func (ec *executionContext) unmarshalNNewDatasetForNewDataproduct2githubᚗcomᚋnaviktᚋnadaᚑbackendᚋpkgᚋgraphᚋmodelsᚐNewDatasetForNewDataproduct(ctx context.Context, v interface{}) (models.NewDatasetForNewDataproduct, error) {
+	res, err := ec.unmarshalInputNewDatasetForNewDataproduct(ctx, v)
+	return res, graphql.ErrorOnPath(ctx, err)
+}
+
+func (ec *executionContext) unmarshalNNewDatasetForNewDataproduct2ᚕgithubᚗcomᚋnaviktᚋnadaᚑbackendᚋpkgᚋgraphᚋmodelsᚐNewDatasetForNewDataproductᚄ(ctx context.Context, v interface{}) ([]models.NewDatasetForNewDataproduct, error) {
+	var vSlice []interface{}
+	if v != nil {
+		vSlice = graphql.CoerceList(v)
+	}
+	var err error
+	res := make([]models.NewDatasetForNewDataproduct, len(vSlice))
+	for i := range vSlice {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithIndex(i))
+		res[i], err = ec.unmarshalNNewDatasetForNewDataproduct2githubᚗcomᚋnaviktᚋnadaᚑbackendᚋpkgᚋgraphᚋmodelsᚐNewDatasetForNewDataproduct(ctx, vSlice[i])
+		if err != nil {
+			return nil, err
+		}
+	}
+	return res, nil
 }
 
 func (ec *executionContext) unmarshalNNewGrant2githubᚗcomᚋnaviktᚋnadaᚑbackendᚋpkgᚋgraphᚋmodelsᚐNewGrant(ctx context.Context, v interface{}) (models.NewGrant, error) {

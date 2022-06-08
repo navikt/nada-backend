@@ -136,6 +136,25 @@ input NewDataset @goModel(model: "github.com/navikt/nada-backend/pkg/graph/model
     requesters: [String!]
 }
 
+"""
+NewDatasetForNewDataproduct contains metadata for creating a new dataset for a new dataproduct
+"""
+input NewDatasetForNewDataproduct @goModel(model: "github.com/navikt/nada-backend/pkg/graph/models.NewDatasetForNewDataproduct") {
+    "name of dataset"
+    name: String!
+    "description of the dataset"
+    description: String
+    "repo is the url of the repository containing the code to create the dataset"
+    repo: String
+    "pii indicates whether it is personal identifiable information in the dataset"
+    pii: Boolean!
+    "keywords for the dataset used as tags."
+    keywords: [String!]
+    "bigquery contains metadata for the bigquery datasource added to the dataset."
+    bigquery: NewBigQuery!
+    "requesters contains list of users, groups and service accounts which can request access to the dataset"
+    requesters: [String!]
+}
 
 """
 UpdateDataset contains metadata for updating a dataset

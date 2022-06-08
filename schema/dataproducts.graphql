@@ -12,10 +12,6 @@ type Dataproduct @goModel(model: "github.com/navikt/nada-backend/pkg/graph/model
     created: Time!
     "lastModified is the timestamp for when the dataproduct was last modified"
     lastModified: Time!
-    "repo is the url of the repository containing the code to create the dataproduct"
-    repo: String
-    "keywords for the dataproduct used as tags."
-    keywords: [String!]!
     "slug is the dataproduct slug"
     slug: String!
     "owner of the dataproduct. Changes to the dataproduct can only be done by a member of the owner."
@@ -74,14 +70,12 @@ input NewDataproduct @goModel(model: "github.com/navikt/nada-backend/pkg/graph/m
     name: String!
     "description of the dataproduct"
     description: String
-    "repo is the url of the repository containing the code to create the dataproduct"
-    repo: String
-    "keywords for the dataproduct used as tags."
-    keywords: [String!]
     "owner group email for the dataproduct."
     group: String!
     "owner Teamkatalogen URL for the dataproduct."
     teamkatalogenURL: String
+    "datasets to associate with the dataproduct."
+    datasets: [NewDatasetForNewDataproduct!]!
 }
 
 """
@@ -92,12 +86,8 @@ input UpdateDataproduct @goModel(model: "github.com/navikt/nada-backend/pkg/grap
     name: String!
     "description of the dataproduct"
     description: String
-    "repo is the url of the repository containing the code to create the dataproduct"
-    repo: String
     "owner Teamkatalogen URL for the dataproduct."
     teamkatalogenURL: String
-    "keywords for the dataproduct used as tags."
-    keywords: [String!]
 }
 
 extend type Mutation {

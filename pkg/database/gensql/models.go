@@ -80,8 +80,6 @@ type Dataproduct struct {
 	LastModified     time.Time
 	TsvDocument      interface{}
 	Slug             string
-	Repo             sql.NullString
-	Keywords         []string
 	TeamkatalogenUrl sql.NullString
 }
 
