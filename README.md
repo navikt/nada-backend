@@ -46,3 +46,22 @@ make local-with-auth
 ```
 
 Now you can head over to the nada-frontend repository and learn how to start the frontend.
+
+## Deployment
+The application needs two GCP service accounts which are mounted in at runtime from two secrets in Google Secret Manager. These are:
+
+- `nada-backend-google-credentials`
+- `nada-backend-metabase-sa`
+
+The following values used by the application are also stored in Google Secret Manager in the secret `nada-backend`:
+
+```
+CLIENT_ID
+CLIENT_SECRET
+GITHUB_READ_TOKEN
+GOOGLE_ADMIN_IMPERSONATION_SUBJECT
+METABASE_PASSWORD
+METABASE_USERNAME
+SLACK_URL
+```
+
