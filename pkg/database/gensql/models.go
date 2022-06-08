@@ -162,7 +162,7 @@ type Search struct {
 	ElementID    uuid.UUID
 	ElementType  interface{}
 	Description  string
-	Keywords     []string
+	Keywords     interface{}
 	Group        string
 	Created      time.Time
 	LastModified time.Time

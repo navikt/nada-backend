@@ -76,6 +76,7 @@ type NewDatasetForNewDataproduct struct {
 	Bigquery *NewBigQuery `json:"bigquery"`
 	// requesters contains list of users, groups and service accounts which can request access to the dataset
 	Requesters []string `json:"requesters"`
+	Metadata   BigqueryMetadata
 }
 
 type UpdateDataset struct {

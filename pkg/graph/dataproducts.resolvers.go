@@ -5,8 +5,10 @@ package graph
 
 import (
 	"context"
+	"fmt"
 	"html"
 
+	"cloud.google.com/go/bigquery"
 	"github.com/google/uuid"
 	"github.com/navikt/nada-backend/pkg/graph/generated"
 	"github.com/navikt/nada-backend/pkg/graph/models"
@@ -34,6 +36,34 @@ func (r *dataproductResolver) Datasets(ctx context.Context, obj *models.Dataprod
 func (r *mutationResolver) CreateDataproduct(ctx context.Context, input models.NewDataproduct) (*models.Dataproduct, error) {
 	if err := ensureUserInGroup(ctx, input.Group); err != nil {
 		return nil, err
+	}
+
+	if input.Description != nil && *input.Description != "" {
+		*input.Description = html.EscapeString(*input.Description)
+	}
+
+	for i, ds := range input.Datasets {
+		if err := r.ensureUserHasAccessToGcpProject(ctx, ds.Bigquery.ProjectID); err != nil {
+			return nil, err
+		}
+
+		metadata, err := r.bigquery.TableMetadata(ctx, ds.Bigquery.ProjectID, ds.Bigquery.Dataset, ds.Bigquery.Table)
+		if err != nil {
+			return nil, fmt.Errorf("trying to create table %v, but it does not exist in %v.%v",
+				ds.Bigquery.Table, ds.Bigquery.ProjectID, ds.Bigquery.Dataset)
+		}
+
+		switch metadata.TableType {
+		case bigquery.RegularTable:
+		case bigquery.ViewTable:
+			if err := r.accessMgr.AddToAuthorizedViews(ctx, ds.Bigquery.ProjectID, ds.Bigquery.Dataset, ds.Bigquery.Table); err != nil {
+				return nil, err
+			}
+		default:
+			return nil, fmt.Errorf("unsupported table type: %v", metadata.TableType)
+		}
+
+		input.Datasets[i].Metadata = metadata
 	}
 
 	if input.Description != nil && *input.Description != "" {
