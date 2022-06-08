@@ -13621,7 +13621,7 @@ func (ec *executionContext) unmarshalInputNewDatasetForNewDataproduct(ctx contex
 			var err error
 
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("bigquery"))
-			it.Bigquery, err = ec.unmarshalNNewBigQuery2ᚖgithubᚗcomᚋnaviktᚋnadaᚑbackendᚋpkgᚋgraphᚋmodelsᚐNewBigQuery(ctx, v)
+			it.Bigquery, err = ec.unmarshalNNewBigQuery2githubᚗcomᚋnaviktᚋnadaᚑbackendᚋpkgᚋgraphᚋmodelsᚐNewBigQuery(ctx, v)
 			if err != nil {
 				return it, err
 			}
@@ -17283,11 +17283,6 @@ func (ec *executionContext) unmarshalNNewAccessRequest2githubᚗcomᚋnaviktᚋn
 func (ec *executionContext) unmarshalNNewBigQuery2githubᚗcomᚋnaviktᚋnadaᚑbackendᚋpkgᚋgraphᚋmodelsᚐNewBigQuery(ctx context.Context, v interface{}) (models.NewBigQuery, error) {
 	res, err := ec.unmarshalInputNewBigQuery(ctx, v)
 	return res, graphql.ErrorOnPath(ctx, err)
-}
-
-func (ec *executionContext) unmarshalNNewBigQuery2ᚖgithubᚗcomᚋnaviktᚋnadaᚑbackendᚋpkgᚋgraphᚋmodelsᚐNewBigQuery(ctx context.Context, v interface{}) (*models.NewBigQuery, error) {
-	res, err := ec.unmarshalInputNewBigQuery(ctx, v)
-	return &res, graphql.ErrorOnPath(ctx, err)
 }
 
 func (ec *executionContext) unmarshalNNewDataproduct2githubᚗcomᚋnaviktᚋnadaᚑbackendᚋpkgᚋgraphᚋmodelsᚐNewDataproduct(ctx context.Context, v interface{}) (models.NewDataproduct, error) {

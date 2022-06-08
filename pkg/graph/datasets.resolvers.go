@@ -12,7 +12,6 @@ import (
 	"os"
 	"strings"
 
-	"cloud.google.com/go/bigquery"
 	"github.com/google/uuid"
 	"github.com/navikt/nada-backend/pkg/auth"
 	"github.com/navikt/nada-backend/pkg/graph/generated"
@@ -127,24 +126,9 @@ func (r *mutationResolver) CreateDataset(ctx context.Context, input models.NewDa
 		return nil, err
 	}
 
-	if err := r.ensureUserHasAccessToGcpProject(ctx, input.BigQuery.ProjectID); err != nil {
-		return nil, err
-	}
-
-	metadata, err := r.bigquery.TableMetadata(ctx, input.BigQuery.ProjectID, input.BigQuery.Dataset, input.BigQuery.Table)
+	metadata, err := r.prepareBigQuery(ctx, input.BigQuery)
 	if err != nil {
-		return nil, fmt.Errorf("trying to create table %v, but it does not exist in %v.%v",
-			input.BigQuery.Table, input.BigQuery.ProjectID, input.BigQuery.Dataset)
-	}
-
-	switch metadata.TableType {
-	case bigquery.RegularTable:
-	case bigquery.ViewTable:
-		if err := r.accessMgr.AddToAuthorizedViews(ctx, input.BigQuery.ProjectID, input.BigQuery.Dataset, input.BigQuery.Table); err != nil {
-			return nil, err
-		}
-	default:
-		return nil, fmt.Errorf("unsupported table type: %v", metadata.TableType)
+		return nil, err
 	}
 
 	input.Metadata = metadata

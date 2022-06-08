@@ -1,9 +1,20 @@
 {
   dataproduct(id: "{{ .dataproduct_id }}"){
     datasets{
-      id
       name
+      description
       dataproductID
+      keywords
+      repo
+      pii
+      datasource {
+          __typename
+          ...on BigQuery {
+              projectID
+              dataset
+              table
+          }
+      }
     }
   }
 }
@@ -14,9 +25,32 @@ RETURNS
     "dataproduct": {
       "datasets": [
         {
-          "id": "{{ .pii_dataset_id }}",
+          "name": "DatasetCreatedWithDataproduct",
+          "description": "dataset created with dataproduct",
+          "dataproductID": "{{ .dataproduct_id }}",
+          "keywords": ["keyword1", "otherkeyword"],
+          "repo": "somerepo",
+          "pii": false,
+          "datasource": {
+              "__typename": "BigQuery",
+              "projectID": "team-prod-4242",
+              "dataset": "dataset1",
+              "table": "table1"
+          }
+        },
+        {
           "name": "DatasetWithPii",
-          "dataproductID": "{{ .dataproduct_id }}"
+          "description": "Description",
+          "dataproductID": "{{ .dataproduct_id }}",
+          "keywords": [],
+          "repo": "somerepo",
+          "pii": true,
+          "datasource": {
+              "__typename": "BigQuery",
+              "projectID": "team-prod-4242",
+              "dataset": "dataset1",
+              "table": "table1"
+          }
         }
       ]
     }

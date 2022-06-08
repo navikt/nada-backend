@@ -4,7 +4,14 @@ mutation {
 			name: "NewName"
 			description: "New description"
 			group: "nada@nav.no"
-			keywords: ["keyword1", "otherkeyword"]
+			datasets: [{
+                name: "DatasetCreatedWithDataproduct"
+                description: "dataset created with dataproduct"
+			    pii: false
+			    bigquery: { projectID: "team-prod-4242", dataset: "dataset1", table: "table1" }
+                repo: "somerepo"
+                keywords: ["uniquekey1", "uniquekey2"]
+            }]
 		}
 	) {
 		id

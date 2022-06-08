@@ -3,16 +3,20 @@ mutation {
 		input: {
 			name: "NewName"
 			description: "New description"
-			repo: "somerepo"
+            datasets: [{
+                name: "DatasetCreatedWithDataproduct"
+                description: "dataset created with dataproduct"
+			    pii: false
+			    bigquery: { projectID: "team-prod-4242", dataset: "dataset1", table: "table1" }
+                repo: "somerepo"
+                keywords: ["keyword1", "otherkeyword"]
+            }]
 			group: "nada@nav.no"
-			keywords: ["keyword1", "otherkeyword"]
 		}
 	) {
 		id
 		name
 		description
-		repo
-		keywords
         owner {
             group
         }
@@ -29,14 +33,9 @@ ENDOPTS
     "createDataproduct": {
       "name": "NewName",
       "description": "New description",
-      "keywords": [
-        "keyword1",
-        "otherkeyword"
-      ],
       "owner": {
         "group": "nada@nav.no"
-      },
-      "repo": "somerepo"
+      }
     }
   }
 }

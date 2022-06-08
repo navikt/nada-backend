@@ -4,6 +4,11 @@ mutation {
 			name: "NewName"
 			description: "New description"
 			group: "nada@nav.no"
+            datasets: [{
+                name: "FirstDataset"
+			    pii: false
+			    bigquery: { projectID: "team-prod-4242", dataset: "dataset1", table: "table1" }
+            }]
 		}
 	) {
 		id

@@ -5,10 +5,8 @@ package graph
 
 import (
 	"context"
-	"fmt"
 	"html"
 
-	"cloud.google.com/go/bigquery"
 	"github.com/google/uuid"
 	"github.com/navikt/nada-backend/pkg/graph/generated"
 	"github.com/navikt/nada-backend/pkg/graph/models"
@@ -43,36 +41,23 @@ func (r *mutationResolver) CreateDataproduct(ctx context.Context, input models.N
 	}
 
 	for i, ds := range input.Datasets {
-		if err := r.ensureUserHasAccessToGcpProject(ctx, ds.Bigquery.ProjectID); err != nil {
+		metadata, err := r.prepareBigQuery(ctx, ds.Bigquery)
+		if err != nil {
 			return nil, err
 		}
 
-		metadata, err := r.bigquery.TableMetadata(ctx, ds.Bigquery.ProjectID, ds.Bigquery.Dataset, ds.Bigquery.Table)
-		if err != nil {
-			return nil, fmt.Errorf("trying to create table %v, but it does not exist in %v.%v",
-				ds.Bigquery.Table, ds.Bigquery.ProjectID, ds.Bigquery.Dataset)
-		}
-
-		switch metadata.TableType {
-		case bigquery.RegularTable:
-		case bigquery.ViewTable:
-			if err := r.accessMgr.AddToAuthorizedViews(ctx, ds.Bigquery.ProjectID, ds.Bigquery.Dataset, ds.Bigquery.Table); err != nil {
-				return nil, err
-			}
-		default:
-			return nil, fmt.Errorf("unsupported table type: %v", metadata.TableType)
-		}
-
 		input.Datasets[i].Metadata = metadata
+
+		if input.Datasets[i].Description != nil && *input.Datasets[i].Description != "" {
+			*input.Datasets[i].Description = html.EscapeString(*input.Datasets[i].Description)
+		}
 	}
 
-	if input.Description != nil && *input.Description != "" {
-		*input.Description = html.EscapeString(*input.Description)
-	}
 	dp, err := r.repo.CreateDataproduct(ctx, input)
 	if err != nil {
 		return nil, err
 	}
+
 	err = r.slack.NewDataproduct(dp)
 	if err != nil {
 		log.Errorf("failed to send slack notification: %v", err)

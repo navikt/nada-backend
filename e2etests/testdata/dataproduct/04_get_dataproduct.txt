@@ -4,8 +4,6 @@
 	) {
 		name
 		description
-		repo
-		keywords
         owner {
             group
         }
@@ -18,11 +16,6 @@ RETURNS
     "dataproduct": {
       "name": "Updated Name",
       "description": "Updated description",
-      "keywords": [
-        "keyword1",
-        "keyword2"
-      ],
-      "repo": "someotherrepo",
       "owner": {
         "group": "nada@nav.no"
       }

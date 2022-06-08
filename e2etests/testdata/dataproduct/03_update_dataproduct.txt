@@ -4,14 +4,10 @@ mutation {
 		input: {
 			name: "Updated Name"
 			description: "Updated description"
-			repo: "someotherrepo"
-			keywords: ["keyword1", "keyword2"]
 		}
 	) {
 		name
 		description
-		repo
-		keywords
         owner {
             group
         }
@@ -25,11 +21,6 @@ RETURNS
     "updateDataproduct": {
       "name": "Updated Name",
       "description": "Updated description",
-      "keywords": [
-        "keyword1",
-        "keyword2"
-      ],
-      "repo": "someotherrepo",
       "owner": {
         "group": "nada@nav.no"
       }

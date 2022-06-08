@@ -11,11 +11,11 @@ RETURNS
   "data": {
     "keywords": [
 			{
-				"keyword": "keyword1",
+				"keyword": "uniquekey2",
 				"count": 1
 			},
 			{
-				"keyword": "otherkeyword",
+				"keyword": "uniquekey1",
 				"count": 1
 			}
 		]

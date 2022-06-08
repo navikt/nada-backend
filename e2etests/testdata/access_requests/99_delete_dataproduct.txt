@@ -1,0 +1,13 @@
+mutation {
+	deleteDataproduct(
+		id: "{{ .dataproduct_id }}"
+	)
+}
+
+RETURNS
+
+{
+  "data": {
+    "deleteDataproduct": true
+  }
+}

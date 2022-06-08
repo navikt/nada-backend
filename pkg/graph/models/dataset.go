@@ -62,21 +62,14 @@ type NewDataset struct {
 
 // NewDatasetForNewDataproduct contains metadata for creating a new dataset for a new dataproduct
 type NewDatasetForNewDataproduct struct {
-	// name of dataset
-	Name string `json:"name"`
-	// description of the dataset
-	Description *string `json:"description"`
-	// repo is the url of the repository containing the code to create the dataset
-	Repo *string `json:"repo"`
-	// pii indicates whether it is personal identifiable information in the dataset
-	Pii bool `json:"pii"`
-	// keywords for the dataset used as tags.
-	Keywords []string `json:"keywords"`
-	// bigquery contains metadata for the bigquery datasource added to the dataset.
-	Bigquery *NewBigQuery `json:"bigquery"`
-	// requesters contains list of users, groups and service accounts which can request access to the dataset
-	Requesters []string `json:"requesters"`
-	Metadata   BigqueryMetadata
+	Name        string      `json:"name"`
+	Description *string     `json:"description"`
+	Repo        *string     `json:"repo"`
+	Pii         bool        `json:"pii"`
+	Keywords    []string    `json:"keywords"`
+	Bigquery    NewBigQuery `json:"bigquery"`
+	Requesters  []string    `json:"requesters"`
+	Metadata    BigqueryMetadata
 }
 
 type UpdateDataset struct {

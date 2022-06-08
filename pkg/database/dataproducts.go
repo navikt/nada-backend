@@ -73,7 +73,7 @@ func (r *Repo) CreateDataproduct(ctx context.Context, dp models.NewDataproduct) 
 	})
 	if err != nil {
 		if err := tx.Rollback(); err != nil {
-			r.log.WithError(err).Error("Rolling back dataproduct creation")
+			r.log.WithError(err).Error("rolling back dataproduct creation")
 		}
 		return nil, err
 	}
@@ -95,7 +95,7 @@ func (r *Repo) CreateDataproduct(ctx context.Context, dp models.NewDataproduct) 
 		})
 		if err != nil {
 			if err := tx.Rollback(); err != nil {
-				r.log.WithError(err).Error("Rolling back dataset creation")
+				r.log.WithError(err).Error("rolling back dataset creation")
 			}
 			return nil, err
 		}
@@ -104,8 +104,6 @@ func (r *Repo) CreateDataproduct(ctx context.Context, dp models.NewDataproduct) 
 		if err != nil {
 			return nil, fmt.Errorf("marshalling schema: %w", err)
 		}
-
-		fmt.Println(string(schemaJSON))
 
 		_, err = querier.CreateBigqueryDatasource(ctx, gensql.CreateBigqueryDatasourceParams{
 			DatasetID:    dataset.ID,
@@ -120,7 +118,7 @@ func (r *Repo) CreateDataproduct(ctx context.Context, dp models.NewDataproduct) 
 		})
 		if err != nil {
 			if err := tx.Rollback(); err != nil {
-				r.log.WithError(err).Error("Rolling back dataset and datasource_bigquery transaction")
+				r.log.WithError(err).Error("rolling back datasource_bigquery creation")
 			}
 			return nil, err
 		}
