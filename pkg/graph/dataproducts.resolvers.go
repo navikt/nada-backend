@@ -13,6 +13,20 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
+func (r *dataproductResolver) Keywords(ctx context.Context, obj *models.Dataproduct) ([]string, error) {
+	datasets, err := r.repo.GetDatasetsInDataproduct(ctx, obj.ID)
+	if err != nil {
+		return nil, err
+	}
+
+	keywords := []string{}
+	for _, ds := range datasets {
+		keywords = append(keywords, ds.Keywords...)
+	}
+
+	return keywords, nil
+}
+
 func (r *dataproductResolver) Datasets(ctx context.Context, obj *models.Dataproduct) ([]*models.Dataset, error) {
 	return r.repo.GetDatasetsInDataproduct(ctx, obj.ID)
 }

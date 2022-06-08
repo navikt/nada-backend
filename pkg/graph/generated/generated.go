@@ -103,6 +103,7 @@ type ComplexityRoot struct {
 		Datasets     func(childComplexity int) int
 		Description  func(childComplexity int) int
 		ID           func(childComplexity int) int
+		Keywords     func(childComplexity int) int
 		LastModified func(childComplexity int) int
 		Name         func(childComplexity int) int
 		Owner        func(childComplexity int) int
@@ -285,6 +286,7 @@ type BigQueryResolver interface {
 	Schema(ctx context.Context, obj *models.BigQuery) ([]*models.TableColumn, error)
 }
 type DataproductResolver interface {
+	Keywords(ctx context.Context, obj *models.Dataproduct) ([]string, error)
 	Datasets(ctx context.Context, obj *models.Dataproduct) ([]*models.Dataset, error)
 }
 type DatasetResolver interface {
@@ -617,6 +619,13 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 		}
 
 		return e.complexity.Dataproduct.ID(childComplexity), true
+
+	case "Dataproduct.keywords":
+		if e.complexity.Dataproduct.Keywords == nil {
+			break
+		}
+
+		return e.complexity.Dataproduct.Keywords(childComplexity), true
 
 	case "Dataproduct.lastModified":
 		if e.complexity.Dataproduct.LastModified == nil {
@@ -1860,6 +1869,8 @@ type Dataproduct @goModel(model: "github.com/navikt/nada-backend/pkg/graph/model
     slug: String!
     "owner of the dataproduct. Changes to the dataproduct can only be done by a member of the owner."
     owner: Owner!
+    "keywords is the keyword tags for the datasets in the dataproduct."
+    keywords: [String!]!
     "datasets is the list of associated datasets."
     datasets: [Dataset!]!
 }
@@ -5121,6 +5132,50 @@ func (ec *executionContext) fieldContext_Dataproduct_owner(ctx context.Context, 
 	return fc, nil
 }
 
+func (ec *executionContext) _Dataproduct_keywords(ctx context.Context, field graphql.CollectedField, obj *models.Dataproduct) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_Dataproduct_keywords(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.Dataproduct().Keywords(rctx, obj)
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.([]string)
+	fc.Result = res
+	return ec.marshalNString2ᚕstringᚄ(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_Dataproduct_keywords(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Dataproduct",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
 func (ec *executionContext) _Dataproduct_datasets(ctx context.Context, field graphql.CollectedField, obj *models.Dataproduct) (ret graphql.Marshaler) {
 	fc, err := ec.fieldContext_Dataproduct_datasets(ctx, field)
 	if err != nil {
@@ -7060,6 +7115,8 @@ func (ec *executionContext) fieldContext_Mutation_createDataproduct(ctx context.
 				return ec.fieldContext_Dataproduct_slug(ctx, field)
 			case "owner":
 				return ec.fieldContext_Dataproduct_owner(ctx, field)
+			case "keywords":
+				return ec.fieldContext_Dataproduct_keywords(ctx, field)
 			case "datasets":
 				return ec.fieldContext_Dataproduct_datasets(ctx, field)
 			}
@@ -7153,6 +7210,8 @@ func (ec *executionContext) fieldContext_Mutation_updateDataproduct(ctx context.
 				return ec.fieldContext_Dataproduct_slug(ctx, field)
 			case "owner":
 				return ec.fieldContext_Dataproduct_owner(ctx, field)
+			case "keywords":
+				return ec.fieldContext_Dataproduct_keywords(ctx, field)
 			case "datasets":
 				return ec.fieldContext_Dataproduct_datasets(ctx, field)
 			}
@@ -8332,6 +8391,8 @@ func (ec *executionContext) fieldContext_Query_dataproduct(ctx context.Context, 
 				return ec.fieldContext_Dataproduct_slug(ctx, field)
 			case "owner":
 				return ec.fieldContext_Dataproduct_owner(ctx, field)
+			case "keywords":
+				return ec.fieldContext_Dataproduct_keywords(ctx, field)
 			case "datasets":
 				return ec.fieldContext_Dataproduct_datasets(ctx, field)
 			}
@@ -8405,6 +8466,8 @@ func (ec *executionContext) fieldContext_Query_dataproducts(ctx context.Context,
 				return ec.fieldContext_Dataproduct_slug(ctx, field)
 			case "owner":
 				return ec.fieldContext_Dataproduct_owner(ctx, field)
+			case "keywords":
+				return ec.fieldContext_Dataproduct_keywords(ctx, field)
 			case "datasets":
 				return ec.fieldContext_Dataproduct_datasets(ctx, field)
 			}
@@ -11291,6 +11354,8 @@ func (ec *executionContext) fieldContext_UserInfo_dataproducts(ctx context.Conte
 				return ec.fieldContext_Dataproduct_slug(ctx, field)
 			case "owner":
 				return ec.fieldContext_Dataproduct_owner(ctx, field)
+			case "keywords":
+				return ec.fieldContext_Dataproduct_keywords(ctx, field)
 			case "datasets":
 				return ec.fieldContext_Dataproduct_datasets(ctx, field)
 			}
@@ -11353,6 +11418,8 @@ func (ec *executionContext) fieldContext_UserInfo_accessable(ctx context.Context
 				return ec.fieldContext_Dataproduct_slug(ctx, field)
 			case "owner":
 				return ec.fieldContext_Dataproduct_owner(ctx, field)
+			case "keywords":
+				return ec.fieldContext_Dataproduct_keywords(ctx, field)
 			case "datasets":
 				return ec.fieldContext_Dataproduct_datasets(ctx, field)
 			}
@@ -14422,6 +14489,26 @@ func (ec *executionContext) _Dataproduct(ctx context.Context, sel ast.SelectionS
 			if out.Values[i] == graphql.Null {
 				atomic.AddUint32(&invalids, 1)
 			}
+		case "keywords":
+			field := field
+
+			innerFunc := func(ctx context.Context) (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._Dataproduct_keywords(ctx, field, obj)
+				if res == graphql.Null {
+					atomic.AddUint32(&invalids, 1)
+				}
+				return res
+			}
+
+			out.Concurrently(i, func() graphql.Marshaler {
+				return innerFunc(ctx)
+
+			})
 		case "datasets":
 			field := field
 
