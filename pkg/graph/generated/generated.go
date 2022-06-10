@@ -2023,7 +2023,7 @@ type Dataset @goModel(model: "github.com/navikt/nada-backend/pkg/graph/models.Da
     "datasource contains metadata on the datasource"
     datasource: Datasource!
     "access contains list of users, groups and service accounts which have access to the dataset"
-    access: [Access!]! @authenticated
+    access: [Access!]!
     "services contains links to this dataset in other services"
     services: DatasetServices!
     "mappings services a dataset is exposed to"
@@ -5831,28 +5831,8 @@ func (ec *executionContext) _Dataset_access(ctx context.Context, field graphql.C
 		}
 	}()
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
-		directive0 := func(rctx context.Context) (interface{}, error) {
-			ctx = rctx // use context from middleware stack in children
-			return ec.resolvers.Dataset().Access(rctx, obj)
-		}
-		directive1 := func(ctx context.Context) (interface{}, error) {
-			if ec.directives.Authenticated == nil {
-				return nil, errors.New("directive authenticated is not implemented")
-			}
-			return ec.directives.Authenticated(ctx, obj, directive0, nil)
-		}
-
-		tmp, err := directive1(rctx)
-		if err != nil {
-			return nil, graphql.ErrorOnPath(ctx, err)
-		}
-		if tmp == nil {
-			return nil, nil
-		}
-		if data, ok := tmp.([]*models.Access); ok {
-			return data, nil
-		}
-		return nil, fmt.Errorf(`unexpected type %T from directive, should be []*github.com/navikt/nada-backend/pkg/graph/models.Access`, tmp)
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.Dataset().Access(rctx, obj)
 	})
 	if err != nil {
 		ec.Error(ctx, err)

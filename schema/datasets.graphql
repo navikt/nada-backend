@@ -27,7 +27,7 @@ type Dataset @goModel(model: "github.com/navikt/nada-backend/pkg/graph/models.Da
     "datasource contains metadata on the datasource"
     datasource: Datasource!
     "access contains list of users, groups and service accounts which have access to the dataset"
-    access: [Access!]! @authenticated
+    access: [Access!]!
     "services contains links to this dataset in other services"
     services: DatasetServices!
     "mappings services a dataset is exposed to"
