@@ -222,11 +222,17 @@ func (r *queryResolver) AccessRequestsForDataset(ctx context.Context, datasetID 
 	return r.repo.ListAccessRequestsForDataset(ctx, datasetID)
 }
 
+func (r *queryResolver) DatasetsInDataproduct(ctx context.Context, dataproductID uuid.UUID) ([]*models.Dataset, error) {
+	return r.repo.GetDatasetsInDataproduct(ctx, dataproductID)
+}
+
 // BigQuery returns generated.BigQueryResolver implementation.
 func (r *Resolver) BigQuery() generated.BigQueryResolver { return &bigQueryResolver{r} }
 
 // Dataset returns generated.DatasetResolver implementation.
 func (r *Resolver) Dataset() generated.DatasetResolver { return &datasetResolver{r} }
 
-type bigQueryResolver struct{ *Resolver }
-type datasetResolver struct{ *Resolver }
+type (
+	bigQueryResolver struct{ *Resolver }
+	datasetResolver  struct{ *Resolver }
+)
