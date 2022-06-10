@@ -45,12 +45,16 @@ func (r *datasetResolver) Access(ctx context.Context, obj *models.Dataset) ([]*m
 		return nil, err
 	}
 
+	var ret []*models.Access
+
 	user := auth.GetUser(ctx)
+	if user == nil {
+		return ret, nil
+	}
 	if user.Groups.Contains(dp.Owner.Group) {
 		return all, nil
 	}
 
-	var ret []*models.Access
 	for _, a := range all {
 		if strings.EqualFold(a.Subject, "user:"+user.Email) {
 			ret = append(ret, a)
@@ -232,5 +236,7 @@ func (r *Resolver) BigQuery() generated.BigQueryResolver { return &bigQueryResol
 // Dataset returns generated.DatasetResolver implementation.
 func (r *Resolver) Dataset() generated.DatasetResolver { return &datasetResolver{r} }
 
-type bigQueryResolver struct{ *Resolver }
-type datasetResolver struct{ *Resolver }
+type (
+	bigQueryResolver struct{ *Resolver }
+	datasetResolver  struct{ *Resolver }
+)
