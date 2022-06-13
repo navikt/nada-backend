@@ -154,6 +154,7 @@ type ComplexityRoot struct {
 		PublishStory                   func(childComplexity int, input models.NewStory) int
 		RemoveRequesterFromDataproduct func(childComplexity int, dataproductID uuid.UUID, subject string) int
 		RevokeAccessToDataproduct      func(childComplexity int, id uuid.UUID) int
+		TriggerMetadataSync            func(childComplexity int) int
 		UpdateAccessRequest            func(childComplexity int, input models.UpdateAccessRequest) int
 		UpdateDataproduct              func(childComplexity int, id uuid.UUID, input models.UpdateDataproduct) int
 		UpdateStoryMetadata            func(childComplexity int, id uuid.UUID, name string, keywords []string, teamkatalogenURL *string) int
@@ -291,6 +292,7 @@ type MutationResolver interface {
 	DeleteAccessRequest(ctx context.Context, id uuid.UUID) (bool, error)
 	ApproveAccessRequest(ctx context.Context, id uuid.UUID) (bool, error)
 	DenyAccessRequest(ctx context.Context, id uuid.UUID, reason *string) (bool, error)
+	TriggerMetadataSync(ctx context.Context) (bool, error)
 	PublishStory(ctx context.Context, input models.NewStory) (*models.GraphStory, error)
 	UpdateStoryMetadata(ctx context.Context, id uuid.UUID, name string, keywords []string, teamkatalogenURL *string) (*models.GraphStory, error)
 	DeleteStory(ctx context.Context, id uuid.UUID) (bool, error)
@@ -903,6 +905,13 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 		}
 
 		return e.complexity.Mutation.RevokeAccessToDataproduct(childComplexity, args["id"].(uuid.UUID)), true
+
+	case "Mutation.triggerMetadataSync":
+		if e.complexity.Mutation.TriggerMetadataSync == nil {
+			break
+		}
+
+		return e.complexity.Mutation.TriggerMetadataSync(childComplexity), true
 
 	case "Mutation.updateAccessRequest":
 		if e.complexity.Mutation.UpdateAccessRequest == nil {
@@ -2132,6 +2141,9 @@ type Mutation {
 	dummy(no: String): String
 }
 `, BuiltIn: false},
+	{Name: "../../../schema/metadata.graphql", Input: `extend type Mutation {
+    triggerMetadataSync: Boolean!
+}`, BuiltIn: false},
 	{Name: "../../../schema/polly.graphql", Input: `type Polly @goModel(model: "github.com/navikt/nada-backend/pkg/graph/models.Polly") {
     "database id"
     id: ID!
@@ -6860,6 +6872,50 @@ func (ec *executionContext) fieldContext_Mutation_denyAccessRequest(ctx context.
 	if fc.Args, err = ec.field_Mutation_denyAccessRequest_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
 		ec.Error(ctx, err)
 		return
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Mutation_triggerMetadataSync(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_Mutation_triggerMetadataSync(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.Mutation().TriggerMetadataSync(rctx)
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(bool)
+	fc.Result = res
+	return ec.marshalNBoolean2bool(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_Mutation_triggerMetadataSync(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Mutation",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Boolean does not have child fields")
+		},
 	}
 	return fc, nil
 }
@@ -13927,6 +13983,15 @@ func (ec *executionContext) _Mutation(ctx context.Context, sel ast.SelectionSet)
 
 			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
 				return ec._Mutation_denyAccessRequest(ctx, field)
+			})
+
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
+		case "triggerMetadataSync":
+
+			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
+				return ec._Mutation_triggerMetadataSync(ctx, field)
 			})
 
 			if out.Values[i] == graphql.Null {
