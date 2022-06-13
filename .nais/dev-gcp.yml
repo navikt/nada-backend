@@ -58,6 +58,7 @@ spec:
     inbound:
       rules:
         - application: nada-frontend
+        - application: nada-datasetenricher
     outbound:
       rules:
         - application: nada-metabase
