@@ -40,11 +40,10 @@ var (
 )
 
 const (
-	TeamProjectsUpdateFrequency    = 5 * time.Minute
-	DatasetMetadataUpdateFrequency = 1 * time.Hour
-	AccessEnsurerFrequency         = 5 * time.Minute
-	MetabaseUpdateFrequency        = 5 * time.Minute
-	StoryDraftCleanerFrequency     = 24 * time.Hour
+	TeamProjectsUpdateFrequency = 5 * time.Minute
+	AccessEnsurerFrequency      = 5 * time.Minute
+	MetabaseUpdateFrequency     = 5 * time.Minute
+	StoryDraftCleanerFrequency  = 24 * time.Hour
 )
 
 func init() {
@@ -128,8 +127,6 @@ func main() {
 		}
 
 		gcp = datacatalogClient
-		de := bigquery.NewDatasetEnricher(datacatalogClient, repo, log.WithField("subsystem", "datasetenricher"))
-		go de.Run(ctx, DatasetMetadataUpdateFrequency)
 	}
 
 	go story.NewDraftCleaner(repo, log.WithField("subsystem", "storydraftcleaner")).Run(ctx, StoryDraftCleanerFrequency)
