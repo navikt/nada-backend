@@ -59,6 +59,7 @@ spec:
       rules:
         - application: nada-frontend
         - application: nada-datasetenricher
+        - application: metrics-markedsplassen
     outbound:
       rules:
         - application: nada-metabase
