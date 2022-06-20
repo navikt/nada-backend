@@ -363,6 +363,21 @@ func (r *mutationResolver) ApproveAccessRequest(ctx context.Context, id uuid.UUI
 		return false, err
 	}
 
+	if dp.Pii && ar.Subject == "all-users@nav.no" {
+		return false, fmt.Errorf("not allowed to grant all-users access to dataproduct containing pii")
+	}
+
+	ds, err := r.repo.GetBigqueryDatasource(ctx, dp.ID)
+	if err != nil {
+		return false, err
+	}
+
+	subjWithType := ar.SubjectType.String() + ":" + ar.Subject
+
+	if err := r.accessMgr.Grant(ctx, ds.ProjectID, ds.Dataset, ds.Table, subjWithType); err != nil {
+		return false, err
+	}
+
 	user := auth.GetUser(ctx)
 	if err := r.repo.ApproveAccessRequest(ctx, id, user.Email); err != nil {
 		return false, err
@@ -439,5 +454,7 @@ func (r *Resolver) BigQuery() generated.BigQueryResolver { return &bigQueryResol
 // Dataproduct returns generated.DataproductResolver implementation.
 func (r *Resolver) Dataproduct() generated.DataproductResolver { return &dataproductResolver{r} }
 
-type bigQueryResolver struct{ *Resolver }
-type dataproductResolver struct{ *Resolver }
+type (
+	bigQueryResolver    struct{ *Resolver }
+	dataproductResolver struct{ *Resolver }
+)
