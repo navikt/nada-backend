@@ -37,6 +37,19 @@ type SearchQuery struct {
 	Offset *int `json:"offset"`
 }
 
+type SimpleSearchQuery struct {
+	// Use OR as a keyword for the OR operator. Example "night OR day"
+	Text *string `json:"text"`
+	// keyword filters results on the keyword.
+	Keyword *string `json:"keyword"`
+	// group filters results on the group.
+	Group *string `json:"group"`
+	// limit the number of returned search results.
+	Limit *int `json:"limit"`
+	// offset the list of returned search results. Used as pagination with PAGE-INDEX * limit.
+	Offset *int `json:"offset"`
+}
+
 type SearchResultRow struct {
 	Excerpt string       `json:"excerpt"`
 	Result  SearchResult `json:"result"`

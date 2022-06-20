@@ -75,6 +75,7 @@ type Querier interface {
 	RevokeAccessToDataproduct(ctx context.Context, id uuid.UUID) error
 	Search(ctx context.Context, arg SearchParams) ([]SearchRow, error)
 	SetPermissionGroupMetabaseMetadata(ctx context.Context, arg SetPermissionGroupMetabaseMetadataParams) error
+	SimpleSearch(ctx context.Context, arg SimpleSearchParams) ([]SimpleSearchRow, error)
 	SoftDeleteMetabaseMetadata(ctx context.Context, dataproductID uuid.UUID) error
 	UpdateAccessRequest(ctx context.Context, arg UpdateAccessRequestParams) (DataproductAccessRequest, error)
 	UpdateBigqueryDatasourceSchema(ctx context.Context, arg UpdateBigqueryDatasourceSchemaParams) error
