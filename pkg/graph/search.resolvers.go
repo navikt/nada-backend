@@ -35,6 +35,27 @@ func (r *queryResolver) Search(ctx context.Context, q *models.SearchQueryOld, op
 	return r.repo.Search(ctx, options)
 }
 
+func (r *queryResolver) SimpleSearch(ctx context.Context, q *models.SimpleSearchQuery, options *models.SearchQuery) ([]*models.SearchResultRow, error) {
+	//if options == nil {
+	options = &models.SearchQuery{
+		Text:   q.Text,
+		Limit:  q.Limit,
+		Offset: q.Offset,
+		Types: []models.SearchType{
+			models.SearchTypeDataproduct,
+		},
+	}
+
+	if q.Keyword != nil {
+		options.Keywords = []string{*q.Keyword}
+	}
+	if q.Group != nil {
+		options.Groups = []string{*q.Group}
+	}
+	//}
+	return r.repo.SimpleSearch(ctx, options)
+}
+
 func (r *searchResultRowResolver) Excerpt(ctx context.Context, obj *models.SearchResultRow) (string, error) {
 	return stripmd.Strip(obj.Excerpt), nil
 }

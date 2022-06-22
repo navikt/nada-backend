@@ -183,6 +183,7 @@ type ComplexityRoot struct {
 		Keywords                     func(childComplexity int, prefix *string) int
 		Polly                        func(childComplexity int, q string) int
 		Search                       func(childComplexity int, q *models.SearchQueryOld, options *models.SearchQuery) int
+		SimpleSearch                 func(childComplexity int, q *models.SimpleSearchQuery, options *models.SearchQuery) int
 		Stories                      func(childComplexity int, draft *bool) int
 		Story                        func(childComplexity int, id uuid.UUID, draft *bool) int
 		StoryToken                   func(childComplexity int, id uuid.UUID) int
@@ -309,6 +310,7 @@ type QueryResolver interface {
 	Keywords(ctx context.Context, prefix *string) ([]*models.Keyword, error)
 	Polly(ctx context.Context, q string) ([]*models.QueryPolly, error)
 	Search(ctx context.Context, q *models.SearchQueryOld, options *models.SearchQuery) ([]*models.SearchResultRow, error)
+	SimpleSearch(ctx context.Context, q *models.SimpleSearchQuery, options *models.SearchQuery) ([]*models.SearchResultRow, error)
 	Stories(ctx context.Context, draft *bool) ([]*models.GraphStory, error)
 	Story(ctx context.Context, id uuid.UUID, draft *bool) (*models.GraphStory, error)
 	StoryView(ctx context.Context, id uuid.UUID, draft *bool) (models.GraphStoryView, error)
@@ -1111,6 +1113,18 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.Query.Search(childComplexity, args["q"].(*models.SearchQueryOld), args["options"].(*models.SearchQuery)), true
 
+	case "Query.simpleSearch":
+		if e.complexity.Query.SimpleSearch == nil {
+			break
+		}
+
+		args, err := ec.field_Query_simpleSearch_args(context.TODO(), rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Query.SimpleSearch(childComplexity, args["q"].(*models.SimpleSearchQuery), args["options"].(*models.SearchQuery)), true
+
 	case "Query.stories":
 		if e.complexity.Query.Stories == nil {
 			break
@@ -1488,6 +1502,7 @@ func (e *executableSchema) Exec(ctx context.Context) graphql.ResponseHandler {
 		ec.unmarshalInputPollyInput,
 		ec.unmarshalInputSearchOptions,
 		ec.unmarshalInputSearchQuery,
+		ec.unmarshalInputSimpleSearchQuery,
 		ec.unmarshalInputUpdateAccessRequest,
 		ec.unmarshalInputUpdateDataproduct,
 	)
@@ -2226,6 +2241,31 @@ input SearchQuery @goModel(model: "github.com/navikt/nada-backend/pkg/graph/mode
     offset: Int
 }
 
+input SimpleSearchQuery @goModel(model: "github.com/navikt/nada-backend/pkg/graph/models.SimpleSearchQuery") {
+    """
+    text is used as freetext search.
+
+    Use " to identify phrases. Example: "hello world"
+
+    Use - to exclude words. Example "include this -exclude -those"
+
+    Use OR as a keyword for the OR operator. Example "night OR day"
+    """
+    text: String
+
+    "keyword filters results on the keyword."
+    keyword: String
+
+    "group filters results on the group."
+    group: String
+
+    "limit the number of returned search results."
+    limit: Int
+
+    "offset the list of returned search results. Used as pagination with PAGE-INDEX * limit."
+    offset: Int
+}
+
 input SearchOptions @goModel(model: "github.com/navikt/nada-backend/pkg/graph/models.SearchQuery") {
     """
     text is used as freetext search.
@@ -2265,6 +2305,11 @@ extend type Query {
         "options is the search options."
         options: SearchOptions
     ): [SearchResultRow!]!
+
+    simpleSearch(
+        q: SimpleSearchQuery
+        options: SearchOptions
+    ): [SearchResultRow]!
 }
 `, BuiltIn: false},
 	{Name: "../../../schema/story.graphql", Input: `"""
@@ -3049,6 +3094,30 @@ func (ec *executionContext) field_Query_search_args(ctx context.Context, rawArgs
 	if tmp, ok := rawArgs["q"]; ok {
 		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("q"))
 		arg0, err = ec.unmarshalOSearchQuery2ᚖgithubᚗcomᚋnaviktᚋnadaᚑbackendᚋpkgᚋgraphᚋmodelsᚐSearchQueryOld(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["q"] = arg0
+	var arg1 *models.SearchQuery
+	if tmp, ok := rawArgs["options"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("options"))
+		arg1, err = ec.unmarshalOSearchOptions2ᚖgithubᚗcomᚋnaviktᚋnadaᚑbackendᚋpkgᚋgraphᚋmodelsᚐSearchQuery(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["options"] = arg1
+	return args, nil
+}
+
+func (ec *executionContext) field_Query_simpleSearch_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
+	var err error
+	args := map[string]interface{}{}
+	var arg0 *models.SimpleSearchQuery
+	if tmp, ok := rawArgs["q"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("q"))
+		arg0, err = ec.unmarshalOSimpleSearchQuery2ᚖgithubᚗcomᚋnaviktᚋnadaᚑbackendᚋpkgᚋgraphᚋmodelsᚐSimpleSearchQuery(ctx, tmp)
 		if err != nil {
 			return nil, err
 		}
@@ -8264,6 +8333,67 @@ func (ec *executionContext) fieldContext_Query_search(ctx context.Context, field
 	return fc, nil
 }
 
+func (ec *executionContext) _Query_simpleSearch(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_Query_simpleSearch(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.Query().SimpleSearch(rctx, fc.Args["q"].(*models.SimpleSearchQuery), fc.Args["options"].(*models.SearchQuery))
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.([]*models.SearchResultRow)
+	fc.Result = res
+	return ec.marshalNSearchResultRow2ᚕᚖgithubᚗcomᚋnaviktᚋnadaᚑbackendᚋpkgᚋgraphᚋmodelsᚐSearchResultRow(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_Query_simpleSearch(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Query",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "excerpt":
+				return ec.fieldContext_SearchResultRow_excerpt(ctx, field)
+			case "result":
+				return ec.fieldContext_SearchResultRow_result(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type SearchResultRow", field.Name)
+		},
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			err = ec.Recover(ctx, r)
+			ec.Error(ctx, err)
+		}
+	}()
+	ctx = graphql.WithFieldContext(ctx, fc)
+	if fc.Args, err = ec.field_Query_simpleSearch_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+		ec.Error(ctx, err)
+		return
+	}
+	return fc, nil
+}
+
 func (ec *executionContext) _Query_stories(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
 	fc, err := ec.fieldContext_Query_stories(ctx, field)
 	if err != nil {
@@ -13000,6 +13130,61 @@ func (ec *executionContext) unmarshalInputSearchQuery(ctx context.Context, obj i
 	return it, nil
 }
 
+func (ec *executionContext) unmarshalInputSimpleSearchQuery(ctx context.Context, obj interface{}) (models.SimpleSearchQuery, error) {
+	var it models.SimpleSearchQuery
+	asMap := map[string]interface{}{}
+	for k, v := range obj.(map[string]interface{}) {
+		asMap[k] = v
+	}
+
+	for k, v := range asMap {
+		switch k {
+		case "text":
+			var err error
+
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("text"))
+			it.Text, err = ec.unmarshalOString2ᚖstring(ctx, v)
+			if err != nil {
+				return it, err
+			}
+		case "keyword":
+			var err error
+
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("keyword"))
+			it.Keyword, err = ec.unmarshalOString2ᚖstring(ctx, v)
+			if err != nil {
+				return it, err
+			}
+		case "group":
+			var err error
+
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("group"))
+			it.Group, err = ec.unmarshalOString2ᚖstring(ctx, v)
+			if err != nil {
+				return it, err
+			}
+		case "limit":
+			var err error
+
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("limit"))
+			it.Limit, err = ec.unmarshalOInt2ᚖint(ctx, v)
+			if err != nil {
+				return it, err
+			}
+		case "offset":
+			var err error
+
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("offset"))
+			it.Offset, err = ec.unmarshalOInt2ᚖint(ctx, v)
+			if err != nil {
+				return it, err
+			}
+		}
+	}
+
+	return it, nil
+}
+
 func (ec *executionContext) unmarshalInputUpdateAccessRequest(ctx context.Context, obj interface{}) (models.UpdateAccessRequest, error) {
 	var it models.UpdateAccessRequest
 	asMap := map[string]interface{}{}
@@ -14375,6 +14560,29 @@ func (ec *executionContext) _Query(ctx context.Context, sel ast.SelectionSet) gr
 					}
 				}()
 				res = ec._Query_search(ctx, field)
+				if res == graphql.Null {
+					atomic.AddUint32(&invalids, 1)
+				}
+				return res
+			}
+
+			rrm := func(ctx context.Context) graphql.Marshaler {
+				return ec.OperationContext.RootResolverMiddleware(ctx, innerFunc)
+			}
+
+			out.Concurrently(i, func() graphql.Marshaler {
+				return rrm(innerCtx)
+			})
+		case "simpleSearch":
+			field := field
+
+			innerFunc := func(ctx context.Context) (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._Query_simpleSearch(ctx, field)
 				if res == graphql.Null {
 					atomic.AddUint32(&invalids, 1)
 				}
@@ -16233,6 +16441,44 @@ func (ec *executionContext) marshalNSearchResult2githubᚗcomᚋnaviktᚋnadaᚑ
 	return ec._SearchResult(ctx, sel, v)
 }
 
+func (ec *executionContext) marshalNSearchResultRow2ᚕᚖgithubᚗcomᚋnaviktᚋnadaᚑbackendᚋpkgᚋgraphᚋmodelsᚐSearchResultRow(ctx context.Context, sel ast.SelectionSet, v []*models.SearchResultRow) graphql.Marshaler {
+	ret := make(graphql.Array, len(v))
+	var wg sync.WaitGroup
+	isLen1 := len(v) == 1
+	if !isLen1 {
+		wg.Add(len(v))
+	}
+	for i := range v {
+		i := i
+		fc := &graphql.FieldContext{
+			Index:  &i,
+			Result: &v[i],
+		}
+		ctx := graphql.WithFieldContext(ctx, fc)
+		f := func(i int) {
+			defer func() {
+				if r := recover(); r != nil {
+					ec.Error(ctx, ec.Recover(ctx, r))
+					ret = nil
+				}
+			}()
+			if !isLen1 {
+				defer wg.Done()
+			}
+			ret[i] = ec.marshalOSearchResultRow2ᚖgithubᚗcomᚋnaviktᚋnadaᚑbackendᚋpkgᚋgraphᚋmodelsᚐSearchResultRow(ctx, sel, v[i])
+		}
+		if isLen1 {
+			f(i)
+		} else {
+			go f(i)
+		}
+
+	}
+	wg.Wait()
+
+	return ret
+}
+
 func (ec *executionContext) marshalNSearchResultRow2ᚕᚖgithubᚗcomᚋnaviktᚋnadaᚑbackendᚋpkgᚋgraphᚋmodelsᚐSearchResultRowᚄ(ctx context.Context, sel ast.SelectionSet, v []*models.SearchResultRow) graphql.Marshaler {
 	ret := make(graphql.Array, len(v))
 	var wg sync.WaitGroup
@@ -17052,6 +17298,13 @@ func (ec *executionContext) unmarshalOSearchQuery2ᚖgithubᚗcomᚋnaviktᚋnad
 	return &res, graphql.ErrorOnPath(ctx, err)
 }
 
+func (ec *executionContext) marshalOSearchResultRow2ᚖgithubᚗcomᚋnaviktᚋnadaᚑbackendᚋpkgᚋgraphᚋmodelsᚐSearchResultRow(ctx context.Context, sel ast.SelectionSet, v *models.SearchResultRow) graphql.Marshaler {
+	if v == nil {
+		return graphql.Null
+	}
+	return ec._SearchResultRow(ctx, sel, v)
+}
+
 func (ec *executionContext) unmarshalOSearchType2ᚕgithubᚗcomᚋnaviktᚋnadaᚑbackendᚋpkgᚋgraphᚋmodelsᚐSearchTypeᚄ(ctx context.Context, v interface{}) ([]models.SearchType, error) {
 	if v == nil {
 		return nil, nil
@@ -17117,6 +17370,14 @@ func (ec *executionContext) marshalOSearchType2ᚕgithubᚗcomᚋnaviktᚋnada�
 	}
 
 	return ret
+}
+
+func (ec *executionContext) unmarshalOSimpleSearchQuery2ᚖgithubᚗcomᚋnaviktᚋnadaᚑbackendᚋpkgᚋgraphᚋmodelsᚐSimpleSearchQuery(ctx context.Context, v interface{}) (*models.SimpleSearchQuery, error) {
+	if v == nil {
+		return nil, nil
+	}
+	res, err := ec.unmarshalInputSimpleSearchQuery(ctx, v)
+	return &res, graphql.ErrorOnPath(ctx, err)
 }
 
 func (ec *executionContext) unmarshalOString2ᚕstringᚄ(ctx context.Context, v interface{}) ([]string, error) {

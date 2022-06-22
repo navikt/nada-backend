@@ -5,6 +5,7 @@ package gensql
 
 import (
 	"context"
+	"time"
 
 	"github.com/google/uuid"
 	"github.com/lib/pq"
@@ -93,6 +94,99 @@ func (q *Queries) Search(ctx context.Context, arg SearchParams) ([]SearchRow, er
 			&i.ElementType,
 			&i.Rank,
 			&i.Excerpt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const simpleSearch = `-- name: SimpleSearch :many
+SELECT
+    "dataproducts"."id" AS "element_id",
+    'dataproduct'::text AS "element_type",
+    coalesce("dataproducts"."description", '') AS "description",
+    "dataproducts"."name",
+    "dataproducts"."keywords",
+    "dataproducts"."group",
+    "dataproducts"."created",
+    "dataproducts"."last_modified"
+FROM dataproducts
+UNION
+SELECT
+    "s"."id" AS "element_id",
+    'story'::text AS "element_type",
+    coalesce("s"."description", '') AS "description",
+    "s"."name",
+    '{}' AS "keywords",
+    "s"."group",
+    "s"."created",
+    "s"."last_modified"
+FROM (
+         SELECT "id", "name", "group", "created", "last_modified", "keywords",
+                (
+                    SELECT string_agg("spec"->>'content', ' ')
+                    FROM (
+                             SELECT "spec"
+                             FROM "story_views"
+                             WHERE "story_id" = "story"."id"
+                               AND "type" IN ('markdown', 'header')
+                             ORDER BY "sort" ASC
+                         ) "views"
+                ) AS "description"
+         FROM "stories" "story"
+     ) "s"
+WHERE similarity($3, name) > 0.05
+   OR similarity($3, description) > 0.05
+   OR similarity($3, "group") > 0.1
+ORDER BY created ASC
+LIMIT $2 OFFSET $1
+`
+
+type SimpleSearchParams struct {
+	Offs  int32
+	Lim   int32
+	Query string
+}
+
+type SimpleSearchRow struct {
+	ElementID    uuid.UUID
+	ElementType  string
+	Description  string
+	Name         string
+	Keywords     []string
+	Group        string
+	Created      time.Time
+	LastModified time.Time
+}
+
+//   OR @query % ANY(keywords)
+// ORDER BY similarity(@query, name) DESC, created ASC
+func (q *Queries) SimpleSearch(ctx context.Context, arg SimpleSearchParams) ([]SimpleSearchRow, error) {
+	rows, err := q.db.QueryContext(ctx, simpleSearch, arg.Offs, arg.Lim, arg.Query)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []SimpleSearchRow{}
+	for rows.Next() {
+		var i SimpleSearchRow
+		if err := rows.Scan(
+			&i.ElementID,
+			&i.ElementType,
+			&i.Description,
+			&i.Name,
+			pq.Array(&i.Keywords),
+			&i.Group,
+			&i.Created,
+			&i.LastModified,
 		); err != nil {
 			return nil, err
 		}
