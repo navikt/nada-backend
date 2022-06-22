@@ -73,7 +73,7 @@ func New(repo *database.Repo, gcp Bigquery, gcpProjects *auth.TeamProjectsUpdate
 func (r *Resolver) ensureUserHasAccessToGcpProject(ctx context.Context, projectID string) error {
 	user := auth.GetUser(ctx)
 
-	for _, grp := range user.Groups {
+	for _, grp := range user.GoogleGroups {
 		proj, ok := r.gcpProjects.Get(grp.Email)
 		if !ok {
 			continue
@@ -103,7 +103,7 @@ func pagination(limit *int, offset *int) (int, int) {
 func ensureOwner(ctx context.Context, owner string) error {
 	user := auth.GetUser(ctx)
 
-	if user != nil && (user.Groups.Contains(owner) || owner == user.Email) {
+	if user != nil && (user.GoogleGroups.Contains(owner) || owner == user.Email) {
 		return nil
 	}
 
@@ -112,7 +112,7 @@ func ensureOwner(ctx context.Context, owner string) error {
 
 func ensureUserInGroup(ctx context.Context, group string) error {
 	user := auth.GetUser(ctx)
-	if user == nil || !user.Groups.Contains(group) {
+	if user == nil || !user.GoogleGroups.Contains(group) {
 		return ErrUnauthorized
 	}
 	return nil

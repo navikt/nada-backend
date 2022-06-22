@@ -14,7 +14,7 @@ import (
 
 func (r *mutationResolver) PublishStory(ctx context.Context, input models.NewStory) (*models.GraphStory, error) {
 	user := auth.GetUser(ctx)
-	if !user.Groups.Contains(input.Group) {
+	if !user.GoogleGroups.Contains(input.Group) {
 		return nil, ErrUnauthorized
 	}
 
@@ -36,7 +36,7 @@ func (r *mutationResolver) PublishStory(ctx context.Context, input models.NewSto
 		return nil, err
 	}
 
-	if !user.Groups.Contains(existing.Owner.Group) {
+	if !user.GoogleGroups.Contains(existing.Owner.Group) {
 		return nil, ErrUnauthorized
 	}
 
@@ -55,7 +55,7 @@ func (r *mutationResolver) UpdateStoryMetadata(ctx context.Context, id uuid.UUID
 	}
 
 	user := auth.GetUser(ctx)
-	if !user.Groups.Contains(existing.Owner.Group) {
+	if !user.GoogleGroups.Contains(existing.Owner.Group) {
 		return nil, ErrUnauthorized
 	}
 
@@ -74,7 +74,7 @@ func (r *mutationResolver) DeleteStory(ctx context.Context, id uuid.UUID) (bool,
 	}
 
 	user := auth.GetUser(ctx)
-	if !user.Groups.Contains(s.Owner.Group) {
+	if !user.GoogleGroups.Contains(s.Owner.Group) {
 		return false, ErrUnauthorized
 	}
 
@@ -151,7 +151,7 @@ func (r *queryResolver) StoryToken(ctx context.Context, id uuid.UUID) (*models.S
 	}
 
 	user := auth.GetUser(ctx)
-	if !user.Groups.Contains(story.Owner.Group) {
+	if !user.GoogleGroups.Contains(story.Owner.Group) {
 		return nil, ErrUnauthorized
 	}
 

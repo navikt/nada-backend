@@ -8,33 +8,35 @@ import (
 	"golang.org/x/oauth2"
 )
 
-type Google struct {
+type Azure struct {
 	oauth2.Config
 
 	clientID     string
 	clientSecret string
+	clientTenant string
 	hostname     string
 
 	provider *oidc.Provider
 }
 
-func NewGoogle(clientID, clientSecret, hostname string) *Google {
-	provider, err := oidc.NewProvider(context.Background(), "https://accounts.google.com")
+func NewAzure(clientID, clientSecret, clientTenant, hostname string) *Azure {
+	provider, err := oidc.NewProvider(context.Background(), fmt.Sprintf("https://login.microsoftonline.com/%v/v2.0", clientTenant))
 	if err != nil {
 		panic(err)
 	}
 
-	g := &Google{
+	a := &Azure{
 		clientID:     clientID,
 		clientSecret: clientSecret,
+		clientTenant: clientTenant,
 		hostname:     hostname,
 		provider:     provider,
 	}
-	g.setupOAuth2()
-	return g
+	a.setupOAuth2()
+	return a
 }
 
-func (a *Google) setupOAuth2() {
+func (a *Azure) setupOAuth2() {
 	var callbackURL string
 	if a.hostname == "localhost" {
 		callbackURL = "http://localhost:8080/api/oauth2/callback"
@@ -47,16 +49,16 @@ func (a *Google) setupOAuth2() {
 		ClientSecret: a.clientSecret,
 		Endpoint:     a.provider.Endpoint(),
 		RedirectURL:  callbackURL,
-		Scopes:       []string{oidc.ScopeOpenID, "profile", "email", "https://www.googleapis.com/auth/cloudplatformprojects.readonly"},
+		Scopes:       []string{"openid", fmt.Sprintf("%s/.default", a.clientID)},
 	}
 }
 
-func (g *Google) Verify(ctx context.Context, rawIDToken string) (*oidc.IDToken, error) {
-	return g.provider.Verifier(&oidc.Config{ClientID: g.clientID}).Verify(ctx, rawIDToken)
+func (a *Azure) Verify(ctx context.Context, rawIDToken string) (*oidc.IDToken, error) {
+	return a.provider.Verifier(&oidc.Config{ClientID: a.clientID}).Verify(ctx, rawIDToken)
 }
 
-func (g *Google) Middleware(groupsLister GroupsLister, sessionStore SessionRetriever) MiddlewareHandler {
-	return newMiddleware(g.provider.Verifier(&oidc.Config{ClientID: g.clientID}), groupsLister, sessionStore).handle
+func (a *Azure) Middleware(azureGroups *AzureGroupClient, googleGroups *GoogleGroupClient, sessionStore SessionRetriever) MiddlewareHandler {
+	return newMiddleware(a.provider.Verifier(&oidc.Config{ClientID: a.clientID}), azureGroups, googleGroups, sessionStore).handle
 }
 
 // func (a *Google) Groups(client *http.Client) *GoogleGroups {

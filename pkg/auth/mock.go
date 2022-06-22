@@ -3,15 +3,12 @@ package auth
 import (
 	"context"
 	"net/http"
-	"time"
-
-	"github.com/navikt/nada-backend/pkg/bigquery"
 )
 
 var MockUser = User{
 	Name:  "Anderson, Mock",
 	Email: "mock.anderson@email.com",
-	Groups: bigquery.Groups{
+	GoogleGroups: Groups{
 		{
 			Name:  "team",
 			Email: "team@nav.no",
@@ -25,7 +22,6 @@ var MockUser = User{
 			Email: "aura@nav.no",
 		},
 	},
-	Expiry: time.Now().Add(200 * time.Hour),
 }
 
 var MockProjectIDs = []string{"team-dev-1337", "team-prod-4242"}

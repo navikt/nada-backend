@@ -26,6 +26,7 @@ type Config struct {
 type OAuth2Config struct {
 	ClientID     string
 	ClientSecret string
+	TenantID     string
 }
 
 func DefaultConfig() Config {

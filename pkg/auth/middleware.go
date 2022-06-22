@@ -4,11 +4,11 @@ import (
 	"context"
 	"fmt"
 	"net/http"
-	"sync"
-	"time"
+	"strings"
 
 	"github.com/coreos/go-oidc/v3/oidc"
-	"github.com/navikt/nada-backend/pkg/bigquery"
+	"github.com/go-chi/jwtauth"
+	"github.com/golang-jwt/jwt/v4"
 	"github.com/navikt/nada-backend/pkg/graph/models"
 	"github.com/sirupsen/logrus"
 )
@@ -18,10 +18,10 @@ type contextKey int
 const ContextUserKey contextKey = 1
 
 type User struct {
-	Name   string `json:"name"`
-	Email  string `json:"email"`
-	Groups bigquery.Groups
-	Expiry time.Time `json:"expiry"`
+	Name         string `json:"name"`
+	Email        string `json:"email"`
+	AzureGroups  Groups
+	GoogleGroups Groups
 }
 
 func GetUser(ctx context.Context) *User {
@@ -32,43 +32,6 @@ func GetUser(ctx context.Context) *User {
 	return user.(*User)
 }
 
-type GroupsLister interface {
-	GroupsForUser(ctx context.Context, email string) (groups bigquery.Groups, err error)
-}
-
-type groupsCacheValue struct {
-	Groups  bigquery.Groups
-	Expires time.Time
-}
-
-type groupsCacher struct {
-	lock  sync.RWMutex
-	cache map[string]groupsCacheValue
-}
-
-func (g *groupsCacher) Get(email string) ([]bigquery.Group, bool) {
-	g.lock.RLock()
-	defer g.lock.RUnlock()
-
-	v, ok := g.cache[email]
-	if !ok {
-		return nil, false
-	}
-	if v.Expires.Before(time.Now()) {
-		return nil, false
-	}
-	return v.Groups, true
-}
-
-func (g *groupsCacher) Set(email string, groups []bigquery.Group) {
-	g.lock.Lock()
-	defer g.lock.Unlock()
-	g.cache[email] = groupsCacheValue{
-		Groups:  groups,
-		Expires: time.Now().Add(1 * time.Hour),
-	}
-}
-
 type SessionRetriever interface {
 	GetSession(ctx context.Context, token string) (*models.Session, error)
 }
@@ -76,14 +39,16 @@ type SessionRetriever interface {
 type Middleware struct {
 	tokenVerifier *oidc.IDTokenVerifier
 	groupsCache   *groupsCacher
-	groupsLister  GroupsLister
+	azureGroups   *AzureGroupClient
+	googleGroups  *GoogleGroupClient
 	sessionStore  SessionRetriever
 }
 
-func newMiddleware(tokenVerifier *oidc.IDTokenVerifier, groupsLister GroupsLister, sessionStore SessionRetriever) *Middleware {
+func newMiddleware(tokenVerifier *oidc.IDTokenVerifier, azureGroups *AzureGroupClient, googleGroups *GoogleGroupClient, sessionStore SessionRetriever) *Middleware {
 	return &Middleware{
 		tokenVerifier: tokenVerifier,
-		groupsLister:  groupsLister,
+		azureGroups:   azureGroups,
+		googleGroups:  googleGroups,
 		groupsCache: &groupsCacher{
 			cache: map[string]groupsCacheValue{},
 		},
@@ -97,57 +62,92 @@ func (m *Middleware) Handler(next http.Handler) http.Handler {
 
 func (m *Middleware) handle(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		user, err := m.validateUser(w, r)
+		ctx := r.Context()
+		token := jwtauth.TokenFromCookie(r)
+
+		user, err := m.validateUser(w, token)
 		if err != nil {
 			next.ServeHTTP(w, r)
 			return
 		}
 
-		if err := m.addGroupsToUser(r.Context(), user); err != nil {
+		if err := m.addGroupsToUser(ctx, token, user); err != nil {
 			logrus.WithError(err).Error("Unable to add groups")
 			w.Header().Add("Content-Type", "application/json")
 			http.Error(w, `{"error": "Unable fetch users groups."}`, http.StatusInternalServerError)
 			return
 		}
 
-		ctx := r.Context()
 		r = r.WithContext(context.WithValue(ctx, ContextUserKey, user))
 		next.ServeHTTP(w, r)
 	})
 }
 
-func (m *Middleware) validateUser(w http.ResponseWriter, r *http.Request) (*User, error) {
-	// Parse and verify ID Token payload.
-	cookie, err := r.Cookie("nada_session")
-	if err != nil {
-		return nil, fmt.Errorf("Unauthorized")
-	}
+func (m *Middleware) validateUser(w http.ResponseWriter, token string) (*User, error) {
+	tokenParsed, err := jwt.Parse(token, func(token *jwt.Token) (interface{}, error) {
+		if _, ok := token.Method.(*jwt.SigningMethodRSA); !ok {
+			return nil, fmt.Errorf("Unexpected signing method: %v", token.Header["alg"])
+		}
 
-	session, err := m.sessionStore.GetSession(r.Context(), cookie.Value)
-	if err != nil {
+		return nil, nil
+	})
+
+	email := ""
+	name := ""
+	if claims, ok := tokenParsed.Claims.(jwt.MapClaims); ok {
+		email = strings.ToLower(claims["preferred_username"].(string))
+		name = claims["name"].(string)
+	} else {
 		return nil, err
 	}
 
 	return &User{
-		Name:   session.Name,
-		Email:  session.Email,
-		Expiry: session.Expires,
+		Name:  name,
+		Email: email,
 	}, nil
 }
 
-func (m *Middleware) addGroupsToUser(ctx context.Context, u *User) error {
-	groups, ok := m.groupsCache.Get(u.Email)
+func (m *Middleware) addGroupsToUser(ctx context.Context, token string, u *User) error {
+	if err := m.addAzureGroups(ctx, token, u); err != nil {
+		return err
+	}
+	if err := m.addGoogleGroups(ctx, u); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (m *Middleware) addAzureGroups(ctx context.Context, token string, u *User) error {
+	groups, ok := m.groupsCache.GetAzureGroups(u.Email)
 	if ok {
-		u.Groups = groups
+		u.AzureGroups = groups
 		return nil
 	}
 
-	groups, err := m.groupsLister.GroupsForUser(ctx, u.Email)
+	groups, err := m.azureGroups.GroupsForUser(ctx, token, u.Email)
 	if err != nil {
 		return err
 	}
 
-	m.groupsCache.Set(u.Email, groups)
-	u.Groups = groups
+	m.groupsCache.SetAzureGroups(u.Email, groups)
+	u.AzureGroups = groups
+	return nil
+}
+
+func (m *Middleware) addGoogleGroups(ctx context.Context, u *User) error {
+	groups, ok := m.groupsCache.GetGoogleGroups(u.Email)
+	if ok {
+		u.GoogleGroups = groups
+		return nil
+	}
+
+	groups, err := m.googleGroups.GroupsForUser(ctx, u.Email)
+	if err != nil {
+		return err
+	}
+
+	m.groupsCache.SetGoogleGroups(u.Email, groups)
+	u.GoogleGroups = groups
 	return nil
 }

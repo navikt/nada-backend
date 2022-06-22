@@ -52,6 +52,7 @@ func init() {
 	flag.StringVar(&cfg.Hostname, "hostname", os.Getenv("HOSTNAME"), "Hostname the application is served from")
 	flag.StringVar(&cfg.OAuth2.ClientID, "oauth2-client-id", os.Getenv("CLIENT_ID"), "OAuth2 client ID")
 	flag.StringVar(&cfg.OAuth2.ClientSecret, "oauth2-client-secret", os.Getenv("CLIENT_SECRET"), "OAuth2 client secret")
+	flag.StringVar(&cfg.OAuth2.TenantID, "oauth2-tenant-id", os.Getenv("TENANT_ID"), "OAuth2 azure tenant id")
 	flag.StringVar(&cfg.ProdTeamProjectsOutputURL, "prod-team-projects-url", cfg.ProdTeamProjectsOutputURL, "URL for json containing prod team projects")
 	flag.StringVar(&cfg.DevTeamProjectsOutputURL, "dev-team-projects-url", cfg.DevTeamProjectsOutputURL, "URL for json containing dev team projects")
 	flag.StringVar(&cfg.TeamsToken, "teams-token", os.Getenv("GITHUB_READ_TOKEN"), "Token for accessing teams json")
@@ -100,15 +101,17 @@ func main() {
 		teamProjectsMapping = auth.NewTeamProjectsUpdater(cfg.DevTeamProjectsOutputURL, cfg.ProdTeamProjectsOutputURL, cfg.TeamsToken, http.DefaultClient)
 		go teamProjectsMapping.Run(ctx, TeamProjectsUpdateFrequency)
 
-		googleGroups, err := bigquery.NewGoogleGroups(ctx, cfg.ServiceAccountFile, cfg.GoogleAdminImpersonationSubject, log.WithField("subsystem", "googlegroups"))
+		azureGroups := auth.NewAzureGroups(http.DefaultClient, cfg.OAuth2.ClientID, cfg.OAuth2.ClientSecret, cfg.OAuth2.TenantID)
+		googleGroups, err := auth.NewGoogleGroups(ctx, cfg.ServiceAccountFile, cfg.GoogleAdminImpersonationSubject, log.WithField("subsystem", "googlegroups"))
 		if err != nil {
 			log.Fatal(err)
 		}
 
-		gauth := auth.NewGoogle(cfg.OAuth2.ClientID, cfg.OAuth2.ClientSecret, cfg.Hostname)
-		oauth2Config = gauth
-		httpAPI = api.NewHTTP(oauth2Config, repo, log.WithField("subsystem", "api"))
-		authenticatorMiddleware = gauth.Middleware(googleGroups, repo)
+		aauth := auth.NewAzure(cfg.OAuth2.ClientID, cfg.OAuth2.ClientSecret, cfg.OAuth2.TenantID, cfg.Hostname)
+		oauth2Config = aauth
+
+		httpAPI = api.NewHTTP(oauth2Config, aauth.RedirectURL, repo, log.WithField("subsystem", "api"))
+		authenticatorMiddleware = aauth.Middleware(azureGroups, googleGroups, repo)
 		accessMgr = access.NewBigquery()
 		pollyAPI = polly.New(cfg.PollyURL)
 	}
