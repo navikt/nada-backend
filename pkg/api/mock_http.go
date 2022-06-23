@@ -31,7 +31,7 @@ func (h MockHTTP) Login(w http.ResponseWriter, r *http.Request) {
 	}
 
 	http.SetCookie(w, &http.Cookie{
-		Name:     "jwt",
+		Name:     "nada_session",
 		Value:    "token",
 		Path:     "/",
 		Domain:   "localhost",
@@ -49,7 +49,7 @@ func (h *MockHTTP) Callback(w http.ResponseWriter, r *http.Request) {
 
 func (h *MockHTTP) Logout(w http.ResponseWriter, r *http.Request) {
 	http.SetCookie(w, &http.Cookie{
-		Name:     "jwt",
+		Name:     "nada_session",
 		Value:    "",
 		Path:     "/",
 		Domain:   "localhost",
@@ -70,7 +70,7 @@ func (h *MockHTTP) Logout(w http.ResponseWriter, r *http.Request) {
 
 func (h *MockHTTP) Middleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		_, err := r.Cookie("jwt")
+		_, err := r.Cookie("nada_session")
 		if err != nil {
 			next.ServeHTTP(w, r)
 			return

@@ -39,7 +39,6 @@ jobs:
 
   build-and-deploy:
     name: Build and deploy
-    if: github.ref == 'refs/heads/main'
     runs-on: ubuntu-20.04
     needs: set-version
     steps:

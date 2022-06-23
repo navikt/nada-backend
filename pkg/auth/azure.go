@@ -61,8 +61,8 @@ func (a *Azure) Verify(ctx context.Context, rawIDToken string) (*oidc.IDToken, e
 	return a.provider.Verifier(&oidc.Config{ClientID: a.clientID}).Verify(ctx, rawIDToken)
 }
 
-func (a *Azure) Middleware(keyDiscoveryURL string, azureGroups *AzureGroupClient, googleGroups *GoogleGroupClient) MiddlewareHandler {
-	return newMiddleware(keyDiscoveryURL, a.provider.Verifier(&oidc.Config{ClientID: a.clientID}), azureGroups, googleGroups).handle
+func (a *Azure) Middleware(keyDiscoveryURL string, azureGroups *AzureGroupClient, googleGroups *GoogleGroupClient, sessionStore SessionRetriever) MiddlewareHandler {
+	return newMiddleware(keyDiscoveryURL, a.provider.Verifier(&oidc.Config{ClientID: a.clientID}), azureGroups, googleGroups, sessionStore).handle
 }
 
 // func (a *Google) Groups(client *http.Client) *GoogleGroups {

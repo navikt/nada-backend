@@ -31,6 +31,10 @@ func (r *queryResolver) UserInfo(ctx context.Context) (*models.UserInfo, error) 
 	}, nil
 }
 
+func (r *userInfoResolver) GoogleGroups(ctx context.Context, obj *models.UserInfo) ([]*models.Group, error) {
+	return obj.Groups, nil
+}
+
 func (r *userInfoResolver) AzureGroups(ctx context.Context, obj *models.UserInfo) ([]*models.Group, error) {
 	user := auth.GetUser(ctx)
 

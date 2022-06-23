@@ -3,15 +3,20 @@ package api
 import (
 	"context"
 	"crypto/rand"
+	"encoding/base64"
 	"encoding/hex"
+	"encoding/json"
+	"fmt"
 	"net"
 	"net/http"
+	"os"
 	"strings"
 	"time"
 
 	"github.com/coreos/go-oidc/v3/oidc"
 	"github.com/google/uuid"
 	"github.com/navikt/nada-backend/pkg/database"
+	"github.com/navikt/nada-backend/pkg/graph/models"
 	"github.com/sirupsen/logrus"
 	"golang.org/x/oauth2"
 )
@@ -62,7 +67,7 @@ func (h HTTP) Logout(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		host = r.Host
 	}
-	deleteCookie(w, "jwt", host)
+	deleteCookie(w, "nada_session", host)
 
 	var loginPage string
 	if strings.HasPrefix(r.Host, "localhost") {
@@ -109,7 +114,7 @@ func (h HTTP) Login(w http.ResponseWriter, r *http.Request) {
 		HttpOnly: true,
 	})
 
-	consentUrl := h.oauth2Config.AuthCodeURL(oauthState, oauth2.SetAuthURLParam("redirect_uri", h.callbackURL))
+	consentUrl := h.oauth2Config.AuthCodeURL(oauthState)
 	http.Redirect(w, r, consentUrl, http.StatusFound)
 }
 
@@ -159,9 +164,70 @@ func (h HTTP) Callback(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	rawIDToken, ok := tokens.Extra("id_token").(string)
+	if !ok {
+		h.log.Info("Missing id_token")
+		http.Redirect(w, r, loginPage+"?error=unauthenticated", http.StatusFound)
+		return
+	}
+
+	// Parse and verify ID Token payload.
+	_, err = h.oauth2Config.Verify(r.Context(), rawIDToken)
+	if err != nil {
+		h.log.Info("Invalid id_token")
+		http.Redirect(w, r, loginPage+"?error=unauthenticated", http.StatusFound)
+		return
+	}
+
+	session := &models.Session{
+		Token:       generateSecureToken(tokenLength),
+		Expires:     time.Now().Add(sessionLength),
+		AccessToken: tokens.AccessToken,
+	}
+
+	b, err := base64.RawStdEncoding.DecodeString(strings.Split(tokens.AccessToken, ".")[1])
+	if err != nil {
+		h.log.WithError(err).Error("Unable decode access token")
+		http.Redirect(w, r, loginPage+"?error=unauthenticated", http.StatusFound)
+		return
+	}
+
+	if err := json.Unmarshal(b, session); err != nil {
+		h.log.WithError(err).Error("Unable unmarshalling token")
+		http.Redirect(w, r, loginPage+"?error=unauthenticated", http.StatusFound)
+		return
+	}
+
+	enc := json.NewEncoder(os.Stdout)
+	enc.SetIndent("", "  ")
+	enc.Encode(session)
+
+	fmt.Println(session)
+	/*
+		var claims jwt.MapClaims
+
+			jwtValidator := JWTValidator(certificates, m.azureGroups.OAuthClientID)
+
+			_, err := jwt.ParseWithClaims(token, &claims, jwtValidator)
+			if err != nil {
+				return nil, err
+			}
+
+			return &User{
+				Name:   claims["name"].(string),
+				Email:  strings.ToLower(claims["preferred_username"].(string)),
+				Expiry: time.Unix(int64(claims["exp"].(float64)), 0),
+			}, nil
+	*/
+	if err := h.repo.CreateSession(r.Context(), session); err != nil {
+		h.log.WithError(err).Error("Unable to store session")
+		http.Redirect(w, r, loginPage+"?error=unauthenticated", http.StatusFound)
+		return
+	}
+
 	http.SetCookie(w, &http.Cookie{
-		Name:     "jwt",
-		Value:    tokens.AccessToken,
+		Name:     "nada_session",
+		Value:    session.Token,
 		Path:     "/",
 		Domain:   host,
 		MaxAge:   86400,

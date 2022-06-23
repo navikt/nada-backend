@@ -3,8 +3,10 @@ package auth
 import (
 	"context"
 	"crypto/x509"
+	"database/sql"
 	"encoding/base64"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"io/ioutil"
@@ -13,7 +15,6 @@ import (
 	"time"
 
 	"github.com/coreos/go-oidc/v3/oidc"
-	"github.com/go-chi/jwtauth"
 	"github.com/golang-jwt/jwt/v4"
 	"github.com/navikt/nada-backend/pkg/graph/models"
 	log "github.com/sirupsen/logrus"
@@ -135,12 +136,13 @@ type Middleware struct {
 	sessionStore    SessionRetriever
 }
 
-func newMiddleware(keyDiscoveryURL string, tokenVerifier *oidc.IDTokenVerifier, azureGroups *AzureGroupClient, googleGroups *GoogleGroupClient) *Middleware {
+func newMiddleware(keyDiscoveryURL string, tokenVerifier *oidc.IDTokenVerifier, azureGroups *AzureGroupClient, googleGroups *GoogleGroupClient, sessionStore SessionRetriever) *Middleware {
 	return &Middleware{
 		keyDiscoveryURL: keyDiscoveryURL,
 		tokenVerifier:   tokenVerifier,
 		azureGroups:     azureGroups,
 		googleGroups:    googleGroups,
+		sessionStore:    sessionStore,
 		groupsCache: &groupsCacher{
 			cache: map[string]groupsCacheValue{},
 		},
@@ -159,22 +161,33 @@ func (m *Middleware) handle(next http.Handler) http.Handler {
 
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		ctx := r.Context()
-		token := jwtauth.TokenFromCookie(r)
-
-		user, err := m.validateUser(certificates, w, token)
+		token, err := r.Cookie("nada_session")
 		if err != nil {
 			next.ServeHTTP(w, r)
 			return
 		}
 
-		if err := m.addGroupsToUser(ctx, token, user); err != nil {
-			log.WithError(err).Error("Unable to add groups")
-			w.Header().Add("Content-Type", "application/json")
-			http.Error(w, `{"error": "Unable fetch users groups."}`, http.StatusInternalServerError)
+		sess, err := m.sessionStore.GetSession(ctx, token.Value)
+		if err != nil && !errors.Is(err, sql.ErrNoRows) {
+			http.Error(w, `{"error": "Unable to retrieve session."}`, http.StatusInternalServerError)
 			return
 		}
+		if sess != nil {
+			user, err := m.validateUser(certificates, w, sess.AccessToken)
+			if err != nil {
+				next.ServeHTTP(w, r)
+				return
+			}
 
-		r = r.WithContext(context.WithValue(ctx, ContextUserKey, user))
+			if err := m.addGroupsToUser(ctx, sess.AccessToken, user); err != nil {
+				log.WithError(err).Error("Unable to add groups")
+				w.Header().Add("Content-Type", "application/json")
+				http.Error(w, `{"error": "Unable fetch users groups."}`, http.StatusInternalServerError)
+				return
+			}
+
+			r = r.WithContext(context.WithValue(ctx, ContextUserKey, user))
+		}
 		next.ServeHTTP(w, r)
 	})
 }
