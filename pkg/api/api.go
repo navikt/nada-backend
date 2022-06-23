@@ -6,10 +6,8 @@ import (
 	"encoding/base64"
 	"encoding/hex"
 	"encoding/json"
-	"fmt"
 	"net"
 	"net/http"
-	"os"
 	"strings"
 	"time"
 
@@ -198,27 +196,6 @@ func (h HTTP) Callback(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	enc := json.NewEncoder(os.Stdout)
-	enc.SetIndent("", "  ")
-	enc.Encode(session)
-
-	fmt.Println(session)
-	/*
-		var claims jwt.MapClaims
-
-			jwtValidator := JWTValidator(certificates, m.azureGroups.OAuthClientID)
-
-			_, err := jwt.ParseWithClaims(token, &claims, jwtValidator)
-			if err != nil {
-				return nil, err
-			}
-
-			return &User{
-				Name:   claims["name"].(string),
-				Email:  strings.ToLower(claims["preferred_username"].(string)),
-				Expiry: time.Unix(int64(claims["exp"].(float64)), 0),
-			}, nil
-	*/
 	if err := h.repo.CreateSession(r.Context(), session); err != nil {
 		h.log.WithError(err).Error("Unable to store session")
 		http.Redirect(w, r, loginPage+"?error=unauthenticated", http.StatusFound)
