@@ -3,6 +3,7 @@ package auth
 import (
 	"context"
 	"net/http"
+	"time"
 )
 
 var MockUser = User{
@@ -22,6 +23,13 @@ var MockUser = User{
 			Email: "aura@nav.no",
 		},
 	},
+	AzureGroups: Groups{
+		{
+			Name:  "team",
+			Email: "team@nav.no",
+		},
+	},
+	Expiry: time.Now().Add(time.Hour * 24),
 }
 
 var MockProjectIDs = []string{"team-dev-1337", "team-prod-4242"}
