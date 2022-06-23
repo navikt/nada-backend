@@ -1,13 +1,13 @@
 -- name: CreateSession :exec
 INSERT INTO sessions (
 	"token",
-    "access_token",
+	"access_token",
 	"email",
 	"name",
 	"expires"
 ) VALUES (
 	@token,
-    @access_token,
+	@access_token,
 	LOWER(@email),
 	@name,
 	@expires
