@@ -32,6 +32,20 @@ func (r *queryResolver) UserInfo(ctx context.Context) (*models.UserInfo, error) 
 	}, nil
 }
 
+func (r *userInfoResolver) AzureGroups(ctx context.Context, obj *models.UserInfo) ([]*models.Group, error) {
+	user := auth.GetUser(ctx)
+
+	groups := []*models.Group{}
+	for _, g := range user.AzureGroups {
+		groups = append(groups, &models.Group{
+			Name:  g.Name,
+			Email: g.Email,
+		})
+	}
+
+	return groups, nil
+}
+
 func (r *userInfoResolver) GCPProjects(ctx context.Context, obj *models.UserInfo) ([]*models.GCPProject, error) {
 	user := auth.GetUser(ctx)
 	ret := []*models.GCPProject{}
