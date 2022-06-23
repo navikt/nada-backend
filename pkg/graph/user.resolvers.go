@@ -7,7 +7,6 @@ import (
 	"context"
 	"os"
 	"strings"
-	"time"
 
 	"github.com/navikt/nada-backend/pkg/auth"
 	"github.com/navikt/nada-backend/pkg/graph/generated"
@@ -28,7 +27,7 @@ func (r *queryResolver) UserInfo(ctx context.Context) (*models.UserInfo, error) 
 		Name:            user.Name,
 		Email:           user.Email,
 		Groups:          groups,
-		LoginExpiration: time.Now().Add(time.Hour * 1),
+		LoginExpiration: user.Expiry,
 	}, nil
 }
 

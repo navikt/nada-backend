@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"net/http"
 	"strings"
+	"time"
 
 	"github.com/coreos/go-oidc/v3/oidc"
 	"github.com/go-chi/jwtauth"
@@ -22,6 +23,7 @@ type User struct {
 	Email        string `json:"email"`
 	AzureGroups  Groups
 	GoogleGroups Groups
+	Expiry       time.Time `json:"expiry"`
 }
 
 func GetUser(ctx context.Context) *User {
@@ -94,16 +96,19 @@ func (m *Middleware) validateUser(w http.ResponseWriter, token string) (*User, e
 
 	email := ""
 	name := ""
+	var exp int64
 	if claims, ok := tokenParsed.Claims.(jwt.MapClaims); ok {
 		email = strings.ToLower(claims["preferred_username"].(string))
 		name = claims["name"].(string)
+		exp = int64(claims["exp"].(float64))
 	} else {
 		return nil, err
 	}
 
 	return &User{
-		Name:  name,
-		Email: email,
+		Name:   name,
+		Email:  email,
+		Expiry: time.Unix(exp, 0),
 	}, nil
 }
 
