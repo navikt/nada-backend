@@ -58,7 +58,10 @@ func deleteCookie(w http.ResponseWriter, name, domain string) {
 }
 
 func (h HTTP) Logout(w http.ResponseWriter, r *http.Request) {
-	host, _, _ := net.SplitHostPort(r.Host)
+	host, _, err := net.SplitHostPort(r.Host)
+	if err != nil {
+		host = r.Host
+	}
 	deleteCookie(w, "jwt", host)
 
 	var loginPage string
@@ -80,7 +83,10 @@ func generateSecureToken(length int) string {
 }
 
 func (h HTTP) Login(w http.ResponseWriter, r *http.Request) {
-	host, _, _ := net.SplitHostPort(r.Host)
+	host, _, err := net.SplitHostPort(r.Host)
+	if err != nil {
+		host = r.Host
+	}
 	redirectURI := r.URL.Query().Get("redirect_uri")
 	http.SetCookie(w, &http.Cookie{
 		Name:     RedirectURICookie,
@@ -108,7 +114,10 @@ func (h HTTP) Login(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h HTTP) Callback(w http.ResponseWriter, r *http.Request) {
-	host, _, _ := net.SplitHostPort(r.Host)
+	host, _, err := net.SplitHostPort(r.Host)
+	if err != nil {
+		host = r.Host
+	}
 	loginPage := "/"
 
 	redirectURI, err := r.Cookie(RedirectURICookie)
