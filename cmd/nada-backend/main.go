@@ -111,7 +111,7 @@ func main() {
 		oauth2Config = aauth
 
 		httpAPI = api.NewHTTP(oauth2Config, aauth.RedirectURL, repo, log.WithField("subsystem", "api"))
-		authenticatorMiddleware = aauth.Middleware(azureGroups, googleGroups, repo)
+		authenticatorMiddleware = aauth.Middleware(aauth.KeyDiscoveryURL(), azureGroups, googleGroups, repo)
 		accessMgr = access.NewBigquery()
 		pollyAPI = polly.New(cfg.PollyURL)
 	}

@@ -4,6 +4,7 @@ import (
 	"context"
 	"crypto/rand"
 	"encoding/hex"
+	"net"
 	"net/http"
 	"strings"
 	"time"
@@ -57,7 +58,8 @@ func deleteCookie(w http.ResponseWriter, name, domain string) {
 }
 
 func (h HTTP) Logout(w http.ResponseWriter, r *http.Request) {
-	deleteCookie(w, "jwt", r.Host)
+	host, _, _ := net.SplitHostPort(r.Host)
+	deleteCookie(w, "jwt", host)
 
 	var loginPage string
 	if strings.HasPrefix(r.Host, "localhost") {
@@ -78,12 +80,13 @@ func generateSecureToken(length int) string {
 }
 
 func (h HTTP) Login(w http.ResponseWriter, r *http.Request) {
+	host, _, _ := net.SplitHostPort(r.Host)
 	redirectURI := r.URL.Query().Get("redirect_uri")
 	http.SetCookie(w, &http.Cookie{
 		Name:     RedirectURICookie,
 		Value:    redirectURI,
 		Path:     "/",
-		Domain:   r.Host,
+		Domain:   host,
 		Expires:  time.Now().Add(30 * time.Minute),
 		Secure:   true,
 		HttpOnly: true,
@@ -94,7 +97,7 @@ func (h HTTP) Login(w http.ResponseWriter, r *http.Request) {
 		Name:     OAuthStateCookie,
 		Value:    oauthState,
 		Path:     "/",
-		Domain:   r.Host,
+		Domain:   host,
 		Expires:  time.Now().Add(30 * time.Minute),
 		Secure:   true,
 		HttpOnly: true,
@@ -105,6 +108,7 @@ func (h HTTP) Login(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h HTTP) Callback(w http.ResponseWriter, r *http.Request) {
+	host, _, _ := net.SplitHostPort(r.Host)
 	loginPage := "/"
 
 	redirectURI, err := r.Cookie(RedirectURICookie)
@@ -116,7 +120,7 @@ func (h HTTP) Callback(w http.ResponseWriter, r *http.Request) {
 		loginPage = "http://localhost:3000" + loginPage
 	}
 
-	deleteCookie(w, RedirectURICookie, r.Host)
+	deleteCookie(w, RedirectURICookie, host)
 	code := r.URL.Query().Get("code")
 	if len(code) == 0 {
 		http.Redirect(w, r, loginPage+"?error=unauthenticated", http.StatusFound)
@@ -130,7 +134,7 @@ func (h HTTP) Callback(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	deleteCookie(w, OAuthStateCookie, r.Host)
+	deleteCookie(w, OAuthStateCookie, host)
 
 	state := r.URL.Query().Get("state")
 	if state != oauthCookie.Value {
@@ -150,7 +154,7 @@ func (h HTTP) Callback(w http.ResponseWriter, r *http.Request) {
 		Name:     "jwt",
 		Value:    tokens.AccessToken,
 		Path:     "/",
-		Domain:   r.Host,
+		Domain:   host,
 		MaxAge:   86400,
 		Secure:   true,
 		HttpOnly: true,

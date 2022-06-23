@@ -53,12 +53,16 @@ func (a *Azure) setupOAuth2() {
 	}
 }
 
+func (a *Azure) KeyDiscoveryURL() string {
+	return fmt.Sprintf("https://login.microsoftonline.com/%s/discovery/v2.0/keys", a.clientTenant)
+}
+
 func (a *Azure) Verify(ctx context.Context, rawIDToken string) (*oidc.IDToken, error) {
 	return a.provider.Verifier(&oidc.Config{ClientID: a.clientID}).Verify(ctx, rawIDToken)
 }
 
-func (a *Azure) Middleware(azureGroups *AzureGroupClient, googleGroups *GoogleGroupClient, sessionStore SessionRetriever) MiddlewareHandler {
-	return newMiddleware(a.provider.Verifier(&oidc.Config{ClientID: a.clientID}), azureGroups, googleGroups, sessionStore).handle
+func (a *Azure) Middleware(keyDiscoveryURL string, azureGroups *AzureGroupClient, googleGroups *GoogleGroupClient, sessionStore SessionRetriever) MiddlewareHandler {
+	return newMiddleware(keyDiscoveryURL, a.provider.Verifier(&oidc.Config{ClientID: a.clientID}), azureGroups, googleGroups, sessionStore).handle
 }
 
 // func (a *Google) Groups(client *http.Client) *GoogleGroups {

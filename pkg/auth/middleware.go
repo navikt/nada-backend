@@ -2,7 +2,12 @@ package auth
 
 import (
 	"context"
+	"crypto/x509"
+	"encoding/base64"
+	"encoding/json"
 	"fmt"
+	"io"
+	"io/ioutil"
 	"net/http"
 	"strings"
 	"time"
@@ -11,7 +16,7 @@ import (
 	"github.com/go-chi/jwtauth"
 	"github.com/golang-jwt/jwt/v4"
 	"github.com/navikt/nada-backend/pkg/graph/models"
-	"github.com/sirupsen/logrus"
+	log "github.com/sirupsen/logrus"
 )
 
 type contextKey int
@@ -24,6 +29,89 @@ type User struct {
 	AzureGroups  Groups
 	GoogleGroups Groups
 	Expiry       time.Time `json:"expiry"`
+}
+
+type CertificateList []*x509.Certificate
+
+type KeyDiscovery struct {
+	Keys []Key `json:"keys"`
+}
+
+type EncodedCertificate string
+
+type Key struct {
+	Kid string               `json:"kid"`
+	X5c []EncodedCertificate `json:"x5c"`
+}
+
+func FetchCertificates(discoveryURL string) (map[string]CertificateList, error) {
+	log.Infof("Discover Microsoft signing certificates from %s", discoveryURL)
+	azureKeyDiscovery, err := DiscoverURL(discoveryURL)
+	if err != nil {
+		return nil, err
+	}
+
+	log.Infof("Decoding certificates for %d keys", len(azureKeyDiscovery.Keys))
+	azureCertificates, err := azureKeyDiscovery.Map()
+	if err != nil {
+		return nil, err
+	}
+	return azureCertificates, nil
+}
+
+// Map transform a KeyDiscovery object into a dictionary with "kid" as key
+// and lists of decoded X509 certificates as values.
+//
+// Returns an error if any certificate does not decode.
+func (k *KeyDiscovery) Map() (result map[string]CertificateList, err error) {
+	result = make(map[string]CertificateList)
+
+	for _, key := range k.Keys {
+		certList := make(CertificateList, 0)
+		for _, encodedCertificate := range key.X5c {
+			certificate, err := encodedCertificate.Decode()
+			if err != nil {
+				return nil, err
+			}
+			certList = append(certList, certificate)
+		}
+		result[key.Kid] = certList
+	}
+
+	return
+}
+
+// Decode a base64 encoded certificate into a X509 structure.
+func (c EncodedCertificate) Decode() (*x509.Certificate, error) {
+	stream := strings.NewReader(string(c))
+	decoder := base64.NewDecoder(base64.StdEncoding, stream)
+	key, err := ioutil.ReadAll(decoder)
+	if err != nil {
+		return nil, err
+	}
+
+	return x509.ParseCertificate(key)
+}
+
+func DiscoverURL(url string) (*KeyDiscovery, error) {
+	response, err := http.Get(url)
+	if err != nil {
+		return nil, err
+	}
+
+	return Discover(response.Body)
+}
+
+func Discover(reader io.Reader) (*KeyDiscovery, error) {
+	document, err := ioutil.ReadAll(reader)
+	if err != nil {
+		return nil, err
+	}
+
+	keyDiscovery := &KeyDiscovery{}
+	err = json.Unmarshal(document, keyDiscovery)
+
+	return keyDiscovery, err
 }
 
 func GetUser(ctx context.Context) *User {
@@ -39,18 +127,20 @@ type SessionRetriever interface {
 }
 
 type Middleware struct {
-	tokenVerifier *oidc.IDTokenVerifier
-	groupsCache   *groupsCacher
-	azureGroups   *AzureGroupClient
-	googleGroups  *GoogleGroupClient
-	sessionStore  SessionRetriever
+	keyDiscoveryURL string
+	tokenVerifier   *oidc.IDTokenVerifier
+	groupsCache     *groupsCacher
+	azureGroups     *AzureGroupClient
+	googleGroups    *GoogleGroupClient
+	sessionStore    SessionRetriever
 }
 
-func newMiddleware(tokenVerifier *oidc.IDTokenVerifier, azureGroups *AzureGroupClient, googleGroups *GoogleGroupClient, sessionStore SessionRetriever) *Middleware {
+func newMiddleware(keyDiscoveryURL string, tokenVerifier *oidc.IDTokenVerifier, azureGroups *AzureGroupClient, googleGroups *GoogleGroupClient, sessionStore SessionRetriever) *Middleware {
 	return &Middleware{
-		tokenVerifier: tokenVerifier,
-		azureGroups:   azureGroups,
-		googleGroups:  googleGroups,
+		keyDiscoveryURL: keyDiscoveryURL,
+		tokenVerifier:   tokenVerifier,
+		azureGroups:     azureGroups,
+		googleGroups:    googleGroups,
 		groupsCache: &groupsCacher{
 			cache: map[string]groupsCacheValue{},
 		},
@@ -63,18 +153,23 @@ func (m *Middleware) Handler(next http.Handler) http.Handler {
 }
 
 func (m *Middleware) handle(next http.Handler) http.Handler {
+	certificates, err := FetchCertificates(m.keyDiscoveryURL)
+	if err != nil {
+		log.Fatalf("Fetching signing certificates from IDP: %v", err)
+	}
+
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		ctx := r.Context()
 		token := jwtauth.TokenFromCookie(r)
 
-		user, err := m.validateUser(w, token)
+		user, err := m.validateUser(certificates, w, token)
 		if err != nil {
 			next.ServeHTTP(w, r)
 			return
 		}
 
 		if err := m.addGroupsToUser(ctx, token, user); err != nil {
-			logrus.WithError(err).Error("Unable to add groups")
+			log.WithError(err).Error("Unable to add groups")
 			w.Header().Add("Content-Type", "application/json")
 			http.Error(w, `{"error": "Unable fetch users groups."}`, http.StatusInternalServerError)
 			return
@@ -85,31 +180,55 @@ func (m *Middleware) handle(next http.Handler) http.Handler {
 	})
 }
 
-func (m *Middleware) validateUser(w http.ResponseWriter, token string) (*User, error) {
-	tokenParsed, err := jwt.Parse(token, func(token *jwt.Token) (interface{}, error) {
-		if _, ok := token.Method.(*jwt.SigningMethodRSA); !ok {
-			return nil, fmt.Errorf("Unexpected signing method: %v", token.Header["alg"])
-		}
+func (m *Middleware) validateUser(certificates map[string]CertificateList, w http.ResponseWriter, token string) (*User, error) {
+	var claims jwt.MapClaims
 
-		return nil, nil
-	})
+	jwtValidator := JWTValidator(certificates, m.azureGroups.OAuthClientID)
 
-	email := ""
-	name := ""
-	var exp int64
-	if claims, ok := tokenParsed.Claims.(jwt.MapClaims); ok {
-		email = strings.ToLower(claims["preferred_username"].(string))
-		name = claims["name"].(string)
-		exp = int64(claims["exp"].(float64))
-	} else {
+	_, err := jwt.ParseWithClaims(token, &claims, jwtValidator)
+	if err != nil {
 		return nil, err
 	}
 
 	return &User{
-		Name:   name,
-		Email:  email,
-		Expiry: time.Unix(exp, 0),
+		Name:   claims["name"].(string),
+		Email:  strings.ToLower(claims["preferred_username"].(string)),
+		Expiry: time.Unix(int64(claims["exp"].(float64)), 0),
 	}, nil
+}
+
+func JWTValidator(certificates map[string]CertificateList, audience string) jwt.Keyfunc {
+	return func(token *jwt.Token) (interface{}, error) {
+		var certificateList CertificateList
+		var kid string
+		var ok bool
+
+		if claims, ok := token.Claims.(*jwt.MapClaims); !ok {
+			return nil, fmt.Errorf("unable to retrieve claims from token")
+		} else {
+			if valid := claims.VerifyAudience(audience, true); !valid {
+				return nil, fmt.Errorf("the token is not valid for this application")
+			}
+		}
+
+		if _, ok := token.Method.(*jwt.SigningMethodRSA); !ok {
+			return nil, fmt.Errorf("unexpected signing method: %v", token.Header["alg"])
+		}
+
+		if kid, ok = token.Header["kid"].(string); !ok {
+			return nil, fmt.Errorf("field 'kid' is of invalid type %T, should be string", token.Header["kid"])
+		}
+
+		if certificateList, ok = certificates[kid]; !ok {
+			return nil, fmt.Errorf("kid '%s' not found in certificate list", kid)
+		}
+
+		for _, certificate := range certificateList {
+			return certificate.PublicKey, nil
+		}
+
+		return nil, fmt.Errorf("no certificate candidates for kid '%s'", kid)
+	}
 }
 
 func (m *Middleware) addGroupsToUser(ctx context.Context, token string, u *User) error {
