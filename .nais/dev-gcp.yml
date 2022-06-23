@@ -15,6 +15,7 @@ spec:
       enabled: true
       replyURLs:
         - https://data.intern.nav.no/api/oauth2/callback
+        - http://localhost:8080/api/oauth2/callback
       tenant: nav.no
   command:
     - /app/nada-backend
