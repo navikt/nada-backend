@@ -135,7 +135,7 @@ type Middleware struct {
 	sessionStore    SessionRetriever
 }
 
-func newMiddleware(keyDiscoveryURL string, tokenVerifier *oidc.IDTokenVerifier, azureGroups *AzureGroupClient, googleGroups *GoogleGroupClient, sessionStore SessionRetriever) *Middleware {
+func newMiddleware(keyDiscoveryURL string, tokenVerifier *oidc.IDTokenVerifier, azureGroups *AzureGroupClient, googleGroups *GoogleGroupClient) *Middleware {
 	return &Middleware{
 		keyDiscoveryURL: keyDiscoveryURL,
 		tokenVerifier:   tokenVerifier,
@@ -144,7 +144,6 @@ func newMiddleware(keyDiscoveryURL string, tokenVerifier *oidc.IDTokenVerifier, 
 		groupsCache: &groupsCacher{
 			cache: map[string]groupsCacheValue{},
 		},
-		sessionStore: sessionStore,
 	}
 }
 
