@@ -25,7 +25,6 @@ func (g *groupsCacher) GetGoogleGroups(email string) (Groups, bool) {
 	if !ok {
 		return nil, false
 	}
-
 	if v.GoogleExpires.Before(time.Now()) {
 		return nil, false
 	}
@@ -35,6 +34,16 @@ func (g *groupsCacher) GetGoogleGroups(email string) (Groups, bool) {
 func (g *groupsCacher) SetGoogleGroups(email string, groups Groups) {
 	g.lock.Lock()
 	defer g.lock.Unlock()
+
+	if userCache, ok := g.cache[email]; ok {
+		userCache.GoogleGroups = groups
+		userCache.GoogleExpires = time.Now().Add(1 * time.Hour)
+		g.cache[email] = userCache
+
+		return
+	}
+
+	// User not in cache
 	g.cache[email] = groupsCacheValue{
 		GoogleGroups:  groups,
 		GoogleExpires: time.Now().Add(1 * time.Hour),
@@ -58,6 +67,16 @@ func (g *groupsCacher) GetAzureGroups(email string) (Groups, bool) {
 func (g *groupsCacher) SetAzureGroups(email string, groups Groups) {
 	g.lock.Lock()
 	defer g.lock.Unlock()
+
+	if userCache, ok := g.cache[email]; ok {
+		userCache.AzureGroups = groups
+		userCache.AzureExpires = time.Now().Add(1 * time.Hour)
+		g.cache[email] = userCache
+
+		return
+	}
+
+	// User not in cache
 	g.cache[email] = groupsCacheValue{
 		AzureGroups:  groups,
 		AzureExpires: time.Now().Add(1 * time.Hour),
