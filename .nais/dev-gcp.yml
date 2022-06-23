@@ -12,6 +12,7 @@ spec:
   port: 8080
   azure:
     application:
+      enabled: true
       replyURLs:
         - https://data.intern.nav.no/api/oauth2/callback
       tenant: nav.no
