@@ -10,7 +10,7 @@ metadata:
 spec:
   image: "{{ image }}"
   port: 8080
-    azure:
+  azure:
     application:
       enabled: true
       replyURLs:
