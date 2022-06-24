@@ -16,7 +16,7 @@ import (
 func (r *queryResolver) UserInfo(ctx context.Context) (*models.UserInfo, error) {
 	user := auth.GetUser(ctx)
 	groups := []*models.Group{}
-	for _, g := range user.Groups {
+	for _, g := range user.GoogleGroups {
 		groups = append(groups, &models.Group{
 			Name:  g.Name,
 			Email: g.Email,
@@ -31,13 +31,31 @@ func (r *queryResolver) UserInfo(ctx context.Context) (*models.UserInfo, error) 
 	}, nil
 }
 
+func (r *userInfoResolver) GoogleGroups(ctx context.Context, obj *models.UserInfo) ([]*models.Group, error) {
+	return obj.Groups, nil
+}
+
+func (r *userInfoResolver) AzureGroups(ctx context.Context, obj *models.UserInfo) ([]*models.Group, error) {
+	user := auth.GetUser(ctx)
+
+	groups := []*models.Group{}
+	for _, g := range user.AzureGroups {
+		groups = append(groups, &models.Group{
+			Name:  g.Name,
+			Email: g.Email,
+		})
+	}
+
+	return groups, nil
+}
+
 func (r *userInfoResolver) GCPProjects(ctx context.Context, obj *models.UserInfo) ([]*models.GCPProject, error) {
 	user := auth.GetUser(ctx)
 	ret := []*models.GCPProject{}
 
 	isProd := strings.Contains(os.Getenv("NAIS_CLUSTER_NAME"), "prod-")
 
-	for _, grp := range user.Groups {
+	for _, grp := range user.GoogleGroups {
 		proj, ok := r.gcpProjects.Get(grp.Email)
 		if !ok {
 			continue
@@ -63,7 +81,7 @@ func (r *userInfoResolver) GCPProjects(ctx context.Context, obj *models.UserInfo
 
 func (r *userInfoResolver) Dataproducts(ctx context.Context, obj *models.UserInfo) ([]*models.Dataproduct, error) {
 	user := auth.GetUser(ctx)
-	return r.repo.GetDataproductsByGroups(ctx, user.Groups.Emails())
+	return r.repo.GetDataproductsByGroups(ctx, user.GoogleGroups.Emails())
 }
 
 func (r *userInfoResolver) Accessable(ctx context.Context, obj *models.UserInfo) ([]*models.Dataproduct, error) {
@@ -74,7 +92,7 @@ func (r *userInfoResolver) Accessable(ctx context.Context, obj *models.UserInfo)
 func (r *userInfoResolver) Stories(ctx context.Context, obj *models.UserInfo) ([]*models.GraphStory, error) {
 	user := auth.GetUser(ctx)
 
-	stories, err := r.repo.GetStoriesByGroups(ctx, user.Groups.Emails())
+	stories, err := r.repo.GetStoriesByGroups(ctx, user.GoogleGroups.Emails())
 	if err != nil {
 		return nil, err
 	}
@@ -93,7 +111,7 @@ func (r *userInfoResolver) AccessRequests(ctx context.Context, obj *models.UserI
 	user := auth.GetUser(ctx)
 
 	groups := []string{"user:" + strings.ToLower(user.Email)}
-	for _, g := range user.Groups {
+	for _, g := range user.GoogleGroups {
 		groups = append(groups, "group:"+strings.ToLower(g.Email))
 	}
 

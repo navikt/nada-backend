@@ -36,7 +36,7 @@ func (r *dataproductResolver) Requesters(ctx context.Context, obj *models.Datapr
 	}
 
 	user := auth.GetUser(ctx)
-	if user.Groups.Contains(obj.Owner.Group) {
+	if user.GoogleGroups.Contains(obj.Owner.Group) {
 		return allRequesters, nil
 	}
 
@@ -44,7 +44,7 @@ func (r *dataproductResolver) Requesters(ctx context.Context, obj *models.Datapr
 	for _, r := range allRequesters {
 		if strings.EqualFold(r, user.Email) {
 			ret = append(ret, r)
-		} else if user.Groups.Contains(r) {
+		} else if user.GoogleGroups.Contains(r) {
 			ret = append(ret, r)
 		}
 	}
@@ -59,7 +59,7 @@ func (r *dataproductResolver) Access(ctx context.Context, obj *models.Dataproduc
 	}
 
 	user := auth.GetUser(ctx)
-	if user.Groups.Contains(obj.Owner.Group) {
+	if user.GoogleGroups.Contains(obj.Owner.Group) {
 		return all, nil
 	}
 
@@ -67,7 +67,7 @@ func (r *dataproductResolver) Access(ctx context.Context, obj *models.Dataproduc
 	for _, a := range all {
 		if strings.EqualFold(a.Subject, "user:"+user.Email) {
 			ret = append(ret, a)
-		} else if strings.HasPrefix(a.Subject, "group:") && user.Groups.Contains(strings.TrimPrefix(a.Subject, "group:")) {
+		} else if strings.HasPrefix(a.Subject, "group:") && user.GoogleGroups.Contains(strings.TrimPrefix(a.Subject, "group:")) {
 			ret = append(ret, a)
 		}
 	}
@@ -249,7 +249,7 @@ func (r *mutationResolver) RevokeAccessToDataproduct(ctx context.Context, id uui
 	}
 
 	user := auth.GetUser(ctx)
-	if !user.Groups.Contains(dp.Owner.Group) && !strings.EqualFold("user:"+user.Email, access.Subject) {
+	if !user.GoogleGroups.Contains(dp.Owner.Group) && !strings.EqualFold("user:"+user.Email, access.Subject) {
 		return false, ErrUnauthorized
 	}
 
@@ -454,7 +454,5 @@ func (r *Resolver) BigQuery() generated.BigQueryResolver { return &bigQueryResol
 // Dataproduct returns generated.DataproductResolver implementation.
 func (r *Resolver) Dataproduct() generated.DataproductResolver { return &dataproductResolver{r} }
 
-type (
-	bigQueryResolver    struct{ *Resolver }
-	dataproductResolver struct{ *Resolver }
-)
+type bigQueryResolver struct{ *Resolver }
+type dataproductResolver struct{ *Resolver }

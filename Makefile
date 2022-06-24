@@ -21,8 +21,9 @@ integration-test:
 	go test ./... -count=1 -tags=integration_test
 
 env:
-	echo "NADA_CLIENT_ID=$(shell kubectl get --context=dev-gcp --namespace=nada secret/google-oauth -o jsonpath='{.data.CLIENT_ID}' | base64 -d)" > .env
-	echo "NADA_CLIENT_SECRET=$(shell kubectl get --context=dev-gcp --namespace=nada secret/google-oauth -o jsonpath='{.data.CLIENT_SECRET}' | base64 -d)" >> .env
+	echo "NADA_CLIENT_ID=$(shell kubectl get --context=dev-gcp --namespace=nada `kubectl get secret --context=dev-gcp --namespace=nada --sort-by='{.metadata.creationTimestamp}' -l app=nada-backend,type=azurerator.nais.io -o name | tail -1` -o jsonpath='{.data.AZURE_APP_CLIENT_ID}' | base64 -d)" > .env
+	echo "NADA_CLIENT_SECRET=$(shell kubectl get --context=dev-gcp --namespace=nada `kubectl get secret --context=dev-gcp --namespace=nada --sort-by='{.metadata.creationTimestamp}' -l app=nada-backend,type=azurerator.nais.io -o name | tail -1` -o jsonpath='{.data.AZURE_APP_CLIENT_SECRET}' | base64 -d)" >> .env
+	echo "NADA_CLIENT_TENANT=$(shell kubectl get --context=dev-gcp --namespace=nada `kubectl get secret --context=dev-gcp --namespace=nada --sort-by='{.metadata.creationTimestamp}' -l app=nada-backend,type=azurerator.nais.io -o name | tail -1` -o jsonpath='{.data.AZURE_APP_TENANT_ID}' | base64 -d)" >> .env
 	echo "GITHUB_READ_TOKEN=$(shell kubectl get secret --context=dev-gcp --namespace=nada github-read-token -o jsonpath='{.data.GITHUB_READ_TOKEN}' | base64 -d)" >> .env
 	echo "METABASE_USERNAME=$(shell kubectl get secret --context=dev-gcp --namespace=nada metabase-sa -o jsonpath='{.data.METABASE_USERNAME}' | base64 -d)" >> .env
 	echo "METABASE_PASSWORD=$(shell kubectl get secret --context=dev-gcp --namespace=nada metabase-sa -o jsonpath='{.data.METABASE_PASSWORD}' | base64 -d)" >> .env
@@ -34,6 +35,7 @@ local-with-auth:
 	go run ./cmd/nada-backend \
 	--oauth2-client-id=$(NADA_CLIENT_ID) \
 	--oauth2-client-secret=$(NADA_CLIENT_SECRET) \
+	--oauth2-tenant-id=$(NADA_CLIENT_TENANT) \
 	--teams-token=$(GITHUB_READ_TOKEN) \
 	--bind-address=127.0.0.1:8080 \
 	--hostname=localhost \

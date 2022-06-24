@@ -78,7 +78,7 @@ func TestRepo(t *testing.T) {
 			ProjectID: "projectid",
 			Table:     "table",
 		},
-		Group: auth.MockUser.Groups[0].Name,
+		Group: auth.MockUser.GoogleGroups[0].Name,
 	}
 
 	t.Run("updates dataproducts", func(t *testing.T) {

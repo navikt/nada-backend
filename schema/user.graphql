@@ -17,7 +17,11 @@ type UserInfo @goModel(model: "github.com/navikt/nada-backend/pkg/graph/models.U
 	"email of user."
 	email: String!
 	"groups the user is a member of."
-	groups: [Group!]!
+	groups: [Group!]! @deprecated(reason: "renamed to googleGroups")
+    "googleGroups is the google groups the user is member of."
+    googleGroups: [Group!]
+    "azureGroups is the azure groups the user is member of."
+    azureGroups: [Group!]
 	"gcpProjects is GCP projects the user is a member of."
 	gcpProjects: [GCPProject!]!  @goField(name: "GCPProjects") @authenticated
 	"loginExpiration is when the token expires."

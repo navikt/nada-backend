@@ -9,10 +9,11 @@ import (
 
 func (r *Repo) CreateSession(ctx context.Context, session *models.Session) error {
 	return r.querier.CreateSession(ctx, gensql.CreateSessionParams{
-		Token:   session.Token,
-		Email:   session.Email,
-		Name:    session.Name,
-		Expires: session.Expires,
+		Token:       session.Token,
+		AccessToken: session.AccessToken,
+		Email:       session.Email,
+		Name:        session.Name,
+		Expires:     session.Expires,
 	})
 }
 
@@ -23,11 +24,12 @@ func (r *Repo) GetSession(ctx context.Context, token string) (*models.Session, e
 	}
 
 	return &models.Session{
-		Token:   sess.Token,
-		Email:   sess.Email,
-		Name:    sess.Name,
-		Created: sess.Created,
-		Expires: sess.Expires,
+		Token:       sess.Token,
+		AccessToken: sess.AccessToken,
+		Email:       sess.Email,
+		Name:        sess.Name,
+		Created:     sess.Created,
+		Expires:     sess.Expires,
 	}, nil
 }
 

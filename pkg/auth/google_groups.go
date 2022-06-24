@@ -1,4 +1,4 @@
-package bigquery
+package auth
 
 import (
 	"context"
@@ -10,16 +10,16 @@ import (
 	admin "google.golang.org/api/admin/directory/v1"
 )
 
-type GoogleGroups struct {
+type GoogleGroupClient struct {
 	service *admin.Service
 	mock    bool
 	log     *logrus.Entry
 }
 
-func NewGoogleGroups(ctx context.Context, credentailFile, subject string, log *logrus.Entry) (*GoogleGroups, error) {
+func NewGoogleGroups(ctx context.Context, credentailFile, subject string, log *logrus.Entry) (*GoogleGroupClient, error) {
 	if credentailFile == "" && subject == "" {
 		log.Warn("Credential file and subject empty, running GoogleGroups with mock data")
-		return &GoogleGroups{
+		return &GoogleGroupClient{
 			mock: true,
 		}, nil
 	}
@@ -45,51 +45,13 @@ func NewGoogleGroups(ctx context.Context, credentailFile, subject string, log *l
 		return nil, err
 	}
 
-	return &GoogleGroups{
+	return &GoogleGroupClient{
 		service: service,
 		log:     log,
 	}, nil
 }
 
-type Group struct {
-	Name  string
-	Email string
-}
-
-type Groups []Group
-
-func (g Groups) Names() []string {
-	names := []string{}
-	for _, g := range g {
-		names = append(names, g.Name)
-	}
-	return names
-}
-
-func (g Groups) Emails() []string {
-	emails := []string{}
-	for _, g := range g {
-		emails = append(emails, g.Email)
-	}
-	return emails
-}
-
-func (g Groups) Get(email string) (Group, bool) {
-	for _, grp := range g {
-		if grp.Email == email {
-			return grp, true
-		}
-	}
-
-	return Group{}, false
-}
-
-func (g Groups) Contains(email string) bool {
-	_, ok := g.Get(email)
-	return ok
-}
-
-func (g *GoogleGroups) GroupsForUser(ctx context.Context, email string) (groups Groups, err error) {
+func (g *GoogleGroupClient) GroupsForUser(ctx context.Context, email string) (groups Groups, err error) {
 	if g.mock {
 		return Groups{
 			Group{Name: "All users", Email: "all-users@nav.no"},

@@ -11,27 +11,31 @@ import (
 const createSession = `-- name: CreateSession :exec
 INSERT INTO sessions (
 	"token",
+    "access_token",
 	"email",
 	"name",
 	"expires"
 ) VALUES (
 	$1,
-	$2,
-	$3,
-	$4
+    $2,
+	LOWER($3),
+	$4,
+	$5
 )
 `
 
 type CreateSessionParams struct {
-	Token   string
-	Email   string
-	Name    string
-	Expires time.Time
+	Token       string
+	AccessToken string
+	Email       string
+	Name        string
+	Expires     time.Time
 }
 
 func (q *Queries) CreateSession(ctx context.Context, arg CreateSessionParams) error {
 	_, err := q.db.ExecContext(ctx, createSession,
 		arg.Token,
+		arg.AccessToken,
 		arg.Email,
 		arg.Name,
 		arg.Expires,
@@ -51,7 +55,7 @@ func (q *Queries) DeleteSession(ctx context.Context, token string) error {
 }
 
 const getSession = `-- name: GetSession :one
-SELECT token, email, name, created, expires
+SELECT token, access_token, email, name, created, expires
 FROM sessions
 WHERE token = $1
 AND expires > now()
@@ -62,6 +66,7 @@ func (q *Queries) GetSession(ctx context.Context, token string) (Session, error)
 	var i Session
 	err := row.Scan(
 		&i.Token,
+		&i.AccessToken,
 		&i.Email,
 		&i.Name,
 		&i.Created,

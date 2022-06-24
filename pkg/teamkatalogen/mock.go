@@ -14,7 +14,7 @@ type Mock struct {
 
 func NewMock() *Mock {
 	tk := &Mock{}
-	for _, t := range auth.MockUser.Groups {
+	for _, t := range auth.MockUser.GoogleGroups {
 		tk.Teams = append(tk.Teams, &models.TeamkatalogenResult{
 			Name:        t.Name,
 			URL:         "https://some.url",

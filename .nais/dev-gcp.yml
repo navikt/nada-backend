@@ -10,6 +10,13 @@ metadata:
 spec:
   image: "{{ image }}"
   port: 8080
+  azure:
+    application:
+      enabled: true
+      replyURLs:
+        - https://data.dev.intern.nav.no/api/oauth2/callback
+        - http://localhost:8080/api/oauth2/callback
+      tenant: nav.no
   command:
     - /app/nada-backend
     - --teamkatalogen-url

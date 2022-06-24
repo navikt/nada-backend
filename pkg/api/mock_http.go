@@ -8,7 +8,6 @@ import (
 
 	"github.com/navikt/nada-backend/pkg/auth"
 	"github.com/navikt/nada-backend/pkg/database"
-	"github.com/navikt/nada-backend/pkg/graph/models"
 	"github.com/sirupsen/logrus"
 )
 
@@ -31,26 +30,12 @@ func (h MockHTTP) Login(w http.ResponseWriter, r *http.Request) {
 		loginPage = "http://localhost:3000" + loginPage
 	}
 
-	session := &models.Session{
-		Token:   generateSecureToken(tokenLength),
-		Expires: time.Now().Add(sessionLength),
-		Email:   auth.MockUser.Email,
-		Name:    auth.MockUser.Name,
-	}
-
-	if err := h.repo.CreateSession(r.Context(), session); err != nil {
-		h.log.WithError(err).Error("Unable to store session")
-		http.Redirect(w, r, loginPage+"?error=unauthenticated", http.StatusFound)
-		return
-	}
-
-	// TODO(thokra): Encrypt cookie value
 	http.SetCookie(w, &http.Cookie{
 		Name:     "nada_session",
-		Value:    session.Token,
+		Value:    "token",
 		Path:     "/",
-		Domain:   r.Host,
-		Expires:  session.Expires,
+		Domain:   "localhost",
+		Expires:  time.Now().Add(time.Hour * 24),
 		Secure:   true,
 		HttpOnly: true,
 	})
@@ -67,7 +52,7 @@ func (h *MockHTTP) Logout(w http.ResponseWriter, r *http.Request) {
 		Name:     "nada_session",
 		Value:    "",
 		Path:     "/",
-		Domain:   r.Host,
+		Domain:   "localhost",
 		Expires:  time.Unix(0, 0),
 		Secure:   true,
 		HttpOnly: true,
@@ -85,14 +70,8 @@ func (h *MockHTTP) Logout(w http.ResponseWriter, r *http.Request) {
 
 func (h *MockHTTP) Middleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		c, err := r.Cookie("nada_session")
+		_, err := r.Cookie("nada_session")
 		if err != nil {
-			next.ServeHTTP(w, r)
-			return
-		}
-
-		session, err := h.repo.GetSession(r.Context(), c.Value)
-		if err != nil || session.Expires.Before(time.Now()) {
 			next.ServeHTTP(w, r)
 			return
 		}

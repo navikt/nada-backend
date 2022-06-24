@@ -160,11 +160,12 @@ type Search struct {
 }
 
 type Session struct {
-	Token   string
-	Email   string
-	Name    string
-	Created time.Time
-	Expires time.Time
+	Token       string
+	AccessToken string
+	Email       string
+	Name        string
+	Created     time.Time
+	Expires     time.Time
 }
 
 type Story struct {
