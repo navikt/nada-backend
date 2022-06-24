@@ -39,7 +39,6 @@ spec:
   ingresses:
     - "https://data.dev.intern.nav.no/api"
     - "https://nada.ekstern.dev.nav.no/api"
-    - "https://data.dev.intern.nav.no/datapakke/"
   envFrom:
     - secret: nada-backend
   filesFrom:
