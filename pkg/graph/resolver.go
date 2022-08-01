@@ -43,7 +43,7 @@ type Slack interface {
 type Resolver struct {
 	repo          *database.Repo
 	bigquery      Bigquery
-	gcpProjects   *auth.TeamProjectsUpdater
+	gcpProjects   *auth.TeamProjectsMapping
 	accessMgr     AccessManager
 	teamkatalogen Teamkatalogen
 	slack         Slack
@@ -51,7 +51,7 @@ type Resolver struct {
 	log           *logrus.Entry
 }
 
-func New(repo *database.Repo, gcp Bigquery, gcpProjects *auth.TeamProjectsUpdater, accessMgr AccessManager, tk Teamkatalogen, slack Slack, pollyAPI Polly, log *logrus.Entry) *handler.Server {
+func New(repo *database.Repo, gcp Bigquery, gcpProjects *auth.TeamProjectsMapping, accessMgr AccessManager, tk Teamkatalogen, slack Slack, pollyAPI Polly, log *logrus.Entry) *handler.Server {
 	resolver := &Resolver{
 		repo:          repo,
 		bigquery:      gcp,
@@ -78,10 +78,9 @@ func (r *Resolver) ensureUserHasAccessToGcpProject(ctx context.Context, projectI
 		if !ok {
 			continue
 		}
-		for _, p := range proj {
-			if p == projectID {
-				return nil
-			}
+
+		if proj == projectID {
+			return nil
 		}
 	}
 

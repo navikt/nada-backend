@@ -45,11 +45,11 @@ local-with-auth:
 	--metabase-password=$(METABASE_PASSWORD) \
 	--teamkatalogen-url=https://teamkatalog-api.intern.nav.no \
 	--polly-url=https://polly.dev-fss-pub.nais.io/process \
+	--team-projects-url=https://raw.githubusercontent.com/nais/teams/master/gcp-projects/dev-output.json \
 	--log-level=debug
 
 local:
 	go run ./cmd/nada-backend \
-	--teams-token=$(GITHUB_READ_TOKEN) \
 	--bind-address=127.0.0.1:8080 \
 	--hostname=localhost \
 	--mock-auth \

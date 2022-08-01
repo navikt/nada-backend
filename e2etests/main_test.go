@@ -26,6 +26,7 @@ import (
 	"github.com/navikt/nada-backend/pkg/polly"
 	"github.com/navikt/nada-backend/pkg/slack"
 	"github.com/navikt/nada-backend/pkg/teamkatalogen"
+	"github.com/navikt/nada-backend/pkg/teamprojectsupdater"
 	"github.com/ory/dockertest/v3"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/sirupsen/logrus"
@@ -82,7 +83,7 @@ func TestMain(m *testing.M) {
 	gqlServer := graph.New(
 		repo,
 		bigquery.NewMock(),
-		&auth.MockTeamProjectsUpdater,
+		teamprojectsupdater.NewMockTeamProjectsUpdater().TeamProjectsMapping,
 		access.NewNoop(),
 		teamkatalogen.NewMock(),
 		slack.NewMockSlackClient(logrus.StandardLogger()),

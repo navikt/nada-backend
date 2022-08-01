@@ -9,6 +9,7 @@ import (
 )
 
 type Querier interface {
+	AddTeamProject(ctx context.Context, arg AddTeamProjectParams) (TeamProject, error)
 	ApproveAccessRequest(ctx context.Context, arg ApproveAccessRequestParams) error
 	CleanupStoryDrafts(ctx context.Context) error
 	CreateAccessRequestForDataproduct(ctx context.Context, arg CreateAccessRequestForDataproductParams) (DataproductAccessRequest, error)
@@ -64,6 +65,7 @@ type Querier interface {
 	GetStoryViewDraft(ctx context.Context, id uuid.UUID) (StoryViewDraft, error)
 	GetStoryViewDrafts(ctx context.Context, storyID uuid.UUID) ([]StoryViewDraft, error)
 	GetStoryViews(ctx context.Context, storyID uuid.UUID) ([]StoryView, error)
+	GetTeamProjects(ctx context.Context) ([]TeamProject, error)
 	GrantAccessToDataproduct(ctx context.Context, arg GrantAccessToDataproductParams) (DataproductAccess, error)
 	ListAccessRequestsForDataproduct(ctx context.Context, dataproductID uuid.UUID) ([]DataproductAccessRequest, error)
 	ListAccessRequestsForOwner(ctx context.Context, owner []string) ([]DataproductAccessRequest, error)

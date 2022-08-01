@@ -23,6 +23,8 @@ spec:
     - https://teamkatalog-api.dev-fss-pub.nais.io/team
     - --polly-url
     - https://polly.dev-fss-pub.nais.io/process
+    - --team-projects-url
+    - https://raw.githubusercontent.com/nais/teams/master/gcp-projects/dev-output.json
   replicas:
     min: 2
     max: 4
