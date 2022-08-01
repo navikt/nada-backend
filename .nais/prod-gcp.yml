@@ -32,6 +32,7 @@ spec:
   ingresses:
     - "https://nada.intern.nav.no/api/story"
     - "https://data.intern.nav.no/api"
+    - "https://nada.intern.nav.no/api"
   envFrom:
     - secret: nada-backend
   filesFrom:
