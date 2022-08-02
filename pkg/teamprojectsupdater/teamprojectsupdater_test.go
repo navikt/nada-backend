@@ -67,7 +67,7 @@ func TestTeamProjectsUpdater(t *testing.T) {
 		fmt.Fprintln(writer, string(file))
 	}))
 
-	tup := NewTeamProjectsUpdater(server.URL+"/dev-output.json", "token", server.Client(), repo)
+	tup := NewTeamProjectsUpdater(server.URL+"/dev-output.json", "token", server.Client(), repo, true)
 
 	fmt.Println(tup.TeamProjectsMapping.TeamProjects)
 

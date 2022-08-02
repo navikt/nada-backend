@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"io"
 	"net/http"
 	"os"
 	"os/signal"
@@ -81,6 +82,11 @@ func main() {
 	slackClient := newSlackClient(log)
 	eventMgr := &event.Manager{}
 
+	leader, err := isLeader()
+	if err != nil {
+		log.WithError(err).Fatal("determining if pod is leader")
+	}
+
 	repo, err := database.New(cfg.DBConnectionDSN, eventMgr, log.WithField("subsystem", "repo"))
 	if err != nil {
 		log.WithError(err).Fatal("setting up database")
@@ -98,7 +104,7 @@ func main() {
 	var pollyAPI graph.Polly = polly.NewMock(cfg.PollyURL)
 	if !cfg.MockAuth {
 		teamcatalogue = teamkatalogen.New(cfg.TeamkatalogenURL)
-		teamProjectsUpdater = teamprojectsupdater.NewTeamProjectsUpdater(cfg.TeamProjectsOutputURL, cfg.TeamsToken, http.DefaultClient, repo)
+		teamProjectsUpdater = teamprojectsupdater.NewTeamProjectsUpdater(cfg.TeamProjectsOutputURL, cfg.TeamsToken, http.DefaultClient, repo, leader)
 		go teamProjectsUpdater.Run(ctx, TeamProjectsUpdateFrequency)
 
 		azureGroups := auth.NewAzureGroups(http.DefaultClient, cfg.OAuth2.ClientID, cfg.OAuth2.ClientSecret, cfg.OAuth2.TenantID)
@@ -224,4 +230,41 @@ func runMetabase(ctx context.Context, log *logrus.Entry, cfg Config, repo *datab
 	metabase := metabase.New(repo, client, accessMgr, eventMgr, string(sa), metabaseSA.ClientEmail, promErrs, iamService, crmService, log.WithField("subsystem", "metabase"))
 	go metabase.Run(ctx, MetabaseUpdateFrequency)
 	return nil
+}
+
+func isLeader() (bool, error) {
+	electorPath := os.Getenv("ELECTOR_PATH")
+	if electorPath == "" {
+		// local development
+		return true, nil
+	}
+
+	hostname, err := os.Hostname()
+	if err != nil {
+		return false, err
+	}
+
+	resp, err := http.Get("http://" + electorPath)
+	if err != nil {
+		return false, err
+	}
+	defer resp.Body.Close()
+	bodyBytes, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return false, err
+	}
+
+	var electorResponse struct {
+		Name string
+	}
+
+	if err := json.Unmarshal(bodyBytes, &electorResponse); err != nil {
+		return false, err
+	}
+
+	if hostname == electorResponse.Name {
+		return true, nil
+	}
+
+	return false, nil
 }
