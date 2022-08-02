@@ -18,11 +18,11 @@ func (t *TeamProjectsMapping) Get(team string) (string, bool) {
 	return project, ok
 }
 
-func (t *TeamProjectsMapping) SetTeamProjects(outputFile map[string]string) {
+func (t *TeamProjectsMapping) SetTeamProjects(projects map[string]string) {
 	t.lock.Lock()
 	defer t.lock.Unlock()
 	t.TeamProjects = map[string]string{}
-	mergeInto(t.TeamProjects, outputFile)
+	mergeInto(t.TeamProjects, projects)
 	log.Infof("Updated team projects mapping: %v teams", len(t.TeamProjects))
 }
 

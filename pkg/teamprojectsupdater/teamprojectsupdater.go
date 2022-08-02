@@ -94,11 +94,8 @@ func (t *TeamProjectsUpdater) FetchTeamGoogleProjectsMapping(ctx context.Context
 
 	t.TeamProjectsMapping.SetTeamProjects(outputFile)
 
-	for key, value := range outputFile {
-		_, err = t.repo.AddTeamProject(ctx, key+"@nav.no", value)
-		if err != nil {
-			return err
-		}
+	if err := t.repo.UpdateTeamProjectsCache(ctx, outputFile); err != nil {
+		return err
 	}
 
 	return nil

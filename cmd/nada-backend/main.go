@@ -54,7 +54,7 @@ func init() {
 	flag.StringVar(&cfg.OAuth2.ClientID, "oauth2-client-id", os.Getenv("AZURE_APP_CLIENT_ID"), "OAuth2 client ID")
 	flag.StringVar(&cfg.OAuth2.ClientSecret, "oauth2-client-secret", os.Getenv("AZURE_APP_CLIENT_SECRET"), "OAuth2 client secret")
 	flag.StringVar(&cfg.OAuth2.TenantID, "oauth2-tenant-id", os.Getenv("AZURE_APP_TENANT_ID"), "OAuth2 azure tenant id")
-	flag.StringVar(&cfg.TeamProjectsOutputURL, "team-projects-url", "https://raw.githubusercontent.com/nais/teams/master/gcp-projects/prod-output.json", "URL for json containing team projects")
+	flag.StringVar(&cfg.TeamProjectsOutputURL, "team-projects-url", cfg.TeamProjectsOutputURL, "URL for json containing team projects")
 	flag.StringVar(&cfg.TeamsToken, "teams-token", os.Getenv("GITHUB_READ_TOKEN"), "Token for accessing teams json")
 	flag.StringVar(&cfg.LogLevel, "log-level", "info", "which log level to output")
 	flag.StringVar(&cfg.CookieSecret, "cookie-secret", "", "Secret used when encrypting cookies")

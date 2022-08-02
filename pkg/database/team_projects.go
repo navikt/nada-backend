@@ -14,13 +14,37 @@ func (r *Repo) GetTeamProjects(ctx context.Context) ([]gensql.TeamProject, error
 	return teamProjects, nil
 }
 
-func (r *Repo) AddTeamProject(ctx context.Context, team, projectID string) (*gensql.TeamProject, error) {
-	teamProject, err := r.querier.AddTeamProject(ctx, gensql.AddTeamProjectParams{
-		Team:    team,
-		Project: projectID,
-	})
+func (r *Repo) UpdateTeamProjectsCache(ctx context.Context, teamProjects map[string]string) error {
+	tx, err := r.db.Begin()
 	if err != nil {
-		return nil, err
+		return err
 	}
-	return &teamProject, nil
+
+	querier := r.querier.WithTx(tx)
+
+	if err := querier.ClearTeamProjectsCache(ctx); err != nil {
+		if err := tx.Rollback(); err != nil {
+			r.log.WithError(err).Error("Rolling back clear projects cache transaction")
+		}
+		return err
+	}
+
+	for team, projectID := range teamProjects {
+		_, err := querier.AddTeamProject(ctx, gensql.AddTeamProjectParams{
+			Team:    team,
+			Project: projectID,
+		})
+		if err != nil {
+			if err := tx.Rollback(); err != nil {
+				r.log.WithError(err).Error("Rolling back update projects cache transaction")
+			}
+			return err
+		}
+	}
+
+	if err := tx.Commit(); err != nil {
+		return err
+	}
+
+	return nil
 }
