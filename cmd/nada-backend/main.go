@@ -262,9 +262,5 @@ func isLeader() (bool, error) {
 		return false, err
 	}
 
-	if hostname == electorResponse.Name {
-		return true, nil
-	}
-
-	return false, nil
+	return hostname == electorResponse.Name, nil
 }
