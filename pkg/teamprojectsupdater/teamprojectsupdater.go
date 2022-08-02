@@ -97,6 +97,7 @@ func (t *TeamProjectsUpdater) FetchTeamGoogleProjectsMapping(ctx context.Context
 	t.TeamProjectsMapping.SetTeamProjects(outputFile)
 
 	if t.leader {
+		log.Info("is leader")
 		if err := t.repo.UpdateTeamProjectsCache(ctx, outputFile); err != nil {
 			return err
 		}
