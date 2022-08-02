@@ -70,18 +70,14 @@ func New(repo *database.Repo, gcp Bigquery, gcpProjects *auth.TeamProjectsMappin
 	return srv
 }
 
-func (r *Resolver) ensureUserHasAccessToGcpProject(ctx context.Context, projectID string) error {
-	user := auth.GetUser(ctx)
+func (r *Resolver) ensureGroupOwnsGCPProject(ctx context.Context, group, projectID string) error {
+	groupProject, ok := r.gcpProjects.Get(group)
+	if !ok {
+		return ErrUnauthorized
+	}
 
-	for _, grp := range user.GoogleGroups {
-		proj, ok := r.gcpProjects.Get(grp.Email)
-		if !ok {
-			continue
-		}
-
-		if proj == projectID {
-			return nil
-		}
+	if groupProject == projectID {
+		return nil
 	}
 
 	return ErrUnauthorized
