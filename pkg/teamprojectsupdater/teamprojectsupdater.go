@@ -74,6 +74,8 @@ func (t *TeamProjectsUpdater) Run(ctx context.Context, frequency time.Duration) 
 
 	t.TeamProjectsMapping.SetTeamProjects(teamprojects)
 
+	time.Sleep(time.Second * 60)
+
 	for {
 		if err := t.FetchTeamGoogleProjectsMapping(ctx); err != nil {
 			log.WithError(err).Errorf("Fetching teams")
