@@ -19,6 +19,7 @@ spec:
   replicas:
     min: 2
     max: 4
+  leaderElection: true
   resources:
     requests:
       cpu: 100m
