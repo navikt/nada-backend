@@ -58,12 +58,14 @@ jobs:
         password: ${{ secrets.GITHUB_TOKEN }}
 
     - name: Build and push Dockerimage
+      if: github.ref == 'refs/heads/main'
       uses: docker/build-push-action@v2
       with:
         context: .
         push: true
         tags: ${{ env.image_prefix }}:latest, ${{ env.IMAGE }}
     - name: Deploy to dev-gcp
+      if: github.ref == 'refs/heads/main'
       uses: nais/deploy/actions/deploy@master
       env:
         APIKEY: ${{ secrets.NAIS_DEPLOY_APIKEY }}
