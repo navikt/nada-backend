@@ -1,0 +1,26 @@
+mutation {
+	createDataproduct(
+		input: {
+			name: "NewName"
+			pii: false
+			group: "nada@nav.no"
+			bigquery: { projectID: "team-dev-1337", dataset: "dataset1", table: "table1" }
+		}
+	) {
+		id
+	}
+}
+
+RETURNS
+
+{
+  "errors": [
+    {
+      "message": "unauthorized",
+      "path": [
+        "createDataproduct"
+      ]
+    }
+  ],
+  "data": null
+}

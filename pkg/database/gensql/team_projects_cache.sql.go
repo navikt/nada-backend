@@ -29,6 +29,15 @@ func (q *Queries) AddTeamProject(ctx context.Context, arg AddTeamProjectParams) 
 	return i, err
 }
 
+const clearTeamProjectsCache = `-- name: ClearTeamProjectsCache :exec
+TRUNCATE team_projects
+`
+
+func (q *Queries) ClearTeamProjectsCache(ctx context.Context) error {
+	_, err := q.db.ExecContext(ctx, clearTeamProjectsCache)
+	return err
+}
+
 const getTeamProjects = `-- name: GetTeamProjects :many
 SELECT team, project
 FROM team_projects

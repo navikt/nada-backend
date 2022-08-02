@@ -2,9 +2,9 @@ mutation {
 	createDataproduct(
 		input: {
 			name: "NewName"
-			group: "nada@nav.no"
+			group: "team@nav.no"
 			pii: false
-			bigquery: { projectID: "team-prod-4242", dataset: "dataset", table: "table1" }
+			bigquery: { projectID: "team-dev-1337", dataset: "dataset", table: "table1" }
 		}
 	) {
 		id

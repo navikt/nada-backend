@@ -12,6 +12,7 @@ type Querier interface {
 	AddTeamProject(ctx context.Context, arg AddTeamProjectParams) (TeamProject, error)
 	ApproveAccessRequest(ctx context.Context, arg ApproveAccessRequestParams) error
 	CleanupStoryDrafts(ctx context.Context) error
+	ClearTeamProjectsCache(ctx context.Context) error
 	CreateAccessRequestForDataproduct(ctx context.Context, arg CreateAccessRequestForDataproductParams) (DataproductAccessRequest, error)
 	CreateBigqueryDatasource(ctx context.Context, arg CreateBigqueryDatasourceParams) (DatasourceBigquery, error)
 	CreateDataproduct(ctx context.Context, arg CreateDataproductParams) (Dataproduct, error)

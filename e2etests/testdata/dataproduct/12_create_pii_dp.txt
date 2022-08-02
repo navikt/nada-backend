@@ -5,8 +5,8 @@ mutation {
 			description: "Description"
 			repo: "somerepo"
 			pii: true
-			group: "nada@nav.no"
-			bigquery: { projectID: "team-prod-4242", dataset: "dataset1", table: "table1" }
+			group: "team@nav.no"
+			bigquery: { projectID: "team-dev-1337", dataset: "dataset1", table: "table1" }
 		}
 	) {
 		id
@@ -29,7 +29,7 @@ ENDOPTS
       "name": "DpWithPii",
       "description": "Description",
       "owner": {
-        "group": "nada@nav.no"
+        "group": "team@nav.no"
       },
       "pii": true,
       "repo": "somerepo"

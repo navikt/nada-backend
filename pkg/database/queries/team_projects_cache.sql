@@ -10,3 +10,6 @@ RETURNING *;
 -- name: GetTeamProjects :many
 SELECT *
 FROM team_projects;
+
+-- name: ClearTeamProjectsCache :exec
+TRUNCATE team_projects;
