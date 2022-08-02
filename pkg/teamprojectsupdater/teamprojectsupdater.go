@@ -13,6 +13,7 @@ import (
 
 	"github.com/navikt/nada-backend/pkg/auth"
 	"github.com/navikt/nada-backend/pkg/database"
+	"github.com/navikt/nada-backend/pkg/leaderelection"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -22,7 +23,6 @@ type TeamProjectsUpdater struct {
 	teamsToken          string
 	httpClient          *http.Client
 	repo                *database.Repo
-	leader              bool
 }
 
 type OutputFile struct {
@@ -33,7 +33,7 @@ type OutputVariable struct {
 	Value map[string]string `json:"value"`
 }
 
-func NewTeamProjectsUpdater(teamProjectsURL, teamsToken string, httpClient *http.Client, repo *database.Repo, leader bool) *TeamProjectsUpdater {
+func NewTeamProjectsUpdater(teamProjectsURL, teamsToken string, httpClient *http.Client, repo *database.Repo) *TeamProjectsUpdater {
 	teamProjectsMapping := &auth.TeamProjectsMapping{}
 	return &TeamProjectsUpdater{
 		TeamProjectsMapping: teamProjectsMapping,
@@ -41,7 +41,6 @@ func NewTeamProjectsUpdater(teamProjectsURL, teamsToken string, httpClient *http
 		teamsToken:          teamsToken,
 		httpClient:          httpClient,
 		repo:                repo,
-		leader:              leader,
 	}
 }
 
@@ -96,7 +95,12 @@ func (t *TeamProjectsUpdater) FetchTeamGoogleProjectsMapping(ctx context.Context
 
 	t.TeamProjectsMapping.SetTeamProjects(outputFile)
 
-	if t.leader {
+	isLeader, err := leaderelection.IsLeader()
+	if err != nil {
+		return err
+	}
+
+	if isLeader {
 		log.Info("is leader")
 		if err := t.repo.UpdateTeamProjectsCache(ctx, outputFile); err != nil {
 			return err
