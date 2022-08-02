@@ -23,6 +23,7 @@ import (
 	"github.com/navikt/nada-backend/pkg/slack"
 	"github.com/navikt/nada-backend/pkg/story"
 	"github.com/navikt/nada-backend/pkg/teamkatalogen"
+	"github.com/navikt/nada-backend/pkg/teamprojectsupdater"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/sirupsen/logrus"
 	flag "github.com/spf13/pflag"
@@ -53,8 +54,7 @@ func init() {
 	flag.StringVar(&cfg.OAuth2.ClientID, "oauth2-client-id", os.Getenv("AZURE_APP_CLIENT_ID"), "OAuth2 client ID")
 	flag.StringVar(&cfg.OAuth2.ClientSecret, "oauth2-client-secret", os.Getenv("AZURE_APP_CLIENT_SECRET"), "OAuth2 client secret")
 	flag.StringVar(&cfg.OAuth2.TenantID, "oauth2-tenant-id", os.Getenv("AZURE_APP_TENANT_ID"), "OAuth2 azure tenant id")
-	flag.StringVar(&cfg.ProdTeamProjectsOutputURL, "prod-team-projects-url", cfg.ProdTeamProjectsOutputURL, "URL for json containing prod team projects")
-	flag.StringVar(&cfg.DevTeamProjectsOutputURL, "dev-team-projects-url", cfg.DevTeamProjectsOutputURL, "URL for json containing dev team projects")
+	flag.StringVar(&cfg.TeamProjectsOutputURL, "team-projects-url", cfg.TeamProjectsOutputURL, "URL for json containing team projects")
 	flag.StringVar(&cfg.TeamsToken, "teams-token", os.Getenv("GITHUB_READ_TOKEN"), "Token for accessing teams json")
 	flag.StringVar(&cfg.LogLevel, "log-level", "info", "which log level to output")
 	flag.StringVar(&cfg.CookieSecret, "cookie-secret", "", "Secret used when encrypting cookies")
@@ -90,7 +90,7 @@ func main() {
 	var httpAPI api.HTTPAPI = mockHTTP
 	authenticatorMiddleware := mockHTTP.Middleware
 
-	teamProjectsMapping := &auth.MockTeamProjectsUpdater
+	teamProjectsUpdater := teamprojectsupdater.NewMockTeamProjectsUpdater()
 	var oauth2Config api.OAuth2
 	var accessMgr graph.AccessManager
 	accessMgr = access.NewNoop()
@@ -98,8 +98,8 @@ func main() {
 	var pollyAPI graph.Polly = polly.NewMock(cfg.PollyURL)
 	if !cfg.MockAuth {
 		teamcatalogue = teamkatalogen.New(cfg.TeamkatalogenURL)
-		teamProjectsMapping = auth.NewTeamProjectsUpdater(cfg.DevTeamProjectsOutputURL, cfg.ProdTeamProjectsOutputURL, cfg.TeamsToken, http.DefaultClient)
-		go teamProjectsMapping.Run(ctx, TeamProjectsUpdateFrequency)
+		teamProjectsUpdater = teamprojectsupdater.NewTeamProjectsUpdater(cfg.TeamProjectsOutputURL, cfg.TeamsToken, http.DefaultClient, repo)
+		go teamProjectsUpdater.Run(ctx, TeamProjectsUpdateFrequency)
 
 		azureGroups := auth.NewAzureGroups(http.DefaultClient, cfg.OAuth2.ClientID, cfg.OAuth2.ClientSecret, cfg.OAuth2.TenantID)
 		googleGroups, err := auth.NewGoogleGroups(ctx, cfg.ServiceAccountFile, cfg.GoogleAdminImpersonationSubject, log.WithField("subsystem", "googlegroups"))
@@ -135,7 +135,7 @@ func main() {
 	go story.NewDraftCleaner(repo, log.WithField("subsystem", "storydraftcleaner")).Run(ctx, StoryDraftCleanerFrequency)
 
 	log.Info("Listening on :8080")
-	gqlServer := graph.New(repo, gcp, teamProjectsMapping, accessMgr, teamcatalogue, slackClient, pollyAPI, log.WithField("subsystem", "graph"))
+	gqlServer := graph.New(repo, gcp, teamProjectsUpdater.TeamProjectsMapping, accessMgr, teamcatalogue, slackClient, pollyAPI, log.WithField("subsystem", "graph"))
 	srv := api.New(repo, httpAPI, authenticatorMiddleware, gqlServer, prom(promErrs, repo.Metrics()), log)
 
 	server := http.Server{

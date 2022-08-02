@@ -207,6 +207,11 @@ type StoryViewDraft struct {
 	Spec    json.RawMessage
 }
 
+type TeamProject struct {
+	Team    string
+	Project string
+}
+
 type ThirdPartyMapping struct {
 	DataproductID uuid.UUID
 	Services      []string

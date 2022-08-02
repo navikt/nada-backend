@@ -11,13 +11,13 @@ import (
 const createSession = `-- name: CreateSession :exec
 INSERT INTO sessions (
 	"token",
-    "access_token",
+	"access_token",
 	"email",
 	"name",
 	"expires"
 ) VALUES (
 	$1,
-    $2,
+	$2,
 	LOWER($3),
 	$4,
 	$5

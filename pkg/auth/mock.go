@@ -32,16 +32,6 @@ var MockUser = User{
 	Expiry: time.Now().Add(time.Hour * 24),
 }
 
-var MockProjectIDs = []string{"team-dev-1337", "team-prod-4242"}
-
-var MockTeamProjectsUpdater = TeamProjectsUpdater{
-	teamProjects: map[string][]string{
-		"team@nav.no": MockProjectIDs,
-		"nada@nav.no": {"dataplattform-dev-9da3"},
-		"aura@nav.no": {"aura-dev-d9f5"},
-	},
-}
-
 type MiddlewareHandler func(http.Handler) http.Handler
 
 func MockJWTValidatorMiddleware() MiddlewareHandler {

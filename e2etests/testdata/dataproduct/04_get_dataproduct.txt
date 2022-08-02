@@ -22,7 +22,7 @@ RETURNS
         "keyword2"
       ],
       "owner": {
-        "group": "nada@nav.no"
+        "group": "team@nav.no"
       },
       "pii": true,
       "repo": "someotherrepo"
