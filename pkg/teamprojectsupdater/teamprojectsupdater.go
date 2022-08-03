@@ -13,6 +13,7 @@ import (
 
 	"github.com/navikt/nada-backend/pkg/auth"
 	"github.com/navikt/nada-backend/pkg/database"
+	"github.com/navikt/nada-backend/pkg/leaderelection"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -73,6 +74,8 @@ func (t *TeamProjectsUpdater) Run(ctx context.Context, frequency time.Duration) 
 
 	t.TeamProjectsMapping.SetTeamProjects(teamprojects)
 
+	time.Sleep(time.Second * 60)
+
 	for {
 		if err := t.FetchTeamGoogleProjectsMapping(ctx); err != nil {
 			log.WithError(err).Errorf("Fetching teams")
@@ -94,8 +97,15 @@ func (t *TeamProjectsUpdater) FetchTeamGoogleProjectsMapping(ctx context.Context
 
 	t.TeamProjectsMapping.SetTeamProjects(outputFile)
 
-	if err := t.repo.UpdateTeamProjectsCache(ctx, outputFile); err != nil {
+	isLeader, err := leaderelection.IsLeader()
+	if err != nil {
 		return err
+	}
+
+	if isLeader {
+		if err := t.repo.UpdateTeamProjectsCache(ctx, outputFile); err != nil {
+			return err
+		}
 	}
 
 	return nil
