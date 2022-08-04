@@ -21,14 +21,17 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
+// Schema is the resolver for the schema field.
 func (r *bigQueryResolver) Schema(ctx context.Context, obj *models.BigQuery) ([]*models.TableColumn, error) {
 	return r.repo.GetDataproductMetadata(ctx, obj.DataproductID)
 }
 
+// Datasource is the resolver for the datasource field.
 func (r *dataproductResolver) Datasource(ctx context.Context, obj *models.Dataproduct) (models.Datasource, error) {
 	return r.repo.GetBigqueryDatasource(ctx, obj.ID)
 }
 
+// Requesters is the resolver for the requesters field.
 func (r *dataproductResolver) Requesters(ctx context.Context, obj *models.Dataproduct) ([]string, error) {
 	allRequesters, err := r.repo.GetDataproductRequesters(ctx, obj.ID)
 	if err != nil {
@@ -52,6 +55,7 @@ func (r *dataproductResolver) Requesters(ctx context.Context, obj *models.Datapr
 	return ret, nil
 }
 
+// Access is the resolver for the access field.
 func (r *dataproductResolver) Access(ctx context.Context, obj *models.Dataproduct) ([]*models.Access, error) {
 	all, err := r.repo.ListAccessToDataproduct(ctx, obj.ID)
 	if err != nil {
@@ -75,6 +79,7 @@ func (r *dataproductResolver) Access(ctx context.Context, obj *models.Dataproduc
 	return ret, nil
 }
 
+// Services is the resolver for the services field.
 func (r *dataproductResolver) Services(ctx context.Context, obj *models.Dataproduct) (*models.DataproductServices, error) {
 	meta, err := r.repo.GetMetabaseMetadata(ctx, obj.ID, false)
 	if err != nil {
@@ -97,10 +102,12 @@ func (r *dataproductResolver) Services(ctx context.Context, obj *models.Dataprod
 	return svc, nil
 }
 
+// Mappings is the resolver for the mappings field.
 func (r *dataproductResolver) Mappings(ctx context.Context, obj *models.Dataproduct) ([]models.MappingService, error) {
 	return r.repo.GetDataproductMappings(ctx, obj.ID)
 }
 
+// CreateDataproduct is the resolver for the createDataproduct field.
 func (r *mutationResolver) CreateDataproduct(ctx context.Context, input models.NewDataproduct) (*models.Dataproduct, error) {
 	if err := ensureUserInGroup(ctx, input.Group); err != nil {
 		return nil, err
@@ -141,6 +148,7 @@ func (r *mutationResolver) CreateDataproduct(ctx context.Context, input models.N
 	return dp, nil
 }
 
+// UpdateDataproduct is the resolver for the updateDataproduct field.
 func (r *mutationResolver) UpdateDataproduct(ctx context.Context, id uuid.UUID, input models.UpdateDataproduct) (*models.Dataproduct, error) {
 	dp, err := r.repo.GetDataproduct(ctx, id)
 	if err != nil {
@@ -155,6 +163,7 @@ func (r *mutationResolver) UpdateDataproduct(ctx context.Context, id uuid.UUID, 
 	return r.repo.UpdateDataproduct(ctx, id, input)
 }
 
+// DeleteDataproduct is the resolver for the deleteDataproduct field.
 func (r *mutationResolver) DeleteDataproduct(ctx context.Context, id uuid.UUID) (bool, error) {
 	dp, err := r.repo.GetDataproduct(ctx, id)
 	if err != nil {
@@ -167,6 +176,7 @@ func (r *mutationResolver) DeleteDataproduct(ctx context.Context, id uuid.UUID) 
 	return true, r.repo.DeleteDataproduct(ctx, dp.ID)
 }
 
+// AddRequesterToDataproduct is the resolver for the addRequesterToDataproduct field.
 func (r *mutationResolver) AddRequesterToDataproduct(ctx context.Context, dataproductID uuid.UUID, subject string) (bool, error) {
 	dp, err := r.repo.GetDataproduct(ctx, dataproductID)
 	if err != nil {
@@ -179,6 +189,7 @@ func (r *mutationResolver) AddRequesterToDataproduct(ctx context.Context, datapr
 	return true, r.repo.AddRequesterToDataproduct(ctx, dp.ID, subject)
 }
 
+// RemoveRequesterFromDataproduct is the resolver for the removeRequesterFromDataproduct field.
 func (r *mutationResolver) RemoveRequesterFromDataproduct(ctx context.Context, dataproductID uuid.UUID, subject string) (bool, error) {
 	dp, err := r.repo.GetDataproduct(ctx, dataproductID)
 	if err != nil {
@@ -191,6 +202,7 @@ func (r *mutationResolver) RemoveRequesterFromDataproduct(ctx context.Context, d
 	return true, r.repo.RemoveRequesterFromDataproduct(ctx, dp.ID, subject)
 }
 
+// GrantAccessToDataproduct is the resolver for the grantAccessToDataproduct field.
 func (r *mutationResolver) GrantAccessToDataproduct(ctx context.Context, input models.NewGrant) (*models.Access, error) {
 	if input.Expires != nil && input.Expires.Before(time.Now()) {
 		return nil, fmt.Errorf("expires has already expired")
@@ -232,6 +244,7 @@ func (r *mutationResolver) GrantAccessToDataproduct(ctx context.Context, input m
 	return r.repo.GrantAccessToDataproduct(ctx, input.DataproductID, input.Expires, subjWithType, user.Email)
 }
 
+// RevokeAccessToDataproduct is the resolver for the revokeAccessToDataproduct field.
 func (r *mutationResolver) RevokeAccessToDataproduct(ctx context.Context, id uuid.UUID) (bool, error) {
 	access, err := r.repo.GetAccessToDataproduct(ctx, id)
 	if err != nil {
@@ -259,6 +272,7 @@ func (r *mutationResolver) RevokeAccessToDataproduct(ctx context.Context, id uui
 	return true, r.repo.RevokeAccessToDataproduct(ctx, id)
 }
 
+// MapDataproduct is the resolver for the mapDataproduct field.
 func (r *mutationResolver) MapDataproduct(ctx context.Context, dataproductID uuid.UUID, services []models.MappingService) (bool, error) {
 	dp, err := r.repo.GetDataproduct(ctx, dataproductID)
 	if err != nil {
@@ -275,6 +289,7 @@ func (r *mutationResolver) MapDataproduct(ctx context.Context, dataproductID uui
 	return true, nil
 }
 
+// CreateAccessRequest is the resolver for the createAccessRequest field.
 func (r *mutationResolver) CreateAccessRequest(ctx context.Context, input models.NewAccessRequest) (*models.AccessRequest, error) {
 	user := auth.GetUser(ctx)
 	subj := user.Email
@@ -307,6 +322,7 @@ func (r *mutationResolver) CreateAccessRequest(ctx context.Context, input models
 	return r.repo.CreateAccessRequestForDataproduct(ctx, input.DataproductID, pollyID, subjWithType, owner, input.Expires)
 }
 
+// UpdateAccessRequest is the resolver for the updateAccessRequest field.
 func (r *mutationResolver) UpdateAccessRequest(ctx context.Context, input models.UpdateAccessRequest) (*models.AccessRequest, error) {
 	var pollyID uuid.NullUUID
 	if input.Polly != nil {
@@ -325,6 +341,7 @@ func (r *mutationResolver) UpdateAccessRequest(ctx context.Context, input models
 	return r.repo.UpdateAccessRequest(ctx, input.ID, pollyID, input.Owner, input.Expires)
 }
 
+// DeleteAccessRequest is the resolver for the deleteAccessRequest field.
 func (r *mutationResolver) DeleteAccessRequest(ctx context.Context, id uuid.UUID) (bool, error) {
 	accessRequest, err := r.repo.GetAccessRequest(ctx, id)
 	if err != nil {
@@ -348,6 +365,7 @@ func (r *mutationResolver) DeleteAccessRequest(ctx context.Context, id uuid.UUID
 	return true, nil
 }
 
+// ApproveAccessRequest is the resolver for the approveAccessRequest field.
 func (r *mutationResolver) ApproveAccessRequest(ctx context.Context, id uuid.UUID) (bool, error) {
 	ar, err := r.repo.GetAccessRequest(ctx, id)
 	if err != nil {
@@ -386,6 +404,7 @@ func (r *mutationResolver) ApproveAccessRequest(ctx context.Context, id uuid.UUI
 	return true, nil
 }
 
+// DenyAccessRequest is the resolver for the denyAccessRequest field.
 func (r *mutationResolver) DenyAccessRequest(ctx context.Context, id uuid.UUID, reason *string) (bool, error) {
 	ar, err := r.repo.GetAccessRequest(ctx, id)
 	if err != nil {
@@ -409,10 +428,12 @@ func (r *mutationResolver) DenyAccessRequest(ctx context.Context, id uuid.UUID, 
 	return true, nil
 }
 
+// Dataproduct is the resolver for the dataproduct field.
 func (r *queryResolver) Dataproduct(ctx context.Context, id uuid.UUID) (*models.Dataproduct, error) {
 	return r.repo.GetDataproduct(ctx, id)
 }
 
+// Dataproducts is the resolver for the dataproducts field.
 func (r *queryResolver) Dataproducts(ctx context.Context, limit *int, offset *int, service *models.MappingService) ([]*models.Dataproduct, error) {
 	l, o := pagination(limit, offset)
 	if service != nil {
@@ -426,15 +447,18 @@ func (r *queryResolver) Dataproducts(ctx context.Context, limit *int, offset *in
 	return r.repo.GetDataproducts(ctx, l, o)
 }
 
+// GroupStats is the resolver for the groupStats field.
 func (r *queryResolver) GroupStats(ctx context.Context, limit *int, offset *int) ([]*models.GroupStats, error) {
 	l, o := pagination(limit, offset)
 	return r.repo.DataproductGroupStats(ctx, l, o)
 }
 
+// AccessRequest is the resolver for the accessRequest field.
 func (r *queryResolver) AccessRequest(ctx context.Context, id uuid.UUID) (*models.AccessRequest, error) {
 	return r.repo.GetAccessRequest(ctx, id)
 }
 
+// AccessRequestsForDataproduct is the resolver for the accessRequestsForDataproduct field.
 func (r *queryResolver) AccessRequestsForDataproduct(ctx context.Context, dataproductID uuid.UUID) ([]*models.AccessRequest, error) {
 	dp, err := r.repo.GetDataproduct(ctx, dataproductID)
 	if err != nil {
@@ -454,7 +478,5 @@ func (r *Resolver) BigQuery() generated.BigQueryResolver { return &bigQueryResol
 // Dataproduct returns generated.DataproductResolver implementation.
 func (r *Resolver) Dataproduct() generated.DataproductResolver { return &dataproductResolver{r} }
 
-type (
-	bigQueryResolver    struct{ *Resolver }
-	dataproductResolver struct{ *Resolver }
-)
+type bigQueryResolver struct{ *Resolver }
+type dataproductResolver struct{ *Resolver }

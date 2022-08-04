@@ -19,6 +19,7 @@ type Querier interface {
 	CreateDataproductRequester(ctx context.Context, arg CreateDataproductRequesterParams) error
 	CreateMetabaseMetadata(ctx context.Context, arg CreateMetabaseMetadataParams) error
 	CreatePollyDocumentation(ctx context.Context, arg CreatePollyDocumentationParams) (PollyDocumentation, error)
+	CreateQuarto(ctx context.Context, arg CreateQuartoParams) (Quarto, error)
 	CreateSession(ctx context.Context, arg CreateSessionParams) error
 	CreateStory(ctx context.Context, arg CreateStoryParams) (Story, error)
 	CreateStoryDraft(ctx context.Context, name string) (StoryDraft, error)
@@ -31,6 +32,7 @@ type Querier interface {
 	DeleteDataproduct(ctx context.Context, id uuid.UUID) error
 	DeleteDataproductRequester(ctx context.Context, arg DeleteDataproductRequesterParams) error
 	DeleteMetabaseMetadata(ctx context.Context, dataproductID uuid.UUID) error
+	DeleteQuarto(ctx context.Context, id uuid.UUID) error
 	DeleteSession(ctx context.Context, token string) error
 	DeleteStory(ctx context.Context, id uuid.UUID) error
 	DeleteStoryDraft(ctx context.Context, id uuid.UUID) error
@@ -53,6 +55,9 @@ type Querier interface {
 	GetMetabaseMetadata(ctx context.Context, dataproductID uuid.UUID) (MetabaseMetadatum, error)
 	GetMetabaseMetadataWithDeleted(ctx context.Context, dataproductID uuid.UUID) (MetabaseMetadatum, error)
 	GetPollyDocumentation(ctx context.Context, id uuid.UUID) (PollyDocumentation, error)
+	GetQuarto(ctx context.Context, id uuid.UUID) (Quarto, error)
+	GetQuartos(ctx context.Context) ([]Quarto, error)
+	GetQuartosForTeam(ctx context.Context, team string) ([]Quarto, error)
 	GetSession(ctx context.Context, token string) (Session, error)
 	GetStories(ctx context.Context) ([]Story, error)
 	GetStoriesByGroups(ctx context.Context, groups []string) ([]Story, error)
@@ -82,6 +87,7 @@ type Querier interface {
 	UpdateAccessRequest(ctx context.Context, arg UpdateAccessRequestParams) (DataproductAccessRequest, error)
 	UpdateBigqueryDatasourceSchema(ctx context.Context, arg UpdateBigqueryDatasourceSchemaParams) error
 	UpdateDataproduct(ctx context.Context, arg UpdateDataproductParams) (Dataproduct, error)
+	UpdateQuarto(ctx context.Context, arg UpdateQuartoParams) (Quarto, error)
 	UpdateStory(ctx context.Context, arg UpdateStoryParams) (Story, error)
 }
 

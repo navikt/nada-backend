@@ -7,6 +7,7 @@ import (
 	"context"
 )
 
+// TriggerMetadataSync is the resolver for the triggerMetadataSync field.
 func (r *mutationResolver) TriggerMetadataSync(ctx context.Context) (bool, error) {
 	bqs, err := r.repo.GetBigqueryDatasources(ctx)
 	if err != nil {

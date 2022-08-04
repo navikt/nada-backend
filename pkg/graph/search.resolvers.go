@@ -11,6 +11,7 @@ import (
 	stripmd "github.com/writeas/go-strip-markdown/v2"
 )
 
+// Search is the resolver for the search field.
 func (r *queryResolver) Search(ctx context.Context, q *models.SearchQueryOld, options *models.SearchQuery) ([]*models.SearchResultRow, error) {
 	if q == nil {
 		q = &models.SearchQueryOld{}
@@ -35,6 +36,7 @@ func (r *queryResolver) Search(ctx context.Context, q *models.SearchQueryOld, op
 	return r.repo.Search(ctx, options)
 }
 
+// Excerpt is the resolver for the excerpt field.
 func (r *searchResultRowResolver) Excerpt(ctx context.Context, obj *models.SearchResultRow) (string, error) {
 	return stripmd.Strip(obj.Excerpt), nil
 }

@@ -147,6 +147,12 @@ type PollyDocumentation struct {
 	Url        string
 }
 
+type Quarto struct {
+	ID      uuid.UUID
+	Team    string
+	Content string
+}
+
 type Search struct {
 	ElementID    uuid.UUID
 	ElementType  interface{}
