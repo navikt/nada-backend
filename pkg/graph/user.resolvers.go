@@ -12,6 +12,7 @@ import (
 	"github.com/navikt/nada-backend/pkg/graph/models"
 )
 
+// UserInfo is the resolver for the userInfo field.
 func (r *queryResolver) UserInfo(ctx context.Context) (*models.UserInfo, error) {
 	user := auth.GetUser(ctx)
 	groups := []*models.Group{}
@@ -30,10 +31,12 @@ func (r *queryResolver) UserInfo(ctx context.Context) (*models.UserInfo, error) 
 	}, nil
 }
 
+// GoogleGroups is the resolver for the googleGroups field.
 func (r *userInfoResolver) GoogleGroups(ctx context.Context, obj *models.UserInfo) ([]*models.Group, error) {
 	return obj.Groups, nil
 }
 
+// AzureGroups is the resolver for the azureGroups field.
 func (r *userInfoResolver) AzureGroups(ctx context.Context, obj *models.UserInfo) ([]*models.Group, error) {
 	user := auth.GetUser(ctx)
 
@@ -48,6 +51,7 @@ func (r *userInfoResolver) AzureGroups(ctx context.Context, obj *models.UserInfo
 	return groups, nil
 }
 
+// GCPProjects is the resolver for the gcpProjects field.
 func (r *userInfoResolver) GCPProjects(ctx context.Context, obj *models.UserInfo) ([]*models.GCPProject, error) {
 	user := auth.GetUser(ctx)
 	ret := []*models.GCPProject{}
@@ -70,16 +74,19 @@ func (r *userInfoResolver) GCPProjects(ctx context.Context, obj *models.UserInfo
 	return ret, nil
 }
 
+// Dataproducts is the resolver for the dataproducts field.
 func (r *userInfoResolver) Dataproducts(ctx context.Context, obj *models.UserInfo) ([]*models.Dataproduct, error) {
 	user := auth.GetUser(ctx)
 	return r.repo.GetDataproductsByGroups(ctx, user.GoogleGroups.Emails())
 }
 
+// Accessable is the resolver for the accessable field.
 func (r *userInfoResolver) Accessable(ctx context.Context, obj *models.UserInfo) ([]*models.Dataproduct, error) {
 	user := auth.GetUser(ctx)
 	return r.repo.GetDataproductsByUserAccess(ctx, "user:"+user.Email)
 }
 
+// Stories is the resolver for the stories field.
 func (r *userInfoResolver) Stories(ctx context.Context, obj *models.UserInfo) ([]*models.GraphStory, error) {
 	user := auth.GetUser(ctx)
 
@@ -98,6 +105,7 @@ func (r *userInfoResolver) Stories(ctx context.Context, obj *models.UserInfo) ([
 	return gqlStories, nil
 }
 
+// AccessRequests is the resolver for the accessRequests field.
 func (r *userInfoResolver) AccessRequests(ctx context.Context, obj *models.UserInfo) ([]*models.AccessRequest, error) {
 	user := auth.GetUser(ctx)
 

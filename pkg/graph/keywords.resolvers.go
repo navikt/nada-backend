@@ -9,6 +9,7 @@ import (
 	"github.com/navikt/nada-backend/pkg/graph/models"
 )
 
+// Keywords is the resolver for the keywords field.
 func (r *queryResolver) Keywords(ctx context.Context, prefix *string) ([]*models.Keyword, error) {
 	pre := ""
 	if prefix != nil {
