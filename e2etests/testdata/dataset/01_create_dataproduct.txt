@@ -6,12 +6,12 @@ mutation {
             datasets: [{
                 name: "DatasetCreatedWithDataproduct"
                 description: "dataset created with dataproduct"
-			    pii: false
-			    bigquery: { projectID: "team-prod-4242", dataset: "dataset1", table: "table1" }
+			          pii: false
+			          bigquery: { projectID: "team-dev-1337", dataset: "dataset1", table: "table1" }
                 repo: "somerepo"
                 keywords: ["keyword1", "otherkeyword"]
             }]
-			group: "nada@nav.no"
+			group: "team@nav.no"
 		}
 	) {
 		id
@@ -34,7 +34,7 @@ ENDOPTS
       "name": "NewName",
       "description": "New description",
       "owner": {
-        "group": "nada@nav.no"
+        "group": "team@nav.no"
       }
     }
   }

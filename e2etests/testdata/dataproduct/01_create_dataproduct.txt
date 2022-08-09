@@ -3,21 +3,12 @@ mutation {
 		input: {
 			name: "NewName"
 			description: "New description"
-<<<<<<< HEAD
-			group: "nada@nav.no"
+			group: "team@nav.no"
             datasets: [{
                 name: "NewDataset"
 			    pii: false
-			    bigquery: { projectID: "team-prod-4242", dataset: "dataset1", table: "table1" }
+			    bigquery: { projectID: "team-dev-1337", dataset: "dataset1", table: "table1" }
             }]
-=======
-			repo: "somerepo"
-			pii: false
-			group: "team@nav.no"
-			keywords: ["keyword1", "otherkeyword"]
-			bigquery: { projectID: "team-dev-1337", dataset: "dataset1", table: "table1" }
-			requesters: ["all-users@nav.no", "nada@nav.no"]
->>>>>>> main
 		}
 	) {
 		id
@@ -40,16 +31,8 @@ ENDOPTS
       "name": "NewName",
       "description": "New description",
       "owner": {
-<<<<<<< HEAD
-        "group": "nada@nav.no"
-      }
-=======
         "group": "team@nav.no"
-      },
-      "pii": false,
-      "repo": "somerepo",
-			"requesters": ["all-users@nav.no", "nada@nav.no"]
->>>>>>> main
+      }
     }
   }
 }

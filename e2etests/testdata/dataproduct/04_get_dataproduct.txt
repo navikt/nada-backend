@@ -17,7 +17,7 @@ RETURNS
       "name": "Updated Name",
       "description": "Updated description",
       "owner": {
-        "group": "nada@nav.no"
+        "group": "team@nav.no"
       }
     }
   }

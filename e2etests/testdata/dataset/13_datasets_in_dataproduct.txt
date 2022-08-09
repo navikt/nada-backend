@@ -33,7 +33,7 @@ RETURNS
           "pii": false,
           "datasource": {
               "__typename": "BigQuery",
-              "projectID": "team-prod-4242",
+              "projectID": "team-dev-1337",
               "dataset": "dataset1",
               "table": "table1"
           }
@@ -47,7 +47,7 @@ RETURNS
           "pii": true,
           "datasource": {
               "__typename": "BigQuery",
-              "projectID": "team-prod-4242",
+              "projectID": "team-dev-1337",
               "dataset": "dataset1",
               "table": "table1"
           }
@@ -61,7 +61,7 @@ RETURNS
           "pii": true,
           "datasource": {
               "__typename": "BigQuery",
-              "projectID": "team-prod-4242",
+              "projectID": "team-dev-1337",
               "dataset": "dataset1",
               "table": "table1"
           }
