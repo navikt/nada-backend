@@ -10,10 +10,12 @@ import (
 	"github.com/navikt/nada-backend/pkg/graph/generated"
 )
 
+// Dummy is the resolver for the dummy field.
 func (r *mutationResolver) Dummy(ctx context.Context, no *string) (*string, error) {
 	panic(fmt.Errorf("not implemented"))
 }
 
+// Version is the resolver for the version field.
 func (r *queryResolver) Version(ctx context.Context) (string, error) {
 	panic(fmt.Errorf("not implemented"))
 }

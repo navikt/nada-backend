@@ -2,7 +2,6 @@ package api
 
 import (
 	"net/http"
-	"os"
 
 	"github.com/99designs/gqlgen/graphql/handler"
 	"github.com/99designs/gqlgen/graphql/playground"
@@ -36,14 +35,6 @@ func New(
 		AllowCredentials: true,
 	})
 
-	datapackageRedirect := func(w http.ResponseWriter, r *http.Request) {
-		host := "https://datapakker.dev.intern.nav.no"
-		if os.Getenv("NAIS_CLUSTER_NAME") == "prod-gcp" {
-			host = "https://datapakker.intern.nav.no"
-		}
-
-		http.Redirect(w, r, host+r.URL.Path, http.StatusPermanentRedirect)
-	}
 	storyHandler := story.NewHandler(repo)
 
 	router := chi.NewRouter()
@@ -54,14 +45,12 @@ func New(
 		r.HandleFunc("/login", httpAPI.Login)
 		r.HandleFunc("/oauth2/callback", httpAPI.Callback)
 		r.HandleFunc("/logout", httpAPI.Logout)
-		r.HandleFunc("/nav-interndata/*", datapackageRedirect)
 		r.Post("/story", storyHandler.Upload)
 		r.Put("/story", storyHandler.Update)
 	})
 	router.Route("/internal", func(r chi.Router) {
 		r.Handle("/metrics", promhttp.HandlerFor(promReg, promhttp.HandlerOpts{}))
 	})
-	router.HandleFunc("/datapakke/*", datapackageRedirect)
 
 	return router
 }

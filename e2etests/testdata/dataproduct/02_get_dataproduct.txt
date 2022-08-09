@@ -30,7 +30,7 @@ RETURNS
       "name": "NewName",
       "description": "New description",
       "owner": {
-        "group": "nada@nav.no"
+        "group": "team@nav.no"
       },
       "datasets": [{
         "name": "NewDataset",

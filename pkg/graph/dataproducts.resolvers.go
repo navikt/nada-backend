@@ -13,6 +13,7 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
+// Keywords is the resolver for the keywords field.
 func (r *dataproductResolver) Keywords(ctx context.Context, obj *models.Dataproduct) ([]string, error) {
 	datasets, err := r.repo.GetDatasetsInDataproduct(ctx, obj.ID)
 	if err != nil {
@@ -27,10 +28,12 @@ func (r *dataproductResolver) Keywords(ctx context.Context, obj *models.Dataprod
 	return keywords, nil
 }
 
+// Datasets is the resolver for the datasets field.
 func (r *dataproductResolver) Datasets(ctx context.Context, obj *models.Dataproduct) ([]*models.Dataset, error) {
 	return r.repo.GetDatasetsInDataproduct(ctx, obj.ID)
 }
 
+// CreateDataproduct is the resolver for the createDataproduct field.
 func (r *mutationResolver) CreateDataproduct(ctx context.Context, input models.NewDataproduct) (*models.Dataproduct, error) {
 	if err := ensureUserInGroup(ctx, input.Group); err != nil {
 		return nil, err
@@ -41,7 +44,7 @@ func (r *mutationResolver) CreateDataproduct(ctx context.Context, input models.N
 	}
 
 	for i, ds := range input.Datasets {
-		metadata, err := r.prepareBigQuery(ctx, ds.Bigquery)
+		metadata, err := r.prepareBigQuery(ctx, ds.Bigquery, input.Group)
 		if err != nil {
 			return nil, err
 		}
@@ -65,6 +68,7 @@ func (r *mutationResolver) CreateDataproduct(ctx context.Context, input models.N
 	return dp, nil
 }
 
+// UpdateDataproduct is the resolver for the updateDataproduct field.
 func (r *mutationResolver) UpdateDataproduct(ctx context.Context, id uuid.UUID, input models.UpdateDataproduct) (*models.Dataproduct, error) {
 	dp, err := r.repo.GetDataproduct(ctx, id)
 	if err != nil {
@@ -79,6 +83,7 @@ func (r *mutationResolver) UpdateDataproduct(ctx context.Context, id uuid.UUID, 
 	return r.repo.UpdateDataproduct(ctx, id, input)
 }
 
+// DeleteDataproduct is the resolver for the deleteDataproduct field.
 func (r *mutationResolver) DeleteDataproduct(ctx context.Context, id uuid.UUID) (bool, error) {
 	dp, err := r.repo.GetDataproduct(ctx, id)
 	if err != nil {
@@ -91,15 +96,18 @@ func (r *mutationResolver) DeleteDataproduct(ctx context.Context, id uuid.UUID) 
 	return true, r.repo.DeleteDataproduct(ctx, dp.ID)
 }
 
+// Dataproduct is the resolver for the dataproduct field.
 func (r *queryResolver) Dataproduct(ctx context.Context, id uuid.UUID) (*models.Dataproduct, error) {
 	return r.repo.GetDataproduct(ctx, id)
 }
 
+// Dataproducts is the resolver for the dataproducts field.
 func (r *queryResolver) Dataproducts(ctx context.Context, limit *int, offset *int, service *models.MappingService) ([]*models.Dataproduct, error) {
 	l, o := pagination(limit, offset)
 	return r.repo.GetDataproducts(ctx, l, o)
 }
 
+// GroupStats is the resolver for the groupStats field.
 func (r *queryResolver) GroupStats(ctx context.Context, limit *int, offset *int) ([]*models.GroupStats, error) {
 	l, o := pagination(limit, offset)
 	return r.repo.DataproductGroupStats(ctx, l, o)

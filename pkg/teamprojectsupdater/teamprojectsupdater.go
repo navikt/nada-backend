@@ -1,25 +1,28 @@
-package auth
+package teamprojectsupdater
 
 import (
 	"bytes"
 	"context"
+	"database/sql"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io/ioutil"
 	"net/http"
-	"sync"
 	"time"
 
+	"github.com/navikt/nada-backend/pkg/auth"
+	"github.com/navikt/nada-backend/pkg/database"
+	"github.com/navikt/nada-backend/pkg/leaderelection"
 	log "github.com/sirupsen/logrus"
 )
 
 type TeamProjectsUpdater struct {
-	lock                sync.RWMutex
-	teamProjects        map[string][]string
-	devTeamProjectsURL  string
-	prodTeamProjectsURL string
+	TeamProjectsMapping *auth.TeamProjectsMapping
+	teamProjectsURL     string
 	teamsToken          string
 	httpClient          *http.Client
+	repo                *database.Repo
 }
 
 type OutputFile struct {
@@ -30,19 +33,48 @@ type OutputVariable struct {
 	Value map[string]string `json:"value"`
 }
 
-func NewTeamProjectsUpdater(devTeamProjectsURL, prodTeamProjectsURL, teamsToken string, httpClient *http.Client) *TeamProjectsUpdater {
+func NewTeamProjectsUpdater(teamProjectsURL, teamsToken string, httpClient *http.Client, repo *database.Repo) *TeamProjectsUpdater {
+	teamProjectsMapping := &auth.TeamProjectsMapping{}
 	return &TeamProjectsUpdater{
-		teamProjects:        make(map[string][]string),
-		devTeamProjectsURL:  devTeamProjectsURL,
-		prodTeamProjectsURL: prodTeamProjectsURL,
+		TeamProjectsMapping: teamProjectsMapping,
+		teamProjectsURL:     teamProjectsURL,
 		teamsToken:          teamsToken,
 		httpClient:          httpClient,
+		repo:                repo,
+	}
+}
+
+func NewMockTeamProjectsUpdater() *TeamProjectsUpdater {
+	return &TeamProjectsUpdater{
+		TeamProjectsMapping: &auth.TeamProjectsMapping{
+			TeamProjects: map[string]string{
+				"team@nav.no": "team-dev-1337",
+				"nada@nav.no": "dataplattform-dev-9da3",
+				"aura@nav.no": "aura-dev-d9f5",
+			},
+		},
 	}
 }
 
 func (t *TeamProjectsUpdater) Run(ctx context.Context, frequency time.Duration) {
 	ticker := time.NewTicker(frequency)
 	defer ticker.Stop()
+
+	teamProjectsSQL, err := t.repo.GetTeamProjects(ctx)
+	if err != nil {
+		if !errors.Is(err, sql.ErrNoRows) {
+			log.WithError(err).Errorf("Fetching teams from database")
+		}
+	}
+
+	teamprojects := map[string]string{}
+	for _, project := range teamProjectsSQL {
+		teamprojects[project.Team] = project.Project
+	}
+
+	t.TeamProjectsMapping.SetTeamProjects(teamprojects)
+
+	time.Sleep(time.Second * 60)
 
 	for {
 		if err := t.FetchTeamGoogleProjectsMapping(ctx); err != nil {
@@ -57,47 +89,24 @@ func (t *TeamProjectsUpdater) Run(ctx context.Context, frequency time.Duration) 
 	}
 }
 
-func (t *TeamProjectsUpdater) Get(team string) ([]string, bool) {
-	t.lock.RLock()
-	defer t.lock.RUnlock()
-	projects, ok := t.teamProjects[team]
-	return projects, ok
-}
-
-func (t *TeamProjectsUpdater) OwnsProject(team, project string) bool {
-	t.lock.RLock()
-	defer t.lock.RUnlock()
-	projects, ok := t.teamProjects[team]
-	if !ok {
-		return false
+func (t *TeamProjectsUpdater) FetchTeamGoogleProjectsMapping(ctx context.Context) error {
+	outputFile, err := getOutputFile(ctx, t.teamProjectsURL, t.teamsToken)
+	if err != nil {
+		return err
 	}
-	return contains(project, projects)
-}
 
-func contains(elem string, list []string) bool {
-	for _, entry := range list {
-		if entry == elem {
-			return true
+	t.TeamProjectsMapping.SetTeamProjects(outputFile)
+
+	isLeader, err := leaderelection.IsLeader()
+	if err != nil {
+		return err
+	}
+
+	if isLeader {
+		if err := t.repo.UpdateTeamProjectsCache(ctx, outputFile); err != nil {
+			return err
 		}
 	}
-	return false
-}
-
-func (t *TeamProjectsUpdater) FetchTeamGoogleProjectsMapping(ctx context.Context) error {
-	devOutputFile, err := getOutputFile(ctx, t.devTeamProjectsURL, t.teamsToken)
-	if err != nil {
-		return err
-	}
-	prodOutputFile, err := getOutputFile(ctx, t.prodTeamProjectsURL, t.teamsToken)
-	if err != nil {
-		return err
-	}
-
-	t.lock.Lock()
-	defer t.lock.Unlock()
-	t.teamProjects = map[string][]string{}
-	mergeInto(t.teamProjects, devOutputFile, prodOutputFile)
-	log.Infof("Updated team projects mapping: %v teams", len(t.teamProjects))
 
 	return nil
 }
@@ -135,13 +144,4 @@ func getOutputFile(ctx context.Context, url, token string) (map[string]string, e
 	}
 
 	return outputFile.TeamProjectIDMapping.Value, nil
-}
-
-func mergeInto(result map[string][]string, first map[string]string, second map[string]string) {
-	for key, value := range first {
-		result[key+"@nav.no"] = append(result[key+"@nav.no"], value)
-	}
-	for key, value := range second {
-		result[key+"@nav.no"] = append(result[key+"@nav.no"], value)
-	}
 }

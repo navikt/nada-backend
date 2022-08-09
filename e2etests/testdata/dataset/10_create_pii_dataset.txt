@@ -6,7 +6,7 @@ mutation {
 			description: "Description"
 			repo: "somerepo"
 			pii: true
-			bigquery: { projectID: "team-prod-4242", dataset: "dataset1", table: "table1" }
+			bigquery: { projectID: "team-dev-1337", dataset: "dataset1", table: "table1" }
 		}
 	) {
 		id

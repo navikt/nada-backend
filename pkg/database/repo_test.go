@@ -74,7 +74,7 @@ func TestRepo(t *testing.T) {
 
 	newDataproduct := models.NewDataproduct{
 		Name:  "test-product",
-		Group: "group@email.com",
+		Group: auth.MockUser.GoogleGroups[0].Name,
 	}
 
 	createdproduct, err := repo.CreateDataproduct(context.Background(), newDataproduct)

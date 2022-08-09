@@ -9,6 +9,7 @@ import (
 	"github.com/navikt/nada-backend/pkg/graph/models"
 )
 
+// Teamkatalogen is the resolver for the teamkatalogen field.
 func (r *queryResolver) Teamkatalogen(ctx context.Context, q string) ([]*models.TeamkatalogenResult, error) {
 	return r.teamkatalogen.Search(ctx, q)
 }

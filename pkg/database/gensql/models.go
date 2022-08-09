@@ -171,11 +171,12 @@ type Search struct {
 }
 
 type Session struct {
-	Token   string
-	Email   string
-	Name    string
-	Created time.Time
-	Expires time.Time
+	Token       string
+	AccessToken string
+	Email       string
+	Name        string
+	Created     time.Time
+	Expires     time.Time
 }
 
 type Story struct {
@@ -215,6 +216,11 @@ type StoryViewDraft struct {
 	Sort    int32
 	Type    StoryViewType
 	Spec    json.RawMessage
+}
+
+type TeamProject struct {
+	Team    string
+	Project string
 }
 
 type ThirdPartyMapping struct {

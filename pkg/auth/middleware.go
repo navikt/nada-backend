@@ -2,15 +2,22 @@ package auth
 
 import (
 	"context"
+	"crypto/x509"
+	"database/sql"
+	"encoding/base64"
+	"encoding/json"
+	"errors"
 	"fmt"
+	"io"
+	"io/ioutil"
 	"net/http"
-	"sync"
+	"strings"
 	"time"
 
 	"github.com/coreos/go-oidc/v3/oidc"
-	"github.com/navikt/nada-backend/pkg/bigquery"
+	"github.com/golang-jwt/jwt/v4"
 	"github.com/navikt/nada-backend/pkg/graph/models"
-	"github.com/sirupsen/logrus"
+	log "github.com/sirupsen/logrus"
 )
 
 type contextKey int
@@ -18,10 +25,94 @@ type contextKey int
 const ContextUserKey contextKey = 1
 
 type User struct {
-	Name   string `json:"name"`
-	Email  string `json:"email"`
-	Groups bigquery.Groups
-	Expiry time.Time `json:"expiry"`
+	Name         string `json:"name"`
+	Email        string `json:"email"`
+	AzureGroups  Groups
+	GoogleGroups Groups
+	Expiry       time.Time `json:"expiry"`
+}
+
+type CertificateList []*x509.Certificate
+
+type KeyDiscovery struct {
+	Keys []Key `json:"keys"`
+}
+
+type EncodedCertificate string
+
+type Key struct {
+	Kid string               `json:"kid"`
+	X5c []EncodedCertificate `json:"x5c"`
+}
+
+func FetchCertificates(discoveryURL string) (map[string]CertificateList, error) {
+	log.Infof("Discover Microsoft signing certificates from %s", discoveryURL)
+	azureKeyDiscovery, err := DiscoverURL(discoveryURL)
+	if err != nil {
+		return nil, err
+	}
+
+	log.Infof("Decoding certificates for %d keys", len(azureKeyDiscovery.Keys))
+	azureCertificates, err := azureKeyDiscovery.Map()
+	if err != nil {
+		return nil, err
+	}
+	return azureCertificates, nil
+}
+
+// Map transform a KeyDiscovery object into a dictionary with "kid" as key
+// and lists of decoded X509 certificates as values.
+//
+// Returns an error if any certificate does not decode.
+func (k *KeyDiscovery) Map() (result map[string]CertificateList, err error) {
+	result = make(map[string]CertificateList)
+
+	for _, key := range k.Keys {
+		certList := make(CertificateList, 0)
+		for _, encodedCertificate := range key.X5c {
+			certificate, err := encodedCertificate.Decode()
+			if err != nil {
+				return nil, err
+			}
+			certList = append(certList, certificate)
+		}
+		result[key.Kid] = certList
+	}
+
+	return
+}
+
+// Decode a base64 encoded certificate into a X509 structure.
+func (c EncodedCertificate) Decode() (*x509.Certificate, error) {
+	stream := strings.NewReader(string(c))
+	decoder := base64.NewDecoder(base64.StdEncoding, stream)
+	key, err := ioutil.ReadAll(decoder)
+	if err != nil {
+		return nil, err
+	}
+
+	return x509.ParseCertificate(key)
+}
+
+func DiscoverURL(url string) (*KeyDiscovery, error) {
+	response, err := http.Get(url)
+	if err != nil {
+		return nil, err
+	}
+
+	return Discover(response.Body)
+}
+
+func Discover(reader io.Reader) (*KeyDiscovery, error) {
+	document, err := ioutil.ReadAll(reader)
+	if err != nil {
+		return nil, err
+	}
+
+	keyDiscovery := &KeyDiscovery{}
+	err = json.Unmarshal(document, keyDiscovery)
+
+	return keyDiscovery, err
 }
 
 func GetUser(ctx context.Context) *User {
@@ -32,62 +123,29 @@ func GetUser(ctx context.Context) *User {
 	return user.(*User)
 }
 
-type GroupsLister interface {
-	GroupsForUser(ctx context.Context, email string) (groups bigquery.Groups, err error)
-}
-
-type groupsCacheValue struct {
-	Groups  bigquery.Groups
-	Expires time.Time
-}
-
-type groupsCacher struct {
-	lock  sync.RWMutex
-	cache map[string]groupsCacheValue
-}
-
-func (g *groupsCacher) Get(email string) ([]bigquery.Group, bool) {
-	g.lock.RLock()
-	defer g.lock.RUnlock()
-
-	v, ok := g.cache[email]
-	if !ok {
-		return nil, false
-	}
-	if v.Expires.Before(time.Now()) {
-		return nil, false
-	}
-	return v.Groups, true
-}
-
-func (g *groupsCacher) Set(email string, groups []bigquery.Group) {
-	g.lock.Lock()
-	defer g.lock.Unlock()
-	g.cache[email] = groupsCacheValue{
-		Groups:  groups,
-		Expires: time.Now().Add(1 * time.Hour),
-	}
-}
-
 type SessionRetriever interface {
 	GetSession(ctx context.Context, token string) (*models.Session, error)
 }
 
 type Middleware struct {
-	tokenVerifier *oidc.IDTokenVerifier
-	groupsCache   *groupsCacher
-	groupsLister  GroupsLister
-	sessionStore  SessionRetriever
+	keyDiscoveryURL string
+	tokenVerifier   *oidc.IDTokenVerifier
+	groupsCache     *groupsCacher
+	azureGroups     *AzureGroupClient
+	googleGroups    *GoogleGroupClient
+	sessionStore    SessionRetriever
 }
 
-func newMiddleware(tokenVerifier *oidc.IDTokenVerifier, groupsLister GroupsLister, sessionStore SessionRetriever) *Middleware {
+func newMiddleware(keyDiscoveryURL string, tokenVerifier *oidc.IDTokenVerifier, azureGroups *AzureGroupClient, googleGroups *GoogleGroupClient, sessionStore SessionRetriever) *Middleware {
 	return &Middleware{
-		tokenVerifier: tokenVerifier,
-		groupsLister:  groupsLister,
+		keyDiscoveryURL: keyDiscoveryURL,
+		tokenVerifier:   tokenVerifier,
+		azureGroups:     azureGroups,
+		googleGroups:    googleGroups,
+		sessionStore:    sessionStore,
 		groupsCache: &groupsCacher{
 			cache: map[string]groupsCacheValue{},
 		},
-		sessionStore: sessionStore,
 	}
 }
 
@@ -96,58 +154,136 @@ func (m *Middleware) Handler(next http.Handler) http.Handler {
 }
 
 func (m *Middleware) handle(next http.Handler) http.Handler {
+	certificates, err := FetchCertificates(m.keyDiscoveryURL)
+	if err != nil {
+		log.Fatalf("Fetching signing certificates from IDP: %v", err)
+	}
+
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		user, err := m.validateUser(w, r)
+		ctx := r.Context()
+		token, err := r.Cookie("nada_session")
 		if err != nil {
 			next.ServeHTTP(w, r)
 			return
 		}
 
-		if err := m.addGroupsToUser(r.Context(), user); err != nil {
-			logrus.WithError(err).Error("Unable to add groups")
-			w.Header().Add("Content-Type", "application/json")
-			http.Error(w, `{"error": "Unable fetch users groups."}`, http.StatusInternalServerError)
+		sess, err := m.sessionStore.GetSession(ctx, token.Value)
+		if err != nil && !errors.Is(err, sql.ErrNoRows) {
+			http.Error(w, `{"error": "Unable to retrieve session."}`, http.StatusInternalServerError)
 			return
 		}
+		if sess != nil {
+			user, err := m.validateUser(certificates, w, sess.AccessToken)
+			if err != nil {
+				next.ServeHTTP(w, r)
+				return
+			}
 
-		ctx := r.Context()
-		r = r.WithContext(context.WithValue(ctx, ContextUserKey, user))
+			if err := m.addGroupsToUser(ctx, sess.AccessToken, user); err != nil {
+				log.WithError(err).Error("Unable to add groups")
+				w.Header().Add("Content-Type", "application/json")
+				http.Error(w, `{"error": "Unable fetch users groups."}`, http.StatusInternalServerError)
+				return
+			}
+
+			r = r.WithContext(context.WithValue(ctx, ContextUserKey, user))
+		}
 		next.ServeHTTP(w, r)
 	})
 }
 
-func (m *Middleware) validateUser(w http.ResponseWriter, r *http.Request) (*User, error) {
-	// Parse and verify ID Token payload.
-	cookie, err := r.Cookie("nada_session")
-	if err != nil {
-		return nil, fmt.Errorf("Unauthorized")
-	}
+func (m *Middleware) validateUser(certificates map[string]CertificateList, w http.ResponseWriter, token string) (*User, error) {
+	var claims jwt.MapClaims
 
-	session, err := m.sessionStore.GetSession(r.Context(), cookie.Value)
+	jwtValidator := JWTValidator(certificates, m.azureGroups.OAuthClientID)
+
+	_, err := jwt.ParseWithClaims(token, &claims, jwtValidator)
 	if err != nil {
 		return nil, err
 	}
 
 	return &User{
-		Name:   session.Name,
-		Email:  session.Email,
-		Expiry: session.Expires,
+		Name:   claims["name"].(string),
+		Email:  strings.ToLower(claims["preferred_username"].(string)),
+		Expiry: time.Unix(int64(claims["exp"].(float64)), 0),
 	}, nil
 }
 
-func (m *Middleware) addGroupsToUser(ctx context.Context, u *User) error {
-	groups, ok := m.groupsCache.Get(u.Email)
+func JWTValidator(certificates map[string]CertificateList, audience string) jwt.Keyfunc {
+	return func(token *jwt.Token) (interface{}, error) {
+		var certificateList CertificateList
+		var kid string
+		var ok bool
+
+		if claims, ok := token.Claims.(*jwt.MapClaims); !ok {
+			return nil, fmt.Errorf("unable to retrieve claims from token")
+		} else {
+			if valid := claims.VerifyAudience(audience, true); !valid {
+				return nil, fmt.Errorf("the token is not valid for this application")
+			}
+		}
+
+		if _, ok := token.Method.(*jwt.SigningMethodRSA); !ok {
+			return nil, fmt.Errorf("unexpected signing method: %v", token.Header["alg"])
+		}
+
+		if kid, ok = token.Header["kid"].(string); !ok {
+			return nil, fmt.Errorf("field 'kid' is of invalid type %T, should be string", token.Header["kid"])
+		}
+
+		if certificateList, ok = certificates[kid]; !ok {
+			return nil, fmt.Errorf("kid '%s' not found in certificate list", kid)
+		}
+
+		for _, certificate := range certificateList {
+			return certificate.PublicKey, nil
+		}
+
+		return nil, fmt.Errorf("no certificate candidates for kid '%s'", kid)
+	}
+}
+
+func (m *Middleware) addGroupsToUser(ctx context.Context, token string, u *User) error {
+	if err := m.addAzureGroups(ctx, token, u); err != nil {
+		return err
+	}
+	if err := m.addGoogleGroups(ctx, u); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (m *Middleware) addAzureGroups(ctx context.Context, token string, u *User) error {
+	groups, ok := m.groupsCache.GetAzureGroups(u.Email)
 	if ok {
-		u.Groups = groups
+		u.AzureGroups = groups
 		return nil
 	}
 
-	groups, err := m.groupsLister.GroupsForUser(ctx, u.Email)
+	groups, err := m.azureGroups.GroupsForUser(ctx, token, u.Email)
 	if err != nil {
 		return err
 	}
 
-	m.groupsCache.Set(u.Email, groups)
-	u.Groups = groups
+	m.groupsCache.SetAzureGroups(u.Email, groups)
+	u.AzureGroups = groups
+	return nil
+}
+
+func (m *Middleware) addGoogleGroups(ctx context.Context, u *User) error {
+	groups, ok := m.groupsCache.GetGoogleGroups(u.Email)
+	if ok {
+		u.GoogleGroups = groups
+		return nil
+	}
+
+	groups, err := m.googleGroups.GroupsForUser(ctx, u.Email)
+	if err != nil {
+		return err
+	}
+
+	m.groupsCache.SetGoogleGroups(u.Email, groups)
+	u.GoogleGroups = groups
 	return nil
 }

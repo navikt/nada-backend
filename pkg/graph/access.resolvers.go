@@ -14,6 +14,7 @@ import (
 	"github.com/navikt/nada-backend/pkg/graph/models"
 )
 
+// GrantAccessToDataset is the resolver for the grantAccessToDataset field.
 func (r *mutationResolver) GrantAccessToDataset(ctx context.Context, input models.NewGrant) (*models.Access, error) {
 	if input.Expires != nil && input.Expires.Before(time.Now()) {
 		return nil, fmt.Errorf("expires has already expired")
@@ -60,6 +61,7 @@ func (r *mutationResolver) GrantAccessToDataset(ctx context.Context, input model
 	return r.repo.GrantAccessToDataset(ctx, input.DatasetID, input.Expires, subjWithType, user.Email)
 }
 
+// RevokeAccessToDataset is the resolver for the revokeAccessToDataset field.
 func (r *mutationResolver) RevokeAccessToDataset(ctx context.Context, id uuid.UUID) (bool, error) {
 	access, err := r.repo.GetAccessToDataset(ctx, id)
 	if err != nil {
@@ -82,7 +84,7 @@ func (r *mutationResolver) RevokeAccessToDataset(ctx context.Context, id uuid.UU
 	}
 
 	user := auth.GetUser(ctx)
-	if !user.Groups.Contains(dp.Owner.Group) && !strings.EqualFold("user:"+user.Email, access.Subject) {
+	if !user.GoogleGroups.Contains(dp.Owner.Group) && !strings.EqualFold("user:"+user.Email, access.Subject) {
 		return false, ErrUnauthorized
 	}
 
@@ -92,6 +94,7 @@ func (r *mutationResolver) RevokeAccessToDataset(ctx context.Context, id uuid.UU
 	return true, r.repo.RevokeAccessToDataset(ctx, id)
 }
 
+// CreateAccessRequest is the resolver for the createAccessRequest field.
 func (r *mutationResolver) CreateAccessRequest(ctx context.Context, input models.NewAccessRequest) (*models.AccessRequest, error) {
 	user := auth.GetUser(ctx)
 	subj := user.Email
@@ -124,6 +127,7 @@ func (r *mutationResolver) CreateAccessRequest(ctx context.Context, input models
 	return r.repo.CreateAccessRequestForDataset(ctx, input.DatasetID, pollyID, subjWithType, owner, input.Expires)
 }
 
+// UpdateAccessRequest is the resolver for the updateAccessRequest field.
 func (r *mutationResolver) UpdateAccessRequest(ctx context.Context, input models.UpdateAccessRequest) (*models.AccessRequest, error) {
 	var pollyID uuid.NullUUID
 	if input.Polly != nil {
@@ -142,6 +146,7 @@ func (r *mutationResolver) UpdateAccessRequest(ctx context.Context, input models
 	return r.repo.UpdateAccessRequest(ctx, input.ID, pollyID, input.Owner, input.Expires)
 }
 
+// DeleteAccessRequest is the resolver for the deleteAccessRequest field.
 func (r *mutationResolver) DeleteAccessRequest(ctx context.Context, id uuid.UUID) (bool, error) {
 	accessRequest, err := r.repo.GetAccessRequest(ctx, id)
 	if err != nil {
@@ -165,6 +170,7 @@ func (r *mutationResolver) DeleteAccessRequest(ctx context.Context, id uuid.UUID
 	return true, nil
 }
 
+// ApproveAccessRequest is the resolver for the approveAccessRequest field.
 func (r *mutationResolver) ApproveAccessRequest(ctx context.Context, id uuid.UUID) (bool, error) {
 	ar, err := r.repo.GetAccessRequest(ctx, id)
 	if err != nil {
@@ -193,6 +199,7 @@ func (r *mutationResolver) ApproveAccessRequest(ctx context.Context, id uuid.UUI
 	return true, nil
 }
 
+// DenyAccessRequest is the resolver for the denyAccessRequest field.
 func (r *mutationResolver) DenyAccessRequest(ctx context.Context, id uuid.UUID, reason *string) (bool, error) {
 	ar, err := r.repo.GetAccessRequest(ctx, id)
 	if err != nil {
@@ -221,6 +228,7 @@ func (r *mutationResolver) DenyAccessRequest(ctx context.Context, id uuid.UUID, 
 	return true, nil
 }
 
+// AccessRequest is the resolver for the accessRequest field.
 func (r *queryResolver) AccessRequest(ctx context.Context, id uuid.UUID) (*models.AccessRequest, error) {
 	return r.repo.GetAccessRequest(ctx, id)
 }

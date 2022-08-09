@@ -4,14 +4,12 @@ import (
 	"context"
 	"net/http"
 	"time"
-
-	"github.com/navikt/nada-backend/pkg/bigquery"
 )
 
 var MockUser = User{
 	Name:  "Anderson, Mock",
 	Email: "mock.anderson@email.com",
-	Groups: bigquery.Groups{
+	GoogleGroups: Groups{
 		{
 			Name:  "team",
 			Email: "team@nav.no",
@@ -25,17 +23,13 @@ var MockUser = User{
 			Email: "aura@nav.no",
 		},
 	},
-	Expiry: time.Now().Add(200 * time.Hour),
-}
-
-var MockProjectIDs = []string{"team-dev-1337", "team-prod-4242"}
-
-var MockTeamProjectsUpdater = TeamProjectsUpdater{
-	teamProjects: map[string][]string{
-		"team@nav.no": MockProjectIDs,
-		"nada@nav.no": {"dataplattform-dev-9da3"},
-		"aura@nav.no": {"aura-dev-d9f5"},
+	AzureGroups: Groups{
+		{
+			Name:  "team",
+			Email: "team@nav.no",
+		},
 	},
+	Expiry: time.Now().Add(time.Hour * 24),
 }
 
 type MiddlewareHandler func(http.Handler) http.Handler

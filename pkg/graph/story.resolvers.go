@@ -12,9 +12,10 @@ import (
 	"github.com/navikt/nada-backend/pkg/graph/models"
 )
 
+// PublishStory is the resolver for the publishStory field.
 func (r *mutationResolver) PublishStory(ctx context.Context, input models.NewStory) (*models.GraphStory, error) {
 	user := auth.GetUser(ctx)
-	if !user.Groups.Contains(input.Group) {
+	if !user.GoogleGroups.Contains(input.Group) {
 		return nil, ErrUnauthorized
 	}
 
@@ -36,7 +37,7 @@ func (r *mutationResolver) PublishStory(ctx context.Context, input models.NewSto
 		return nil, err
 	}
 
-	if !user.Groups.Contains(existing.Owner.Group) {
+	if !user.GoogleGroups.Contains(existing.Owner.Group) {
 		return nil, ErrUnauthorized
 	}
 
@@ -48,6 +49,7 @@ func (r *mutationResolver) PublishStory(ctx context.Context, input models.NewSto
 	return storyFromDB(s)
 }
 
+// UpdateStoryMetadata is the resolver for the updateStoryMetadata field.
 func (r *mutationResolver) UpdateStoryMetadata(ctx context.Context, id uuid.UUID, name string, keywords []string, teamkatalogenURL *string) (*models.GraphStory, error) {
 	existing, err := r.repo.GetStory(ctx, id)
 	if err != nil {
@@ -55,7 +57,7 @@ func (r *mutationResolver) UpdateStoryMetadata(ctx context.Context, id uuid.UUID
 	}
 
 	user := auth.GetUser(ctx)
-	if !user.Groups.Contains(existing.Owner.Group) {
+	if !user.GoogleGroups.Contains(existing.Owner.Group) {
 		return nil, ErrUnauthorized
 	}
 
@@ -67,6 +69,7 @@ func (r *mutationResolver) UpdateStoryMetadata(ctx context.Context, id uuid.UUID
 	return storyFromDB(story)
 }
 
+// DeleteStory is the resolver for the deleteStory field.
 func (r *mutationResolver) DeleteStory(ctx context.Context, id uuid.UUID) (bool, error) {
 	s, err := r.repo.GetStory(ctx, id)
 	if err != nil {
@@ -74,7 +77,7 @@ func (r *mutationResolver) DeleteStory(ctx context.Context, id uuid.UUID) (bool,
 	}
 
 	user := auth.GetUser(ctx)
-	if !user.Groups.Contains(s.Owner.Group) {
+	if !user.GoogleGroups.Contains(s.Owner.Group) {
 		return false, ErrUnauthorized
 	}
 
@@ -85,6 +88,7 @@ func (r *mutationResolver) DeleteStory(ctx context.Context, id uuid.UUID) (bool,
 	return true, nil
 }
 
+// Stories is the resolver for the stories field.
 func (r *queryResolver) Stories(ctx context.Context, draft *bool) ([]*models.GraphStory, error) {
 	var (
 		stories []*models.DBStory
@@ -110,6 +114,7 @@ func (r *queryResolver) Stories(ctx context.Context, draft *bool) ([]*models.Gra
 	return ret, nil
 }
 
+// Story is the resolver for the story field.
 func (r *queryResolver) Story(ctx context.Context, id uuid.UUID, draft *bool) (*models.GraphStory, error) {
 	var (
 		story *models.DBStory
@@ -127,6 +132,7 @@ func (r *queryResolver) Story(ctx context.Context, id uuid.UUID, draft *bool) (*
 	return storyFromDB(story)
 }
 
+// StoryView is the resolver for the storyView field.
 func (r *queryResolver) StoryView(ctx context.Context, id uuid.UUID, draft *bool) (models.GraphStoryView, error) {
 	var (
 		storyView *models.DBStoryView
@@ -144,6 +150,7 @@ func (r *queryResolver) StoryView(ctx context.Context, id uuid.UUID, draft *bool
 	return storyViewFromDB(storyView)
 }
 
+// StoryToken is the resolver for the storyToken field.
 func (r *queryResolver) StoryToken(ctx context.Context, id uuid.UUID) (*models.StoryToken, error) {
 	story, err := r.repo.GetStory(ctx, id)
 	if err != nil {
@@ -151,13 +158,14 @@ func (r *queryResolver) StoryToken(ctx context.Context, id uuid.UUID) (*models.S
 	}
 
 	user := auth.GetUser(ctx)
-	if !user.Groups.Contains(story.Owner.Group) {
+	if !user.GoogleGroups.Contains(story.Owner.Group) {
 		return nil, ErrUnauthorized
 	}
 
 	return r.repo.GetStoryToken(ctx, id)
 }
 
+// Views is the resolver for the views field.
 func (r *storyResolver) Views(ctx context.Context, obj *models.GraphStory) ([]models.GraphStoryView, error) {
 	var (
 		views []*models.DBStoryView

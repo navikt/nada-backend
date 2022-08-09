@@ -5,7 +5,6 @@ package graph
 
 import (
 	"context"
-	"os"
 	"strings"
 
 	"github.com/navikt/nada-backend/pkg/auth"
@@ -13,10 +12,11 @@ import (
 	"github.com/navikt/nada-backend/pkg/graph/models"
 )
 
+// UserInfo is the resolver for the userInfo field.
 func (r *queryResolver) UserInfo(ctx context.Context) (*models.UserInfo, error) {
 	user := auth.GetUser(ctx)
 	groups := []*models.Group{}
-	for _, g := range user.Groups {
+	for _, g := range user.GoogleGroups {
 		groups = append(groups, &models.Group{
 			Name:  g.Name,
 			Email: g.Email,
@@ -31,50 +31,66 @@ func (r *queryResolver) UserInfo(ctx context.Context) (*models.UserInfo, error) 
 	}, nil
 }
 
+// GoogleGroups is the resolver for the googleGroups field.
+func (r *userInfoResolver) GoogleGroups(ctx context.Context, obj *models.UserInfo) ([]*models.Group, error) {
+	return obj.Groups, nil
+}
+
+// AzureGroups is the resolver for the azureGroups field.
+func (r *userInfoResolver) AzureGroups(ctx context.Context, obj *models.UserInfo) ([]*models.Group, error) {
+	user := auth.GetUser(ctx)
+
+	groups := []*models.Group{}
+	for _, g := range user.AzureGroups {
+		groups = append(groups, &models.Group{
+			Name:  g.Name,
+			Email: g.Email,
+		})
+	}
+
+	return groups, nil
+}
+
+// GCPProjects is the resolver for the gcpProjects field.
 func (r *userInfoResolver) GCPProjects(ctx context.Context, obj *models.UserInfo) ([]*models.GCPProject, error) {
 	user := auth.GetUser(ctx)
 	ret := []*models.GCPProject{}
 
-	isProd := strings.Contains(os.Getenv("NAIS_CLUSTER_NAME"), "prod-")
-
-	for _, grp := range user.Groups {
+	for _, grp := range user.GoogleGroups {
 		proj, ok := r.gcpProjects.Get(grp.Email)
 		if !ok {
 			continue
 		}
-		for _, p := range proj {
-			if isProd && strings.Contains(p, "-dev-") {
-				continue
-			} else if !isProd && strings.Contains(p, "-prod-") {
-				continue
-			}
-			ret = append(ret, &models.GCPProject{
-				ID: p,
-				Group: &models.Group{
-					Name:  grp.Name,
-					Email: grp.Email,
-				},
-			})
-		}
+
+		ret = append(ret, &models.GCPProject{
+			ID: proj,
+			Group: &models.Group{
+				Name:  grp.Name,
+				Email: grp.Email,
+			},
+		})
 	}
 
 	return ret, nil
 }
 
+// Dataproducts is the resolver for the dataproducts field.
 func (r *userInfoResolver) Dataproducts(ctx context.Context, obj *models.UserInfo) ([]*models.Dataproduct, error) {
 	user := auth.GetUser(ctx)
-	return r.repo.GetDataproductsByGroups(ctx, user.Groups.Emails())
+	return r.repo.GetDataproductsByGroups(ctx, user.GoogleGroups.Emails())
 }
 
+// Accessable is the resolver for the accessable field.
 func (r *userInfoResolver) Accessable(ctx context.Context, obj *models.UserInfo) ([]*models.Dataproduct, error) {
 	user := auth.GetUser(ctx)
 	return r.repo.GetDataproductsByUserAccess(ctx, "user:"+user.Email)
 }
 
+// Stories is the resolver for the stories field.
 func (r *userInfoResolver) Stories(ctx context.Context, obj *models.UserInfo) ([]*models.GraphStory, error) {
 	user := auth.GetUser(ctx)
 
-	stories, err := r.repo.GetStoriesByGroups(ctx, user.Groups.Emails())
+	stories, err := r.repo.GetStoriesByGroups(ctx, user.GoogleGroups.Emails())
 	if err != nil {
 		return nil, err
 	}
@@ -89,11 +105,12 @@ func (r *userInfoResolver) Stories(ctx context.Context, obj *models.UserInfo) ([
 	return gqlStories, nil
 }
 
+// AccessRequests is the resolver for the accessRequests field.
 func (r *userInfoResolver) AccessRequests(ctx context.Context, obj *models.UserInfo) ([]*models.AccessRequest, error) {
 	user := auth.GetUser(ctx)
 
 	groups := []string{"user:" + strings.ToLower(user.Email)}
-	for _, g := range user.Groups {
+	for _, g := range user.GoogleGroups {
 		groups = append(groups, "group:"+strings.ToLower(g.Email))
 	}
 

@@ -10,15 +10,25 @@ metadata:
 spec:
   image: "{{ image }}"
   port: 8080
+  azure:
+    application:
+      enabled: true
+      replyURLs:
+        - https://data.dev.intern.nav.no/api/oauth2/callback
+        - http://localhost:8080/api/oauth2/callback
+      tenant: nav.no
   command:
     - /app/nada-backend
     - --teamkatalogen-url
     - https://teamkatalog-api.dev-fss-pub.nais.io/team
     - --polly-url
     - https://polly.dev-fss-pub.nais.io/process
+    - --team-projects-url
+    - https://raw.githubusercontent.com/nais/teams/master/gcp-projects/dev-output.json
   replicas:
     min: 2
     max: 4
+  leaderElection: true
   resources:
     requests:
       cpu: 100m
@@ -32,17 +42,12 @@ spec:
   ingresses:
     - "https://data.dev.intern.nav.no/api"
     - "https://nada.ekstern.dev.nav.no/api"
-    - "https://data.dev.intern.nav.no/datapakke/"
   envFrom:
-    - secret: impersonation-subject
-    - secret: github-read-token
-    - secret: metabase-sa
-    - secret: google-oauth
-    - secret: slack
+    - secret: nada-backend
   filesFrom:
-    - secret: google-credentials
+    - secret: nada-backend-google-credentials
       mountPath: /var/run/secrets/google-credentials
-    - secret: metabase-google-sa
+    - secret: nada-backend-metabase-sa
       mountPath: /var/run/secrets/nada-credentials
   env:
     - name: GOOGLE_ADMIN_CREDENTIALS_PATH
@@ -62,6 +67,8 @@ spec:
     inbound:
       rules:
         - application: nada-frontend
+        - application: nada-datasetenricher
+        - application: metrics-markedsplassen
     outbound:
       rules:
         - application: nada-metabase

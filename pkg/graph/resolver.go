@@ -44,7 +44,7 @@ type Slack interface {
 type Resolver struct {
 	repo          *database.Repo
 	bigquery      Bigquery
-	gcpProjects   *auth.TeamProjectsUpdater
+	gcpProjects   *auth.TeamProjectsMapping
 	accessMgr     AccessManager
 	teamkatalogen Teamkatalogen
 	slack         Slack
@@ -52,7 +52,7 @@ type Resolver struct {
 	log           *logrus.Entry
 }
 
-func New(repo *database.Repo, gcp Bigquery, gcpProjects *auth.TeamProjectsUpdater, accessMgr AccessManager, tk Teamkatalogen, slack Slack, pollyAPI Polly, log *logrus.Entry) *handler.Server {
+func New(repo *database.Repo, gcp Bigquery, gcpProjects *auth.TeamProjectsMapping, accessMgr AccessManager, tk Teamkatalogen, slack Slack, pollyAPI Polly, log *logrus.Entry) *handler.Server {
 	resolver := &Resolver{
 		repo:          repo,
 		bigquery:      gcp,
@@ -71,19 +71,14 @@ func New(repo *database.Repo, gcp Bigquery, gcpProjects *auth.TeamProjectsUpdate
 	return srv
 }
 
-func (r *Resolver) ensureUserHasAccessToGcpProject(ctx context.Context, projectID string) error {
-	user := auth.GetUser(ctx)
+func (r *Resolver) ensureGroupOwnsGCPProject(ctx context.Context, group, projectID string) error {
+	groupProject, ok := r.gcpProjects.Get(group)
+	if !ok {
+		return ErrUnauthorized
+	}
 
-	for _, grp := range user.Groups {
-		proj, ok := r.gcpProjects.Get(grp.Email)
-		if !ok {
-			continue
-		}
-		for _, p := range proj {
-			if p == projectID {
-				return nil
-			}
-		}
+	if groupProject == projectID {
+		return nil
 	}
 
 	return ErrUnauthorized
@@ -104,7 +99,7 @@ func pagination(limit *int, offset *int) (int, int) {
 func ensureOwner(ctx context.Context, owner string) error {
 	user := auth.GetUser(ctx)
 
-	if user != nil && (user.Groups.Contains(owner) || owner == user.Email) {
+	if user != nil && (user.GoogleGroups.Contains(owner) || owner == user.Email) {
 		return nil
 	}
 
@@ -113,7 +108,7 @@ func ensureOwner(ctx context.Context, owner string) error {
 
 func ensureUserInGroup(ctx context.Context, group string) error {
 	user := auth.GetUser(ctx)
-	if user == nil || !user.Groups.Contains(group) {
+	if user == nil || !user.GoogleGroups.Contains(group) {
 		return ErrUnauthorized
 	}
 	return nil
@@ -129,8 +124,8 @@ func authenticate(ctx context.Context, obj interface{}, next graphql.Resolver, o
 	return next(ctx)
 }
 
-func (r *Resolver) prepareBigQuery(ctx context.Context, bq models.NewBigQuery) (models.BigqueryMetadata, error) {
-	if err := r.ensureUserHasAccessToGcpProject(ctx, bq.ProjectID); err != nil {
+func (r *Resolver) prepareBigQuery(ctx context.Context, bq models.NewBigQuery, group string) (models.BigqueryMetadata, error) {
+	if err := r.ensureGroupOwnsGCPProject(ctx, group, bq.ProjectID); err != nil {
 		return models.BigqueryMetadata{}, err
 	}
 

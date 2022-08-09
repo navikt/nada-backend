@@ -5,9 +5,10 @@ import (
 )
 
 type Session struct {
-	Token   string
-	Email   string `json:"email"`
-	Name    string `json:"name"`
-	Created time.Time
-	Expires time.Time
+	Token       string
+	AccessToken string
+	Email       string `json:"preferred_username"`
+	Name        string `json:"name"`
+	Created     time.Time
+	Expires     time.Time
 }

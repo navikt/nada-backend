@@ -23,7 +23,7 @@ func isAllowedToGrantAccess(ctx context.Context, r *database.Repo, dp *models.Da
 	}
 
 	for _, r := range requesters {
-		if user.Groups.Contains(r) || strings.EqualFold(r, user.Email) {
+		if user.GoogleGroups.Contains(r) || strings.EqualFold(r, user.Email) {
 			return nil
 		}
 	}

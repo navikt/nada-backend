@@ -29,7 +29,7 @@ type PollyResponse struct {
 func New(apiURL string) *Polly {
 	url := "https://behandlingskatalog.dev.adeo.no/process/purpose"
 	if os.Getenv("NAIS_CLUSTER_NAME") == "prod-gcp" {
-		url = "https://behandlingskatalog.adeo.no/process/purpose"
+		url = "https://behandlingskatalog.nais.adeo.no/process/purpose"
 	}
 
 	return &Polly{

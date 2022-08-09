@@ -3,14 +3,14 @@ mutation {
 		input: {
 			name: "NewName"
 			description: "New description"
-			group: "nada@nav.no"
+			group: "team@nav.no"
 			datasets: [{
                 name: "DatasetCreatedWithDataproduct"
                 description: "dataset created with dataproduct"
 			    pii: false
-			    bigquery: { projectID: "team-prod-4242", dataset: "dataset1", table: "table1" }
+			    bigquery: { projectID: "team-dev-1337", dataset: "dataset", table: "table1" }
                 repo: "somerepo"
-                keywords: ["uniquekey1", "uniquekey2"]
+                keywords: ["keyword1", "otherkeyword"]
             }]
 		}
 	) {
