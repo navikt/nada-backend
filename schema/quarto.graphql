@@ -9,7 +9,7 @@ type Quarto @goModel(model: "github.com/navikt/nada-backend/pkg/graph/models.Qua
 	"created is the timestamp for when the data story was created."
 	created: Time!
 	"lastModified is the timestamp for when the data story was last modified."
-	lastModified: Time
+	lastModified: Time!
 	"keywords for the story used as tags."
 	keywords: [String!]!
     "content is the content of the quarto"

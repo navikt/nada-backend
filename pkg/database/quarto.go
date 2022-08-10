@@ -44,6 +44,9 @@ func quartoSQLToGraphql(quarto gensql.Quarto) *models.Quarto {
 			Group:            quarto.Owner,
 			TeamkatalogenURL: stringToPtr(""),
 		},
-		Content: quarto.Content,
+		Created:      quarto.Created,
+		LastModified: quarto.LastModified,
+		Keywords:     quarto.Keywords,
+		Content:      quarto.Content,
 	}
 }

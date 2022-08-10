@@ -5,7 +5,6 @@ package graph
 
 import (
 	"context"
-	"fmt"
 
 	"github.com/google/uuid"
 	"github.com/navikt/nada-backend/pkg/graph/models"
@@ -22,7 +21,5 @@ func (r *queryResolver) Quarto(ctx context.Context, id uuid.UUID) (*models.Quart
 	if err != nil {
 		return nil, err
 	}
-
-	fmt.Println(data)
 	return data, err
 }

@@ -2286,7 +2286,7 @@ type Quarto @goModel(model: "github.com/navikt/nada-backend/pkg/graph/models.Qua
 	"created is the timestamp for when the data story was created."
 	created: Time!
 	"lastModified is the timestamp for when the data story was last modified."
-	lastModified: Time
+	lastModified: Time!
 	"keywords for the story used as tags."
 	keywords: [String!]!
     "content is the content of the quarto"
@@ -7741,11 +7741,14 @@ func (ec *executionContext) _Quarto_lastModified(ctx context.Context, field grap
 		return graphql.Null
 	}
 	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
 		return graphql.Null
 	}
-	res := resTmp.(*time.Time)
+	res := resTmp.(time.Time)
 	fc.Result = res
-	return ec.marshalOTime2ᚖtimeᚐTime(ctx, field.Selections, res)
+	return ec.marshalNTime2timeᚐTime(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) fieldContext_Quarto_lastModified(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
@@ -14837,6 +14840,9 @@ func (ec *executionContext) _Quarto(ctx context.Context, sel ast.SelectionSet, o
 
 			out.Values[i] = ec._Quarto_lastModified(ctx, field, obj)
 
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
 		case "keywords":
 
 			out.Values[i] = ec._Quarto_keywords(ctx, field, obj)
