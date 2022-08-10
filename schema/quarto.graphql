@@ -5,13 +5,11 @@ type Quarto @goModel(model: "github.com/navikt/nada-backend/pkg/graph/models.Qua
 	"id of the data story."
 	id: ID!
 	"name of the data story."
-	team: Owner!
+	owner: Owner!
 	"created is the timestamp for when the data story was created."
 	created: Time!
 	"lastModified is the timestamp for when the data story was last modified."
 	lastModified: Time
-	"owner of the data story. Changes to the data story can only be done by a member of the owner."
-	owner: Owner!
 	"keywords for the story used as tags."
 	keywords: [String!]!
     "content is the content of the quarto"

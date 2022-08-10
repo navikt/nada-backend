@@ -7,16 +7,17 @@ import (
 	"context"
 
 	"github.com/google/uuid"
+	"github.com/lib/pq"
 )
 
 const createQuarto = `-- name: CreateQuarto :one
-INSERT INTO "quarto" ("team",
+INSERT INTO "quarto" ("owner",
                       "content")
 VALUES (
     $1,
     $2
 )
-RETURNING id, team, content
+RETURNING id, owner, created, last_modified, keywords, content
 `
 
 type CreateQuartoParams struct {
@@ -27,7 +28,14 @@ type CreateQuartoParams struct {
 func (q *Queries) CreateQuarto(ctx context.Context, arg CreateQuartoParams) (Quarto, error) {
 	row := q.db.QueryRowContext(ctx, createQuarto, arg.Team, arg.Content)
 	var i Quarto
-	err := row.Scan(&i.ID, &i.Team, &i.Content)
+	err := row.Scan(
+		&i.ID,
+		&i.Owner,
+		&i.Created,
+		&i.LastModified,
+		pq.Array(&i.Keywords),
+		&i.Content,
+	)
 	return i, err
 }
 
@@ -42,7 +50,7 @@ func (q *Queries) DeleteQuarto(ctx context.Context, id uuid.UUID) error {
 }
 
 const getQuarto = `-- name: GetQuarto :one
-SELECT id, team, content
+SELECT id, owner, created, last_modified, keywords, content
 FROM "quarto"
 WHERE id = $1
 `
@@ -50,12 +58,19 @@ WHERE id = $1
 func (q *Queries) GetQuarto(ctx context.Context, id uuid.UUID) (Quarto, error) {
 	row := q.db.QueryRowContext(ctx, getQuarto, id)
 	var i Quarto
-	err := row.Scan(&i.ID, &i.Team, &i.Content)
+	err := row.Scan(
+		&i.ID,
+		&i.Owner,
+		&i.Created,
+		&i.LastModified,
+		pq.Array(&i.Keywords),
+		&i.Content,
+	)
 	return i, err
 }
 
 const getQuartos = `-- name: GetQuartos :many
-SELECT id, team, content
+SELECT id, owner, created, last_modified, keywords, content
 FROM "quarto"
 `
 
@@ -68,7 +83,14 @@ func (q *Queries) GetQuartos(ctx context.Context) ([]Quarto, error) {
 	items := []Quarto{}
 	for rows.Next() {
 		var i Quarto
-		if err := rows.Scan(&i.ID, &i.Team, &i.Content); err != nil {
+		if err := rows.Scan(
+			&i.ID,
+			&i.Owner,
+			&i.Created,
+			&i.LastModified,
+			pq.Array(&i.Keywords),
+			&i.Content,
+		); err != nil {
 			return nil, err
 		}
 		items = append(items, i)
@@ -82,14 +104,14 @@ func (q *Queries) GetQuartos(ctx context.Context) ([]Quarto, error) {
 	return items, nil
 }
 
-const getQuartosForTeam = `-- name: GetQuartosForTeam :many
-SELECT id, team, content
+const getQuartosForOwner = `-- name: GetQuartosForOwner :many
+SELECT id, owner, created, last_modified, keywords, content
 FROM "quarto"
-WHERE team = $1
+WHERE owner = $1
 `
 
-func (q *Queries) GetQuartosForTeam(ctx context.Context, team string) ([]Quarto, error) {
-	rows, err := q.db.QueryContext(ctx, getQuartosForTeam, team)
+func (q *Queries) GetQuartosForOwner(ctx context.Context, owner string) ([]Quarto, error) {
+	rows, err := q.db.QueryContext(ctx, getQuartosForOwner, owner)
 	if err != nil {
 		return nil, err
 	}
@@ -97,7 +119,14 @@ func (q *Queries) GetQuartosForTeam(ctx context.Context, team string) ([]Quarto,
 	items := []Quarto{}
 	for rows.Next() {
 		var i Quarto
-		if err := rows.Scan(&i.ID, &i.Team, &i.Content); err != nil {
+		if err := rows.Scan(
+			&i.ID,
+			&i.Owner,
+			&i.Created,
+			&i.LastModified,
+			pq.Array(&i.Keywords),
+			&i.Content,
+		); err != nil {
 			return nil, err
 		}
 		items = append(items, i)
@@ -115,7 +144,7 @@ const updateQuarto = `-- name: UpdateQuarto :one
 UPDATE "quarto"
 SET content = $1
 WHERE id = $2
-RETURNING id, team, content
+RETURNING id, owner, created, last_modified, keywords, content
 `
 
 type UpdateQuartoParams struct {
@@ -126,6 +155,13 @@ type UpdateQuartoParams struct {
 func (q *Queries) UpdateQuarto(ctx context.Context, arg UpdateQuartoParams) (Quarto, error) {
 	row := q.db.QueryRowContext(ctx, updateQuarto, arg.Content, arg.ID)
 	var i Quarto
-	err := row.Scan(&i.ID, &i.Team, &i.Content)
+	err := row.Scan(
+		&i.ID,
+		&i.Owner,
+		&i.Created,
+		&i.LastModified,
+		pq.Array(&i.Keywords),
+		&i.Content,
+	)
 	return i, err
 }

@@ -57,7 +57,7 @@ type Querier interface {
 	GetPollyDocumentation(ctx context.Context, id uuid.UUID) (PollyDocumentation, error)
 	GetQuarto(ctx context.Context, id uuid.UUID) (Quarto, error)
 	GetQuartos(ctx context.Context) ([]Quarto, error)
-	GetQuartosForTeam(ctx context.Context, team string) ([]Quarto, error)
+	GetQuartosForOwner(ctx context.Context, owner string) ([]Quarto, error)
 	GetSession(ctx context.Context, token string) (Session, error)
 	GetStories(ctx context.Context) ([]Story, error)
 	GetStoriesByGroups(ctx context.Context, groups []string) ([]Story, error)

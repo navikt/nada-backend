@@ -1,5 +1,5 @@
 -- name: CreateQuarto :one
-INSERT INTO "quarto" ("team",
+INSERT INTO "quarto" ("owner",
                       "content")
 VALUES (
     @team,
@@ -26,7 +26,7 @@ WHERE id = @id;
 SELECT *
 FROM "quarto";
 
--- name: GetQuartosForTeam :many
+-- name: GetQuartosForOwner :many
 SELECT *
 FROM "quarto"
-WHERE team = @team;
+WHERE owner = @owner;

@@ -148,9 +148,12 @@ type PollyDocumentation struct {
 }
 
 type Quarto struct {
-	ID      uuid.UUID
-	Team    string
-	Content string
+	ID           uuid.UUID
+	Owner        string
+	Created      time.Time
+	LastModified time.Time
+	Keywords     []string
+	Content      string
 }
 
 type Search struct {

@@ -179,7 +179,6 @@ type ComplexityRoot struct {
 		Keywords     func(childComplexity int) int
 		LastModified func(childComplexity int) int
 		Owner        func(childComplexity int) int
-		Team         func(childComplexity int) int
 	}
 
 	Query struct {
@@ -1050,13 +1049,6 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 		}
 
 		return e.complexity.Quarto.Owner(childComplexity), true
-
-	case "Quarto.team":
-		if e.complexity.Quarto.Team == nil {
-			break
-		}
-
-		return e.complexity.Quarto.Team(childComplexity), true
 
 	case "Query.accessRequest":
 		if e.complexity.Query.AccessRequest == nil {
@@ -2290,13 +2282,11 @@ type Quarto @goModel(model: "github.com/navikt/nada-backend/pkg/graph/models.Qua
 	"id of the data story."
 	id: ID!
 	"name of the data story."
-	team: Owner!
+	owner: Owner!
 	"created is the timestamp for when the data story was created."
 	created: Time!
 	"lastModified is the timestamp for when the data story was last modified."
 	lastModified: Time
-	"owner of the data story. Changes to the data story can only be done by a member of the owner."
-	owner: Owner!
 	"keywords for the story used as tags."
 	keywords: [String!]!
     "content is the content of the quarto"
@@ -7636,8 +7626,8 @@ func (ec *executionContext) fieldContext_Quarto_id(ctx context.Context, field gr
 	return fc, nil
 }
 
-func (ec *executionContext) _Quarto_team(ctx context.Context, field graphql.CollectedField, obj *models.Quarto) (ret graphql.Marshaler) {
-	fc, err := ec.fieldContext_Quarto_team(ctx, field)
+func (ec *executionContext) _Quarto_owner(ctx context.Context, field graphql.CollectedField, obj *models.Quarto) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_Quarto_owner(ctx, field)
 	if err != nil {
 		return graphql.Null
 	}
@@ -7650,7 +7640,7 @@ func (ec *executionContext) _Quarto_team(ctx context.Context, field graphql.Coll
 	}()
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
-		return obj.Team, nil
+		return obj.Owner, nil
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -7667,7 +7657,7 @@ func (ec *executionContext) _Quarto_team(ctx context.Context, field graphql.Coll
 	return ec.marshalNOwner2ᚖgithubᚗcomᚋnaviktᚋnadaᚑbackendᚋpkgᚋgraphᚋmodelsᚐOwner(ctx, field.Selections, res)
 }
 
-func (ec *executionContext) fieldContext_Quarto_team(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+func (ec *executionContext) fieldContext_Quarto_owner(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
 	fc = &graphql.FieldContext{
 		Object:     "Quarto",
 		Field:      field,
@@ -7766,56 +7756,6 @@ func (ec *executionContext) fieldContext_Quarto_lastModified(ctx context.Context
 		IsResolver: false,
 		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
 			return nil, errors.New("field of type Time does not have child fields")
-		},
-	}
-	return fc, nil
-}
-
-func (ec *executionContext) _Quarto_owner(ctx context.Context, field graphql.CollectedField, obj *models.Quarto) (ret graphql.Marshaler) {
-	fc, err := ec.fieldContext_Quarto_owner(ctx, field)
-	if err != nil {
-		return graphql.Null
-	}
-	ctx = graphql.WithFieldContext(ctx, fc)
-	defer func() {
-		if r := recover(); r != nil {
-			ec.Error(ctx, ec.Recover(ctx, r))
-			ret = graphql.Null
-		}
-	}()
-	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
-		ctx = rctx // use context from middleware stack in children
-		return obj.Owner, nil
-	})
-	if err != nil {
-		ec.Error(ctx, err)
-		return graphql.Null
-	}
-	if resTmp == nil {
-		if !graphql.HasFieldError(ctx, fc) {
-			ec.Errorf(ctx, "must not be null")
-		}
-		return graphql.Null
-	}
-	res := resTmp.(*models.Owner)
-	fc.Result = res
-	return ec.marshalNOwner2ᚖgithubᚗcomᚋnaviktᚋnadaᚑbackendᚋpkgᚋgraphᚋmodelsᚐOwner(ctx, field.Selections, res)
-}
-
-func (ec *executionContext) fieldContext_Quarto_owner(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "Quarto",
-		Field:      field,
-		IsMethod:   false,
-		IsResolver: false,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			switch field.Name {
-			case "group":
-				return ec.fieldContext_Owner_group(ctx, field)
-			case "teamkatalogenURL":
-				return ec.fieldContext_Owner_teamkatalogenURL(ctx, field)
-			}
-			return nil, fmt.Errorf("no field named %q was found under type Owner", field.Name)
 		},
 	}
 	return fc, nil
@@ -8715,14 +8655,12 @@ func (ec *executionContext) fieldContext_Query_quartos(ctx context.Context, fiel
 			switch field.Name {
 			case "id":
 				return ec.fieldContext_Quarto_id(ctx, field)
-			case "team":
-				return ec.fieldContext_Quarto_team(ctx, field)
+			case "owner":
+				return ec.fieldContext_Quarto_owner(ctx, field)
 			case "created":
 				return ec.fieldContext_Quarto_created(ctx, field)
 			case "lastModified":
 				return ec.fieldContext_Quarto_lastModified(ctx, field)
-			case "owner":
-				return ec.fieldContext_Quarto_owner(ctx, field)
 			case "keywords":
 				return ec.fieldContext_Quarto_keywords(ctx, field)
 			case "content":
@@ -8775,14 +8713,12 @@ func (ec *executionContext) fieldContext_Query_quarto(ctx context.Context, field
 			switch field.Name {
 			case "id":
 				return ec.fieldContext_Quarto_id(ctx, field)
-			case "team":
-				return ec.fieldContext_Quarto_team(ctx, field)
+			case "owner":
+				return ec.fieldContext_Quarto_owner(ctx, field)
 			case "created":
 				return ec.fieldContext_Quarto_created(ctx, field)
 			case "lastModified":
 				return ec.fieldContext_Quarto_lastModified(ctx, field)
-			case "owner":
-				return ec.fieldContext_Quarto_owner(ctx, field)
 			case "keywords":
 				return ec.fieldContext_Quarto_keywords(ctx, field)
 			case "content":
@@ -14883,9 +14819,9 @@ func (ec *executionContext) _Quarto(ctx context.Context, sel ast.SelectionSet, o
 			if out.Values[i] == graphql.Null {
 				invalids++
 			}
-		case "team":
+		case "owner":
 
-			out.Values[i] = ec._Quarto_team(ctx, field, obj)
+			out.Values[i] = ec._Quarto_owner(ctx, field, obj)
 
 			if out.Values[i] == graphql.Null {
 				invalids++
@@ -14901,13 +14837,6 @@ func (ec *executionContext) _Quarto(ctx context.Context, sel ast.SelectionSet, o
 
 			out.Values[i] = ec._Quarto_lastModified(ctx, field, obj)
 
-		case "owner":
-
-			out.Values[i] = ec._Quarto_owner(ctx, field, obj)
-
-			if out.Values[i] == graphql.Null {
-				invalids++
-			}
 		case "keywords":
 
 			out.Values[i] = ec._Quarto_keywords(ctx, field, obj)

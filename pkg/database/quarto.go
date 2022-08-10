@@ -40,8 +40,8 @@ func (r *Repo) GetQuartos(ctx context.Context) ([]*models.Quarto, error) {
 func quartoSQLToGraphql(quarto gensql.Quarto) *models.Quarto {
 	return &models.Quarto{
 		ID: quarto.ID,
-		Team: &models.Owner{
-			Group:            quarto.Team,
+		Owner: &models.Owner{
+			Group:            quarto.Owner,
 			TeamkatalogenURL: stringToPtr(""),
 		},
 		Content: quarto.Content,
