@@ -91,6 +91,11 @@ type ComplexityRoot struct {
 		TableType    func(childComplexity int) int
 	}
 
+	BigQuerySource struct {
+		Dataset func(childComplexity int) int
+		Table   func(childComplexity int) int
+	}
+
 	BigQueryTable struct {
 		Description  func(childComplexity int) int
 		LastModified func(childComplexity int) int
@@ -194,6 +199,7 @@ type ComplexityRoot struct {
 		Dataproducts             func(childComplexity int, limit *int, offset *int, service *models.MappingService) int
 		Dataset                  func(childComplexity int, id uuid.UUID) int
 		DatasetsInDataproduct    func(childComplexity int, dataproductID uuid.UUID) int
+		GcpGetAllTablesInProject func(childComplexity int, projectID string) int
 		GcpGetDatasets           func(childComplexity int, projectID string) int
 		GcpGetTables             func(childComplexity int, projectID string, datasetID string) int
 		GroupStats               func(childComplexity int, limit *int, offset *int) int
@@ -334,6 +340,7 @@ type QueryResolver interface {
 	DatasetsInDataproduct(ctx context.Context, dataproductID uuid.UUID) ([]*models.Dataset, error)
 	GcpGetTables(ctx context.Context, projectID string, datasetID string) ([]*models.BigQueryTable, error)
 	GcpGetDatasets(ctx context.Context, projectID string) ([]string, error)
+	GcpGetAllTablesInProject(ctx context.Context, projectID string) ([]*models.BigQuerySource, error)
 	Keywords(ctx context.Context, prefix *string) ([]*models.Keyword, error)
 	Polly(ctx context.Context, q string) ([]*models.QueryPolly, error)
 	Search(ctx context.Context, q *models.SearchQueryOld, options *models.SearchQuery) ([]*models.SearchResultRow, error)
@@ -571,6 +578,20 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 		}
 
 		return e.complexity.BigQuery.TableType(childComplexity), true
+
+	case "BigQuerySource.dataset":
+		if e.complexity.BigQuerySource.Dataset == nil {
+			break
+		}
+
+		return e.complexity.BigQuerySource.Dataset(childComplexity), true
+
+	case "BigQuerySource.table":
+		if e.complexity.BigQuerySource.Table == nil {
+			break
+		}
+
+		return e.complexity.BigQuerySource.Table(childComplexity), true
 
 	case "BigQueryTable.description":
 		if e.complexity.BigQueryTable.Description == nil {
@@ -1174,6 +1195,18 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 		}
 
 		return e.complexity.Query.DatasetsInDataproduct(childComplexity, args["dataproductID"].(uuid.UUID)), true
+
+	case "Query.gcpGetAllTablesInProject":
+		if e.complexity.Query.GcpGetAllTablesInProject == nil {
+			break
+		}
+
+		args, err := ec.field_Query_gcpGetAllTablesInProject_args(context.TODO(), rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Query.GcpGetAllTablesInProject(childComplexity, args["projectID"].(string)), true
 
 	case "Query.gcpGetDatasets":
 		if e.complexity.Query.GcpGetDatasets == nil {
@@ -2301,6 +2334,20 @@ type BigQueryTable @goModel(model: "github.com/navikt/nada-backend/pkg/graph/mod
 	type:         BigQueryType!
 }
 
+"""
+"""
+type BigQuerySource {
+    """
+	table is the name of the BigQuery table.
+	"""
+	table:         String!
+
+    """
+	dataset is the name of the BigQuery dataset.
+	"""
+	dataset:         String!
+}
+
 extend type Query {
 	"""
 	gcpGetTables returns all tables for a given dataset.
@@ -2322,6 +2369,12 @@ extend type Query {
 		"projectID is the GCP project ID that contains the dataset."
 		projectID: String!
 	): [String!]! @authenticated
+    """
+    """
+    gcpGetAllTablesInProject(
+        "projectID"
+        projectID: String!
+    ): [BigQuerySource!]!  @authenticated
 }
 `, BuiltIn: false},
 	{Name: "../../../schema/group.graphql", Input: `"""
@@ -3239,6 +3292,21 @@ func (ec *executionContext) field_Query_datasetsInDataproduct_args(ctx context.C
 		}
 	}
 	args["dataproductID"] = arg0
+	return args, nil
+}
+
+func (ec *executionContext) field_Query_gcpGetAllTablesInProject_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
+	var err error
+	args := map[string]interface{}{}
+	var arg0 string
+	if tmp, ok := rawArgs["projectID"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("projectID"))
+		arg0, err = ec.unmarshalNString2string(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["projectID"] = arg0
 	return args, nil
 }
 
@@ -4705,6 +4773,94 @@ func (ec *executionContext) _BigQuery_description(ctx context.Context, field gra
 func (ec *executionContext) fieldContext_BigQuery_description(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
 	fc = &graphql.FieldContext{
 		Object:     "BigQuery",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _BigQuerySource_table(ctx context.Context, field graphql.CollectedField, obj *models.BigQuerySource) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_BigQuerySource_table(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Table, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(string)
+	fc.Result = res
+	return ec.marshalNString2string(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_BigQuerySource_table(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "BigQuerySource",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _BigQuerySource_dataset(ctx context.Context, field graphql.CollectedField, obj *models.BigQuerySource) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_BigQuerySource_dataset(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Dataset, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(string)
+	fc.Result = res
+	return ec.marshalNString2string(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_BigQuerySource_dataset(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "BigQuerySource",
 		Field:      field,
 		IsMethod:   false,
 		IsResolver: false,
@@ -9076,6 +9232,87 @@ func (ec *executionContext) fieldContext_Query_gcpGetDatasets(ctx context.Contex
 	}()
 	ctx = graphql.WithFieldContext(ctx, fc)
 	if fc.Args, err = ec.field_Query_gcpGetDatasets_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+		ec.Error(ctx, err)
+		return
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Query_gcpGetAllTablesInProject(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_Query_gcpGetAllTablesInProject(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		directive0 := func(rctx context.Context) (interface{}, error) {
+			ctx = rctx // use context from middleware stack in children
+			return ec.resolvers.Query().GcpGetAllTablesInProject(rctx, fc.Args["projectID"].(string))
+		}
+		directive1 := func(ctx context.Context) (interface{}, error) {
+			if ec.directives.Authenticated == nil {
+				return nil, errors.New("directive authenticated is not implemented")
+			}
+			return ec.directives.Authenticated(ctx, nil, directive0, nil)
+		}
+
+		tmp, err := directive1(rctx)
+		if err != nil {
+			return nil, graphql.ErrorOnPath(ctx, err)
+		}
+		if tmp == nil {
+			return nil, nil
+		}
+		if data, ok := tmp.([]*models.BigQuerySource); ok {
+			return data, nil
+		}
+		return nil, fmt.Errorf(`unexpected type %T from directive, should be []*github.com/navikt/nada-backend/pkg/graph/models.BigQuerySource`, tmp)
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.([]*models.BigQuerySource)
+	fc.Result = res
+	return ec.marshalNBigQuerySource2ᚕᚖgithubᚗcomᚋnaviktᚋnadaᚑbackendᚋpkgᚋgraphᚋmodelsᚐBigQuerySourceᚄ(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_Query_gcpGetAllTablesInProject(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Query",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "table":
+				return ec.fieldContext_BigQuerySource_table(ctx, field)
+			case "dataset":
+				return ec.fieldContext_BigQuerySource_dataset(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type BigQuerySource", field.Name)
+		},
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			err = ec.Recover(ctx, r)
+			ec.Error(ctx, err)
+		}
+	}()
+	ctx = graphql.WithFieldContext(ctx, fc)
+	if fc.Args, err = ec.field_Query_gcpGetAllTablesInProject_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
 		ec.Error(ctx, err)
 		return
 	}
@@ -14730,6 +14967,41 @@ func (ec *executionContext) _BigQuery(ctx context.Context, sel ast.SelectionSet,
 	return out
 }
 
+var bigQuerySourceImplementors = []string{"BigQuerySource"}
+
+func (ec *executionContext) _BigQuerySource(ctx context.Context, sel ast.SelectionSet, obj *models.BigQuerySource) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, bigQuerySourceImplementors)
+	out := graphql.NewFieldSet(fields)
+	var invalids uint32
+	for i, field := range fields {
+		switch field.Name {
+		case "__typename":
+			out.Values[i] = graphql.MarshalString("BigQuerySource")
+		case "table":
+
+			out.Values[i] = ec._BigQuerySource_table(ctx, field, obj)
+
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
+		case "dataset":
+
+			out.Values[i] = ec._BigQuerySource_dataset(ctx, field, obj)
+
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
+		default:
+			panic("unknown field " + strconv.Quote(field.Name))
+		}
+	}
+	out.Dispatch()
+	if invalids > 0 {
+		return graphql.Null
+	}
+	return out
+}
+
 var bigQueryTableImplementors = []string{"BigQueryTable"}
 
 func (ec *executionContext) _BigQueryTable(ctx context.Context, sel ast.SelectionSet, obj *models.BigQueryTable) graphql.Marshaler {
@@ -15771,6 +16043,29 @@ func (ec *executionContext) _Query(ctx context.Context, sel ast.SelectionSet) gr
 					}
 				}()
 				res = ec._Query_gcpGetDatasets(ctx, field)
+				if res == graphql.Null {
+					atomic.AddUint32(&invalids, 1)
+				}
+				return res
+			}
+
+			rrm := func(ctx context.Context) graphql.Marshaler {
+				return ec.OperationContext.RootResolverMiddleware(ctx, innerFunc)
+			}
+
+			out.Concurrently(i, func() graphql.Marshaler {
+				return rrm(innerCtx)
+			})
+		case "gcpGetAllTablesInProject":
+			field := field
+
+			innerFunc := func(ctx context.Context) (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._Query_gcpGetAllTablesInProject(ctx, field)
 				if res == graphql.Null {
 					atomic.AddUint32(&invalids, 1)
 				}
@@ -17096,6 +17391,60 @@ func (ec *executionContext) unmarshalNAccessRequestStatus2githubᚗcomᚋnavikt�
 
 func (ec *executionContext) marshalNAccessRequestStatus2githubᚗcomᚋnaviktᚋnadaᚑbackendᚋpkgᚋgraphᚋmodelsᚐAccessRequestStatus(ctx context.Context, sel ast.SelectionSet, v models.AccessRequestStatus) graphql.Marshaler {
 	return v
+}
+
+func (ec *executionContext) marshalNBigQuerySource2ᚕᚖgithubᚗcomᚋnaviktᚋnadaᚑbackendᚋpkgᚋgraphᚋmodelsᚐBigQuerySourceᚄ(ctx context.Context, sel ast.SelectionSet, v []*models.BigQuerySource) graphql.Marshaler {
+	ret := make(graphql.Array, len(v))
+	var wg sync.WaitGroup
+	isLen1 := len(v) == 1
+	if !isLen1 {
+		wg.Add(len(v))
+	}
+	for i := range v {
+		i := i
+		fc := &graphql.FieldContext{
+			Index:  &i,
+			Result: &v[i],
+		}
+		ctx := graphql.WithFieldContext(ctx, fc)
+		f := func(i int) {
+			defer func() {
+				if r := recover(); r != nil {
+					ec.Error(ctx, ec.Recover(ctx, r))
+					ret = nil
+				}
+			}()
+			if !isLen1 {
+				defer wg.Done()
+			}
+			ret[i] = ec.marshalNBigQuerySource2ᚖgithubᚗcomᚋnaviktᚋnadaᚑbackendᚋpkgᚋgraphᚋmodelsᚐBigQuerySource(ctx, sel, v[i])
+		}
+		if isLen1 {
+			f(i)
+		} else {
+			go f(i)
+		}
+
+	}
+	wg.Wait()
+
+	for _, e := range ret {
+		if e == graphql.Null {
+			return graphql.Null
+		}
+	}
+
+	return ret
+}
+
+func (ec *executionContext) marshalNBigQuerySource2ᚖgithubᚗcomᚋnaviktᚋnadaᚑbackendᚋpkgᚋgraphᚋmodelsᚐBigQuerySource(ctx context.Context, sel ast.SelectionSet, v *models.BigQuerySource) graphql.Marshaler {
+	if v == nil {
+		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
+			ec.Errorf(ctx, "the requested element is null which the schema does not allow")
+		}
+		return graphql.Null
+	}
+	return ec._BigQuerySource(ctx, sel, v)
 }
 
 func (ec *executionContext) marshalNBigQueryTable2ᚕᚖgithubᚗcomᚋnaviktᚋnadaᚑbackendᚋpkgᚋgraphᚋmodelsᚐBigQueryTableᚄ(ctx context.Context, sel ast.SelectionSet, v []*models.BigQueryTable) graphql.Marshaler {
