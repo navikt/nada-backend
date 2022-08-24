@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"os"
 
 	"github.com/navikt/nada-backend/pkg/database"
 )
@@ -36,10 +37,18 @@ func (h *Handler) Upload(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	host := "http://localhost:3000"
+	if os.Getenv("NAIS_CLUSTER_NAME") == "dev-gcp" {
+		host = "https://data.dev.intern.nav.no"
+	} else if os.Getenv("NAIS_CLUSTER_NAME") == "prod-gcp" {
+		host = "https://data.intern.nav.no"
+	}
+
 	w.Header().Add("content-type", "application/json")
 
 	resp := map[string]string{
-		"id": id.String(),
+		"id":  id.String(),
+		"url": host + "/quarto/" + id.String(),
 	}
 	if err := json.NewEncoder(w).Encode(resp); err != nil {
 		log.Println(err)
