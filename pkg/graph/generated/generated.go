@@ -39,6 +39,7 @@ type Config struct {
 }
 
 type ResolverRoot interface {
+	Access() AccessResolver
 	BigQuery() BigQueryResolver
 	Dataproduct() DataproductResolver
 	Dataset() DatasetResolver
@@ -55,6 +56,7 @@ type DirectiveRoot struct {
 
 type ComplexityRoot struct {
 	Access struct {
+		AccessRequest   func(childComplexity int) int
 		AccessRequestID func(childComplexity int) int
 		Created         func(childComplexity int) int
 		Expires         func(childComplexity int) int
@@ -292,6 +294,9 @@ type ComplexityRoot struct {
 	}
 }
 
+type AccessResolver interface {
+	AccessRequest(ctx context.Context, obj *models.Access) (*models.AccessRequest, error)
+}
 type BigQueryResolver interface {
 	Schema(ctx context.Context, obj *models.BigQuery) ([]*models.TableColumn, error)
 }
@@ -382,6 +387,13 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 	ec := executionContext{nil, e}
 	_ = ec
 	switch typeName + "." + field {
+
+	case "Access.accessRequest":
+		if e.complexity.Access.AccessRequest == nil {
+			break
+		}
+
+		return e.complexity.Access.AccessRequest(childComplexity), true
 
 	case "Access.accessRequestID":
 		if e.complexity.Access.AccessRequestID == nil {
@@ -1760,6 +1772,8 @@ type Access @goModel(model: "github.com/navikt/nada-backend/pkg/graph/models.Acc
     revoked: Time
     "accessRequestID is the id of the access request for this grant."
     accessRequestID: ID
+    "accessRequest is the accessRequest for this grant"
+    accessRequest: AccessRequest
 }
 
 """
@@ -3852,6 +3866,73 @@ func (ec *executionContext) fieldContext_Access_accessRequestID(ctx context.Cont
 		IsResolver: false,
 		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
 			return nil, errors.New("field of type ID does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Access_accessRequest(ctx context.Context, field graphql.CollectedField, obj *models.Access) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_Access_accessRequest(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.Access().AccessRequest(rctx, obj)
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		return graphql.Null
+	}
+	res := resTmp.(*models.AccessRequest)
+	fc.Result = res
+	return ec.marshalOAccessRequest2ᚖgithubᚗcomᚋnaviktᚋnadaᚑbackendᚋpkgᚋgraphᚋmodelsᚐAccessRequest(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_Access_accessRequest(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Access",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "id":
+				return ec.fieldContext_AccessRequest_id(ctx, field)
+			case "datasetID":
+				return ec.fieldContext_AccessRequest_datasetID(ctx, field)
+			case "subject":
+				return ec.fieldContext_AccessRequest_subject(ctx, field)
+			case "subjectType":
+				return ec.fieldContext_AccessRequest_subjectType(ctx, field)
+			case "created":
+				return ec.fieldContext_AccessRequest_created(ctx, field)
+			case "status":
+				return ec.fieldContext_AccessRequest_status(ctx, field)
+			case "closed":
+				return ec.fieldContext_AccessRequest_closed(ctx, field)
+			case "expires":
+				return ec.fieldContext_AccessRequest_expires(ctx, field)
+			case "granter":
+				return ec.fieldContext_AccessRequest_granter(ctx, field)
+			case "owner":
+				return ec.fieldContext_AccessRequest_owner(ctx, field)
+			case "polly":
+				return ec.fieldContext_AccessRequest_polly(ctx, field)
+			case "reason":
+				return ec.fieldContext_AccessRequest_reason(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type AccessRequest", field.Name)
 		},
 	}
 	return fc, nil
@@ -6061,6 +6142,8 @@ func (ec *executionContext) fieldContext_Dataset_access(ctx context.Context, fie
 				return ec.fieldContext_Access_revoked(ctx, field)
 			case "accessRequestID":
 				return ec.fieldContext_Access_accessRequestID(ctx, field)
+			case "accessRequest":
+				return ec.fieldContext_Access_accessRequest(ctx, field)
 			}
 			return nil, fmt.Errorf("no field named %q was found under type Access", field.Name)
 		},
@@ -6728,6 +6811,8 @@ func (ec *executionContext) fieldContext_Mutation_grantAccessToDataset(ctx conte
 				return ec.fieldContext_Access_revoked(ctx, field)
 			case "accessRequestID":
 				return ec.fieldContext_Access_accessRequestID(ctx, field)
+			case "accessRequest":
+				return ec.fieldContext_Access_accessRequest(ctx, field)
 			}
 			return nil, fmt.Errorf("no field named %q was found under type Access", field.Name)
 		},
@@ -14737,21 +14822,21 @@ func (ec *executionContext) _Access(ctx context.Context, sel ast.SelectionSet, o
 			out.Values[i] = ec._Access_id(ctx, field, obj)
 
 			if out.Values[i] == graphql.Null {
-				invalids++
+				atomic.AddUint32(&invalids, 1)
 			}
 		case "subject":
 
 			out.Values[i] = ec._Access_subject(ctx, field, obj)
 
 			if out.Values[i] == graphql.Null {
-				invalids++
+				atomic.AddUint32(&invalids, 1)
 			}
 		case "granter":
 
 			out.Values[i] = ec._Access_granter(ctx, field, obj)
 
 			if out.Values[i] == graphql.Null {
-				invalids++
+				atomic.AddUint32(&invalids, 1)
 			}
 		case "expires":
 
@@ -14762,7 +14847,7 @@ func (ec *executionContext) _Access(ctx context.Context, sel ast.SelectionSet, o
 			out.Values[i] = ec._Access_created(ctx, field, obj)
 
 			if out.Values[i] == graphql.Null {
-				invalids++
+				atomic.AddUint32(&invalids, 1)
 			}
 		case "revoked":
 
@@ -14772,6 +14857,23 @@ func (ec *executionContext) _Access(ctx context.Context, sel ast.SelectionSet, o
 
 			out.Values[i] = ec._Access_accessRequestID(ctx, field, obj)
 
+		case "accessRequest":
+			field := field
+
+			innerFunc := func(ctx context.Context) (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._Access_accessRequest(ctx, field, obj)
+				return res
+			}
+
+			out.Concurrently(i, func() graphql.Marshaler {
+				return innerFunc(ctx)
+
+			})
 		default:
 			panic("unknown field " + strconv.Quote(field.Name))
 		}
@@ -18816,6 +18918,13 @@ func (ec *executionContext) marshalN__TypeKind2string(ctx context.Context, sel a
 		}
 	}
 	return res
+}
+
+func (ec *executionContext) marshalOAccessRequest2ᚖgithubᚗcomᚋnaviktᚋnadaᚑbackendᚋpkgᚋgraphᚋmodelsᚐAccessRequest(ctx context.Context, sel ast.SelectionSet, v *models.AccessRequest) graphql.Marshaler {
+	if v == nil {
+		return graphql.Null
+	}
+	return ec._AccessRequest(ctx, sel, v)
 }
 
 func (ec *executionContext) unmarshalOBoolean2bool(ctx context.Context, v interface{}) (bool, error) {

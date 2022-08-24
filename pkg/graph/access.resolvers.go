@@ -11,8 +11,17 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/navikt/nada-backend/pkg/auth"
+	"github.com/navikt/nada-backend/pkg/graph/generated"
 	"github.com/navikt/nada-backend/pkg/graph/models"
 )
+
+// AccessRequest is the resolver for the accessRequest field.
+func (r *accessResolver) AccessRequest(ctx context.Context, obj *models.Access) (*models.AccessRequest, error) {
+	if obj.AccessRequestID == nil {
+		return nil, nil
+	}
+	return r.repo.GetAccessRequest(ctx, *obj.AccessRequestID)
+}
 
 // GrantAccessToDataset is the resolver for the grantAccessToDataset field.
 func (r *mutationResolver) GrantAccessToDataset(ctx context.Context, input models.NewGrant) (*models.Access, error) {
@@ -232,3 +241,8 @@ func (r *mutationResolver) DenyAccessRequest(ctx context.Context, id uuid.UUID, 
 func (r *queryResolver) AccessRequest(ctx context.Context, id uuid.UUID) (*models.AccessRequest, error) {
 	return r.repo.GetAccessRequest(ctx, id)
 }
+
+// Access returns generated.AccessResolver implementation.
+func (r *Resolver) Access() generated.AccessResolver { return &accessResolver{r} }
+
+type accessResolver struct{ *Resolver }
