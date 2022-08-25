@@ -120,6 +120,7 @@ type ComplexityRoot struct {
 	Dataset struct {
 		Access        func(childComplexity int) int
 		Created       func(childComplexity int) int
+		Dataproduct   func(childComplexity int) int
 		DataproductID func(childComplexity int) int
 		Datasource    func(childComplexity int) int
 		Description   func(childComplexity int) int
@@ -305,6 +306,8 @@ type DataproductResolver interface {
 	Datasets(ctx context.Context, obj *models.Dataproduct) ([]*models.Dataset, error)
 }
 type DatasetResolver interface {
+	Dataproduct(ctx context.Context, obj *models.Dataset) (*models.Dataproduct, error)
+
 	Owner(ctx context.Context, obj *models.Dataset) (*models.Owner, error)
 
 	Datasource(ctx context.Context, obj *models.Dataset) (models.Datasource, error)
@@ -709,6 +712,13 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 		}
 
 		return e.complexity.Dataset.Created(childComplexity), true
+
+	case "Dataset.dataproduct":
+		if e.complexity.Dataset.Dataproduct == nil {
+			break
+		}
+
+		return e.complexity.Dataset.Dataproduct(childComplexity), true
 
 	case "Dataset.dataproductID":
 		if e.complexity.Dataset.DataproductID == nil {
@@ -2076,6 +2086,8 @@ type Dataset @goModel(model: "github.com/navikt/nada-backend/pkg/graph/models.Da
     id: ID!
     "dataproductID is the id of the dataproduct containing the dataset"
     dataproductID: ID!
+    "dataproduct is the dataproduct containing the dataset"
+    dataproduct: Dataproduct!
     "name of the dataset"
     name: String!
     "description of the dataset"
@@ -2504,7 +2516,7 @@ extend type Query {
 `, BuiltIn: false},
 	{Name: "../../../schema/search.graphql", Input: `union SearchResult @goModel(
     model: "github.com/navikt/nada-backend/pkg/graph/models.SearchResult"
-) = Dataproduct | Story
+) = Dataproduct | Dataset | Story
 
 
 enum SearchType @goModel(
@@ -2514,7 +2526,6 @@ enum SearchType @goModel(
     story
     dataset
 }
-
 
 type SearchResultRow  @goModel(model: "github.com/navikt/nada-backend/pkg/graph/models.SearchResultRow") {
     excerpt: String! @goField(forceResolver: true)
@@ -5526,6 +5537,8 @@ func (ec *executionContext) fieldContext_Dataproduct_datasets(ctx context.Contex
 				return ec.fieldContext_Dataset_id(ctx, field)
 			case "dataproductID":
 				return ec.fieldContext_Dataset_dataproductID(ctx, field)
+			case "dataproduct":
+				return ec.fieldContext_Dataset_dataproduct(ctx, field)
 			case "name":
 				return ec.fieldContext_Dataset_name(ctx, field)
 			case "description":
@@ -5644,6 +5657,70 @@ func (ec *executionContext) fieldContext_Dataset_dataproductID(ctx context.Conte
 		IsResolver: false,
 		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
 			return nil, errors.New("field of type ID does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Dataset_dataproduct(ctx context.Context, field graphql.CollectedField, obj *models.Dataset) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_Dataset_dataproduct(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.Dataset().Dataproduct(rctx, obj)
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(*models.Dataproduct)
+	fc.Result = res
+	return ec.marshalNDataproduct2ᚖgithubᚗcomᚋnaviktᚋnadaᚑbackendᚋpkgᚋgraphᚋmodelsᚐDataproduct(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_Dataset_dataproduct(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Dataset",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "id":
+				return ec.fieldContext_Dataproduct_id(ctx, field)
+			case "name":
+				return ec.fieldContext_Dataproduct_name(ctx, field)
+			case "description":
+				return ec.fieldContext_Dataproduct_description(ctx, field)
+			case "created":
+				return ec.fieldContext_Dataproduct_created(ctx, field)
+			case "lastModified":
+				return ec.fieldContext_Dataproduct_lastModified(ctx, field)
+			case "slug":
+				return ec.fieldContext_Dataproduct_slug(ctx, field)
+			case "owner":
+				return ec.fieldContext_Dataproduct_owner(ctx, field)
+			case "keywords":
+				return ec.fieldContext_Dataproduct_keywords(ctx, field)
+			case "datasets":
+				return ec.fieldContext_Dataproduct_datasets(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type Dataproduct", field.Name)
 		},
 	}
 	return fc, nil
@@ -7661,6 +7738,8 @@ func (ec *executionContext) fieldContext_Mutation_createDataset(ctx context.Cont
 				return ec.fieldContext_Dataset_id(ctx, field)
 			case "dataproductID":
 				return ec.fieldContext_Dataset_dataproductID(ctx, field)
+			case "dataproduct":
+				return ec.fieldContext_Dataset_dataproduct(ctx, field)
 			case "name":
 				return ec.fieldContext_Dataset_name(ctx, field)
 			case "description":
@@ -7770,6 +7849,8 @@ func (ec *executionContext) fieldContext_Mutation_updateDataset(ctx context.Cont
 				return ec.fieldContext_Dataset_id(ctx, field)
 			case "dataproductID":
 				return ec.fieldContext_Dataset_dataproductID(ctx, field)
+			case "dataproduct":
+				return ec.fieldContext_Dataset_dataproduct(ctx, field)
 			case "name":
 				return ec.fieldContext_Dataset_name(ctx, field)
 			case "description":
@@ -8927,6 +9008,8 @@ func (ec *executionContext) fieldContext_Query_dataset(ctx context.Context, fiel
 				return ec.fieldContext_Dataset_id(ctx, field)
 			case "dataproductID":
 				return ec.fieldContext_Dataset_dataproductID(ctx, field)
+			case "dataproduct":
+				return ec.fieldContext_Dataset_dataproduct(ctx, field)
 			case "name":
 				return ec.fieldContext_Dataset_name(ctx, field)
 			case "description":
@@ -9117,6 +9200,8 @@ func (ec *executionContext) fieldContext_Query_datasetsInDataproduct(ctx context
 				return ec.fieldContext_Dataset_id(ctx, field)
 			case "dataproductID":
 				return ec.fieldContext_Dataset_dataproductID(ctx, field)
+			case "dataproduct":
+				return ec.fieldContext_Dataset_dataproduct(ctx, field)
 			case "name":
 				return ec.fieldContext_Dataset_name(ctx, field)
 			case "description":
@@ -14754,6 +14839,13 @@ func (ec *executionContext) _SearchResult(ctx context.Context, sel ast.Selection
 			return graphql.Null
 		}
 		return ec._Dataproduct(ctx, sel, obj)
+	case models.Dataset:
+		return ec._Dataset(ctx, sel, &obj)
+	case *models.Dataset:
+		if obj == nil {
+			return graphql.Null
+		}
+		return ec._Dataset(ctx, sel, obj)
 	case models.GraphStory:
 		return ec._Story(ctx, sel, &obj)
 	case *models.GraphStory:
@@ -15260,7 +15352,7 @@ func (ec *executionContext) _Dataproduct(ctx context.Context, sel ast.SelectionS
 	return out
 }
 
-var datasetImplementors = []string{"Dataset"}
+var datasetImplementors = []string{"Dataset", "SearchResult"}
 
 func (ec *executionContext) _Dataset(ctx context.Context, sel ast.SelectionSet, obj *models.Dataset) graphql.Marshaler {
 	fields := graphql.CollectFields(ec.OperationContext, sel, datasetImplementors)
@@ -15284,6 +15376,26 @@ func (ec *executionContext) _Dataset(ctx context.Context, sel ast.SelectionSet, 
 			if out.Values[i] == graphql.Null {
 				atomic.AddUint32(&invalids, 1)
 			}
+		case "dataproduct":
+			field := field
+
+			innerFunc := func(ctx context.Context) (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._Dataset_dataproduct(ctx, field, obj)
+				if res == graphql.Null {
+					atomic.AddUint32(&invalids, 1)
+				}
+				return res
+			}
+
+			out.Concurrently(i, func() graphql.Marshaler {
+				return innerFunc(ctx)
+
+			})
 		case "name":
 
 			out.Values[i] = ec._Dataset_name(ctx, field, obj)

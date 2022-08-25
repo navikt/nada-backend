@@ -6,6 +6,8 @@ type Dataset @goModel(model: "github.com/navikt/nada-backend/pkg/graph/models.Da
     id: ID!
     "dataproductID is the id of the dataproduct containing the dataset"
     dataproductID: ID!
+    "dataproduct is the dataproduct containing the dataset"
+    dataproduct: Dataproduct!
     "name of the dataset"
     name: String!
     "description of the dataset"

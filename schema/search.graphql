@@ -1,6 +1,6 @@
 union SearchResult @goModel(
     model: "github.com/navikt/nada-backend/pkg/graph/models.SearchResult"
-) = Dataproduct | Story
+) = Dataproduct | Dataset | Story
 
 
 enum SearchType @goModel(
@@ -10,7 +10,6 @@ enum SearchType @goModel(
     story
     dataset
 }
-
 
 type SearchResultRow  @goModel(model: "github.com/navikt/nada-backend/pkg/graph/models.SearchResultRow") {
     excerpt: String! @goField(forceResolver: true)
