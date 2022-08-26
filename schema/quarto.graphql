@@ -1,0 +1,32 @@
+"""
+Quarto contains the metadata and content of data stories.
+"""
+type Quarto @goModel(model: "github.com/navikt/nada-backend/pkg/graph/models.Quarto") {
+	"id of the data story."
+	id: ID!
+	"name of the data story."
+	owner: Owner!
+	"created is the timestamp for when the data story was created."
+	created: Time!
+	"lastModified is the timestamp for when the data story was last modified."
+	lastModified: Time!
+	"keywords for the story used as tags."
+	keywords: [String!]!
+    "content is the content of the quarto"
+    content: String!
+}
+
+extend type Query {
+	"""
+    quartos returns all published quartos.
+    """
+	quartos: [Quarto!]!
+
+	"""
+    quarto returns the given quarto.
+    """
+	quarto(
+		"id of the quarto."
+		id: ID!
+	): Quarto!
+}
