@@ -88,11 +88,16 @@ ALTER TABLE dataproduct_requesters
     ADD CONSTRAINT fk_requester_dataproduct FOREIGN KEY (dataproduct_id)
         REFERENCES dataproducts (id) ON DELETE CASCADE;
 
+
+ALTER TABLE datasource_bigquery
+    ADD COLUMN dataproduct_id uuid;
+UPDATE datasource_bigquery a SET dataproduct_id = (SELECT dataproduct_id FROM datasets e WHERE e.id = a.dataset_id);
+ALTER TABLE datasource_bigquery
+    ALTER COLUMN dataproduct_id SET NOT NULL;
 ALTER TABLE datasource_bigquery
     DROP CONSTRAINT fk_bigquery_dataset;
-UPDATE datasource_bigquery a SET dataset_id = (SELECT dataproduct_id FROM datasets e WHERE e.id = a.dataset_id);
 ALTER TABLE datasource_bigquery
-    RENAME COLUMN dataset_id TO dataproduct_id;
+    DROP COLUMN dataset_id;
 ALTER TABLE datasource_bigquery
     ADD CONSTRAINT fk_bigquery_dataproduct FOREIGN KEY (dataproduct_id)
         REFERENCES dataproducts (id) ON DELETE CASCADE;
