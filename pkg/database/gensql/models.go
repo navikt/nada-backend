@@ -219,6 +219,15 @@ type PollyDocumentation struct {
 	Url        string
 }
 
+type Quarto struct {
+	ID           uuid.UUID
+	Owner        string
+	Created      time.Time
+	LastModified time.Time
+	Keywords     []string
+	Content      string
+}
+
 type Search struct {
 	ElementID    uuid.UUID
 	ElementType  interface{}
