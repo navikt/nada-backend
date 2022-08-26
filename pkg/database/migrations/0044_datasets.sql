@@ -89,15 +89,18 @@ ALTER TABLE dataproduct_requesters
         REFERENCES dataproducts (id) ON DELETE CASCADE;
 
 ALTER TABLE datasource_bigquery
-    RENAME COLUMN dataset_id TO dataproduct_id;
-ALTER TABLE datasource_bigquery
     DROP CONSTRAINT fk_bigquery_dataset;
-UPDATE datasource_bigquery a SET dataproduct_id = (SELECT dataproduct_id FROM datasets e WHERE e.id = a.dataproduct_id);
-
-
+UPDATE datasource_bigquery a SET dataset_id = (SELECT dataproduct_id FROM datasets e WHERE e.id = a.dataset_id);
+ALTER TABLE datasource_bigquery
+    RENAME COLUMN dataset_id TO dataproduct_id;
 ALTER TABLE datasource_bigquery
     ADD CONSTRAINT fk_bigquery_dataproduct FOREIGN KEY (dataproduct_id)
         REFERENCES dataproducts (id) ON DELETE CASCADE;
+
+UPDATE dataproducts d SET pii = (SELECT pii FROM datasets e WHERE e.dataproduct_id = d.id);
+UPDATE dataproducts d SET repo = (SELECT repo FROM datasets e WHERE e.dataproduct_id = d.id);
+UPDATE dataproducts d SET "type" = (SELECT "type" FROM datasets e WHERE e.dataproduct_id = d.id);
+UPDATE dataproducts d SET keywords = (SELECT keywords FROM datasets e WHERE e.dataproduct_id = d.id);
 
 TRUNCATE TABLE datasets;
 
