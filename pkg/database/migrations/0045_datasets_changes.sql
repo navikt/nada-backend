@@ -43,7 +43,7 @@ EXECUTE PROCEDURE update_dataset_modified_timestamp();
 
 -- +goose Down
 DROP TRIGGER dataproducts_datasets_set_modified ON datasets;
-DROP TRIGGER datasets_datasource_bigquery_set_modified ON datasets;
+DROP TRIGGER datasets_datasource_bigquery_set_modified ON datasource_bigquery;
 
 CREATE TRIGGER datasource_bigquery_set_modified
     BEFORE UPDATE

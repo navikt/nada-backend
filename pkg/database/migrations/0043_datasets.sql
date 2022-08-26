@@ -68,19 +68,23 @@ ALTER TABLE dataset_requesters
             REFERENCES datasets (id) ON DELETE CASCADE;    
 
 -- +goose Down
-ALTER TABLE dataset_requesters
-    DROP CONSTRAINT fk_requester_dataset;
-ALTER TABLE dataset_requesters
-    ADD COLUMN dataproduct_id uuid;
-UPDATE dataset_requesters a SET dataproduct_id = (SELECT dataproduct_id FROM datasets WHERE dataset_id = a.dataset_id);
-ALTER TABLE dataset_requesters
-    ALTER COLUMN dataproduct_id SET NOT NULL;
-ALTER TABLE dataset_requesters DROP CONSTRAINT dataset_requesters_pkey;
-ALTER TABLE dataset_requesters ADD PRIMARY KEY (dataproduct_id, "subject");
+ALTER TABLE dataset_access RENAME TO dataproduct_access;
+ALTER TABLE dataset_access_requests RENAME TO dataproduct_access_request;
+ALTER TABLE dataset_requesters RENAME TO dataproduct_requesters;
 
-ALTER TABLE dataset_requesters
+ALTER TABLE dataproduct_requesters
+    DROP CONSTRAINT fk_requester_dataset;
+ALTER TABLE dataproduct_requesters
+    ADD COLUMN dataproduct_id uuid;
+UPDATE dataproduct_requesters a SET dataproduct_id = (SELECT dataproduct_id FROM datasets WHERE dataset_id = a.dataset_id);
+ALTER TABLE dataproduct_requesters
+    ALTER COLUMN dataproduct_id SET NOT NULL;
+ALTER TABLE dataproduct_requesters DROP CONSTRAINT dataset_requesters_pkey;
+ALTER TABLE dataproduct_requesters ADD PRIMARY KEY (dataproduct_id, "subject");
+
+ALTER TABLE dataproduct_requesters
     DROP COLUMN dataset_id;
-ALTER TABLE dataset_requesters
+ALTER TABLE dataproduct_requesters
     ADD CONSTRAINT fk_requester_dataproduct FOREIGN KEY (dataproduct_id)
         REFERENCES dataproducts (id) ON DELETE CASCADE;
 
@@ -96,10 +100,6 @@ ALTER TABLE datasource_bigquery
         REFERENCES dataproducts (id) ON DELETE CASCADE;
 
 TRUNCATE TABLE datasets;
-
-ALTER TABLE dataset_access RENAME TO dataproduct_access;
-ALTER TABLE dataset_access_requests RENAME TO dataproduct_access_request;
-ALTER TABLE dataset_requesters RENAME TO dataproduct_requesters;
 
 DROP FUNCTION update_dataset_modified_timestamp;
 DROP TRIGGER datasets_set_modified ON datasets;
