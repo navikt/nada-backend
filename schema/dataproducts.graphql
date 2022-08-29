@@ -16,8 +16,6 @@ type Dataproduct @goModel(model: "github.com/navikt/nada-backend/pkg/graph/model
     slug: String!
     "owner of the dataproduct. Changes to the dataproduct can only be done by a member of the owner."
     owner: Owner!
-    "The contact information of the team who owns the dataproduct, which can be slack channel, slack account, email, and so on."
-    teamContact: String!
     "keywords is the keyword tags for the datasets in the dataproduct."
     keywords: [String!]!
     "datasets is the list of associated datasets."
@@ -78,6 +76,8 @@ input NewDataproduct @goModel(model: "github.com/navikt/nada-backend/pkg/graph/m
     group: String!
     "owner Teamkatalogen URL for the dataproduct."
     teamkatalogenURL: String
+    "The contact information of the team who owns the dataproduct, which can be slack channel, slack account, email, and so on."
+    teamContact: String!
     "datasets to associate with the dataproduct."
     datasets: [NewDatasetForNewDataproduct!]!
 }
@@ -92,6 +92,8 @@ input UpdateDataproduct @goModel(model: "github.com/navikt/nada-backend/pkg/grap
     description: String
     "owner Teamkatalogen URL for the dataproduct."
     teamkatalogenURL: String
+    "The contact information of the team who owns the dataproduct, which can be slack channel, slack account, email, and so on."
+    teamContact: String!
 }
 
 extend type Mutation {

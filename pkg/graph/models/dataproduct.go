@@ -14,7 +14,6 @@ type Dataproduct struct {
 	Description  *string   `json:"description"`
 	Slug         string    `json:"slug"`
 	Owner        *Owner    `json:"owner"`
-	TeamContact  string    `json:"teamContact"`
 }
 
 func (Dataproduct) IsSearchResult() {}

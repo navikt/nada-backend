@@ -6,4 +6,6 @@ type Owner @goModel(model: "github.com/navikt/nada-backend/pkg/graph/models.Owne
     group: String!
     "teamkatalogenURL is url for the team in the NAV team catalog."
     teamkatalogenURL: String
+    "The contact information of the team who owns the dataproduct, which can be slack channel, slack account, email, and so on."
+    teamContact: String!
 }
