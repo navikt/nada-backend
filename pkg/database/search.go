@@ -65,11 +65,6 @@ func (r *Repo) Search(ctx context.Context, query *models.SearchQuery) ([]*models
 		return nil, err
 	}
 
-	dss, err := r.querier.GetDatasetsByIDs(ctx, datasets)
-	if err != nil {
-		return nil, err
-	}
-
 	ret := []*models.SearchResultRow{}
 	for _, d := range dps {
 		ret = append(ret, &models.SearchResultRow{
@@ -91,13 +86,6 @@ func (r *Repo) Search(ctx context.Context, query *models.SearchQuery) ([]*models
 				},
 				Keywords: s.Keywords,
 			},
-		})
-	}
-
-	for _, ds := range dss {
-		ret = append(ret, &models.SearchResultRow{
-			Excerpt: excerpts[ds.ID],
-			Result:  datasetFromSQL(ds),
 		})
 	}
 
