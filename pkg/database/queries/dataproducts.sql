@@ -46,7 +46,7 @@ UPDATE dataproducts
 SET "name"              = @name,
     "description"       = @description,
     "slug"              = @slug,
-    "teamkatalogen_url" = @owner_teamkatalogen_url
+    "teamkatalogen_url" = @owner_teamkatalogen_url,
     "team_contact"      = @team_contact
 WHERE id = @id
 RETURNING *;
