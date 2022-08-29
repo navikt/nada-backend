@@ -14,6 +14,7 @@ type Dataproduct struct {
 	Description  *string   `json:"description"`
 	Slug         string    `json:"slug"`
 	Owner        *Owner    `json:"owner"`
+	TeamContact  string    `json:"teamContact"`
 }
 
 func (Dataproduct) IsSearchResult() {}
@@ -24,6 +25,7 @@ type NewDataproduct struct {
 	Slug             *string  `json:"slug"`
 	Group            string   `json:"group"`
 	TeamkatalogenURL *string  `json:"teamkatalogenURL"`
+	TeamContact		 string	  `json:"teamContact"`
 	Requesters       []string `json:"requesters"`
 	Metadata         BigqueryMetadata
 	Datasets         []NewDatasetForNewDataproduct `json:"datasets"`
@@ -35,6 +37,7 @@ type UpdateDataproduct struct {
 	Slug             *string  `json:"slug"`
 	Pii              bool     `json:"pii"`
 	TeamkatalogenURL *string  `json:"teamkatalogenURL"`
+	TeamContact		 string	  `json:"teamContact"`
 	Requesters       []string `json:"requesters"`
 }
 
