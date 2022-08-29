@@ -76,7 +76,7 @@ ALTER TABLE dataproduct_requesters
     DROP CONSTRAINT fk_requester_dataset;
 ALTER TABLE dataproduct_requesters
     ADD COLUMN dataproduct_id uuid;
-UPDATE dataproduct_requesters a SET dataproduct_id = (SELECT dataproduct_id FROM datasets WHERE dataset_id = a.dataset_id);
+UPDATE dataproduct_requesters a SET dataproduct_id = (SELECT dataproduct_id FROM datasets e WHERE e.id = a.dataset_id);
 ALTER TABLE dataproduct_requesters
     ALTER COLUMN dataproduct_id SET NOT NULL;
 ALTER TABLE dataproduct_requesters DROP CONSTRAINT dataset_requesters_pkey;
@@ -88,16 +88,24 @@ ALTER TABLE dataproduct_requesters
     ADD CONSTRAINT fk_requester_dataproduct FOREIGN KEY (dataproduct_id)
         REFERENCES dataproducts (id) ON DELETE CASCADE;
 
+
+ALTER TABLE datasource_bigquery
+    ADD COLUMN dataproduct_id uuid;
+UPDATE datasource_bigquery a SET dataproduct_id = (SELECT dataproduct_id FROM datasets e WHERE e.id = a.dataset_id);
+ALTER TABLE datasource_bigquery
+    ALTER COLUMN dataproduct_id SET NOT NULL;
 ALTER TABLE datasource_bigquery
     DROP CONSTRAINT fk_bigquery_dataset;
-UPDATE datasource_bigquery a SET dataset_id = (SELECT dataproduct_id FROM datasets WHERE dataset_id = a.dataset_id);
-
 ALTER TABLE datasource_bigquery
-    RENAME COLUMN dataset_id TO dataproduct_id;
-
+    DROP COLUMN dataset_id;
 ALTER TABLE datasource_bigquery
     ADD CONSTRAINT fk_bigquery_dataproduct FOREIGN KEY (dataproduct_id)
         REFERENCES dataproducts (id) ON DELETE CASCADE;
+
+UPDATE dataproducts d SET pii = (SELECT pii FROM datasets e WHERE e.dataproduct_id = d.id);
+UPDATE dataproducts d SET repo = (SELECT repo FROM datasets e WHERE e.dataproduct_id = d.id);
+UPDATE dataproducts d SET "type" = (SELECT "type" FROM datasets e WHERE e.dataproduct_id = d.id);
+UPDATE dataproducts d SET keywords = (SELECT keywords FROM datasets e WHERE e.dataproduct_id = d.id);
 
 TRUNCATE TABLE datasets;
 
