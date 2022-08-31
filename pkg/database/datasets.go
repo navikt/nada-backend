@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"encoding/json"
 	"fmt"
+	"html"
 	"strings"
 	"time"
 
@@ -222,12 +223,17 @@ func (r *Repo) DeleteDataset(ctx context.Context, id uuid.UUID) error {
 }
 
 func datasetFromSQL(ds gensql.Dataset) *models.Dataset {
+	desc := nullStringToPtr(ds.Description)
+	if desc != nil {
+		*desc = html.UnescapeString(*desc)
+	}
+
 	return &models.Dataset{
 		ID:            ds.ID,
 		Name:          ds.Name,
 		Created:       ds.Created,
 		LastModified:  ds.LastModified,
-		Description:   nullStringToPtr(ds.Description),
+		Description:   desc,
 		Slug:          ds.Slug,
 		Repo:          nullStringToPtr(ds.Repo),
 		Pii:           ds.Pii,

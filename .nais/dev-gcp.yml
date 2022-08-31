@@ -63,6 +63,9 @@ spec:
       - type: POSTGRES_12
         databases:
           - name: nada
+        flags:
+          - name: max_connections
+            value: "50"
   accessPolicy:
     inbound:
       rules:

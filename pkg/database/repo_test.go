@@ -187,9 +187,8 @@ func TestRepo(t *testing.T) {
 		}{
 			"empty":         {query: models.SearchQuery{Text: stringToPtr("nonexistent")}, numResults: 0},
 			"1 dataproduct": {query: models.SearchQuery{Text: stringToPtr("uniquedataproduct")}, numResults: 1},
-			"1 dataset":     {query: models.SearchQuery{Text: stringToPtr("uniquedataset")}, numResults: 1},
 			"1 story":       {query: models.SearchQuery{Text: stringToPtr("uniquestory")}, numResults: 1},
-			"3 results":     {query: models.SearchQuery{Text: stringToPtr("uniquestring")}, numResults: 3},
+			"2 results":     {query: models.SearchQuery{Text: stringToPtr("uniquestring")}, numResults: 2},
 		}
 
 		dataproduct := models.NewDataproduct{
@@ -199,18 +198,7 @@ func TestRepo(t *testing.T) {
 
 		ctx := context.Background()
 
-		createdDP, err := repo.CreateDataproduct(ctx, dataproduct)
-		if err != nil {
-			t.Fatal(err)
-		}
-
-		dataset := models.NewDataset{
-			DataproductID: createdDP.ID,
-			Name:          "new dataset",
-			Description:   nullStringToPtr(sql.NullString{Valid: true, String: "Uniquestring uniquedataset"}),
-		}
-
-		_, err = repo.CreateDataset(ctx, dataset)
+		_, err := repo.CreateDataproduct(ctx, dataproduct)
 		if err != nil {
 			t.Fatal(err)
 		}

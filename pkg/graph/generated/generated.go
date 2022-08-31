@@ -2637,7 +2637,7 @@ extend type Query {
 `, BuiltIn: false},
 	{Name: "../../../schema/search.graphql", Input: `union SearchResult @goModel(
     model: "github.com/navikt/nada-backend/pkg/graph/models.SearchResult"
-) = Dataproduct | Dataset | Story
+) = Dataproduct | Story
 
 
 enum SearchType @goModel(
@@ -2645,7 +2645,6 @@ enum SearchType @goModel(
 ) {
     dataproduct
     story
-    dataset
 }
 
 type SearchResultRow  @goModel(model: "github.com/navikt/nada-backend/pkg/graph/models.SearchResultRow") {
@@ -15440,13 +15439,6 @@ func (ec *executionContext) _SearchResult(ctx context.Context, sel ast.Selection
 			return graphql.Null
 		}
 		return ec._Dataproduct(ctx, sel, obj)
-	case models.Dataset:
-		return ec._Dataset(ctx, sel, &obj)
-	case *models.Dataset:
-		if obj == nil {
-			return graphql.Null
-		}
-		return ec._Dataset(ctx, sel, obj)
 	case models.GraphStory:
 		return ec._Story(ctx, sel, &obj)
 	case *models.GraphStory:
@@ -15953,7 +15945,7 @@ func (ec *executionContext) _Dataproduct(ctx context.Context, sel ast.SelectionS
 	return out
 }
 
-var datasetImplementors = []string{"Dataset", "SearchResult"}
+var datasetImplementors = []string{"Dataset"}
 
 func (ec *executionContext) _Dataset(ctx context.Context, sel ast.SelectionSet, obj *models.Dataset) graphql.Marshaler {
 	fields := graphql.CollectFields(ec.OperationContext, sel, datasetImplementors)
