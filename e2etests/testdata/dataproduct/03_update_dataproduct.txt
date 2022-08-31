@@ -4,6 +4,7 @@ mutation {
 		input: {
 			name: "Updated Name"
 			description: "Updated description"
+            teamContact: "#team"
 		}
 	) {
 		name

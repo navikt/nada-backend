@@ -12,6 +12,7 @@ mutation {
                 keywords: ["keyword1", "otherkeyword"]
             }]
 			group: "team@nav.no"
+            teamContact: "#team"
 		}
 	) {
 		id
