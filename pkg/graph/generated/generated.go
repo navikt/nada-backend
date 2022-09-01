@@ -185,6 +185,7 @@ type ComplexityRoot struct {
 
 	Owner struct {
 		Group            func(childComplexity int) int
+		TeamContact      func(childComplexity int) int
 		TeamkatalogenURL func(childComplexity int) int
 	}
 
@@ -1137,6 +1138,13 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 		}
 
 		return e.complexity.Owner.Group(childComplexity), true
+
+	case "Owner.teamContact":
+		if e.complexity.Owner.TeamContact == nil {
+			break
+		}
+
+		return e.complexity.Owner.TeamContact(childComplexity), true
 
 	case "Owner.teamkatalogenURL":
 		if e.complexity.Owner.TeamkatalogenURL == nil {
@@ -2115,6 +2123,8 @@ input NewDataproduct @goModel(model: "github.com/navikt/nada-backend/pkg/graph/m
     group: String!
     "owner Teamkatalogen URL for the dataproduct."
     teamkatalogenURL: String
+    "The contact information of the team who owns the dataproduct, which can be slack channel, slack account, email, and so on."
+    teamContact: String
     "datasets to associate with the dataproduct."
     datasets: [NewDatasetForNewDataproduct!]!
 }
@@ -2129,6 +2139,8 @@ input UpdateDataproduct @goModel(model: "github.com/navikt/nada-backend/pkg/grap
     description: String
     "owner Teamkatalogen URL for the dataproduct."
     teamkatalogenURL: String
+    "The contact information of the team who owns the dataproduct, which can be slack channel, slack account, email, and so on."
+    teamContact: String
 }
 
 extend type Mutation {
@@ -2499,6 +2511,8 @@ type Owner @goModel(model: "github.com/navikt/nada-backend/pkg/graph/models.Owne
     group: String!
     "teamkatalogenURL is url for the team in the NAV team catalog."
     teamkatalogenURL: String
+    "The contact information of the team who owns the dataproduct, which can be slack channel, slack account, email, and so on."
+    teamContact: String
 }
 `, BuiltIn: false},
 	{Name: "../../../schema/keywords.graphql", Input: `"""
@@ -5622,6 +5636,8 @@ func (ec *executionContext) fieldContext_Dataproduct_owner(ctx context.Context, 
 				return ec.fieldContext_Owner_group(ctx, field)
 			case "teamkatalogenURL":
 				return ec.fieldContext_Owner_teamkatalogenURL(ctx, field)
+			case "teamContact":
+				return ec.fieldContext_Owner_teamContact(ctx, field)
 			}
 			return nil, fmt.Errorf("no field named %q was found under type Owner", field.Name)
 		},
@@ -6264,6 +6280,8 @@ func (ec *executionContext) fieldContext_Dataset_owner(ctx context.Context, fiel
 				return ec.fieldContext_Owner_group(ctx, field)
 			case "teamkatalogenURL":
 				return ec.fieldContext_Owner_teamkatalogenURL(ctx, field)
+			case "teamContact":
+				return ec.fieldContext_Owner_teamContact(ctx, field)
 			}
 			return nil, fmt.Errorf("no field named %q was found under type Owner", field.Name)
 		},
@@ -8626,6 +8644,47 @@ func (ec *executionContext) fieldContext_Owner_teamkatalogenURL(ctx context.Cont
 	return fc, nil
 }
 
+func (ec *executionContext) _Owner_teamContact(ctx context.Context, field graphql.CollectedField, obj *models.Owner) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_Owner_teamContact(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.TeamContact, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		return graphql.Null
+	}
+	res := resTmp.(*string)
+	fc.Result = res
+	return ec.marshalOString2ᚖstring(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_Owner_teamContact(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Owner",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
 func (ec *executionContext) _Polly_id(ctx context.Context, field graphql.CollectedField, obj *models.Polly) (ret graphql.Marshaler) {
 	fc, err := ec.fieldContext_Polly_id(ctx, field)
 	if err != nil {
@@ -8889,6 +8948,8 @@ func (ec *executionContext) fieldContext_Quarto_owner(ctx context.Context, field
 				return ec.fieldContext_Owner_group(ctx, field)
 			case "teamkatalogenURL":
 				return ec.fieldContext_Owner_teamkatalogenURL(ctx, field)
+			case "teamContact":
+				return ec.fieldContext_Owner_teamContact(ctx, field)
 			}
 			return nil, fmt.Errorf("no field named %q was found under type Owner", field.Name)
 		},
@@ -11258,6 +11319,8 @@ func (ec *executionContext) fieldContext_Story_owner(ctx context.Context, field 
 				return ec.fieldContext_Owner_group(ctx, field)
 			case "teamkatalogenURL":
 				return ec.fieldContext_Owner_teamkatalogenURL(ctx, field)
+			case "teamContact":
+				return ec.fieldContext_Owner_teamContact(ctx, field)
 			}
 			return nil, fmt.Errorf("no field named %q was found under type Owner", field.Name)
 		},
@@ -14729,7 +14792,7 @@ func (ec *executionContext) unmarshalInputNewDataproduct(ctx context.Context, ob
 		asMap[k] = v
 	}
 
-	fieldsInOrder := [...]string{"name", "description", "group", "teamkatalogenURL", "datasets"}
+	fieldsInOrder := [...]string{"name", "description", "group", "teamkatalogenURL", "teamContact", "datasets"}
 	for _, k := range fieldsInOrder {
 		v, ok := asMap[k]
 		if !ok {
@@ -14765,6 +14828,14 @@ func (ec *executionContext) unmarshalInputNewDataproduct(ctx context.Context, ob
 
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("teamkatalogenURL"))
 			it.TeamkatalogenURL, err = ec.unmarshalOString2ᚖstring(ctx, v)
+			if err != nil {
+				return it, err
+			}
+		case "teamContact":
+			var err error
+
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("teamContact"))
+			it.TeamContact, err = ec.unmarshalOString2ᚖstring(ctx, v)
 			if err != nil {
 				return it, err
 			}
@@ -15301,7 +15372,7 @@ func (ec *executionContext) unmarshalInputUpdateDataproduct(ctx context.Context,
 		asMap[k] = v
 	}
 
-	fieldsInOrder := [...]string{"name", "description", "teamkatalogenURL"}
+	fieldsInOrder := [...]string{"name", "description", "teamkatalogenURL", "teamContact"}
 	for _, k := range fieldsInOrder {
 		v, ok := asMap[k]
 		if !ok {
@@ -15329,6 +15400,14 @@ func (ec *executionContext) unmarshalInputUpdateDataproduct(ctx context.Context,
 
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("teamkatalogenURL"))
 			it.TeamkatalogenURL, err = ec.unmarshalOString2ᚖstring(ctx, v)
+			if err != nil {
+				return it, err
+			}
+		case "teamContact":
+			var err error
+
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("teamContact"))
+			it.TeamContact, err = ec.unmarshalOString2ᚖstring(ctx, v)
 			if err != nil {
 				return it, err
 			}
@@ -16575,6 +16654,10 @@ func (ec *executionContext) _Owner(ctx context.Context, sel ast.SelectionSet, ob
 		case "teamkatalogenURL":
 
 			out.Values[i] = ec._Owner_teamkatalogenURL(ctx, field, obj)
+
+		case "teamContact":
+
+			out.Values[i] = ec._Owner_teamContact(ctx, field, obj)
 
 		default:
 			panic("unknown field " + strconv.Quote(field.Name))
