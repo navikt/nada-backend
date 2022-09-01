@@ -13,6 +13,19 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
+// Description is the resolver for the description field.
+func (r *dataproductResolver) Description(ctx context.Context, obj *models.Dataproduct, raw *bool) (string, error) {
+	if obj.Description == nil {
+		return "", nil
+	}
+
+	if raw != nil && *raw {
+		return html.UnescapeString(*obj.Description), nil
+	}
+
+	return *obj.Description, nil
+}
+
 // Keywords is the resolver for the keywords field.
 func (r *dataproductResolver) Keywords(ctx context.Context, obj *models.Dataproduct) ([]string, error) {
 	datasets, err := r.repo.GetDatasetsInDataproduct(ctx, obj.ID)

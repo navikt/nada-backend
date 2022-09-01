@@ -3,6 +3,7 @@ mutation {
 		input: {
 			name: "NewName"
 			group: "team@nav.no"
+            teamContact: "#team"
             datasets: [{
                 name: "NewDataset"
 			    pii: false

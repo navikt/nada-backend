@@ -4,6 +4,7 @@ mutation {
 			name: "NewName"
 			description: "New description"
 			group: "team@nav.no"
+            teamContact: "#team"
             datasets: [{
                 name: "NewDataset"
 			    pii: false

@@ -7,7 +7,7 @@ type Dataproduct @goModel(model: "github.com/navikt/nada-backend/pkg/graph/model
     "name of the dataproduct"
     name: String!
     "description of the dataproduct"
-    description: String
+    description(raw: Boolean): String! @goField(forceResolver: true)
     "created is the timestamp for when the dataproduct was created"
     created: Time!
     "lastModified is the timestamp for when the dataproduct was last modified"
