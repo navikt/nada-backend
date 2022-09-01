@@ -138,6 +138,7 @@ func (r *Repo) UpdateDataproduct(ctx context.Context, id uuid.UUID, new models.U
 		Description:           ptrToNullString(new.Description),
 		ID:                    id,
 		OwnerTeamkatalogenUrl: ptrToNullString(new.TeamkatalogenURL),
+		TeamContact:           ptrToNullString(new.TeamContact),
 		Slug:                  slugify(new.Slug, new.Name),
 	})
 	if err != nil {
