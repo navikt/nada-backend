@@ -20,6 +20,8 @@ type Config struct {
 	MetabaseAPI                     string
 	SlackUrl                        string
 	PollyURL                        string
+	DBMaxIdleConn                   int
+	DBMaxOpenConn                   int
 }
 
 type OAuth2Config struct {

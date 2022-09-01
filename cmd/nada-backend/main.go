@@ -69,6 +69,8 @@ func init() {
 	flag.StringVar(&cfg.MetabaseAPI, "metabase-api", os.Getenv("METABASE_API"), "URL to Metabase API, including scheme and `/api`")
 	flag.StringVar(&cfg.SlackUrl, "slack-url", os.Getenv("SLACK_URL"), "URL for slack webhook")
 	flag.StringVar(&cfg.PollyURL, "polly-url", cfg.PollyURL, "URL for polly")
+	flag.IntVar(&cfg.DBMaxIdleConn, "max-idle-conn", 5, "Maximum number of idle db connections")
+	flag.IntVar(&cfg.DBMaxOpenConn, "max-open-conn", 35, "Maximum number of open db connections")
 }
 
 func main() {
@@ -81,7 +83,7 @@ func main() {
 	slackClient := newSlackClient(log)
 	eventMgr := &event.Manager{}
 
-	repo, err := database.New(cfg.DBConnectionDSN, eventMgr, log.WithField("subsystem", "repo"))
+	repo, err := database.New(cfg.DBConnectionDSN, cfg.DBMaxIdleConn, cfg.DBMaxOpenConn, eventMgr, log.WithField("subsystem", "repo"))
 	if err != nil {
 		log.WithError(err).Fatal("setting up database")
 	}

@@ -43,7 +43,7 @@ type Querier interface {
 	WithTx(tx *sql.Tx) *gensql.Queries
 }
 
-func New(dbConnDSN string, eventMgr *event.Manager, log *logrus.Entry) (*Repo, error) {
+func New(dbConnDSN string, maxIdleConn, maxOpenConn int, eventMgr *event.Manager, log *logrus.Entry) (*Repo, error) {
 	hooks := NewHooks()
 	sql.Register("psqlhooked", sqlhooks.Wrap(&pq.Driver{}, hooks))
 
@@ -51,6 +51,8 @@ func New(dbConnDSN string, eventMgr *event.Manager, log *logrus.Entry) (*Repo, e
 	if err != nil {
 		return nil, fmt.Errorf("open sql connection: %w", err)
 	}
+	db.SetMaxIdleConns(maxIdleConn)
+	db.SetMaxOpenConns(maxOpenConn)
 
 	goose.SetBaseFS(embedMigrations)
 
