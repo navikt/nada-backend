@@ -11,7 +11,7 @@ type Dataset @goModel(model: "github.com/navikt/nada-backend/pkg/graph/models.Da
     "name of the dataset"
     name: String!
     "description of the dataset"
-    description: String
+    description(raw: Boolean): String! @goField(forceResolver: true)
     "created is the timestamp for when the dataset was created"
     created: Time!
     "lastModified is the timestamp for when the dataset was last modified"

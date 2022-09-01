@@ -28,6 +28,19 @@ func (r *datasetResolver) Dataproduct(ctx context.Context, obj *models.Dataset) 
 	return r.repo.GetDataproduct(ctx, obj.DataproductID)
 }
 
+// Description is the resolver for the description field.
+func (r *datasetResolver) Description(ctx context.Context, obj *models.Dataset, raw *bool) (string, error) {
+	if obj.Description == nil {
+		return "", nil
+	}
+
+	if raw != nil && *raw {
+		return html.UnescapeString(*obj.Description), nil
+	}
+
+	return *obj.Description, nil
+}
+
 // Owner is the resolver for the owner field.
 func (r *datasetResolver) Owner(ctx context.Context, obj *models.Dataset) (*models.Owner, error) {
 	dp, err := r.repo.GetDataproduct(ctx, obj.DataproductID)
@@ -255,5 +268,7 @@ func (r *Resolver) BigQuery() generated.BigQueryResolver { return &bigQueryResol
 // Dataset returns generated.DatasetResolver implementation.
 func (r *Resolver) Dataset() generated.DatasetResolver { return &datasetResolver{r} }
 
-type bigQueryResolver struct{ *Resolver }
-type datasetResolver struct{ *Resolver }
+type (
+	bigQueryResolver struct{ *Resolver }
+	datasetResolver  struct{ *Resolver }
+)

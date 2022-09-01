@@ -123,7 +123,7 @@ type ComplexityRoot struct {
 		Dataproduct   func(childComplexity int) int
 		DataproductID func(childComplexity int) int
 		Datasource    func(childComplexity int) int
-		Description   func(childComplexity int) int
+		Description   func(childComplexity int, raw *bool) int
 		ID            func(childComplexity int) int
 		Keywords      func(childComplexity int) int
 		LastModified  func(childComplexity int) int
@@ -320,6 +320,8 @@ type DataproductResolver interface {
 }
 type DatasetResolver interface {
 	Dataproduct(ctx context.Context, obj *models.Dataset) (*models.Dataproduct, error)
+
+	Description(ctx context.Context, obj *models.Dataset, raw *bool) (string, error)
 
 	Owner(ctx context.Context, obj *models.Dataset) (*models.Owner, error)
 
@@ -759,7 +761,12 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 			break
 		}
 
-		return e.complexity.Dataset.Description(childComplexity), true
+		args, err := ec.field_Dataset_description_args(context.TODO(), rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Dataset.Description(childComplexity, args["raw"].(*bool)), true
 
 	case "Dataset.id":
 		if e.complexity.Dataset.ID == nil {
@@ -2172,7 +2179,7 @@ type Dataset @goModel(model: "github.com/navikt/nada-backend/pkg/graph/models.Da
     "name of the dataset"
     name: String!
     "description of the dataset"
-    description: String
+    description(raw: Boolean): String! @goField(forceResolver: true)
     "created is the timestamp for when the dataset was created"
     created: Time!
     "lastModified is the timestamp for when the dataset was last modified"
@@ -2978,6 +2985,21 @@ func (ec *executionContext) dir_authenticated_args(ctx context.Context, rawArgs 
 }
 
 func (ec *executionContext) field_Dataproduct_description_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
+	var err error
+	args := map[string]interface{}{}
+	var arg0 *bool
+	if tmp, ok := rawArgs["raw"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("raw"))
+		arg0, err = ec.unmarshalOBoolean2ᚖbool(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["raw"] = arg0
+	return args, nil
+}
+
+func (ec *executionContext) field_Dataset_description_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
 	var err error
 	args := map[string]interface{}{}
 	var arg0 *bool
@@ -5941,29 +5963,43 @@ func (ec *executionContext) _Dataset_description(ctx context.Context, field grap
 	}()
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
-		return obj.Description, nil
+		return ec.resolvers.Dataset().Description(rctx, obj, fc.Args["raw"].(*bool))
 	})
 	if err != nil {
 		ec.Error(ctx, err)
 		return graphql.Null
 	}
 	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
 		return graphql.Null
 	}
-	res := resTmp.(*string)
+	res := resTmp.(string)
 	fc.Result = res
-	return ec.marshalOString2ᚖstring(ctx, field.Selections, res)
+	return ec.marshalNString2string(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) fieldContext_Dataset_description(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
 	fc = &graphql.FieldContext{
 		Object:     "Dataset",
 		Field:      field,
-		IsMethod:   false,
-		IsResolver: false,
+		IsMethod:   true,
+		IsResolver: true,
 		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
 			return nil, errors.New("field of type String does not have child fields")
 		},
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			err = ec.Recover(ctx, r)
+			ec.Error(ctx, err)
+		}
+	}()
+	ctx = graphql.WithFieldContext(ctx, fc)
+	if fc.Args, err = ec.field_Dataset_description_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+		ec.Error(ctx, err)
+		return
 	}
 	return fc, nil
 }
@@ -15967,9 +16003,25 @@ func (ec *executionContext) _Dataset(ctx context.Context, sel ast.SelectionSet, 
 				atomic.AddUint32(&invalids, 1)
 			}
 		case "description":
+			field := field
 
-			out.Values[i] = ec._Dataset_description(ctx, field, obj)
+			innerFunc := func(ctx context.Context) (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._Dataset_description(ctx, field, obj)
+				if res == graphql.Null {
+					atomic.AddUint32(&invalids, 1)
+				}
+				return res
+			}
 
+			out.Concurrently(i, func() graphql.Marshaler {
+				return innerFunc(ctx)
+
+			})
 		case "created":
 
 			out.Values[i] = ec._Dataset_created(ctx, field, obj)
