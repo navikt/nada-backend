@@ -138,7 +138,7 @@ func main() {
 
 	log.Info("Listening on :8080")
 	gqlServer := graph.New(repo, gcp, teamProjectsUpdater.TeamProjectsMapping, accessMgr, teamcatalogue, slackClient, pollyAPI, log.WithField("subsystem", "graph"))
-	srv := api.New(repo, httpAPI, authenticatorMiddleware, gqlServer, prom(promErrs, repo.Metrics()), log)
+	srv := api.New(repo, httpAPI, authenticatorMiddleware, gqlServer, prom(repo.Metrics()...), log)
 
 	server := http.Server{
 		Addr:    cfg.BindAddress,
@@ -161,6 +161,7 @@ func main() {
 func prom(cols ...prometheus.Collector) *prometheus.Registry {
 	r := prometheus.NewRegistry()
 	graphProm.RegisterOn(r)
+	r.MustRegister(promErrs)
 	r.MustRegister(prometheus.NewGoCollector())
 	r.MustRegister(cols...)
 
