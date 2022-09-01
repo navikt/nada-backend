@@ -110,7 +110,7 @@ func (c *Client) ensureValidSession(ctx context.Context) error {
 	}
 
 	c.sessionID = session.ID
-	c.expiry = time.Now().Add(13 * 24 * time.Hour)
+	c.expiry = time.Now().Add(24 * time.Hour)
 	return nil
 }
 
