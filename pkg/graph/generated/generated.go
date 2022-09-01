@@ -2117,7 +2117,7 @@ input NewDataproduct @goModel(model: "github.com/navikt/nada-backend/pkg/graph/m
     "owner Teamkatalogen URL for the dataproduct."
     teamkatalogenURL: String
     "The contact information of the team who owns the dataproduct, which can be slack channel, slack account, email, and so on."
-    teamContact: String!
+    teamContact: String
     "datasets to associate with the dataproduct."
     datasets: [NewDatasetForNewDataproduct!]!
 }
@@ -2133,7 +2133,7 @@ input UpdateDataproduct @goModel(model: "github.com/navikt/nada-backend/pkg/grap
     "owner Teamkatalogen URL for the dataproduct."
     teamkatalogenURL: String
     "The contact information of the team who owns the dataproduct, which can be slack channel, slack account, email, and so on."
-    teamContact: String!
+    teamContact: String
 }
 
 extend type Mutation {
@@ -2505,7 +2505,7 @@ type Owner @goModel(model: "github.com/navikt/nada-backend/pkg/graph/models.Owne
     "teamkatalogenURL is url for the team in the NAV team catalog."
     teamkatalogenURL: String
     "The contact information of the team who owns the dataproduct, which can be slack channel, slack account, email, and so on."
-    teamContact: String!
+    teamContact: String
 }
 `, BuiltIn: false},
 	{Name: "../../../schema/keywords.graphql", Input: `"""
@@ -8629,14 +8629,11 @@ func (ec *executionContext) _Owner_teamContact(ctx context.Context, field graphq
 		return graphql.Null
 	}
 	if resTmp == nil {
-		if !graphql.HasFieldError(ctx, fc) {
-			ec.Errorf(ctx, "must not be null")
-		}
 		return graphql.Null
 	}
-	res := resTmp.(string)
+	res := resTmp.(*string)
 	fc.Result = res
-	return ec.marshalNString2string(ctx, field.Selections, res)
+	return ec.marshalOString2ᚖstring(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) fieldContext_Owner_teamContact(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
@@ -14802,7 +14799,7 @@ func (ec *executionContext) unmarshalInputNewDataproduct(ctx context.Context, ob
 			var err error
 
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("teamContact"))
-			it.TeamContact, err = ec.unmarshalNString2string(ctx, v)
+			it.TeamContact, err = ec.unmarshalOString2ᚖstring(ctx, v)
 			if err != nil {
 				return it, err
 			}
@@ -15374,7 +15371,7 @@ func (ec *executionContext) unmarshalInputUpdateDataproduct(ctx context.Context,
 			var err error
 
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("teamContact"))
-			it.TeamContact, err = ec.unmarshalNString2string(ctx, v)
+			it.TeamContact, err = ec.unmarshalOString2ᚖstring(ctx, v)
 			if err != nil {
 				return it, err
 			}
@@ -16610,9 +16607,6 @@ func (ec *executionContext) _Owner(ctx context.Context, sel ast.SelectionSet, ob
 
 			out.Values[i] = ec._Owner_teamContact(ctx, field, obj)
 
-			if out.Values[i] == graphql.Null {
-				invalids++
-			}
 		default:
 			panic("unknown field " + strconv.Quote(field.Name))
 		}

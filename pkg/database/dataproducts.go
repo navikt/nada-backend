@@ -70,7 +70,7 @@ func (r *Repo) CreateDataproduct(ctx context.Context, dp models.NewDataproduct) 
 		OwnerGroup:            dp.Group,
 		OwnerTeamkatalogenUrl: ptrToNullString(dp.TeamkatalogenURL),
 		Slug:                  slugify(dp.Slug, dp.Name),
-		TeamContact:           dp.TeamContact,
+		TeamContact:           ptrToNullString(dp.TeamContact),
 	})
 	if err != nil {
 		if err := tx.Rollback(); err != nil {
@@ -205,7 +205,7 @@ func dataproductFromSQL(dp gensql.Dataproduct) *models.Dataproduct {
 		Owner: &models.Owner{
 			Group:            dp.Group,
 			TeamkatalogenURL: nullStringToPtr(dp.TeamkatalogenUrl),
-			TeamContact:      dp.TeamContact,
+			TeamContact:      nullStringToPtr(dp.TeamContact),
 		},
 	}
 }

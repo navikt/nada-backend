@@ -35,7 +35,7 @@ type CreateDataproductParams struct {
 	OwnerGroup            string
 	OwnerTeamkatalogenUrl sql.NullString
 	Slug                  string
-	TeamContact           string
+	TeamContact           sql.NullString
 }
 
 func (q *Queries) CreateDataproduct(ctx context.Context, arg CreateDataproductParams) (Dataproduct, error) {
@@ -326,7 +326,7 @@ type UpdateDataproductParams struct {
 	Description           sql.NullString
 	Slug                  string
 	OwnerTeamkatalogenUrl sql.NullString
-	TeamContact           string
+	TeamContact           sql.NullString
 	ID                    uuid.UUID
 }
 

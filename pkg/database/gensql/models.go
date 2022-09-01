@@ -153,7 +153,7 @@ type Dataproduct struct {
 	TsvDocument      interface{}
 	Slug             string
 	TeamkatalogenUrl sql.NullString
-	TeamContact      string
+	TeamContact      sql.NullString
 }
 
 type Dataset struct {
