@@ -4,10 +4,9 @@
 	) {
 		name
 		description
-		repo
-		pii
-		owner { group }
-		keywords
+        owner {
+            group
+        }
 	}
 }
 
@@ -17,15 +16,9 @@ RETURNS
     "dataproduct": {
       "name": "Updated Name",
       "description": "Updated description",
-      "keywords": [
-        "keyword1",
-        "keyword2"
-      ],
       "owner": {
         "group": "team@nav.no"
-      },
-      "pii": true,
-      "repo": "someotherrepo"
+      }
     }
   }
 }

@@ -25,8 +25,8 @@ env:
 	echo "NADA_CLIENT_SECRET=$(shell kubectl get --context=dev-gcp --namespace=nada `kubectl get secret --context=dev-gcp --namespace=nada --sort-by='{.metadata.creationTimestamp}' -l app=nada-backend,type=azurerator.nais.io -o name | tail -1` -o jsonpath='{.data.AZURE_APP_CLIENT_SECRET}' | base64 -d)" >> .env
 	echo "NADA_CLIENT_TENANT=$(shell kubectl get --context=dev-gcp --namespace=nada `kubectl get secret --context=dev-gcp --namespace=nada --sort-by='{.metadata.creationTimestamp}' -l app=nada-backend,type=azurerator.nais.io -o name | tail -1` -o jsonpath='{.data.AZURE_APP_TENANT_ID}' | base64 -d)" >> .env
 	echo "GITHUB_READ_TOKEN=$(shell kubectl get secret --context=dev-gcp --namespace=nada github-read-token -o jsonpath='{.data.GITHUB_READ_TOKEN}' | base64 -d)" >> .env
-	echo "METABASE_USERNAME=$(shell kubectl get secret --context=dev-gcp --namespace=nada metabase-sa -o jsonpath='{.data.METABASE_USERNAME}' | base64 -d)" >> .env
-	echo "METABASE_PASSWORD=$(shell kubectl get secret --context=dev-gcp --namespace=nada metabase-sa -o jsonpath='{.data.METABASE_PASSWORD}' | base64 -d)" >> .env
+	echo "METABASE_USERNAME=$(shell kubectl get secret --context=dev-gcp --namespace=nada nada-backend -o jsonpath='{.data.METABASE_USERNAME}' | base64 -d)" >> .env
+	echo "METABASE_PASSWORD=$(shell kubectl get secret --context=dev-gcp --namespace=nada nada-backend -o jsonpath='{.data.METABASE_PASSWORD}' | base64 -d)" >> .env
 
 test-sa:
 	$(shell kubectl get --context=dev-gcp --namespace=nada secret/google-credentials -o json | jq -r '.data."sa.json"' | base64 -d > test-sa.json)

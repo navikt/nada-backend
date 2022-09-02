@@ -1,0 +1,72 @@
+{
+  dataproduct(id: "{{ .dataproduct_id }}"){
+    datasets{
+      name
+      description
+      dataproductID
+      keywords
+      repo
+      pii
+      datasource {
+          __typename
+          ...on BigQuery {
+              projectID
+              dataset
+              table
+          }
+      }
+    }
+  }
+}
+
+RETURNS
+{
+  "data": {
+    "dataproduct": {
+      "datasets": [
+        {
+          "name": "DatasetCreatedWithDataproduct",
+          "description": "dataset created with dataproduct",
+          "dataproductID": "{{ .dataproduct_id }}",
+          "keywords": ["keyword1", "otherkeyword"],
+          "repo": "somerepo",
+          "pii": false,
+          "datasource": {
+              "__typename": "BigQuery",
+              "projectID": "team-dev-1337",
+              "dataset": "dataset1",
+              "table": "table1"
+          }
+        },
+        {
+          "name": "Updated Name",
+          "description": "Updated description",
+          "dataproductID": "{{ .dataproduct_id }}",
+          "keywords": ["keyword1", "keyword2"],
+          "repo": "someotherrepo",
+          "pii": true,
+          "datasource": {
+              "__typename": "BigQuery",
+              "projectID": "team-dev-1337",
+              "dataset": "dataset1",
+              "table": "table1"
+          }
+        },
+        {
+          "name": "DatasetWithPii",
+          "description": "Description",
+          "dataproductID": "{{ .dataproduct_id }}",
+          "keywords": [],
+          "repo": "somerepo",
+          "pii": true,
+          "datasource": {
+              "__typename": "BigQuery",
+              "projectID": "team-dev-1337",
+              "dataset": "dataset1",
+              "table": "table1"
+          }
+        }
+      ]
+    }
+  }
+}

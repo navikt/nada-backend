@@ -1,0 +1,29 @@
+mutation {
+  createAccessRequest(
+    input: {
+      datasetID: "{{ .dataset_id }}"
+    }
+  ){
+    id
+    subject
+    subjectType
+    owner
+  }
+}
+
+RETURNS
+
+OPTION data.createAccessRequest.id=IGNORE
+
+ENDOPTS
+{
+  "data": {
+    "createAccessRequest": {
+      "subject": "mock.anderson@email.com",
+      "subjectType": "user",
+      "owner": "user:mock.anderson@email.com"
+    }
+  }
+}
+
+STORE access_request_for_denial=data.createAccessRequest.id

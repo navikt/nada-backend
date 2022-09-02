@@ -7,7 +7,7 @@ import (
 )
 
 type MetabaseMetadata struct {
-	DataproductID     uuid.UUID
+	DatasetID         uuid.UUID
 	DatabaseID        int
 	PermissionGroupID int
 	CollectionID      int

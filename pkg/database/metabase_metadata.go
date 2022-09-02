@@ -11,8 +11,8 @@ import (
 
 func (r *Repo) CreateMetabaseMetadata(ctx context.Context, metadata models.MetabaseMetadata) error {
 	return r.querier.CreateMetabaseMetadata(ctx, gensql.CreateMetabaseMetadataParams{
-		DataproductID: metadata.DataproductID,
-		DatabaseID:    int32(metadata.DatabaseID),
+		DatasetID:  metadata.DatasetID,
+		DatabaseID: int32(metadata.DatabaseID),
 		PermissionGroupID: sql.NullInt32{
 			Int32: int32(metadata.PermissionGroupID),
 			Valid: metadata.PermissionGroupID > 0,
@@ -25,13 +25,13 @@ func (r *Repo) CreateMetabaseMetadata(ctx context.Context, metadata models.Metab
 	})
 }
 
-func (r *Repo) GetMetabaseMetadata(ctx context.Context, dataproductID uuid.UUID, includeDeleted bool) (*models.MetabaseMetadata, error) {
+func (r *Repo) GetMetabaseMetadata(ctx context.Context, datasetID uuid.UUID, includeDeleted bool) (*models.MetabaseMetadata, error) {
 	var meta gensql.MetabaseMetadatum
 	var err error
 	if includeDeleted {
-		meta, err = r.querier.GetMetabaseMetadataWithDeleted(ctx, dataproductID)
+		meta, err = r.querier.GetMetabaseMetadataWithDeleted(ctx, datasetID)
 	} else {
-		meta, err = r.querier.GetMetabaseMetadata(ctx, dataproductID)
+		meta, err = r.querier.GetMetabaseMetadata(ctx, datasetID)
 	}
 
 	if err != nil {
@@ -39,7 +39,7 @@ func (r *Repo) GetMetabaseMetadata(ctx context.Context, dataproductID uuid.UUID,
 	}
 
 	return &models.MetabaseMetadata{
-		DataproductID:     meta.DataproductID,
+		DatasetID:         meta.DatasetID,
 		DatabaseID:        int(meta.DatabaseID),
 		PermissionGroupID: int(meta.PermissionGroupID.Int32),
 		CollectionID:      int(meta.CollectionID.Int32),
@@ -52,10 +52,10 @@ func (r *Repo) SoftDeleteMetabaseMetadata(ctx context.Context, dataproductID uui
 	return r.querier.SoftDeleteMetabaseMetadata(ctx, dataproductID)
 }
 
-func (r *Repo) SetPermissionGroupMetabaseMetadata(ctx context.Context, dataproductID uuid.UUID, groupID int) error {
+func (r *Repo) SetPermissionGroupMetabaseMetadata(ctx context.Context, datasetID uuid.UUID, groupID int) error {
 	return r.querier.SetPermissionGroupMetabaseMetadata(ctx, gensql.SetPermissionGroupMetabaseMetadataParams{
-		ID:            sql.NullInt32{Valid: true, Int32: int32(groupID)},
-		DataproductID: dataproductID,
+		ID:        sql.NullInt32{Valid: true, Int32: int32(groupID)},
+		DatasetID: datasetID,
 	})
 }
 

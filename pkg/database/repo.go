@@ -34,8 +34,8 @@ type Repo struct {
 	hooks *Hooks
 }
 
-func (r *Repo) Metrics() prometheus.Collector {
-	return r.hooks.bucket
+func (r *Repo) Metrics() []prometheus.Collector {
+	return []prometheus.Collector{r.hooks.bucket, r.hooks.errors}
 }
 
 type Querier interface {
@@ -43,7 +43,7 @@ type Querier interface {
 	WithTx(tx *sql.Tx) *gensql.Queries
 }
 
-func New(dbConnDSN string, eventMgr *event.Manager, log *logrus.Entry) (*Repo, error) {
+func New(dbConnDSN string, maxIdleConn, maxOpenConn int, eventMgr *event.Manager, log *logrus.Entry) (*Repo, error) {
 	hooks := NewHooks()
 	sql.Register("psqlhooked", sqlhooks.Wrap(&pq.Driver{}, hooks))
 
@@ -51,6 +51,8 @@ func New(dbConnDSN string, eventMgr *event.Manager, log *logrus.Entry) (*Repo, e
 	if err != nil {
 		return nil, fmt.Errorf("open sql connection: %w", err)
 	}
+	db.SetMaxIdleConns(maxIdleConn)
+	db.SetMaxOpenConns(maxOpenConn)
 
 	goose.SetBaseFS(embedMigrations)
 
@@ -70,6 +72,12 @@ func New(dbConnDSN string, eventMgr *event.Manager, log *logrus.Entry) (*Repo, e
 // Hooks satisfies the sqlhook.Hooks interface
 type Hooks struct {
 	bucket *prometheus.HistogramVec
+	errors *prometheus.CounterVec
+}
+
+func (h *Hooks) OnError(ctx context.Context, err error, query string, args ...interface{}) error {
+	h.errors.WithLabelValues(nameFromQuery(query), err.Error()).Inc()
+	return nil
 }
 
 func NewHooks() *Hooks {
@@ -81,6 +89,12 @@ func NewHooks() *Hooks {
 			Help:      "Query time by name in ms",
 			Buckets:   prometheus.ExponentialBuckets(10, 5, 5),
 		}, []string{"query"}),
+		errors: prometheus.NewCounterVec(prometheus.CounterOpts{
+			Namespace: "nada",
+			Subsystem: "repo",
+			Name:      "errors",
+			Help:      "DB query errors",
+		}, []string{"query", "error"}),
 	}
 }
 

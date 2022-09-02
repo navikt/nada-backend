@@ -15,10 +15,11 @@ type Querier interface {
 	ApproveAccessRequest(ctx context.Context, arg ApproveAccessRequestParams) error
 	CleanupStoryDrafts(ctx context.Context) error
 	ClearTeamProjectsCache(ctx context.Context) error
-	CreateAccessRequestForDataproduct(ctx context.Context, arg CreateAccessRequestForDataproductParams) (DataproductAccessRequest, error)
+	CreateAccessRequestForDataset(ctx context.Context, arg CreateAccessRequestForDatasetParams) (DatasetAccessRequest, error)
 	CreateBigqueryDatasource(ctx context.Context, arg CreateBigqueryDatasourceParams) (DatasourceBigquery, error)
 	CreateDataproduct(ctx context.Context, arg CreateDataproductParams) (Dataproduct, error)
-	CreateDataproductRequester(ctx context.Context, arg CreateDataproductRequesterParams) error
+	CreateDataset(ctx context.Context, arg CreateDatasetParams) (Dataset, error)
+	CreateDatasetRequester(ctx context.Context, arg CreateDatasetRequesterParams) error
 	CreateMetabaseMetadata(ctx context.Context, arg CreateMetabaseMetadataParams) error
 	CreatePollyDocumentation(ctx context.Context, arg CreatePollyDocumentationParams) (PollyDocumentation, error)
 	CreateQuarto(ctx context.Context, arg CreateQuartoParams) (Quarto, error)
@@ -29,11 +30,13 @@ type Querier interface {
 	CreateStoryViewDraft(ctx context.Context, arg CreateStoryViewDraftParams) (StoryViewDraft, error)
 	DataproductGroupStats(ctx context.Context, arg DataproductGroupStatsParams) ([]DataproductGroupStatsRow, error)
 	DataproductKeywords(ctx context.Context, keyword string) ([]DataproductKeywordsRow, error)
-	DataproductsByMetabase(ctx context.Context, arg DataproductsByMetabaseParams) ([]Dataproduct, error)
+	DatasetKeywords(ctx context.Context, keyword string) ([]DatasetKeywordsRow, error)
+	DatasetsByMetabase(ctx context.Context, arg DatasetsByMetabaseParams) ([]Dataset, error)
 	DeleteAccessRequest(ctx context.Context, id uuid.UUID) error
 	DeleteDataproduct(ctx context.Context, id uuid.UUID) error
-	DeleteDataproductRequester(ctx context.Context, arg DeleteDataproductRequesterParams) error
-	DeleteMetabaseMetadata(ctx context.Context, dataproductID uuid.UUID) error
+	DeleteDataset(ctx context.Context, id uuid.UUID) error
+	DeleteDatasetRequester(ctx context.Context, arg DeleteDatasetRequesterParams) error
+	DeleteMetabaseMetadata(ctx context.Context, datasetID uuid.UUID) error
 	DeleteQuarto(ctx context.Context, id uuid.UUID) error
 	DeleteSession(ctx context.Context, token string) error
 	DeleteStory(ctx context.Context, id uuid.UUID) error
@@ -41,21 +44,26 @@ type Querier interface {
 	DeleteStoryViewDraft(ctx context.Context, storyID uuid.UUID) error
 	DeleteStoryViews(ctx context.Context, storyID uuid.UUID) error
 	DenyAccessRequest(ctx context.Context, arg DenyAccessRequestParams) error
-	GetAccessRequest(ctx context.Context, id uuid.UUID) (DataproductAccessRequest, error)
-	GetAccessToDataproduct(ctx context.Context, id uuid.UUID) (DataproductAccess, error)
-	GetActiveAccessToDataproductForSubject(ctx context.Context, arg GetActiveAccessToDataproductForSubjectParams) (DataproductAccess, error)
-	GetBigqueryDatasource(ctx context.Context, dataproductID uuid.UUID) (DatasourceBigquery, error)
+	GetAccessRequest(ctx context.Context, id uuid.UUID) (DatasetAccessRequest, error)
+	GetAccessToDataset(ctx context.Context, id uuid.UUID) (DatasetAccess, error)
+	GetActiveAccessToDatasetForSubject(ctx context.Context, arg GetActiveAccessToDatasetForSubjectParams) (DatasetAccess, error)
+	GetBigqueryDatasource(ctx context.Context, datasetID uuid.UUID) (DatasourceBigquery, error)
 	GetBigqueryDatasources(ctx context.Context) ([]DatasourceBigquery, error)
 	GetDataproduct(ctx context.Context, id uuid.UUID) (Dataproduct, error)
-	GetDataproductMappings(ctx context.Context, dataproductID uuid.UUID) (ThirdPartyMapping, error)
-	GetDataproductRequesters(ctx context.Context, dataproductID uuid.UUID) ([]string, error)
 	GetDataproducts(ctx context.Context, arg GetDataproductsParams) ([]Dataproduct, error)
 	GetDataproductsByGroups(ctx context.Context, groups []string) ([]Dataproduct, error)
 	GetDataproductsByIDs(ctx context.Context, ids []uuid.UUID) ([]Dataproduct, error)
-	GetDataproductsByMapping(ctx context.Context, arg GetDataproductsByMappingParams) ([]Dataproduct, error)
-	GetDataproductsByUserAccess(ctx context.Context, id string) ([]Dataproduct, error)
-	GetMetabaseMetadata(ctx context.Context, dataproductID uuid.UUID) (MetabaseMetadatum, error)
-	GetMetabaseMetadataWithDeleted(ctx context.Context, dataproductID uuid.UUID) (MetabaseMetadatum, error)
+	GetDataset(ctx context.Context, id uuid.UUID) (Dataset, error)
+	GetDatasetMappings(ctx context.Context, datasetID uuid.UUID) (ThirdPartyMapping, error)
+	GetDatasetRequesters(ctx context.Context, datasetID uuid.UUID) ([]string, error)
+	GetDatasets(ctx context.Context, arg GetDatasetsParams) ([]Dataset, error)
+	GetDatasetsByGroups(ctx context.Context, groups []string) ([]Dataset, error)
+	GetDatasetsByIDs(ctx context.Context, ids []uuid.UUID) ([]Dataset, error)
+	GetDatasetsByMapping(ctx context.Context, arg GetDatasetsByMappingParams) ([]Dataset, error)
+	GetDatasetsByUserAccess(ctx context.Context, id string) ([]Dataset, error)
+	GetDatasetsInDataproduct(ctx context.Context, dataproductID uuid.UUID) ([]Dataset, error)
+	GetMetabaseMetadata(ctx context.Context, datasetID uuid.UUID) (MetabaseMetadatum, error)
+	GetMetabaseMetadataWithDeleted(ctx context.Context, datasetID uuid.UUID) (MetabaseMetadatum, error)
 	GetPollyDocumentation(ctx context.Context, id uuid.UUID) (PollyDocumentation, error)
 	GetQuarto(ctx context.Context, id uuid.UUID) (Quarto, error)
 	GetQuartos(ctx context.Context) ([]Quarto, error)
@@ -74,21 +82,22 @@ type Querier interface {
 	GetStoryViewDrafts(ctx context.Context, storyID uuid.UUID) ([]StoryViewDraft, error)
 	GetStoryViews(ctx context.Context, storyID uuid.UUID) ([]StoryView, error)
 	GetTeamProjects(ctx context.Context) ([]TeamProject, error)
-	GrantAccessToDataproduct(ctx context.Context, arg GrantAccessToDataproductParams) (DataproductAccess, error)
-	ListAccessRequestsForDataproduct(ctx context.Context, dataproductID uuid.UUID) ([]DataproductAccessRequest, error)
-	ListAccessRequestsForOwner(ctx context.Context, owner []string) ([]DataproductAccessRequest, error)
-	ListAccessToDataproduct(ctx context.Context, dataproductID uuid.UUID) ([]DataproductAccess, error)
-	ListActiveAccessToDataproduct(ctx context.Context, dataproductID uuid.UUID) ([]DataproductAccess, error)
-	ListUnrevokedExpiredAccessEntries(ctx context.Context) ([]DataproductAccess, error)
-	MapDataproduct(ctx context.Context, arg MapDataproductParams) error
-	RestoreMetabaseMetadata(ctx context.Context, dataproductID uuid.UUID) error
-	RevokeAccessToDataproduct(ctx context.Context, id uuid.UUID) error
+	GrantAccessToDataset(ctx context.Context, arg GrantAccessToDatasetParams) (DatasetAccess, error)
+	ListAccessRequestsForDataset(ctx context.Context, datasetID uuid.UUID) ([]DatasetAccessRequest, error)
+	ListAccessRequestsForOwner(ctx context.Context, owner []string) ([]DatasetAccessRequest, error)
+	ListAccessToDataset(ctx context.Context, datasetID uuid.UUID) ([]DatasetAccess, error)
+	ListActiveAccessToDataset(ctx context.Context, datasetID uuid.UUID) ([]DatasetAccess, error)
+	ListUnrevokedExpiredAccessEntries(ctx context.Context) ([]DatasetAccess, error)
+	MapDataset(ctx context.Context, arg MapDatasetParams) error
+	RestoreMetabaseMetadata(ctx context.Context, datasetID uuid.UUID) error
+	RevokeAccessToDataset(ctx context.Context, id uuid.UUID) error
 	Search(ctx context.Context, arg SearchParams) ([]SearchRow, error)
 	SetPermissionGroupMetabaseMetadata(ctx context.Context, arg SetPermissionGroupMetabaseMetadataParams) error
-	SoftDeleteMetabaseMetadata(ctx context.Context, dataproductID uuid.UUID) error
-	UpdateAccessRequest(ctx context.Context, arg UpdateAccessRequestParams) (DataproductAccessRequest, error)
+	SoftDeleteMetabaseMetadata(ctx context.Context, datasetID uuid.UUID) error
+	UpdateAccessRequest(ctx context.Context, arg UpdateAccessRequestParams) (DatasetAccessRequest, error)
 	UpdateBigqueryDatasourceSchema(ctx context.Context, arg UpdateBigqueryDatasourceSchemaParams) error
 	UpdateDataproduct(ctx context.Context, arg UpdateDataproductParams) (Dataproduct, error)
+	UpdateDataset(ctx context.Context, arg UpdateDatasetParams) (Dataset, error)
 	UpdateQuarto(ctx context.Context, arg UpdateQuartoParams) (Quarto, error)
 	UpdateStory(ctx context.Context, arg UpdateStoryParams) (Story, error)
 }

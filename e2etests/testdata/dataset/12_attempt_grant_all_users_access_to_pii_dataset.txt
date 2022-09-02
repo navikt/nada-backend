@@ -1,0 +1,26 @@
+mutation {
+  grantAccessToDataset(
+    input: {
+        datasetID: "{{ .pii_dataset_id }}"
+        expires:"2048-12-24T00:00:00Z"
+        subject: "all-users@nav.no"
+        subjectType: group,
+    }
+  ) {
+    id
+  }
+}
+
+RETURNS
+
+{
+  "errors": [
+    {
+      "message": "not allowed to grant all-users access to dataproduct containing pii",
+      "path": [
+        "grantAccessToDataset"
+      ]
+    }
+  ],
+  "data": null
+}

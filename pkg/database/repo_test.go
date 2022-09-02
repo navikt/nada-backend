@@ -5,12 +5,14 @@ package database
 import (
 	"context"
 	"database/sql"
+	"encoding/json"
 	"errors"
 	"log"
 	"os"
 	"testing"
 	"time"
 
+	"github.com/google/uuid"
 	_ "github.com/lib/pq"
 	"github.com/navikt/nada-backend/pkg/auth"
 	"github.com/navikt/nada-backend/pkg/event"
@@ -66,84 +68,95 @@ func TestMain(m *testing.M) {
 }
 
 func TestRepo(t *testing.T) {
-	repo, err := New(dbString, &event.Manager{}, logrus.NewEntry(logrus.StandardLogger()))
+	repo, err := New(dbString, 2, 0, &event.Manager{}, logrus.NewEntry(logrus.StandardLogger()))
 	if err != nil {
 		t.Fatal(err)
 	}
 
 	newDataproduct := models.NewDataproduct{
-		Name: "test-product",
+		Name:  "test-product",
+		Group: auth.MockUser.GoogleGroups[0].Name,
+	}
+
+	createdproduct, err := repo.CreateDataproduct(context.Background(), newDataproduct)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	newDataset := models.NewDataset{
+		Name: "test-dataset",
+		Pii:  true,
 		BigQuery: models.NewBigQuery{
 			Dataset:   "dataset",
 			ProjectID: "projectid",
 			Table:     "table",
 		},
-		Group: auth.MockUser.GoogleGroups[0].Name,
+		DataproductID: createdproduct.ID,
 	}
 
-	t.Run("updates dataproducts", func(t *testing.T) {
-		data := models.NewDataproduct{
-			Name: "test-product",
+	t.Run("updates datasets", func(t *testing.T) {
+		data := models.NewDataset{
+			Name: "test-dataset",
+			Pii:  true,
 			BigQuery: models.NewBigQuery{
 				Dataset:   "dataset",
 				ProjectID: "projectid",
 				Table:     "table",
 			},
+			DataproductID: createdproduct.ID,
 		}
-		createdDataproduct, err := repo.CreateDataproduct(context.Background(), data)
+
+		createdDataset, err := repo.CreateDataset(context.Background(), data)
 		if err != nil {
 			t.Fatal(err)
 		}
 
-		updated := models.UpdateDataproduct{
+		updated := models.UpdateDataset{
 			Name: "updated",
 			Pii:  false,
 		}
+
+		updatedDataset, err := repo.UpdateDataset(context.Background(), createdDataset.ID, updated)
 		if err != nil {
 			t.Fatal(err)
 		}
 
-		updatedDataproduct, err := repo.UpdateDataproduct(context.Background(), createdDataproduct.ID, updated)
-		if err != nil {
-			t.Fatal(err)
+		if updatedDataset.ID != createdDataset.ID {
+			t.Fatal("updating dataset should not alter dataset ID")
 		}
 
-		if updatedDataproduct.ID != createdDataproduct.ID {
-			t.Fatal("updating dataproduct should not alter dataproduct ID")
-		}
-
-		if updatedDataproduct.Name != updated.Name {
+		if updatedDataset.Name != updated.Name {
 			t.Fatal("returned name should match updated name")
 		}
 	})
 
-	t.Run("deletes dataproducts", func(t *testing.T) {
-		createdDataproduct, err := repo.CreateDataproduct(context.Background(), newDataproduct)
+	t.Run("deletes datasets", func(t *testing.T) {
+		createdDataset, err := repo.CreateDataset(context.Background(), newDataset)
 		if err != nil {
 			t.Fatal(err)
 		}
 
-		if err := repo.DeleteDataproduct(context.Background(), createdDataproduct.ID); err != nil {
+		if err := repo.DeleteDataset(context.Background(), createdDataset.ID); err != nil {
 			t.Fatal(err)
 		}
 
-		dataproduct, err := repo.GetDataproduct(context.Background(), createdDataproduct.ID)
+		dataset, err := repo.GetDataset(context.Background(), createdDataset.ID)
 		if err != nil && !errors.Is(err, sql.ErrNoRows) {
 			t.Fatal(err)
 		}
 
-		if dataproduct != nil {
-			t.Fatal("dataproduct should not exist")
+		if dataset != nil {
+			t.Fatal("dataset should not exist")
 		}
 	})
 
 	t.Run("handles access grants", func(t *testing.T) {
 		dpWithUserAccess := func(ti time.Time, subj string) {
-			dp, err := repo.CreateDataproduct(context.Background(), newDataproduct)
+			dp, err := repo.CreateDataset(context.Background(), newDataset)
 			if err != nil {
 				t.Fatal(err)
 			}
-			_, err = repo.GrantAccessToDataproduct(context.Background(), dp.ID, &ti, subj, "")
+			_, err = repo.GrantAccessToDataset(context.Background(), dp.ID, &ti, subj, "")
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -157,7 +170,7 @@ func TestRepo(t *testing.T) {
 		dpWithUserAccess(valid, subject)
 		dpWithUserAccess(expired, subject)
 
-		dps, err := repo.GetDataproductsByUserAccess(context.Background(), subject)
+		dps, err := repo.GetDatasetsByUserAccess(context.Background(), subject)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -167,35 +180,46 @@ func TestRepo(t *testing.T) {
 		}
 	})
 
-	t.Run("search datasets and products", func(t *testing.T) {
+	t.Run("search dataproduct", func(t *testing.T) {
 		tests := map[string]struct {
 			query      models.SearchQuery
 			numResults int
 		}{
 			"empty":         {query: models.SearchQuery{Text: stringToPtr("nonexistent")}, numResults: 0},
 			"1 dataproduct": {query: models.SearchQuery{Text: stringToPtr("uniquedataproduct")}, numResults: 1},
-			"1 results":     {query: models.SearchQuery{Text: stringToPtr("uniquestring")}, numResults: 1},
+			"1 story":       {query: models.SearchQuery{Text: stringToPtr("uniquestory")}, numResults: 1},
+			"2 results":     {query: models.SearchQuery{Text: stringToPtr("uniquestring")}, numResults: 2},
 		}
 
 		dataproduct := models.NewDataproduct{
-			Name:        "new_dataproduct",
+			Name:        "new dataproduct",
 			Description: nullStringToPtr(sql.NullString{Valid: true, String: "Uniquestring uniquedataproduct"}),
-			Pii:         false,
-			BigQuery: models.NewBigQuery{
-				ProjectID: "project",
-				Dataset:   "dataset",
-				Table:     "table",
-			},
 		}
 
-		_, err = repo.CreateDataproduct(context.Background(), dataproduct)
+		ctx := context.Background()
+
+		_, err := repo.CreateDataproduct(ctx, dataproduct)
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		draftID, err := createStoryDraft(ctx, repo)
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		_, err = repo.PublishStory(ctx, models.NewStory{
+			ID:       draftID,
+			Group:    "group@email.com",
+			Keywords: []string{},
+		})
 		if err != nil {
 			t.Fatal(err)
 		}
 
 		for name, tc := range tests {
 			t.Run(name, func(t *testing.T) {
-				results, err := repo.Search(context.Background(), &tc.query)
+				results, err := repo.Search(ctx, &tc.query)
 				if err != nil {
 					t.Fatal(err)
 				}
@@ -206,4 +230,35 @@ func TestRepo(t *testing.T) {
 			})
 		}
 	})
+}
+
+func createStoryDraft(ctx context.Context, repo *Repo) (uuid.UUID, error) {
+	headerView := map[string]interface{}{
+		"content": "Header",
+		"level":   1,
+	}
+	headerBytes, err := json.Marshal(headerView)
+	if err != nil {
+		return uuid.UUID{}, err
+	}
+
+	mdView := map[string]interface{}{
+		"content": "uniquestring uniquestory",
+	}
+	mdBytes, err := json.Marshal(mdView)
+	if err != nil {
+		return uuid.UUID{}, err
+	}
+
+	draftID, err := repo.CreateStoryDraft(ctx, &models.DBStory{
+		Name: "new story",
+		Views: []models.DBStoryView{
+			{Type: "header", Spec: headerBytes},
+			{Type: "markdown", Spec: mdBytes},
+		},
+	})
+	if err != nil {
+		return uuid.UUID{}, err
+	}
+	return draftID, nil
 }

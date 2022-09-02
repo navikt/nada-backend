@@ -1,0 +1,44 @@
+mutation {
+  createAccessRequest(
+    input: {
+      datasetID: "{{ .dataset_id }}"
+      polly: {
+        externalID: "28570031-e2b3-4110-8864-41ab279e2e0c"
+        name: "Behandling"
+        url: "https://some.url/28570031-e2b3-4110-8864-41ab279e2e0c"
+      }
+    }
+  ){
+    id
+    subject
+    subjectType
+    owner
+    polly{
+      externalID
+      name
+      url
+    }
+  }
+}
+
+RETURNS
+
+OPTION data.createAccessRequest.id=IGNORE
+
+ENDOPTS
+{
+  "data": {
+    "createAccessRequest": {
+      "subject": "mock.anderson@email.com",
+      "subjectType": "user",
+      "owner": "user:mock.anderson@email.com",
+      "polly": {
+        "externalID": "28570031-e2b3-4110-8864-41ab279e2e0c",
+        "name": "Behandling",
+        "url": "https://some.url/28570031-e2b3-4110-8864-41ab279e2e0c"
+      }
+    }
+  }
+}
+
+STORE access_request=data.createAccessRequest.id

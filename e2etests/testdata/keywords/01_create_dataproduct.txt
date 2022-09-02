@@ -4,9 +4,15 @@ mutation {
 			name: "NewName"
 			description: "New description"
 			group: "team@nav.no"
-			pii: false
-			keywords: ["keyword1", "otherkeyword"]
-			bigquery: { projectID: "team-dev-1337", dataset: "dataset", table: "table1" }
+            teamContact: "#team"
+			datasets: [{
+                name: "DatasetCreatedWithDataproduct"
+                description: "dataset created with dataproduct"
+			    pii: false
+			    bigquery: { projectID: "team-dev-1337", dataset: "dataset", table: "table1" }
+                repo: "somerepo"
+                keywords: ["keyword1", "otherkeyword"]
+            }]
 		}
 	) {
 		id
@@ -24,5 +30,3 @@ ENDOPTS
     }
   }
 }
-
-STORE dataproduct_id=data.createDataproduct.id

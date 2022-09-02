@@ -12,46 +12,45 @@ import (
 	"github.com/lib/pq"
 )
 
-const getDataproductMappings = `-- name: GetDataproductMappings :one
-SELECT dataproduct_id, services
+const getDatasetMappings = `-- name: GetDatasetMappings :one
+SELECT services, dataset_id
 FROM third_party_mappings
-WHERE "dataproduct_id" = $1
+WHERE "dataset_id" = $1
 `
 
-func (q *Queries) GetDataproductMappings(ctx context.Context, dataproductID uuid.UUID) (ThirdPartyMapping, error) {
-	row := q.db.QueryRowContext(ctx, getDataproductMappings, dataproductID)
+func (q *Queries) GetDatasetMappings(ctx context.Context, datasetID uuid.UUID) (ThirdPartyMapping, error) {
+	row := q.db.QueryRowContext(ctx, getDatasetMappings, datasetID)
 	var i ThirdPartyMapping
-	err := row.Scan(&i.DataproductID, pq.Array(&i.Services))
+	err := row.Scan(pq.Array(&i.Services), &i.DatasetID)
 	return i, err
 }
 
-const getDataproductsByMapping = `-- name: GetDataproductsByMapping :many
-SELECT dataproducts.id, dataproducts.name, dataproducts.description, dataproducts."group", dataproducts.pii, dataproducts.created, dataproducts.last_modified, dataproducts.type, dataproducts.tsv_document, dataproducts.slug, dataproducts.repo, dataproducts.keywords, dataproducts.teamkatalogen_url FROM third_party_mappings
-INNER JOIN dataproducts ON dataproducts.id = third_party_mappings.dataproduct_id
+const getDatasetsByMapping = `-- name: GetDatasetsByMapping :many
+SELECT datasets.id, datasets.name, datasets.description, datasets.pii, datasets.created, datasets.last_modified, datasets.type, datasets.tsv_document, datasets.slug, datasets.repo, datasets.keywords, datasets.dataproduct_id FROM third_party_mappings
+INNER JOIN datasets ON datasets.id = third_party_mappings.dataset_id
 WHERE $1::TEXT = ANY("services")
 LIMIT $3 OFFSET $2
 `
 
-type GetDataproductsByMappingParams struct {
+type GetDatasetsByMappingParams struct {
 	Service string
 	Offs    int32
 	Lim     int32
 }
 
-func (q *Queries) GetDataproductsByMapping(ctx context.Context, arg GetDataproductsByMappingParams) ([]Dataproduct, error) {
-	rows, err := q.db.QueryContext(ctx, getDataproductsByMapping, arg.Service, arg.Offs, arg.Lim)
+func (q *Queries) GetDatasetsByMapping(ctx context.Context, arg GetDatasetsByMappingParams) ([]Dataset, error) {
+	rows, err := q.db.QueryContext(ctx, getDatasetsByMapping, arg.Service, arg.Offs, arg.Lim)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
-	items := []Dataproduct{}
+	items := []Dataset{}
 	for rows.Next() {
-		var i Dataproduct
+		var i Dataset
 		if err := rows.Scan(
 			&i.ID,
 			&i.Name,
 			&i.Description,
-			&i.Group,
 			&i.Pii,
 			&i.Created,
 			&i.LastModified,
@@ -60,7 +59,7 @@ func (q *Queries) GetDataproductsByMapping(ctx context.Context, arg GetDataprodu
 			&i.Slug,
 			&i.Repo,
 			pq.Array(&i.Keywords),
-			&i.TeamkatalogenUrl,
+			&i.DataproductID,
 		); err != nil {
 			return nil, err
 		}
@@ -75,23 +74,23 @@ func (q *Queries) GetDataproductsByMapping(ctx context.Context, arg GetDataprodu
 	return items, nil
 }
 
-const mapDataproduct = `-- name: MapDataproduct :exec
+const mapDataset = `-- name: MapDataset :exec
 INSERT INTO third_party_mappings (
-    "dataproduct_id",
+    "dataset_id",
     "services"
 ) VALUES (
     $1,
     $2
-) ON CONFLICT ("dataproduct_id") DO UPDATE SET
+) ON CONFLICT ("dataset_id") DO UPDATE SET
     "services" = EXCLUDED.services
 `
 
-type MapDataproductParams struct {
-	DataproductID uuid.UUID
-	Services      []string
+type MapDatasetParams struct {
+	DatasetID uuid.UUID
+	Services  []string
 }
 
-func (q *Queries) MapDataproduct(ctx context.Context, arg MapDataproductParams) error {
-	_, err := q.db.ExecContext(ctx, mapDataproduct, arg.DataproductID, pq.Array(arg.Services))
+func (q *Queries) MapDataset(ctx context.Context, arg MapDatasetParams) error {
+	_, err := q.db.ExecContext(ctx, mapDataset, arg.DatasetID, pq.Array(arg.Services))
 	return err
 }

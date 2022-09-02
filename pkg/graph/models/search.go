@@ -47,17 +47,21 @@ type SearchType string
 
 const (
 	SearchTypeDataproduct SearchType = "dataproduct"
+	SearchTypeDataset     SearchType = "dataset"
 	SearchTypeStory       SearchType = "story"
 )
 
 var AllSearchType = []SearchType{
 	SearchTypeDataproduct,
+	SearchTypeDataset,
 	SearchTypeStory,
 }
 
 func (e SearchType) IsValid() bool {
 	switch e {
 	case SearchTypeDataproduct:
+		return true
+	case SearchTypeDataset:
 		return true
 	case SearchTypeStory:
 		return true

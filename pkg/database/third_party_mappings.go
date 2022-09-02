@@ -11,7 +11,7 @@ import (
 )
 
 func (r *Repo) GetDataproductMappings(ctx context.Context, dataproductID uuid.UUID) ([]models.MappingService, error) {
-	tpm, err := r.querier.GetDataproductMappings(ctx, dataproductID)
+	tpm, err := r.querier.GetDatasetMappings(ctx, dataproductID)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return []models.MappingService{}, nil
@@ -27,9 +27,9 @@ func (r *Repo) GetDataproductMappings(ctx context.Context, dataproductID uuid.UU
 	return svcs, nil
 }
 
-func (r *Repo) GetDataproductsByMapping(ctx context.Context, service models.MappingService, limit, offset int) ([]*models.Dataproduct, error) {
-	dataproducts := []*models.Dataproduct{}
-	dps, err := r.querier.GetDataproductsByMapping(ctx, gensql.GetDataproductsByMappingParams{
+func (r *Repo) GetDatasetsByMapping(ctx context.Context, service models.MappingService, limit, offset int) ([]*models.Dataset, error) {
+	datasets := []*models.Dataset{}
+	dps, err := r.querier.GetDatasetsByMapping(ctx, gensql.GetDatasetsByMappingParams{
 		Service: string(service),
 		Lim:     int32(limit),
 		Offs:    int32(offset),
@@ -39,30 +39,30 @@ func (r *Repo) GetDataproductsByMapping(ctx context.Context, service models.Mapp
 	}
 
 	for _, entry := range dps {
-		dataproducts = append(dataproducts, dataproductFromSQL(entry))
+		datasets = append(datasets, datasetFromSQL(entry))
 	}
 
-	return dataproducts, nil
+	return datasets, nil
 }
 
-func (r *Repo) MapDataproduct(ctx context.Context, dataproductID uuid.UUID, services []models.MappingService) error {
+func (r *Repo) MapDataset(ctx context.Context, datasetID uuid.UUID, services []models.MappingService) error {
 	svcs := []string{}
 	for _, s := range services {
 		svcs = append(svcs, string(s))
 	}
 
-	err := r.querier.MapDataproduct(ctx, gensql.MapDataproductParams{
-		DataproductID: dataproductID,
-		Services:      svcs,
+	err := r.querier.MapDataset(ctx, gensql.MapDatasetParams{
+		DatasetID: datasetID,
+		Services:  svcs,
 	})
 	if err != nil {
 		return err
 	}
 
 	if contains(svcs, models.MappingServiceMetabase) {
-		r.events.TriggerDataproductAddMetabaseMapping(ctx, dataproductID)
+		r.events.TriggerDatasetAddMetabaseMapping(ctx, datasetID)
 	} else {
-		r.events.TriggerDataproductRemoveMetabaseMapping(ctx, dataproductID)
+		r.events.TriggerDatasetRemoveMetabaseMapping(ctx, datasetID)
 	}
 
 	return nil

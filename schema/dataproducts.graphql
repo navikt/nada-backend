@@ -7,135 +7,19 @@ type Dataproduct @goModel(model: "github.com/navikt/nada-backend/pkg/graph/model
     "name of the dataproduct"
     name: String!
     "description of the dataproduct"
-    description: String
+    description(raw: Boolean): String! @goField(forceResolver: true)
     "created is the timestamp for when the dataproduct was created"
     created: Time!
     "lastModified is the timestamp for when the dataproduct was last modified"
     lastModified: Time!
-    "repo is the url of the repository containing the code to create the dataproduct"
-    repo: String
-    "pii indicates whether it is personal identifiable information in the dataproduct"
-    pii: Boolean!
-    "keywords for the dataproduct used as tags."
-    keywords: [String!]!
     "slug is the dataproduct slug"
     slug: String!
     "owner of the dataproduct. Changes to the dataproduct can only be done by a member of the owner."
     owner: Owner!
-    "datasource contains metadata on the datasource"
-    datasource: Datasource!
-    "requesters contains list of users, groups and service accounts which can request access to the dataproduct"
-    requesters: [String!]! @authenticated
-    "access contains list of users, groups and service accounts which have access to the dataproduct"
-    access: [Access!]! @authenticated
-    "services contains links to this dataproduct in other services"
-    services: DataproductServices!
-    "mappings services a dataproduct is exposed to"
-    mappings: [MappingService!]!
-}
-
-type DataproductServices @goModel(model: "github.com/navikt/nada-backend/pkg/graph/models.DataproductServices") {
-    "URL to the dataproduct in metabase"
-    metabase: String
-}
-
-"""
-TableColumn contains metadata on a BigQuery table column.
-"""
-type TableColumn @goModel(model: "github.com/navikt/nada-backend/pkg/graph/models.TableColumn") {
-    "name of column."
-    name: String!
-    "description of column."
-    description: String!
-    "mode of column (NULLABLE, REQUIRED or REPEATED)."
-    mode: String!
-    "type is the datatype of the column."
-    type: String!
-}
-
-"""
-BigQuery contains metadata on a BigQuery table.
-"""
-type BigQuery @goModel(model: "github.com/navikt/nada-backend/pkg/graph/models.BigQuery") {
-    "projectID is the GCP project ID that contains the BigQuery table"
-    projectID: String!
-    "dataset is the dataset that contains the BigQuery table"
-    dataset: String!
-    "table name for BigQuery table"
-    table: String!
-    "schema for the BigQuery table"
-    schema: [TableColumn!]!
-    "lastModified is the time when the table was last modified"
-    lastModified: Time!
-    "created is when the table was created"
-    created: Time!
-    "expires, if set, is when the table expires"
-    expires: Time
-    "tableType is what type the table is"
-    tableType: BigQueryType!
-    "description is the description of the BigQuery table"
-    description: String!
-}
-
-enum AccessRequestStatus {
-    pending
-    approved
-    denied
-}
-
-"""
-Datasource defines types that can be returned as a dataproduct datasource.
-"""
-union Datasource @goModel(model: "github.com/navikt/nada-backend/pkg/graph/models.Datasource") = BigQuery
-
-"""
-Access contains metadata on an access entry.
-"""
-type Access @goModel(model: "github.com/navikt/nada-backend/pkg/graph/models.Access") {
-    "id for the access entry"
-    id: ID!
-    "subject to grant access"
-    subject: String!
-    "name of the granter"
-    granter: String!
-    "expires is timestamp for when access expires"
-    expires: Time
-    "created is timestamp for when access was created"
-    created: Time!
-    "revoked is timestamp for when access was revoked"
-    revoked: Time
-    "accessRequestID is the id of the access request for this grant."
-    accessRequestID: ID
-}
-
-"""
-AccessRequest contains metadata on a request to access a dataproduct
-"""
-type AccessRequest @goModel(model: "github.com/navikt/nada-backend/pkg/graph/models.AccessRequest") {
-    "id of access request."
-    id: ID!
-    "id of dataproduct."
-    dataproductID: ID!
-    "subject to be granted access."
-    subject: String!
-    "subjectType is the type of entity which should be granted access (user, group or service account)."
-    subjectType: SubjectType!
-    "created is a timestamp for when the access request was created."
-    created: Time!
-    "status is the status of the access request (can be pending, approved or denied)."
-    status: AccessRequestStatus!
-    "closed is a timestamp for when the access request was closed."
-    closed: Time
-    "expires is a timestamp for when the access expires"
-    expires: Time
-    "granter is the email of the person who granted/denied the access request."
-    granter: String
-    "owner of the access request."
-    owner: String!
-    "polly is the process policy attached to this grant."
-    polly: Polly
-    "reason is the eventual reason for denying this request."
-    reason: String
+    "keywords is the keyword tags for the datasets in the dataproduct."
+    keywords: [String!]!
+    "datasets is the list of associated datasets."
+    datasets: [Dataset!]!
 }
 
 """
@@ -178,34 +62,6 @@ extend type Query {
         "offset the list of returned groups. Used as pagination with PAGE-INDEX * limit."
         offset: Int
     ): [GroupStats!]!
-
-    """
-    accessRequest returns one specific access request
-    """
-    accessRequest(
-        "id of access request."
-        id: ID!
-    ): AccessRequest! @authenticated
-
-    """
-    accessRequests returns all access requests for a dataproduct
-    """
-    accessRequestsForDataproduct(
-        "dataproductID of the requested dataproduct."
-        dataproductID: ID!
-    ): [AccessRequest!]! @authenticated
-}
-
-"""
-NewBigQuery contains metadata for creating a new bigquery data source
-"""
-input NewBigQuery @goModel(model: "github.com/navikt/nada-backend/pkg/graph/models.NewBigQuery") {
-    "projectID is the GCP project ID that contains the dataset."
-    projectID: String!
-    "dataset is the name of the dataset."
-    dataset: String!
-    "table is the name of the table"
-    table: String!
 }
 
 """
@@ -216,66 +72,14 @@ input NewDataproduct @goModel(model: "github.com/navikt/nada-backend/pkg/graph/m
     name: String!
     "description of the dataproduct"
     description: String
-    "repo is the url of the repository containing the code to create the dataproduct"
-    repo: String
-    "pii indicates whether it is personal identifiable information in the dataproduct"
-    pii: Boolean!
-    "keywords for the dataproduct used as tags."
-    keywords: [String!]
     "owner group email for the dataproduct."
     group: String!
     "owner Teamkatalogen URL for the dataproduct."
     teamkatalogenURL: String
-    "bigquery contains metadata for the bigquery datasource added to the dataproduct."
-    bigquery: NewBigQuery!
-    "requesters contains list of users, groups and service accounts which can request access to the dataproduct"
-    requesters: [String!]
-}
-
-"""
-NewAccessRequest contains metadata on a request to access a dataproduct
-"""
-input NewAccessRequest @goModel(model: "github.com/navikt/nada-backend/pkg/graph/models.NewAccessRequest") {
-    "id of dataproduct."
-    dataproductID: ID!
-    "subject to be granted access."
-    subject: String
-    "subjectType is the type of entity which should be granted access (user, group or service account)."
-    subjectType: SubjectType
-    "owner is the owner of the access request"
-    owner: String
-    "expires is a timestamp for when the access expires."
-    expires: Time
-    "polly is the process policy attached to this grant"
-    polly: PollyInput
-}
-
-"""
-UpdateAccessRequest contains metadata on a request to access a dataproduct
-"""
-input UpdateAccessRequest @goModel(model: "github.com/navikt/nada-backend/pkg/graph/models.UpdateAccessRequest") {
-    "id of access request."
-    id: ID!
-    "owner is the owner of the access request."
-    owner: String!
-    "expires is a timestamp for when the access expires."
-    expires: Time
-    "polly is the new polly documentation for this access request."
-    polly: PollyInput
-}
-
-"""
-NewGrant contains metadata on a request to access a dataproduct
-"""
-input NewGrant @goModel(model: "github.com/navikt/nada-backend/pkg/graph/models.NewGrant") {
-    "id of dataproduct."
-    dataproductID: ID!
-    "expires is a timestamp for when the access expires."
-    expires: Time
-    "subject to be granted access."
-    subject: String
-    "subjectType is the type of entity which should be granted access (user, group or service account)."
-    subjectType: SubjectType
+    "The contact information of the team who owns the dataproduct, which can be slack channel, slack account, email, and so on."
+    teamContact: String
+    "datasets to associate with the dataproduct."
+    datasets: [NewDatasetForNewDataproduct!]!
 }
 
 """
@@ -286,32 +90,10 @@ input UpdateDataproduct @goModel(model: "github.com/navikt/nada-backend/pkg/grap
     name: String!
     "description of the dataproduct"
     description: String
-    "repo is the url of the repository containing the code to create the dataproduct"
-    repo: String
-    "pii indicates whether it is personal identifiable information in the dataproduct"
-    pii: Boolean!
     "owner Teamkatalogen URL for the dataproduct."
     teamkatalogenURL: String
-    "keywords for the dataproduct used as tags."
-    keywords: [String!]
-    "requesters contains list of users, groups and service accounts which can request access to the dataproduct"
-    requesters: [String!]
-}
-
-"""
-SubjectType defines all possible types that can request access to a dataproduct.
-"""
-enum SubjectType @goModel(model: "github.com/navikt/nada-backend/pkg/graph/models.SubjectType"){
-    user
-    group
-    serviceAccount
-}
-
-"""
-MappingService defines all possible service types that a dataproduct can be exposed to.
-"""
-enum MappingService @goModel(model: "github.com/navikt/nada-backend/pkg/graph/models.MappingService"){
-    metabase
+    "The contact information of the team who owns the dataproduct, which can be slack channel, slack account, email, and so on."
+    teamContact: String
 }
 
 extend type Mutation {
@@ -347,107 +129,4 @@ extend type Mutation {
         "id of dataproduct."
         id: ID!
     ) : Boolean! @authenticated
-
-    """
-    addRequesterToDataproduct adds a requester to the dataproduct.
-
-    Requires authentication.
-    """
-    addRequesterToDataproduct(
-        "id of dataproduct."
-        dataproductID: ID!
-        "subject allowed to request access (user, group or service account)."
-        subject: String!
-    ): Boolean! @authenticated
-
-    """
-    removeRequesterFromDataproduct removes a requester from the dataproduct.
-
-    Requires authentication.
-    """
-    removeRequesterFromDataproduct(
-        "id of dataproduct."
-        dataproductID: ID!
-        "subject allowed request access (user, group or service account)."
-        subject: String!
-    ): Boolean! @authenticated
-
-    """
-    grantAccessToDataproduct grants access for a subject to the dataproduct.
-
-    Requires authentication.
-    """
-    grantAccessToDataproduct(
-        input: NewGrant!
-    ): Access! @authenticated
-
-    """
-    revokeAccessToDataproduct revokes access for a subject to the dataproduct.
-
-    Requires authentication.
-    """
-    revokeAccessToDataproduct(
-        "id for the access entry."
-        id: ID!
-    ): Boolean! @authenticated
-
-    """
-    mapDataproduct exposes a dataproduct to third party services, e.g. metabase
-
-    Requires authentication
-    """
-    mapDataproduct(
-        "id of dataproduct."
-        dataproductID: ID!
-        "service is the type of third party service for which the dataproduct should be exposed."
-        services: [MappingService!]!
-    ): Boolean! @authenticated
-
-    """
-    createAccessRequest creates a new access request for a dataproduct
-
-    Requires authentication
-    """
-    createAccessRequest(
-        input: NewAccessRequest!
-    ): AccessRequest! @authenticated
-
-    """
-    createAccessRequest creates a new access request for a dataproduct
-
-    Requires authentication
-    """
-    updateAccessRequest(
-        input: UpdateAccessRequest!
-    ): AccessRequest! @authenticated
-
-    """
-    deleteAccessRequest deletes a dataproduct access request.
-
-    Requires authentication
-    """
-    deleteAccessRequest(
-        id: ID!
-    ): Boolean! @authenticated
-
-    """
-    approveAccessRequest approves an access request.
-
-    Requires authentication
-    """
-    approveAccessRequest(
-        id: ID!
-    ): Boolean! @authenticated
-
-    """
-    denyAccessRequest denies an access request.
-
-    Requires authentication
-    """
-    denyAccessRequest(
-        "id of access request."
-        id: ID!
-        "reason for denying this access request."
-        reason: String
-    ): Boolean! @authenticated
 }

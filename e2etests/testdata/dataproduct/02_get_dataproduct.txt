@@ -4,11 +4,21 @@
 	) {
 		name
 		description
-		repo
-		pii
-		owner { group }
-		keywords
-    requesters
+        owner {
+            group
+        }
+        datasets {
+            name
+            pii
+            datasource {
+                __typename
+                ...on BigQuery {
+                    projectID
+                    dataset
+                    table
+                }
+            }
+        }
 	}
 }
 
@@ -19,16 +29,19 @@ RETURNS
     "dataproduct": {
       "name": "NewName",
       "description": "New description",
-      "keywords": [
-        "keyword1",
-        "otherkeyword"
-      ],
       "owner": {
         "group": "team@nav.no"
       },
-      "pii": false,
-      "repo": "somerepo",
-			"requesters": ["all-users@nav.no", "nada@nav.no"]
+      "datasets": [{
+        "name": "NewDataset",
+        "pii": false,
+        "datasource": {
+            "__typename": "BigQuery",
+            "projectID": "team-dev-1337",
+            "dataset": "dataset1",
+            "table": "table1"
+        }
+      }]
     }
   }
 }

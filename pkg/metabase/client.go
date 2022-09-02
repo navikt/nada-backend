@@ -110,7 +110,7 @@ func (c *Client) ensureValidSession(ctx context.Context) error {
 	}
 
 	c.sessionID = session.ID
-	c.expiry = time.Now().Add(13 * 24 * time.Hour)
+	c.expiry = time.Now().Add(24 * time.Hour)
 	return nil
 }
 
@@ -177,7 +177,7 @@ func (c *Client) CreateDatabase(ctx context.Context, team, name, saJSON, saEmail
 		Name: strings.Split(team, "@")[0] + ": " + name,
 		Details: Details{
 			DatasetID:          ds.Dataset,
-			NadaID:             ds.DataproductID.String(),
+			NadaID:             ds.DatasetID.String(),
 			ProjectID:          ds.ProjectID,
 			ServiceAccountJSON: saJSON,
 			SAEmail:            saEmail,
@@ -336,9 +336,14 @@ func (c *Client) RestrictAccessToDatabase(ctx context.Context, groupID, database
 		Native  string `json:"native,omitempty"`
 		Schemas string `json:"schemas,omitempty"`
 	}
+
+	type permissionGroup struct {
+		Data permissions `json:"data,omitempty"`
+	}
+
 	var permissionGraph struct {
-		Groups   map[string]map[string]permissions `json:"groups"`
-		Revision int                               `json:"revision"`
+		Groups   map[string]map[string]permissionGroup `json:"groups"`
+		Revision int                                   `json:"revision"`
 	}
 
 	err := c.request(ctx, http.MethodGet, "/permissions/graph", nil, &permissionGraph)
@@ -350,9 +355,11 @@ func (c *Client) RestrictAccessToDatabase(ctx context.Context, groupID, database
 	dbSID := strconv.Itoa(databaseID)
 
 	if _, ok := permissionGraph.Groups[grpSID]; !ok {
-		permissionGraph.Groups[grpSID] = map[string]permissions{}
+		permissionGraph.Groups[grpSID] = map[string]permissionGroup{}
 	}
-	permissionGraph.Groups[grpSID][dbSID] = permissions{Native: "write", Schemas: "all"}
+	permissionGraph.Groups[grpSID][dbSID] = permissionGroup{
+		Data: permissions{Native: "write", Schemas: "all"},
+	}
 
 	for gid, permission := range permissionGraph.Groups {
 		if gid == "2" {
@@ -360,7 +367,9 @@ func (c *Client) RestrictAccessToDatabase(ctx context.Context, groupID, database
 			continue
 		}
 		if gid != grpSID {
-			permission[dbSID] = permissions{Native: "none", Schemas: "none"}
+			permission[dbSID] = permissionGroup{
+				Data: permissions{Native: "none", Schemas: "none"},
+			}
 		}
 	}
 

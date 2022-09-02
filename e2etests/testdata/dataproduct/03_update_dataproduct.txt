@@ -4,17 +4,14 @@ mutation {
 		input: {
 			name: "Updated Name"
 			description: "Updated description"
-			repo: "someotherrepo"
-			pii: true
-			keywords: ["keyword1", "keyword2"]
+            teamContact: "#team"
 		}
 	) {
 		name
 		description
-		repo
-		pii
-		owner { group }
-		keywords
+        owner {
+            group
+        }
 	}
 }
 
@@ -25,15 +22,9 @@ RETURNS
     "updateDataproduct": {
       "name": "Updated Name",
       "description": "Updated description",
-      "keywords": [
-        "keyword1",
-				"keyword2"
-      ],
       "owner": {
         "group": "team@nav.no"
-      },
-      "pii": true,
-      "repo": "someotherrepo"
+      }
     }
   }
 }

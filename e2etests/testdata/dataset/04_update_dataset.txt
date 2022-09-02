@@ -1,0 +1,35 @@
+mutation {
+	updateDataset(
+		id: "{{ .dataset_id }}"
+		input: {
+			name: "Updated Name"
+			description: "Updated description"
+			repo: "someotherrepo"
+			pii: true
+			keywords: ["keyword1", "keyword2"]
+		}
+	) {
+		name
+		description
+		repo
+		pii
+		keywords
+	}
+}
+
+RETURNS
+
+{
+  "data": {
+    "updateDataset": {
+      "name": "Updated Name",
+      "description": "Updated description",
+      "keywords": [
+        "keyword1",
+        "keyword2"
+      ],
+      "pii": true,
+      "repo": "someotherrepo"
+    }
+  }
+}

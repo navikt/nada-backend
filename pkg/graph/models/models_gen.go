@@ -8,6 +8,13 @@ import (
 	"strconv"
 )
 
+type BigQuerySource struct {
+	// table is the name of the BigQuery table.
+	Table string `json:"table"`
+	// dataset is the name of the BigQuery dataset.
+	Dataset string `json:"dataset"`
+}
+
 type AccessRequestStatus string
 
 const (

@@ -1,0 +1,48 @@
+mutation {
+	createDataset(
+		input: {
+            dataproductID: "{{ .dataproduct_id }}"
+			name: "NewDataset"
+			description: "New description"
+			repo: "somerepo"
+			pii: false
+			keywords: ["keyword1", "otherkeyword"]
+			bigquery: { projectID: "team-dev-1337", dataset: "dataset1", table: "table1" }
+			requesters: ["all-users@nav.no", "nada@nav.no"]
+		}
+	) {
+		id
+        dataproductID
+		name
+		description
+		repo
+		pii
+		keywords
+		requesters
+	}
+}
+
+RETURNS
+
+OPTION data.createDataset.id=IGNORE
+
+ENDOPTS
+{
+  "data": {
+    "createDataset": {
+      "dataproductID": "{{ .dataproduct_id }}",
+      "name": "NewDataset",
+      "description": "New description",
+      "keywords": [
+        "keyword1",
+        "otherkeyword"
+      ],
+      "pii": false,
+      "repo": "somerepo",
+      "requesters": ["all-users@nav.no", "nada@nav.no"]
+    }
+  }
+}
+
+STORE dataset_id=data.createDataset.id
+STORE dataset_name=data.createDataset.name

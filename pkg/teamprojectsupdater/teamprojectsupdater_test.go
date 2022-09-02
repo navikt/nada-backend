@@ -54,7 +54,7 @@ func TestTeamProjectsUpdater(t *testing.T) {
 		log.Fatalf("Could not connect to docker: %s", err)
 	}
 
-	repo, err := database.New(dbString, &event.Manager{}, logrus.NewEntry(logrus.StandardLogger()))
+	repo, err := database.New(dbString, 2, 0, &event.Manager{}, logrus.NewEntry(logrus.StandardLogger()))
 	if err != nil {
 		panic(err)
 	}

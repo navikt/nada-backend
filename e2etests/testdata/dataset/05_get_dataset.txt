@@ -1,0 +1,29 @@
+{
+	dataset(
+		id: "{{ .dataset_id }}"
+	) {
+		name
+		description
+		repo
+		pii
+		keywords
+        requesters
+	}
+}
+
+RETURNS
+{
+  "data": {
+    "dataset": {
+      "name": "Updated Name",
+      "description": "Updated description",
+      "keywords": [
+        "keyword1",
+        "keyword2"
+      ],
+      "pii": true,
+      "repo": "someotherrepo",
+      "requesters": ["all-users@nav.no", "nada@nav.no"]
+    }
+  }
+}

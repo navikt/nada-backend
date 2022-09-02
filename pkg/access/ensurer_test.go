@@ -29,25 +29,27 @@ func TestEnsurer(t *testing.T) {
 	if am.NRevoke != len(expired) {
 		t.Errorf("got: %v, want: %v", am.NRevoke, len(expired))
 	}
-	if repo.NRevokeAccessToDataproduct != len(expired) {
-		t.Errorf("got: %v, want: %v", repo.NRevokeAccessToDataproduct, len(expired))
+	if repo.NRevokeAccessToDataset != len(expired) {
+		t.Errorf("got: %v, want: %v", repo.NRevokeAccessToDataset, len(expired))
 	}
 }
 
 type MockRepo struct {
-	NRevokeAccessToDataproduct int
+	NRevokeAccessToDataset     int
 	NGetBigqueryDatasource     int
 	NGetUnrevokedExpiredAccess int
 }
 
-func (m *MockRepo) RevokeAccessToDataproduct(ctx context.Context, id uuid.UUID) error {
-	m.NRevokeAccessToDataproduct++
+func (m *MockRepo) RevokeAccessToDataset(ctx context.Context, id uuid.UUID) error {
+	m.NRevokeAccessToDataset++
 	return nil
 }
+
 func (m *MockRepo) GetBigqueryDatasource(ctx context.Context, dataproductID uuid.UUID) (models.BigQuery, error) {
 	m.NGetBigqueryDatasource++
 	return models.BigQuery{}, nil
 }
+
 func (m *MockRepo) GetUnrevokedExpiredAccess(ctx context.Context) ([]*models.Access, error) {
 	m.NGetUnrevokedExpiredAccess++
 	return expired, nil

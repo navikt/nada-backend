@@ -1,0 +1,44 @@
+mutation {
+	createDataproduct(
+		input: {
+			name: "NewName"
+			description: "New description"
+            datasets: [{
+                name: "DatasetCreatedWithDataproduct"
+                description: "dataset created with dataproduct"
+			          pii: false
+			          bigquery: { projectID: "team-dev-1337", dataset: "dataset1", table: "table1" }
+                repo: "somerepo"
+                keywords: ["keyword1", "otherkeyword"]
+            }]
+			group: "team@nav.no"
+            teamContact: "#team"
+		}
+	) {
+		id
+		name
+		description
+        owner {
+            group
+        }
+	}
+}
+
+RETURNS
+
+OPTION data.createDataproduct.id=IGNORE
+
+ENDOPTS
+{
+  "data": {
+    "createDataproduct": {
+      "name": "NewName",
+      "description": "New description",
+      "owner": {
+        "group": "team@nav.no"
+      }
+    }
+  }
+}
+
+STORE dataproduct_id=data.createDataproduct.id

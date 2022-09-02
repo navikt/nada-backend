@@ -1,0 +1,35 @@
+mutation {
+  grantAccessToDataset(
+    input: {
+        datasetID: "{{ .dataset_id }}"
+        expires:"2048-12-24T00:00:00Z"
+        subject: "santa@nav.no"
+        subjectType: user,
+    }
+  ) {
+    id
+    subject
+    granter
+    expires
+    revoked
+  }
+}
+
+RETURNS
+
+OPTION data.grantAccessToDataset.id=IGNORE
+
+ENDOPTS
+
+{
+  "data": {
+    "grantAccessToDataset": {
+      "subject": "user:santa@nav.no",
+      "granter": "mock.anderson@email.com",
+      "expires": "2048-12-24T00:00:00Z",
+      "revoked": null
+    }
+  }
+}
+
+STORE access_id=data.grantAccessToDataset.id

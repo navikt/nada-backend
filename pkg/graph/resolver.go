@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 
+	"cloud.google.com/go/bigquery"
 	"github.com/99designs/gqlgen-contrib/prometheus"
 	"github.com/99designs/gqlgen/graphql"
 	"github.com/99designs/gqlgen/graphql/handler"
@@ -121,4 +122,28 @@ func authenticate(ctx context.Context, obj interface{}, next graphql.Resolver, o
 
 	// or let it pass through
 	return next(ctx)
+}
+
+func (r *Resolver) prepareBigQuery(ctx context.Context, bq models.NewBigQuery, group string) (models.BigqueryMetadata, error) {
+	if err := r.ensureGroupOwnsGCPProject(ctx, group, bq.ProjectID); err != nil {
+		return models.BigqueryMetadata{}, err
+	}
+
+	metadata, err := r.bigquery.TableMetadata(ctx, bq.ProjectID, bq.Dataset, bq.Table)
+	if err != nil {
+		return models.BigqueryMetadata{}, fmt.Errorf("trying to fetch metadata on table %v, but it does not exist in %v.%v",
+			bq.Table, bq.ProjectID, bq.Dataset)
+	}
+
+	switch metadata.TableType {
+	case bigquery.RegularTable:
+	case bigquery.ViewTable:
+		if err := r.accessMgr.AddToAuthorizedViews(ctx, bq.ProjectID, bq.Dataset, bq.Table); err != nil {
+			return models.BigqueryMetadata{}, err
+		}
+	default:
+		return models.BigqueryMetadata{}, fmt.Errorf("unsupported table type: %v", metadata.TableType)
+	}
+
+	return metadata, nil
 }

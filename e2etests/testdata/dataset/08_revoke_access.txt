@@ -1,0 +1,13 @@
+mutation {
+  revokeAccessToDataset(
+    id: "{{ .access_id }}"
+  )
+}
+
+RETURNS
+
+{
+  "data": {
+    "revokeAccessToDataset": true
+  }
+}

@@ -1,0 +1,36 @@
+mutation {
+	createDataset(
+		input: {
+            dataproductID: "{{ .dataproduct_id }}"
+			name: "DatasetWithPii"
+			description: "Description"
+			repo: "somerepo"
+			pii: true
+			bigquery: { projectID: "team-dev-1337", dataset: "dataset1", table: "table1" }
+		}
+	) {
+		id
+		name
+		description
+		repo
+		pii
+	}
+}
+
+RETURNS
+
+OPTION data.createDataset.id=IGNORE
+
+ENDOPTS
+{
+  "data": {
+    "createDataset": {
+      "name": "DatasetWithPii",
+      "description": "Description",
+      "pii": true,
+      "repo": "somerepo"
+    }
+  }
+}
+
+STORE pii_dataset_id=data.createDataset.id

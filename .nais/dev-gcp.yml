@@ -55,7 +55,7 @@ spec:
     - name: HOSTNAME
       value: "data.dev.intern.nav.no"
     - name: METABASE_API
-      value: "http://nada-metabase/api"
+      value: "http://metabase/api"
     - name: METABASE_GOOGLE_CREDENTIALS_PATH
       value: /var/run/secrets/nada-credentials/meta_creds.json
   gcp:
@@ -63,6 +63,9 @@ spec:
       - type: POSTGRES_12
         databases:
           - name: nada
+        flags:
+          - name: max_connections
+            value: "50"
   accessPolicy:
     inbound:
       rules:
@@ -71,4 +74,4 @@ spec:
         - application: metrics-markedsplassen
     outbound:
       rules:
-        - application: nada-metabase
+        - application: metabase
