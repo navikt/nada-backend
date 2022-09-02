@@ -69,8 +69,8 @@ func init() {
 	flag.StringVar(&cfg.MetabaseAPI, "metabase-api", os.Getenv("METABASE_API"), "URL to Metabase API, including scheme and `/api`")
 	flag.StringVar(&cfg.SlackUrl, "slack-url", os.Getenv("SLACK_URL"), "URL for slack webhook")
 	flag.StringVar(&cfg.PollyURL, "polly-url", cfg.PollyURL, "URL for polly")
-	flag.IntVar(&cfg.DBMaxIdleConn, "max-idle-conn", 5, "Maximum number of idle db connections")
-	flag.IntVar(&cfg.DBMaxOpenConn, "max-open-conn", 35, "Maximum number of open db connections")
+	flag.IntVar(&cfg.DBMaxIdleConn, "max-idle-conn", 3, "Maximum number of idle db connections")
+	flag.IntVar(&cfg.DBMaxOpenConn, "max-open-conn", 17, "Maximum number of open db connections")
 }
 
 func main() {
