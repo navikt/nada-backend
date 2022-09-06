@@ -21,6 +21,11 @@ FROM dataproducts
 WHERE "group" = ANY (@groups::text[])
 ORDER BY last_modified DESC;
 
+-- name: GetDataproductsByProductAreas :many
+SELECT *
+FROM dataproducts
+WHERE product_area_id = @product_area_id;
+
 -- name: DeleteDataproduct :exec
 DELETE
 FROM dataproducts

@@ -197,6 +197,14 @@ type ComplexityRoot struct {
 		URL        func(childComplexity int) int
 	}
 
+	ProductArea struct {
+		Dataproducts func(childComplexity int) int
+		ExternalID   func(childComplexity int) int
+		ID           func(childComplexity int) int
+		Name         func(childComplexity int) int
+		Stories      func(childComplexity int) int
+	}
+
 	Quarto struct {
 		Content      func(childComplexity int) int
 		Created      func(childComplexity int) int
@@ -219,6 +227,8 @@ type ComplexityRoot struct {
 		GroupStats               func(childComplexity int, limit *int, offset *int) int
 		Keywords                 func(childComplexity int, prefix *string) int
 		Polly                    func(childComplexity int, q string) int
+		ProductArea              func(childComplexity int, id uuid.UUID) int
+		ProductAreas             func(childComplexity int) int
 		Quarto                   func(childComplexity int, id uuid.UUID) int
 		Quartos                  func(childComplexity int) int
 		Search                   func(childComplexity int, q *models.SearchQueryOld, options *models.SearchQuery) int
@@ -369,6 +379,8 @@ type QueryResolver interface {
 	GcpGetAllTablesInProject(ctx context.Context, projectID string) ([]*models.BigQuerySource, error)
 	Keywords(ctx context.Context, prefix *string) ([]*models.Keyword, error)
 	Polly(ctx context.Context, q string) ([]*models.QueryPolly, error)
+	ProductArea(ctx context.Context, id uuid.UUID) (*models.ProductArea, error)
+	ProductAreas(ctx context.Context) ([]*models.ProductArea, error)
 	Quartos(ctx context.Context) ([]*models.Quarto, error)
 	Quarto(ctx context.Context, id uuid.UUID) (*models.Quarto, error)
 	Search(ctx context.Context, q *models.SearchQueryOld, options *models.SearchQuery) ([]*models.SearchResultRow, error)
@@ -1190,6 +1202,41 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.Polly.URL(childComplexity), true
 
+	case "ProductArea.dataproducts":
+		if e.complexity.ProductArea.Dataproducts == nil {
+			break
+		}
+
+		return e.complexity.ProductArea.Dataproducts(childComplexity), true
+
+	case "ProductArea.externalID":
+		if e.complexity.ProductArea.ExternalID == nil {
+			break
+		}
+
+		return e.complexity.ProductArea.ExternalID(childComplexity), true
+
+	case "ProductArea.id":
+		if e.complexity.ProductArea.ID == nil {
+			break
+		}
+
+		return e.complexity.ProductArea.ID(childComplexity), true
+
+	case "ProductArea.name":
+		if e.complexity.ProductArea.Name == nil {
+			break
+		}
+
+		return e.complexity.ProductArea.Name(childComplexity), true
+
+	case "ProductArea.stories":
+		if e.complexity.ProductArea.Stories == nil {
+			break
+		}
+
+		return e.complexity.ProductArea.Stories(childComplexity), true
+
 	case "Quarto.content":
 		if e.complexity.Quarto.Content == nil {
 			break
@@ -1375,6 +1422,25 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 		}
 
 		return e.complexity.Query.Polly(childComplexity, args["q"].(string)), true
+
+	case "Query.productArea":
+		if e.complexity.Query.ProductArea == nil {
+			break
+		}
+
+		args, err := ec.field_Query_productArea_args(context.TODO(), rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Query.ProductArea(childComplexity, args["id"].(uuid.UUID)), true
+
+	case "Query.productAreas":
+		if e.complexity.Query.ProductAreas == nil {
+			break
+		}
+
+		return e.complexity.Query.ProductAreas(childComplexity), true
 
 	case "Query.quarto":
 		if e.complexity.Query.Quarto == nil {
@@ -2638,6 +2704,34 @@ extend type Query {
     ): [QueryPolly!]!
 }
 `, BuiltIn: false},
+	{Name: "../../../schema/productAreas.graphql", Input: `type ProductArea @goModel(model: "github.com/navikt/nada-backend/pkg/graph/models.ProductArea") {
+    "id is the id of the product area."
+    id: ID!
+    "externalID is the product area external id in teamkatalogen."
+    externalID: String!
+    "name is the name of the product area."
+    name: String!
+    "dataproducts is the dataproducts owned by the product area."
+    dataproducts: [Dataproduct!]!
+    "stories is the stories owned by the product area."
+    stories: [Story!]!
+}
+
+extend type Query {
+    """
+    productArea returns the given productArea.
+    """
+    productArea(
+        "id of the productArea."
+        id: ID!
+    ): ProductArea!
+
+    """
+    productAreas returns all product areas.
+    """
+    productAreas: [ProductArea!]!
+}
+`, BuiltIn: false},
 	{Name: "../../../schema/quarto.graphql", Input: `"""
 Quarto contains the metadata and content of data stories.
 """
@@ -3613,6 +3707,21 @@ func (ec *executionContext) field_Query_polly_args(ctx context.Context, rawArgs 
 		}
 	}
 	args["q"] = arg0
+	return args, nil
+}
+
+func (ec *executionContext) field_Query_productArea_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
+	var err error
+	args := map[string]interface{}{}
+	var arg0 uuid.UUID
+	if tmp, ok := rawArgs["id"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("id"))
+		arg0, err = ec.unmarshalNID2githubᚗcomᚋgoogleᚋuuidᚐUUID(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["id"] = arg0
 	return args, nil
 }
 
@@ -8930,6 +9039,262 @@ func (ec *executionContext) fieldContext_Polly_url(ctx context.Context, field gr
 	return fc, nil
 }
 
+func (ec *executionContext) _ProductArea_id(ctx context.Context, field graphql.CollectedField, obj *models.ProductArea) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_ProductArea_id(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.ID, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(uuid.UUID)
+	fc.Result = res
+	return ec.marshalNID2githubᚗcomᚋgoogleᚋuuidᚐUUID(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_ProductArea_id(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "ProductArea",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type ID does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _ProductArea_externalID(ctx context.Context, field graphql.CollectedField, obj *models.ProductArea) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_ProductArea_externalID(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.ExternalID, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(string)
+	fc.Result = res
+	return ec.marshalNString2string(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_ProductArea_externalID(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "ProductArea",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _ProductArea_name(ctx context.Context, field graphql.CollectedField, obj *models.ProductArea) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_ProductArea_name(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Name, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(string)
+	fc.Result = res
+	return ec.marshalNString2string(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_ProductArea_name(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "ProductArea",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _ProductArea_dataproducts(ctx context.Context, field graphql.CollectedField, obj *models.ProductArea) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_ProductArea_dataproducts(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Dataproducts, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.([]*models.Dataproduct)
+	fc.Result = res
+	return ec.marshalNDataproduct2ᚕᚖgithubᚗcomᚋnaviktᚋnadaᚑbackendᚋpkgᚋgraphᚋmodelsᚐDataproductᚄ(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_ProductArea_dataproducts(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "ProductArea",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "id":
+				return ec.fieldContext_Dataproduct_id(ctx, field)
+			case "name":
+				return ec.fieldContext_Dataproduct_name(ctx, field)
+			case "description":
+				return ec.fieldContext_Dataproduct_description(ctx, field)
+			case "created":
+				return ec.fieldContext_Dataproduct_created(ctx, field)
+			case "lastModified":
+				return ec.fieldContext_Dataproduct_lastModified(ctx, field)
+			case "slug":
+				return ec.fieldContext_Dataproduct_slug(ctx, field)
+			case "owner":
+				return ec.fieldContext_Dataproduct_owner(ctx, field)
+			case "keywords":
+				return ec.fieldContext_Dataproduct_keywords(ctx, field)
+			case "datasets":
+				return ec.fieldContext_Dataproduct_datasets(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type Dataproduct", field.Name)
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _ProductArea_stories(ctx context.Context, field graphql.CollectedField, obj *models.ProductArea) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_ProductArea_stories(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Stories, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.([]*models.GraphStory)
+	fc.Result = res
+	return ec.marshalNStory2ᚕᚖgithubᚗcomᚋnaviktᚋnadaᚑbackendᚋpkgᚋgraphᚋmodelsᚐGraphStoryᚄ(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_ProductArea_stories(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "ProductArea",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "id":
+				return ec.fieldContext_Story_id(ctx, field)
+			case "name":
+				return ec.fieldContext_Story_name(ctx, field)
+			case "created":
+				return ec.fieldContext_Story_created(ctx, field)
+			case "lastModified":
+				return ec.fieldContext_Story_lastModified(ctx, field)
+			case "owner":
+				return ec.fieldContext_Story_owner(ctx, field)
+			case "keywords":
+				return ec.fieldContext_Story_keywords(ctx, field)
+			case "views":
+				return ec.fieldContext_Story_views(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type Story", field.Name)
+		},
+	}
+	return fc, nil
+}
+
 func (ec *executionContext) _Quarto_id(ctx context.Context, field graphql.CollectedField, obj *models.Quarto) (ret graphql.Marshaler) {
 	fc, err := ec.fieldContext_Quarto_id(ctx, field)
 	if err != nil {
@@ -10204,6 +10569,129 @@ func (ec *executionContext) fieldContext_Query_polly(ctx context.Context, field 
 	if fc.Args, err = ec.field_Query_polly_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
 		ec.Error(ctx, err)
 		return
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Query_productArea(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_Query_productArea(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.Query().ProductArea(rctx, fc.Args["id"].(uuid.UUID))
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(*models.ProductArea)
+	fc.Result = res
+	return ec.marshalNProductArea2ᚖgithubᚗcomᚋnaviktᚋnadaᚑbackendᚋpkgᚋgraphᚋmodelsᚐProductArea(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_Query_productArea(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Query",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "id":
+				return ec.fieldContext_ProductArea_id(ctx, field)
+			case "externalID":
+				return ec.fieldContext_ProductArea_externalID(ctx, field)
+			case "name":
+				return ec.fieldContext_ProductArea_name(ctx, field)
+			case "dataproducts":
+				return ec.fieldContext_ProductArea_dataproducts(ctx, field)
+			case "stories":
+				return ec.fieldContext_ProductArea_stories(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type ProductArea", field.Name)
+		},
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			err = ec.Recover(ctx, r)
+			ec.Error(ctx, err)
+		}
+	}()
+	ctx = graphql.WithFieldContext(ctx, fc)
+	if fc.Args, err = ec.field_Query_productArea_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+		ec.Error(ctx, err)
+		return
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Query_productAreas(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_Query_productAreas(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.Query().ProductAreas(rctx)
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.([]*models.ProductArea)
+	fc.Result = res
+	return ec.marshalNProductArea2ᚕᚖgithubᚗcomᚋnaviktᚋnadaᚑbackendᚋpkgᚋgraphᚋmodelsᚐProductAreaᚄ(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_Query_productAreas(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Query",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "id":
+				return ec.fieldContext_ProductArea_id(ctx, field)
+			case "externalID":
+				return ec.fieldContext_ProductArea_externalID(ctx, field)
+			case "name":
+				return ec.fieldContext_ProductArea_name(ctx, field)
+			case "dataproducts":
+				return ec.fieldContext_ProductArea_dataproducts(ctx, field)
+			case "stories":
+				return ec.fieldContext_ProductArea_stories(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type ProductArea", field.Name)
+		},
 	}
 	return fc, nil
 }
@@ -16858,6 +17346,62 @@ func (ec *executionContext) _Polly(ctx context.Context, sel ast.SelectionSet, ob
 	return out
 }
 
+var productAreaImplementors = []string{"ProductArea"}
+
+func (ec *executionContext) _ProductArea(ctx context.Context, sel ast.SelectionSet, obj *models.ProductArea) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, productAreaImplementors)
+	out := graphql.NewFieldSet(fields)
+	var invalids uint32
+	for i, field := range fields {
+		switch field.Name {
+		case "__typename":
+			out.Values[i] = graphql.MarshalString("ProductArea")
+		case "id":
+
+			out.Values[i] = ec._ProductArea_id(ctx, field, obj)
+
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
+		case "externalID":
+
+			out.Values[i] = ec._ProductArea_externalID(ctx, field, obj)
+
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
+		case "name":
+
+			out.Values[i] = ec._ProductArea_name(ctx, field, obj)
+
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
+		case "dataproducts":
+
+			out.Values[i] = ec._ProductArea_dataproducts(ctx, field, obj)
+
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
+		case "stories":
+
+			out.Values[i] = ec._ProductArea_stories(ctx, field, obj)
+
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
+		default:
+			panic("unknown field " + strconv.Quote(field.Name))
+		}
+	}
+	out.Dispatch()
+	if invalids > 0 {
+		return graphql.Null
+	}
+	return out
+}
+
 var quartoImplementors = []string{"Quarto"}
 
 func (ec *executionContext) _Quarto(ctx context.Context, sel ast.SelectionSet, obj *models.Quarto) graphql.Marshaler {
@@ -17226,6 +17770,52 @@ func (ec *executionContext) _Query(ctx context.Context, sel ast.SelectionSet) gr
 					}
 				}()
 				res = ec._Query_polly(ctx, field)
+				if res == graphql.Null {
+					atomic.AddUint32(&invalids, 1)
+				}
+				return res
+			}
+
+			rrm := func(ctx context.Context) graphql.Marshaler {
+				return ec.OperationContext.RootResolverMiddleware(ctx, innerFunc)
+			}
+
+			out.Concurrently(i, func() graphql.Marshaler {
+				return rrm(innerCtx)
+			})
+		case "productArea":
+			field := field
+
+			innerFunc := func(ctx context.Context) (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._Query_productArea(ctx, field)
+				if res == graphql.Null {
+					atomic.AddUint32(&invalids, 1)
+				}
+				return res
+			}
+
+			rrm := func(ctx context.Context) graphql.Marshaler {
+				return ec.OperationContext.RootResolverMiddleware(ctx, innerFunc)
+			}
+
+			out.Concurrently(i, func() graphql.Marshaler {
+				return rrm(innerCtx)
+			})
+		case "productAreas":
+			field := field
+
+			innerFunc := func(ctx context.Context) (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._Query_productAreas(ctx, field)
 				if res == graphql.Null {
 					atomic.AddUint32(&invalids, 1)
 				}
@@ -19267,6 +19857,64 @@ func (ec *executionContext) marshalNOwner2ᚖgithubᚗcomᚋnaviktᚋnadaᚑback
 		return graphql.Null
 	}
 	return ec._Owner(ctx, sel, v)
+}
+
+func (ec *executionContext) marshalNProductArea2githubᚗcomᚋnaviktᚋnadaᚑbackendᚋpkgᚋgraphᚋmodelsᚐProductArea(ctx context.Context, sel ast.SelectionSet, v models.ProductArea) graphql.Marshaler {
+	return ec._ProductArea(ctx, sel, &v)
+}
+
+func (ec *executionContext) marshalNProductArea2ᚕᚖgithubᚗcomᚋnaviktᚋnadaᚑbackendᚋpkgᚋgraphᚋmodelsᚐProductAreaᚄ(ctx context.Context, sel ast.SelectionSet, v []*models.ProductArea) graphql.Marshaler {
+	ret := make(graphql.Array, len(v))
+	var wg sync.WaitGroup
+	isLen1 := len(v) == 1
+	if !isLen1 {
+		wg.Add(len(v))
+	}
+	for i := range v {
+		i := i
+		fc := &graphql.FieldContext{
+			Index:  &i,
+			Result: &v[i],
+		}
+		ctx := graphql.WithFieldContext(ctx, fc)
+		f := func(i int) {
+			defer func() {
+				if r := recover(); r != nil {
+					ec.Error(ctx, ec.Recover(ctx, r))
+					ret = nil
+				}
+			}()
+			if !isLen1 {
+				defer wg.Done()
+			}
+			ret[i] = ec.marshalNProductArea2ᚖgithubᚗcomᚋnaviktᚋnadaᚑbackendᚋpkgᚋgraphᚋmodelsᚐProductArea(ctx, sel, v[i])
+		}
+		if isLen1 {
+			f(i)
+		} else {
+			go f(i)
+		}
+
+	}
+	wg.Wait()
+
+	for _, e := range ret {
+		if e == graphql.Null {
+			return graphql.Null
+		}
+	}
+
+	return ret
+}
+
+func (ec *executionContext) marshalNProductArea2ᚖgithubᚗcomᚋnaviktᚋnadaᚑbackendᚋpkgᚋgraphᚋmodelsᚐProductArea(ctx context.Context, sel ast.SelectionSet, v *models.ProductArea) graphql.Marshaler {
+	if v == nil {
+		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
+			ec.Errorf(ctx, "the requested element is null which the schema does not allow")
+		}
+		return graphql.Null
+	}
+	return ec._ProductArea(ctx, sel, v)
 }
 
 func (ec *executionContext) marshalNQuarto2githubᚗcomᚋnaviktᚋnadaᚑbackendᚋpkgᚋgraphᚋmodelsᚐQuarto(ctx context.Context, sel ast.SelectionSet, v models.Quarto) graphql.Marshaler {

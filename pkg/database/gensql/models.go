@@ -232,6 +232,12 @@ type PollyDocumentation struct {
 	Url        string
 }
 
+type ProductArea struct {
+	ID         uuid.UUID
+	ExternalID string
+	Name       string
+}
+
 type Quarto struct {
 	ID           uuid.UUID
 	Owner        string

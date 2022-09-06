@@ -6,11 +6,13 @@ package gensql
 
 import (
 	"context"
+	"database/sql"
 
 	"github.com/google/uuid"
 )
 
 type Querier interface {
+	AddProductArea(ctx context.Context, arg AddProductAreaParams) (ProductArea, error)
 	AddTeamProject(ctx context.Context, arg AddTeamProjectParams) (TeamProject, error)
 	ApproveAccessRequest(ctx context.Context, arg ApproveAccessRequestParams) error
 	CleanupStoryDrafts(ctx context.Context) error
@@ -47,12 +49,14 @@ type Querier interface {
 	GetAccessRequest(ctx context.Context, id uuid.UUID) (DatasetAccessRequest, error)
 	GetAccessToDataset(ctx context.Context, id uuid.UUID) (DatasetAccess, error)
 	GetActiveAccessToDatasetForSubject(ctx context.Context, arg GetActiveAccessToDatasetForSubjectParams) (DatasetAccess, error)
+	GetAllProductAreas(ctx context.Context) ([]ProductArea, error)
 	GetBigqueryDatasource(ctx context.Context, datasetID uuid.UUID) (DatasourceBigquery, error)
 	GetBigqueryDatasources(ctx context.Context) ([]DatasourceBigquery, error)
 	GetDataproduct(ctx context.Context, id uuid.UUID) (Dataproduct, error)
 	GetDataproducts(ctx context.Context, arg GetDataproductsParams) ([]Dataproduct, error)
 	GetDataproductsByGroups(ctx context.Context, groups []string) ([]Dataproduct, error)
 	GetDataproductsByIDs(ctx context.Context, ids []uuid.UUID) ([]Dataproduct, error)
+	GetDataproductsByProductAreas(ctx context.Context, productAreaID sql.NullString) ([]Dataproduct, error)
 	GetDataset(ctx context.Context, id uuid.UUID) (Dataset, error)
 	GetDatasetMappings(ctx context.Context, datasetID uuid.UUID) (ThirdPartyMapping, error)
 	GetDatasetRequesters(ctx context.Context, datasetID uuid.UUID) ([]string, error)
@@ -65,6 +69,7 @@ type Querier interface {
 	GetMetabaseMetadata(ctx context.Context, datasetID uuid.UUID) (MetabaseMetadatum, error)
 	GetMetabaseMetadataWithDeleted(ctx context.Context, datasetID uuid.UUID) (MetabaseMetadatum, error)
 	GetPollyDocumentation(ctx context.Context, id uuid.UUID) (PollyDocumentation, error)
+	GetProductArea(ctx context.Context, id uuid.UUID) (ProductArea, error)
 	GetQuarto(ctx context.Context, id uuid.UUID) (Quarto, error)
 	GetQuartos(ctx context.Context) ([]Quarto, error)
 	GetQuartosForOwner(ctx context.Context, owner string) ([]Quarto, error)

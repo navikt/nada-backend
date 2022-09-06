@@ -319,6 +319,47 @@ func (q *Queries) GetDataproductsByIDs(ctx context.Context, ids []uuid.UUID) ([]
 	return items, nil
 }
 
+const getDataproductsByProductAreas = `-- name: GetDataproductsByProductAreas :many
+SELECT id, name, description, "group", created, last_modified, tsv_document, slug, teamkatalogen_url, team_contact, product_area_id
+FROM dataproducts
+WHERE product_area_id = $1
+`
+
+func (q *Queries) GetDataproductsByProductAreas(ctx context.Context, productAreaID sql.NullString) ([]Dataproduct, error) {
+	rows, err := q.db.QueryContext(ctx, getDataproductsByProductAreas, productAreaID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []Dataproduct{}
+	for rows.Next() {
+		var i Dataproduct
+		if err := rows.Scan(
+			&i.ID,
+			&i.Name,
+			&i.Description,
+			&i.Group,
+			&i.Created,
+			&i.LastModified,
+			&i.TsvDocument,
+			&i.Slug,
+			&i.TeamkatalogenUrl,
+			&i.TeamContact,
+			&i.ProductAreaID,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const updateDataproduct = `-- name: UpdateDataproduct :one
 UPDATE dataproducts
 SET "name"              = $1,
