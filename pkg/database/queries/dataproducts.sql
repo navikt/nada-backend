@@ -32,13 +32,15 @@ INSERT INTO dataproducts ("name",
                           "group",
                           "teamkatalogen_url",
                           "slug",
-                          "team_contact")
+                          "team_contact",
+                          "product_area_id")
 VALUES (@name,
         @description,
         @owner_group,
         @owner_teamkatalogen_url,
         @slug,
-        @team_contact)
+        @team_contact,
+        @product_area_id)
 RETURNING *;
 
 -- name: UpdateDataproduct :one
@@ -47,7 +49,8 @@ SET "name"              = @name,
     "description"       = @description,
     "slug"              = @slug,
     "teamkatalogen_url" = @owner_teamkatalogen_url,
-    "team_contact"      = @team_contact
+    "team_contact"      = @team_contact,
+    "product_area_id"   = @product_area_id
 WHERE id = @id
 RETURNING *;
 

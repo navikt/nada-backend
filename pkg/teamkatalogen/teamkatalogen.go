@@ -23,7 +23,8 @@ type TeamkatalogenResponse struct {
 		Links       struct {
 			Ui string `json:"ui"`
 		} `json:"links"`
-		NaisTeams []string `json:"naisTeams"`
+		NaisTeams     []string `json:"naisTeams"`
+		ProductAreaId string   `json:"productAreaId"`
 	} `json:"content"`
 }
 
@@ -62,9 +63,10 @@ func (t *Teamkatalogen) Search(ctx context.Context, query string) ([]*models.Tea
 		}
 		if isMatch {
 			ret = append(ret, &models.TeamkatalogenResult{
-				URL:         r.Links.Ui,
-				Name:        r.Name,
-				Description: r.Description,
+				URL:           r.Links.Ui,
+				Name:          r.Name,
+				Description:   r.Description,
+				ProductAreaId: r.ProductAreaId,
 			})
 		}
 	}
