@@ -268,7 +268,5 @@ func (r *Resolver) BigQuery() generated.BigQueryResolver { return &bigQueryResol
 // Dataset returns generated.DatasetResolver implementation.
 func (r *Resolver) Dataset() generated.DatasetResolver { return &datasetResolver{r} }
 
-type (
-	bigQueryResolver struct{ *Resolver }
-	datasetResolver  struct{ *Resolver }
-)
+type bigQueryResolver struct{ *Resolver }
+type datasetResolver struct{ *Resolver }

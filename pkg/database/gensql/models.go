@@ -154,6 +154,7 @@ type Dataproduct struct {
 	Slug             string
 	TeamkatalogenUrl sql.NullString
 	TeamContact      sql.NullString
+	ProductAreaID    sql.NullString
 }
 
 type Dataset struct {

@@ -71,6 +71,7 @@ func (r *Repo) CreateDataproduct(ctx context.Context, dp models.NewDataproduct) 
 		OwnerTeamkatalogenUrl: ptrToNullString(dp.TeamkatalogenURL),
 		Slug:                  slugify(dp.Slug, dp.Name),
 		TeamContact:           ptrToNullString(dp.TeamContact),
+		ProductAreaID:         ptrToNullString(dp.ProductAreaId),
 	})
 	if err != nil {
 		if err := tx.Rollback(); err != nil {
@@ -140,6 +141,7 @@ func (r *Repo) UpdateDataproduct(ctx context.Context, id uuid.UUID, new models.U
 		OwnerTeamkatalogenUrl: ptrToNullString(new.TeamkatalogenURL),
 		TeamContact:           ptrToNullString(new.TeamContact),
 		Slug:                  slugify(new.Slug, new.Name),
+		ProductAreaID:         ptrToNullString(new.ProductAreaId),
 	})
 	if err != nil {
 		return nil, fmt.Errorf("updating dataproduct in database: %w", err)
@@ -207,6 +209,7 @@ func dataproductFromSQL(dp gensql.Dataproduct) *models.Dataproduct {
 			Group:            dp.Group,
 			TeamkatalogenURL: nullStringToPtr(dp.TeamkatalogenUrl),
 			TeamContact:      nullStringToPtr(dp.TeamContact),
+			ProductAreaID:    nullStringToPtr(dp.ProductAreaID),
 		},
 	}
 }

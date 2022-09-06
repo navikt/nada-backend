@@ -19,14 +19,16 @@ INSERT INTO dataproducts ("name",
                           "group",
                           "teamkatalogen_url",
                           "slug",
-                          "team_contact")
+                          "team_contact",
+                          "product_area_id")
 VALUES ($1,
         $2,
         $3,
         $4,
         $5,
-        $6)
-RETURNING id, name, description, "group", created, last_modified, tsv_document, slug, teamkatalogen_url, team_contact
+        $6,
+        $7)
+RETURNING id, name, description, "group", created, last_modified, tsv_document, slug, teamkatalogen_url, team_contact, product_area_id
 `
 
 type CreateDataproductParams struct {
@@ -36,6 +38,7 @@ type CreateDataproductParams struct {
 	OwnerTeamkatalogenUrl sql.NullString
 	Slug                  string
 	TeamContact           sql.NullString
+	ProductAreaID         sql.NullString
 }
 
 func (q *Queries) CreateDataproduct(ctx context.Context, arg CreateDataproductParams) (Dataproduct, error) {
@@ -46,6 +49,7 @@ func (q *Queries) CreateDataproduct(ctx context.Context, arg CreateDataproductPa
 		arg.OwnerTeamkatalogenUrl,
 		arg.Slug,
 		arg.TeamContact,
+		arg.ProductAreaID,
 	)
 	var i Dataproduct
 	err := row.Scan(
@@ -59,6 +63,7 @@ func (q *Queries) CreateDataproduct(ctx context.Context, arg CreateDataproductPa
 		&i.Slug,
 		&i.TeamkatalogenUrl,
 		&i.TeamContact,
+		&i.ProductAreaID,
 	)
 	return i, err
 }
@@ -159,7 +164,7 @@ func (q *Queries) DeleteDataproduct(ctx context.Context, id uuid.UUID) error {
 }
 
 const getDataproduct = `-- name: GetDataproduct :one
-SELECT id, name, description, "group", created, last_modified, tsv_document, slug, teamkatalogen_url, team_contact
+SELECT id, name, description, "group", created, last_modified, tsv_document, slug, teamkatalogen_url, team_contact, product_area_id
 FROM dataproducts
 WHERE id = $1
 `
@@ -178,12 +183,13 @@ func (q *Queries) GetDataproduct(ctx context.Context, id uuid.UUID) (Dataproduct
 		&i.Slug,
 		&i.TeamkatalogenUrl,
 		&i.TeamContact,
+		&i.ProductAreaID,
 	)
 	return i, err
 }
 
 const getDataproducts = `-- name: GetDataproducts :many
-SELECT id, name, description, "group", created, last_modified, tsv_document, slug, teamkatalogen_url, team_contact
+SELECT id, name, description, "group", created, last_modified, tsv_document, slug, teamkatalogen_url, team_contact, product_area_id
 FROM dataproducts
 ORDER BY last_modified DESC
 LIMIT $2 OFFSET $1
@@ -214,6 +220,7 @@ func (q *Queries) GetDataproducts(ctx context.Context, arg GetDataproductsParams
 			&i.Slug,
 			&i.TeamkatalogenUrl,
 			&i.TeamContact,
+			&i.ProductAreaID,
 		); err != nil {
 			return nil, err
 		}
@@ -229,7 +236,7 @@ func (q *Queries) GetDataproducts(ctx context.Context, arg GetDataproductsParams
 }
 
 const getDataproductsByGroups = `-- name: GetDataproductsByGroups :many
-SELECT id, name, description, "group", created, last_modified, tsv_document, slug, teamkatalogen_url, team_contact
+SELECT id, name, description, "group", created, last_modified, tsv_document, slug, teamkatalogen_url, team_contact, product_area_id
 FROM dataproducts
 WHERE "group" = ANY ($1::text[])
 ORDER BY last_modified DESC
@@ -255,6 +262,7 @@ func (q *Queries) GetDataproductsByGroups(ctx context.Context, groups []string) 
 			&i.Slug,
 			&i.TeamkatalogenUrl,
 			&i.TeamContact,
+			&i.ProductAreaID,
 		); err != nil {
 			return nil, err
 		}
@@ -270,7 +278,7 @@ func (q *Queries) GetDataproductsByGroups(ctx context.Context, groups []string) 
 }
 
 const getDataproductsByIDs = `-- name: GetDataproductsByIDs :many
-SELECT id, name, description, "group", created, last_modified, tsv_document, slug, teamkatalogen_url, team_contact
+SELECT id, name, description, "group", created, last_modified, tsv_document, slug, teamkatalogen_url, team_contact, product_area_id
 FROM dataproducts
 WHERE id = ANY ($1::uuid[])
 ORDER BY last_modified DESC
@@ -296,6 +304,7 @@ func (q *Queries) GetDataproductsByIDs(ctx context.Context, ids []uuid.UUID) ([]
 			&i.Slug,
 			&i.TeamkatalogenUrl,
 			&i.TeamContact,
+			&i.ProductAreaID,
 		); err != nil {
 			return nil, err
 		}
@@ -316,9 +325,10 @@ SET "name"              = $1,
     "description"       = $2,
     "slug"              = $3,
     "teamkatalogen_url" = $4,
-    "team_contact"      = $5
-WHERE id = $6
-RETURNING id, name, description, "group", created, last_modified, tsv_document, slug, teamkatalogen_url, team_contact
+    "team_contact"      = $5,
+    "product_area_id"   = $6
+WHERE id = $7
+RETURNING id, name, description, "group", created, last_modified, tsv_document, slug, teamkatalogen_url, team_contact, product_area_id
 `
 
 type UpdateDataproductParams struct {
@@ -327,6 +337,7 @@ type UpdateDataproductParams struct {
 	Slug                  string
 	OwnerTeamkatalogenUrl sql.NullString
 	TeamContact           sql.NullString
+	ProductAreaID         sql.NullString
 	ID                    uuid.UUID
 }
 
@@ -337,6 +348,7 @@ func (q *Queries) UpdateDataproduct(ctx context.Context, arg UpdateDataproductPa
 		arg.Slug,
 		arg.OwnerTeamkatalogenUrl,
 		arg.TeamContact,
+		arg.ProductAreaID,
 		arg.ID,
 	)
 	var i Dataproduct
@@ -351,6 +363,7 @@ func (q *Queries) UpdateDataproduct(ctx context.Context, arg UpdateDataproductPa
 		&i.Slug,
 		&i.TeamkatalogenUrl,
 		&i.TeamContact,
+		&i.ProductAreaID,
 	)
 	return i, err
 }

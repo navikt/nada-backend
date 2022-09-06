@@ -185,6 +185,7 @@ type ComplexityRoot struct {
 
 	Owner struct {
 		Group            func(childComplexity int) int
+		ProductAreaID    func(childComplexity int) int
 		TeamContact      func(childComplexity int) int
 		TeamkatalogenURL func(childComplexity int) int
 	}
@@ -287,9 +288,10 @@ type ComplexityRoot struct {
 	}
 
 	TeamkatalogenResult struct {
-		Description func(childComplexity int) int
-		Name        func(childComplexity int) int
-		URL         func(childComplexity int) int
+		Description   func(childComplexity int) int
+		Name          func(childComplexity int) int
+		ProductAreaId func(childComplexity int) int
+		URL           func(childComplexity int) int
 	}
 
 	UserInfo struct {
@@ -1139,6 +1141,13 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.Owner.Group(childComplexity), true
 
+	case "Owner.productAreaId":
+		if e.complexity.Owner.ProductAreaID == nil {
+			break
+		}
+
+		return e.complexity.Owner.ProductAreaID(childComplexity), true
+
 	case "Owner.teamContact":
 		if e.complexity.Owner.TeamContact == nil {
 			break
@@ -1689,6 +1698,13 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.TeamkatalogenResult.Name(childComplexity), true
 
+	case "TeamkatalogenResult.productAreaId":
+		if e.complexity.TeamkatalogenResult.ProductAreaId == nil {
+			break
+		}
+
+		return e.complexity.TeamkatalogenResult.ProductAreaId(childComplexity), true
+
 	case "TeamkatalogenResult.url":
 		if e.complexity.TeamkatalogenResult.URL == nil {
 			break
@@ -2127,6 +2143,8 @@ input NewDataproduct @goModel(model: "github.com/navikt/nada-backend/pkg/graph/m
     teamContact: String
     "datasets to associate with the dataproduct."
     datasets: [NewDatasetForNewDataproduct!]!
+    "Id of the team's product area."
+    productAreaId: String
 }
 
 """
@@ -2141,6 +2159,8 @@ input UpdateDataproduct @goModel(model: "github.com/navikt/nada-backend/pkg/grap
     teamkatalogenURL: String
     "The contact information of the team who owns the dataproduct, which can be slack channel, slack account, email, and so on."
     teamContact: String
+    "Id of the team's product area."
+    productAreaId: String
 }
 
 extend type Mutation {
@@ -2513,6 +2533,8 @@ type Owner @goModel(model: "github.com/navikt/nada-backend/pkg/graph/models.Owne
     teamkatalogenURL: String
     "The contact information of the team who owns the dataproduct, which can be slack channel, slack account, email, and so on."
     teamContact: String
+    "Id of the team's product area."
+    productAreaId: String
 }
 `, BuiltIn: false},
 	{Name: "../../../schema/keywords.graphql", Input: `"""
@@ -2911,6 +2933,8 @@ extend type Mutation {
     name: String!
     "team description."
     description: String!
+    "Id of the team's product area."
+    productAreaId: String!
 }
 
 extend type Query {
@@ -5638,6 +5662,8 @@ func (ec *executionContext) fieldContext_Dataproduct_owner(ctx context.Context, 
 				return ec.fieldContext_Owner_teamkatalogenURL(ctx, field)
 			case "teamContact":
 				return ec.fieldContext_Owner_teamContact(ctx, field)
+			case "productAreaId":
+				return ec.fieldContext_Owner_productAreaId(ctx, field)
 			}
 			return nil, fmt.Errorf("no field named %q was found under type Owner", field.Name)
 		},
@@ -6282,6 +6308,8 @@ func (ec *executionContext) fieldContext_Dataset_owner(ctx context.Context, fiel
 				return ec.fieldContext_Owner_teamkatalogenURL(ctx, field)
 			case "teamContact":
 				return ec.fieldContext_Owner_teamContact(ctx, field)
+			case "productAreaId":
+				return ec.fieldContext_Owner_productAreaId(ctx, field)
 			}
 			return nil, fmt.Errorf("no field named %q was found under type Owner", field.Name)
 		},
@@ -8685,6 +8713,47 @@ func (ec *executionContext) fieldContext_Owner_teamContact(ctx context.Context, 
 	return fc, nil
 }
 
+func (ec *executionContext) _Owner_productAreaId(ctx context.Context, field graphql.CollectedField, obj *models.Owner) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_Owner_productAreaId(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.ProductAreaID, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		return graphql.Null
+	}
+	res := resTmp.(*string)
+	fc.Result = res
+	return ec.marshalOString2ᚖstring(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_Owner_productAreaId(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Owner",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
 func (ec *executionContext) _Polly_id(ctx context.Context, field graphql.CollectedField, obj *models.Polly) (ret graphql.Marshaler) {
 	fc, err := ec.fieldContext_Polly_id(ctx, field)
 	if err != nil {
@@ -8950,6 +9019,8 @@ func (ec *executionContext) fieldContext_Quarto_owner(ctx context.Context, field
 				return ec.fieldContext_Owner_teamkatalogenURL(ctx, field)
 			case "teamContact":
 				return ec.fieldContext_Owner_teamContact(ctx, field)
+			case "productAreaId":
+				return ec.fieldContext_Owner_productAreaId(ctx, field)
 			}
 			return nil, fmt.Errorf("no field named %q was found under type Owner", field.Name)
 		},
@@ -10648,6 +10719,8 @@ func (ec *executionContext) fieldContext_Query_teamkatalogen(ctx context.Context
 				return ec.fieldContext_TeamkatalogenResult_name(ctx, field)
 			case "description":
 				return ec.fieldContext_TeamkatalogenResult_description(ctx, field)
+			case "productAreaId":
+				return ec.fieldContext_TeamkatalogenResult_productAreaId(ctx, field)
 			}
 			return nil, fmt.Errorf("no field named %q was found under type TeamkatalogenResult", field.Name)
 		},
@@ -11321,6 +11394,8 @@ func (ec *executionContext) fieldContext_Story_owner(ctx context.Context, field 
 				return ec.fieldContext_Owner_teamkatalogenURL(ctx, field)
 			case "teamContact":
 				return ec.fieldContext_Owner_teamContact(ctx, field)
+			case "productAreaId":
+				return ec.fieldContext_Owner_productAreaId(ctx, field)
 			}
 			return nil, fmt.Errorf("no field named %q was found under type Owner", field.Name)
 		},
@@ -12284,6 +12359,50 @@ func (ec *executionContext) _TeamkatalogenResult_description(ctx context.Context
 }
 
 func (ec *executionContext) fieldContext_TeamkatalogenResult_description(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "TeamkatalogenResult",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _TeamkatalogenResult_productAreaId(ctx context.Context, field graphql.CollectedField, obj *models.TeamkatalogenResult) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_TeamkatalogenResult_productAreaId(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.ProductAreaId, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(string)
+	fc.Result = res
+	return ec.marshalNString2string(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_TeamkatalogenResult_productAreaId(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
 	fc = &graphql.FieldContext{
 		Object:     "TeamkatalogenResult",
 		Field:      field,
@@ -14792,7 +14911,7 @@ func (ec *executionContext) unmarshalInputNewDataproduct(ctx context.Context, ob
 		asMap[k] = v
 	}
 
-	fieldsInOrder := [...]string{"name", "description", "group", "teamkatalogenURL", "teamContact", "datasets"}
+	fieldsInOrder := [...]string{"name", "description", "group", "teamkatalogenURL", "teamContact", "datasets", "productAreaId"}
 	for _, k := range fieldsInOrder {
 		v, ok := asMap[k]
 		if !ok {
@@ -14844,6 +14963,14 @@ func (ec *executionContext) unmarshalInputNewDataproduct(ctx context.Context, ob
 
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("datasets"))
 			it.Datasets, err = ec.unmarshalNNewDatasetForNewDataproduct2ᚕgithubᚗcomᚋnaviktᚋnadaᚑbackendᚋpkgᚋgraphᚋmodelsᚐNewDatasetForNewDataproductᚄ(ctx, v)
+			if err != nil {
+				return it, err
+			}
+		case "productAreaId":
+			var err error
+
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("productAreaId"))
+			it.ProductAreaId, err = ec.unmarshalOString2ᚖstring(ctx, v)
 			if err != nil {
 				return it, err
 			}
@@ -15372,7 +15499,7 @@ func (ec *executionContext) unmarshalInputUpdateDataproduct(ctx context.Context,
 		asMap[k] = v
 	}
 
-	fieldsInOrder := [...]string{"name", "description", "teamkatalogenURL", "teamContact"}
+	fieldsInOrder := [...]string{"name", "description", "teamkatalogenURL", "teamContact", "productAreaId"}
 	for _, k := range fieldsInOrder {
 		v, ok := asMap[k]
 		if !ok {
@@ -15408,6 +15535,14 @@ func (ec *executionContext) unmarshalInputUpdateDataproduct(ctx context.Context,
 
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("teamContact"))
 			it.TeamContact, err = ec.unmarshalOString2ᚖstring(ctx, v)
+			if err != nil {
+				return it, err
+			}
+		case "productAreaId":
+			var err error
+
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("productAreaId"))
+			it.ProductAreaId, err = ec.unmarshalOString2ᚖstring(ctx, v)
 			if err != nil {
 				return it, err
 			}
@@ -16659,6 +16794,10 @@ func (ec *executionContext) _Owner(ctx context.Context, sel ast.SelectionSet, ob
 
 			out.Values[i] = ec._Owner_teamContact(ctx, field, obj)
 
+		case "productAreaId":
+
+			out.Values[i] = ec._Owner_productAreaId(ctx, field, obj)
+
 		default:
 			panic("unknown field " + strconv.Quote(field.Name))
 		}
@@ -17772,6 +17911,13 @@ func (ec *executionContext) _TeamkatalogenResult(ctx context.Context, sel ast.Se
 		case "description":
 
 			out.Values[i] = ec._TeamkatalogenResult_description(ctx, field, obj)
+
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
+		case "productAreaId":
+
+			out.Values[i] = ec._TeamkatalogenResult_productAreaId(ctx, field, obj)
 
 			if out.Values[i] == graphql.Null {
 				invalids++

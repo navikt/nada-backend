@@ -80,6 +80,8 @@ input NewDataproduct @goModel(model: "github.com/navikt/nada-backend/pkg/graph/m
     teamContact: String
     "datasets to associate with the dataproduct."
     datasets: [NewDatasetForNewDataproduct!]!
+    "Id of the team's product area."
+    productAreaId: String
 }
 
 """
@@ -94,6 +96,8 @@ input UpdateDataproduct @goModel(model: "github.com/navikt/nada-backend/pkg/grap
     teamkatalogenURL: String
     "The contact information of the team who owns the dataproduct, which can be slack channel, slack account, email, and so on."
     teamContact: String
+    "Id of the team's product area."
+    productAreaId: String
 }
 
 extend type Mutation {
