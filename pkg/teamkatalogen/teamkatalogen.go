@@ -24,7 +24,7 @@ type TeamkatalogenResponse struct {
 			Ui string `json:"ui"`
 		} `json:"links"`
 		NaisTeams     []string `json:"naisTeams"`
-		ProductAreaId string   `json:"productAreaId"`
+		ProductAreaID string   `json:"productAreaId"`
 	} `json:"content"`
 }
 
@@ -66,7 +66,7 @@ func (t *Teamkatalogen) Search(ctx context.Context, query string) ([]*models.Tea
 				URL:           r.Links.Ui,
 				Name:          r.Name,
 				Description:   r.Description,
-				ProductAreaId: r.ProductAreaId,
+				ProductAreaID: r.ProductAreaID,
 			})
 		}
 	}

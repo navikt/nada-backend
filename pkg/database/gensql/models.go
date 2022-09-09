@@ -277,6 +277,7 @@ type Story struct {
 	Description      sql.NullString
 	Keywords         []string
 	TeamkatalogenUrl sql.NullString
+	ProductAreaID    sql.NullString
 }
 
 type StoryDraft struct {

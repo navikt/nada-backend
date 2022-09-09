@@ -6,7 +6,7 @@ type TeamkatalogenResult @goModel(model: "github.com/navikt/nada-backend/pkg/gra
     "team description."
     description: String!
     "Id of the team's product area."
-    productAreaId: String!
+    productAreaID: String!
 }
 
 extend type Query {
