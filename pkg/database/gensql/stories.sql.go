@@ -165,6 +165,46 @@ func (q *Queries) GetStories(ctx context.Context) ([]Story, error) {
 	return items, nil
 }
 
+const getStoriesByExternalIDs = `-- name: GetStoriesByExternalIDs :many
+SELECT id, name, created, last_modified, "group", description, keywords, teamkatalogen_url, product_area_id
+FROM stories
+WHERE product_area_id = $1
+ORDER BY created DESC
+`
+
+func (q *Queries) GetStoriesByExternalIDs(ctx context.Context, productAreaID sql.NullString) ([]Story, error) {
+	rows, err := q.db.QueryContext(ctx, getStoriesByExternalIDs, productAreaID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []Story{}
+	for rows.Next() {
+		var i Story
+		if err := rows.Scan(
+			&i.ID,
+			&i.Name,
+			&i.Created,
+			&i.LastModified,
+			&i.Group,
+			&i.Description,
+			pq.Array(&i.Keywords),
+			&i.TeamkatalogenUrl,
+			&i.ProductAreaID,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const getStoriesByGroups = `-- name: GetStoriesByGroups :many
 SELECT id, name, created, last_modified, "group", description, keywords, teamkatalogen_url, product_area_id
 FROM stories

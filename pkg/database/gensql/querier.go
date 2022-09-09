@@ -75,6 +75,7 @@ type Querier interface {
 	GetQuartosForOwner(ctx context.Context, owner string) ([]Quarto, error)
 	GetSession(ctx context.Context, token string) (Session, error)
 	GetStories(ctx context.Context) ([]Story, error)
+	GetStoriesByExternalIDs(ctx context.Context, productAreaID sql.NullString) ([]Story, error)
 	GetStoriesByGroups(ctx context.Context, groups []string) ([]Story, error)
 	GetStoriesByIDs(ctx context.Context, ids []uuid.UUID) ([]Story, error)
 	GetStory(ctx context.Context, id uuid.UUID) (Story, error)

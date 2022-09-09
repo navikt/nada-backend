@@ -75,6 +75,12 @@ func (r *Repo) GetProductAreas(ctx context.Context) ([]*models.ProductArea, erro
 		for idx, dp := range dps {
 			dpsGraph[idx] = dataproductFromSQL(dp)
 		}
+
+		_, err = r.querier.GetStoriesByExternalIDs(ctx, sql.NullString{String: pa.ExternalID, Valid: true})
+		if err != nil {
+			return nil, err
+		}
+
 		pasGraph[idx] = productAreaFromSQL(pa, dpsGraph, nil)
 	}
 
