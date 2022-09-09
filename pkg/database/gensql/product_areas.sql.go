@@ -11,29 +11,6 @@ import (
 	"github.com/google/uuid"
 )
 
-const addProductArea = `-- name: AddProductArea :one
-INSERT INTO "product_areas" (
-    "external_id",
-    "name"
-) VALUES (
-    $1,
-    $2
-)
-RETURNING id, external_id, name
-`
-
-type AddProductAreaParams struct {
-	ExternalID string
-	Name       string
-}
-
-func (q *Queries) AddProductArea(ctx context.Context, arg AddProductAreaParams) (ProductArea, error) {
-	row := q.db.QueryRowContext(ctx, addProductArea, arg.ExternalID, arg.Name)
-	var i ProductArea
-	err := row.Scan(&i.ID, &i.ExternalID, &i.Name)
-	return i, err
-}
-
 const getAllProductAreas = `-- name: GetAllProductAreas :many
 SELECT id, external_id, name FROM "product_areas"
 `
@@ -68,6 +45,43 @@ WHERE id = $1
 
 func (q *Queries) GetProductArea(ctx context.Context, id uuid.UUID) (ProductArea, error) {
 	row := q.db.QueryRowContext(ctx, getProductArea, id)
+	var i ProductArea
+	err := row.Scan(&i.ID, &i.ExternalID, &i.Name)
+	return i, err
+}
+
+const getProductAreaForExternalID = `-- name: GetProductAreaForExternalID :one
+SELECT id, external_id, name FROM "product_areas"
+WHERE external_id = $1
+`
+
+func (q *Queries) GetProductAreaForExternalID(ctx context.Context, externalID string) (ProductArea, error) {
+	row := q.db.QueryRowContext(ctx, getProductAreaForExternalID, externalID)
+	var i ProductArea
+	err := row.Scan(&i.ID, &i.ExternalID, &i.Name)
+	return i, err
+}
+
+const upsertProductArea = `-- name: UpsertProductArea :one
+INSERT INTO "product_areas" (
+    "external_id",
+    "name"
+) VALUES (
+    $1,
+    $2
+) ON CONFLICT (external_id)
+DO 
+UPDATE SET "name" = EXCLUDED.name
+RETURNING id, external_id, name
+`
+
+type UpsertProductAreaParams struct {
+	ExternalID string
+	Name       string
+}
+
+func (q *Queries) UpsertProductArea(ctx context.Context, arg UpsertProductAreaParams) (ProductArea, error) {
+	row := q.db.QueryRowContext(ctx, upsertProductArea, arg.ExternalID, arg.Name)
 	var i ProductArea
 	err := row.Scan(&i.ID, &i.ExternalID, &i.Name)
 	return i, err

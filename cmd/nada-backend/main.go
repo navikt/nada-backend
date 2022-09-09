@@ -20,6 +20,7 @@ import (
 	"github.com/navikt/nada-backend/pkg/graph"
 	"github.com/navikt/nada-backend/pkg/metabase"
 	"github.com/navikt/nada-backend/pkg/polly"
+	"github.com/navikt/nada-backend/pkg/productareasupdater"
 	"github.com/navikt/nada-backend/pkg/slack"
 	"github.com/navikt/nada-backend/pkg/story"
 	"github.com/navikt/nada-backend/pkg/teamkatalogen"
@@ -133,6 +134,9 @@ func main() {
 
 		gcp = datacatalogClient
 	}
+
+	paUpdater := productareasupdater.New(cfg.TeamkatalogenURL, repo)
+	go paUpdater.Run(ctx, time.Duration(1*time.Hour))
 
 	go story.NewDraftCleaner(repo, log.WithField("subsystem", "storydraftcleaner")).Run(ctx, StoryDraftCleanerFrequency)
 

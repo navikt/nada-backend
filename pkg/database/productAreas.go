@@ -9,8 +9,8 @@ import (
 	"github.com/navikt/nada-backend/pkg/graph/models"
 )
 
-func (r *Repo) AddProductArea(ctx context.Context, name, externalID string) error {
-	_, err := r.querier.AddProductArea(ctx, gensql.AddProductAreaParams{
+func (r *Repo) UpsertProductArea(ctx context.Context, name, externalID string) error {
+	_, err := r.querier.UpsertProductArea(ctx, gensql.UpsertProductAreaParams{
 		Name:       name,
 		ExternalID: externalID,
 	})
@@ -38,6 +38,25 @@ func (r *Repo) GetProductArea(ctx context.Context, id uuid.UUID) (*models.Produc
 	}
 
 	return productAreaFromSQL(pa, dpsGraph, nil), nil
+}
+
+func (r *Repo) GetProductAreaForExternalID(ctx context.Context, externalID string) (*models.ProductArea, error) {
+	pa, err := r.querier.GetProductAreaForExternalID(ctx, externalID)
+	if err != nil {
+		return nil, err
+	}
+
+	dps, err := r.querier.GetDataproductsByProductAreas(ctx, sql.NullString{String: pa.ExternalID, Valid: true})
+	if err != nil {
+		return nil, err
+	}
+
+	dpsGraph := make([]*models.Dataproduct, len(dps))
+	for idx, dp := range dps {
+		dpsGraph[idx] = dataproductFromSQL(dp)
+	}
+
+	return productAreaFromSQL(pa, dpsGraph, nil), err
 }
 
 func (r *Repo) GetProductAreas(ctx context.Context) ([]*models.ProductArea, error) {

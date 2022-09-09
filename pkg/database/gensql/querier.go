@@ -12,7 +12,6 @@ import (
 )
 
 type Querier interface {
-	AddProductArea(ctx context.Context, arg AddProductAreaParams) (ProductArea, error)
 	AddTeamProject(ctx context.Context, arg AddTeamProjectParams) (TeamProject, error)
 	ApproveAccessRequest(ctx context.Context, arg ApproveAccessRequestParams) error
 	CleanupStoryDrafts(ctx context.Context) error
@@ -70,6 +69,7 @@ type Querier interface {
 	GetMetabaseMetadataWithDeleted(ctx context.Context, datasetID uuid.UUID) (MetabaseMetadatum, error)
 	GetPollyDocumentation(ctx context.Context, id uuid.UUID) (PollyDocumentation, error)
 	GetProductArea(ctx context.Context, id uuid.UUID) (ProductArea, error)
+	GetProductAreaForExternalID(ctx context.Context, externalID string) (ProductArea, error)
 	GetQuarto(ctx context.Context, id uuid.UUID) (Quarto, error)
 	GetQuartos(ctx context.Context) ([]Quarto, error)
 	GetQuartosForOwner(ctx context.Context, owner string) ([]Quarto, error)
@@ -105,6 +105,7 @@ type Querier interface {
 	UpdateDataset(ctx context.Context, arg UpdateDatasetParams) (Dataset, error)
 	UpdateQuarto(ctx context.Context, arg UpdateQuartoParams) (Quarto, error)
 	UpdateStory(ctx context.Context, arg UpdateStoryParams) (Story, error)
+	UpsertProductArea(ctx context.Context, arg UpsertProductAreaParams) (ProductArea, error)
 }
 
 var _ Querier = (*Queries)(nil)
