@@ -20,7 +20,7 @@ spec:
   command:
     - /app/nada-backend
     - --teamkatalogen-url
-    - https://teamkatalog-api.dev-fss-pub.nais.io/team
+    - https://teamkatalog-api.dev-fss-pub.nais.io
     - --polly-url
     - https://polly.dev-fss-pub.nais.io/process
     - --team-projects-url
