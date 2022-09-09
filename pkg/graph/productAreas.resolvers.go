@@ -17,5 +17,11 @@ func (r *queryResolver) ProductArea(ctx context.Context, id uuid.UUID) (*models.
 
 // ProductAreas is the resolver for the productAreas field.
 func (r *queryResolver) ProductAreas(ctx context.Context) ([]*models.ProductArea, error) {
-	return r.repo.GetProductAreas(ctx)
+	// temporarily return only one product area
+	pas, err := r.repo.GetProductAreas(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	return []*models.ProductArea{pas[0]}, err
 }
