@@ -4,5 +4,5 @@ type TeamkatalogenResult struct {
 	URL           string `json:"url"`
 	Name          string `json:"name"`
 	Description   string `json:"description"`
-	ProductAreaId string `json:"productAreaId"`
+	ProductAreaID string `json:"productAreaID"`
 }

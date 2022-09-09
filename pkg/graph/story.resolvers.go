@@ -50,7 +50,7 @@ func (r *mutationResolver) PublishStory(ctx context.Context, input models.NewSto
 }
 
 // UpdateStoryMetadata is the resolver for the updateStoryMetadata field.
-func (r *mutationResolver) UpdateStoryMetadata(ctx context.Context, id uuid.UUID, name string, keywords []string, teamkatalogenURL *string) (*models.GraphStory, error) {
+func (r *mutationResolver) UpdateStoryMetadata(ctx context.Context, id uuid.UUID, name string, keywords []string, teamkatalogenURL *string, productAreaID *string) (*models.GraphStory, error) {
 	existing, err := r.repo.GetStory(ctx, id)
 	if err != nil {
 		return nil, err
@@ -61,7 +61,7 @@ func (r *mutationResolver) UpdateStoryMetadata(ctx context.Context, id uuid.UUID
 		return nil, ErrUnauthorized
 	}
 
-	story, err := r.repo.UpdateStoryMetadata(ctx, id, name, keywords, teamkatalogenURL, nil)
+	story, err := r.repo.UpdateStoryMetadata(ctx, id, name, keywords, teamkatalogenURL, productAreaID)
 	if err != nil {
 		return nil, err
 	}

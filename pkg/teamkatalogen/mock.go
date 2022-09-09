@@ -19,7 +19,7 @@ func NewMock() *Mock {
 			Name:          t.Name,
 			URL:           "https://some.url",
 			Description:   "This is a description of " + t.Name,
-			ProductAreaId: "Mocked-001",
+			ProductAreaID: "Mocked-001",
 		})
 	}
 	return tk
