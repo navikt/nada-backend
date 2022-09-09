@@ -43,6 +43,7 @@ type NewStory struct {
 	Group            string     `json:"group"`
 	Keywords         []string   `json:"keywords"`
 	TeamkatalogenURL *string    `json:"teamkatalogenURL"`
+	ProductAreaID    *string    `json:"productAreaID"`
 }
 
 func (GraphStory) IsSearchResult() {}

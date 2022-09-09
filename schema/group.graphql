@@ -9,5 +9,5 @@ type Owner @goModel(model: "github.com/navikt/nada-backend/pkg/graph/models.Owne
     "The contact information of the team who owns the dataproduct, which can be slack channel, slack account, email, and so on."
     teamContact: String
     "Id of the team's product area."
-    productAreaId: String
+    productAreaID: String
 }
