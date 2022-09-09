@@ -4,13 +4,15 @@ INSERT INTO stories (
 	"group",
 	"description",
 	"keywords",
-	"teamkatalogen_url"
+	"teamkatalogen_url",
+	"product_area_id"
 ) VALUES (
 	@name,
 	@grp,
 	@description,
 	@keywords,
-	@teamkatalogen_url
+	@teamkatalogen_url,
+	@product_area_id
 )
 RETURNING *;
 
@@ -62,7 +64,8 @@ SET
 	"group" = @grp,
 	"description" = @description,
 	"keywords" = @keywords,
-	"teamkatalogen_url" = @teamkatalogen_url
+	"teamkatalogen_url" = @teamkatalogen_url,
+	"product_area_id" = @product_area_id
 WHERE id = @id
 RETURNING *;
 

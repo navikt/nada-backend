@@ -162,7 +162,7 @@ func (r *Repo) UpdateStory(ctx context.Context, ds models.NewStory) (*models.DBS
 	return storyFromSQL(updated), nil
 }
 
-func (r *Repo) UpdateStoryMetadata(ctx context.Context, id uuid.UUID, name string, keywords []string, teamkatalogenURL *string) (*models.DBStory, error) {
+func (r *Repo) UpdateStoryMetadata(ctx context.Context, id uuid.UUID, name string, keywords []string, teamkatalogenURL *string, productAreaId *string) (*models.DBStory, error) {
 	story, err := r.querier.GetStory(ctx, id)
 	if err != nil {
 		return nil, err
@@ -175,6 +175,7 @@ func (r *Repo) UpdateStoryMetadata(ctx context.Context, id uuid.UUID, name strin
 		Keywords:         keywords,
 		ID:               id,
 		TeamkatalogenUrl: ptrToNullString(teamkatalogenURL),
+		ProductAreaID:    ptrToNullString(productAreaId),
 	})
 	if err != nil {
 		return nil, err
@@ -233,6 +234,7 @@ func (r *Repo) GetStoryFromToken(ctx context.Context, token uuid.UUID) (*models.
 		Owner: models.Owner{
 			Group:            story.Group,
 			TeamkatalogenURL: nullStringToPtr(story.TeamkatalogenUrl),
+			ProductAreaID:    nullStringToPtr(story.ProductAreaID),
 		},
 		Description:  story.Description.String,
 		Keywords:     story.Keywords,
@@ -286,6 +288,7 @@ func storyFromSQL(s gensql.Story) *models.DBStory {
 		Owner: models.Owner{
 			Group:            s.Group,
 			TeamkatalogenURL: nullStringToPtr(s.TeamkatalogenUrl),
+			ProductAreaID:    nullStringToPtr(s.ProductAreaID),
 		},
 		Description:  s.Description.String,
 		Keywords:     s.Keywords,
