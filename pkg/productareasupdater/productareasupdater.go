@@ -61,7 +61,9 @@ func (p *ProductAreaUpdater) UpdateProductAreas(ctx context.Context) error {
 		return err
 	}
 
-	json.Unmarshal(bodyBytes, &productAreas)
+	if err := json.Unmarshal(bodyBytes, &productAreas); err != nil {
+		return err
+	}
 
 	for _, pa := range productAreas.Content {
 		if err := p.repo.UpsertProductArea(ctx, pa.Name, pa.ID); err != nil {
