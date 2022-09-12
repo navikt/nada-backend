@@ -5,6 +5,10 @@ package graph
 
 import (
 	"context"
+	"database/sql"
+	"errors"
+	"fmt"
+	"os"
 
 	"github.com/google/uuid"
 	"github.com/navikt/nada-backend/pkg/graph/generated"
@@ -43,12 +47,26 @@ func (r *queryResolver) ProductArea(ctx context.Context, id uuid.UUID) (*models.
 // ProductAreas is the resolver for the productAreas field.
 func (r *queryResolver) ProductAreas(ctx context.Context) ([]*models.ProductArea, error) {
 	// temporarily return only one product area
+	dashboardID := os.Getenv("DASHBOARD_PA_ID")
+	if dashboardID == "" {
+		return nil, nil
+	}
 	pas, err := r.repo.GetProductAreas(ctx)
 	if err != nil {
+		fmt.Println(err)
+		if errors.Is(err, sql.ErrNoRows) {
+			return nil, nil
+		}
 		return nil, err
 	}
 
-	return []*models.ProductArea{pas[0]}, err
+	for _, pa := range pas {
+		if pa.ExternalID == dashboardID {
+			return []*models.ProductArea{pa}, nil
+		}
+	}
+
+	return nil, nil
 }
 
 // ProductArea returns generated.ProductAreaResolver implementation.
