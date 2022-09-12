@@ -319,14 +319,15 @@ func (q *Queries) GetDataproductsByIDs(ctx context.Context, ids []uuid.UUID) ([]
 	return items, nil
 }
 
-const getDataproductsByProductAreas = `-- name: GetDataproductsByProductAreas :many
+const getDataproductsByProductArea = `-- name: GetDataproductsByProductArea :many
 SELECT id, name, description, "group", created, last_modified, tsv_document, slug, teamkatalogen_url, team_contact, product_area_id
 FROM dataproducts
 WHERE product_area_id = $1
+ORDER BY created DESC
 `
 
-func (q *Queries) GetDataproductsByProductAreas(ctx context.Context, productAreaID sql.NullString) ([]Dataproduct, error) {
-	rows, err := q.db.QueryContext(ctx, getDataproductsByProductAreas, productAreaID)
+func (q *Queries) GetDataproductsByProductArea(ctx context.Context, productAreaID sql.NullString) ([]Dataproduct, error) {
+	rows, err := q.db.QueryContext(ctx, getDataproductsByProductArea, productAreaID)
 	if err != nil {
 		return nil, err
 	}

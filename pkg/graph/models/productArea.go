@@ -9,8 +9,4 @@ type ProductArea struct {
 	ExternalID string `json:"externalID"`
 	// name is the name of the product area.
 	Name string `json:"name"`
-	// dataproducts is the dataproducts owned by the product area.
-	Dataproducts []*Dataproduct `json:"dataproducts"`
-	// stories is the stories owned by the product area.
-	Stories []*GraphStory `json:"stories"`
 }

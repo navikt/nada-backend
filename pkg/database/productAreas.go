@@ -2,7 +2,6 @@ package database
 
 import (
 	"context"
-	"database/sql"
 
 	"github.com/google/uuid"
 	"github.com/navikt/nada-backend/pkg/database/gensql"
@@ -27,17 +26,7 @@ func (r *Repo) GetProductArea(ctx context.Context, id uuid.UUID) (*models.Produc
 		return nil, err
 	}
 
-	dps, err := r.querier.GetDataproductsByProductAreas(ctx, sql.NullString{String: pa.ExternalID, Valid: true})
-	if err != nil {
-		return nil, err
-	}
-
-	dpsGraph := make([]*models.Dataproduct, len(dps))
-	for idx, dp := range dps {
-		dpsGraph[idx] = dataproductFromSQL(dp)
-	}
-
-	return productAreaFromSQL(pa, dpsGraph, nil), nil
+	return productAreaFromSQL(pa), nil
 }
 
 func (r *Repo) GetProductAreaForExternalID(ctx context.Context, externalID string) (*models.ProductArea, error) {
@@ -46,17 +35,7 @@ func (r *Repo) GetProductAreaForExternalID(ctx context.Context, externalID strin
 		return nil, err
 	}
 
-	dps, err := r.querier.GetDataproductsByProductAreas(ctx, sql.NullString{String: pa.ExternalID, Valid: true})
-	if err != nil {
-		return nil, err
-	}
-
-	dpsGraph := make([]*models.Dataproduct, len(dps))
-	for idx, dp := range dps {
-		dpsGraph[idx] = dataproductFromSQL(dp)
-	}
-
-	return productAreaFromSQL(pa, dpsGraph, nil), err
+	return productAreaFromSQL(pa), nil
 }
 
 func (r *Repo) GetProductAreas(ctx context.Context) ([]*models.ProductArea, error) {
@@ -67,32 +46,16 @@ func (r *Repo) GetProductAreas(ctx context.Context) ([]*models.ProductArea, erro
 
 	pasGraph := make([]*models.ProductArea, len(pas))
 	for idx, pa := range pas {
-		dps, err := r.querier.GetDataproductsByProductAreas(ctx, sql.NullString{String: pa.ExternalID, Valid: true})
-		if err != nil {
-			return nil, err
-		}
-		dpsGraph := make([]*models.Dataproduct, len(dps))
-		for idx, dp := range dps {
-			dpsGraph[idx] = dataproductFromSQL(dp)
-		}
-
-		_, err = r.querier.GetStoriesByExternalIDs(ctx, sql.NullString{String: pa.ExternalID, Valid: true})
-		if err != nil {
-			return nil, err
-		}
-
-		pasGraph[idx] = productAreaFromSQL(pa, dpsGraph, nil)
+		pasGraph[idx] = productAreaFromSQL(pa)
 	}
 
 	return pasGraph, nil
 }
 
-func productAreaFromSQL(pa gensql.ProductArea, dps []*models.Dataproduct, ss []*models.GraphStory) *models.ProductArea {
+func productAreaFromSQL(pa gensql.ProductArea) *models.ProductArea {
 	return &models.ProductArea{
-		ID:           pa.ID,
-		ExternalID:   pa.ExternalID,
-		Name:         pa.Name,
-		Dataproducts: dps,
-		Stories:      nil,
+		ID:         pa.ID,
+		ExternalID: pa.ExternalID,
+		Name:       pa.Name,
 	}
 }

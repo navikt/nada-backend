@@ -44,6 +44,7 @@ type ResolverRoot interface {
 	Dataproduct() DataproductResolver
 	Dataset() DatasetResolver
 	Mutation() MutationResolver
+	ProductArea() ProductAreaResolver
 	Query() QueryResolver
 	SearchResultRow() SearchResultRowResolver
 	Story() StoryResolver
@@ -364,6 +365,10 @@ type MutationResolver interface {
 	PublishStory(ctx context.Context, input models.NewStory) (*models.GraphStory, error)
 	UpdateStoryMetadata(ctx context.Context, id uuid.UUID, name string, keywords []string, teamkatalogenURL *string, productAreaID *string) (*models.GraphStory, error)
 	DeleteStory(ctx context.Context, id uuid.UUID) (bool, error)
+}
+type ProductAreaResolver interface {
+	Dataproducts(ctx context.Context, obj *models.ProductArea) ([]*models.Dataproduct, error)
+	Stories(ctx context.Context, obj *models.ProductArea) ([]*models.GraphStory, error)
 }
 type QueryResolver interface {
 	Version(ctx context.Context) (string, error)
@@ -9199,7 +9204,7 @@ func (ec *executionContext) _ProductArea_dataproducts(ctx context.Context, field
 	}()
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
-		return obj.Dataproducts, nil
+		return ec.resolvers.ProductArea().Dataproducts(rctx, obj)
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -9220,8 +9225,8 @@ func (ec *executionContext) fieldContext_ProductArea_dataproducts(ctx context.Co
 	fc = &graphql.FieldContext{
 		Object:     "ProductArea",
 		Field:      field,
-		IsMethod:   false,
-		IsResolver: false,
+		IsMethod:   true,
+		IsResolver: true,
 		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
 			switch field.Name {
 			case "id":
@@ -9263,7 +9268,7 @@ func (ec *executionContext) _ProductArea_stories(ctx context.Context, field grap
 	}()
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
-		return obj.Stories, nil
+		return ec.resolvers.ProductArea().Stories(rctx, obj)
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -9284,8 +9289,8 @@ func (ec *executionContext) fieldContext_ProductArea_stories(ctx context.Context
 	fc = &graphql.FieldContext{
 		Object:     "ProductArea",
 		Field:      field,
-		IsMethod:   false,
-		IsResolver: false,
+		IsMethod:   true,
+		IsResolver: true,
 		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
 			switch field.Name {
 			case "id":
@@ -17383,36 +17388,62 @@ func (ec *executionContext) _ProductArea(ctx context.Context, sel ast.SelectionS
 			out.Values[i] = ec._ProductArea_id(ctx, field, obj)
 
 			if out.Values[i] == graphql.Null {
-				invalids++
+				atomic.AddUint32(&invalids, 1)
 			}
 		case "externalID":
 
 			out.Values[i] = ec._ProductArea_externalID(ctx, field, obj)
 
 			if out.Values[i] == graphql.Null {
-				invalids++
+				atomic.AddUint32(&invalids, 1)
 			}
 		case "name":
 
 			out.Values[i] = ec._ProductArea_name(ctx, field, obj)
 
 			if out.Values[i] == graphql.Null {
-				invalids++
+				atomic.AddUint32(&invalids, 1)
 			}
 		case "dataproducts":
+			field := field
 
-			out.Values[i] = ec._ProductArea_dataproducts(ctx, field, obj)
-
-			if out.Values[i] == graphql.Null {
-				invalids++
+			innerFunc := func(ctx context.Context) (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._ProductArea_dataproducts(ctx, field, obj)
+				if res == graphql.Null {
+					atomic.AddUint32(&invalids, 1)
+				}
+				return res
 			}
+
+			out.Concurrently(i, func() graphql.Marshaler {
+				return innerFunc(ctx)
+
+			})
 		case "stories":
+			field := field
 
-			out.Values[i] = ec._ProductArea_stories(ctx, field, obj)
-
-			if out.Values[i] == graphql.Null {
-				invalids++
+			innerFunc := func(ctx context.Context) (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._ProductArea_stories(ctx, field, obj)
+				if res == graphql.Null {
+					atomic.AddUint32(&invalids, 1)
+				}
+				return res
 			}
+
+			out.Concurrently(i, func() graphql.Marshaler {
+				return innerFunc(ctx)
+
+			})
 		default:
 			panic("unknown field " + strconv.Quote(field.Name))
 		}

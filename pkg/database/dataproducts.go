@@ -47,6 +47,20 @@ func (r *Repo) GetDataproductsByGroups(ctx context.Context, groups []string) ([]
 	return dps, nil
 }
 
+func (r *Repo) GetDataproductByProductArea(ctx context.Context, paID string) ([]*models.Dataproduct, error) {
+	dps, err := r.querier.GetDataproductsByProductArea(ctx, sql.NullString{String: paID, Valid: true})
+	if err != nil {
+		return nil, err
+	}
+
+	dpsGraph := make([]*models.Dataproduct, len(dps))
+	for idx, dp := range dps {
+		dpsGraph[idx] = dataproductFromSQL(dp)
+	}
+
+	return dpsGraph, nil
+}
+
 func (r *Repo) GetDataproduct(ctx context.Context, id uuid.UUID) (*models.Dataproduct, error) {
 	res, err := r.querier.GetDataproduct(ctx, id)
 	if err != nil {

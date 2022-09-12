@@ -46,7 +46,7 @@ FROM stories
 WHERE id = ANY (@ids::uuid[])
 ORDER BY created DESC;
 
--- name: GetStoriesByExternalIDs :many
+-- name: GetStoriesByProductArea :many
 SELECT *
 FROM stories
 WHERE product_area_id = @product_area_id
