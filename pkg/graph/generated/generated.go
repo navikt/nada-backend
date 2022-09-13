@@ -3083,6 +3083,8 @@ input NewStory @goModel(model: "github.com/navikt/nada-backend/pkg/graph/models.
 		teamkatalogenURL: String
 		"Id of the team's product area."
 		productAreaID: String
+        "Id of the team."
+		teamID: String
 }
 
 extend type Mutation {
@@ -16218,7 +16220,7 @@ func (ec *executionContext) unmarshalInputNewStory(ctx context.Context, obj inte
 		asMap[k] = v
 	}
 
-	fieldsInOrder := [...]string{"id", "target", "group", "keywords", "teamkatalogenURL", "productAreaID"}
+	fieldsInOrder := [...]string{"id", "target", "group", "keywords", "teamkatalogenURL", "productAreaID", "teamID"}
 	for _, k := range fieldsInOrder {
 		v, ok := asMap[k]
 		if !ok {
@@ -16270,6 +16272,14 @@ func (ec *executionContext) unmarshalInputNewStory(ctx context.Context, obj inte
 
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("productAreaID"))
 			it.ProductAreaID, err = ec.unmarshalOString2ᚖstring(ctx, v)
+			if err != nil {
+				return it, err
+			}
+		case "teamID":
+			var err error
+
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("teamID"))
+			it.TeamID, err = ec.unmarshalOString2ᚖstring(ctx, v)
 			if err != nil {
 				return it, err
 			}
