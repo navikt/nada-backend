@@ -3,6 +3,8 @@ package graph
 import (
 	"context"
 	"fmt"
+	"net/http"
+	"time"
 
 	"cloud.google.com/go/bigquery"
 	"github.com/99designs/gqlgen-contrib/prometheus"
@@ -50,10 +52,14 @@ type Resolver struct {
 	slack          Slack
 	pollyAPI       Polly
 	teamkatalogURL string
+	httpClient     *http.Client
 	log            *logrus.Entry
 }
 
 func New(repo *database.Repo, gcp Bigquery, gcpProjects *auth.TeamProjectsMapping, accessMgr AccessManager, tk Teamkatalogen, slack Slack, pollyAPI Polly, teamkatalogURL string, log *logrus.Entry) *handler.Server {
+	httpClient := &http.Client{
+		Timeout: time.Second * 10,
+	}
 	resolver := &Resolver{
 		repo:           repo,
 		bigquery:       gcp,
@@ -63,6 +69,7 @@ func New(repo *database.Repo, gcp Bigquery, gcpProjects *auth.TeamProjectsMappin
 		slack:          slack,
 		pollyAPI:       pollyAPI,
 		teamkatalogURL: teamkatalogURL,
+		httpClient:     httpClient,
 		log:            log,
 	}
 

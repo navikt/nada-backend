@@ -8,7 +8,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-	"net/http"
 	"os"
 
 	"github.com/navikt/nada-backend/pkg/graph/generated"
@@ -41,7 +40,7 @@ func (r *productAreaResolver) Stories(ctx context.Context, obj *models.ProductAr
 
 // Teams is the resolver for the teams field.
 func (r *productAreaResolver) Teams(ctx context.Context, obj *models.ProductArea) ([]*models.Team, error) {
-	resp, err := http.DefaultClient.Get(r.teamkatalogURL + "/team?productAreaId=" + obj.ID)
+	resp, err := r.httpClient.Get(r.teamkatalogURL + "/team?productAreaId=" + obj.ID)
 	if err != nil {
 		return nil, err
 	}
@@ -78,7 +77,7 @@ func (r *productAreaResolver) Teams(ctx context.Context, obj *models.ProductArea
 
 // ProductArea is the resolver for the productArea field.
 func (r *queryResolver) ProductArea(ctx context.Context, id string) (*models.ProductArea, error) {
-	resp, err := http.DefaultClient.Get(r.teamkatalogURL + "/productarea/" + id)
+	resp, err := r.httpClient.Get(r.teamkatalogURL + "/productarea/" + id)
 	if err != nil {
 		return nil, err
 	}
@@ -105,7 +104,7 @@ func (r *queryResolver) ProductArea(ctx context.Context, id string) (*models.Pro
 
 // ProductAreas is the resolver for the productAreas field.
 func (r *queryResolver) ProductAreas(ctx context.Context) ([]*models.ProductArea, error) {
-	resp, err := http.DefaultClient.Get(r.teamkatalogURL + "/productarea")
+	resp, err := r.httpClient.Get(r.teamkatalogURL + "/productarea")
 	if err != nil {
 		return nil, err
 	}
@@ -180,5 +179,7 @@ func (r *Resolver) ProductArea() generated.ProductAreaResolver { return &product
 // Team returns generated.TeamResolver implementation.
 func (r *Resolver) Team() generated.TeamResolver { return &teamResolver{r} }
 
-type productAreaResolver struct{ *Resolver }
-type teamResolver struct{ *Resolver }
+type (
+	productAreaResolver struct{ *Resolver }
+	teamResolver        struct{ *Resolver }
+)
