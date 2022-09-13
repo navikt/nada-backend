@@ -17,7 +17,7 @@ type Teamkatalogen struct {
 
 type TeamkatalogenResponse struct {
 	Content []struct {
-		ID          string `json:"id"`
+		TeamID      string `json:"id"`
 		Name        string `json:"name"`
 		Description string `json:"description"`
 		Links       struct {
@@ -67,6 +67,7 @@ func (t *Teamkatalogen) Search(ctx context.Context, query string) ([]*models.Tea
 				Name:          r.Name,
 				Description:   r.Description,
 				ProductAreaID: r.ProductAreaID,
+				TeamID:        r.TeamID,
 			})
 		}
 	}

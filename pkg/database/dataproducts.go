@@ -61,6 +61,20 @@ func (r *Repo) GetDataproductByProductArea(ctx context.Context, paID string) ([]
 	return dpsGraph, nil
 }
 
+func (r *Repo) GetDataproductByTeam(ctx context.Context, teamID string) ([]*models.Dataproduct, error) {
+	dps, err := r.querier.GetDataproductsByTeam(ctx, sql.NullString{String: teamID, Valid: true})
+	if err != nil {
+		return nil, err
+	}
+
+	dpsGraph := make([]*models.Dataproduct, len(dps))
+	for idx, dp := range dps {
+		dpsGraph[idx] = dataproductFromSQL(dp)
+	}
+
+	return dpsGraph, nil
+}
+
 func (r *Repo) GetDataproduct(ctx context.Context, id uuid.UUID) (*models.Dataproduct, error) {
 	res, err := r.querier.GetDataproduct(ctx, id)
 	if err != nil {
@@ -86,6 +100,7 @@ func (r *Repo) CreateDataproduct(ctx context.Context, dp models.NewDataproduct) 
 		Slug:                  slugify(dp.Slug, dp.Name),
 		TeamContact:           ptrToNullString(dp.TeamContact),
 		ProductAreaID:         ptrToNullString(dp.ProductAreaID),
+		TeamID:                ptrToNullString(dp.TeamID),
 	})
 	if err != nil {
 		if err := tx.Rollback(); err != nil {
@@ -156,6 +171,7 @@ func (r *Repo) UpdateDataproduct(ctx context.Context, id uuid.UUID, new models.U
 		TeamContact:           ptrToNullString(new.TeamContact),
 		Slug:                  slugify(new.Slug, new.Name),
 		ProductAreaID:         ptrToNullString(new.ProductAreaID),
+		TeamID:                ptrToNullString(new.TeamID),
 	})
 	if err != nil {
 		return nil, fmt.Errorf("updating dataproduct in database: %w", err)

@@ -20,7 +20,6 @@ import (
 	"github.com/navikt/nada-backend/pkg/graph"
 	"github.com/navikt/nada-backend/pkg/metabase"
 	"github.com/navikt/nada-backend/pkg/polly"
-	"github.com/navikt/nada-backend/pkg/productareasupdater"
 	"github.com/navikt/nada-backend/pkg/slack"
 	"github.com/navikt/nada-backend/pkg/story"
 	"github.com/navikt/nada-backend/pkg/teamkatalogen"
@@ -105,8 +104,8 @@ func main() {
 		teamProjectsUpdater = teamprojectsupdater.NewTeamProjectsUpdater(cfg.TeamProjectsOutputURL, cfg.TeamsToken, http.DefaultClient, repo)
 		go teamProjectsUpdater.Run(ctx, TeamProjectsUpdateFrequency)
 
-		paUpdater := productareasupdater.New(cfg.TeamkatalogenURL, repo)
-		go paUpdater.Run(ctx, ProductAreasUpdateFrequency)
+		//		paUpdater := productareasupdater.New(cfg.TeamkatalogenURL, repo)
+		//		go paUpdater.Run(ctx, ProductAreasUpdateFrequency)
 
 		azureGroups := auth.NewAzureGroups(http.DefaultClient, cfg.OAuth2.ClientID, cfg.OAuth2.ClientSecret, cfg.OAuth2.TenantID)
 		googleGroups, err := auth.NewGoogleGroups(ctx, cfg.ServiceAccountFile, cfg.GoogleAdminImpersonationSubject, log.WithField("subsystem", "googlegroups"))

@@ -29,6 +29,7 @@ type NewDataproduct struct {
 	Metadata         BigqueryMetadata
 	Datasets         []NewDatasetForNewDataproduct `json:"datasets"`
 	ProductAreaID    *string                       `json:"productAreaID"`
+	TeamID           *string                       `json:"teamID"`
 }
 
 type UpdateDataproduct struct {
@@ -40,6 +41,7 @@ type UpdateDataproduct struct {
 	TeamContact      *string  `json:"teamContact"`
 	Requesters       []string `json:"requesters"`
 	ProductAreaID    *string  `json:"productAreaID"`
+	TeamID           *string  `json:"teamID"`
 }
 
 type Keyword struct {

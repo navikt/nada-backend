@@ -27,6 +27,12 @@ FROM dataproducts
 WHERE product_area_id = @product_area_id
 ORDER BY created DESC;
 
+-- name: GetDataproductsByTeam :many
+SELECT *
+FROM dataproducts
+WHERE team_id = @team_id
+ORDER BY created DESC;
+
 -- name: DeleteDataproduct :exec
 DELETE
 FROM dataproducts
@@ -39,14 +45,16 @@ INSERT INTO dataproducts ("name",
                           "teamkatalogen_url",
                           "slug",
                           "team_contact",
-                          "product_area_id")
+                          "product_area_id",
+                          "team_id")
 VALUES (@name,
         @description,
         @owner_group,
         @owner_teamkatalogen_url,
         @slug,
         @team_contact,
-        @product_area_id)
+        @product_area_id,
+        @team_id)
 RETURNING *;
 
 -- name: UpdateDataproduct :one
@@ -56,7 +64,8 @@ SET "name"              = @name,
     "slug"              = @slug,
     "teamkatalogen_url" = @owner_teamkatalogen_url,
     "team_contact"      = @team_contact,
-    "product_area_id"   = @product_area_id
+    "product_area_id"   = @product_area_id,
+    "team_id"           = @team_id
 WHERE id = @id
 RETURNING *;
 

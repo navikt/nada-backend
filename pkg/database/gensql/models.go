@@ -155,6 +155,7 @@ type Dataproduct struct {
 	TeamkatalogenUrl sql.NullString
 	TeamContact      sql.NullString
 	ProductAreaID    sql.NullString
+	TeamID           sql.NullString
 }
 
 type Dataset struct {
@@ -232,12 +233,6 @@ type PollyDocumentation struct {
 	Url        string
 }
 
-type ProductArea struct {
-	ID         uuid.UUID
-	ExternalID string
-	Name       string
-}
-
 type Quarto struct {
 	ID           uuid.UUID
 	Owner        string
@@ -278,6 +273,7 @@ type Story struct {
 	Keywords         []string
 	TeamkatalogenUrl sql.NullString
 	ProductAreaID    sql.NullString
+	TeamID           sql.NullString
 }
 
 type StoryDraft struct {

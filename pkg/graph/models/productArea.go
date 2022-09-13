@@ -1,12 +1,17 @@
 package models
 
-import "github.com/google/uuid"
-
 type ProductArea struct {
 	// id is the id of the product area.
-	ID uuid.UUID `json:"id"`
-	// externalID is the product area external id in teamkatalogen.
-	ExternalID string `json:"externalID"`
+	ID string `json:"id"`
 	// name is the name of the product area.
 	Name string `json:"name"`
+}
+
+type Team struct {
+	// id is the team external id in teamkatalogen.
+	ID string `json:"id"`
+	// name is the name of the team.
+	Name string `json:"name"`
+	// productAreaID is the id of the product area.
+	ProductAreaID string `json:"productAreaID"`
 }

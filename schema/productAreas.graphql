@@ -1,13 +1,26 @@
 type ProductArea @goModel(model: "github.com/navikt/nada-backend/pkg/graph/models.ProductArea") {
-    "id is the id of the product area."
-    id: ID!
-    "externalID is the product area external id in teamkatalogen."
-    externalID: String!
+    "id is the product area external id in teamkatalogen."
+    id: String!
     "name is the name of the product area."
     name: String!
     "dataproducts is the dataproducts owned by the product area."
     dataproducts: [Dataproduct!]!
     "stories is the stories owned by the product area."
+    stories: [Story!]!
+    "teams is the teams in the product area."
+    teams: [Team!]!
+}
+
+type Team @goModel(model: "github.com/navikt/nada-backend/pkg/graph/models.Team") {
+    "id is the team external id in teamkatalogen."
+    id: String!
+    "name is the name of the team."
+    name: String!
+    "productAreaID is the id of the product area."
+    productAreaID: String!
+    "dataproducts is the dataproducts owned by the team."
+    dataproducts: [Dataproduct!]!
+    "stories is the stories owned by the team."
     stories: [Story!]!
 }
 
@@ -17,11 +30,19 @@ extend type Query {
     """
     productArea(
         "id of the productArea."
-        id: ID!
+        id: String!
     ): ProductArea!
 
     """
     productAreas returns all product areas.
     """
     productAreas: [ProductArea!]!
+
+    """
+    team returns the given team.
+    """
+    team(
+        "id of the team."
+        id: String!
+    ): Team!
 }
