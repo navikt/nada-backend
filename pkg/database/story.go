@@ -23,6 +23,34 @@ func (r *Repo) GetStories(ctx context.Context) ([]*models.DBStory, error) {
 	return ret, nil
 }
 
+func (r *Repo) GetStoriesByProductArea(ctx context.Context, paID string) ([]*models.DBStory, error) {
+	stories, err := r.querier.GetStoriesByProductArea(ctx, sql.NullString{String: paID, Valid: true})
+	if err != nil {
+		return nil, err
+	}
+
+	dbStories := make([]*models.DBStory, len(stories))
+	for idx, s := range stories {
+		dbStories[idx] = storyFromSQL(s)
+	}
+
+	return dbStories, nil
+}
+
+func (r *Repo) GetStoriesByTeam(ctx context.Context, teamID string) ([]*models.DBStory, error) {
+	stories, err := r.querier.GetStoriesByTeam(ctx, sql.NullString{String: teamID, Valid: true})
+	if err != nil {
+		return nil, err
+	}
+
+	dbStories := make([]*models.DBStory, len(stories))
+	for idx, s := range stories {
+		dbStories[idx] = storyFromSQL(s)
+	}
+
+	return dbStories, nil
+}
+
 func (r *Repo) GetStoryView(ctx context.Context, id uuid.UUID) (*models.DBStoryView, error) {
 	storyView, err := r.querier.GetStoryView(ctx, id)
 	if err != nil {
@@ -70,6 +98,7 @@ func (r *Repo) PublishStory(ctx context.Context, ds models.NewStory) (*models.DB
 		Keywords:         ds.Keywords,
 		TeamkatalogenUrl: ptrToNullString(ds.TeamkatalogenURL),
 		ProductAreaID:    ptrToNullString(ds.ProductAreaID),
+		TeamID:           ptrToNullString(ds.TeamID),
 	})
 	if err != nil {
 		if err := tx.Rollback(); err != nil {
@@ -149,6 +178,7 @@ func (r *Repo) UpdateStory(ctx context.Context, ds models.NewStory) (*models.DBS
 		ID:               *ds.Target,
 		TeamkatalogenUrl: ptrToNullString(ds.TeamkatalogenURL),
 		ProductAreaID:    ptrToNullString(ds.ProductAreaID),
+		TeamID:           ptrToNullString(ds.TeamID),
 	})
 	if err != nil {
 		if err := tx.Rollback(); err != nil {
@@ -164,7 +194,7 @@ func (r *Repo) UpdateStory(ctx context.Context, ds models.NewStory) (*models.DBS
 	return storyFromSQL(updated), nil
 }
 
-func (r *Repo) UpdateStoryMetadata(ctx context.Context, id uuid.UUID, name string, keywords []string, teamkatalogenURL *string, productAreaID *string) (*models.DBStory, error) {
+func (r *Repo) UpdateStoryMetadata(ctx context.Context, id uuid.UUID, name string, keywords []string, teamkatalogenURL, productAreaID, teamID *string) (*models.DBStory, error) {
 	story, err := r.querier.GetStory(ctx, id)
 	if err != nil {
 		return nil, err
@@ -178,6 +208,7 @@ func (r *Repo) UpdateStoryMetadata(ctx context.Context, id uuid.UUID, name strin
 		ID:               id,
 		TeamkatalogenUrl: ptrToNullString(teamkatalogenURL),
 		ProductAreaID:    ptrToNullString(productAreaID),
+		TeamID:           ptrToNullString(teamID),
 	})
 	if err != nil {
 		return nil, err

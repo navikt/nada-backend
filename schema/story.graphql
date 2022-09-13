@@ -132,7 +132,8 @@ input NewStory @goModel(model: "github.com/navikt/nada-backend/pkg/graph/models.
 		teamkatalogenURL: String
 		"Id of the team's product area."
 		productAreaID: String
-
+        "Id of the team."
+		teamID: String
 }
 
 extend type Mutation {
@@ -160,8 +161,10 @@ extend type Mutation {
 		keywords: [String!]!
 		"owner Teamkatalogen URL for the dataproduct."
 		teamkatalogenURL: String
-	   "Id of the team's product area."
+	    "Id of the team's product area."
     	productAreaID: String
+        "Id of the team."
+    	teamID: String
 	): Story! @authenticated
 
 	"""

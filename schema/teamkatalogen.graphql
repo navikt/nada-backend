@@ -1,4 +1,6 @@
 type TeamkatalogenResult @goModel(model: "github.com/navikt/nada-backend/pkg/graph/models.TeamkatalogenResult") {
+    "team id is the id of the team."
+    teamID: String!
     "url to team in teamkatalogen."
     url: String!
     "team name."

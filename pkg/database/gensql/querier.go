@@ -6,6 +6,7 @@ package gensql
 
 import (
 	"context"
+	"database/sql"
 
 	"github.com/google/uuid"
 )
@@ -53,6 +54,8 @@ type Querier interface {
 	GetDataproducts(ctx context.Context, arg GetDataproductsParams) ([]Dataproduct, error)
 	GetDataproductsByGroups(ctx context.Context, groups []string) ([]Dataproduct, error)
 	GetDataproductsByIDs(ctx context.Context, ids []uuid.UUID) ([]Dataproduct, error)
+	GetDataproductsByProductArea(ctx context.Context, productAreaID sql.NullString) ([]Dataproduct, error)
+	GetDataproductsByTeam(ctx context.Context, teamID sql.NullString) ([]Dataproduct, error)
 	GetDataset(ctx context.Context, id uuid.UUID) (Dataset, error)
 	GetDatasetMappings(ctx context.Context, datasetID uuid.UUID) (ThirdPartyMapping, error)
 	GetDatasetRequesters(ctx context.Context, datasetID uuid.UUID) ([]string, error)
@@ -72,6 +75,8 @@ type Querier interface {
 	GetStories(ctx context.Context) ([]Story, error)
 	GetStoriesByGroups(ctx context.Context, groups []string) ([]Story, error)
 	GetStoriesByIDs(ctx context.Context, ids []uuid.UUID) ([]Story, error)
+	GetStoriesByProductArea(ctx context.Context, productAreaID sql.NullString) ([]Story, error)
+	GetStoriesByTeam(ctx context.Context, teamID sql.NullString) ([]Story, error)
 	GetStory(ctx context.Context, id uuid.UUID) (Story, error)
 	GetStoryDraft(ctx context.Context, id uuid.UUID) (StoryDraft, error)
 	GetStoryDrafts(ctx context.Context) ([]StoryDraft, error)

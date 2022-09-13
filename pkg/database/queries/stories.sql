@@ -5,14 +5,16 @@ INSERT INTO stories (
 	"description",
 	"keywords",
 	"teamkatalogen_url",
-	"product_area_id"
+	"product_area_id",
+    "team_id"
 ) VALUES (
 	@name,
 	@grp,
 	@description,
 	@keywords,
 	@teamkatalogen_url,
-	@product_area_id
+	@product_area_id,
+    @team_id
 )
 RETURNING *;
 
@@ -46,6 +48,18 @@ FROM stories
 WHERE id = ANY (@ids::uuid[])
 ORDER BY created DESC;
 
+-- name: GetStoriesByProductArea :many
+SELECT *
+FROM stories
+WHERE product_area_id = @product_area_id
+ORDER BY created DESC;
+
+-- name: GetStoriesByTeam :many
+SELECT *
+FROM stories
+WHERE team_id = @team_id
+ORDER BY created DESC;
+
 -- name: GetStoryView :one
 SELECT *
 FROM story_views
@@ -65,7 +79,8 @@ SET
 	"description" = @description,
 	"keywords" = @keywords,
 	"teamkatalogen_url" = @teamkatalogen_url,
-	"product_area_id" = @product_area_id
+	"product_area_id" = @product_area_id,
+    "team_id" = @team_id
 WHERE id = @id
 RETURNING *;
 

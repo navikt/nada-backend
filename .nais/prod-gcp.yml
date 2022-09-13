@@ -51,6 +51,8 @@ spec:
       value: "http://metabase/api"
     - name: METABASE_GOOGLE_CREDENTIALS_PATH
       value: /var/run/secrets/nada-credentials/meta_creds.json
+    - name: DASHBOARD_PA_ID
+      value: 6b149078-927b-4570-a1ce-97bbb9499fb6
   gcp:
     sqlInstances:
       - type: POSTGRES_12

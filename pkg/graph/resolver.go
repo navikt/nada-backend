@@ -3,6 +3,8 @@ package graph
 import (
 	"context"
 	"fmt"
+	"net/http"
+	"time"
 
 	"cloud.google.com/go/bigquery"
 	"github.com/99designs/gqlgen-contrib/prometheus"
@@ -42,26 +44,33 @@ type Slack interface {
 }
 
 type Resolver struct {
-	repo          *database.Repo
-	bigquery      Bigquery
-	gcpProjects   *auth.TeamProjectsMapping
-	accessMgr     AccessManager
-	teamkatalogen Teamkatalogen
-	slack         Slack
-	pollyAPI      Polly
-	log           *logrus.Entry
+	repo           *database.Repo
+	bigquery       Bigquery
+	gcpProjects    *auth.TeamProjectsMapping
+	accessMgr      AccessManager
+	teamkatalogen  Teamkatalogen
+	slack          Slack
+	pollyAPI       Polly
+	teamkatalogURL string
+	httpClient     *http.Client
+	log            *logrus.Entry
 }
 
-func New(repo *database.Repo, gcp Bigquery, gcpProjects *auth.TeamProjectsMapping, accessMgr AccessManager, tk Teamkatalogen, slack Slack, pollyAPI Polly, log *logrus.Entry) *handler.Server {
+func New(repo *database.Repo, gcp Bigquery, gcpProjects *auth.TeamProjectsMapping, accessMgr AccessManager, tk Teamkatalogen, slack Slack, pollyAPI Polly, teamkatalogURL string, log *logrus.Entry) *handler.Server {
+	httpClient := &http.Client{
+		Timeout: time.Second * 10,
+	}
 	resolver := &Resolver{
-		repo:          repo,
-		bigquery:      gcp,
-		gcpProjects:   gcpProjects,
-		accessMgr:     accessMgr,
-		teamkatalogen: tk,
-		slack:         slack,
-		pollyAPI:      pollyAPI,
-		log:           log,
+		repo:           repo,
+		bigquery:       gcp,
+		gcpProjects:    gcpProjects,
+		accessMgr:      accessMgr,
+		teamkatalogen:  tk,
+		slack:          slack,
+		pollyAPI:       pollyAPI,
+		teamkatalogURL: teamkatalogURL,
+		httpClient:     httpClient,
+		log:            log,
 	}
 
 	config := generated.Config{Resolvers: resolver}

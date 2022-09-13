@@ -155,6 +155,7 @@ type Dataproduct struct {
 	TeamkatalogenUrl sql.NullString
 	TeamContact      sql.NullString
 	ProductAreaID    sql.NullString
+	TeamID           sql.NullString
 }
 
 type Dataset struct {
@@ -272,6 +273,7 @@ type Story struct {
 	Keywords         []string
 	TeamkatalogenUrl sql.NullString
 	ProductAreaID    sql.NullString
+	TeamID           sql.NullString
 }
 
 type StoryDraft struct {
