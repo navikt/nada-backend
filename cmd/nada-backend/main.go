@@ -45,7 +45,6 @@ const (
 	AccessEnsurerFrequency      = 5 * time.Minute
 	MetabaseUpdateFrequency     = 5 * time.Minute
 	StoryDraftCleanerFrequency  = 24 * time.Hour
-	ProductAreasUpdateFrequency = 1 * time.Hour
 )
 
 func init() {
@@ -104,9 +103,6 @@ func main() {
 		teamProjectsUpdater = teamprojectsupdater.NewTeamProjectsUpdater(cfg.TeamProjectsOutputURL, cfg.TeamsToken, http.DefaultClient, repo)
 		go teamProjectsUpdater.Run(ctx, TeamProjectsUpdateFrequency)
 
-		//		paUpdater := productareasupdater.New(cfg.TeamkatalogenURL, repo)
-		//		go paUpdater.Run(ctx, ProductAreasUpdateFrequency)
-
 		azureGroups := auth.NewAzureGroups(http.DefaultClient, cfg.OAuth2.ClientID, cfg.OAuth2.ClientSecret, cfg.OAuth2.TenantID)
 		googleGroups, err := auth.NewGoogleGroups(ctx, cfg.ServiceAccountFile, cfg.GoogleAdminImpersonationSubject, log.WithField("subsystem", "googlegroups"))
 		if err != nil {
@@ -141,7 +137,7 @@ func main() {
 	go story.NewDraftCleaner(repo, log.WithField("subsystem", "storydraftcleaner")).Run(ctx, StoryDraftCleanerFrequency)
 
 	log.Info("Listening on :8080")
-	gqlServer := graph.New(repo, gcp, teamProjectsUpdater.TeamProjectsMapping, accessMgr, teamcatalogue, slackClient, pollyAPI, log.WithField("subsystem", "graph"))
+	gqlServer := graph.New(repo, gcp, teamProjectsUpdater.TeamProjectsMapping, accessMgr, teamcatalogue, slackClient, pollyAPI, cfg.TeamkatalogenURL, log.WithField("subsystem", "graph"))
 	srv := api.New(repo, httpAPI, authenticatorMiddleware, gqlServer, prom(repo.Metrics()...), log)
 
 	server := http.Server{

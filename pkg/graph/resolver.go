@@ -42,26 +42,28 @@ type Slack interface {
 }
 
 type Resolver struct {
-	repo          *database.Repo
-	bigquery      Bigquery
-	gcpProjects   *auth.TeamProjectsMapping
-	accessMgr     AccessManager
-	teamkatalogen Teamkatalogen
-	slack         Slack
-	pollyAPI      Polly
-	log           *logrus.Entry
+	repo           *database.Repo
+	bigquery       Bigquery
+	gcpProjects    *auth.TeamProjectsMapping
+	accessMgr      AccessManager
+	teamkatalogen  Teamkatalogen
+	slack          Slack
+	pollyAPI       Polly
+	teamkatalogURL string
+	log            *logrus.Entry
 }
 
-func New(repo *database.Repo, gcp Bigquery, gcpProjects *auth.TeamProjectsMapping, accessMgr AccessManager, tk Teamkatalogen, slack Slack, pollyAPI Polly, log *logrus.Entry) *handler.Server {
+func New(repo *database.Repo, gcp Bigquery, gcpProjects *auth.TeamProjectsMapping, accessMgr AccessManager, tk Teamkatalogen, slack Slack, pollyAPI Polly, teamkatalogURL string, log *logrus.Entry) *handler.Server {
 	resolver := &Resolver{
-		repo:          repo,
-		bigquery:      gcp,
-		gcpProjects:   gcpProjects,
-		accessMgr:     accessMgr,
-		teamkatalogen: tk,
-		slack:         slack,
-		pollyAPI:      pollyAPI,
-		log:           log,
+		repo:           repo,
+		bigquery:       gcp,
+		gcpProjects:    gcpProjects,
+		accessMgr:      accessMgr,
+		teamkatalogen:  tk,
+		slack:          slack,
+		pollyAPI:       pollyAPI,
+		teamkatalogURL: teamkatalogURL,
+		log:            log,
 	}
 
 	config := generated.Config{Resolvers: resolver}

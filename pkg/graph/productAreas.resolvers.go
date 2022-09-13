@@ -41,7 +41,7 @@ func (r *productAreaResolver) Stories(ctx context.Context, obj *models.ProductAr
 
 // Teams is the resolver for the teams field.
 func (r *productAreaResolver) Teams(ctx context.Context, obj *models.ProductArea) ([]*models.Team, error) {
-	resp, err := http.DefaultClient.Get("https://teamkatalog-api.intern.nav.no/team?productAreaId=" + obj.ID)
+	resp, err := http.DefaultClient.Get(r.teamkatalogURL + "/team?productAreaId=" + obj.ID)
 	if err != nil {
 		return nil, err
 	}
@@ -78,7 +78,7 @@ func (r *productAreaResolver) Teams(ctx context.Context, obj *models.ProductArea
 
 // ProductArea is the resolver for the productArea field.
 func (r *queryResolver) ProductArea(ctx context.Context, id string) (*models.ProductArea, error) {
-	resp, err := http.DefaultClient.Get("https://teamkatalog-api.intern.nav.no/productarea/" + id)
+	resp, err := http.DefaultClient.Get(r.teamkatalogURL + "/productarea/" + id)
 	if err != nil {
 		return nil, err
 	}
@@ -105,7 +105,7 @@ func (r *queryResolver) ProductArea(ctx context.Context, id string) (*models.Pro
 
 // ProductAreas is the resolver for the productAreas field.
 func (r *queryResolver) ProductAreas(ctx context.Context) ([]*models.ProductArea, error) {
-	resp, err := http.DefaultClient.Get("https://teamkatalog-api.intern.nav.no/productarea")
+	resp, err := http.DefaultClient.Get(r.teamkatalogURL + "/productarea")
 	if err != nil {
 		return nil, err
 	}
