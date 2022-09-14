@@ -88,7 +88,6 @@ func TestMain(m *testing.M) {
 		teamkatalogen.NewMock(),
 		slack.NewMockSlackClient(logrus.StandardLogger()),
 		polly.NewMock("https://some.url"),
-		"",
 		logrus.StandardLogger().WithField("subsystem", "graphql"),
 	)
 	srv := api.New(

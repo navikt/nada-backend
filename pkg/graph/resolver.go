@@ -3,8 +3,6 @@ package graph
 import (
 	"context"
 	"fmt"
-	"net/http"
-	"time"
 
 	"cloud.google.com/go/bigquery"
 	"github.com/99designs/gqlgen-contrib/prometheus"
@@ -37,6 +35,9 @@ type Polly interface {
 
 type Teamkatalogen interface {
 	Search(ctx context.Context, query string) ([]*models.TeamkatalogenResult, error)
+	GetTeamsInProductArea(ctx context.Context, paID string) ([]*models.Team, error)
+	GetProductArea(ctx context.Context, paID string) (*models.ProductArea, error)
+	GetProductAreas(ctx context.Context) ([]*models.ProductArea, error)
 }
 
 type Slack interface {
@@ -44,33 +45,26 @@ type Slack interface {
 }
 
 type Resolver struct {
-	repo           *database.Repo
-	bigquery       Bigquery
-	gcpProjects    *auth.TeamProjectsMapping
-	accessMgr      AccessManager
-	teamkatalogen  Teamkatalogen
-	slack          Slack
-	pollyAPI       Polly
-	teamkatalogURL string
-	httpClient     *http.Client
-	log            *logrus.Entry
+	repo          *database.Repo
+	bigquery      Bigquery
+	gcpProjects   *auth.TeamProjectsMapping
+	accessMgr     AccessManager
+	teamkatalogen Teamkatalogen
+	slack         Slack
+	pollyAPI      Polly
+	log           *logrus.Entry
 }
 
-func New(repo *database.Repo, gcp Bigquery, gcpProjects *auth.TeamProjectsMapping, accessMgr AccessManager, tk Teamkatalogen, slack Slack, pollyAPI Polly, teamkatalogURL string, log *logrus.Entry) *handler.Server {
-	httpClient := &http.Client{
-		Timeout: time.Second * 10,
-	}
+func New(repo *database.Repo, gcp Bigquery, gcpProjects *auth.TeamProjectsMapping, accessMgr AccessManager, tk Teamkatalogen, slack Slack, pollyAPI Polly, log *logrus.Entry) *handler.Server {
 	resolver := &Resolver{
-		repo:           repo,
-		bigquery:       gcp,
-		gcpProjects:    gcpProjects,
-		accessMgr:      accessMgr,
-		teamkatalogen:  tk,
-		slack:          slack,
-		pollyAPI:       pollyAPI,
-		teamkatalogURL: teamkatalogURL,
-		httpClient:     httpClient,
-		log:            log,
+		repo:          repo,
+		bigquery:      gcp,
+		gcpProjects:   gcpProjects,
+		accessMgr:     accessMgr,
+		teamkatalogen: tk,
+		slack:         slack,
+		pollyAPI:      pollyAPI,
+		log:           log,
 	}
 
 	config := generated.Config{Resolvers: resolver}

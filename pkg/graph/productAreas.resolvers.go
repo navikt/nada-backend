@@ -5,11 +5,10 @@ package graph
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
+
 	"github.com/navikt/nada-backend/pkg/graph/generated"
 	"github.com/navikt/nada-backend/pkg/graph/models"
-	"io"
 )
 
 // Dataproducts is the resolver for the dataproducts field.
@@ -38,101 +37,17 @@ func (r *productAreaResolver) Stories(ctx context.Context, obj *models.ProductAr
 
 // Teams is the resolver for the teams field.
 func (r *productAreaResolver) Teams(ctx context.Context, obj *models.ProductArea) ([]*models.Team, error) {
-	resp, err := r.httpClient.Get(r.teamkatalogURL + "/team?status=ACTIVE&productAreaId=" + obj.ID)
-	if err != nil {
-		return nil, err
-	}
-	defer resp.Body.Close()
-
-	var teams struct {
-		Content []struct {
-			ID            string `json:"id"`
-			Name          string `json:"name"`
-			ProductAreaID string `json:"productAreaId"`
-		} `json:"content"`
-	}
-
-	bodyBytes, err := io.ReadAll(resp.Body)
-	if err != nil {
-		return nil, err
-	}
-
-	if err := json.Unmarshal(bodyBytes, &teams); err != nil {
-		return nil, err
-	}
-
-	teamsGraph := make([]*models.Team, len(teams.Content))
-	for idx, t := range teams.Content {
-		teamsGraph[idx] = &models.Team{
-			ID:            t.ID,
-			Name:          t.Name,
-			ProductAreaID: t.ProductAreaID,
-		}
-	}
-
-	return teamsGraph, nil
+	return r.teamkatalogen.GetTeamsInProductArea(ctx, obj.ID)
 }
 
 // ProductArea is the resolver for the productArea field.
 func (r *queryResolver) ProductArea(ctx context.Context, id string) (*models.ProductArea, error) {
-	resp, err := r.httpClient.Get(r.teamkatalogURL + "/productarea/" + id)
-	if err != nil {
-		return nil, err
-	}
-	defer resp.Body.Close()
-
-	var pa struct {
-		ID   string `json:"id"`
-		Name string `json:"name"`
-	}
-
-	bodyBytes, err := io.ReadAll(resp.Body)
-	if err != nil {
-		return nil, err
-	}
-
-	if err := json.Unmarshal(bodyBytes, &pa); err != nil {
-		return nil, err
-	}
-	return &models.ProductArea{
-		ID:   pa.ID,
-		Name: pa.Name,
-	}, nil
+	return r.teamkatalogen.GetProductArea(ctx, id)
 }
 
 // ProductAreas is the resolver for the productAreas field.
 func (r *queryResolver) ProductAreas(ctx context.Context) ([]*models.ProductArea, error) {
-	resp, err := r.httpClient.Get(r.teamkatalogURL + "/productarea")
-	if err != nil {
-		return nil, err
-	}
-	defer resp.Body.Close()
-
-	var pas struct {
-		Content []struct {
-			ID   string `json:"id"`
-			Name string `json:"name"`
-		} `json:"content"`
-	}
-
-	bodyBytes, err := io.ReadAll(resp.Body)
-	if err != nil {
-		return nil, err
-	}
-
-	if err := json.Unmarshal(bodyBytes, &pas); err != nil {
-		return nil, err
-	}
-
-	productAreas := make([]*models.ProductArea, len(pas.Content))
-	for i, pa := range pas.Content {
-		productAreas[i] = &models.ProductArea{
-			ID:   pa.ID,
-			Name: pa.Name,
-		}
-	}
-
-	return productAreas, nil
+	return r.teamkatalogen.GetProductAreas(ctx)
 }
 
 // Team is the resolver for the team field.
