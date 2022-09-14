@@ -7,11 +7,9 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"io"
-	"os"
-
 	"github.com/navikt/nada-backend/pkg/graph/generated"
 	"github.com/navikt/nada-backend/pkg/graph/models"
+	"io"
 )
 
 // Dataproducts is the resolver for the dataproducts field.
@@ -126,22 +124,15 @@ func (r *queryResolver) ProductAreas(ctx context.Context) ([]*models.ProductArea
 		return nil, err
 	}
 
-	// temporarily return only one product area
-	dashboardID := os.Getenv("DASHBOARD_PA_ID")
-	if dashboardID == "" {
-		return nil, nil
-	}
-
-	for _, pa := range pas.Content {
-		if pa.ID == dashboardID {
-			return []*models.ProductArea{{
-				ID:   pa.ID,
-				Name: pa.Name,
-			}}, nil
+	productAreas := make([]*models.ProductArea, len(pas.Content))
+	for i, pa := range pas.Content {
+		productAreas[i] = &models.ProductArea{
+			ID:   pa.ID,
+			Name: pa.Name,
 		}
 	}
 
-	return nil, nil
+	return productAreas, nil
 }
 
 // Team is the resolver for the team field.
