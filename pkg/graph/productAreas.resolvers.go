@@ -40,7 +40,7 @@ func (r *productAreaResolver) Stories(ctx context.Context, obj *models.ProductAr
 
 // Teams is the resolver for the teams field.
 func (r *productAreaResolver) Teams(ctx context.Context, obj *models.ProductArea) ([]*models.Team, error) {
-	resp, err := r.httpClient.Get(r.teamkatalogURL + "/team?productAreaId=" + obj.ID)
+	resp, err := r.httpClient.Get(r.teamkatalogURL + "/team?status=ACTIVE&productAreaId=" + obj.ID)
 	if err != nil {
 		return nil, err
 	}
