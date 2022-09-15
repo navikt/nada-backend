@@ -1,0 +1,34 @@
+mutation {
+	createDataproduct(
+		input: {
+			name: "NewName"
+			description: "New description"
+            productAreaID: "Mocked-001"
+            teamID: "team-001"
+			group: "team@nav.no"
+            teamContact: "#team"
+            teamkatalogenURL: "team"
+            datasets: [{
+                name: "NewDataset"
+			    pii: false
+			    bigquery: { projectID: "team-dev-1337", dataset: "dataset1", table: "table1" }
+            }]
+		}
+	) {
+		id
+	}
+}
+
+RETURNS
+
+OPTION data.createDataproduct.id=IGNORE
+
+ENDOPTS
+{
+  "data": {
+    "createDataproduct": {
+    }
+  }
+}
+
+STORE dataproduct_id=data.createDataproduct.id

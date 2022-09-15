@@ -1,0 +1,67 @@
+{
+  productArea(id:"Mocked-001"){
+    id
+    name
+    dataproducts {
+      name
+    }
+    stories {
+      name
+    }
+    teams {
+      name
+      dataproducts {
+        name
+      }
+      stories {
+        name
+      }
+    }
+  }
+}
+
+RETURNS
+
+{
+  "data": {
+    "productArea": {
+      "id": "Mocked-001",
+      "name": "Mocked Produktområde",
+      "dataproducts": [
+        {
+          "name": "NewName"
+        }
+      ],
+      "stories": [
+        {
+          "name": "mystory"
+        }
+      ],
+      "teams": [
+        {
+          "name": "team",
+          "dataproducts": [
+            {
+              "name": "NewName"
+            }
+          ],
+          "stories": [
+            {
+              "name": "mystory"
+            }
+          ]
+        },
+        {
+          "name": "nada",
+          "dataproducts": [],
+          "stories": []
+        },
+        {
+          "name": "aura",
+          "dataproducts": [],
+          "stories": []
+        }
+      ]
+    }
+  }
+}

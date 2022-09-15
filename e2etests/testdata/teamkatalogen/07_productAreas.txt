@@ -1,0 +1,35 @@
+{
+  productAreas{
+    id
+    name
+    dataproducts {
+        name
+    }
+    stories {
+        name
+    }
+  }
+}
+
+RETURNS
+
+{
+  "data": {
+    "productAreas": [
+      {
+        "id": "Mocked-001",
+        "name": "Mocked Produktområde",
+        "dataproducts": [
+          {
+            "name": "NewName"
+          }
+        ],
+        "stories": [
+          {
+            "name": "mystory"
+          }
+        ]
+      }
+    ]
+  }
+}
