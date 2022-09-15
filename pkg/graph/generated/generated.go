@@ -189,6 +189,7 @@ type ComplexityRoot struct {
 		Group            func(childComplexity int) int
 		ProductAreaID    func(childComplexity int) int
 		TeamContact      func(childComplexity int) int
+		TeamID           func(childComplexity int) int
 		TeamkatalogenURL func(childComplexity int) int
 	}
 
@@ -1188,6 +1189,13 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 		}
 
 		return e.complexity.Owner.TeamContact(childComplexity), true
+
+	case "Owner.teamID":
+		if e.complexity.Owner.TeamID == nil {
+			break
+		}
+
+		return e.complexity.Owner.TeamID(childComplexity), true
 
 	case "Owner.teamkatalogenURL":
 		if e.complexity.Owner.TeamkatalogenURL == nil {
@@ -2681,6 +2689,8 @@ type Owner @goModel(model: "github.com/navikt/nada-backend/pkg/graph/models.Owne
     teamContact: String
     "Id of the team's product area."
     productAreaID: String
+    "Id of the team in teamkatalogen."
+    teamID: String
 }
 `, BuiltIn: false},
 	{Name: "../../../schema/keywords.graphql", Input: `"""
@@ -5917,6 +5927,8 @@ func (ec *executionContext) fieldContext_Dataproduct_owner(ctx context.Context, 
 				return ec.fieldContext_Owner_teamContact(ctx, field)
 			case "productAreaID":
 				return ec.fieldContext_Owner_productAreaID(ctx, field)
+			case "teamID":
+				return ec.fieldContext_Owner_teamID(ctx, field)
 			}
 			return nil, fmt.Errorf("no field named %q was found under type Owner", field.Name)
 		},
@@ -6563,6 +6575,8 @@ func (ec *executionContext) fieldContext_Dataset_owner(ctx context.Context, fiel
 				return ec.fieldContext_Owner_teamContact(ctx, field)
 			case "productAreaID":
 				return ec.fieldContext_Owner_productAreaID(ctx, field)
+			case "teamID":
+				return ec.fieldContext_Owner_teamID(ctx, field)
 			}
 			return nil, fmt.Errorf("no field named %q was found under type Owner", field.Name)
 		},
@@ -9007,6 +9021,47 @@ func (ec *executionContext) fieldContext_Owner_productAreaID(ctx context.Context
 	return fc, nil
 }
 
+func (ec *executionContext) _Owner_teamID(ctx context.Context, field graphql.CollectedField, obj *models.Owner) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_Owner_teamID(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.TeamID, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		return graphql.Null
+	}
+	res := resTmp.(*string)
+	fc.Result = res
+	return ec.marshalOString2ᚖstring(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_Owner_teamID(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Owner",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
 func (ec *executionContext) _Polly_id(ctx context.Context, field graphql.CollectedField, obj *models.Polly) (ret graphql.Marshaler) {
 	fc, err := ec.fieldContext_Polly_id(ctx, field)
 	if err != nil {
@@ -9542,6 +9597,8 @@ func (ec *executionContext) fieldContext_Quarto_owner(ctx context.Context, field
 				return ec.fieldContext_Owner_teamContact(ctx, field)
 			case "productAreaID":
 				return ec.fieldContext_Owner_productAreaID(ctx, field)
+			case "teamID":
+				return ec.fieldContext_Owner_teamID(ctx, field)
 			}
 			return nil, fmt.Errorf("no field named %q was found under type Owner", field.Name)
 		},
@@ -12109,6 +12166,8 @@ func (ec *executionContext) fieldContext_Story_owner(ctx context.Context, field 
 				return ec.fieldContext_Owner_teamContact(ctx, field)
 			case "productAreaID":
 				return ec.fieldContext_Owner_productAreaID(ctx, field)
+			case "teamID":
+				return ec.fieldContext_Owner_teamID(ctx, field)
 			}
 			return nil, fmt.Errorf("no field named %q was found under type Owner", field.Name)
 		},
@@ -17842,6 +17901,10 @@ func (ec *executionContext) _Owner(ctx context.Context, sel ast.SelectionSet, ob
 		case "productAreaID":
 
 			out.Values[i] = ec._Owner_productAreaID(ctx, field, obj)
+
+		case "teamID":
+
+			out.Values[i] = ec._Owner_teamID(ctx, field, obj)
 
 		default:
 			panic("unknown field " + strconv.Quote(field.Name))

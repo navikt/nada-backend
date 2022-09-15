@@ -5,4 +5,5 @@ type Owner struct {
 	TeamkatalogenURL *string `json:"teamkatalogenURL"`
 	TeamContact      *string `json:"teamContact"`
 	ProductAreaID    *string `json:"productAreaID"`
+	TeamID           *string `json:"teamID"`
 }

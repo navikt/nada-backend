@@ -268,6 +268,7 @@ func (r *Repo) GetStoryFromToken(ctx context.Context, token uuid.UUID) (*models.
 			Group:            story.Group,
 			TeamkatalogenURL: nullStringToPtr(story.TeamkatalogenUrl),
 			ProductAreaID:    nullStringToPtr(story.ProductAreaID),
+			TeamID:           nullStringToPtr(story.TeamID),
 		},
 		Description:  story.Description.String,
 		Keywords:     story.Keywords,

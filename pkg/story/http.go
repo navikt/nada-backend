@@ -96,6 +96,7 @@ func (h *Handler) Update(w http.ResponseWriter, r *http.Request) {
 		Keywords:         existing.Keywords,
 		TeamkatalogenURL: existing.Owner.TeamkatalogenURL,
 		ProductAreaID:    existing.Owner.ProductAreaID,
+		TeamID:           existing.Owner.TeamID,
 	})
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)

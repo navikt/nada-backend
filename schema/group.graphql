@@ -10,4 +10,6 @@ type Owner @goModel(model: "github.com/navikt/nada-backend/pkg/graph/models.Owne
     teamContact: String
     "Id of the team's product area."
     productAreaID: String
+    "Id of the team in teamkatalogen."
+    teamID: String
 }

@@ -22,7 +22,7 @@ require (
 
 require (
 	cloud.google.com/go v0.103.0 // indirect
-	github.com/99designs/gqlgen v0.17.16
+	github.com/99designs/gqlgen v0.17.17
 	github.com/coreos/go-oidc/v3 v3.2.0
 	github.com/docker/cli v20.10.17+incompatible // indirect
 	github.com/docker/docker v20.10.17+incompatible // indirect
@@ -35,7 +35,7 @@ require (
 	github.com/moby/term v0.0.0-20210619224110-3f7ff695adc6 // indirect
 	github.com/opencontainers/runc v1.1.3 // indirect
 	github.com/tabbed/pqtype v0.1.1
-	github.com/vektah/gqlparser/v2 v2.5.0
+	github.com/vektah/gqlparser/v2 v2.5.1
 	github.com/xeipuuv/gojsonpointer v0.0.0-20190905194746-02993c407bfb // indirect
 	golang.org/x/crypto v0.0.0-20220722155217-630584e8d5aa // indirect
 	golang.org/x/net v0.0.0-20220805013720-a33c5aa5df48 // indirect
