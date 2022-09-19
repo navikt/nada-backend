@@ -11,7 +11,7 @@ require (
 	github.com/kyleconroy/sqlc v1.15.0
 	github.com/lib/pq v1.10.7
 	github.com/ory/dockertest/v3 v3.9.1
-	github.com/pressly/goose/v3 v3.6.1
+	github.com/pressly/goose/v3 v3.7.0
 	github.com/prometheus/client_golang v1.13.0
 	github.com/sirupsen/logrus v1.9.0
 	github.com/slack-go/slack v0.11.2
@@ -32,14 +32,14 @@ require (
 	github.com/googleapis/gax-go/v2 v2.5.1 // indirect
 	github.com/imdario/mergo v0.3.13 // indirect
 	github.com/mitchellh/mapstructure v1.5.0 // indirect
-	github.com/moby/term v0.0.0-20210619224110-3f7ff695adc6 // indirect
+	github.com/moby/term v0.0.0-20220808134915-39b0c02b01ae // indirect
 	github.com/opencontainers/runc v1.1.3 // indirect
 	github.com/tabbed/pqtype v0.1.1
 	github.com/vektah/gqlparser/v2 v2.5.1
 	github.com/xeipuuv/gojsonpointer v0.0.0-20190905194746-02993c407bfb // indirect
 	golang.org/x/crypto v0.0.0-20220722155217-630584e8d5aa // indirect
 	golang.org/x/net v0.0.0-20220826154423-83b083e8dc8b // indirect
-	golang.org/x/sys v0.0.0-20220804214406-8e32c043e418 // indirect
+	golang.org/x/sys v0.0.0-20220811171246-fbc7d0a398ab // indirect
 	google.golang.org/api v0.93.0
 )
 
