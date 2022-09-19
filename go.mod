@@ -9,7 +9,7 @@ require (
 	github.com/go-chi/chi v4.1.2+incompatible
 	github.com/google/uuid v1.3.0
 	github.com/kyleconroy/sqlc v1.15.0
-	github.com/lib/pq v1.10.6
+	github.com/lib/pq v1.10.7
 	github.com/ory/dockertest/v3 v3.9.1
 	github.com/pressly/goose/v3 v3.6.1
 	github.com/prometheus/client_golang v1.13.0
