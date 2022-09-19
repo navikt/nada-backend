@@ -16,6 +16,11 @@ func (r *productAreaResolver) Dataproducts(ctx context.Context, obj *models.Prod
 	return r.repo.GetDataproductByProductArea(ctx, obj.ID)
 }
 
+// DashboardURL is the resolver for the dashboardURL field.
+func (r *productAreaResolver) DashboardURL(ctx context.Context, obj *models.ProductArea) (string, error) {
+	return r.repo.GetDashboard(ctx, obj.ID)
+}
+
 // Stories is the resolver for the stories field.
 func (r *productAreaResolver) Stories(ctx context.Context, obj *models.ProductArea) ([]*models.GraphStory, error) {
 	dbStories, err := r.repo.GetStoriesByProductArea(ctx, obj.ID)
@@ -55,6 +60,11 @@ func (r *queryResolver) Team(ctx context.Context, id string) (*models.Team, erro
 	panic(fmt.Errorf("not implemented: Team - team"))
 }
 
+// DashboardURL is the resolver for the dashboardURL field.
+func (r *teamResolver) DashboardURL(ctx context.Context, obj *models.Team) (string, error) {
+	return r.repo.GetDashboard(ctx, obj.ID)
+}
+
 // Dataproducts is the resolver for the dataproducts field.
 func (r *teamResolver) Dataproducts(ctx context.Context, obj *models.Team) ([]*models.Dataproduct, error) {
 	return r.repo.GetDataproductByTeam(ctx, obj.ID)
@@ -85,5 +95,7 @@ func (r *Resolver) ProductArea() generated.ProductAreaResolver { return &product
 // Team returns generated.TeamResolver implementation.
 func (r *Resolver) Team() generated.TeamResolver { return &teamResolver{r} }
 
-type productAreaResolver struct{ *Resolver }
-type teamResolver struct{ *Resolver }
+type (
+	productAreaResolver struct{ *Resolver }
+	teamResolver        struct{ *Resolver }
+)

@@ -143,6 +143,11 @@ func (ns NullStoryViewType) Value() (driver.Value, error) {
 	return ns.StoryViewType, nil
 }
 
+type Dashboard struct {
+	ID  string
+	Url string
+}
+
 type Dataproduct struct {
 	ID               uuid.UUID
 	Name             string

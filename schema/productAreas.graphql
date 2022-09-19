@@ -5,6 +5,8 @@ type ProductArea @goModel(model: "github.com/navikt/nada-backend/pkg/graph/model
     name: String!
     "dataproducts is the dataproducts owned by the product area."
     dataproducts: [Dataproduct!]!
+    "dashboardURL is the url to the product area dashboard."
+    dashboardURL: String!
     "stories is the stories owned by the product area."
     stories: [Story!]!
     "teams is the teams in the product area."
@@ -18,6 +20,8 @@ type Team @goModel(model: "github.com/navikt/nada-backend/pkg/graph/models.Team"
     name: String!
     "productAreaID is the id of the product area."
     productAreaID: String!
+    "dashboardURL is the url to the team dashboard."
+    dashboardURL: String!
     "dataproducts is the dataproducts owned by the team."
     dataproducts: [Dataproduct!]!
     "stories is the stories owned by the team."

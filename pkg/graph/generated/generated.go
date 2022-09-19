@@ -201,6 +201,7 @@ type ComplexityRoot struct {
 	}
 
 	ProductArea struct {
+		DashboardURL func(childComplexity int) int
 		Dataproducts func(childComplexity int) int
 		ID           func(childComplexity int) int
 		Name         func(childComplexity int) int
@@ -302,6 +303,7 @@ type ComplexityRoot struct {
 	}
 
 	Team struct {
+		DashboardURL  func(childComplexity int) int
 		Dataproducts  func(childComplexity int) int
 		ID            func(childComplexity int) int
 		Name          func(childComplexity int) int
@@ -380,6 +382,7 @@ type MutationResolver interface {
 }
 type ProductAreaResolver interface {
 	Dataproducts(ctx context.Context, obj *models.ProductArea) ([]*models.Dataproduct, error)
+	DashboardURL(ctx context.Context, obj *models.ProductArea) (string, error)
 	Stories(ctx context.Context, obj *models.ProductArea) ([]*models.GraphStory, error)
 	Teams(ctx context.Context, obj *models.ProductArea) ([]*models.Team, error)
 }
@@ -417,6 +420,7 @@ type StoryResolver interface {
 	Views(ctx context.Context, obj *models.GraphStory) ([]models.GraphStoryView, error)
 }
 type TeamResolver interface {
+	DashboardURL(ctx context.Context, obj *models.Team) (string, error)
 	Dataproducts(ctx context.Context, obj *models.Team) ([]*models.Dataproduct, error)
 	Stories(ctx context.Context, obj *models.Team) ([]*models.GraphStory, error)
 }
@@ -1232,6 +1236,13 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.Polly.URL(childComplexity), true
 
+	case "ProductArea.dashboardURL":
+		if e.complexity.ProductArea.DashboardURL == nil {
+			break
+		}
+
+		return e.complexity.ProductArea.DashboardURL(childComplexity), true
+
 	case "ProductArea.dataproducts":
 		if e.complexity.ProductArea.Dataproducts == nil {
 			break
@@ -1791,6 +1802,13 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 		}
 
 		return e.complexity.TableColumn.Type(childComplexity), true
+
+	case "Team.dashboardURL":
+		if e.complexity.Team.DashboardURL == nil {
+			break
+		}
+
+		return e.complexity.Team.DashboardURL(childComplexity), true
 
 	case "Team.dataproducts":
 		if e.complexity.Team.Dataproducts == nil {
@@ -2801,6 +2819,8 @@ extend type Query {
     name: String!
     "dataproducts is the dataproducts owned by the product area."
     dataproducts: [Dataproduct!]!
+    "dashboardURL is the url to the product area dashboard."
+    dashboardURL: String!
     "stories is the stories owned by the product area."
     stories: [Story!]!
     "teams is the teams in the product area."
@@ -2814,6 +2834,8 @@ type Team @goModel(model: "github.com/navikt/nada-backend/pkg/graph/models.Team"
     name: String!
     "productAreaID is the id of the product area."
     productAreaID: String!
+    "dashboardURL is the url to the team dashboard."
+    dashboardURL: String!
     "dataproducts is the dataproducts owned by the team."
     dataproducts: [Dataproduct!]!
     "stories is the stories owned by the team."
@@ -9390,6 +9412,50 @@ func (ec *executionContext) fieldContext_ProductArea_dataproducts(ctx context.Co
 	return fc, nil
 }
 
+func (ec *executionContext) _ProductArea_dashboardURL(ctx context.Context, field graphql.CollectedField, obj *models.ProductArea) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_ProductArea_dashboardURL(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.ProductArea().DashboardURL(rctx, obj)
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(string)
+	fc.Result = res
+	return ec.marshalNString2string(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_ProductArea_dashboardURL(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "ProductArea",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
 func (ec *executionContext) _ProductArea_stories(ctx context.Context, field graphql.CollectedField, obj *models.ProductArea) (ret graphql.Marshaler) {
 	fc, err := ec.fieldContext_ProductArea_stories(ctx, field)
 	if err != nil {
@@ -9495,6 +9561,8 @@ func (ec *executionContext) fieldContext_ProductArea_teams(ctx context.Context, 
 				return ec.fieldContext_Team_name(ctx, field)
 			case "productAreaID":
 				return ec.fieldContext_Team_productAreaID(ctx, field)
+			case "dashboardURL":
+				return ec.fieldContext_Team_dashboardURL(ctx, field)
 			case "dataproducts":
 				return ec.fieldContext_Team_dataproducts(ctx, field)
 			case "stories":
@@ -10831,6 +10899,8 @@ func (ec *executionContext) fieldContext_Query_productArea(ctx context.Context, 
 				return ec.fieldContext_ProductArea_name(ctx, field)
 			case "dataproducts":
 				return ec.fieldContext_ProductArea_dataproducts(ctx, field)
+			case "dashboardURL":
+				return ec.fieldContext_ProductArea_dashboardURL(ctx, field)
 			case "stories":
 				return ec.fieldContext_ProductArea_stories(ctx, field)
 			case "teams":
@@ -10898,6 +10968,8 @@ func (ec *executionContext) fieldContext_Query_productAreas(ctx context.Context,
 				return ec.fieldContext_ProductArea_name(ctx, field)
 			case "dataproducts":
 				return ec.fieldContext_ProductArea_dataproducts(ctx, field)
+			case "dashboardURL":
+				return ec.fieldContext_ProductArea_dashboardURL(ctx, field)
 			case "stories":
 				return ec.fieldContext_ProductArea_stories(ctx, field)
 			case "teams":
@@ -10954,6 +11026,8 @@ func (ec *executionContext) fieldContext_Query_team(ctx context.Context, field g
 				return ec.fieldContext_Team_name(ctx, field)
 			case "productAreaID":
 				return ec.fieldContext_Team_productAreaID(ctx, field)
+			case "dashboardURL":
+				return ec.fieldContext_Team_dashboardURL(ctx, field)
 			case "dataproducts":
 				return ec.fieldContext_Team_dataproducts(ctx, field)
 			case "stories":
@@ -13136,6 +13210,50 @@ func (ec *executionContext) fieldContext_Team_productAreaID(ctx context.Context,
 		Field:      field,
 		IsMethod:   false,
 		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Team_dashboardURL(ctx context.Context, field graphql.CollectedField, obj *models.Team) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_Team_dashboardURL(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.Team().DashboardURL(rctx, obj)
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(string)
+	fc.Result = res
+	return ec.marshalNString2string(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_Team_dashboardURL(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Team",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
 		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
 			return nil, errors.New("field of type String does not have child fields")
 		},
@@ -18010,6 +18128,26 @@ func (ec *executionContext) _ProductArea(ctx context.Context, sel ast.SelectionS
 				return innerFunc(ctx)
 
 			})
+		case "dashboardURL":
+			field := field
+
+			innerFunc := func(ctx context.Context) (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._ProductArea_dashboardURL(ctx, field, obj)
+				if res == graphql.Null {
+					atomic.AddUint32(&invalids, 1)
+				}
+				return res
+			}
+
+			out.Concurrently(i, func() graphql.Marshaler {
+				return innerFunc(ctx)
+
+			})
 		case "stories":
 			field := field
 
@@ -19187,6 +19325,26 @@ func (ec *executionContext) _Team(ctx context.Context, sel ast.SelectionSet, obj
 			if out.Values[i] == graphql.Null {
 				atomic.AddUint32(&invalids, 1)
 			}
+		case "dashboardURL":
+			field := field
+
+			innerFunc := func(ctx context.Context) (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._Team_dashboardURL(ctx, field, obj)
+				if res == graphql.Null {
+					atomic.AddUint32(&invalids, 1)
+				}
+				return res
+			}
+
+			out.Concurrently(i, func() graphql.Marshaler {
+				return innerFunc(ctx)
+
+			})
 		case "dataproducts":
 			field := field
 
