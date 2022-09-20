@@ -35,7 +35,11 @@ func (r *dataproductResolver) Keywords(ctx context.Context, obj *models.Dataprod
 
 	keywords := []string{}
 	for _, ds := range datasets {
-		keywords = append(keywords, ds.Keywords...)
+		for _, k := range ds.Keywords {
+			if !contains(keywords, k) {
+				keywords = append(keywords, k)
+			}
+		}
 	}
 
 	return keywords, nil

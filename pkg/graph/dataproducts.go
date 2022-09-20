@@ -30,3 +30,12 @@ func isAllowedToGrantAccess(ctx context.Context, r *database.Repo, dp *models.Da
 
 	return ErrUnauthorized
 }
+
+func contains(keywords []string, keyword string) bool {
+	for _, k := range keywords {
+		if k == keyword {
+			return true
+		}
+	}
+	return false
+}
