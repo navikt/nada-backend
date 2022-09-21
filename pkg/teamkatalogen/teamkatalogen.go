@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"os"
 	"strings"
 
 	"github.com/navikt/nada-backend/pkg/graph/models"
@@ -151,6 +152,12 @@ func (t *Teamkatalogen) GetProductArea(ctx context.Context, paID string) (*model
 }
 
 func (t *Teamkatalogen) GetProductAreas(ctx context.Context) ([]*models.ProductArea, error) {
+	// Temporarily return only one single product area
+	paID := os.Getenv("DASHBOARD_PA_ID")
+	if paID == "" {
+		return nil, nil
+	}
+
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, t.url+"/productarea", nil)
 	if err != nil {
 		return nil, err
@@ -179,13 +186,14 @@ func (t *Teamkatalogen) GetProductAreas(ctx context.Context) ([]*models.ProductA
 		return nil, err
 	}
 
-	productAreas := make([]*models.ProductArea, len(pas.Content))
-	for i, pa := range pas.Content {
-		productAreas[i] = &models.ProductArea{
-			ID:   pa.ID,
-			Name: pa.Name,
+	for _, pa := range pas.Content {
+		if pa.ID == paID {
+			return []*models.ProductArea{{
+				ID:   pa.ID,
+				Name: pa.Name,
+			}}, nil
 		}
 	}
 
-	return productAreas, nil
+	return nil, nil
 }
