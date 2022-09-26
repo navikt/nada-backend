@@ -28,7 +28,7 @@ require (
 	github.com/docker/docker v20.10.17+incompatible // indirect
 	github.com/go-chi/cors v1.2.1
 	github.com/golang/groupcache v0.0.0-20210331224755-41bb18bfe9da // indirect
-	github.com/google/go-cmp v0.5.8
+	github.com/google/go-cmp v0.5.9
 	github.com/googleapis/gax-go/v2 v2.5.1 // indirect
 	github.com/imdario/mergo v0.3.13 // indirect
 	github.com/mitchellh/mapstructure v1.5.0 // indirect
