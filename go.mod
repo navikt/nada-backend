@@ -22,7 +22,7 @@ require (
 
 require (
 	cloud.google.com/go v0.103.0 // indirect
-	github.com/99designs/gqlgen v0.17.19
+	github.com/99designs/gqlgen v0.17.20
 	github.com/coreos/go-oidc/v3 v3.4.0
 	github.com/docker/cli v20.10.17+incompatible // indirect
 	github.com/docker/docker v20.10.17+incompatible // indirect
