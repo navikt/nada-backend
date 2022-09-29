@@ -50,7 +50,6 @@ type ResolverRoot interface {
 	Story() StoryResolver
 	Team() TeamResolver
 	UserInfo() UserInfoResolver
-	UpdateDataset() UpdateDatasetResolver
 }
 
 type DirectiveRoot struct {
@@ -434,10 +433,6 @@ type UserInfoResolver interface {
 	Accessable(ctx context.Context, obj *models.UserInfo) ([]*models.Dataproduct, error)
 	Stories(ctx context.Context, obj *models.UserInfo) ([]*models.GraphStory, error)
 	AccessRequests(ctx context.Context, obj *models.UserInfo) ([]*models.AccessRequest, error)
-}
-
-type UpdateDatasetResolver interface {
-	What(ctx context.Context, obj *models.UpdateDataset, data string) error
 }
 
 type executableSchema struct {
@@ -2558,7 +2553,6 @@ input UpdateDataset @goModel(model: "github.com/navikt/nada-backend/pkg/graph/mo
     keywords: [String!]
    "ID of the dataproduct that owns this dataset, the current dataproduct will not change if the field is null"
     dataproductID: ID
-    what: String!
 }
 
 """
@@ -16789,7 +16783,7 @@ func (ec *executionContext) unmarshalInputUpdateDataset(ctx context.Context, obj
 		asMap[k] = v
 	}
 
-	fieldsInOrder := [...]string{"name", "description", "repo", "pii", "keywords", "dataproductID", "what"}
+	fieldsInOrder := [...]string{"name", "description", "repo", "pii", "keywords", "dataproductID"}
 	for _, k := range fieldsInOrder {
 		v, ok := asMap[k]
 		if !ok {
@@ -16842,17 +16836,6 @@ func (ec *executionContext) unmarshalInputUpdateDataset(ctx context.Context, obj
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("dataproductID"))
 			it.DataproductID, err = ec.unmarshalOID2ᚖgithubᚗcomᚋgoogleᚋuuidᚐUUID(ctx, v)
 			if err != nil {
-				return it, err
-			}
-		case "what":
-			var err error
-
-			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("what"))
-			data, err := ec.unmarshalNString2string(ctx, v)
-			if err != nil {
-				return it, err
-			}
-			if err = ec.resolvers.UpdateDataset().What(ctx, &it, data); err != nil {
 				return it, err
 			}
 		}

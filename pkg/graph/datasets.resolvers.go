@@ -276,20 +276,11 @@ func (r *queryResolver) DatasetsInDataproduct(ctx context.Context, dataproductID
 	return r.repo.GetDatasetsInDataproduct(ctx, dataproductID)
 }
 
-// What is the resolver for the what field.
-func (r *updateDatasetResolver) What(ctx context.Context, obj *models.UpdateDataset, data string) error {
-	panic(fmt.Errorf("not implemented: What - what"))
-}
-
 // BigQuery returns generated.BigQueryResolver implementation.
 func (r *Resolver) BigQuery() generated.BigQueryResolver { return &bigQueryResolver{r} }
 
 // Dataset returns generated.DatasetResolver implementation.
 func (r *Resolver) Dataset() generated.DatasetResolver { return &datasetResolver{r} }
 
-// UpdateDataset returns generated.UpdateDatasetResolver implementation.
-func (r *Resolver) UpdateDataset() generated.UpdateDatasetResolver { return &updateDatasetResolver{r} }
-
 type bigQueryResolver struct{ *Resolver }
 type datasetResolver struct{ *Resolver }
-type updateDatasetResolver struct{ *Resolver }
