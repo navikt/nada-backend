@@ -187,6 +187,20 @@ func (r *mutationResolver) UpdateDataset(ctx context.Context, id uuid.UUID, inpu
 	if err := ensureUserInGroup(ctx, dp.Owner.Group); err != nil {
 		return nil, err
 	}
+
+	if input.DataproductID != nil || *input.DataproductID == ds.DataproductID {
+		dp2, err := r.repo.GetDataproduct(ctx, *input.DataproductID)
+		if err != nil {
+			return nil, err
+		}
+		if err := ensureUserInGroup(ctx, dp2.Owner.Group); err != nil {
+			return nil, err
+		}
+		if dp.Owner.Group != dp2.Owner.Group {
+			return nil, errors.New("Cannot move dataset to a dataproduct that is not owned by the same team")
+		}
+	}
+
 	if input.Description != nil && *input.Description != "" {
 		*input.Description = html.EscapeString(*input.Description)
 	}
@@ -262,11 +276,20 @@ func (r *queryResolver) DatasetsInDataproduct(ctx context.Context, dataproductID
 	return r.repo.GetDatasetsInDataproduct(ctx, dataproductID)
 }
 
+// What is the resolver for the what field.
+func (r *updateDatasetResolver) What(ctx context.Context, obj *models.UpdateDataset, data string) error {
+	panic(fmt.Errorf("not implemented: What - what"))
+}
+
 // BigQuery returns generated.BigQueryResolver implementation.
 func (r *Resolver) BigQuery() generated.BigQueryResolver { return &bigQueryResolver{r} }
 
 // Dataset returns generated.DatasetResolver implementation.
 func (r *Resolver) Dataset() generated.DatasetResolver { return &datasetResolver{r} }
 
+// UpdateDataset returns generated.UpdateDatasetResolver implementation.
+func (r *Resolver) UpdateDataset() generated.UpdateDatasetResolver { return &updateDatasetResolver{r} }
+
 type bigQueryResolver struct{ *Resolver }
 type datasetResolver struct{ *Resolver }
+type updateDatasetResolver struct{ *Resolver }

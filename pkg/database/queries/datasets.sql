@@ -68,7 +68,8 @@ SET "name"              = @name,
     "pii"               = @pii,
     "slug"              = @slug,
     "repo"              = @repo,
-    "keywords"          = @keywords
+    "keywords"          = @keywords,
+    "dataproduct_id"    = @dataproduct_id
 WHERE id = @id
 RETURNING *;
 
