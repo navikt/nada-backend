@@ -188,7 +188,7 @@ func (r *mutationResolver) UpdateDataset(ctx context.Context, id uuid.UUID, inpu
 		return nil, err
 	}
 
-	if input.DataproductID != nil || *input.DataproductID == ds.DataproductID {
+	if input.DataproductID != nil && *input.DataproductID != ds.DataproductID {
 		dp2, err := r.repo.GetDataproduct(ctx, *input.DataproductID)
 		if err != nil {
 			return nil, err
@@ -197,8 +197,10 @@ func (r *mutationResolver) UpdateDataset(ctx context.Context, id uuid.UUID, inpu
 			return nil, err
 		}
 		if dp.Owner.Group != dp2.Owner.Group {
-			return nil, errors.New("Cannot move dataset to a dataproduct that is not owned by the same team")
+			return nil, errors.New("cannot move dataset to a dataproduct that is not owned by the same team")
 		}
+	} else {
+		input.DataproductID = &ds.DataproductID
 	}
 
 	if input.Description != nil && *input.Description != "" {
@@ -282,5 +284,7 @@ func (r *Resolver) BigQuery() generated.BigQueryResolver { return &bigQueryResol
 // Dataset returns generated.DatasetResolver implementation.
 func (r *Resolver) Dataset() generated.DatasetResolver { return &datasetResolver{r} }
 
-type bigQueryResolver struct{ *Resolver }
-type datasetResolver struct{ *Resolver }
+type (
+	bigQueryResolver struct{ *Resolver }
+	datasetResolver  struct{ *Resolver }
+)
