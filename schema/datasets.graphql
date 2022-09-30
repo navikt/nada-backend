@@ -179,6 +179,8 @@ input UpdateDataset @goModel(model: "github.com/navikt/nada-backend/pkg/graph/mo
     pii: Boolean!
     "keywords for the dataset used as tags."
     keywords: [String!]
+   "ID of the dataproduct that owns this dataset, the current dataproduct will not change if the field is null"
+    dataproductID: ID
 }
 
 """

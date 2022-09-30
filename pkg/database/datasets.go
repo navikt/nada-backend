@@ -112,13 +112,14 @@ func (r *Repo) UpdateDataset(ctx context.Context, id uuid.UUID, new models.Updat
 	}
 
 	res, err := r.querier.UpdateDataset(ctx, gensql.UpdateDatasetParams{
-		Name:        new.Name,
-		Description: ptrToNullString(new.Description),
-		ID:          id,
-		Pii:         new.Pii,
-		Slug:        slugify(new.Slug, new.Name),
-		Repo:        ptrToNullString(new.Repo),
-		Keywords:    new.Keywords,
+		Name:          new.Name,
+		Description:   ptrToNullString(new.Description),
+		ID:            id,
+		Pii:           new.Pii,
+		Slug:          slugify(new.Slug, new.Name),
+		Repo:          ptrToNullString(new.Repo),
+		Keywords:      new.Keywords,
+		DataproductID: *new.DataproductID,
 	})
 	if err != nil {
 		return nil, fmt.Errorf("updating dataset in database: %w", err)

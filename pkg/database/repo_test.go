@@ -112,8 +112,9 @@ func TestRepo(t *testing.T) {
 		}
 
 		updated := models.UpdateDataset{
-			Name: "updated",
-			Pii:  false,
+			Name:          "updated",
+			Pii:           false,
+			DataproductID: &createdproduct.ID,
 		}
 
 		updatedDataset, err := repo.UpdateDataset(context.Background(), createdDataset.ID, updated)

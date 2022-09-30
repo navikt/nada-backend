@@ -10,7 +10,7 @@ import (
 )
 
 const getDashboard = `-- name: GetDashboard :one
-SELECT id, url 
+SELECT id, url
 FROM "dashboards"
 WHERE id = $1
 `

@@ -73,13 +73,14 @@ type NewDatasetForNewDataproduct struct {
 }
 
 type UpdateDataset struct {
-	Name        string   `json:"name"`
-	Description *string  `json:"description"`
-	Slug        *string  `json:"slug"`
-	Repo        *string  `json:"repo"`
-	Pii         bool     `json:"pii"`
-	Keywords    []string `json:"keywords"`
-	Requesters  []string `json:"requesters"`
+	Name          string     `json:"name"`
+	Description   *string    `json:"description"`
+	Slug          *string    `json:"slug"`
+	Repo          *string    `json:"repo"`
+	Pii           bool       `json:"pii"`
+	Keywords      []string   `json:"keywords"`
+	Requesters    []string   `json:"requesters"`
+	DataproductID *uuid.UUID `json:"dataproductID"`
 }
 
 type DatasetServices struct {

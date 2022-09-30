@@ -650,19 +650,21 @@ SET "name"              = $1,
     "pii"               = $3,
     "slug"              = $4,
     "repo"              = $5,
-    "keywords"          = $6
-WHERE id = $7
+    "keywords"          = $6,
+    "dataproduct_id"    = $7
+WHERE id = $8
 RETURNING id, name, description, pii, created, last_modified, type, tsv_document, slug, repo, keywords, dataproduct_id
 `
 
 type UpdateDatasetParams struct {
-	Name        string
-	Description sql.NullString
-	Pii         bool
-	Slug        string
-	Repo        sql.NullString
-	Keywords    []string
-	ID          uuid.UUID
+	Name          string
+	Description   sql.NullString
+	Pii           bool
+	Slug          string
+	Repo          sql.NullString
+	Keywords      []string
+	DataproductID uuid.UUID
+	ID            uuid.UUID
 }
 
 func (q *Queries) UpdateDataset(ctx context.Context, arg UpdateDatasetParams) (Dataset, error) {
@@ -673,6 +675,7 @@ func (q *Queries) UpdateDataset(ctx context.Context, arg UpdateDatasetParams) (D
 		arg.Slug,
 		arg.Repo,
 		pq.Array(arg.Keywords),
+		arg.DataproductID,
 		arg.ID,
 	)
 	var i Dataset
