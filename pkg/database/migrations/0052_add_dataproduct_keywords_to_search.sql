@@ -19,12 +19,12 @@ AS (
        '{}' AS "services"
    FROM "dataproducts" "dp" LEFT JOIN
         (
-            SELECT "dataproduct_id", coalesce(array_agg("flatterned_keywords_array"), '{}') as "aggregated_keywords"
+            SELECT "dk"."dataproduct_id", coalesce(array_agg("flatterned_keywords_array"), '{}') as "aggregated_keywords"
             FROM
             (
                 SELECT "dataproduct_id", unnest("keywords") as "flatterned_keywords_array" FROM "datasets"
             ) as "dk"
-            GROUP BY "dataproduct_id"
+            GROUP BY "dk"."dataproduct_id"
         ) AS "dpk" on "dp"."id" = "dataproduct_id"
 
    UNION
