@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"io"
 	"net/http"
-	"os"
 	"strings"
 
 	"github.com/navikt/nada-backend/pkg/graph/models"
@@ -152,12 +151,6 @@ func (t *Teamkatalogen) GetProductArea(ctx context.Context, paID string) (*model
 }
 
 func (t *Teamkatalogen) GetProductAreas(ctx context.Context) ([]*models.ProductArea, error) {
-	// Temporarily return only one single product area
-	paID := os.Getenv("DASHBOARD_PA_ID")
-	if paID == "" {
-		return nil, nil
-	}
-
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, t.url+"/productarea", nil)
 	if err != nil {
 		return nil, err
@@ -170,7 +163,7 @@ func (t *Teamkatalogen) GetProductAreas(ctx context.Context) ([]*models.ProductA
 	}
 	defer res.Body.Close()
 
-	var pas struct {
+	var pasdto struct {
 		Content []struct {
 			ID   string `json:"id"`
 			Name string `json:"name"`
@@ -182,18 +175,17 @@ func (t *Teamkatalogen) GetProductAreas(ctx context.Context) ([]*models.ProductA
 		return nil, err
 	}
 
-	if err := json.Unmarshal(bodyBytes, &pas); err != nil {
+	if err := json.Unmarshal(bodyBytes, &pasdto); err != nil {
 		return nil, err
 	}
 
-	for _, pa := range pas.Content {
-		if pa.ID == paID {
-			return []*models.ProductArea{{
-				ID:   pa.ID,
-				Name: pa.Name,
-			}}, nil
-		}
+	var pas = make([]*models.ProductArea, 0)
+	for _, pa := range pasdto.Content {
+		pas = append(pas, &models.ProductArea{
+			ID:   pa.ID,
+			Name: pa.Name,
+		})
 	}
 
-	return nil, nil
+	return pas, nil
 }
