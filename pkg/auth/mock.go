@@ -11,16 +11,24 @@ var MockUser = User{
 	Email: "mock.anderson@email.com",
 	GoogleGroups: Groups{
 		{
-			Name:  "team",
-			Email: "team@nav.no",
+			Name:  "team frifrokost",
+			Email: "teamfrifrokost@nav.no",
 		},
 		{
-			Name:  "nada",
-			Email: "nada@nav.no",
+			Name:  "team frilunsj",
+			Email: "teamfrilunsj@nav.no",
 		},
 		{
-			Name:  "aura",
-			Email: "aura@nav.no",
+			Name:  "team frimiddag",
+			Email: "teamfrimiddag@nav.no",
+		},
+		{
+			Name:  "team frivin",
+			Email: "teamfrivin@nav.no",
+		},
+		{
+			Name:  "team friøl for person med veldig lang navn som denne",
+			Email: "teamfriøl@nav.no",
 		},
 	},
 	AzureGroups: Groups{

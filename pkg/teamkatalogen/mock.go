@@ -2,6 +2,8 @@ package teamkatalogen
 
 import (
 	"context"
+	"errors"
+	"strconv"
 	"strings"
 
 	"github.com/navikt/nada-backend/pkg/auth"
@@ -37,30 +39,60 @@ func (m *Mock) Search(ctx context.Context, query string) ([]*models.Teamkataloge
 }
 
 func (m *Mock) GetTeamsInProductArea(ctx context.Context, paID string) ([]*models.Team, error) {
-	teams := make([]*models.Team, len(auth.MockUser.GoogleGroups))
-	for idx, t := range auth.MockUser.GoogleGroups {
-		teams[idx] = &models.Team{
-			ID:            t.Name + "-001",
-			Name:          t.Name,
-			ProductAreaID: "Mocked-001",
+	teams := GetMockedTeams()
+	teamsInPA := make([]*models.Team, 0)
+	for _, t := range teams {
+		if t.ProductAreaID == paID {
+			teamsInPA = append(teamsInPA, t)
 		}
 	}
-
-	return teams, nil
+	return teamsInPA, nil
 }
 
 func (m *Mock) GetProductArea(ctx context.Context, paID string) (*models.ProductArea, error) {
-	return &models.ProductArea{
-		ID:   "Mocked-001",
-		Name: "Mocked Produktområde",
-	}, nil
+	pas, _ := m.GetProductAreas(ctx)
+	for _, pa := range pas {
+		if pa.ID == paID {
+			return pa, nil
+		}
+	}
+	return nil, errors.New("Invalid product area ID")
+}
+
+var mockedProductAreas = []*models.ProductArea{
+	{
+		ID:   "MOCKED-PO-ID-001",
+		Name: "PO-FriMatHverdag",
+	},
+	{
+		ID:   "MOCKED-PO-ID-002",
+		Name: "PO-FriAlkoholForVoksen",
+	},
+}
+
+var mockedTeams []*models.Team
+
+func GetMockedTeams() []*models.Team {
+	if mockedTeams != nil {
+		return mockedTeams
+	}
+
+	mockedTeams = make([]*models.Team, len(auth.MockUser.GoogleGroups))
+	for idx, t := range auth.MockUser.GoogleGroups {
+		mockedTeams[idx] = &models.Team{
+			ID:            strconv.Itoa(idx),
+			Name:          t.Name,
+			ProductAreaID: "",
+		}
+		if idx < 3 {
+			mockedTeams[idx].ProductAreaID = mockedProductAreas[0].ID
+		} else {
+			mockedTeams[idx].ProductAreaID = mockedProductAreas[1].ID
+		}
+	}
+	return mockedTeams
 }
 
 func (m *Mock) GetProductAreas(ctx context.Context) ([]*models.ProductArea, error) {
-	pas := make([]*models.ProductArea, 1)
-	pas[0] = &models.ProductArea{
-		ID:   "Mocked-001",
-		Name: "Mocked Produktområde",
-	}
-	return pas, nil
+	return mockedProductAreas, nil
 }
