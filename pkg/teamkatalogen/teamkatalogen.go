@@ -152,11 +152,16 @@ func (t *Teamkatalogen) GetProductArea(ctx context.Context, paID string) (*model
 
 func (t *Teamkatalogen) GetProductAreas(ctx context.Context) ([]*models.ProductArea, error) {
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, t.url+"/productarea", nil)
+	q := req.URL.Query()
+	q.Add("status", "active")
+	req.URL.RawQuery = q.Encode()
+
 	if err != nil {
 		return nil, err
 	}
 
 	req.Header.Set("Accept", "application/json")
+	fmt.Print(req.URL)
 	res, err := t.client.Do(req)
 	if err != nil {
 		return nil, err
