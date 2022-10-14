@@ -201,6 +201,7 @@ type ComplexityRoot struct {
 	}
 
 	ProductArea struct {
+		AreaType     func(childComplexity int) int
 		DashboardURL func(childComplexity int) int
 		Dataproducts func(childComplexity int) int
 		ID           func(childComplexity int) int
@@ -383,6 +384,7 @@ type MutationResolver interface {
 type ProductAreaResolver interface {
 	Dataproducts(ctx context.Context, obj *models.ProductArea) ([]*models.Dataproduct, error)
 	DashboardURL(ctx context.Context, obj *models.ProductArea) (string, error)
+
 	Stories(ctx context.Context, obj *models.ProductArea) ([]*models.GraphStory, error)
 	Teams(ctx context.Context, obj *models.ProductArea) ([]*models.Team, error)
 }
@@ -1235,6 +1237,13 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 		}
 
 		return e.complexity.Polly.URL(childComplexity), true
+
+	case "ProductArea.areaType":
+		if e.complexity.ProductArea.AreaType == nil {
+			break
+		}
+
+		return e.complexity.ProductArea.AreaType(childComplexity), true
 
 	case "ProductArea.dashboardURL":
 		if e.complexity.ProductArea.DashboardURL == nil {
@@ -2823,6 +2832,8 @@ extend type Query {
     dataproducts: [Dataproduct!]!
     "dashboardURL is the url to the product area dashboard."
     dashboardURL: String!
+    "areaType is the type of the product area, which is defined by teamkatalogen"
+    areaType: String!,
     "stories is the stories owned by the product area."
     stories: [Story!]!
     "teams is the teams in the product area."
@@ -9458,6 +9469,50 @@ func (ec *executionContext) fieldContext_ProductArea_dashboardURL(ctx context.Co
 	return fc, nil
 }
 
+func (ec *executionContext) _ProductArea_areaType(ctx context.Context, field graphql.CollectedField, obj *models.ProductArea) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_ProductArea_areaType(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.AreaType, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(string)
+	fc.Result = res
+	return ec.marshalNString2string(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_ProductArea_areaType(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "ProductArea",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
 func (ec *executionContext) _ProductArea_stories(ctx context.Context, field graphql.CollectedField, obj *models.ProductArea) (ret graphql.Marshaler) {
 	fc, err := ec.fieldContext_ProductArea_stories(ctx, field)
 	if err != nil {
@@ -10903,6 +10958,8 @@ func (ec *executionContext) fieldContext_Query_productArea(ctx context.Context, 
 				return ec.fieldContext_ProductArea_dataproducts(ctx, field)
 			case "dashboardURL":
 				return ec.fieldContext_ProductArea_dashboardURL(ctx, field)
+			case "areaType":
+				return ec.fieldContext_ProductArea_areaType(ctx, field)
 			case "stories":
 				return ec.fieldContext_ProductArea_stories(ctx, field)
 			case "teams":
@@ -10972,6 +11029,8 @@ func (ec *executionContext) fieldContext_Query_productAreas(ctx context.Context,
 				return ec.fieldContext_ProductArea_dataproducts(ctx, field)
 			case "dashboardURL":
 				return ec.fieldContext_ProductArea_dashboardURL(ctx, field)
+			case "areaType":
+				return ec.fieldContext_ProductArea_areaType(ctx, field)
 			case "stories":
 				return ec.fieldContext_ProductArea_stories(ctx, field)
 			case "teams":
@@ -18158,6 +18217,13 @@ func (ec *executionContext) _ProductArea(ctx context.Context, sel ast.SelectionS
 				return innerFunc(ctx)
 
 			})
+		case "areaType":
+
+			out.Values[i] = ec._ProductArea_areaType(ctx, field, obj)
+
+			if out.Values[i] == graphql.Null {
+				atomic.AddUint32(&invalids, 1)
+			}
 		case "stories":
 			field := field
 

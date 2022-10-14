@@ -7,6 +7,8 @@ type ProductArea @goModel(model: "github.com/navikt/nada-backend/pkg/graph/model
     dataproducts: [Dataproduct!]!
     "dashboardURL is the url to the product area dashboard."
     dashboardURL: String!
+    "areaType is the type of the product area, which is defined by teamkatalogen"
+    areaType: String!,
     "stories is the stories owned by the product area."
     stories: [Story!]!
     "teams is the teams in the product area."

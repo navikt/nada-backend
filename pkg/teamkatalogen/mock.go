@@ -62,16 +62,19 @@ func (m *Mock) GetProductAreas(ctx context.Context) ([]*models.ProductArea, erro
 
 var mockedProductAreas = []*models.ProductArea{
 	{
-		ID:   "Mocked-001",
-		Name: "Mocked Produktområde",
+		ID:       "Mocked-001",
+		Name:     "Mocked Produktområde",
+		AreaType: "PRODUCT_AREA",
 	},
 	{
-		ID:   "Mocked-002",
-		Name: "PO Fri mat hverdag",
+		ID:       "Mocked-002",
+		Name:     "PO Fri mat hverdag",
+		AreaType: "PRODUCT_AREA",
 	},
 	{
-		ID:   "Mocked-003",
-		Name: "PO Fri alkohol til voksen",
+		ID:       "Mocked-003",
+		Name:     "PO Fri alkohol til voksen",
+		AreaType: "PROJECT",
 	},
 }
 
