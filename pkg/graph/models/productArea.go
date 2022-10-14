@@ -5,6 +5,8 @@ type ProductArea struct {
 	ID string `json:"id"`
 	// name is the name of the product area.
 	Name string `json:"name"`
+	//areaType is the type of the product area.
+	AreaType string `json:"areaType"`
 }
 
 type Team struct {
