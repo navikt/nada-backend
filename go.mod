@@ -4,7 +4,7 @@ go 1.19
 
 require (
 	cloud.google.com/go/bigquery v1.42.0
-	cloud.google.com/go/iam v0.4.0
+	cloud.google.com/go/iam v0.5.0
 	github.com/99designs/gqlgen-contrib v0.1.1-0.20200601100547-7a955d321bbd
 	github.com/go-chi/chi v4.1.2+incompatible
 	github.com/google/uuid v1.3.0
@@ -21,7 +21,7 @@ require (
 )
 
 require (
-	cloud.google.com/go v0.103.0 // indirect
+	cloud.google.com/go v0.104.0 // indirect
 	github.com/99designs/gqlgen v0.17.20
 	github.com/coreos/go-oidc/v3 v3.4.0
 	github.com/go-chi/cors v1.2.1
@@ -82,8 +82,8 @@ require (
 	golang.org/x/text v0.3.7 // indirect
 	golang.org/x/xerrors v0.0.0-20220609144429-65e65417b02f // indirect
 	google.golang.org/appengine v1.6.7 // indirect
-	google.golang.org/genproto v0.0.0-20220914142337-ca0e39ece12f // indirect
-	google.golang.org/grpc v1.48.0 // indirect
+	google.golang.org/genproto v0.0.0-20220926220553-6981cbe3cfce // indirect
+	google.golang.org/grpc v1.49.0 // indirect
 	google.golang.org/protobuf v1.28.1 // indirect
 	gopkg.in/square/go-jose.v2 v2.6.0 // indirect
 	gopkg.in/yaml.v2 v2.4.0 // indirect
