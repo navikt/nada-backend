@@ -37,30 +37,87 @@ func (m *Mock) Search(ctx context.Context, query string) ([]*models.Teamkataloge
 }
 
 func (m *Mock) GetTeamsInProductArea(ctx context.Context, paID string) ([]*models.Team, error) {
-	teams := make([]*models.Team, len(auth.MockUser.GoogleGroups))
-	for idx, t := range auth.MockUser.GoogleGroups {
-		teams[idx] = &models.Team{
-			ID:            t.Name + "-001",
-			Name:          t.Name,
-			ProductAreaID: "Mocked-001",
+	var mockedTeams = CreateMockedTeams()
+	var teams = make([]*models.Team, 0)
+	for _, t := range mockedTeams {
+		if t.ProductAreaID == paID {
+			teams = append(teams, t)
 		}
 	}
-
 	return teams, nil
 }
 
 func (m *Mock) GetProductArea(ctx context.Context, paID string) (*models.ProductArea, error) {
-	return &models.ProductArea{
-		ID:   "Mocked-001",
-		Name: "Mocked Produktområde",
-	}, nil
+	for _, pa := range mockedProductAreas {
+		if pa.ID == paID {
+			return pa, nil
+		}
+	}
+	return nil, nil
 }
 
 func (m *Mock) GetProductAreas(ctx context.Context) ([]*models.ProductArea, error) {
-	pas := make([]*models.ProductArea, 1)
-	pas[0] = &models.ProductArea{
+	return mockedProductAreas, nil
+}
+
+var mockedProductAreas = []*models.ProductArea{
+	{
 		ID:   "Mocked-001",
 		Name: "Mocked Produktområde",
+	},
+	{
+		ID:   "Mocked-002",
+		Name: "PO Fri mat hverdag",
+	},
+	{
+		ID:   "Mocked-003",
+		Name: "PO Fri alkohol til voksen",
+	},
+}
+
+var mockedTeams []*models.Team
+
+func CreateMockedTeams() []*models.Team {
+	if mockedTeams != nil {
+		return mockedTeams
 	}
-	return pas, nil
+
+	mockedTeams = make([]*models.Team, 0)
+	for _, t := range auth.MockUser.GoogleGroups {
+		mockedTeams = append(mockedTeams, &models.Team{
+			ID:            t.Name + "-001",
+			Name:          t.Name,
+			ProductAreaID: "Mocked-001",
+		})
+	}
+
+	var staticMockedTeams = []*models.Team{
+		{
+			ID:            "Team-Frifrokost-001",
+			Name:          "Team Frifrokost",
+			ProductAreaID: "Mocked-002",
+		},
+		{
+			ID:            "Team-Frilunsj-001",
+			Name:          "Team Frilunsj",
+			ProductAreaID: "Mocked-002",
+		},
+		{
+			ID:            "Team-Frimiddag-001",
+			Name:          "Team Frimiddag",
+			ProductAreaID: "Mocked-002",
+		},
+		{
+			ID:            "Team-Frivin-001",
+			Name:          "Team Frivin",
+			ProductAreaID: "Mocked-003",
+		},
+		{
+			ID:            "Team-FriølTilPersonMedVeldigLangNavnSomDenne-001",
+			Name:          "Team Friøl hver andre dag til person med veldig lang navn som denne",
+			ProductAreaID: "Mocked-003",
+		},
+	}
+	mockedTeams = append(mockedTeams, staticMockedTeams...)
+	return mockedTeams
 }
