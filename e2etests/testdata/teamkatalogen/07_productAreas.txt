@@ -2,6 +2,7 @@
   productAreas{
     id
     name
+    areaType
     dataproducts {
         name
     }
