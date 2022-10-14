@@ -19,6 +19,7 @@ RETURNS
       {
         "id": "Mocked-001",
         "name": "Mocked Produktområde",
+        "areaType": "PRODUCT_AREA",
         "dataproducts": [],
         "stories": []
       },
@@ -26,12 +27,14 @@ RETURNS
         "id": "Mocked-002",
         "name": "PO Fri mat hverdag",
         "dataproducts": [],
+        "areaType": "PRODUCT_AREA",
         "stories": []
       },
       {
         "id": "Mocked-003",
         "name": "PO Fri alkohol til voksen",
         "dataproducts": [],
+        "areaType": "PROJECT",
         "stories": []
       }
     ]
