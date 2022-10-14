@@ -29,6 +29,18 @@ RETURNS
             "name": "mystory"
           }
         ]
+      },
+      {
+        "id": "Mocked-002",
+        "name": "PO Fri mat hverdag",
+        "dataproducts": [],
+        "stories": []
+      },
+      {
+        "id": "Mocked-003",
+        "name": "PO Fri alkohol til voksen",
+        "dataproducts": [],
+        "stories": []
       }
     ]
   }
