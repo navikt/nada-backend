@@ -4,10 +4,12 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"io/ioutil"
 	"net/http"
+	"net/url"
 	"os"
 	"strconv"
 	"strings"
@@ -17,20 +19,24 @@ import (
 )
 
 type Client struct {
-	c         *http.Client
-	password  string
-	url       string
-	username  string
-	expiry    time.Time
-	sessionID string
+	c                  *http.Client
+	password           string
+	url                string
+	username           string
+	oauth2ClientID     string
+	oauth2ClientSecret string
+	expiry             time.Time
+	sessionID          string
 }
 
-func NewClient(url, username, password string) *Client {
+func NewClient(url, username, password, oauth2ClientID, oauth2ClientSecret string) *Client {
 	return &Client{
-		c:        http.DefaultClient,
-		url:      url,
-		password: password,
-		username: username,
+		c:                  http.DefaultClient,
+		url:                url,
+		password:           password,
+		username:           username,
+		oauth2ClientID:     oauth2ClientID,
+		oauth2ClientSecret: oauth2ClientSecret,
 	}
 }
 
@@ -505,4 +511,132 @@ func getUserID(users []MetabaseUser, email string) (int, error) {
 		}
 	}
 	return -1, fmt.Errorf("user %v does not exist in metabase", email)
+}
+
+func (c *Client) getAzureAccessToken(ctx context.Context) (string, error) {
+	form := url.Values{}
+	form.Add("grant_type", "client_credentials")
+	form.Add("client_id", c.oauth2ClientID)
+	form.Add("client_secret", c.oauth2ClientSecret)
+	form.Add("scope", "https://graph.microsoft.com/.default")
+
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, "https://login.microsoftonline.com/62366534-1ec3-4962-8869-9b5535279d0b/oauth2/v2.0/token", strings.NewReader(form.Encode()))
+	if err != nil {
+		return "", err
+	}
+
+	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+	req.Header.Set("Keep-Alive", "true")
+	res, err := c.c.Do(req)
+	if err != nil {
+		return "", err
+	}
+	defer res.Body.Close()
+
+	type tokenResponse struct {
+		AccessToken string `json:"access_token"`
+	}
+	tokenRes := &tokenResponse{}
+	if err := json.NewDecoder(res.Body).Decode(tokenRes); err != nil {
+		return "", err
+	}
+
+	return tokenRes.AccessToken, nil
+}
+
+func (c *Client) GetAzureGroupID(ctx context.Context, email string) (string, error) {
+	token, err := c.getAzureAccessToken(ctx)
+	if err != nil {
+		return "", err
+	}
+
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, "https://graph.microsoft.com/v1.0/groups", nil)
+	if err != nil {
+		return "", err
+	}
+	q := req.URL.Query()
+	q.Add("$filter", fmt.Sprintf("startswith(mail, '%v')", email))
+	req.URL.RawQuery = q.Encode()
+
+	req.Header.Set("Authorization", "Bearer "+token)
+	req.Header.Set("ConsistencyLevel", "eventual")
+	res, err := c.c.Do(req)
+	if err != nil {
+		return "", err
+	}
+	defer res.Body.Close()
+
+	type groupRes struct {
+		Value []struct {
+			ID string `json:"id"`
+		} `json:"value"`
+	}
+	group := &groupRes{}
+
+	if err := json.NewDecoder(res.Body).Decode(group); err != nil {
+		return "", err
+	}
+
+	if len(group.Value) != 1 {
+		return "", fmt.Errorf("unable to find azure group with email %v", email)
+	}
+
+	return group.Value[0].ID, nil
+}
+
+type MetabaseSetting struct {
+	Key   string      `json:"key"`
+	Value interface{} `json:"value"`
+}
+
+func getSAMLMappingFromSettings(settings []*MetabaseSetting) (map[string]interface{}, error) {
+	for _, s := range settings {
+		if s.Key == "saml-group-mappings" {
+			return s.Value.(map[string]interface{}), nil
+		}
+	}
+	return nil, errors.New("saml group mappings not found in metabase settings")
+}
+
+func (c *Client) getGroupMappings(ctx context.Context) (map[string]interface{}, error) {
+	settings := []*MetabaseSetting{}
+	if err := c.request(ctx, http.MethodGet, "/setting", nil, &settings); err != nil {
+		return nil, err
+	}
+
+	return getSAMLMappingFromSettings(settings)
+}
+
+func updateGroupMapping(mappings map[string]interface{}, azureGroupID string, mbPermissionGroupID int) map[string]interface{} {
+	for aGroup, pGroups := range mappings {
+		if aGroup == azureGroupID {
+			fmt.Println(pGroups.([]int))
+			// append if exists
+			// return
+		}
+	}
+	mappings[azureGroupID] = []int{mbPermissionGroupID}
+
+	return mappings
+}
+
+func (c *Client) UpdateGroupMappings(ctx context.Context, azureGroupID string, mbPermissionGroupID int) error {
+	current, err := c.getGroupMappings(ctx)
+	if err != nil {
+		return err
+	}
+
+	updated := updateGroupMapping(current, azureGroupID, mbPermissionGroupID)
+
+	body := struct {
+		SAMLGroupMappings map[string]interface{} `json:"saml-group-mappings"`
+	}{
+		SAMLGroupMappings: updated,
+	}
+
+	if err := c.request(ctx, http.MethodPut, "/setting", nil, &body); err != nil {
+		return err
+	}
+
+	return nil
 }
