@@ -88,6 +88,8 @@ func (m *Metabase) grantMetabaseAccess(ctx context.Context, dsID uuid.UUID, subj
 func (m *Metabase) revokeMetabaseAccess(ctx context.Context, dsID uuid.UUID, subject string) {
 	if subject == "group:all-users@nav.no" {
 		m.deleteAllUsersDataset(ctx, dsID)
+	} else if strings.HasPrefix(subject, "group:") {
+		m.removeGroupAccess(ctx, dsID, subject)
 	} else {
 		m.removeMetabaseGroupMember(ctx, dsID, subject)
 	}
@@ -223,8 +225,40 @@ func (m *Metabase) addGroupAccess(ctx context.Context, dsID uuid.UUID, subject s
 		return
 	}
 
-	if err := m.client.UpdateGroupMappings(ctx, groupID, mbMetadata.PermissionGroupID); err != nil {
-		log.WithError(err).Errorf("unable to update metabase group mappings")
+	if err := m.client.UpdateGroupMapping(ctx, groupID, mbMetadata.PermissionGroupID, GroupMappingOperationAdd); err != nil {
+		log.WithError(err).Errorf("unable to add metabase group mapping")
+		return
+	}
+}
+
+func (m *Metabase) removeGroupAccess(ctx context.Context, dsID uuid.UUID, subject string) {
+	log := m.log.WithField("datasetID", dsID)
+
+	mbMetadata, err := m.repo.GetMetabaseMetadata(ctx, dsID, false)
+	if err != nil {
+		log.WithError(err).Error("getting metabase metadata")
+		return
+	}
+
+	if mbMetadata.PermissionGroupID == 0 {
+		log.WithError(err).Errorf("permission group does not exist for dataset %v", dsID)
+		return
+	}
+
+	s := strings.Split(subject, ":")
+	if s[0] != "group" {
+		log.Info("subject is not a group")
+		return
+	}
+
+	groupID, err := m.client.GetAzureGroupID(ctx, s[1])
+	if err != nil {
+		log.WithError(err).Error("getting azure group id")
+		return
+	}
+
+	if err := m.client.UpdateGroupMapping(ctx, groupID, mbMetadata.PermissionGroupID, GroupMappingOperationRemove); err != nil {
+		log.WithError(err).Errorf("unable to add metabase group mapping")
 		return
 	}
 }
