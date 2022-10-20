@@ -199,7 +199,7 @@ func runMetabase(ctx context.Context, log *logrus.Entry, cfg Config, repo *datab
 
 	log.Info("metabase sync enabled")
 
-	client := metabase.NewClient(cfg.MetabaseAPI, cfg.MetabaseUsername, cfg.MetabasePassword, cfg.OAuth2.ClientID, cfg.OAuth2.ClientSecret)
+	client := metabase.NewClient(cfg.MetabaseAPI, cfg.MetabaseUsername, cfg.MetabasePassword, cfg.OAuth2.ClientID, cfg.OAuth2.ClientSecret, cfg.OAuth2.TenantID)
 	crmService, err := cloudresourcemanager.NewService(ctx)
 	if err != nil {
 		return err

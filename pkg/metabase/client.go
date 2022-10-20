@@ -23,11 +23,12 @@ type Client struct {
 	username           string
 	oauth2ClientID     string
 	oauth2ClientSecret string
+	oauth2TenantID     string
 	expiry             time.Time
 	sessionID          string
 }
 
-func NewClient(url, username, password, oauth2ClientID, oauth2ClientSecret string) *Client {
+func NewClient(url, username, password, oauth2ClientID, oauth2ClientSecret, oauth2TenantID string) *Client {
 	return &Client{
 		c:                  http.DefaultClient,
 		url:                url,
@@ -35,6 +36,7 @@ func NewClient(url, username, password, oauth2ClientID, oauth2ClientSecret strin
 		username:           username,
 		oauth2ClientID:     oauth2ClientID,
 		oauth2ClientSecret: oauth2ClientSecret,
+		oauth2TenantID:     oauth2TenantID,
 	}
 }
 

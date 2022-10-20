@@ -102,7 +102,11 @@ func (c *Client) getGroupMappings(ctx context.Context) (map[string]interface{}, 
 func getSAMLMappingFromSettings(settings []*MetabaseSetting) (map[string]interface{}, error) {
 	for _, s := range settings {
 		if s.Key == "saml-group-mappings" {
-			return s.Value.(map[string]interface{}), nil
+			if s.Value != nil {
+				return s.Value.(map[string]interface{}), nil
+			} else {
+				return map[string]interface{}{}, nil
+			}
 		}
 	}
 	return nil, errors.New("saml group mappings not found in metabase settings")

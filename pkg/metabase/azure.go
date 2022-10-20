@@ -56,7 +56,7 @@ func (c *Client) getAzureAccessToken(ctx context.Context) (string, error) {
 	form.Add("client_secret", c.oauth2ClientSecret)
 	form.Add("scope", "https://graph.microsoft.com/.default")
 
-	req, err := http.NewRequestWithContext(ctx, http.MethodPost, "https://login.microsoftonline.com/62366534-1ec3-4962-8869-9b5535279d0b/oauth2/v2.0/token", strings.NewReader(form.Encode()))
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, fmt.Sprintf("https://login.microsoftonline.com/%v/oauth2/v2.0/token", c.oauth2TenantID), strings.NewReader(form.Encode()))
 	if err != nil {
 		return "", err
 	}
