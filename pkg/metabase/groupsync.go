@@ -24,10 +24,6 @@ func (c *Client) UpdateGroupMapping(ctx context.Context, azureGroupID string, mb
 		return err
 	}
 
-	if current == nil {
-		current = map[string]interface{}{}
-	}
-
 	var updated map[string]interface{}
 	switch operation {
 	case GroupMappingOperationAdd:
