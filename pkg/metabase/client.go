@@ -607,12 +607,22 @@ func (c *Client) getGroupMappings(ctx context.Context) (map[string]interface{}, 
 	return getSAMLMappingFromSettings(settings)
 }
 
+func appendGroupMapping(groups []interface{}, group int) []interface{} {
+	for _, g := range groups {
+		if int(g.(float64)) == group {
+			return groups
+		}
+	}
+	groups = append(groups, group)
+
+	return groups
+}
+
 func updateGroupMapping(mappings map[string]interface{}, azureGroupID string, mbPermissionGroupID int) map[string]interface{} {
 	for aGroup, pGroups := range mappings {
 		if aGroup == azureGroupID {
-			fmt.Println(pGroups.([]int))
-			// append if exists
-			// return
+			mappings[aGroup] = appendGroupMapping(pGroups.([]interface{}), mbPermissionGroupID)
+			return mappings
 		}
 	}
 	mappings[azureGroupID] = []int{mbPermissionGroupID}
@@ -627,14 +637,8 @@ func (c *Client) UpdateGroupMappings(ctx context.Context, azureGroupID string, m
 	}
 
 	updated := updateGroupMapping(current, azureGroupID, mbPermissionGroupID)
-
-	body := struct {
-		SAMLGroupMappings map[string]interface{} `json:"saml-group-mappings"`
-	}{
-		SAMLGroupMappings: updated,
-	}
-
-	if err := c.request(ctx, http.MethodPut, "/setting", nil, &body); err != nil {
+	payload := map[string]map[string]interface{}{"saml-group-mappings": updated}
+	if err := c.request(ctx, http.MethodPut, "/setting", payload, nil); err != nil {
 		return err
 	}
 
