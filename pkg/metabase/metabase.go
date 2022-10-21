@@ -243,7 +243,7 @@ func (m *Metabase) removeDatasetMapping(ctx context.Context, dsID uuid.UUID) {
 	log := m.log.WithField("datasetID", dsID)
 
 	if err := m.revokeAccessesOnSoftDelete(ctx, dsID); err != nil {
-		log.WithError(err).Error("revoking accesses after database creation")
+		log.WithError(err).Error("revoking accesses on database soft delete")
 		return
 	}
 
