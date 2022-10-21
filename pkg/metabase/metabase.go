@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"encoding/base64"
 	"errors"
+	"fmt"
 	"os"
 	"strings"
 	"time"
@@ -170,7 +171,7 @@ func (m *Metabase) addDatasetMapping(ctx context.Context, dsID uuid.UUID) {
 			return
 		}
 
-		if err := m.grantAccessesAfterCreation(ctx, dsID); err != nil {
+		if err := m.grantAccessesOnCreation(ctx, dsID); err != nil {
 			log.WithError(err).Error("granting accesses after database creation")
 			return
 		}
@@ -193,7 +194,7 @@ func (m *Metabase) addDatasetMapping(ctx context.Context, dsID uuid.UUID) {
 			log.WithError(err).Error("restoring db")
 		}
 
-		if err := m.grantAccessesAfterCreation(ctx, dsID); err != nil {
+		if err := m.grantAccessesOnCreation(ctx, dsID); err != nil {
 			log.WithError(err).Error("granting accesses after database creation")
 			return
 		}
@@ -201,7 +202,7 @@ func (m *Metabase) addDatasetMapping(ctx context.Context, dsID uuid.UUID) {
 	}
 }
 
-func (m *Metabase) grantAccessesAfterCreation(ctx context.Context, dsID uuid.UUID) error {
+func (m *Metabase) grantAccessesOnCreation(ctx context.Context, dsID uuid.UUID) error {
 	accesses, err := m.repo.ListActiveAccessToDataset(ctx, dsID)
 	if err != nil {
 		return err
@@ -221,10 +222,33 @@ func (m *Metabase) grantAccessesAfterCreation(ctx context.Context, dsID uuid.UUI
 func (m *Metabase) removeDatasetMapping(ctx context.Context, dsID uuid.UUID) {
 	log := m.log.WithField("datasetID", dsID)
 
+	if err := m.revokeAccessesOnSoftDelete(ctx, dsID); err != nil {
+		log.WithError(err).Error("revoking accesses after database creation")
+		return
+	}
+
 	if err := m.softDelete(ctx, dsID); err != nil {
 		log.WithError(err).Error("delete restricted database")
 		return
 	}
+}
+
+func (m *Metabase) revokeAccessesOnSoftDelete(ctx context.Context, dsID uuid.UUID) error {
+	accesses, err := m.repo.ListActiveAccessToDataset(ctx, dsID)
+	if err != nil {
+		return err
+	}
+
+	for _, a := range accesses {
+		fmt.Println(a.Subject)
+		if strings.HasPrefix(a.Subject, "group:") {
+			m.removeGroupAccess(ctx, dsID, a.Subject)
+		} else {
+			m.removeMetabaseGroupMember(ctx, dsID, a.Subject)
+		}
+	}
+
+	return nil
 }
 
 func (m *Metabase) addGroupAccess(ctx context.Context, dsID uuid.UUID, subject string) {
