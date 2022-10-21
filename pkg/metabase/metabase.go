@@ -169,6 +169,12 @@ func (m *Metabase) addDatasetMapping(ctx context.Context, dsID uuid.UUID) {
 			log.WithError(err).Error("create restricted database")
 			return
 		}
+
+		if err := m.grantAccessesAfterCreation(ctx, dsID); err != nil {
+			log.WithError(err).Error("granting accesses after database creation")
+			return
+		}
+
 		return
 	} else if err != nil {
 		log.WithError(err).Error("get metabase metadata")
@@ -186,8 +192,30 @@ func (m *Metabase) addDatasetMapping(ctx context.Context, dsID uuid.UUID) {
 		if err := m.restore(ctx, dsID, mbMeta); err != nil {
 			log.WithError(err).Error("restoring db")
 		}
+
+		if err := m.grantAccessesAfterCreation(ctx, dsID); err != nil {
+			log.WithError(err).Error("granting accesses after database creation")
+			return
+		}
 		return
 	}
+}
+
+func (m *Metabase) grantAccessesAfterCreation(ctx context.Context, dsID uuid.UUID) error {
+	accesses, err := m.repo.ListActiveAccessToDataset(ctx, dsID)
+	if err != nil {
+		return err
+	}
+
+	for _, a := range accesses {
+		if strings.HasPrefix(a.Subject, "group:") {
+			m.addGroupAccess(ctx, dsID, a.Subject)
+		} else {
+			m.addMetabaseGroupMember(ctx, dsID, a.Subject)
+		}
+	}
+
+	return nil
 }
 
 func (m *Metabase) removeDatasetMapping(ctx context.Context, dsID uuid.UUID) {
@@ -258,7 +286,7 @@ func (m *Metabase) removeGroupAccess(ctx context.Context, dsID uuid.UUID, subjec
 	}
 
 	if err := m.client.UpdateGroupMapping(ctx, groupID, mbMetadata.PermissionGroupID, GroupMappingOperationRemove); err != nil {
-		log.WithError(err).Errorf("unable to add metabase group mapping")
+		log.WithError(err).Errorf("unable to remove metabase group mapping")
 		return
 	}
 }
