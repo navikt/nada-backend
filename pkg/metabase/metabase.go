@@ -67,10 +67,31 @@ func (m *Metabase) Run(ctx context.Context, frequency time.Duration) {
 	ticker := time.NewTicker(frequency)
 	defer ticker.Stop()
 	for {
+		m.run(ctx)
 		select {
 		case <-ctx.Done():
 			return
 		case <-ticker.C:
+		}
+	}
+}
+
+func (m *Metabase) run(ctx context.Context) {
+	log := m.log.WithField("subsystem", "metabase synchronizer")
+
+	mbMetas, err := m.repo.GetAllMetabaseMetadata(ctx)
+	if err != nil {
+		log.WithError(err).Error("reading metabase metadata")
+	}
+
+	for _, db := range mbMetas {
+		bq, err := m.repo.GetBigqueryDatasource(ctx, db.DatasetID)
+		if err != nil {
+			log.WithError(err).Error("getting bigquery datasource for dataset")
+		}
+
+		if err := m.HideOtherTables(ctx, db.DatabaseID, bq.Table); err != nil {
+			log.WithError(err).Error("hiding other tables")
 		}
 	}
 }

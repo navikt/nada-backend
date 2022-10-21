@@ -35,6 +35,10 @@ SELECT *
 FROM metabase_metadata
 WHERE "dataset_id" = @dataset_id AND "deleted_at" IS NULL;
 
+-- name: GetAllMetabaseMetadata :many
+SELECT *
+FROM metabase_metadata;
+
 -- name: GetMetabaseMetadataWithDeleted :one
 SELECT *
 FROM metabase_metadata

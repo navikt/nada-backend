@@ -43,7 +43,7 @@ var (
 const (
 	TeamProjectsUpdateFrequency = 60 * time.Minute
 	AccessEnsurerFrequency      = 5 * time.Minute
-	MetabaseUpdateFrequency     = 5 * time.Minute
+	MetabaseUpdateFrequency     = 1 * time.Hour
 	StoryDraftCleanerFrequency  = 24 * time.Hour
 )
 

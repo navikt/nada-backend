@@ -62,6 +62,41 @@ func (q *Queries) DeleteMetabaseMetadata(ctx context.Context, datasetID uuid.UUI
 	return err
 }
 
+const getAllMetabaseMetadata = `-- name: GetAllMetabaseMetadata :many
+SELECT database_id, permission_group_id, sa_email, collection_id, deleted_at, dataset_id
+FROM metabase_metadata
+`
+
+func (q *Queries) GetAllMetabaseMetadata(ctx context.Context) ([]MetabaseMetadatum, error) {
+	rows, err := q.db.QueryContext(ctx, getAllMetabaseMetadata)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []MetabaseMetadatum{}
+	for rows.Next() {
+		var i MetabaseMetadatum
+		if err := rows.Scan(
+			&i.DatabaseID,
+			&i.PermissionGroupID,
+			&i.SaEmail,
+			&i.CollectionID,
+			&i.DeletedAt,
+			&i.DatasetID,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const getMetabaseMetadata = `-- name: GetMetabaseMetadata :one
 SELECT database_id, permission_group_id, sa_email, collection_id, deleted_at, dataset_id
 FROM metabase_metadata
