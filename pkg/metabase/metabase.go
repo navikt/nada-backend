@@ -5,7 +5,6 @@ import (
 	"database/sql"
 	"encoding/base64"
 	"errors"
-	"fmt"
 	"os"
 	"strings"
 	"time"
@@ -240,7 +239,6 @@ func (m *Metabase) revokeAccessesOnSoftDelete(ctx context.Context, dsID uuid.UUI
 	}
 
 	for _, a := range accesses {
-		fmt.Println(a.Subject)
 		if strings.HasPrefix(a.Subject, "group:") {
 			m.removeGroupAccess(ctx, dsID, a.Subject)
 		} else {
