@@ -223,12 +223,13 @@ type DatasourceBigquery struct {
 }
 
 type MetabaseMetadatum struct {
-	DatabaseID        int32
-	PermissionGroupID sql.NullInt32
-	SaEmail           string
-	CollectionID      sql.NullInt32
-	DeletedAt         sql.NullTime
-	DatasetID         uuid.UUID
+	DatabaseID           int32
+	PermissionGroupID    sql.NullInt32
+	SaEmail              string
+	CollectionID         sql.NullInt32
+	DeletedAt            sql.NullTime
+	DatasetID            uuid.UUID
+	AadPremissionGroupID sql.NullInt32
 }
 
 type PollyDocumentation struct {

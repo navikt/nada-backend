@@ -337,7 +337,7 @@ func (c *Client) AddPermissionGroupMember(ctx context.Context, groupID int, emai
 	return c.request(ctx, http.MethodPost, "/permissions/membership", payload, nil)
 }
 
-func (c *Client) RestrictAccessToDatabase(ctx context.Context, groupID, databaseID int) error {
+func (c *Client) RestrictAccessToDatabase(ctx context.Context, groupIDs []int, databaseID int) error {
 	type permissions struct {
 		Native  string `json:"native,omitempty"`
 		Schemas string `json:"schemas,omitempty"`
@@ -357,14 +357,19 @@ func (c *Client) RestrictAccessToDatabase(ctx context.Context, groupID, database
 		return err
 	}
 
-	grpSID := strconv.Itoa(groupID)
 	dbSID := strconv.Itoa(databaseID)
 
-	if _, ok := permissionGraph.Groups[grpSID]; !ok {
-		permissionGraph.Groups[grpSID] = map[string]permissionGroup{}
-	}
-	permissionGraph.Groups[grpSID][dbSID] = permissionGroup{
-		Data: permissions{Native: "write", Schemas: "all"},
+	grpSIDs := []string{}
+	for _, g := range groupIDs {
+		grpSID := strconv.Itoa(g)
+		if _, ok := permissionGraph.Groups[grpSID]; !ok {
+			permissionGraph.Groups[grpSID] = map[string]permissionGroup{}
+		}
+		permissionGraph.Groups[grpSID][dbSID] = permissionGroup{
+			Data: permissions{Native: "write", Schemas: "all"},
+		}
+
+		grpSIDs = append(grpSIDs, grpSID)
 	}
 
 	for gid, permission := range permissionGraph.Groups {
@@ -372,7 +377,7 @@ func (c *Client) RestrictAccessToDatabase(ctx context.Context, groupID, database
 			// admin group
 			continue
 		}
-		if gid != grpSID {
+		if !containsGroup(grpSIDs, gid) {
 			permission[dbSID] = permissionGroup{
 				Data: permissions{Native: "none", Schemas: "none"},
 			}
@@ -492,14 +497,16 @@ func (c *Client) SetCollectionAccess(ctx context.Context, groupID, collectionID 
 	return c.request(ctx, http.MethodPut, "/collection/graph", cPermissions, nil)
 }
 
-func (c *Client) CreateCollectionWithAccess(ctx context.Context, groupID int, name string) (int, error) {
+func (c *Client) CreateCollectionWithAccess(ctx context.Context, groupIDs []int, name string) (int, error) {
 	cid, err := c.CreateCollection(ctx, name)
 	if err != nil {
 		return 0, err
 	}
 
-	if err := c.SetCollectionAccess(ctx, groupID, cid); err != nil {
-		return cid, err
+	for _, gID := range groupIDs {
+		if err := c.SetCollectionAccess(ctx, gID, cid); err != nil {
+			return cid, err
+		}
 	}
 	return cid, nil
 }
@@ -511,4 +518,14 @@ func getUserID(users []MetabaseUser, email string) (int, error) {
 		}
 	}
 	return -1, fmt.Errorf("user %v does not exist in metabase", email)
+}
+
+func containsGroup(groups []string, group string) bool {
+	for _, g := range groups {
+		if g == group {
+			return true
+		}
+	}
+
+	return false
 }
