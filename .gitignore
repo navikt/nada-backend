@@ -6,3 +6,4 @@ hack/.ipynb_checkpoints/
 .env
 *.json
 .tool-versions
+.local/

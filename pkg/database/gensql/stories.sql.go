@@ -451,6 +451,21 @@ func (q *Queries) GetStoryViews(ctx context.Context, storyID uuid.UUID) ([]Story
 	return items, nil
 }
 
+const replaceStoriesTag = `-- name: ReplaceStoriesTag :exec
+UPDATE stories
+SET "keywords"          = array_replace(keywords, $1, $2)
+`
+
+type ReplaceStoriesTagParams struct {
+	TagToReplace interface{}
+	TagUpdated   interface{}
+}
+
+func (q *Queries) ReplaceStoriesTag(ctx context.Context, arg ReplaceStoriesTagParams) error {
+	_, err := q.db.ExecContext(ctx, replaceStoriesTag, arg.TagToReplace, arg.TagUpdated)
+	return err
+}
+
 const updateStory = `-- name: UpdateStory :one
 UPDATE stories
 SET

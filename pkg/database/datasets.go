@@ -98,6 +98,13 @@ func (r *Repo) CreateDataset(ctx context.Context, ds models.NewDataset) (*models
 		}
 	}
 
+	for _, keyword := range ds.Keywords {
+		err = querier.CreateTagIfNotExist(ctx, keyword)
+		if err != nil {
+			r.log.WithError(err).Warn("failed to create tag when creating dataset in database")
+		}
+	}
+
 	if err := tx.Commit(); err != nil {
 		return nil, err
 	}
@@ -123,6 +130,13 @@ func (r *Repo) UpdateDataset(ctx context.Context, id uuid.UUID, new models.Updat
 	})
 	if err != nil {
 		return nil, fmt.Errorf("updating dataset in database: %w", err)
+	}
+
+	for _, keyword := range new.Keywords {
+		err = r.querier.CreateTagIfNotExist(ctx, keyword)
+		if err != nil {
+			r.log.WithError(err).Warn("failed to create tag when updating dataset in database")
+		}
 	}
 
 	return datasetFromSQL(res), nil

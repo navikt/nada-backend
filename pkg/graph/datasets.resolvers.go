@@ -169,6 +169,7 @@ func (r *mutationResolver) CreateDataset(ctx context.Context, input models.NewDa
 	if err != nil {
 		return nil, err
 	}
+
 	return ds, nil
 }
 
@@ -206,7 +207,13 @@ func (r *mutationResolver) UpdateDataset(ctx context.Context, id uuid.UUID, inpu
 	if input.Description != nil && *input.Description != "" {
 		*input.Description = html.EscapeString(*input.Description)
 	}
-	return r.repo.UpdateDataset(ctx, id, input)
+
+	updatedDS, err := r.repo.UpdateDataset(ctx, id, input)
+	if err != nil {
+		return updatedDS, err
+	}
+
+	return updatedDS, err
 }
 
 // DeleteDataset is the resolver for the deleteDataset field.

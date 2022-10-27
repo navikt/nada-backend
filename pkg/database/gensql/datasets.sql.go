@@ -615,6 +615,21 @@ func (q *Queries) GetDatasetsInDataproduct(ctx context.Context, dataproductID uu
 	return items, nil
 }
 
+const replaceDatasetsTag = `-- name: ReplaceDatasetsTag :exec
+UPDATE datasets
+SET "keywords"          = array_replace(keywords, $1, $2)
+`
+
+type ReplaceDatasetsTagParams struct {
+	TagToReplace interface{}
+	TagUpdated   interface{}
+}
+
+func (q *Queries) ReplaceDatasetsTag(ctx context.Context, arg ReplaceDatasetsTagParams) error {
+	_, err := q.db.ExecContext(ctx, replaceDatasetsTag, arg.TagToReplace, arg.TagUpdated)
+	return err
+}
+
 const updateBigqueryDatasourceSchema = `-- name: UpdateBigqueryDatasourceSchema :exec
 UPDATE datasource_bigquery
 SET "schema"        = $1,

@@ -309,6 +309,11 @@ type StoryViewDraft struct {
 	Spec    json.RawMessage
 }
 
+type Tag struct {
+	ID     uuid.UUID
+	Phrase string
+}
+
 type TeamProject struct {
 	Team    string
 	Project string

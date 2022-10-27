@@ -1,8 +1,8 @@
 -- +goose Up
 CREATE TABLE tags
 (
-    "id"            uuid                 DEFAULT uuid_generate_v4(),
-    "text"          TEXT        NOT NULL,
+    "id"            uuid        DEFAULT uuid_generate_v4(),
+    "phrase"        TEXT        UNIQUE NOT NULL,
     PRIMARY KEY (id)
 );
 
