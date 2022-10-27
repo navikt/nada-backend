@@ -169,7 +169,6 @@ func (r *mutationResolver) CreateDataset(ctx context.Context, input models.NewDa
 	if err != nil {
 		return nil, err
 	}
-
 	return ds, nil
 }
 
