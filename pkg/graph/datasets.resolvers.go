@@ -207,13 +207,7 @@ func (r *mutationResolver) UpdateDataset(ctx context.Context, id uuid.UUID, inpu
 	if input.Description != nil && *input.Description != "" {
 		*input.Description = html.EscapeString(*input.Description)
 	}
-
-	updatedDS, err := r.repo.UpdateDataset(ctx, id, input)
-	if err != nil {
-		return updatedDS, err
-	}
-
-	return updatedDS, err
+	return r.repo.UpdateDataset(ctx, id, input)
 }
 
 // DeleteDataset is the resolver for the deleteDataset field.
