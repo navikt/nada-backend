@@ -2,6 +2,7 @@
   productAreas{
     id
     name
+    areaType
     dataproducts {
         name
     }
@@ -19,18 +20,21 @@ RETURNS
       {
         "id": "Mocked-001",
         "name": "Mocked Produktområde",
+        "areaType": "PRODUCT_AREA",
         "dataproducts": [],
         "stories": []
       },
       {
         "id": "Mocked-002",
         "name": "PO Fri mat hverdag",
+        "areaType": "PRODUCT_AREA",
         "dataproducts": [],
         "stories": []
       },
       {
         "id": "Mocked-003",
         "name": "PO Fri alkohol til voksen",
+        "areaType": "PROJECT",
         "dataproducts": [],
         "stories": []
       }

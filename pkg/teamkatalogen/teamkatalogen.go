@@ -170,8 +170,9 @@ func (t *Teamkatalogen) GetProductAreas(ctx context.Context) ([]*models.ProductA
 
 	var pasdto struct {
 		Content []struct {
-			ID   string `json:"id"`
-			Name string `json:"name"`
+			ID       string `json:"id"`
+			Name     string `json:"name"`
+			AreaType string `json:"areaType"`
 		} `json:"content"`
 	}
 
@@ -187,8 +188,9 @@ func (t *Teamkatalogen) GetProductAreas(ctx context.Context) ([]*models.ProductA
 	var pas = make([]*models.ProductArea, 0)
 	for _, pa := range pasdto.Content {
 		pas = append(pas, &models.ProductArea{
-			ID:   pa.ID,
-			Name: pa.Name,
+			ID:       pa.ID,
+			Name:     pa.Name,
+			AreaType: pa.AreaType,
 		})
 	}
 
