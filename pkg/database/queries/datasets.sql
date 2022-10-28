@@ -148,3 +148,7 @@ WHERE id IN (
 )
 ORDER BY last_modified DESC
 LIMIT @lim OFFSET @offs;
+
+-- name: ReplaceDatasetsTag :exec
+UPDATE datasets
+SET "keywords"          = array_replace(keywords, @tag_to_replace, @tag_updated);

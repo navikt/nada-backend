@@ -107,3 +107,7 @@ SELECT *
 FROM stories
 WHERE "group" = ANY (@groups::text[])
 ORDER BY last_modified DESC;
+
+-- name: ReplaceStoriesTag :exec
+UPDATE stories
+SET "keywords"          = array_replace(keywords, @tag_to_replace, @tag_updated);
