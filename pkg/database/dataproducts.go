@@ -247,6 +247,7 @@ func dataproductFromSQL(dp gensql.Dataproduct) *models.Dataproduct {
 			TeamkatalogenURL: nullStringToPtr(dp.TeamkatalogenUrl),
 			TeamContact:      nullStringToPtr(dp.TeamContact),
 			ProductAreaID:    nullStringToPtr(dp.ProductAreaID),
+			TeamID:           nullStringToPtr(dp.TeamID),
 		},
 	}
 }
