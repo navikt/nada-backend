@@ -338,6 +338,7 @@ func storyFromSQL(s gensql.Story) *models.DBStory {
 			Group:            s.Group,
 			TeamkatalogenURL: nullStringToPtr(s.TeamkatalogenUrl),
 			ProductAreaID:    nullStringToPtr(s.ProductAreaID),
+			TeamID:           nullStringToPtr(s.TeamID),
 		},
 		Description:  s.Description.String,
 		Keywords:     s.Keywords,
