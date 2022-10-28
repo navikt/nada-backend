@@ -153,6 +153,13 @@ func (r *Repo) CreateDataproduct(ctx context.Context, dp models.NewDataproduct) 
 			}
 			return nil, err
 		}
+
+		for _, keyword := range ds.Keywords {
+			err = querier.CreateTagIfNotExist(ctx, keyword)
+			if err != nil {
+				r.log.WithError(err).Warn("Failed to create tag when creating dataproduct in database")
+			}
+		}
 	}
 
 	if err := tx.Commit(); err != nil {

@@ -125,6 +125,14 @@ func (r *Repo) PublishStory(ctx context.Context, ds models.NewStory) (*models.DB
 	if err := tx.Commit(); err != nil {
 		return nil, err
 	}
+
+	for _, keyword := range story.Keywords {
+		err = r.querier.CreateTagIfNotExist(ctx, keyword)
+		if err != nil {
+			r.log.WithError(err).Warn("failed to create tag when creating story in database")
+		}
+	}
+
 	return storyFromSQL(story), nil
 }
 
@@ -212,6 +220,13 @@ func (r *Repo) UpdateStoryMetadata(ctx context.Context, id uuid.UUID, name strin
 	})
 	if err != nil {
 		return nil, err
+	}
+
+	for _, keyword := range keywords {
+		err = r.querier.CreateTagIfNotExist(ctx, keyword)
+		if err != nil {
+			r.log.WithError(err).Warn("failed to create tag when updating story in database")
+		}
 	}
 
 	return storyFromSQL(updated), nil

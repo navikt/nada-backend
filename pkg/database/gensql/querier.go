@@ -29,6 +29,7 @@ type Querier interface {
 	CreateStoryDraft(ctx context.Context, name string) (StoryDraft, error)
 	CreateStoryView(ctx context.Context, arg CreateStoryViewParams) (StoryView, error)
 	CreateStoryViewDraft(ctx context.Context, arg CreateStoryViewDraftParams) (StoryViewDraft, error)
+	CreateTagIfNotExist(ctx context.Context, phrase string) error
 	DataproductGroupStats(ctx context.Context, arg DataproductGroupStatsParams) ([]DataproductGroupStatsRow, error)
 	DataproductKeywords(ctx context.Context, keyword string) ([]DataproductKeywordsRow, error)
 	DatasetKeywords(ctx context.Context, keyword string) ([]DatasetKeywordsRow, error)
@@ -87,6 +88,9 @@ type Querier interface {
 	GetStoryViewDraft(ctx context.Context, id uuid.UUID) (StoryViewDraft, error)
 	GetStoryViewDrafts(ctx context.Context, storyID uuid.UUID) ([]StoryViewDraft, error)
 	GetStoryViews(ctx context.Context, storyID uuid.UUID) ([]StoryView, error)
+	GetTag(ctx context.Context) (Tag, error)
+	GetTagByPhrase(ctx context.Context) (Tag, error)
+	GetTags(ctx context.Context) ([]Tag, error)
 	GetTeamProjects(ctx context.Context) ([]TeamProject, error)
 	GrantAccessToDataset(ctx context.Context, arg GrantAccessToDatasetParams) (DatasetAccess, error)
 	ListAccessRequestsForDataset(ctx context.Context, datasetID uuid.UUID) ([]DatasetAccessRequest, error)
@@ -95,6 +99,8 @@ type Querier interface {
 	ListActiveAccessToDataset(ctx context.Context, datasetID uuid.UUID) ([]DatasetAccess, error)
 	ListUnrevokedExpiredAccessEntries(ctx context.Context) ([]DatasetAccess, error)
 	MapDataset(ctx context.Context, arg MapDatasetParams) error
+	ReplaceDatasetsTag(ctx context.Context, arg ReplaceDatasetsTagParams) error
+	ReplaceStoriesTag(ctx context.Context, arg ReplaceStoriesTagParams) error
 	RestoreMetabaseMetadata(ctx context.Context, datasetID uuid.UUID) error
 	RevokeAccessToDataset(ctx context.Context, id uuid.UUID) error
 	Search(ctx context.Context, arg SearchParams) ([]SearchRow, error)
@@ -106,6 +112,7 @@ type Querier interface {
 	UpdateDataset(ctx context.Context, arg UpdateDatasetParams) (Dataset, error)
 	UpdateQuarto(ctx context.Context, arg UpdateQuartoParams) (Quarto, error)
 	UpdateStory(ctx context.Context, arg UpdateStoryParams) (Story, error)
+	UpdateTag(ctx context.Context, arg UpdateTagParams) error
 }
 
 var _ Querier = (*Queries)(nil)
