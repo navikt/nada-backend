@@ -17,6 +17,10 @@ func (r *Repo) CreateMetabaseMetadata(ctx context.Context, metadata models.Metab
 			Int32: int32(metadata.PermissionGroupID),
 			Valid: metadata.PermissionGroupID > 0,
 		},
+		AadPremissionGroupID: sql.NullInt32{
+			Int32: int32(metadata.AADPermissionGroupID),
+			Valid: metadata.AADPermissionGroupID > 0,
+		},
 		CollectionID: sql.NullInt32{
 			Int32: int32(metadata.CollectionID),
 			Valid: metadata.CollectionID > 0,
@@ -38,14 +42,21 @@ func (r *Repo) GetMetabaseMetadata(ctx context.Context, datasetID uuid.UUID, inc
 		return nil, err
 	}
 
-	return &models.MetabaseMetadata{
-		DatasetID:         meta.DatasetID,
-		DatabaseID:        int(meta.DatabaseID),
-		PermissionGroupID: int(meta.PermissionGroupID.Int32),
-		CollectionID:      int(meta.CollectionID.Int32),
-		SAEmail:           meta.SaEmail,
-		DeletedAt:         nullTimeToPtr(meta.DeletedAt),
-	}, nil
+	return mbMetadataFromSQL(meta), nil
+}
+
+func (r *Repo) GetAllMetabaseMetadata(ctx context.Context) ([]*models.MetabaseMetadata, error) {
+	mbs, err := r.querier.GetAllMetabaseMetadata(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	mbMetas := make([]*models.MetabaseMetadata, len(mbs))
+	for idx, meta := range mbs {
+		mbMetas[idx] = mbMetadataFromSQL(meta)
+	}
+
+	return mbMetas, nil
 }
 
 func (r *Repo) SoftDeleteMetabaseMetadata(ctx context.Context, dataproductID uuid.UUID) error {
@@ -65,4 +76,16 @@ func (r *Repo) RestoreMetabaseMetadata(ctx context.Context, dataproductID uuid.U
 
 func (r *Repo) DeleteMetabaseMetadata(ctx context.Context, dataproductID uuid.UUID) error {
 	return r.querier.DeleteMetabaseMetadata(ctx, dataproductID)
+}
+
+func mbMetadataFromSQL(meta gensql.MetabaseMetadatum) *models.MetabaseMetadata {
+	return &models.MetabaseMetadata{
+		DatasetID:            meta.DatasetID,
+		DatabaseID:           int(meta.DatabaseID),
+		PermissionGroupID:    int(meta.PermissionGroupID.Int32),
+		AADPermissionGroupID: int(meta.AadPremissionGroupID.Int32),
+		CollectionID:         int(meta.CollectionID.Int32),
+		SAEmail:              meta.SaEmail,
+		DeletedAt:            nullTimeToPtr(meta.DeletedAt),
+	}
 }

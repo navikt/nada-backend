@@ -35,11 +35,12 @@ type Metabase struct {
 }
 
 type dsWrapper struct {
-	Dataset         *models.Dataset
-	Key             string
-	Email           string
-	MetabaseGroupID int
-	CollectionID    int
+	Dataset            *models.Dataset
+	Key                string
+	Email              string
+	MetabaseGroupID    int
+	MetabaseAADGroupID int
+	CollectionID       int
 }
 
 func New(repo *database.Repo, client *Client, accessMgr graph.AccessManager, eventMgr *event.Manager, serviceAccount, serviceAccountEmail string, errs *prometheus.CounterVec, iamService *iam.Service, crmService *cloudresourcemanager.Service, log *logrus.Entry) *Metabase {
@@ -67,6 +68,7 @@ func (m *Metabase) Run(ctx context.Context, frequency time.Duration) {
 	ticker := time.NewTicker(frequency)
 	defer ticker.Stop()
 	for {
+		m.run(ctx)
 		select {
 		case <-ctx.Done():
 			return
@@ -75,9 +77,31 @@ func (m *Metabase) Run(ctx context.Context, frequency time.Duration) {
 	}
 }
 
+func (m *Metabase) run(ctx context.Context) {
+	log := m.log.WithField("subsystem", "metabase synchronizer")
+
+	mbMetas, err := m.repo.GetAllMetabaseMetadata(ctx)
+	if err != nil {
+		log.WithError(err).Error("reading metabase metadata")
+	}
+
+	for _, db := range mbMetas {
+		bq, err := m.repo.GetBigqueryDatasource(ctx, db.DatasetID)
+		if err != nil {
+			log.WithError(err).Error("getting bigquery datasource for dataset")
+		}
+
+		if err := m.HideOtherTables(ctx, db.DatabaseID, bq.Table); err != nil {
+			log.WithError(err).Error("hiding other tables")
+		}
+	}
+}
+
 func (m *Metabase) grantMetabaseAccess(ctx context.Context, dsID uuid.UUID, subject string) {
 	if subject == "group:all-users@nav.no" {
 		m.addAllUsersDataset(ctx, dsID)
+	} else if strings.HasPrefix(subject, "group:") {
+		m.addGroupAccess(ctx, dsID, subject)
 	} else {
 		m.addMetabaseGroupMember(ctx, dsID, subject)
 	}
@@ -86,6 +110,8 @@ func (m *Metabase) grantMetabaseAccess(ctx context.Context, dsID uuid.UUID, subj
 func (m *Metabase) revokeMetabaseAccess(ctx context.Context, dsID uuid.UUID, subject string) {
 	if subject == "group:all-users@nav.no" {
 		m.deleteAllUsersDataset(ctx, dsID)
+	} else if strings.HasPrefix(subject, "group:") {
+		m.removeGroupAccess(ctx, dsID, subject)
 	} else {
 		m.removeMetabaseGroupMember(ctx, dsID, subject)
 	}
@@ -165,6 +191,12 @@ func (m *Metabase) addDatasetMapping(ctx context.Context, dsID uuid.UUID) {
 			log.WithError(err).Error("create restricted database")
 			return
 		}
+
+		if err := m.grantAccessesOnCreation(ctx, dsID); err != nil {
+			log.WithError(err).Error("granting accesses after database creation")
+			return
+		}
+
 		return
 	} else if err != nil {
 		log.WithError(err).Error("get metabase metadata")
@@ -182,15 +214,133 @@ func (m *Metabase) addDatasetMapping(ctx context.Context, dsID uuid.UUID) {
 		if err := m.restore(ctx, dsID, mbMeta); err != nil {
 			log.WithError(err).Error("restoring db")
 		}
+
+		if err := m.grantAccessesOnCreation(ctx, dsID); err != nil {
+			log.WithError(err).Error("granting accesses after database creation")
+			return
+		}
 		return
 	}
+}
+
+func (m *Metabase) grantAccessesOnCreation(ctx context.Context, dsID uuid.UUID) error {
+	accesses, err := m.repo.ListActiveAccessToDataset(ctx, dsID)
+	if err != nil {
+		return err
+	}
+
+	for _, a := range accesses {
+		if strings.HasPrefix(a.Subject, "group:") {
+			m.addGroupAccess(ctx, dsID, a.Subject)
+		} else {
+			m.addMetabaseGroupMember(ctx, dsID, a.Subject)
+		}
+	}
+
+	return nil
 }
 
 func (m *Metabase) removeDatasetMapping(ctx context.Context, dsID uuid.UUID) {
 	log := m.log.WithField("datasetID", dsID)
 
+	if err := m.revokeAccessesOnSoftDelete(ctx, dsID); err != nil {
+		log.WithError(err).Error("revoking accesses on database soft delete")
+		return
+	}
+
 	if err := m.softDelete(ctx, dsID); err != nil {
 		log.WithError(err).Error("delete restricted database")
+		return
+	}
+}
+
+func (m *Metabase) revokeAccessesOnSoftDelete(ctx context.Context, dsID uuid.UUID) error {
+	accesses, err := m.repo.ListActiveAccessToDataset(ctx, dsID)
+	if err != nil {
+		return err
+	}
+
+	for _, a := range accesses {
+		if strings.HasPrefix(a.Subject, "group:") {
+			m.removeGroupAccess(ctx, dsID, a.Subject)
+		} else {
+			m.removeMetabaseGroupMember(ctx, dsID, a.Subject)
+		}
+	}
+
+	return nil
+}
+
+func (m *Metabase) addGroupAccess(ctx context.Context, dsID uuid.UUID, subject string) {
+	log := m.log.WithField("datasetID", dsID)
+
+	mbMetadata, err := m.repo.GetMetabaseMetadata(ctx, dsID, false)
+	if err != nil {
+		log.WithError(err).Error("getting metabase metadata")
+		return
+	}
+
+	if mbMetadata.AADPermissionGroupID == 0 {
+		log.WithError(err).Errorf("aad permission group does not exist for dataset %v", dsID)
+		return
+	}
+
+	s := strings.Split(subject, ":")
+	if len(s) != 2 {
+		log.WithError(err).Errorf("invalid subject format, should be type:email")
+		return
+	}
+
+	if s[0] != "group" {
+		log.Info("subject is not a group")
+		return
+	}
+
+	groupID, err := m.client.GetAzureGroupID(ctx, s[1])
+	if err != nil {
+		log.WithError(err).Error("getting azure group id")
+		return
+	}
+
+	if err := m.client.UpdateGroupMapping(ctx, groupID, mbMetadata.AADPermissionGroupID, GroupMappingOperationAdd); err != nil {
+		log.WithError(err).Errorf("unable to add metabase group mapping")
+		return
+	}
+}
+
+func (m *Metabase) removeGroupAccess(ctx context.Context, dsID uuid.UUID, subject string) {
+	log := m.log.WithField("datasetID", dsID)
+
+	mbMetadata, err := m.repo.GetMetabaseMetadata(ctx, dsID, false)
+	if err != nil {
+		log.WithError(err).Error("getting metabase metadata")
+		return
+	}
+
+	if mbMetadata.AADPermissionGroupID == 0 {
+		log.WithError(err).Errorf("permission group does not exist for dataset %v", dsID)
+		return
+	}
+
+	s := strings.Split(subject, ":")
+	if len(s) != 2 {
+		log.WithError(err).Errorf("invalid subject format, should be type:email")
+		return
+	}
+
+	if s[0] != "group" {
+		log.Info("subject is not a group")
+		return
+	}
+
+	groupID, err := m.client.GetAzureGroupID(ctx, s[1])
+	if err != nil {
+		log.WithError(err).Error("getting azure group id")
+		return
+	}
+
+	if err := m.client.UpdateGroupMapping(ctx, groupID, mbMetadata.AADPermissionGroupID, GroupMappingOperationRemove); err != nil {
+		log.WithError(err).Errorf("unable to remove metabase group mapping")
 		return
 	}
 }
@@ -275,7 +425,20 @@ func (m *Metabase) createRestricted(ctx context.Context, ds *models.Dataset) err
 		return err
 	}
 
-	colID, err := m.client.CreateCollectionWithAccess(ctx, groupID, ds.Name)
+	aadGroupID, err := m.client.CreatePermissionGroup(ctx, ds.Name+" (aad)")
+	if err != nil {
+		return err
+	}
+
+	// Hack/workaround necessary due to how metabase has implemented saml group sync. When removing a saml group mapping to a
+	// metabase permission group, the users in the saml group will remain members of the permission group.
+	// Adding a dummy mapping ensures that users are evicted from the permission group when an actual group mapping is removed.
+	// See https://github.com/metabase/metabase/issues/26079
+	if err := m.client.UpdateGroupMapping(ctx, "non-existant-aad-group", aadGroupID, GroupMappingOperationAdd); err != nil {
+		return err
+	}
+
+	colID, err := m.client.CreateCollectionWithAccess(ctx, []int{groupID, aadGroupID}, ds.Name)
 	if err != nil {
 		return err
 	}
@@ -286,11 +449,12 @@ func (m *Metabase) createRestricted(ctx context.Context, ds *models.Dataset) err
 	}
 
 	err = m.create(ctx, dsWrapper{
-		Dataset:         ds,
-		Key:             string(key),
-		Email:           email,
-		MetabaseGroupID: groupID,
-		CollectionID:    colID,
+		Dataset:            ds,
+		Key:                string(key),
+		Email:              email,
+		MetabaseGroupID:    groupID,
+		MetabaseAADGroupID: aadGroupID,
+		CollectionID:       colID,
 	})
 	if err != nil {
 		return err
@@ -321,11 +485,12 @@ func (m *Metabase) create(ctx context.Context, ds dsWrapper) error {
 	}
 
 	err = m.repo.CreateMetabaseMetadata(ctx, models.MetabaseMetadata{
-		DatasetID:         ds.Dataset.ID,
-		DatabaseID:        dbID,
-		PermissionGroupID: ds.MetabaseGroupID,
-		CollectionID:      ds.CollectionID,
-		SAEmail:           ds.Email,
+		DatasetID:            ds.Dataset.ID,
+		DatabaseID:           dbID,
+		PermissionGroupID:    ds.MetabaseGroupID,
+		AADPermissionGroupID: ds.MetabaseAADGroupID,
+		CollectionID:         ds.CollectionID,
+		SAEmail:              ds.Email,
 	})
 	if err != nil {
 		return err
@@ -333,8 +498,8 @@ func (m *Metabase) create(ctx context.Context, ds dsWrapper) error {
 
 	m.waitForDatabase(ctx, dbID, datasource.Table)
 
-	if ds.MetabaseGroupID > 0 {
-		err := m.client.RestrictAccessToDatabase(ctx, ds.MetabaseGroupID, dbID)
+	if ds.MetabaseGroupID > 0 || ds.MetabaseAADGroupID > 0 {
+		err := m.client.RestrictAccessToDatabase(ctx, []int{ds.MetabaseGroupID, ds.MetabaseAADGroupID}, dbID)
 		if err != nil {
 			return err
 		}

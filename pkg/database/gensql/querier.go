@@ -49,6 +49,7 @@ type Querier interface {
 	GetAccessRequest(ctx context.Context, id uuid.UUID) (DatasetAccessRequest, error)
 	GetAccessToDataset(ctx context.Context, id uuid.UUID) (DatasetAccess, error)
 	GetActiveAccessToDatasetForSubject(ctx context.Context, arg GetActiveAccessToDatasetForSubjectParams) (DatasetAccess, error)
+	GetAllMetabaseMetadata(ctx context.Context) ([]MetabaseMetadatum, error)
 	GetBigqueryDatasource(ctx context.Context, datasetID uuid.UUID) (DatasourceBigquery, error)
 	GetBigqueryDatasources(ctx context.Context) ([]DatasourceBigquery, error)
 	GetDashboard(ctx context.Context, id string) (Dashboard, error)

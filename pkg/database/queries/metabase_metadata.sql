@@ -3,6 +3,7 @@ INSERT INTO metabase_metadata (
     "dataset_id",
     "database_id",
     "permission_group_id",
+    "aad_premission_group_id",
     "collection_id",
     "sa_email",
     "deleted_at"
@@ -10,6 +11,7 @@ INSERT INTO metabase_metadata (
     @dataset_id,
     @database_id,
     @permission_group_id,
+    @aad_premission_group_id,
     @collection_id,
     @sa_email,
     @deleted_at
@@ -34,6 +36,10 @@ WHERE dataset_id = @dataset_id;
 SELECT *
 FROM metabase_metadata
 WHERE "dataset_id" = @dataset_id AND "deleted_at" IS NULL;
+
+-- name: GetAllMetabaseMetadata :many
+SELECT *
+FROM metabase_metadata;
 
 -- name: GetMetabaseMetadataWithDeleted :one
 SELECT *
