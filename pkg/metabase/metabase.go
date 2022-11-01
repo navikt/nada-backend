@@ -286,6 +286,11 @@ func (m *Metabase) addGroupAccess(ctx context.Context, dsID uuid.UUID, subject s
 	}
 
 	s := strings.Split(subject, ":")
+	if len(s) != 2 {
+		log.WithError(err).Errorf("invalid subject format, should be type:email")
+		return
+	}
+
 	if s[0] != "group" {
 		log.Info("subject is not a group")
 		return
@@ -318,6 +323,11 @@ func (m *Metabase) removeGroupAccess(ctx context.Context, dsID uuid.UUID, subjec
 	}
 
 	s := strings.Split(subject, ":")
+	if len(s) != 2 {
+		log.WithError(err).Errorf("invalid subject format, should be type:email")
+		return
+	}
+
 	if s[0] != "group" {
 		log.Info("subject is not a group")
 		return
