@@ -43,13 +43,11 @@ func (c *Client) UpdateGroupMapping(ctx context.Context, azureGroupID string, mb
 }
 
 func addGroupMapping(mappings map[string]interface{}, azureGroupID string, mbPermissionGroupID int) map[string]interface{} {
-	for aGroup, pGroups := range mappings {
-		if aGroup == azureGroupID {
-			mappings[aGroup] = addGroup(pGroups.([]interface{}), mbPermissionGroupID)
-			return mappings
-		}
+	if pGroups, ok := mappings[azureGroupID]; ok {
+		mappings[azureGroupID] = addGroup(pGroups.([]interface{}), mbPermissionGroupID)
+	} else {
+		mappings[azureGroupID] = []int{mbPermissionGroupID}
 	}
-	mappings[azureGroupID] = []int{mbPermissionGroupID}
 
 	return mappings
 }
@@ -66,11 +64,8 @@ func addGroup(groups []interface{}, group int) []interface{} {
 }
 
 func removeGroupMapping(mappings map[string]interface{}, azureGroupID string, mbPermissionGroupID int) map[string]interface{} {
-	for aGroup, pGroups := range mappings {
-		if aGroup == azureGroupID {
-			mappings[aGroup] = removeGroup(pGroups.([]interface{}), mbPermissionGroupID)
-			return mappings
-		}
+	if pGroups, ok := mappings[azureGroupID]; ok {
+		mappings[azureGroupID] = removeGroup(pGroups.([]interface{}), mbPermissionGroupID)
 	}
 
 	return mappings
