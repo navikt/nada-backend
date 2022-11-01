@@ -2,13 +2,15 @@ package metabase
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
+	"fmt"
 	"net/http"
 )
 
 type MetabaseSetting struct {
-	Key   string      `json:"key"`
-	Value interface{} `json:"value"`
+	Key   string          `json:"key"`
+	Value json.RawMessage `json:"value"`
 }
 
 type GroupMappingOperation string
@@ -24,7 +26,7 @@ func (c *Client) UpdateGroupMapping(ctx context.Context, azureGroupID string, mb
 		return err
 	}
 
-	var updated map[string]interface{}
+	var updated map[string][]int
 	switch operation {
 	case GroupMappingOperationAdd:
 		updated = addGroupMapping(current, azureGroupID, mbPermissionGroupID)
@@ -34,7 +36,7 @@ func (c *Client) UpdateGroupMapping(ctx context.Context, azureGroupID string, mb
 		return errors.New("invalid group mapping operation")
 	}
 
-	payload := map[string]map[string]interface{}{"saml-group-mappings": updated}
+	payload := map[string]map[string][]int{"saml-group-mappings": updated}
 	if err := c.request(ctx, http.MethodPut, "/setting", payload, nil); err != nil {
 		return err
 	}
@@ -42,9 +44,9 @@ func (c *Client) UpdateGroupMapping(ctx context.Context, azureGroupID string, mb
 	return nil
 }
 
-func addGroupMapping(mappings map[string]interface{}, azureGroupID string, mbPermissionGroupID int) map[string]interface{} {
+func addGroupMapping(mappings map[string][]int, azureGroupID string, mbPermissionGroupID int) map[string][]int {
 	if pGroups, ok := mappings[azureGroupID]; ok {
-		mappings[azureGroupID] = addGroup(pGroups.([]interface{}), mbPermissionGroupID)
+		mappings[azureGroupID] = addGroup(pGroups, mbPermissionGroupID)
 	} else {
 		mappings[azureGroupID] = []int{mbPermissionGroupID}
 	}
@@ -52,9 +54,9 @@ func addGroupMapping(mappings map[string]interface{}, azureGroupID string, mbPer
 	return mappings
 }
 
-func addGroup(groups []interface{}, group int) []interface{} {
+func addGroup(groups []int, group int) []int {
 	for _, g := range groups {
-		if int(g.(float64)) == group {
+		if g == group {
 			return groups
 		}
 	}
@@ -63,17 +65,17 @@ func addGroup(groups []interface{}, group int) []interface{} {
 	return groups
 }
 
-func removeGroupMapping(mappings map[string]interface{}, azureGroupID string, mbPermissionGroupID int) map[string]interface{} {
+func removeGroupMapping(mappings map[string][]int, azureGroupID string, mbPermissionGroupID int) map[string][]int {
 	if pGroups, ok := mappings[azureGroupID]; ok {
-		mappings[azureGroupID] = removeGroup(pGroups.([]interface{}), mbPermissionGroupID)
+		mappings[azureGroupID] = removeGroup(pGroups, mbPermissionGroupID)
 	}
 
 	return mappings
 }
 
-func removeGroup(groups []interface{}, group int) []interface{} {
+func removeGroup(groups []int, group int) []int {
 	for idx, g := range groups {
-		if int(g.(float64)) == group {
+		if g == group {
 			return append(groups[:idx], groups[idx+1:]...)
 		}
 	}
@@ -81,7 +83,7 @@ func removeGroup(groups []interface{}, group int) []interface{} {
 	return groups
 }
 
-func (c *Client) getGroupMappings(ctx context.Context) (map[string]interface{}, error) {
+func (c *Client) getGroupMappings(ctx context.Context) (map[string][]int, error) {
 	settings := []*MetabaseSetting{}
 	if err := c.request(ctx, http.MethodGet, "/setting", nil, &settings); err != nil {
 		return nil, err
@@ -90,14 +92,18 @@ func (c *Client) getGroupMappings(ctx context.Context) (map[string]interface{}, 
 	return getSAMLMappingFromSettings(settings)
 }
 
-func getSAMLMappingFromSettings(settings []*MetabaseSetting) (map[string]interface{}, error) {
+func getSAMLMappingFromSettings(settings []*MetabaseSetting) (map[string][]int, error) {
 	for _, s := range settings {
 		if s.Key == "saml-group-mappings" {
-			if s.Value != nil {
-				return s.Value.(map[string]interface{}), nil
-			} else {
-				return map[string]interface{}{}, nil
+			out := map[string][]int{}
+			if err := json.Unmarshal(s.Value, &out); err != nil {
+				return nil, fmt.Errorf("getSAMLMappingFromSettings: %w", err)
 			}
+
+			if out == nil {
+				return map[string][]int{}, nil
+			}
+			return out, nil
 		}
 	}
 	return nil, errors.New("saml group mappings not found in metabase settings")
