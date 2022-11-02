@@ -471,7 +471,7 @@ func (c *Client) CreateCollection(ctx context.Context, name string) (int, error)
 	return response.ID, nil
 }
 
-func (c *Client) SetCollectionAccess(ctx context.Context, groupID, collectionID int) error {
+func (c *Client) SetCollectionAccess(ctx context.Context, groupIDs []int, collectionID int) error {
 	var cPermissions struct {
 		Revision int                          `json:"revision"`
 		Groups   map[string]map[string]string `json:"groups"`
@@ -482,12 +482,16 @@ func (c *Client) SetCollectionAccess(ctx context.Context, groupID, collectionID 
 		return err
 	}
 
-	sgid := strconv.Itoa(groupID)
+	sgids := make([]string, len(groupIDs))
+	for idx, groupID := range groupIDs {
+		sgids[idx] = strconv.Itoa(groupID)
+	}
+
 	scid := strconv.Itoa(collectionID)
 	for gid, permissions := range cPermissions.Groups {
 		if gid == "2" {
 			continue
-		} else if gid == sgid {
+		} else if containsGroup(sgids, gid) {
 			permissions[scid] = "write"
 		} else {
 			permissions[scid] = "none"
@@ -503,11 +507,10 @@ func (c *Client) CreateCollectionWithAccess(ctx context.Context, groupIDs []int,
 		return 0, err
 	}
 
-	for _, gID := range groupIDs {
-		if err := c.SetCollectionAccess(ctx, gID, cid); err != nil {
-			return cid, err
-		}
+	if err := c.SetCollectionAccess(ctx, groupIDs, cid); err != nil {
+		return cid, err
 	}
+
 	return cid, nil
 }
 
