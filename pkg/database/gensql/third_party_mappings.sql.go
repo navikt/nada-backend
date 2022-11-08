@@ -26,7 +26,7 @@ func (q *Queries) GetDatasetMappings(ctx context.Context, datasetID uuid.UUID) (
 }
 
 const getDatasetsByMapping = `-- name: GetDatasetsByMapping :many
-SELECT datasets.id, datasets.name, datasets.description, datasets.pii, datasets.created, datasets.last_modified, datasets.type, datasets.tsv_document, datasets.slug, datasets.repo, datasets.keywords, datasets.dataproduct_id FROM third_party_mappings
+SELECT datasets.id, datasets.name, datasets.description, datasets.pii, datasets.created, datasets.last_modified, datasets.type, datasets.tsv_document, datasets.slug, datasets.repo, datasets.keywords, datasets.dataproduct_id, datasets.anonymisation_description FROM third_party_mappings
 INNER JOIN datasets ON datasets.id = third_party_mappings.dataset_id
 WHERE $1::TEXT = ANY("services")
 LIMIT $3 OFFSET $2
@@ -60,6 +60,7 @@ func (q *Queries) GetDatasetsByMapping(ctx context.Context, arg GetDatasetsByMap
 			&i.Repo,
 			pq.Array(&i.Keywords),
 			&i.DataproductID,
+			&i.AnonymisationDescription,
 		); err != nil {
 			return nil, err
 		}

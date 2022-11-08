@@ -207,18 +207,19 @@ type Dataproduct struct {
 }
 
 type Dataset struct {
-	ID            uuid.UUID
-	Name          string
-	Description   sql.NullString
-	Pii           PiiLevel
-	Created       time.Time
-	LastModified  time.Time
-	Type          DatasourceType
-	TsvDocument   interface{}
-	Slug          string
-	Repo          sql.NullString
-	Keywords      []string
-	DataproductID uuid.UUID
+	ID                       uuid.UUID
+	Name                     string
+	Description              sql.NullString
+	Pii                      PiiLevel
+	Created                  time.Time
+	LastModified             time.Time
+	Type                     DatasourceType
+	TsvDocument              interface{}
+	Slug                     string
+	Repo                     sql.NullString
+	Keywords                 []string
+	DataproductID            uuid.UUID
+	AnonymisationDescription sql.NullString
 }
 
 type DatasetAccess struct {

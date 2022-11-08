@@ -145,6 +145,11 @@ func (r *datasetResolver) Requesters(ctx context.Context, obj *models.Dataset) (
 	return ret, nil
 }
 
+// AnonymisationMethod is the resolver for the anonymisation_method field.
+func (r *datasetResolver) AnonymisationMethod(ctx context.Context, obj *models.Dataset) (*string, error) {
+	panic(fmt.Errorf("not implemented: AnonymisationMethod - anonymisation_method"))
+}
+
 // CreateDataset is the resolver for the createDataset field.
 func (r *mutationResolver) CreateDataset(ctx context.Context, input models.NewDataset) (*models.Dataset, error) {
 	dp, err := r.repo.GetDataproduct(ctx, input.DataproductID)
@@ -278,11 +283,40 @@ func (r *queryResolver) DatasetsInDataproduct(ctx context.Context, dataproductID
 	return r.repo.GetDatasetsInDataproduct(ctx, dataproductID)
 }
 
+// AnonymisationMethod is the resolver for the anonymisation_method field.
+func (r *newDatasetResolver) AnonymisationMethod(ctx context.Context, obj *models.NewDataset, data *string) error {
+	panic(fmt.Errorf("not implemented: AnonymisationMethod - anonymisation_method"))
+}
+
+// AnonymisationMethod is the resolver for the anonymisation_method field.
+func (r *newDatasetForNewDataproductResolver) AnonymisationMethod(ctx context.Context, obj *models.NewDatasetForNewDataproduct, data *string) error {
+	panic(fmt.Errorf("not implemented: AnonymisationMethod - anonymisation_method"))
+}
+
+// AnonymisationMethod is the resolver for the anonymisation_method field.
+func (r *updateDatasetResolver) AnonymisationMethod(ctx context.Context, obj *models.UpdateDataset, data *string) error {
+	panic(fmt.Errorf("not implemented: AnonymisationMethod - anonymisation_method"))
+}
+
 // BigQuery returns generated.BigQueryResolver implementation.
 func (r *Resolver) BigQuery() generated.BigQueryResolver { return &bigQueryResolver{r} }
 
 // Dataset returns generated.DatasetResolver implementation.
 func (r *Resolver) Dataset() generated.DatasetResolver { return &datasetResolver{r} }
 
+// NewDataset returns generated.NewDatasetResolver implementation.
+func (r *Resolver) NewDataset() generated.NewDatasetResolver { return &newDatasetResolver{r} }
+
+// NewDatasetForNewDataproduct returns generated.NewDatasetForNewDataproductResolver implementation.
+func (r *Resolver) NewDatasetForNewDataproduct() generated.NewDatasetForNewDataproductResolver {
+	return &newDatasetForNewDataproductResolver{r}
+}
+
+// UpdateDataset returns generated.UpdateDatasetResolver implementation.
+func (r *Resolver) UpdateDataset() generated.UpdateDatasetResolver { return &updateDatasetResolver{r} }
+
 type bigQueryResolver struct{ *Resolver }
 type datasetResolver struct{ *Resolver }
+type newDatasetResolver struct{ *Resolver }
+type newDatasetForNewDataproductResolver struct{ *Resolver }
+type updateDatasetResolver struct{ *Resolver }
