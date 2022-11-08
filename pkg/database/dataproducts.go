@@ -120,7 +120,7 @@ func (r *Repo) CreateDataproduct(ctx context.Context, dp models.NewDataproduct) 
 			DataproductID: dataproduct.ID,
 			Repo:          ptrToNullString(ds.Repo),
 			Keywords:      ds.Keywords,
-			Pii:           ds.Pii,
+			Pii:           gensql.PiiLevel(ds.Pii.String()),
 			Type:          gensql.DatasourceTypeBigquery,
 			Slug:          slugify(nil, ds.Name),
 		})

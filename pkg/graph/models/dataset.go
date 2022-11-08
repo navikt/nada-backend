@@ -16,7 +16,7 @@ type Dataset struct {
 	Description   *string   `json:"description"`
 	Slug          string    `json:"slug"`
 	Repo          *string   `json:"repo"`
-	Pii           bool      `json:"pii"`
+	Pii           PiiLevel  `json:"pii"`
 	Keywords      []string  `json:"keywords"`
 	Type          gensql.DatasourceType
 }
@@ -53,7 +53,7 @@ type NewDataset struct {
 	Description   *string     `json:"description"`
 	Slug          *string     `json:"slug"`
 	Repo          *string     `json:"repo"`
-	Pii           bool        `json:"pii"`
+	Pii           PiiLevel    `json:"pii"`
 	Keywords      []string    `json:"keywords"`
 	BigQuery      NewBigQuery `json:"bigquery"`
 	Requesters    []string    `json:"requesters"`
@@ -65,7 +65,7 @@ type NewDatasetForNewDataproduct struct {
 	Name        string      `json:"name"`
 	Description *string     `json:"description"`
 	Repo        *string     `json:"repo"`
-	Pii         bool        `json:"pii"`
+	Pii         PiiLevel    `json:"pii"`
 	Keywords    []string    `json:"keywords"`
 	Bigquery    NewBigQuery `json:"bigquery"`
 	Requesters  []string    `json:"requesters"`
@@ -77,7 +77,7 @@ type UpdateDataset struct {
 	Description   *string    `json:"description"`
 	Slug          *string    `json:"slug"`
 	Repo          *string    `json:"repo"`
-	Pii           bool       `json:"pii"`
+	Pii           PiiLevel   `json:"pii"`
 	Keywords      []string   `json:"keywords"`
 	Requesters    []string   `json:"requesters"`
 	DataproductID *uuid.UUID `json:"dataproductID"`

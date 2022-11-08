@@ -101,7 +101,7 @@ type CreateDatasetParams struct {
 	DataproductID uuid.UUID
 	Name          string
 	Description   sql.NullString
-	Pii           bool
+	Pii           PiiLevel
 	Type          DatasourceType
 	Slug          string
 	Repo          sql.NullString
@@ -674,7 +674,7 @@ RETURNING id, name, description, pii, created, last_modified, type, tsv_document
 type UpdateDatasetParams struct {
 	Name          string
 	Description   sql.NullString
-	Pii           bool
+	Pii           PiiLevel
 	Slug          string
 	Repo          sql.NullString
 	Keywords      []string

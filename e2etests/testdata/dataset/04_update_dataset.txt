@@ -5,7 +5,7 @@ mutation {
 			name: "Updated Name"
 			description: "Updated description"
 			repo: "someotherrepo"
-			pii: true
+			pii: sensitive
 			keywords: ["keyword1", "keyword2"]
 		}
 	) {
@@ -28,7 +28,7 @@ RETURNS
         "keyword1",
         "keyword2"
       ],
-      "pii": true,
+      "pii": "sensitive",
       "repo": "someotherrepo"
     }
   }

@@ -34,7 +34,7 @@ RETURNS
       },
       "datasets": [{
         "name": "NewDataset",
-        "pii": false,
+        "pii": "none",
         "datasource": {
             "__typename": "BigQuery",
             "projectID": "team-dev-1337",

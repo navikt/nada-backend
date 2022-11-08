@@ -2400,7 +2400,7 @@ type Dataset @goModel(model: "github.com/navikt/nada-backend/pkg/graph/models.Da
     "repo is the url of the repository containing the code to create the dataset"
     repo: String
     "pii indicates whether it is personal identifiable information in the dataset"
-    pii: Boolean!
+    pii: PiiLevel!
     "keywords for the dataset used as tags."
     keywords: [String!]!
     "owner is the owner of the dataproduct containing this dataset"
@@ -2517,7 +2517,7 @@ input NewDataset @goModel(model: "github.com/navikt/nada-backend/pkg/graph/model
     "repo is the url of the repository containing the code to create the dataset"
     repo: String
     "pii indicates whether it is personal identifiable information in the dataset"
-    pii: Boolean!
+    pii: PiiLevel!
     "keywords for the dataset used as tags."
     keywords: [String!]
     "bigquery contains metadata for the bigquery datasource added to the dataset."
@@ -2537,7 +2537,7 @@ input NewDatasetForNewDataproduct @goModel(model: "github.com/navikt/nada-backen
     "repo is the url of the repository containing the code to create the dataset"
     repo: String
     "pii indicates whether it is personal identifiable information in the dataset"
-    pii: Boolean!
+    pii: PiiLevel!
     "keywords for the dataset used as tags."
     keywords: [String!]
     "bigquery contains metadata for the bigquery datasource added to the dataset."
@@ -2557,7 +2557,7 @@ input UpdateDataset @goModel(model: "github.com/navikt/nada-backend/pkg/graph/mo
     "repo is the url of the repository containing the code to create the dataset"
     repo: String
     "pii indicates whether it is personal identifiable information in the dataset"
-    pii: Boolean!
+    pii: PiiLevel!
     "keywords for the dataset used as tags."
     keywords: [String!]
    "ID of the dataproduct that owns this dataset, the current dataproduct will not change if the field is null"
@@ -2569,6 +2569,15 @@ MappingService defines all possible service types that a dataset can be exposed 
 """
 enum MappingService @goModel(model: "github.com/navikt/nada-backend/pkg/graph/models.MappingService"){
     metabase
+}
+
+"""
+PiiLevel defines all possible levels of personal identifiable information that a dataset can have.
+"""
+enum PiiLevel @goModel(model: "github.com/navikt/nada-backend/pkg/graph/models.PiiLevel"){
+    sensitive,
+    anonymised,
+    none
 }
 
 extend type Mutation {
@@ -6501,9 +6510,9 @@ func (ec *executionContext) _Dataset_pii(ctx context.Context, field graphql.Coll
 		}
 		return graphql.Null
 	}
-	res := resTmp.(bool)
+	res := resTmp.(models.PiiLevel)
 	fc.Result = res
-	return ec.marshalNBoolean2bool(ctx, field.Selections, res)
+	return ec.marshalNPiiLevel2githubᚗcomᚋnaviktᚋnadaᚑbackendᚋpkgᚋgraphᚋmodelsᚐPiiLevel(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) fieldContext_Dataset_pii(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
@@ -6513,7 +6522,7 @@ func (ec *executionContext) fieldContext_Dataset_pii(ctx context.Context, field 
 		IsMethod:   false,
 		IsResolver: false,
 		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type Boolean does not have child fields")
+			return nil, errors.New("field of type PiiLevel does not have child fields")
 		},
 	}
 	return fc, nil
@@ -16289,7 +16298,7 @@ func (ec *executionContext) unmarshalInputNewDataset(ctx context.Context, obj in
 			var err error
 
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("pii"))
-			it.Pii, err = ec.unmarshalNBoolean2bool(ctx, v)
+			it.Pii, err = ec.unmarshalNPiiLevel2githubᚗcomᚋnaviktᚋnadaᚑbackendᚋpkgᚋgraphᚋmodelsᚐPiiLevel(ctx, v)
 			if err != nil {
 				return it, err
 			}
@@ -16365,7 +16374,7 @@ func (ec *executionContext) unmarshalInputNewDatasetForNewDataproduct(ctx contex
 			var err error
 
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("pii"))
-			it.Pii, err = ec.unmarshalNBoolean2bool(ctx, v)
+			it.Pii, err = ec.unmarshalNPiiLevel2githubᚗcomᚋnaviktᚋnadaᚑbackendᚋpkgᚋgraphᚋmodelsᚐPiiLevel(ctx, v)
 			if err != nil {
 				return it, err
 			}
@@ -16877,7 +16886,7 @@ func (ec *executionContext) unmarshalInputUpdateDataset(ctx context.Context, obj
 			var err error
 
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("pii"))
-			it.Pii, err = ec.unmarshalNBoolean2bool(ctx, v)
+			it.Pii, err = ec.unmarshalNPiiLevel2githubᚗcomᚋnaviktᚋnadaᚑbackendᚋpkgᚋgraphᚋmodelsᚐPiiLevel(ctx, v)
 			if err != nil {
 				return it, err
 			}
@@ -20862,6 +20871,16 @@ func (ec *executionContext) marshalNOwner2ᚖgithubᚗcomᚋnaviktᚋnadaᚑback
 		return graphql.Null
 	}
 	return ec._Owner(ctx, sel, v)
+}
+
+func (ec *executionContext) unmarshalNPiiLevel2githubᚗcomᚋnaviktᚋnadaᚑbackendᚋpkgᚋgraphᚋmodelsᚐPiiLevel(ctx context.Context, v interface{}) (models.PiiLevel, error) {
+	var res models.PiiLevel
+	err := res.UnmarshalGQL(v)
+	return res, graphql.ErrorOnPath(ctx, err)
+}
+
+func (ec *executionContext) marshalNPiiLevel2githubᚗcomᚋnaviktᚋnadaᚑbackendᚋpkgᚋgraphᚋmodelsᚐPiiLevel(ctx context.Context, sel ast.SelectionSet, v models.PiiLevel) graphql.Marshaler {
+	return v
 }
 
 func (ec *executionContext) marshalNProductArea2githubᚗcomᚋnaviktᚋnadaᚑbackendᚋpkgᚋgraphᚋmodelsᚐProductArea(ctx context.Context, sel ast.SelectionSet, v models.ProductArea) graphql.Marshaler {

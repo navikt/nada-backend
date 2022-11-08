@@ -20,7 +20,7 @@ RETURNS
         "keyword1",
         "otherkeyword"
       ],
-      "pii": false,
+      "pii": "none",
       "repo": "somerepo"
     }
   }

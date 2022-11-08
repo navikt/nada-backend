@@ -30,7 +30,7 @@ RETURNS
           "dataproductID": "{{ .dataproduct_id }}",
           "keywords": ["keyword1", "otherkeyword"],
           "repo": "somerepo",
-          "pii": false,
+          "pii": "none",
           "datasource": {
               "__typename": "BigQuery",
               "projectID": "team-dev-1337",
@@ -44,7 +44,7 @@ RETURNS
           "dataproductID": "{{ .dataproduct_id }}",
           "keywords": ["keyword1", "keyword2"],
           "repo": "someotherrepo",
-          "pii": true,
+          "pii": "sensitive",
           "datasource": {
               "__typename": "BigQuery",
               "projectID": "team-dev-1337",
@@ -58,7 +58,7 @@ RETURNS
           "dataproductID": "{{ .dataproduct_id }}",
           "keywords": [],
           "repo": "somerepo",
-          "pii": true,
+          "pii": "sensitive",
           "datasource": {
               "__typename": "BigQuery",
               "projectID": "team-dev-1337",

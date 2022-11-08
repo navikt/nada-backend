@@ -99,6 +99,49 @@ func (ns NullDatasourceType) Value() (driver.Value, error) {
 	return ns.DatasourceType, nil
 }
 
+type PiiLevel string
+
+const (
+	PiiLevelSensitive  PiiLevel = "sensitive"
+	PiiLevelAnonymised PiiLevel = "anonymised"
+	PiiLevelNone       PiiLevel = "none"
+)
+
+func (e *PiiLevel) Scan(src interface{}) error {
+	switch s := src.(type) {
+	case []byte:
+		*e = PiiLevel(s)
+	case string:
+		*e = PiiLevel(s)
+	default:
+		return fmt.Errorf("unsupported scan type for PiiLevel: %T", src)
+	}
+	return nil
+}
+
+type NullPiiLevel struct {
+	PiiLevel PiiLevel
+	Valid    bool // Valid is true if String is not NULL
+}
+
+// Scan implements the Scanner interface.
+func (ns *NullPiiLevel) Scan(value interface{}) error {
+	if value == nil {
+		ns.PiiLevel, ns.Valid = "", false
+		return nil
+	}
+	ns.Valid = true
+	return ns.PiiLevel.Scan(value)
+}
+
+// Value implements the driver Valuer interface.
+func (ns NullPiiLevel) Value() (driver.Value, error) {
+	if !ns.Valid {
+		return nil, nil
+	}
+	return ns.PiiLevel, nil
+}
+
 type StoryViewType string
 
 const (
@@ -167,7 +210,7 @@ type Dataset struct {
 	ID            uuid.UUID
 	Name          string
 	Description   sql.NullString
-	Pii           bool
+	Pii           PiiLevel
 	Created       time.Time
 	LastModified  time.Time
 	Type          DatasourceType

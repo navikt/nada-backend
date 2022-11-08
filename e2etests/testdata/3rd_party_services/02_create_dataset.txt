@@ -3,7 +3,7 @@ mutation {
 		input: {
             dataproductID: "{{ .dataproduct_id }}"
 			name: "NewDataset"
-			pii: false
+			pii: none
 			bigquery: { projectID: "team-dev-1337", dataset: "dataset1", table: "table1" }
 		}
 	) {
@@ -24,7 +24,7 @@ ENDOPTS
     "createDataset": {
       "dataproductID": "{{ .dataproduct_id }}",
       "name": "NewDataset",
-      "pii": false
+      "pii": "none"
     }
   }
 }

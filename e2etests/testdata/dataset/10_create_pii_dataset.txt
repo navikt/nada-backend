@@ -5,7 +5,7 @@ mutation {
 			name: "DatasetWithPii"
 			description: "Description"
 			repo: "somerepo"
-			pii: true
+			pii: sensitive
 			bigquery: { projectID: "team-dev-1337", dataset: "dataset1", table: "table1" }
 		}
 	) {
@@ -27,7 +27,7 @@ ENDOPTS
     "createDataset": {
       "name": "DatasetWithPii",
       "description": "Description",
-      "pii": true,
+      "pii": "sensitive",
       "repo": "somerepo"
     }
   }

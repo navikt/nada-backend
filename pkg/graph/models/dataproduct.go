@@ -36,7 +36,7 @@ type UpdateDataproduct struct {
 	Name             string   `json:"name"`
 	Description      *string  `json:"description"`
 	Slug             *string  `json:"slug"`
-	Pii              bool     `json:"pii"`
+	Pii              PiiLevel `json:"pii"`
 	TeamkatalogenURL *string  `json:"teamkatalogenURL"`
 	TeamContact      *string  `json:"teamContact"`
 	Requesters       []string `json:"requesters"`

@@ -21,7 +21,7 @@ RETURNS
         "keyword1",
         "keyword2"
       ],
-      "pii": true,
+      "pii": "sensitive",
       "repo": "someotherrepo",
       "requesters": ["all-users@nav.no", "nada@nav.no"]
     }

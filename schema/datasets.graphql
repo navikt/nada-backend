@@ -19,7 +19,7 @@ type Dataset @goModel(model: "github.com/navikt/nada-backend/pkg/graph/models.Da
     "repo is the url of the repository containing the code to create the dataset"
     repo: String
     "pii indicates whether it is personal identifiable information in the dataset"
-    pii: Boolean!
+    pii: PiiLevel!
     "keywords for the dataset used as tags."
     keywords: [String!]!
     "owner is the owner of the dataproduct containing this dataset"
@@ -136,7 +136,7 @@ input NewDataset @goModel(model: "github.com/navikt/nada-backend/pkg/graph/model
     "repo is the url of the repository containing the code to create the dataset"
     repo: String
     "pii indicates whether it is personal identifiable information in the dataset"
-    pii: Boolean!
+    pii: PiiLevel!
     "keywords for the dataset used as tags."
     keywords: [String!]
     "bigquery contains metadata for the bigquery datasource added to the dataset."
@@ -156,7 +156,7 @@ input NewDatasetForNewDataproduct @goModel(model: "github.com/navikt/nada-backen
     "repo is the url of the repository containing the code to create the dataset"
     repo: String
     "pii indicates whether it is personal identifiable information in the dataset"
-    pii: Boolean!
+    pii: PiiLevel!
     "keywords for the dataset used as tags."
     keywords: [String!]
     "bigquery contains metadata for the bigquery datasource added to the dataset."
@@ -176,7 +176,7 @@ input UpdateDataset @goModel(model: "github.com/navikt/nada-backend/pkg/graph/mo
     "repo is the url of the repository containing the code to create the dataset"
     repo: String
     "pii indicates whether it is personal identifiable information in the dataset"
-    pii: Boolean!
+    pii: PiiLevel!
     "keywords for the dataset used as tags."
     keywords: [String!]
    "ID of the dataproduct that owns this dataset, the current dataproduct will not change if the field is null"
@@ -188,6 +188,15 @@ MappingService defines all possible service types that a dataset can be exposed 
 """
 enum MappingService @goModel(model: "github.com/navikt/nada-backend/pkg/graph/models.MappingService"){
     metabase
+}
+
+"""
+PiiLevel defines all possible levels of personal identifiable information that a dataset can have.
+"""
+enum PiiLevel @goModel(model: "github.com/navikt/nada-backend/pkg/graph/models.PiiLevel"){
+    sensitive,
+    anonymised,
+    none
 }
 
 extend type Mutation {
