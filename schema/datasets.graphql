@@ -36,6 +36,8 @@ type Dataset @goModel(model: "github.com/navikt/nada-backend/pkg/graph/models.Da
     mappings: [MappingService!]!
     "requesters contains a list of users, groups and service accounts which can request access to the dataset"
     requesters: [String!]!
+    "anonymisation_description explains how the dataset was anonymised, should be null if `pii` isn't anonymised"
+    anonymisation_description: String
 }
 
 type DatasetServices @goModel(model: "github.com/navikt/nada-backend/pkg/graph/models.DatasetServices") {
@@ -143,6 +145,8 @@ input NewDataset @goModel(model: "github.com/navikt/nada-backend/pkg/graph/model
     bigquery: NewBigQuery!
     "requesters contains list of users, groups and service accounts which can request access to the dataset"
     requesters: [String!]
+    "anonymisation_description explains how the dataset was anonymised, should be null if `pii` isn't anonymised"
+    anonymisation_description: String
 }
 
 """
@@ -163,6 +167,8 @@ input NewDatasetForNewDataproduct @goModel(model: "github.com/navikt/nada-backen
     bigquery: NewBigQuery!
     "requesters contains list of users, groups and service accounts which can request access to the dataset"
     requesters: [String!]
+    "anonymisation_description explains how the dataset was anonymised, should be null if `pii` isn't anonymised"
+    anonymisation_description: String
 }
 
 """
@@ -181,6 +187,8 @@ input UpdateDataset @goModel(model: "github.com/navikt/nada-backend/pkg/graph/mo
     keywords: [String!]
    "ID of the dataproduct that owns this dataset, the current dataproduct will not change if the field is null"
     dataproductID: ID
+    "anonymisation_description explains how the dataset was anonymised, should be null if `pii` isn't anonymised"
+    anonymisation_description: String
 }
 
 """

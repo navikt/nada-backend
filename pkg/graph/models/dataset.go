@@ -8,17 +8,18 @@ import (
 )
 
 type Dataset struct {
-	ID            uuid.UUID `json:"id"`
-	DataproductID uuid.UUID `json:"dataproductID"`
-	Name          string    `json:"name"`
-	Created       time.Time `json:"created"`
-	LastModified  time.Time `json:"lastModified"`
-	Description   *string   `json:"description"`
-	Slug          string    `json:"slug"`
-	Repo          *string   `json:"repo"`
-	Pii           PiiLevel  `json:"pii"`
-	Keywords      []string  `json:"keywords"`
-	Type          gensql.DatasourceType
+	ID                       uuid.UUID `json:"id"`
+	DataproductID            uuid.UUID `json:"dataproductID"`
+	Name                     string    `json:"name"`
+	Created                  time.Time `json:"created"`
+	LastModified             time.Time `json:"lastModified"`
+	Description              *string   `json:"description"`
+	Slug                     string    `json:"slug"`
+	Repo                     *string   `json:"repo"`
+	Pii                      PiiLevel  `json:"pii"`
+	Keywords                 []string  `json:"keywords"`
+	Type                     gensql.DatasourceType
+	AnonymisationDescription *string `json:"anonymisationDescription"`
 }
 
 func (Dataset) IsSearchResult() {}
@@ -48,39 +49,42 @@ type NewBigQuery struct {
 }
 
 type NewDataset struct {
-	DataproductID uuid.UUID   `json:"dataproductID"`
-	Name          string      `json:"name"`
-	Description   *string     `json:"description"`
-	Slug          *string     `json:"slug"`
-	Repo          *string     `json:"repo"`
-	Pii           PiiLevel    `json:"pii"`
-	Keywords      []string    `json:"keywords"`
-	BigQuery      NewBigQuery `json:"bigquery"`
-	Requesters    []string    `json:"requesters"`
-	Metadata      BigqueryMetadata
+	DataproductID            uuid.UUID   `json:"dataproductID"`
+	Name                     string      `json:"name"`
+	Description              *string     `json:"description"`
+	Slug                     *string     `json:"slug"`
+	Repo                     *string     `json:"repo"`
+	Pii                      PiiLevel    `json:"pii"`
+	Keywords                 []string    `json:"keywords"`
+	BigQuery                 NewBigQuery `json:"bigquery"`
+	Requesters               []string    `json:"requesters"`
+	AnonymisationDescription *string     `json:"anonymisationDescription"`
+	Metadata                 BigqueryMetadata
 }
 
 // NewDatasetForNewDataproduct contains metadata for creating a new dataset for a new dataproduct
 type NewDatasetForNewDataproduct struct {
-	Name        string      `json:"name"`
-	Description *string     `json:"description"`
-	Repo        *string     `json:"repo"`
-	Pii         PiiLevel    `json:"pii"`
-	Keywords    []string    `json:"keywords"`
-	Bigquery    NewBigQuery `json:"bigquery"`
-	Requesters  []string    `json:"requesters"`
-	Metadata    BigqueryMetadata
+	Name                     string      `json:"name"`
+	Description              *string     `json:"description"`
+	Repo                     *string     `json:"repo"`
+	Pii                      PiiLevel    `json:"pii"`
+	Keywords                 []string    `json:"keywords"`
+	Bigquery                 NewBigQuery `json:"bigquery"`
+	Requesters               []string    `json:"requesters"`
+	AnonymisationDescription *string     `json:"anonymisationDescription"`
+	Metadata                 BigqueryMetadata
 }
 
 type UpdateDataset struct {
-	Name          string     `json:"name"`
-	Description   *string    `json:"description"`
-	Slug          *string    `json:"slug"`
-	Repo          *string    `json:"repo"`
-	Pii           PiiLevel   `json:"pii"`
-	Keywords      []string   `json:"keywords"`
-	Requesters    []string   `json:"requesters"`
-	DataproductID *uuid.UUID `json:"dataproductID"`
+	Name                     string     `json:"name"`
+	Description              *string    `json:"description"`
+	Slug                     *string    `json:"slug"`
+	Repo                     *string    `json:"repo"`
+	Pii                      PiiLevel   `json:"pii"`
+	Keywords                 []string   `json:"keywords"`
+	Requesters               []string   `json:"requesters"`
+	DataproductID            *uuid.UUID `json:"dataproductID"`
+	AnonymisationDescription *string    `json:"anonymisationDescription"`
 }
 
 type DatasetServices struct {

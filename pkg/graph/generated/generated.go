@@ -120,23 +120,24 @@ type ComplexityRoot struct {
 	}
 
 	Dataset struct {
-		Access        func(childComplexity int) int
-		Created       func(childComplexity int) int
-		Dataproduct   func(childComplexity int) int
-		DataproductID func(childComplexity int) int
-		Datasource    func(childComplexity int) int
-		Description   func(childComplexity int, raw *bool) int
-		ID            func(childComplexity int) int
-		Keywords      func(childComplexity int) int
-		LastModified  func(childComplexity int) int
-		Mappings      func(childComplexity int) int
-		Name          func(childComplexity int) int
-		Owner         func(childComplexity int) int
-		Pii           func(childComplexity int) int
-		Repo          func(childComplexity int) int
-		Requesters    func(childComplexity int) int
-		Services      func(childComplexity int) int
-		Slug          func(childComplexity int) int
+		Access                   func(childComplexity int) int
+		AnonymisationDescription func(childComplexity int) int
+		Created                  func(childComplexity int) int
+		Dataproduct              func(childComplexity int) int
+		DataproductID            func(childComplexity int) int
+		Datasource               func(childComplexity int) int
+		Description              func(childComplexity int, raw *bool) int
+		ID                       func(childComplexity int) int
+		Keywords                 func(childComplexity int) int
+		LastModified             func(childComplexity int) int
+		Mappings                 func(childComplexity int) int
+		Name                     func(childComplexity int) int
+		Owner                    func(childComplexity int) int
+		Pii                      func(childComplexity int) int
+		Repo                     func(childComplexity int) int
+		Requesters               func(childComplexity int) int
+		Services                 func(childComplexity int) int
+		Slug                     func(childComplexity int) int
 	}
 
 	DatasetServices struct {
@@ -771,6 +772,13 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 		}
 
 		return e.complexity.Dataset.Access(childComplexity), true
+
+	case "Dataset.anonymisation_description":
+		if e.complexity.Dataset.AnonymisationDescription == nil {
+			break
+		}
+
+		return e.complexity.Dataset.AnonymisationDescription(childComplexity), true
 
 	case "Dataset.created":
 		if e.complexity.Dataset.Created == nil {
@@ -2417,6 +2425,8 @@ type Dataset @goModel(model: "github.com/navikt/nada-backend/pkg/graph/models.Da
     mappings: [MappingService!]!
     "requesters contains a list of users, groups and service accounts which can request access to the dataset"
     requesters: [String!]!
+    "anonymisation_description explains how the dataset was anonymised, should be null if ` + "`" + `pii` + "`" + ` isn't anonymised"
+    anonymisation_description: String
 }
 
 type DatasetServices @goModel(model: "github.com/navikt/nada-backend/pkg/graph/models.DatasetServices") {
@@ -2524,6 +2534,8 @@ input NewDataset @goModel(model: "github.com/navikt/nada-backend/pkg/graph/model
     bigquery: NewBigQuery!
     "requesters contains list of users, groups and service accounts which can request access to the dataset"
     requesters: [String!]
+    "anonymisation_description explains how the dataset was anonymised, should be null if ` + "`" + `pii` + "`" + ` isn't anonymised"
+    anonymisation_description: String
 }
 
 """
@@ -2544,6 +2556,8 @@ input NewDatasetForNewDataproduct @goModel(model: "github.com/navikt/nada-backen
     bigquery: NewBigQuery!
     "requesters contains list of users, groups and service accounts which can request access to the dataset"
     requesters: [String!]
+    "anonymisation_description explains how the dataset was anonymised, should be null if ` + "`" + `pii` + "`" + ` isn't anonymised"
+    anonymisation_description: String
 }
 
 """
@@ -2562,6 +2576,8 @@ input UpdateDataset @goModel(model: "github.com/navikt/nada-backend/pkg/graph/mo
     keywords: [String!]
    "ID of the dataproduct that owns this dataset, the current dataproduct will not change if the field is null"
     dataproductID: ID
+    "anonymisation_description explains how the dataset was anonymised, should be null if ` + "`" + `pii` + "`" + ` isn't anonymised"
+    anonymisation_description: String
 }
 
 """
@@ -6097,6 +6113,8 @@ func (ec *executionContext) fieldContext_Dataproduct_datasets(ctx context.Contex
 				return ec.fieldContext_Dataset_mappings(ctx, field)
 			case "requesters":
 				return ec.fieldContext_Dataset_requesters(ctx, field)
+			case "anonymisation_description":
+				return ec.fieldContext_Dataset_anonymisation_description(ctx, field)
 			}
 			return nil, fmt.Errorf("no field named %q was found under type Dataset", field.Name)
 		},
@@ -6907,6 +6925,47 @@ func (ec *executionContext) fieldContext_Dataset_requesters(ctx context.Context,
 		Field:      field,
 		IsMethod:   true,
 		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Dataset_anonymisation_description(ctx context.Context, field graphql.CollectedField, obj *models.Dataset) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_Dataset_anonymisation_description(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.AnonymisationDescription, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		return graphql.Null
+	}
+	res := resTmp.(*string)
+	fc.Result = res
+	return ec.marshalOString2ᚖstring(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_Dataset_anonymisation_description(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Dataset",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
 		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
 			return nil, errors.New("field of type String does not have child fields")
 		},
@@ -8318,6 +8377,8 @@ func (ec *executionContext) fieldContext_Mutation_createDataset(ctx context.Cont
 				return ec.fieldContext_Dataset_mappings(ctx, field)
 			case "requesters":
 				return ec.fieldContext_Dataset_requesters(ctx, field)
+			case "anonymisation_description":
+				return ec.fieldContext_Dataset_anonymisation_description(ctx, field)
 			}
 			return nil, fmt.Errorf("no field named %q was found under type Dataset", field.Name)
 		},
@@ -8429,6 +8490,8 @@ func (ec *executionContext) fieldContext_Mutation_updateDataset(ctx context.Cont
 				return ec.fieldContext_Dataset_mappings(ctx, field)
 			case "requesters":
 				return ec.fieldContext_Dataset_requesters(ctx, field)
+			case "anonymisation_description":
+				return ec.fieldContext_Dataset_anonymisation_description(ctx, field)
 			}
 			return nil, fmt.Errorf("no field named %q was found under type Dataset", field.Name)
 		},
@@ -10345,6 +10408,8 @@ func (ec *executionContext) fieldContext_Query_dataset(ctx context.Context, fiel
 				return ec.fieldContext_Dataset_mappings(ctx, field)
 			case "requesters":
 				return ec.fieldContext_Dataset_requesters(ctx, field)
+			case "anonymisation_description":
+				return ec.fieldContext_Dataset_anonymisation_description(ctx, field)
 			}
 			return nil, fmt.Errorf("no field named %q was found under type Dataset", field.Name)
 		},
@@ -10537,6 +10602,8 @@ func (ec *executionContext) fieldContext_Query_datasetsInDataproduct(ctx context
 				return ec.fieldContext_Dataset_mappings(ctx, field)
 			case "requesters":
 				return ec.fieldContext_Dataset_requesters(ctx, field)
+			case "anonymisation_description":
+				return ec.fieldContext_Dataset_anonymisation_description(ctx, field)
 			}
 			return nil, fmt.Errorf("no field named %q was found under type Dataset", field.Name)
 		},
@@ -16255,7 +16322,7 @@ func (ec *executionContext) unmarshalInputNewDataset(ctx context.Context, obj in
 		asMap[k] = v
 	}
 
-	fieldsInOrder := [...]string{"dataproductID", "name", "description", "repo", "pii", "keywords", "bigquery", "requesters"}
+	fieldsInOrder := [...]string{"dataproductID", "name", "description", "repo", "pii", "keywords", "bigquery", "requesters", "anonymisation_description"}
 	for _, k := range fieldsInOrder {
 		v, ok := asMap[k]
 		if !ok {
@@ -16326,6 +16393,14 @@ func (ec *executionContext) unmarshalInputNewDataset(ctx context.Context, obj in
 			if err != nil {
 				return it, err
 			}
+		case "anonymisation_description":
+			var err error
+
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("anonymisation_description"))
+			it.AnonymisationDescription, err = ec.unmarshalOString2ᚖstring(ctx, v)
+			if err != nil {
+				return it, err
+			}
 		}
 	}
 
@@ -16339,7 +16414,7 @@ func (ec *executionContext) unmarshalInputNewDatasetForNewDataproduct(ctx contex
 		asMap[k] = v
 	}
 
-	fieldsInOrder := [...]string{"name", "description", "repo", "pii", "keywords", "bigquery", "requesters"}
+	fieldsInOrder := [...]string{"name", "description", "repo", "pii", "keywords", "bigquery", "requesters", "anonymisation_description"}
 	for _, k := range fieldsInOrder {
 		v, ok := asMap[k]
 		if !ok {
@@ -16399,6 +16474,14 @@ func (ec *executionContext) unmarshalInputNewDatasetForNewDataproduct(ctx contex
 
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("requesters"))
 			it.Requesters, err = ec.unmarshalOString2ᚕstringᚄ(ctx, v)
+			if err != nil {
+				return it, err
+			}
+		case "anonymisation_description":
+			var err error
+
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("anonymisation_description"))
+			it.AnonymisationDescription, err = ec.unmarshalOString2ᚖstring(ctx, v)
 			if err != nil {
 				return it, err
 			}
@@ -16851,7 +16934,7 @@ func (ec *executionContext) unmarshalInputUpdateDataset(ctx context.Context, obj
 		asMap[k] = v
 	}
 
-	fieldsInOrder := [...]string{"name", "description", "repo", "pii", "keywords", "dataproductID"}
+	fieldsInOrder := [...]string{"name", "description", "repo", "pii", "keywords", "dataproductID", "anonymisation_description"}
 	for _, k := range fieldsInOrder {
 		v, ok := asMap[k]
 		if !ok {
@@ -16903,6 +16986,14 @@ func (ec *executionContext) unmarshalInputUpdateDataset(ctx context.Context, obj
 
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("dataproductID"))
 			it.DataproductID, err = ec.unmarshalOID2ᚖgithubᚗcomᚋgoogleᚋuuidᚐUUID(ctx, v)
+			if err != nil {
+				return it, err
+			}
+		case "anonymisation_description":
+			var err error
+
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("anonymisation_description"))
+			it.AnonymisationDescription, err = ec.unmarshalOString2ᚖstring(ctx, v)
 			if err != nil {
 				return it, err
 			}
@@ -17695,6 +17786,10 @@ func (ec *executionContext) _Dataset(ctx context.Context, sel ast.SelectionSet, 
 				return innerFunc(ctx)
 
 			})
+		case "anonymisation_description":
+
+			out.Values[i] = ec._Dataset_anonymisation_description(ctx, field, obj)
+
 		default:
 			panic("unknown field " + strconv.Quote(field.Name))
 		}
