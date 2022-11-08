@@ -85,7 +85,9 @@ INSERT INTO datasets ("dataproduct_id",
                       "type",
                       "slug",
                       "repo",
-                      "keywords")
+                      "keywords",
+                      "anonymisation_description"
+                      )
 VALUES ($1,
         $2,
         $3,
@@ -93,19 +95,21 @@ VALUES ($1,
         $5,
         $6,
         $7,
-        $8)
+        $8,
+        $9)
 RETURNING id, name, description, pii, created, last_modified, type, tsv_document, slug, repo, keywords, dataproduct_id, anonymisation_description
 `
 
 type CreateDatasetParams struct {
-	DataproductID uuid.UUID
-	Name          string
-	Description   sql.NullString
-	Pii           PiiLevel
-	Type          DatasourceType
-	Slug          string
-	Repo          sql.NullString
-	Keywords      []string
+	DataproductID            uuid.UUID
+	Name                     string
+	Description              sql.NullString
+	Pii                      PiiLevel
+	Type                     DatasourceType
+	Slug                     string
+	Repo                     sql.NullString
+	Keywords                 []string
+	AnonymisationDescription sql.NullString
 }
 
 func (q *Queries) CreateDataset(ctx context.Context, arg CreateDatasetParams) (Dataset, error) {
@@ -118,6 +122,7 @@ func (q *Queries) CreateDataset(ctx context.Context, arg CreateDatasetParams) (D
 		arg.Slug,
 		arg.Repo,
 		pq.Array(arg.Keywords),
+		arg.AnonymisationDescription,
 	)
 	var i Dataset
 	err := row.Scan(
@@ -668,26 +673,28 @@ func (q *Queries) UpdateBigqueryDatasourceSchema(ctx context.Context, arg Update
 
 const updateDataset = `-- name: UpdateDataset :one
 UPDATE datasets
-SET "name"              = $1,
-    "description"       = $2,
-    "pii"               = $3,
-    "slug"              = $4,
-    "repo"              = $5,
-    "keywords"          = $6,
-    "dataproduct_id"    = $7
-WHERE id = $8
+SET "name"                      = $1,
+    "description"               = $2,
+    "pii"                       = $3,
+    "slug"                      = $4,
+    "repo"                      = $5,
+    "keywords"                  = $6,
+    "dataproduct_id"            = $7,
+    "anonymisation_description" = $8
+WHERE id = $9
 RETURNING id, name, description, pii, created, last_modified, type, tsv_document, slug, repo, keywords, dataproduct_id, anonymisation_description
 `
 
 type UpdateDatasetParams struct {
-	Name          string
-	Description   sql.NullString
-	Pii           PiiLevel
-	Slug          string
-	Repo          sql.NullString
-	Keywords      []string
-	DataproductID uuid.UUID
-	ID            uuid.UUID
+	Name                     string
+	Description              sql.NullString
+	Pii                      PiiLevel
+	Slug                     string
+	Repo                     sql.NullString
+	Keywords                 []string
+	DataproductID            uuid.UUID
+	AnonymisationDescription sql.NullString
+	ID                       uuid.UUID
 }
 
 func (q *Queries) UpdateDataset(ctx context.Context, arg UpdateDatasetParams) (Dataset, error) {
@@ -699,6 +706,7 @@ func (q *Queries) UpdateDataset(ctx context.Context, arg UpdateDatasetParams) (D
 		arg.Repo,
 		pq.Array(arg.Keywords),
 		arg.DataproductID,
+		arg.AnonymisationDescription,
 		arg.ID,
 	)
 	var i Dataset

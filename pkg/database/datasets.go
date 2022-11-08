@@ -49,14 +49,15 @@ func (r *Repo) CreateDataset(ctx context.Context, ds models.NewDataset) (*models
 
 	querier := r.querier.WithTx(tx)
 	created, err := querier.CreateDataset(ctx, gensql.CreateDatasetParams{
-		Name:          ds.Name,
-		DataproductID: ds.DataproductID,
-		Description:   ptrToNullString(ds.Description),
-		Pii:           gensql.PiiLevel(ds.Pii.String()),
-		Type:          "bigquery",
-		Slug:          slugify(ds.Slug, ds.Name),
-		Repo:          ptrToNullString(ds.Repo),
-		Keywords:      ds.Keywords,
+		Name:                     ds.Name,
+		DataproductID:            ds.DataproductID,
+		Description:              ptrToNullString(ds.Description),
+		Pii:                      gensql.PiiLevel(ds.Pii.String()),
+		Type:                     "bigquery",
+		Slug:                     slugify(ds.Slug, ds.Name),
+		Repo:                     ptrToNullString(ds.Repo),
+		Keywords:                 ds.Keywords,
+		AnonymisationDescription: ptrToNullString(ds.AnonymisationDescription),
 	})
 	if err != nil {
 		return nil, err
@@ -119,14 +120,15 @@ func (r *Repo) UpdateDataset(ctx context.Context, id uuid.UUID, new models.Updat
 	}
 
 	res, err := r.querier.UpdateDataset(ctx, gensql.UpdateDatasetParams{
-		Name:          new.Name,
-		Description:   ptrToNullString(new.Description),
-		ID:            id,
-		Pii:           gensql.PiiLevel(new.Pii.String()),
-		Slug:          slugify(new.Slug, new.Name),
-		Repo:          ptrToNullString(new.Repo),
-		Keywords:      new.Keywords,
-		DataproductID: *new.DataproductID,
+		Name:                     new.Name,
+		Description:              ptrToNullString(new.Description),
+		ID:                       id,
+		Pii:                      gensql.PiiLevel(new.Pii.String()),
+		Slug:                     slugify(new.Slug, new.Name),
+		Repo:                     ptrToNullString(new.Repo),
+		Keywords:                 new.Keywords,
+		DataproductID:            *new.DataproductID,
+		AnonymisationDescription: ptrToNullString(new.AnonymisationDescription),
 	})
 	if err != nil {
 		return nil, fmt.Errorf("updating dataset in database: %w", err)
@@ -238,16 +240,17 @@ func (r *Repo) DeleteDataset(ctx context.Context, id uuid.UUID) error {
 
 func datasetFromSQL(ds gensql.Dataset) *models.Dataset {
 	return &models.Dataset{
-		ID:            ds.ID,
-		Name:          ds.Name,
-		Created:       ds.Created,
-		LastModified:  ds.LastModified,
-		Description:   nullStringToPtr(ds.Description),
-		Slug:          ds.Slug,
-		Repo:          nullStringToPtr(ds.Repo),
-		Pii:           models.PiiLevel(ds.Pii),
-		Keywords:      ds.Keywords,
-		Type:          ds.Type,
-		DataproductID: ds.DataproductID,
+		ID:                       ds.ID,
+		Name:                     ds.Name,
+		Created:                  ds.Created,
+		LastModified:             ds.LastModified,
+		Description:              nullStringToPtr(ds.Description),
+		Slug:                     ds.Slug,
+		Repo:                     nullStringToPtr(ds.Repo),
+		Pii:                      models.PiiLevel(ds.Pii),
+		Keywords:                 ds.Keywords,
+		Type:                     ds.Type,
+		DataproductID:            ds.DataproductID,
+		AnonymisationDescription: nullStringToPtr(ds.AnonymisationDescription),
 	}
 }
