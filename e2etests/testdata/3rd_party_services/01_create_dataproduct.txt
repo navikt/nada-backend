@@ -7,7 +7,7 @@ mutation {
             teamContact: "#team"
             datasets: [{
                 name: "FirstDataset"
-			    pii: false
+			    pii: none
 			    bigquery: { projectID: "team-dev-1337", dataset: "dataset1", table: "table1" }
             }]
 		}

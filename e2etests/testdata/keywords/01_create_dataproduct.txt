@@ -8,7 +8,7 @@ mutation {
 			datasets: [{
                 name: "DatasetCreatedWithDataproduct"
                 description: "dataset created with dataproduct"
-			    pii: false
+			    pii: none
 			    bigquery: { projectID: "team-dev-1337", dataset: "dataset", table: "table1" }
                 repo: "somerepo"
                 keywords: ["keyword1", "otherkeyword"]

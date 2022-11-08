@@ -85,7 +85,7 @@ func TestRepo(t *testing.T) {
 
 	newDataset := models.NewDataset{
 		Name: "test-dataset",
-		Pii:  true,
+		Pii:  models.PiiLevelSensitive,
 		BigQuery: models.NewBigQuery{
 			Dataset:   "dataset",
 			ProjectID: "projectid",
@@ -97,7 +97,7 @@ func TestRepo(t *testing.T) {
 	t.Run("updates datasets", func(t *testing.T) {
 		data := models.NewDataset{
 			Name: "test-dataset",
-			Pii:  true,
+			Pii:  models.PiiLevelSensitive,
 			BigQuery: models.NewBigQuery{
 				Dataset:   "dataset",
 				ProjectID: "projectid",
@@ -113,7 +113,7 @@ func TestRepo(t *testing.T) {
 
 		updated := models.UpdateDataset{
 			Name:          "updated",
-			Pii:           false,
+			Pii:           models.PiiLevelAnonymised,
 			DataproductID: &createdproduct.ID,
 		}
 
