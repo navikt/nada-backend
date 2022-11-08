@@ -47,7 +47,7 @@ func (r *mutationResolver) GrantAccessToDataset(ctx context.Context, input model
 		return nil, err
 	}
 
-	if ds.Pii && subj == "all-users@nav.no" {
+	if ds.Pii == "sensitive" && subj == "all-users@nav.no" {
 		return nil, fmt.Errorf("not allowed to grant all-users access to dataproduct containing pii")
 	}
 
