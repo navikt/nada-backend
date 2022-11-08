@@ -275,7 +275,7 @@ func (r *queryResolver) AccessRequestsForDataset(ctx context.Context, datasetID 
 
 // DatasetsInDataproduct is the resolver for the datasetsInDataproduct field.
 func (r *queryResolver) DatasetsInDataproduct(ctx context.Context, dataproductID uuid.UUID) ([]*models.Dataset, error) {
-	panic(fmt.Errorf("not implemented: DatasetsInDataproduct - datasetsInDataproduct"))
+	return r.repo.GetDatasetsInDataproduct(ctx, dataproductID)
 }
 
 // BigQuery returns generated.BigQueryResolver implementation.
