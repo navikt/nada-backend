@@ -115,14 +115,15 @@ func (r *Repo) CreateDataproduct(ctx context.Context, dp models.NewDataproduct) 
 		}
 
 		dataset, err := querier.CreateDataset(ctx, gensql.CreateDatasetParams{
-			Name:          ds.Name,
-			Description:   ptrToNullString(ds.Description),
-			DataproductID: dataproduct.ID,
-			Repo:          ptrToNullString(ds.Repo),
-			Keywords:      ds.Keywords,
-			Pii:           gensql.PiiLevel(ds.Pii.String()),
-			Type:          gensql.DatasourceTypeBigquery,
-			Slug:          slugify(nil, ds.Name),
+			Name:                     ds.Name,
+			Description:              ptrToNullString(ds.Description),
+			DataproductID:            dataproduct.ID,
+			Repo:                     ptrToNullString(ds.Repo),
+			Keywords:                 ds.Keywords,
+			Pii:                      gensql.PiiLevel(ds.Pii.String()),
+			Type:                     gensql.DatasourceTypeBigquery,
+			Slug:                     slugify(nil, ds.Name),
+			AnonymisationDescription: ptrToNullString(ds.AnonymisationDescription),
 		})
 		if err != nil {
 			if err := tx.Rollback(); err != nil {
