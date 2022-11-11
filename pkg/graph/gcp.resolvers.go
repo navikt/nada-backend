@@ -43,3 +43,22 @@ func (r *queryResolver) GcpGetAllTablesInProject(ctx context.Context, projectID 
 
 	return tables, nil
 }
+
+// GcpGetColumns is the resolver for the gcpGetColumns field.
+func (r *queryResolver) GcpGetColumns(ctx context.Context, projectID string, datasetID string, tableID string) ([]*models.TableColumn, error) {
+	metadata, err := r.bigquery.TableMetadata(ctx, projectID, datasetID, tableID)
+	if err != nil {
+		return nil, err
+	}
+
+	columns := make([]*models.TableColumn, 0)
+	for _, column := range metadata.Schema.Columns {
+		columns = append(columns, &models.TableColumn{
+			Name:        column.Name,
+			Description: column.Description,
+			Mode:        column.Mode,
+			Type:        column.Type,
+		})
+	}
+	return columns, nil
+}
