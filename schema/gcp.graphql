@@ -43,6 +43,7 @@ type BigQueryTable @goModel(model: "github.com/navikt/nada-backend/pkg/graph/mod
 	type:         BigQueryType!
 }
 
+
 """
 """
 type BigQuerySource {
@@ -84,4 +85,18 @@ extend type Query {
         "projectID"
         projectID: String!
     ): [BigQuerySource!]!  @authenticated
+
+	"""
+	gcpGetColumns returns all columns for a table.
+
+	Requires authentication.
+	"""
+	gcpGetColumns(
+		"projectID is the GCP project ID that contains the dataset."
+		projectID: String!
+		"datasetID is the ID/name of the dataset."
+		datasetID: String!
+		"tableID is the ID/name of the table."
+		tableID: String!
+	): [TableColumn!]! @authenticated
 }

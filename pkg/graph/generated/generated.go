@@ -228,6 +228,7 @@ type ComplexityRoot struct {
 		Dataset                  func(childComplexity int, id uuid.UUID) int
 		DatasetsInDataproduct    func(childComplexity int, dataproductID uuid.UUID) int
 		GcpGetAllTablesInProject func(childComplexity int, projectID string) int
+		GcpGetColumns            func(childComplexity int, projectID string, datasetID string, tableID string) int
 		GcpGetDatasets           func(childComplexity int, projectID string) int
 		GcpGetTables             func(childComplexity int, projectID string, datasetID string) int
 		GroupStats               func(childComplexity int, limit *int, offset *int) int
@@ -401,6 +402,7 @@ type QueryResolver interface {
 	GcpGetTables(ctx context.Context, projectID string, datasetID string) ([]*models.BigQueryTable, error)
 	GcpGetDatasets(ctx context.Context, projectID string) ([]string, error)
 	GcpGetAllTablesInProject(ctx context.Context, projectID string) ([]*models.BigQuerySource, error)
+	GcpGetColumns(ctx context.Context, projectID string, datasetID string, tableID string) ([]*models.TableColumn, error)
 	Keywords(ctx context.Context, prefix *string) ([]*models.Keyword, error)
 	Polly(ctx context.Context, q string) ([]*models.QueryPolly, error)
 	ProductArea(ctx context.Context, id string) (*models.ProductArea, error)
@@ -1420,6 +1422,18 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 		}
 
 		return e.complexity.Query.GcpGetAllTablesInProject(childComplexity, args["projectID"].(string)), true
+
+	case "Query.gcpGetColumns":
+		if e.complexity.Query.GcpGetColumns == nil {
+			break
+		}
+
+		args, err := ec.field_Query_gcpGetColumns_args(context.TODO(), rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Query.GcpGetColumns(childComplexity, args["projectID"].(string), args["datasetID"].(string), args["tableID"].(string)), true
 
 	case "Query.gcpGetDatasets":
 		if e.complexity.Query.GcpGetDatasets == nil {
@@ -2688,6 +2702,7 @@ type BigQueryTable @goModel(model: "github.com/navikt/nada-backend/pkg/graph/mod
 	type:         BigQueryType!
 }
 
+
 """
 """
 type BigQuerySource {
@@ -2729,6 +2744,20 @@ extend type Query {
         "projectID"
         projectID: String!
     ): [BigQuerySource!]!  @authenticated
+
+	"""
+	gcpGetColumns returns all columns for a table.
+
+	Requires authentication.
+	"""
+	gcpGetColumns(
+		"projectID is the GCP project ID that contains the dataset."
+		projectID: String!
+		"datasetID is the ID/name of the dataset."
+		datasetID: String!
+		"tableID is the ID/name of the table."
+		tableID: String!
+	): [TableColumn!]! @authenticated
 }
 `, BuiltIn: false},
 	{Name: "../../../schema/group.graphql", Input: `"""
@@ -3813,6 +3842,39 @@ func (ec *executionContext) field_Query_gcpGetAllTablesInProject_args(ctx contex
 		}
 	}
 	args["projectID"] = arg0
+	return args, nil
+}
+
+func (ec *executionContext) field_Query_gcpGetColumns_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
+	var err error
+	args := map[string]interface{}{}
+	var arg0 string
+	if tmp, ok := rawArgs["projectID"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("projectID"))
+		arg0, err = ec.unmarshalNString2string(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["projectID"] = arg0
+	var arg1 string
+	if tmp, ok := rawArgs["datasetID"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("datasetID"))
+		arg1, err = ec.unmarshalNString2string(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["datasetID"] = arg1
+	var arg2 string
+	if tmp, ok := rawArgs["tableID"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("tableID"))
+		arg2, err = ec.unmarshalNString2string(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["tableID"] = arg2
 	return args, nil
 }
 
@@ -10857,6 +10919,91 @@ func (ec *executionContext) fieldContext_Query_gcpGetAllTablesInProject(ctx cont
 	}()
 	ctx = graphql.WithFieldContext(ctx, fc)
 	if fc.Args, err = ec.field_Query_gcpGetAllTablesInProject_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+		ec.Error(ctx, err)
+		return
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Query_gcpGetColumns(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_Query_gcpGetColumns(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		directive0 := func(rctx context.Context) (interface{}, error) {
+			ctx = rctx // use context from middleware stack in children
+			return ec.resolvers.Query().GcpGetColumns(rctx, fc.Args["projectID"].(string), fc.Args["datasetID"].(string), fc.Args["tableID"].(string))
+		}
+		directive1 := func(ctx context.Context) (interface{}, error) {
+			if ec.directives.Authenticated == nil {
+				return nil, errors.New("directive authenticated is not implemented")
+			}
+			return ec.directives.Authenticated(ctx, nil, directive0, nil)
+		}
+
+		tmp, err := directive1(rctx)
+		if err != nil {
+			return nil, graphql.ErrorOnPath(ctx, err)
+		}
+		if tmp == nil {
+			return nil, nil
+		}
+		if data, ok := tmp.([]*models.TableColumn); ok {
+			return data, nil
+		}
+		return nil, fmt.Errorf(`unexpected type %T from directive, should be []*github.com/navikt/nada-backend/pkg/graph/models.TableColumn`, tmp)
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.([]*models.TableColumn)
+	fc.Result = res
+	return ec.marshalNTableColumn2ᚕᚖgithubᚗcomᚋnaviktᚋnadaᚑbackendᚋpkgᚋgraphᚋmodelsᚐTableColumnᚄ(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_Query_gcpGetColumns(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Query",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "name":
+				return ec.fieldContext_TableColumn_name(ctx, field)
+			case "description":
+				return ec.fieldContext_TableColumn_description(ctx, field)
+			case "mode":
+				return ec.fieldContext_TableColumn_mode(ctx, field)
+			case "type":
+				return ec.fieldContext_TableColumn_type(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type TableColumn", field.Name)
+		},
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			err = ec.Recover(ctx, r)
+			ec.Error(ctx, err)
+		}
+	}()
+	ctx = graphql.WithFieldContext(ctx, fc)
+	if fc.Args, err = ec.field_Query_gcpGetColumns_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
 		ec.Error(ctx, err)
 		return
 	}
@@ -18701,6 +18848,29 @@ func (ec *executionContext) _Query(ctx context.Context, sel ast.SelectionSet) gr
 					}
 				}()
 				res = ec._Query_gcpGetAllTablesInProject(ctx, field)
+				if res == graphql.Null {
+					atomic.AddUint32(&invalids, 1)
+				}
+				return res
+			}
+
+			rrm := func(ctx context.Context) graphql.Marshaler {
+				return ec.OperationContext.RootResolverMiddleware(ctx, innerFunc)
+			}
+
+			out.Concurrently(i, func() graphql.Marshaler {
+				return rrm(innerCtx)
+			})
+		case "gcpGetColumns":
+			field := field
+
+			innerFunc := func(ctx context.Context) (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._Query_gcpGetColumns(ctx, field)
 				if res == graphql.Null {
 					atomic.AddUint32(&invalids, 1)
 				}
