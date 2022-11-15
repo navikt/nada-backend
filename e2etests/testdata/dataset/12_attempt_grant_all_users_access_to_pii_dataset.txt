@@ -16,7 +16,7 @@ RETURNS
 {
   "errors": [
     {
-      "message": "Datasett som inneholder personopplysninger kan ikke gjøres tilgjengelig for alle interne brukere.",
+      "message": "Datasett som inneholder personopplysninger kan ikke gjøres tilgjengelig for alle interne brukere (all-users@nav.no).",
       "path": [
         "grantAccessToDataset"
       ]

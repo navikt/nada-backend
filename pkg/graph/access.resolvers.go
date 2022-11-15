@@ -48,7 +48,7 @@ func (r *mutationResolver) GrantAccessToDataset(ctx context.Context, input model
 	}
 
 	if ds.Pii == "sensitive" && subj == "all-users@nav.no" {
-		return nil, fmt.Errorf("Datasett som inneholder personopplysninger kan ikke gjøres tilgjengelig for alle interne brukere.")
+		return nil, fmt.Errorf("Datasett som inneholder personopplysninger kan ikke gjøres tilgjengelig for alle interne brukere (all-users@nav.no).")
 	}
 
 	bq, err := r.repo.GetBigqueryDatasource(ctx, ds.ID)
