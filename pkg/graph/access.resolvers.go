@@ -26,7 +26,7 @@ func (r *accessResolver) AccessRequest(ctx context.Context, obj *models.Access) 
 // GrantAccessToDataset is the resolver for the grantAccessToDataset field.
 func (r *mutationResolver) GrantAccessToDataset(ctx context.Context, input models.NewGrant) (*models.Access, error) {
 	if input.Expires != nil && input.Expires.Before(time.Now()) {
-		return nil, fmt.Errorf("expires has already expired")
+		return nil, fmt.Errorf("Datoen tilgangen skal vare til er bak i tid")
 	}
 
 	user := auth.GetUser(ctx)
@@ -48,7 +48,7 @@ func (r *mutationResolver) GrantAccessToDataset(ctx context.Context, input model
 	}
 
 	if ds.Pii == "sensitive" && subj == "all-users@nav.no" {
-		return nil, fmt.Errorf("not allowed to grant all-users access to dataproduct containing pii")
+		return nil, fmt.Errorf("Du kan ikke gi tilgang til alle brukere til et datasett med personopplysninger")
 	}
 
 	bq, err := r.repo.GetBigqueryDatasource(ctx, ds.ID)

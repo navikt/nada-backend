@@ -16,7 +16,7 @@ RETURNS
 {
   "errors": [
     {
-      "message": "not allowed to grant all-users access to dataproduct containing pii",
+      "message": "Du kan ikke gi tilgang til alle brukere til et datasett med personopplysninger",
       "path": [
         "grantAccessToDataset"
       ]
