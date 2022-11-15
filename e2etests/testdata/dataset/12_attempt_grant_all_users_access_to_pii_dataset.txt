@@ -16,7 +16,7 @@ RETURNS
 {
   "errors": [
     {
-      "message": "Du kan ikke gi tilgang til alle brukere til et datasett med personopplysninger",
+      "message": "Datasett som inneholder personopplysninger kan ikke gjøres tilgjengelig for alle interne brukere.",
       "path": [
         "grantAccessToDataset"
       ]
