@@ -16,7 +16,7 @@ RETURNS
 {
   "errors": [
     {
-      "message": "not allowed to grant all-users access to dataproduct containing pii",
+      "message": "Datasett som inneholder personopplysninger kan ikke gjøres tilgjengelig for alle interne brukere (all-users@nav.no).",
       "path": [
         "grantAccessToDataset"
       ]
