@@ -15,7 +15,6 @@ mutation {
 		repo
 		pii
 		keywords
-		piiTags
 	}
 }
 
@@ -32,7 +31,6 @@ RETURNS
       ],
       "pii": "sensitive",
       "repo": "someotherrepo",
-      "piiTags": "{\"test\":\"tag\"}"
     }
   }
 }

@@ -36,7 +36,7 @@ RETURNS
           "projectID": "team-dev-1337",
           "dataset": "dataset1",
           "table": "table1",
-          "piiTags": ""
+          "piiTags": "{}"
       }
     }
   }

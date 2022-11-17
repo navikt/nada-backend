@@ -16,6 +16,7 @@
                     projectID
                     dataset
                     table
+                    piiTags
                 }
             }
         }

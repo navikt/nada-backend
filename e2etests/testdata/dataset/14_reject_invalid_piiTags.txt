@@ -15,24 +15,19 @@ mutation {
 		repo
 		pii
 		keywords
-		piiTags
 	}
 }
 
 RETURNS
+OPTION errors[0].extensions=IGNORE
+OPTION errors[0].locations=IGNORE
+OPTION errors[0].message=IGNORE
 
+ENDOPTS
 {
-  "data": {
-    "updateDataset": {
-      "name": "Updated Name",
-      "description": "Updated description",
-      "keywords": [
-        "keyword1",
-        "keyword2"
-      ],
-      "pii": "sensitive",
-      "repo": "someotherrepo",
-      "piiTags": "{\"test\":\"tag\"}"
-    }
-  }
+    "errors": [
+        {
+            "message":    string(`Cannot query field "piiTags" on type "Dataset".`),
+        }
+    ]
 }
