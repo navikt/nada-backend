@@ -30,7 +30,7 @@ RETURNS
         "keyword2"
       ],
       "pii": "sensitive",
-      "repo": "someotherrepo",
+      "repo": "someotherrepo"
     }
   }
 }

@@ -27,7 +27,7 @@ ENDOPTS
 {
     "errors": [
         {
-            "message":    string(`Cannot query field "piiTags" on type "Dataset".`),
+            "message": "Cannot query field \"piiTags\" on type "Dataset"."
         }
     ]
 }
