@@ -89,6 +89,7 @@ type ComplexityRoot struct {
 		Description  func(childComplexity int) int
 		Expires      func(childComplexity int) int
 		LastModified func(childComplexity int) int
+		PiiTags      func(childComplexity int) int
 		ProjectID    func(childComplexity int) int
 		Schema       func(childComplexity int) int
 		Table        func(childComplexity int) int
@@ -629,6 +630,13 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 		}
 
 		return e.complexity.BigQuery.LastModified(childComplexity), true
+
+	case "BigQuery.piiTags":
+		if e.complexity.BigQuery.PiiTags == nil {
+			break
+		}
+
+		return e.complexity.BigQuery.PiiTags(childComplexity), true
 
 	case "BigQuery.projectID":
 		if e.complexity.BigQuery.ProjectID == nil {
@@ -2484,6 +2492,8 @@ type BigQuery @goModel(model: "github.com/navikt/nada-backend/pkg/graph/models.B
     tableType: BigQueryType!
     "description is the description of the BigQuery table"
     description: String!
+    "piiTags is json string from the pii tags map"
+    piiTags: String!
 }
 
 """
@@ -2526,6 +2536,8 @@ input NewBigQuery @goModel(model: "github.com/navikt/nada-backend/pkg/graph/mode
     dataset: String!
     "table is the name of the table"
     table: String!
+    "piiTags is json string from the pii tags map"
+    piiTags: String!
 }
 
 """
@@ -2571,7 +2583,7 @@ input NewDatasetForNewDataproduct @goModel(model: "github.com/navikt/nada-backen
     "requesters contains list of users, groups and service accounts which can request access to the dataset"
     requesters: [String!]
     "anonymisation_description explains how the dataset was anonymised, should be null if ` + "`" + `pii` + "`" + ` isn't anonymised"
-    anonymisation_description: String
+     anonymisation_description: String
 }
 
 """
@@ -2592,6 +2604,8 @@ input UpdateDataset @goModel(model: "github.com/navikt/nada-backend/pkg/graph/mo
     dataproductID: ID
     "anonymisation_description explains how the dataset was anonymised, should be null if ` + "`" + `pii` + "`" + ` isn't anonymised"
     anonymisation_description: String
+    "piiTags is json string from the pii tags map"
+    piiTags: String!
 }
 
 """
@@ -5451,6 +5465,50 @@ func (ec *executionContext) _BigQuery_description(ctx context.Context, field gra
 }
 
 func (ec *executionContext) fieldContext_BigQuery_description(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "BigQuery",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _BigQuery_piiTags(ctx context.Context, field graphql.CollectedField, obj *models.BigQuery) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_BigQuery_piiTags(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.PiiTags, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(string)
+	fc.Result = res
+	return ec.marshalNString2string(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_BigQuery_piiTags(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
 	fc = &graphql.FieldContext{
 		Object:     "BigQuery",
 		Field:      field,
@@ -16341,7 +16399,7 @@ func (ec *executionContext) unmarshalInputNewBigQuery(ctx context.Context, obj i
 		asMap[k] = v
 	}
 
-	fieldsInOrder := [...]string{"projectID", "dataset", "table"}
+	fieldsInOrder := [...]string{"projectID", "dataset", "table", "piiTags"}
 	for _, k := range fieldsInOrder {
 		v, ok := asMap[k]
 		if !ok {
@@ -16369,6 +16427,14 @@ func (ec *executionContext) unmarshalInputNewBigQuery(ctx context.Context, obj i
 
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("table"))
 			it.Table, err = ec.unmarshalNString2string(ctx, v)
+			if err != nil {
+				return it, err
+			}
+		case "piiTags":
+			var err error
+
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("piiTags"))
+			it.PiiTags, err = ec.unmarshalNString2string(ctx, v)
 			if err != nil {
 				return it, err
 			}
@@ -17081,7 +17147,7 @@ func (ec *executionContext) unmarshalInputUpdateDataset(ctx context.Context, obj
 		asMap[k] = v
 	}
 
-	fieldsInOrder := [...]string{"name", "description", "repo", "pii", "keywords", "dataproductID", "anonymisation_description"}
+	fieldsInOrder := [...]string{"name", "description", "repo", "pii", "keywords", "dataproductID", "anonymisation_description", "piiTags"}
 	for _, k := range fieldsInOrder {
 		v, ok := asMap[k]
 		if !ok {
@@ -17141,6 +17207,14 @@ func (ec *executionContext) unmarshalInputUpdateDataset(ctx context.Context, obj
 
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("anonymisation_description"))
 			it.AnonymisationDescription, err = ec.unmarshalOString2ᚖstring(ctx, v)
+			if err != nil {
+				return it, err
+			}
+		case "piiTags":
+			var err error
+
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("piiTags"))
+			it.PiiTags, err = ec.unmarshalNString2string(ctx, v)
 			if err != nil {
 				return it, err
 			}
@@ -17481,6 +17555,13 @@ func (ec *executionContext) _BigQuery(ctx context.Context, sel ast.SelectionSet,
 		case "description":
 
 			out.Values[i] = ec._BigQuery_description(ctx, field, obj)
+
+			if out.Values[i] == graphql.Null {
+				atomic.AddUint32(&invalids, 1)
+			}
+		case "piiTags":
+
+			out.Values[i] = ec._BigQuery_piiTags(ctx, field, obj)
 
 			if out.Values[i] == graphql.Null {
 				atomic.AddUint32(&invalids, 1)

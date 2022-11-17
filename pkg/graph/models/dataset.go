@@ -38,6 +38,7 @@ type BigQuery struct {
 	Created      time.Time    `json:"created"`
 	Expires      *time.Time   `json:"expired"`
 	Description  string       `json:"description"`
+	PiiTags      string       `json:"piiTags"`
 }
 
 func (BigQuery) IsDatasource() {}
@@ -46,6 +47,7 @@ type NewBigQuery struct {
 	ProjectID string `json:"projectID"`
 	Dataset   string `json:"dataset"`
 	Table     string `json:"table"`
+	PiiTags   string `json:"piiTags"`
 }
 
 type NewDataset struct {
@@ -85,6 +87,7 @@ type UpdateDataset struct {
 	Requesters               []string   `json:"requesters"`
 	DataproductID            *uuid.UUID `json:"dataproductID"`
 	AnonymisationDescription *string    `json:"anonymisationDescription"`
+	PiiTags                  string     `json:"piiTags"`
 }
 
 type DatasetServices struct {

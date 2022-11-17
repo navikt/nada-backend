@@ -78,6 +78,8 @@ func (r *Repo) CreateDataset(ctx context.Context, ds models.NewDataset) (*models
 		Created:      ds.Metadata.Created,
 		Expires:      sql.NullTime{Time: ds.Metadata.Expires, Valid: !ds.Metadata.Expires.IsZero()},
 		TableType:    string(ds.Metadata.TableType),
+		PiiTags: pqtype.NullRawMessage{RawMessage: json.RawMessage(ds.BigQuery.PiiTags),
+			Valid: len(ds.BigQuery.PiiTags) > 4},
 	})
 	if err != nil {
 		if err := tx.Rollback(); err != nil {
@@ -141,6 +143,15 @@ func (r *Repo) UpdateDataset(ctx context.Context, id uuid.UUID, new models.Updat
 		}
 	}
 
+	err = r.querier.UpdateBigqueryDatasourcePiiTags(ctx, gensql.UpdateBigqueryDatasourcePiiTagsParams{
+		DatasetID: id,
+		PiiTags: pqtype.NullRawMessage{RawMessage: json.RawMessage(new.PiiTags),
+			Valid: len(new.PiiTags) > 4},
+	})
+	if err != nil {
+		return nil, err
+	}
+
 	return datasetFromSQL(res), nil
 }
 
@@ -160,10 +171,12 @@ func (r *Repo) GetBigqueryDatasource(ctx context.Context, datasetID uuid.UUID) (
 		Created:      bq.Created,
 		Expires:      nullTimeToPtr(bq.Expires),
 		Description:  bq.Description.String,
+		PiiTags:      string(bq.PiiTags.RawMessage),
 	}, nil
 }
 
-func (r *Repo) UpdateBigqueryDatasource(ctx context.Context, id uuid.UUID, schema json.RawMessage, lastModified, expires time.Time, description string) error {
+func (r *Repo) UpdateBigqueryDatasource(ctx context.Context, id uuid.UUID, schema json.RawMessage,
+	lastModified, expires time.Time, description string) error {
 	err := r.querier.UpdateBigqueryDatasourceSchema(ctx, gensql.UpdateBigqueryDatasourceSchemaParams{
 		DatasetID: id,
 		Schema: pqtype.NullRawMessage{
@@ -195,6 +208,21 @@ func (r *Repo) GetDatasetMetadata(ctx context.Context, id uuid.UUID) ([]*models.
 	}
 
 	return schema, nil
+}
+
+func (r *Repo) GetDatasetPiiTags(ctx context.Context, id uuid.UUID) (map[string]string, error) {
+	ds, err := r.querier.GetBigqueryDatasource(ctx, id)
+	if err != nil {
+		return nil, fmt.Errorf("getting bigquery datasource from database: %w", err)
+	}
+
+	piiTags := make(map[string]string)
+	err = json.Unmarshal(ds.PiiTags.RawMessage, &piiTags)
+	if err != nil {
+		return nil, err
+	}
+
+	return piiTags, nil
 }
 
 func (r *Repo) GetDatasetsByMetabase(ctx context.Context, limit, offset int) ([]*models.Dataset, error) {

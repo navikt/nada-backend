@@ -24,7 +24,8 @@ INSERT INTO datasource_bigquery ("dataset_id",
                                  "last_modified",
                                  "created",
                                  "expires",
-                                 "table_type")
+                                 "table_type",
+                                 "pii_tags")
 VALUES ($1,
         $2,
         $3,
@@ -33,8 +34,9 @@ VALUES ($1,
         $6,
         $7,
         $8,
-        $9)
-RETURNING dataset_id, project_id, dataset, table_name, schema, last_modified, created, expires, table_type, description
+        $9,
+        $10)
+RETURNING dataset_id, project_id, dataset, table_name, schema, last_modified, created, expires, table_type, description, pii_tags
 `
 
 type CreateBigqueryDatasourceParams struct {
@@ -47,6 +49,7 @@ type CreateBigqueryDatasourceParams struct {
 	Created      time.Time
 	Expires      sql.NullTime
 	TableType    string
+	PiiTags      pqtype.NullRawMessage
 }
 
 func (q *Queries) CreateBigqueryDatasource(ctx context.Context, arg CreateBigqueryDatasourceParams) (DatasourceBigquery, error) {
@@ -60,6 +63,7 @@ func (q *Queries) CreateBigqueryDatasource(ctx context.Context, arg CreateBigque
 		arg.Created,
 		arg.Expires,
 		arg.TableType,
+		arg.PiiTags,
 	)
 	var i DatasourceBigquery
 	err := row.Scan(
@@ -73,6 +77,7 @@ func (q *Queries) CreateBigqueryDatasource(ctx context.Context, arg CreateBigque
 		&i.Expires,
 		&i.TableType,
 		&i.Description,
+		&i.PiiTags,
 	)
 	return i, err
 }
@@ -282,7 +287,7 @@ func (q *Queries) DeleteDatasetRequester(ctx context.Context, arg DeleteDatasetR
 }
 
 const getBigqueryDatasource = `-- name: GetBigqueryDatasource :one
-SELECT dataset_id, project_id, dataset, table_name, schema, last_modified, created, expires, table_type, description
+SELECT dataset_id, project_id, dataset, table_name, schema, last_modified, created, expires, table_type, description, pii_tags
 FROM datasource_bigquery
 WHERE dataset_id = $1
 `
@@ -301,12 +306,13 @@ func (q *Queries) GetBigqueryDatasource(ctx context.Context, datasetID uuid.UUID
 		&i.Expires,
 		&i.TableType,
 		&i.Description,
+		&i.PiiTags,
 	)
 	return i, err
 }
 
 const getBigqueryDatasources = `-- name: GetBigqueryDatasources :many
-SELECT dataset_id, project_id, dataset, table_name, schema, last_modified, created, expires, table_type, description
+SELECT dataset_id, project_id, dataset, table_name, schema, last_modified, created, expires, table_type, description, pii_tags
 FROM datasource_bigquery
 `
 
@@ -330,6 +336,7 @@ func (q *Queries) GetBigqueryDatasources(ctx context.Context) ([]DatasourceBigqu
 			&i.Expires,
 			&i.TableType,
 			&i.Description,
+			&i.PiiTags,
 		); err != nil {
 			return nil, err
 		}
@@ -640,6 +647,22 @@ type ReplaceDatasetsTagParams struct {
 
 func (q *Queries) ReplaceDatasetsTag(ctx context.Context, arg ReplaceDatasetsTagParams) error {
 	_, err := q.db.ExecContext(ctx, replaceDatasetsTag, arg.TagToReplace, arg.TagUpdated)
+	return err
+}
+
+const updateBigqueryDatasourcePiiTags = `-- name: UpdateBigqueryDatasourcePiiTags :exec
+UPDATE datasource_bigquery
+SET "pii_tags"        = $1
+WHERE dataset_id = $2
+`
+
+type UpdateBigqueryDatasourcePiiTagsParams struct {
+	PiiTags   pqtype.NullRawMessage
+	DatasetID uuid.UUID
+}
+
+func (q *Queries) UpdateBigqueryDatasourcePiiTags(ctx context.Context, arg UpdateBigqueryDatasourcePiiTagsParams) error {
+	_, err := q.db.ExecContext(ctx, updateBigqueryDatasourcePiiTags, arg.PiiTags, arg.DatasetID)
 	return err
 }
 
