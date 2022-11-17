@@ -147,7 +147,8 @@ func (r *Repo) CreateDataproduct(ctx context.Context, dp models.NewDataproduct) 
 			Created:      ds.Metadata.Created,
 			Expires:      sql.NullTime{Time: ds.Metadata.Expires, Valid: !ds.Metadata.Expires.IsZero()},
 			TableType:    string(ds.Metadata.TableType),
-			PiiTags:      pqtype.NullRawMessage{RawMessage: []byte(ds.Bigquery.PiiTags), Valid: len(ds.Bigquery.PiiTags) > 4},
+			PiiTags: pqtype.NullRawMessage{RawMessage: []byte(ptrToString(ds.Bigquery.PiiTags)),
+				Valid: len(ptrToString(ds.Bigquery.PiiTags)) > 4},
 		})
 		if err != nil {
 			if err := tx.Rollback(); err != nil {

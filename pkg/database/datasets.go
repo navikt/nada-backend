@@ -68,6 +68,14 @@ func (r *Repo) CreateDataset(ctx context.Context, ds models.NewDataset) (*models
 		return nil, fmt.Errorf("marshalling schema: %w", err)
 	}
 
+	if ds.BigQuery.PiiTags != nil {
+		tagsMap := make(map[string]string, 0)
+		err := json.Unmarshal([]byte(ptrToString(ds.BigQuery.PiiTags)), &tagsMap)
+		if err != nil {
+			return nil, fmt.Errorf("invalid pii tags, must be json map or null: %w", err)
+		}
+	}
+
 	_, err = querier.CreateBigqueryDatasource(ctx, gensql.CreateBigqueryDatasourceParams{
 		DatasetID:    created.ID,
 		ProjectID:    ds.BigQuery.ProjectID,
@@ -78,8 +86,8 @@ func (r *Repo) CreateDataset(ctx context.Context, ds models.NewDataset) (*models
 		Created:      ds.Metadata.Created,
 		Expires:      sql.NullTime{Time: ds.Metadata.Expires, Valid: !ds.Metadata.Expires.IsZero()},
 		TableType:    string(ds.Metadata.TableType),
-		PiiTags: pqtype.NullRawMessage{RawMessage: json.RawMessage(ds.BigQuery.PiiTags),
-			Valid: len(ds.BigQuery.PiiTags) > 4},
+		PiiTags: pqtype.NullRawMessage{RawMessage: json.RawMessage([]byte(ptrToString(ds.BigQuery.PiiTags))),
+			Valid: len(ptrToString(ds.BigQuery.PiiTags)) > 4},
 	})
 	if err != nil {
 		if err := tx.Rollback(); err != nil {
@@ -143,10 +151,18 @@ func (r *Repo) UpdateDataset(ctx context.Context, id uuid.UUID, new models.Updat
 		}
 	}
 
+	if new.PiiTags != nil {
+		tagsMap := make(map[string]string, 0)
+		err := json.Unmarshal([]byte(ptrToString(new.PiiTags)), &tagsMap)
+		if err != nil {
+			return nil, fmt.Errorf("invalid pii tags, must be json map or null: %w", err)
+		}
+	}
+
 	err = r.querier.UpdateBigqueryDatasourcePiiTags(ctx, gensql.UpdateBigqueryDatasourcePiiTagsParams{
 		DatasetID: id,
-		PiiTags: pqtype.NullRawMessage{RawMessage: json.RawMessage(new.PiiTags),
-			Valid: len(new.PiiTags) > 4},
+		PiiTags: pqtype.NullRawMessage{RawMessage: json.RawMessage(ptrToString(new.PiiTags)),
+			Valid: len(ptrToString(new.PiiTags)) > 4},
 	})
 	if err != nil {
 		return nil, err
@@ -161,6 +177,11 @@ func (r *Repo) GetBigqueryDatasource(ctx context.Context, datasetID uuid.UUID) (
 		return models.BigQuery{}, err
 	}
 
+	piiTags := "{}"
+	if bq.PiiTags.RawMessage != nil {
+		piiTags = string(bq.PiiTags.RawMessage)
+	}
+
 	return models.BigQuery{
 		DatasetID:    bq.DatasetID,
 		ProjectID:    bq.ProjectID,
@@ -171,7 +192,7 @@ func (r *Repo) GetBigqueryDatasource(ctx context.Context, datasetID uuid.UUID) (
 		Created:      bq.Created,
 		Expires:      nullTimeToPtr(bq.Expires),
 		Description:  bq.Description.String,
-		PiiTags:      string(bq.PiiTags.RawMessage),
+		PiiTags:      &piiTags,
 	}, nil
 }
 

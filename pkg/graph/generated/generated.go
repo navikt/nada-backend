@@ -2493,7 +2493,7 @@ type BigQuery @goModel(model: "github.com/navikt/nada-backend/pkg/graph/models.B
     "description is the description of the BigQuery table"
     description: String!
     "piiTags is json string from the pii tags map"
-    piiTags: String!
+    piiTags: String
 }
 
 """
@@ -2605,7 +2605,7 @@ input UpdateDataset @goModel(model: "github.com/navikt/nada-backend/pkg/graph/mo
     "anonymisation_description explains how the dataset was anonymised, should be null if ` + "`" + `pii` + "`" + ` isn't anonymised"
     anonymisation_description: String
     "piiTags is json string from the pii tags map"
-    piiTags: String!
+    piiTags: String
 }
 
 """
@@ -5498,14 +5498,11 @@ func (ec *executionContext) _BigQuery_piiTags(ctx context.Context, field graphql
 		return graphql.Null
 	}
 	if resTmp == nil {
-		if !graphql.HasFieldError(ctx, fc) {
-			ec.Errorf(ctx, "must not be null")
-		}
 		return graphql.Null
 	}
-	res := resTmp.(string)
+	res := resTmp.(*string)
 	fc.Result = res
-	return ec.marshalNString2string(ctx, field.Selections, res)
+	return ec.marshalOString2ᚖstring(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) fieldContext_BigQuery_piiTags(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
@@ -16434,7 +16431,7 @@ func (ec *executionContext) unmarshalInputNewBigQuery(ctx context.Context, obj i
 			var err error
 
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("piiTags"))
-			it.PiiTags, err = ec.unmarshalNString2string(ctx, v)
+			it.PiiTags, err = ec.unmarshalNString2ᚖstring(ctx, v)
 			if err != nil {
 				return it, err
 			}
@@ -17214,7 +17211,7 @@ func (ec *executionContext) unmarshalInputUpdateDataset(ctx context.Context, obj
 			var err error
 
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("piiTags"))
-			it.PiiTags, err = ec.unmarshalNString2string(ctx, v)
+			it.PiiTags, err = ec.unmarshalOString2ᚖstring(ctx, v)
 			if err != nil {
 				return it, err
 			}
@@ -17563,9 +17560,6 @@ func (ec *executionContext) _BigQuery(ctx context.Context, sel ast.SelectionSet,
 
 			out.Values[i] = ec._BigQuery_piiTags(ctx, field, obj)
 
-			if out.Values[i] == graphql.Null {
-				atomic.AddUint32(&invalids, 1)
-			}
 		default:
 			panic("unknown field " + strconv.Quote(field.Name))
 		}
@@ -21644,6 +21638,27 @@ func (ec *executionContext) marshalNString2ᚕstringᚄ(ctx context.Context, sel
 	}
 
 	return ret
+}
+
+func (ec *executionContext) unmarshalNString2ᚖstring(ctx context.Context, v interface{}) (*string, error) {
+	res, err := graphql.UnmarshalString(v)
+	return &res, graphql.ErrorOnPath(ctx, err)
+}
+
+func (ec *executionContext) marshalNString2ᚖstring(ctx context.Context, sel ast.SelectionSet, v *string) graphql.Marshaler {
+	if v == nil {
+		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
+			ec.Errorf(ctx, "the requested element is null which the schema does not allow")
+		}
+		return graphql.Null
+	}
+	res := graphql.MarshalString(*v)
+	if res == graphql.Null {
+		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
+			ec.Errorf(ctx, "the requested element is null which the schema does not allow")
+		}
+	}
+	return res
 }
 
 func (ec *executionContext) unmarshalNSubjectType2githubᚗcomᚋnaviktᚋnadaᚑbackendᚋpkgᚋgraphᚋmodelsᚐSubjectType(ctx context.Context, v interface{}) (models.SubjectType, error) {
