@@ -7,6 +7,15 @@
 		repo
 		pii
 		keywords
+    datasource {
+      __typename
+      ...on BigQuery {
+        projectID
+        dataset
+        table
+        piiTags
+      }
+    }
 	}
 }
 
@@ -21,7 +30,14 @@ RETURNS
         "otherkeyword"
       ],
       "pii": "none",
-      "repo": "somerepo"
+      "repo": "somerepo",
+      "datasource": {
+          "__typename": "BigQuery",
+          "projectID": "team-dev-1337",
+          "dataset": "dataset1",
+          "table": "table1",
+          "piiTags": ""
+      }
     }
   }
 }

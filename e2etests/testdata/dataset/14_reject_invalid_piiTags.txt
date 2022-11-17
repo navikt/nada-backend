@@ -7,7 +7,7 @@ mutation {
 			repo: "someotherrepo"
 			pii: sensitive
 			keywords: ["keyword1", "keyword2"]
-			piiTags: "{\"test\":\"tag\"}"
+			piiTags: "{\"test\":}"
 		}
 	) {
 		name
