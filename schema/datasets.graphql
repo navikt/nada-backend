@@ -126,7 +126,7 @@ input NewBigQuery @goModel(model: "github.com/navikt/nada-backend/pkg/graph/mode
     "table is the name of the table"
     table: String!
     "piiTags is json string from the pii tags map"
-    piiTags: String!
+    piiTags: String
 }
 
 """
