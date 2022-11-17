@@ -33,7 +33,7 @@ RETURNS
       "requesters": ["all-users@nav.no", "nada@nav.no"],
        "datasource": {
           "__typename": "BigQuery",
-          "piiTags": "{\"test\":\"tag\"}"
+          "piiTags": "{\"test\": \"tag\"}"
       }
     }
   }
