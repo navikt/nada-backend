@@ -19,15 +19,9 @@ mutation {
 }
 
 RETURNS
-OPTION errors[0].extensions=IGNORE
-OPTION errors[0].locations=IGNORE
-OPTION errors[0].message=IGNORE
+OPTION errors=IGNORE
 
 ENDOPTS
 {
-    "errors": [
-        {
-            "message": "Cannot query field \"piiTags\" on type \"Dataset\"."
-        }
-    ]
+    "data": nil
 }
