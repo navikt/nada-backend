@@ -68,12 +68,8 @@ func (r *Repo) CreateDataset(ctx context.Context, ds models.NewDataset) (*models
 		return nil, fmt.Errorf("marshalling schema: %w", err)
 	}
 
-	if ds.BigQuery.PiiTags != nil {
-		tagsMap := make(map[string]string, 0)
-		err := json.Unmarshal([]byte(ptrToString(ds.BigQuery.PiiTags)), &tagsMap)
-		if err != nil {
-			return nil, fmt.Errorf("invalid pii tags, must be json map or null: %w", err)
-		}
+	if ds.BigQuery.PiiTags != nil && json.Valid([]byte(*ds.BigQuery.PiiTags)) {
+		return nil, fmt.Errorf("invalid pii tags, must be json map or null: %w", err)
 	}
 
 	_, err = querier.CreateBigqueryDatasource(ctx, gensql.CreateBigqueryDatasourceParams{
