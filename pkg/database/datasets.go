@@ -151,12 +151,8 @@ func (r *Repo) UpdateDataset(ctx context.Context, id uuid.UUID, new models.Updat
 		}
 	}
 
-	if new.PiiTags != nil {
-		tagsMap := make(map[string]string, 0)
-		err := json.Unmarshal([]byte(ptrToString(new.PiiTags)), &tagsMap)
-		if err != nil {
-			return nil, fmt.Errorf("invalid pii tags, must be json map or null: %w", err)
-		}
+	if new.PiiTags != nil && json.Valid([]byte(*new.PiiTags)) {
+		return nil, fmt.Errorf("invalid pii tags, must be json map or null: %w", err)
 	}
 
 	err = r.querier.UpdateBigqueryDatasourcePiiTags(ctx, gensql.UpdateBigqueryDatasourcePiiTagsParams{
