@@ -68,7 +68,7 @@ func (r *Repo) CreateDataset(ctx context.Context, ds models.NewDataset) (*models
 		return nil, fmt.Errorf("marshalling schema: %w", err)
 	}
 
-	if ds.BigQuery.PiiTags != nil && json.Valid([]byte(*ds.BigQuery.PiiTags)) {
+	if ds.BigQuery.PiiTags != nil && !json.Valid([]byte(*ds.BigQuery.PiiTags)) {
 		return nil, fmt.Errorf("invalid pii tags, must be json map or null: %w", err)
 	}
 
@@ -147,7 +147,7 @@ func (r *Repo) UpdateDataset(ctx context.Context, id uuid.UUID, new models.Updat
 		}
 	}
 
-	if new.PiiTags != nil && json.Valid([]byte(*new.PiiTags)) {
+	if new.PiiTags != nil && !json.Valid([]byte(*new.PiiTags)) {
 		return nil, fmt.Errorf("invalid pii tags, must be json map or null: %w", err)
 	}
 
