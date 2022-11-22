@@ -264,6 +264,7 @@ type DatasourceBigquery struct {
 	Expires      sql.NullTime
 	TableType    string
 	Description  sql.NullString
+	PiiTags      pqtype.NullRawMessage
 }
 
 type MetabaseMetadatum struct {

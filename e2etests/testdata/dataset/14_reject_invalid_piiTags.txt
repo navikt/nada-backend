@@ -7,7 +7,7 @@ mutation {
 			repo: "someotherrepo"
 			pii: sensitive
 			keywords: ["keyword1", "keyword2"]
-			piiTags: "{\"test\":\"tag\"}"
+			piiTags: "{\"test\":}"
 		}
 	) {
 		name
@@ -19,18 +19,9 @@ mutation {
 }
 
 RETURNS
+OPTION errors=IGNORE
 
+ENDOPTS
 {
-  "data": {
-    "updateDataset": {
-      "name": "Updated Name",
-      "description": "Updated description",
-      "keywords": [
-        "keyword1",
-        "keyword2"
-      ],
-      "pii": "sensitive",
-      "repo": "someotherrepo"
-    }
-  }
+    "data": null
 }

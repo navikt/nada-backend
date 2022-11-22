@@ -8,6 +8,13 @@
 		pii
 		keywords
         requesters
+    datasource {
+      __typename
+      ...on BigQuery {
+        piiTags
+      }
+    }
+
 	}
 }
 
@@ -23,7 +30,11 @@ RETURNS
       ],
       "pii": "sensitive",
       "repo": "someotherrepo",
-      "requesters": ["all-users@nav.no", "nada@nav.no"]
+      "requesters": ["all-users@nav.no", "nada@nav.no"],
+       "datasource": {
+          "__typename": "BigQuery",
+          "piiTags": "{\"test\": \"tag\"}"
+      }
     }
   }
 }

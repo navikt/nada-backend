@@ -68,6 +68,10 @@ func (r *Repo) CreateDataset(ctx context.Context, ds models.NewDataset) (*models
 		return nil, fmt.Errorf("marshalling schema: %w", err)
 	}
 
+	if ds.BigQuery.PiiTags != nil && !json.Valid([]byte(*ds.BigQuery.PiiTags)) {
+		return nil, fmt.Errorf("invalid pii tags, must be json map or null: %w", err)
+	}
+
 	_, err = querier.CreateBigqueryDatasource(ctx, gensql.CreateBigqueryDatasourceParams{
 		DatasetID:    created.ID,
 		ProjectID:    ds.BigQuery.ProjectID,
@@ -78,6 +82,8 @@ func (r *Repo) CreateDataset(ctx context.Context, ds models.NewDataset) (*models
 		Created:      ds.Metadata.Created,
 		Expires:      sql.NullTime{Time: ds.Metadata.Expires, Valid: !ds.Metadata.Expires.IsZero()},
 		TableType:    string(ds.Metadata.TableType),
+		PiiTags: pqtype.NullRawMessage{RawMessage: json.RawMessage([]byte(ptrToString(ds.BigQuery.PiiTags))),
+			Valid: len(ptrToString(ds.BigQuery.PiiTags)) > 4},
 	})
 	if err != nil {
 		if err := tx.Rollback(); err != nil {
@@ -141,6 +147,19 @@ func (r *Repo) UpdateDataset(ctx context.Context, id uuid.UUID, new models.Updat
 		}
 	}
 
+	if new.PiiTags != nil && !json.Valid([]byte(*new.PiiTags)) {
+		return nil, fmt.Errorf("invalid pii tags, must be json map or null: %w", err)
+	}
+
+	err = r.querier.UpdateBigqueryDatasourcePiiTags(ctx, gensql.UpdateBigqueryDatasourcePiiTagsParams{
+		DatasetID: id,
+		PiiTags: pqtype.NullRawMessage{RawMessage: json.RawMessage(ptrToString(new.PiiTags)),
+			Valid: len(ptrToString(new.PiiTags)) > 4},
+	})
+	if err != nil {
+		return nil, err
+	}
+
 	return datasetFromSQL(res), nil
 }
 
@@ -148,6 +167,11 @@ func (r *Repo) GetBigqueryDatasource(ctx context.Context, datasetID uuid.UUID) (
 	bq, err := r.querier.GetBigqueryDatasource(ctx, datasetID)
 	if err != nil {
 		return models.BigQuery{}, err
+	}
+
+	piiTags := "{}"
+	if bq.PiiTags.RawMessage != nil {
+		piiTags = string(bq.PiiTags.RawMessage)
 	}
 
 	return models.BigQuery{
@@ -160,10 +184,12 @@ func (r *Repo) GetBigqueryDatasource(ctx context.Context, datasetID uuid.UUID) (
 		Created:      bq.Created,
 		Expires:      nullTimeToPtr(bq.Expires),
 		Description:  bq.Description.String,
+		PiiTags:      &piiTags,
 	}, nil
 }
 
-func (r *Repo) UpdateBigqueryDatasource(ctx context.Context, id uuid.UUID, schema json.RawMessage, lastModified, expires time.Time, description string) error {
+func (r *Repo) UpdateBigqueryDatasource(ctx context.Context, id uuid.UUID, schema json.RawMessage,
+	lastModified, expires time.Time, description string) error {
 	err := r.querier.UpdateBigqueryDatasourceSchema(ctx, gensql.UpdateBigqueryDatasourceSchemaParams{
 		DatasetID: id,
 		Schema: pqtype.NullRawMessage{
@@ -195,6 +221,21 @@ func (r *Repo) GetDatasetMetadata(ctx context.Context, id uuid.UUID) ([]*models.
 	}
 
 	return schema, nil
+}
+
+func (r *Repo) GetDatasetPiiTags(ctx context.Context, id uuid.UUID) (map[string]string, error) {
+	ds, err := r.querier.GetBigqueryDatasource(ctx, id)
+	if err != nil {
+		return nil, fmt.Errorf("getting bigquery datasource from database: %w", err)
+	}
+
+	piiTags := make(map[string]string)
+	err = json.Unmarshal(ds.PiiTags.RawMessage, &piiTags)
+	if err != nil {
+		return nil, err
+	}
+
+	return piiTags, nil
 }
 
 func (r *Repo) GetDatasetsByMetabase(ctx context.Context, limit, offset int) ([]*models.Dataset, error) {

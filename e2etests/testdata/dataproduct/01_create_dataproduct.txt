@@ -8,7 +8,7 @@ mutation {
             datasets: [{
                 name: "NewDataset"
 			    pii: none
-			    bigquery: { projectID: "team-dev-1337", dataset: "dataset1", table: "table1" }
+			    bigquery: { projectID: "team-dev-1337", dataset: "dataset1", table: "table1", piiTags: "{\"test\":\"tag\"}" }
             }]
 		}
 	) {

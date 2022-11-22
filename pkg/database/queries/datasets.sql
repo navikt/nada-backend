@@ -95,7 +95,8 @@ INSERT INTO datasource_bigquery ("dataset_id",
                                  "last_modified",
                                  "created",
                                  "expires",
-                                 "table_type")
+                                 "table_type",
+                                 "pii_tags")
 VALUES (@dataset_id,
         @project_id,
         @dataset,
@@ -104,7 +105,8 @@ VALUES (@dataset_id,
         @last_modified,
         @created,
         @expires,
-        @table_type)
+        @table_type,
+        @pii_tags)
 RETURNING *;
 
 -- name: UpdateBigqueryDatasourceSchema :exec
@@ -113,6 +115,11 @@ SET "schema"        = @schema,
     "last_modified" = @last_modified,
     "expires"       = @expires,
     "description"   = @description
+WHERE dataset_id = @dataset_id;
+
+-- name: UpdateBigqueryDatasourcePiiTags :exec
+UPDATE datasource_bigquery
+SET "pii_tags"        = @pii_tags
 WHERE dataset_id = @dataset_id;
 
 -- name: GetDatasetRequesters :many

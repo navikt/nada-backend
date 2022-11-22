@@ -81,6 +81,8 @@ type BigQuery @goModel(model: "github.com/navikt/nada-backend/pkg/graph/models.B
     tableType: BigQueryType!
     "description is the description of the BigQuery table"
     description: String!
+    "piiTags is json string from the pii tags map"
+    piiTags: String
 }
 
 """
@@ -123,6 +125,8 @@ input NewBigQuery @goModel(model: "github.com/navikt/nada-backend/pkg/graph/mode
     dataset: String!
     "table is the name of the table"
     table: String!
+    "piiTags is json string from the pii tags map"
+    piiTags: String
 }
 
 """
@@ -189,6 +193,8 @@ input UpdateDataset @goModel(model: "github.com/navikt/nada-backend/pkg/graph/mo
     dataproductID: ID
     "anonymisation_description explains how the dataset was anonymised, should be null if `pii` isn't anonymised"
     anonymisation_description: String
+    "piiTags is json string from the pii tags map"
+    piiTags: String
 }
 
 """

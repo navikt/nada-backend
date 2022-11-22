@@ -7,7 +7,7 @@ mutation {
 			repo: "somerepo"
 			pii: none
 			keywords: ["keyword1", "otherkeyword"]
-			bigquery: { projectID: "team-dev-1337", dataset: "dataset1", table: "table1" }
+			bigquery: { projectID: "team-dev-1337", dataset: "dataset1", table: "table1"}
 			requesters: ["all-users@nav.no", "nada@nav.no"]
 		}
 	) {
