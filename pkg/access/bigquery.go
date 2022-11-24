@@ -88,6 +88,19 @@ func (b Bigquery) AddToAuthorizedViews(ctx context.Context, projectID, dataset, 
 		return fmt.Errorf("bigquery.NewClient: %v", err)
 	}
 	defer bqClient.Close()
+	ds := bqClient.Dataset(dataset)
+	m, err := ds.Metadata(ctx)
+	if err != nil {
+		return fmt.Errorf("ds.Metadata: %w", err)
+	}
+
+	for _, e := range m.Access {
+		if e.EntityType == bigquery.ViewEntity && e.View != nil &&
+			e.View.ProjectID == projectID && e.View.DatasetID == dataset && e.View.TableID == table {
+			return nil
+		}
+	}
+
 	newEntry := &bigquery.AccessEntry{
 		EntityType: bigquery.ViewEntity,
 		View: &bigquery.Table{
@@ -95,11 +108,6 @@ func (b Bigquery) AddToAuthorizedViews(ctx context.Context, projectID, dataset, 
 			DatasetID: dataset,
 			TableID:   table,
 		},
-	}
-	ds := bqClient.Dataset(dataset)
-	m, err := ds.Metadata(ctx)
-	if err != nil {
-		return fmt.Errorf("ds.Metadata: %w", err)
 	}
 
 	update := bigquery.DatasetMetadataToUpdate{
