@@ -95,6 +95,10 @@ func (b Bigquery) AddToAuthorizedViews(ctx context.Context, projectID, dataset, 
 	}
 
 	for _, e := range m.Access {
+		fmt.Println(e.EntityType, e.View.DatasetID, e.View.ProjectID, e.View.TableID)
+	}
+
+	for _, e := range m.Access {
 		if e.EntityType == bigquery.ViewEntity && e.View != nil &&
 			e.View.ProjectID == projectID && e.View.DatasetID == dataset && e.View.TableID == table {
 			return nil
