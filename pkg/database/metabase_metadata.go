@@ -74,8 +74,30 @@ func (r *Repo) RestoreMetabaseMetadata(ctx context.Context, dataproductID uuid.U
 	return r.querier.RestoreMetabaseMetadata(ctx, dataproductID)
 }
 
-func (r *Repo) DeleteMetabaseMetadata(ctx context.Context, dataproductID uuid.UUID) error {
-	return r.querier.DeleteMetabaseMetadata(ctx, dataproductID)
+func (r *Repo) DeleteMetabaseMetadata(ctx context.Context, datasetID uuid.UUID) error {
+	mapping, err := r.querier.GetDatasetMappings(ctx, datasetID)
+	if err != nil {
+		return err
+	}
+	tx, err := r.db.Begin()
+	if err != nil {
+		return err
+	}
+	querier := r.querier.WithTx(tx)
+	if err := querier.DeleteMetabaseMetadata(ctx, datasetID); err != nil {
+		return err
+	}
+	err = querier.MapDataset(ctx, gensql.MapDatasetParams{
+		DatasetID: datasetID,
+		Services:  mapping.Services,
+	})
+	if err != nil {
+		if err := tx.Rollback(); err != nil {
+			r.log.WithError(err).Error("Rolling back dataset and datasource_bigquery transaction")
+		}
+		return err
+	}
+	return nil
 }
 
 func mbMetadataFromSQL(meta gensql.MetabaseMetadatum) *models.MetabaseMetadata {
@@ -88,4 +110,13 @@ func mbMetadataFromSQL(meta gensql.MetabaseMetadatum) *models.MetabaseMetadata {
 		SAEmail:              meta.SaEmail,
 		DeletedAt:            nullTimeToPtr(meta.DeletedAt),
 	}
+}
+
+func removeMetabaseMapping(mapping gensql.ThirdPartyMapping) gensql.ThirdPartyMapping {
+	for i, m := range mapping.Services {
+		if m == "metabase" {
+			mapping.Services = append(mapping.Services[:i], mapping.Services[i+1:]...)
+		}
+	}
+	return mapping
 }

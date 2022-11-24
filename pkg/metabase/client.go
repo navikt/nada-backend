@@ -54,15 +54,7 @@ func (c *Client) request(ctx context.Context, method, path string, body interfac
 		}
 	}
 
-	req, err := http.NewRequestWithContext(ctx, method, c.url+path, buf)
-	if err != nil {
-		return fmt.Errorf("%v %v: %w", method, path, err)
-	}
-
-	req.Header.Set("X-Metabase-Session", c.sessionID)
-	req.Header.Set("Content-Type", "application/json")
-
-	res, err := c.c.Do(req)
+	res, err := c.performRequest(ctx, method, path, buf)
 	if err != nil {
 		return fmt.Errorf("%v %v: %w", method, path, err)
 	}
@@ -84,6 +76,18 @@ func (c *Client) request(ctx context.Context, method, path string, body interfac
 	}
 
 	return nil
+}
+
+func (c *Client) performRequest(ctx context.Context, method, path string, buffer io.ReadWriter) (*http.Response, error) {
+	req, err := http.NewRequestWithContext(ctx, method, c.url+path, buffer)
+	if err != nil {
+		return nil, err
+	}
+
+	req.Header.Set("X-Metabase-Session", c.sessionID)
+	req.Header.Set("Content-Type", "application/json")
+
+	return c.c.Do(req)
 }
 
 func (c *Client) ensureValidSession(ctx context.Context) error {
@@ -259,7 +263,18 @@ func (c *Client) Tables(ctx context.Context, dbID int) ([]Table, error) {
 	return ret, nil
 }
 
-func (c *Client) DeleteDatabase(ctx context.Context, id int) error {
+func (c *Client) deleteDatabase(ctx context.Context, id int) error {
+	if err := c.ensureValidSession(ctx); err != nil {
+		return err
+	}
+	var buf io.ReadWriter
+	res, err := c.performRequest(ctx, http.MethodGet, fmt.Sprintf("/database/%v", id), buf)
+	if err != nil {
+		return fmt.Errorf("%v %v: non 2xx status code, got: %v", http.MethodGet, fmt.Sprintf("/database/%v", id), res.StatusCode)
+	}
+	if res.StatusCode == 404 {
+		return nil
+	}
 	return c.request(ctx, http.MethodDelete, fmt.Sprintf("/database/%v", id), nil, nil)
 }
 

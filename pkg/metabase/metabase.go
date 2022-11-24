@@ -18,6 +18,7 @@ import (
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/sirupsen/logrus"
 	"google.golang.org/api/cloudresourcemanager/v1"
+	"google.golang.org/api/googleapi"
 	iam "google.golang.org/api/iam/v1"
 )
 
@@ -563,6 +564,57 @@ func (m *Metabase) softDelete(ctx context.Context, datasetID uuid.UUID) error {
 	return nil
 }
 
+func (m *Metabase) deleteRestricted(ctx context.Context, datasetID uuid.UUID) error {
+	mbMeta, er := m.repo.GetMetabaseMetadata(ctx, datasetID, false)
+	if er != nil {
+		return er
+	}
+
+	ds, err := m.repo.GetBigqueryDatasource(ctx, datasetID)
+	if err != nil {
+		return err
+	}
+
+	err = m.accessMgr.Revoke(ctx, ds.ProjectID, ds.Dataset, ds.Table, "serviceAccount:"+mbMeta.SAEmail)
+	if err != nil {
+		m.log.Error("Unable to revoke access")
+		return err
+	}
+
+	if err := m.deleteServiceAccount(mbMeta.SAEmail); err != nil {
+		m.log.Errorf("Unable to delete service account for restricted database %v", mbMeta.DatabaseID)
+		return err
+	}
+
+	if err := m.client.DeletePermissionGroup(ctx, mbMeta.PermissionGroupID); err != nil {
+		m.log.Errorf("Unable to delete permission group %v", mbMeta.PermissionGroupID)
+		return err
+	}
+
+	if err := m.client.DeletePermissionGroup(ctx, mbMeta.AADPermissionGroupID); err != nil {
+		m.log.Errorf("Unable to delete AAD permission group %v", mbMeta.AADPermissionGroupID)
+		return err
+	}
+
+	if err := m.client.ArchiveCollection(ctx, mbMeta.CollectionID); err != nil {
+		m.log.Errorf("Unable to archive collection %v", mbMeta.CollectionID)
+		return err
+	}
+
+	if err := m.client.deleteDatabase(ctx, mbMeta.DatabaseID); err != nil {
+		m.log.Errorf("Unable to delete restricted database %v", mbMeta.DatabaseID)
+		return err
+	}
+
+	if err := m.repo.DeleteMetabaseMetadata(ctx, datasetID); err != nil {
+		m.log.Error("Unable to delete metabase metadata")
+		return err
+	}
+
+	m.log.Infof("Deleted restricted Metabase database: %v", mbMeta.DatabaseID)
+	return nil
+}
+
 func (m *Metabase) HideOtherTables(ctx context.Context, dbID int, table string) error {
 	tables, err := m.client.Tables(ctx, dbID)
 	if err != nil {
@@ -635,7 +687,17 @@ func (m *Metabase) deleteServiceAccount(saEmail string) error {
 	_, err := m.iamService.Projects.ServiceAccounts.
 		Delete("projects/" + os.Getenv("GCP_TEAM_PROJECT_ID") + "/serviceAccounts/" + saEmail).
 		Do()
-	return err
+	if err != nil {
+		apiError, ok := err.(*googleapi.Error)
+		if ok {
+			if apiError.Code == 404 {
+				m.log.Infof("delete iam service account: service account %v does not exist", saEmail)
+				return nil
+			}
+		}
+		return err
+	}
+	return nil
 }
 
 func (m *Metabase) waitForDatabase(ctx context.Context, dbID int, tableName string) {
