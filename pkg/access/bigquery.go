@@ -94,10 +94,12 @@ func (b Bigquery) AddToAuthorizedViews(ctx context.Context, projectID, dataset, 
 		return fmt.Errorf("ds.Metadata: %w", err)
 	}
 
-	for _, e := range m.Access {
-		if e.EntityType == bigquery.ViewEntity && e.View != nil &&
-			e.View.ProjectID == projectID && e.View.DatasetID == dataset && e.View.TableID == table {
-			return nil
+	if m.Access != nil {
+		for _, e := range m.Access {
+			if e != nil && e.EntityType == bigquery.ViewEntity && e.View != nil &&
+				e.View.ProjectID == projectID && e.View.DatasetID == dataset && e.View.TableID == table {
+				return nil
+			}
 		}
 	}
 
