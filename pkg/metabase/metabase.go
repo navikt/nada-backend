@@ -63,8 +63,8 @@ func (m *Metabase) Run(ctx context.Context, frequency time.Duration) {
 	m.events.ListenForDatasetGrant(m.grantMetabaseAccess)
 	m.events.ListenForDatasetRevoke(m.revokeMetabaseAccess)
 	m.events.ListenForDatasetAddMetabaseMapping(m.addDatasetMapping)
-	m.events.ListenForDatasetRemoveMetabaseMapping(m.removeDatasetMapping)
-	m.events.ListenForDatasetDelete(m.removeDatasetMapping)
+	m.events.ListenForDatasetRemoveMetabaseMapping(m.deleteRestricted)
+	m.events.ListenForDatasetDelete(m.deleteRestricted)
 
 	ticker := time.NewTicker(frequency)
 	defer ticker.Stop()
@@ -239,20 +239,6 @@ func (m *Metabase) grantAccessesOnCreation(ctx context.Context, dsID uuid.UUID) 
 	}
 
 	return nil
-}
-
-func (m *Metabase) removeDatasetMapping(ctx context.Context, dsID uuid.UUID) {
-	log := m.log.WithField("datasetID", dsID)
-
-	if err := m.revokeAccessesOnSoftDelete(ctx, dsID); err != nil {
-		log.WithError(err).Error("revoking accesses on database soft delete")
-		return
-	}
-
-	if err := m.softDelete(ctx, dsID); err != nil {
-		log.WithError(err).Error("delete restricted database")
-		return
-	}
 }
 
 func (m *Metabase) revokeAccessesOnSoftDelete(ctx context.Context, dsID uuid.UUID) error {
@@ -564,55 +550,57 @@ func (m *Metabase) softDelete(ctx context.Context, datasetID uuid.UUID) error {
 	return nil
 }
 
-func (m *Metabase) deleteRestricted(ctx context.Context, datasetID uuid.UUID) error {
-	mbMeta, er := m.repo.GetMetabaseMetadata(ctx, datasetID, false)
-	if er != nil {
-		return er
+func (m *Metabase) deleteRestricted(ctx context.Context, datasetID uuid.UUID) {
+	log := m.log.WithField("datasetID", datasetID)
+	mbMeta, err := m.repo.GetMetabaseMetadata(ctx, datasetID, false)
+	if err != nil {
+		log.Error("Get metabase metadata")
+		return
 	}
 
 	ds, err := m.repo.GetBigqueryDatasource(ctx, datasetID)
 	if err != nil {
-		return err
+		log.Error("Get bigquery datasource")
+		return
 	}
 
 	err = m.accessMgr.Revoke(ctx, ds.ProjectID, ds.Dataset, ds.Table, "serviceAccount:"+mbMeta.SAEmail)
 	if err != nil {
-		m.log.Error("Unable to revoke access")
-		return err
+		log.Error("Unable to revoke access")
+		return
 	}
 
 	if err := m.deleteServiceAccount(mbMeta.SAEmail); err != nil {
-		m.log.Errorf("Unable to delete service account for restricted database %v", mbMeta.DatabaseID)
-		return err
+		log.Errorf("Unable to delete service account for restricted database %v", mbMeta.DatabaseID)
+		return
 	}
 
 	if err := m.client.DeletePermissionGroup(ctx, mbMeta.PermissionGroupID); err != nil {
-		m.log.Errorf("Unable to delete permission group %v", mbMeta.PermissionGroupID)
-		return err
+		log.Errorf("Unable to delete permission group %v", mbMeta.PermissionGroupID)
+		return
 	}
 
 	if err := m.client.DeletePermissionGroup(ctx, mbMeta.AADPermissionGroupID); err != nil {
-		m.log.Errorf("Unable to delete AAD permission group %v", mbMeta.AADPermissionGroupID)
-		return err
+		log.Errorf("Unable to delete AAD permission group %v", mbMeta.AADPermissionGroupID)
+		return
 	}
 
 	if err := m.client.ArchiveCollection(ctx, mbMeta.CollectionID); err != nil {
-		m.log.Errorf("Unable to archive collection %v", mbMeta.CollectionID)
-		return err
+		log.Errorf("Unable to archive collection %v", mbMeta.CollectionID)
+		return
 	}
 
 	if err := m.client.deleteDatabase(ctx, mbMeta.DatabaseID); err != nil {
-		m.log.Errorf("Unable to delete restricted database %v", mbMeta.DatabaseID)
-		return err
+		log.Errorf("Unable to delete restricted database %v", mbMeta.DatabaseID)
+		return
 	}
 
 	if err := m.repo.DeleteMetabaseMetadata(ctx, datasetID); err != nil {
-		m.log.Error("Unable to delete metabase metadata")
-		return err
+		log.Error("Unable to delete metabase metadata")
+		return
 	}
 
-	m.log.Infof("Deleted restricted Metabase database: %v", mbMeta.DatabaseID)
-	return nil
+	log.Infof("Deleted restricted Metabase database: %v", mbMeta.DatabaseID)
 }
 
 func (m *Metabase) HideOtherTables(ctx context.Context, dbID int, table string) error {
