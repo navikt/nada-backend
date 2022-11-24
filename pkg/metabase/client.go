@@ -270,11 +270,12 @@ func (c *Client) deleteDatabase(ctx context.Context, id int) error {
 	var buf io.ReadWriter
 	res, err := c.performRequest(ctx, http.MethodGet, fmt.Sprintf("/database/%v", id), buf)
 	if err != nil {
+		if res.StatusCode == 404 {
+			return nil
+		}
 		return fmt.Errorf("%v %v: non 2xx status code, got: %v", http.MethodGet, fmt.Sprintf("/database/%v", id), res.StatusCode)
 	}
-	if res.StatusCode == 404 {
-		return nil
-	}
+
 	return c.request(ctx, http.MethodDelete, fmt.Sprintf("/database/%v", id), nil, nil)
 }
 
