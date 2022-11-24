@@ -79,10 +79,12 @@ func (r *Repo) DeleteMetabaseMetadata(ctx context.Context, datasetID uuid.UUID) 
 	if err != nil {
 		return err
 	}
+
 	tx, err := r.db.Begin()
 	if err != nil {
 		return err
 	}
+
 	querier := r.querier.WithTx(tx)
 	if err := querier.DeleteMetabaseMetadata(ctx, datasetID); err != nil {
 		return err
@@ -93,8 +95,12 @@ func (r *Repo) DeleteMetabaseMetadata(ctx context.Context, datasetID uuid.UUID) 
 	})
 	if err != nil {
 		if err := tx.Rollback(); err != nil {
-			r.log.WithError(err).Error("Rolling back dataset and datasource_bigquery transaction")
+			r.log.WithError(err).Error("Rolling back cleanup metabase metadata transaction")
 		}
+		return err
+	}
+
+	if err := tx.Commit(); err != nil {
 		return err
 	}
 	return nil
