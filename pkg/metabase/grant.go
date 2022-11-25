@@ -68,6 +68,10 @@ func (m *Metabase) addAllUsersDataset(ctx context.Context, dsID uuid.UUID) {
 			return
 		}
 
+		if err := m.client.DeletePermissionGroup(ctx, mbMetadata.PermissionGroupID); err != nil {
+			log.WithError(err).Errorf("removing old permission group %v when opening database", mbMetadata.PermissionGroupID)
+		}
+
 		if err := m.repo.SetPermissionGroupMetabaseMetadata(ctx, mbMetadata.DatasetID, 0); err != nil {
 			log.WithError(err).Error("setting permission group to all users")
 			return

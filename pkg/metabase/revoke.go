@@ -239,5 +239,5 @@ func (m *Metabase) deleteServiceAccount(saEmail string) error {
 }
 
 func isRestrictedDatabase(mbMeta *models.MetabaseMetadata) bool {
-	return mbMeta.PermissionGroupID != 0
+	return mbMeta.CollectionID != 0
 }
