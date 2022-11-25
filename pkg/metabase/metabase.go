@@ -2,6 +2,10 @@ package metabase
 
 import (
 	"context"
+	"encoding/json"
+	"fmt"
+	"io"
+	"net/http"
 	"strings"
 	"time"
 
@@ -94,10 +98,26 @@ func (m *Metabase) run(ctx context.Context) {
 }
 
 func (m *Metabase) HideOtherTables(ctx context.Context, dbID int, table string) error {
-	tables, err := m.client.Tables(ctx, dbID)
+	if err := m.client.ensureValidSession(ctx); err != nil {
+		return err
+	}
+
+	var buf io.ReadWriter
+	res, err := m.client.performRequest(ctx, http.MethodGet, fmt.Sprintf("/database/%v/metadata", dbID), buf)
+	if res.StatusCode == 404 {
+		// suppress error when database does not exist
+		return nil
+	}
 	if err != nil {
 		return err
 	}
+	defer res.Body.Close()
+
+	var tables []Table
+	if err := json.NewDecoder(res.Body).Decode(&tables); err != nil {
+		return err
+	}
+
 	other := []int{}
 	for _, t := range tables {
 		if t.Name != table {
