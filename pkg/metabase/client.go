@@ -425,9 +425,14 @@ func (c *Client) OpenAccessToDatabase(ctx context.Context, databaseID int) error
 		Native  string `json:"native,omitempty"`
 		Schemas string `json:"schemas,omitempty"`
 	}
+
+	type permissionGroup struct {
+		Data permissions `json:"data,omitempty"`
+	}
+
 	var permissionGraph struct {
-		Groups   map[string]map[string]permissions `json:"groups"`
-		Revision int                               `json:"revision"`
+		Groups   map[string]map[string]permissionGroup `json:"groups"`
+		Revision int                                   `json:"revision"`
 	}
 
 	err := c.request(ctx, http.MethodGet, "/permissions/graph", nil, &permissionGraph)
@@ -440,7 +445,9 @@ func (c *Client) OpenAccessToDatabase(ctx context.Context, databaseID int) error
 	for gid, permission := range permissionGraph.Groups {
 		if gid == "1" {
 			// All users group
-			permission[dbSID] = permissions{Native: "write", Schemas: "all"}
+			permission[dbSID] = permissionGroup{
+				Data: permissions{Native: "write", Schemas: "all"},
+			}
 			break
 		}
 	}
