@@ -6,12 +6,13 @@ import (
 	"strings"
 
 	"github.com/google/uuid"
+	"github.com/navikt/nada-backend/pkg/graph/models"
 	"google.golang.org/api/googleapi"
 )
 
 func (m *Metabase) revokeMetabaseAccess(ctx context.Context, dsID uuid.UUID, subject string) {
 	if subject == "group:all-users@nav.no" {
-		m.deleteAllUsersDataset(ctx, dsID)
+		m.softDeleteDatabase(ctx, dsID)
 	} else if strings.HasPrefix(subject, "group:") {
 		m.removeGroupAccess(ctx, dsID, subject)
 	} else {
@@ -19,13 +20,18 @@ func (m *Metabase) revokeMetabaseAccess(ctx context.Context, dsID uuid.UUID, sub
 	}
 }
 
-func (m *Metabase) deleteAllUsersDataset(ctx context.Context, dsID uuid.UUID) {
-	log := m.log.WithField("datasetID", dsID)
+func (m *Metabase) deleteDatabase(ctx context.Context, dsID uuid.UUID) {
+	mbMeta, err := m.repo.GetMetabaseMetadata(ctx, dsID, true)
+	if err != nil {
+		m.log.WithError(err).Error("getting metabase metadata")
+	}
 
-	if err := m.softDelete(ctx, dsID); err != nil {
-		log.WithError(err).Error("softDelete all users database")
+	if isRestrictedDatabase(mbMeta) {
+		m.deleteRestrictedDatabase(ctx, dsID)
 		return
 	}
+
+	m.deleteAllUsersDatabase(ctx, dsID)
 }
 
 func (m *Metabase) revokeAccessesOnSoftDelete(ctx context.Context, dsID uuid.UUID) error {
@@ -114,7 +120,8 @@ func (m *Metabase) removeMetabaseGroupMember(ctx context.Context, dsID uuid.UUID
 	}
 }
 
-func (m *Metabase) softDelete(ctx context.Context, datasetID uuid.UUID) error {
+func (m *Metabase) softDeleteDatabase(ctx context.Context, datasetID uuid.UUID) error {
+	log := m.log.WithField("datasetID", datasetID)
 	mbMeta, er := m.repo.GetMetabaseMetadata(ctx, datasetID, false)
 	if er != nil {
 		return er
@@ -127,20 +134,41 @@ func (m *Metabase) softDelete(ctx context.Context, datasetID uuid.UUID) error {
 
 	err = m.accessMgr.Revoke(ctx, ds.ProjectID, ds.Dataset, ds.Table, "serviceAccount:"+mbMeta.SAEmail)
 	if err != nil {
-		m.log.Error("Unable to revoke access")
+		log.Error("Unable to revoke access")
 		return err
 	}
 
 	if err := m.repo.SoftDeleteMetabaseMetadata(ctx, datasetID); err != nil {
-		m.log.Error("Unable to soft delete metabase metadata")
+		log.Error("Unable to soft delete metabase metadata")
 		return err
 	}
 
-	m.log.Infof("Soft deleted Metabase database: %v", mbMeta.DatabaseID)
+	log.Infof("Soft deleted Metabase database: %v", mbMeta.DatabaseID)
 	return nil
 }
 
-func (m *Metabase) deleteRestricted(ctx context.Context, datasetID uuid.UUID) {
+func (m *Metabase) deleteAllUsersDatabase(ctx context.Context, datasetID uuid.UUID) {
+	log := m.log.WithField("datasetID", datasetID)
+
+	mbMeta, err := m.repo.GetMetabaseMetadata(ctx, datasetID, false)
+	if err != nil {
+		log.Error("Get metabase metadata")
+		return
+	}
+
+	if err := m.client.deleteDatabase(ctx, mbMeta.DatabaseID); err != nil {
+		log.Errorf("Unable to delete all-users database %v", mbMeta.DatabaseID)
+		return
+	}
+
+	if err := m.repo.DeleteMetabaseMetadata(ctx, mbMeta.DatasetID); err != nil {
+		log.Errorf("Unable to delete all-users metabase metadata for database %v", mbMeta.DatabaseID)
+	}
+
+	log.Info("Deleted all-users database")
+}
+
+func (m *Metabase) deleteRestrictedDatabase(ctx context.Context, datasetID uuid.UUID) {
 	log := m.log.WithField("datasetID", datasetID)
 	mbMeta, err := m.repo.GetMetabaseMetadata(ctx, datasetID, false)
 	if err != nil {
@@ -185,7 +213,7 @@ func (m *Metabase) deleteRestricted(ctx context.Context, datasetID uuid.UUID) {
 		return
 	}
 
-	if err := m.repo.DeleteMetabaseMetadata(ctx, datasetID); err != nil {
+	if err := m.repo.DeleteRestrictedMetabaseMetadata(ctx, datasetID); err != nil {
 		log.Error("Unable to delete metabase metadata")
 		return
 	}
@@ -208,4 +236,8 @@ func (m *Metabase) deleteServiceAccount(saEmail string) error {
 		return err
 	}
 	return nil
+}
+
+func isRestrictedDatabase(mbMeta *models.MetabaseMetadata) bool {
+	return mbMeta.PermissionGroupID != 0
 }

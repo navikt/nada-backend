@@ -58,8 +58,8 @@ func (m *Metabase) Run(ctx context.Context, frequency time.Duration) {
 	m.events.ListenForDatasetGrant(m.grantMetabaseAccess)
 	m.events.ListenForDatasetRevoke(m.revokeMetabaseAccess)
 	m.events.ListenForDatasetAddMetabaseMapping(m.addDatasetMapping)
-	m.events.ListenForDatasetRemoveMetabaseMapping(m.deleteRestricted)
-	m.events.ListenForDatasetDelete(m.deleteRestricted)
+	m.events.ListenForDatasetRemoveMetabaseMapping(m.deleteDatabase)
+	m.events.ListenForDatasetDelete(m.deleteDatabase)
 
 	ticker := time.NewTicker(frequency)
 	defer ticker.Stop()

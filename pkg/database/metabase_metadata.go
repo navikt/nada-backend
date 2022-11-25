@@ -59,10 +59,6 @@ func (r *Repo) GetAllMetabaseMetadata(ctx context.Context) ([]*models.MetabaseMe
 	return mbMetas, nil
 }
 
-func (r *Repo) SoftDeleteMetabaseMetadata(ctx context.Context, dataproductID uuid.UUID) error {
-	return r.querier.SoftDeleteMetabaseMetadata(ctx, dataproductID)
-}
-
 func (r *Repo) SetPermissionGroupMetabaseMetadata(ctx context.Context, datasetID uuid.UUID, groupID int) error {
 	return r.querier.SetPermissionGroupMetabaseMetadata(ctx, gensql.SetPermissionGroupMetabaseMetadataParams{
 		ID:        sql.NullInt32{Valid: true, Int32: int32(groupID)},
@@ -70,11 +66,19 @@ func (r *Repo) SetPermissionGroupMetabaseMetadata(ctx context.Context, datasetID
 	})
 }
 
-func (r *Repo) RestoreMetabaseMetadata(ctx context.Context, dataproductID uuid.UUID) error {
-	return r.querier.RestoreMetabaseMetadata(ctx, dataproductID)
+func (r *Repo) SoftDeleteMetabaseMetadata(ctx context.Context, datasetID uuid.UUID) error {
+	return r.querier.SoftDeleteMetabaseMetadata(ctx, datasetID)
+}
+
+func (r *Repo) RestoreMetabaseMetadata(ctx context.Context, datasetID uuid.UUID) error {
+	return r.querier.RestoreMetabaseMetadata(ctx, datasetID)
 }
 
 func (r *Repo) DeleteMetabaseMetadata(ctx context.Context, datasetID uuid.UUID) error {
+	return r.querier.DeleteMetabaseMetadata(ctx, datasetID)
+}
+
+func (r *Repo) DeleteRestrictedMetabaseMetadata(ctx context.Context, datasetID uuid.UUID) error {
 	mapping, err := r.querier.GetDatasetMappings(ctx, datasetID)
 	if err != nil {
 		return err
