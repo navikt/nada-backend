@@ -113,13 +113,15 @@ func (m *Metabase) HideOtherTables(ctx context.Context, dbID int, table string) 
 	}
 	defer res.Body.Close()
 
-	var tables []Table
-	if err := json.NewDecoder(res.Body).Decode(&tables); err != nil {
+	var v struct {
+		Tables []Table `json:"tables"`
+	}
+	if err := json.NewDecoder(res.Body).Decode(&v); err != nil {
 		return err
 	}
 
 	other := []int{}
-	for _, t := range tables {
+	for _, t := range v.Tables {
 		if t.Name != table {
 			other = append(other, t.ID)
 		}
