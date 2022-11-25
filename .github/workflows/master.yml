@@ -67,6 +67,7 @@ jobs:
         push: true
         tags: ${{ env.image_prefix }}:latest, ${{ env.IMAGE }}
     - name: Deploy to dev-gcp
+      if: github.ref == 'refs/heads/main'
       uses: nais/deploy/actions/deploy@master
       env:
         APIKEY: ${{ secrets.NAIS_DEPLOY_APIKEY }}
