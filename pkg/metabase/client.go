@@ -183,6 +183,16 @@ type Details struct {
 }
 
 func (c *Client) CreateDatabase(ctx context.Context, team, name, saJSON, saEmail string, ds *models.BigQuery) (int, error) {
+	dbs, err := c.Databases(ctx)
+	if err != nil {
+		return 0, err
+	}
+
+	if dbID, exists := dbExists(dbs, ds.DatasetID.String()); exists {
+		fmt.Println("already exists")
+		return dbID, nil
+	}
+
 	db := NewDatabase{
 		Name: strings.Split(team, "@")[0] + ": " + name,
 		Details: Details{
@@ -199,7 +209,10 @@ func (c *Client) CreateDatabase(ctx context.Context, team, name, saJSON, saEmail
 	var v struct {
 		ID int `json:"id"`
 	}
-	err := c.request(ctx, http.MethodPost, "/database", db, &v)
+	err = c.request(ctx, http.MethodPost, "/database", db, &v)
+	if err != nil {
+		return 0, err
+	}
 
 	return v.ID, err
 }
@@ -547,4 +560,14 @@ func containsGroup(groups []string, group string) bool {
 	}
 
 	return false
+}
+
+func dbExists(dbs []Database, nadaID string) (int, bool) {
+	for _, db := range dbs {
+		if db.NadaID == nadaID {
+			return db.ID, true
+		}
+	}
+
+	return 0, false
 }
