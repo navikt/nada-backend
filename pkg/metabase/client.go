@@ -189,7 +189,6 @@ func (c *Client) CreateDatabase(ctx context.Context, team, name, saJSON, saEmail
 	}
 
 	if dbID, exists := dbExists(dbs, ds.DatasetID.String()); exists {
-		fmt.Println("already exists")
 		return dbID, nil
 	}
 
