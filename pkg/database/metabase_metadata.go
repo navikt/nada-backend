@@ -121,12 +121,3 @@ func mbMetadataFromSQL(meta gensql.MetabaseMetadatum) *models.MetabaseMetadata {
 		DeletedAt:            nullTimeToPtr(meta.DeletedAt),
 	}
 }
-
-func removeMetabaseMapping(mapping gensql.ThirdPartyMapping) gensql.ThirdPartyMapping {
-	for i, m := range mapping.Services {
-		if m == "metabase" {
-			mapping.Services = append(mapping.Services[:i], mapping.Services[i+1:]...)
-		}
-	}
-	return mapping
-}
