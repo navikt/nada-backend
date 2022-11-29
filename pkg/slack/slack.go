@@ -50,3 +50,7 @@ func (s SlackClient) NewDataproduct(dp *models.Dataproduct) error {
 	}
 	return nil
 }
+
+func (s SlackClient) NewAccessRequest(contact string, ar *models.AccessRequest) error {
+	return nil
+}

@@ -42,6 +42,7 @@ type Teamkatalogen interface {
 
 type Slack interface {
 	NewDataproduct(dp *models.Dataproduct) error
+	NewAccessRequest(contact string, ar *models.AccessRequest) error
 }
 
 type Resolver struct {

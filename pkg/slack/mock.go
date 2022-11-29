@@ -19,3 +19,8 @@ func (m MockSlackClient) NewDataproduct(dp *models.Dataproduct) error {
 	m.log.Info("NewDataProduct")
 	return nil
 }
+
+func (m MockSlackClient) NewAccessRequest(contact string, ar *models.AccessRequest) error {
+	m.log.Info("New AccessRequest send to " + contact)
+	return nil
+}
