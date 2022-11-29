@@ -87,7 +87,7 @@ func (m *Metabase) addDatasetMapping(ctx context.Context, dsID uuid.UUID) {
 	if errors.Is(err, sql.ErrNoRows) {
 		ds, err := m.repo.GetDataset(ctx, dsID)
 		if err != nil {
-			log.WithError(err).Error("getting dataproduct")
+			log.WithError(err).Error("getting dataset")
 			return
 		}
 
@@ -95,13 +95,6 @@ func (m *Metabase) addDatasetMapping(ctx context.Context, dsID uuid.UUID) {
 			log.WithError(err).Error("create restricted database")
 			return
 		}
-
-		if err := m.grantAccessesOnCreation(ctx, dsID); err != nil {
-			log.WithError(err).Error("granting accesses after database creation")
-			return
-		}
-
-		return
 	} else if err != nil {
 		log.WithError(err).Error("get metabase metadata")
 		return
@@ -112,17 +105,15 @@ func (m *Metabase) addDatasetMapping(ctx context.Context, dsID uuid.UUID) {
 		return
 	}
 
-	log.Info("database already exists in metabase")
 	if mbMeta.DeletedAt != nil {
 		log.Info("restoring db")
 		if err := m.restore(ctx, dsID, mbMeta); err != nil {
 			log.WithError(err).Error("restoring db")
 		}
+	}
 
-		if err := m.grantAccessesOnCreation(ctx, dsID); err != nil {
-			log.WithError(err).Error("granting accesses after database creation")
-			return
-		}
+	if err := m.grantAccessesOnCreation(ctx, dsID); err != nil {
+		log.WithError(err).Error("granting accesses after database creation")
 		return
 	}
 }
