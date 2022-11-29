@@ -113,7 +113,7 @@ func (r *datasetResolver) Services(ctx context.Context, obj *models.Dataset) (*m
 
 // Mappings is the resolver for the mappings field.
 func (r *datasetResolver) Mappings(ctx context.Context, obj *models.Dataset) ([]models.MappingService, error) {
-	return r.repo.GetDataproductMappings(ctx, obj.ID)
+	return r.repo.GetDatasetMappings(ctx, obj.ID)
 }
 
 // Requesters is the resolver for the requesters field.
@@ -284,5 +284,7 @@ func (r *Resolver) BigQuery() generated.BigQueryResolver { return &bigQueryResol
 // Dataset returns generated.DatasetResolver implementation.
 func (r *Resolver) Dataset() generated.DatasetResolver { return &datasetResolver{r} }
 
-type bigQueryResolver struct{ *Resolver }
-type datasetResolver struct{ *Resolver }
+type (
+	bigQueryResolver struct{ *Resolver }
+	datasetResolver  struct{ *Resolver }
+)

@@ -10,8 +10,8 @@ import (
 	"github.com/navikt/nada-backend/pkg/graph/models"
 )
 
-func (r *Repo) GetDataproductMappings(ctx context.Context, dataproductID uuid.UUID) ([]models.MappingService, error) {
-	tpm, err := r.querier.GetDatasetMappings(ctx, dataproductID)
+func (r *Repo) GetDatasetMappings(ctx context.Context, datasetID uuid.UUID) ([]models.MappingService, error) {
+	tpm, err := r.querier.GetDatasetMappings(ctx, datasetID)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return []models.MappingService{}, nil

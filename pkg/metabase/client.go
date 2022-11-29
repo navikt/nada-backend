@@ -54,15 +54,7 @@ func (c *Client) request(ctx context.Context, method, path string, body interfac
 		}
 	}
 
-	req, err := http.NewRequestWithContext(ctx, method, c.url+path, buf)
-	if err != nil {
-		return fmt.Errorf("%v %v: %w", method, path, err)
-	}
-
-	req.Header.Set("X-Metabase-Session", c.sessionID)
-	req.Header.Set("Content-Type", "application/json")
-
-	res, err := c.c.Do(req)
+	res, err := c.performRequest(ctx, method, path, buf)
 	if err != nil {
 		return fmt.Errorf("%v %v: %w", method, path, err)
 	}
@@ -84,6 +76,18 @@ func (c *Client) request(ctx context.Context, method, path string, body interfac
 	}
 
 	return nil
+}
+
+func (c *Client) performRequest(ctx context.Context, method, path string, buffer io.ReadWriter) (*http.Response, error) {
+	req, err := http.NewRequestWithContext(ctx, method, c.url+path, buffer)
+	if err != nil {
+		return nil, err
+	}
+
+	req.Header.Set("X-Metabase-Session", c.sessionID)
+	req.Header.Set("Content-Type", "application/json")
+
+	return c.c.Do(req)
 }
 
 func (c *Client) ensureValidSession(ctx context.Context) error {
@@ -179,6 +183,15 @@ type Details struct {
 }
 
 func (c *Client) CreateDatabase(ctx context.Context, team, name, saJSON, saEmail string, ds *models.BigQuery) (int, error) {
+	dbs, err := c.Databases(ctx)
+	if err != nil {
+		return 0, err
+	}
+
+	if dbID, exists := dbExists(dbs, ds.DatasetID.String()); exists {
+		return dbID, nil
+	}
+
 	db := NewDatabase{
 		Name: strings.Split(team, "@")[0] + ": " + name,
 		Details: Details{
@@ -195,7 +208,10 @@ func (c *Client) CreateDatabase(ctx context.Context, team, name, saJSON, saEmail
 	var v struct {
 		ID int `json:"id"`
 	}
-	err := c.request(ctx, http.MethodPost, "/database", db, &v)
+	err = c.request(ctx, http.MethodPost, "/database", db, &v)
+	if err != nil {
+		return 0, err
+	}
 
 	return v.ID, err
 }
@@ -259,7 +275,19 @@ func (c *Client) Tables(ctx context.Context, dbID int) ([]Table, error) {
 	return ret, nil
 }
 
-func (c *Client) DeleteDatabase(ctx context.Context, id int) error {
+func (c *Client) deleteDatabase(ctx context.Context, id int) error {
+	if err := c.ensureValidSession(ctx); err != nil {
+		return err
+	}
+	var buf io.ReadWriter
+	res, err := c.performRequest(ctx, http.MethodGet, fmt.Sprintf("/database/%v", id), buf)
+	if res.StatusCode == 404 {
+		return nil
+	}
+	if err != nil {
+		return fmt.Errorf("%v %v: non 2xx status code, got: %v", http.MethodGet, fmt.Sprintf("/database/%v", id), res.StatusCode)
+	}
+
 	return c.request(ctx, http.MethodDelete, fmt.Sprintf("/database/%v", id), nil, nil)
 }
 
@@ -396,9 +424,14 @@ func (c *Client) OpenAccessToDatabase(ctx context.Context, databaseID int) error
 		Native  string `json:"native,omitempty"`
 		Schemas string `json:"schemas,omitempty"`
 	}
+
+	type permissionGroup struct {
+		Data permissions `json:"data,omitempty"`
+	}
+
 	var permissionGraph struct {
-		Groups   map[string]map[string]permissions `json:"groups"`
-		Revision int                               `json:"revision"`
+		Groups   map[string]map[string]permissionGroup `json:"groups"`
+		Revision int                                   `json:"revision"`
 	}
 
 	err := c.request(ctx, http.MethodGet, "/permissions/graph", nil, &permissionGraph)
@@ -411,7 +444,9 @@ func (c *Client) OpenAccessToDatabase(ctx context.Context, databaseID int) error
 	for gid, permission := range permissionGraph.Groups {
 		if gid == "1" {
 			// All users group
-			permission[dbSID] = permissions{Native: "write", Schemas: "all"}
+			permission[dbSID] = permissionGroup{
+				Data: permissions{Native: "write", Schemas: "all"},
+			}
 			break
 		}
 	}
@@ -531,4 +566,14 @@ func containsGroup(groups []string, group string) bool {
 	}
 
 	return false
+}
+
+func dbExists(dbs []Database, nadaID string) (int, bool) {
+	for _, db := range dbs {
+		if db.NadaID == nadaID {
+			return db.ID, true
+		}
+	}
+
+	return 0, false
 }
