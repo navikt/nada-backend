@@ -3,7 +3,6 @@ package metabase
 import (
 	"context"
 	"os"
-	"strings"
 
 	"github.com/google/uuid"
 	"github.com/navikt/nada-backend/pkg/graph/models"
@@ -11,12 +10,21 @@ import (
 )
 
 func (m *Metabase) revokeMetabaseAccess(ctx context.Context, dsID uuid.UUID, subject string) {
+	log := m.log.WithField("datasetID", dsID)
+
 	if subject == "group:all-users@nav.no" {
 		m.softDeleteDatabase(ctx, dsID)
-	} else if strings.HasPrefix(subject, "group:") {
-		m.removeGroupAccess(ctx, dsID, subject)
+	}
+
+	email, isGroup, err := parseSubject(subject)
+	if err != nil {
+		log.WithError(err).Errorf("parsing subject %v", subject)
+		return
+	}
+	if isGroup {
+		m.removeGroupAccess(ctx, dsID, email)
 	} else {
-		m.removeMetabaseGroupMember(ctx, dsID, subject)
+		m.removeMetabaseGroupMember(ctx, dsID, email)
 	}
 }
 
@@ -34,24 +42,7 @@ func (m *Metabase) deleteDatabase(ctx context.Context, dsID uuid.UUID) {
 	m.deleteAllUsersDatabase(ctx, dsID)
 }
 
-func (m *Metabase) revokeAccessesOnSoftDelete(ctx context.Context, dsID uuid.UUID) error {
-	accesses, err := m.repo.ListActiveAccessToDataset(ctx, dsID)
-	if err != nil {
-		return err
-	}
-
-	for _, a := range accesses {
-		if strings.HasPrefix(a.Subject, "group:") {
-			m.removeGroupAccess(ctx, dsID, a.Subject)
-		} else {
-			m.removeMetabaseGroupMember(ctx, dsID, a.Subject)
-		}
-	}
-
-	return nil
-}
-
-func (m *Metabase) removeGroupAccess(ctx context.Context, dsID uuid.UUID, subject string) {
+func (m *Metabase) removeGroupAccess(ctx context.Context, dsID uuid.UUID, email string) {
 	log := m.log.WithField("datasetID", dsID)
 
 	mbMetadata, err := m.repo.GetMetabaseMetadata(ctx, dsID, false)
@@ -65,18 +56,7 @@ func (m *Metabase) removeGroupAccess(ctx context.Context, dsID uuid.UUID, subjec
 		return
 	}
 
-	s := strings.Split(subject, ":")
-	if len(s) != 2 {
-		log.WithError(err).Errorf("invalid subject format, should be type:email")
-		return
-	}
-
-	if s[0] != "group" {
-		log.Info("subject is not a group")
-		return
-	}
-
-	groupID, err := m.client.GetAzureGroupID(ctx, s[1])
+	groupID, err := m.client.GetAzureGroupID(ctx, email)
 	if err != nil {
 		log.WithError(err).Error("getting azure group id")
 		return
@@ -88,17 +68,11 @@ func (m *Metabase) removeGroupAccess(ctx context.Context, dsID uuid.UUID, subjec
 	}
 }
 
-func (m *Metabase) removeMetabaseGroupMember(ctx context.Context, dsID uuid.UUID, subject string) {
+func (m *Metabase) removeMetabaseGroupMember(ctx context.Context, dsID uuid.UUID, email string) {
 	log := m.log.WithField("datasetID", dsID)
 	mbMetadata, err := m.repo.GetMetabaseMetadata(ctx, dsID, false)
 	if err != nil {
 		log.WithError(err).Error("getting metabase metadata")
-		return
-	}
-
-	s := strings.Split(subject, ":")
-	if s[0] != "user" {
-		log.Info("subject is not a user")
 		return
 	}
 
@@ -108,7 +82,7 @@ func (m *Metabase) removeMetabaseGroupMember(ctx context.Context, dsID uuid.UUID
 		return
 	}
 
-	exists, memberID := memberExists(mbGroupMembers, s[1])
+	exists, memberID := memberExists(mbGroupMembers, email)
 	if !exists {
 		log.Info("member does not exist")
 		return

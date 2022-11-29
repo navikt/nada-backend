@@ -7,7 +7,6 @@ import (
 	"errors"
 	"fmt"
 	"os"
-	"strings"
 	"time"
 
 	"github.com/google/uuid"
@@ -17,12 +16,21 @@ import (
 )
 
 func (m *Metabase) grantMetabaseAccess(ctx context.Context, dsID uuid.UUID, subject string) {
+	log := m.log.WithField("datasetID", dsID)
+
 	if subject == "group:all-users@nav.no" {
 		m.addAllUsersDataset(ctx, dsID)
-	} else if strings.HasPrefix(subject, "group:") {
-		m.addGroupAccess(ctx, dsID, subject)
+	}
+
+	email, isGroup, err := parseSubject(subject)
+	if err != nil {
+		log.WithError(err).Errorf("parsing subject %v", subject)
+		return
+	}
+	if isGroup {
+		m.addGroupAccess(ctx, dsID, email)
 	} else {
-		m.addMetabaseGroupMember(ctx, dsID, subject)
+		m.addMetabaseGroupMember(ctx, dsID, email)
 	}
 }
 
@@ -125,17 +133,21 @@ func (m *Metabase) grantAccessesOnCreation(ctx context.Context, dsID uuid.UUID) 
 	}
 
 	for _, a := range accesses {
-		if strings.HasPrefix(a.Subject, "group:") {
-			m.addGroupAccess(ctx, dsID, a.Subject)
+		email, isGroup, err := parseSubject(a.Subject)
+		if err != nil {
+			return err
+		}
+		if isGroup {
+			m.addGroupAccess(ctx, dsID, email)
 		} else {
-			m.addMetabaseGroupMember(ctx, dsID, a.Subject)
+			m.addMetabaseGroupMember(ctx, dsID, email)
 		}
 	}
 
 	return nil
 }
 
-func (m *Metabase) addGroupAccess(ctx context.Context, dsID uuid.UUID, subject string) {
+func (m *Metabase) addGroupAccess(ctx context.Context, dsID uuid.UUID, email string) {
 	log := m.log.WithField("datasetID", dsID)
 
 	mbMetadata, err := m.repo.GetMetabaseMetadata(ctx, dsID, false)
@@ -149,18 +161,7 @@ func (m *Metabase) addGroupAccess(ctx context.Context, dsID uuid.UUID, subject s
 		return
 	}
 
-	s := strings.Split(subject, ":")
-	if len(s) != 2 {
-		log.WithError(err).Errorf("invalid subject format, should be type:email")
-		return
-	}
-
-	if s[0] != "group" {
-		log.Info("subject is not a group")
-		return
-	}
-
-	groupID, err := m.client.GetAzureGroupID(ctx, s[1])
+	groupID, err := m.client.GetAzureGroupID(ctx, email)
 	if err != nil {
 		log.WithError(err).Error("getting azure group id")
 		return
@@ -172,17 +173,11 @@ func (m *Metabase) addGroupAccess(ctx context.Context, dsID uuid.UUID, subject s
 	}
 }
 
-func (m *Metabase) addMetabaseGroupMember(ctx context.Context, dsID uuid.UUID, subject string) {
+func (m *Metabase) addMetabaseGroupMember(ctx context.Context, dsID uuid.UUID, email string) {
 	log := m.log.WithField("datasetID", dsID)
 	mbMetadata, err := m.repo.GetMetabaseMetadata(ctx, dsID, false)
 	if err != nil {
 		log.WithError(err).Error("getting metabase metadata")
-		return
-	}
-
-	s := strings.Split(subject, ":")
-	if s[0] != "user" {
-		log.Info("subject is not a user")
 		return
 	}
 
@@ -192,14 +187,14 @@ func (m *Metabase) addMetabaseGroupMember(ctx context.Context, dsID uuid.UUID, s
 		return
 	}
 
-	exists, _ := memberExists(mbGroupMembers, s[1])
+	exists, _ := memberExists(mbGroupMembers, email)
 	if exists {
 		log.Info("member already exists")
 		return
 	}
 
-	if err := m.client.AddPermissionGroupMember(ctx, mbMetadata.PermissionGroupID, s[1]); err != nil {
-		log.WithError(err).WithField("user", s).
+	if err := m.client.AddPermissionGroupMember(ctx, mbMetadata.PermissionGroupID, email); err != nil {
+		log.WithError(err).WithField("user", email).
 			WithField("group", mbMetadata.PermissionGroupID).
 			Warn("Unable to sync user")
 	}
