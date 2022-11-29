@@ -90,6 +90,20 @@ func (m *Metabase) addAllUsersDataset(ctx context.Context, dsID uuid.UUID) {
 }
 
 func (m *Metabase) addDatasetMapping(ctx context.Context, dsID uuid.UUID) {
+	accesses, err := m.repo.ListActiveAccessToDataset(ctx, dsID)
+	if err != nil {
+		return
+	}
+
+	if containsAllUsers(accesses) {
+		m.addAllUsersDataset(ctx, dsID)
+		return
+	}
+
+	m.addRestrictedDatasetMapping(ctx, dsID)
+}
+
+func (m *Metabase) addRestrictedDatasetMapping(ctx context.Context, dsID uuid.UUID) {
 	log := m.log.WithField("datasetID", dsID)
 
 	mbMeta, err := m.repo.GetMetabaseMetadata(ctx, dsID, true)
@@ -386,4 +400,14 @@ func (m *Metabase) waitForDatabase(ctx context.Context, dbID int, tableName stri
 	}
 
 	return fmt.Errorf("unable to create database %v", tableName)
+}
+
+func containsAllUsers(accesses []*models.Access) bool {
+	for _, a := range accesses {
+		if a.Subject == "group:all-users@nav.no" {
+			return true
+		}
+	}
+
+	return false
 }
