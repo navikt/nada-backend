@@ -14,6 +14,7 @@ func (m *Metabase) revokeMetabaseAccess(ctx context.Context, dsID uuid.UUID, sub
 
 	if subject == "group:all-users@nav.no" {
 		m.softDeleteDatabase(ctx, dsID)
+		return
 	}
 
 	email, isGroup, err := parseSubject(subject)

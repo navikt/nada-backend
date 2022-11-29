@@ -20,6 +20,7 @@ func (m *Metabase) grantMetabaseAccess(ctx context.Context, dsID uuid.UUID, subj
 
 	if subject == "group:all-users@nav.no" {
 		m.addAllUsersDataset(ctx, dsID)
+		return
 	}
 
 	email, isGroup, err := parseSubject(subject)
@@ -108,12 +109,12 @@ func (m *Metabase) addDatasetMapping(ctx context.Context, dsID uuid.UUID) {
 		return
 	}
 
-	if mbMeta.PermissionGroupID == 0 {
+	if mbMeta != nil && mbMeta.PermissionGroupID == 0 {
 		log.Error("not allowed to expose a previously open database as a restricted")
 		return
 	}
 
-	if mbMeta.DeletedAt != nil {
+	if mbMeta != nil && mbMeta.DeletedAt != nil {
 		log.Info("restoring db")
 		if err := m.restore(ctx, dsID, mbMeta); err != nil {
 			log.WithError(err).Error("restoring db")
