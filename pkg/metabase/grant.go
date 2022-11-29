@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"encoding/base64"
 	"errors"
+	"fmt"
 	"os"
 	"strings"
 	"time"
@@ -290,7 +291,9 @@ func (m *Metabase) create(ctx context.Context, ds dsWrapper) error {
 		return err
 	}
 
-	m.waitForDatabase(ctx, dbID, datasource.Table)
+	if err := m.waitForDatabase(ctx, dbID, datasource.Table); err != nil {
+		return err
+	}
 
 	if ds.MetabaseGroupID > 0 || ds.MetabaseAADGroupID > 0 {
 		err := m.client.RestrictAccessToDatabase(ctx, []int{ds.MetabaseGroupID, ds.MetabaseAADGroupID}, dbID)
@@ -381,7 +384,7 @@ func (m *Metabase) restore(ctx context.Context, datasetID uuid.UUID, mbMetadata 
 	return nil
 }
 
-func (m *Metabase) waitForDatabase(ctx context.Context, dbID int, tableName string) {
+func (m *Metabase) waitForDatabase(ctx context.Context, dbID int, tableName string) error {
 	for i := 0; i < 100; i++ {
 		time.Sleep(100 * time.Millisecond)
 		tables, err := m.client.Tables(ctx, dbID)
@@ -390,8 +393,10 @@ func (m *Metabase) waitForDatabase(ctx context.Context, dbID int, tableName stri
 		}
 		for _, tab := range tables {
 			if tab.Name == tableName && len(tab.Fields) > 0 {
-				return
+				return nil
 			}
 		}
 	}
+
+	return fmt.Errorf("unable to create database %v", tableName)
 }
