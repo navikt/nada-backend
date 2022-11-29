@@ -88,6 +88,7 @@ func (r *Repo) DeleteRestrictedMetabaseMetadata(ctx context.Context, datasetID u
 	if err != nil {
 		return err
 	}
+	defer tx.Rollback()
 
 	querier := r.querier.WithTx(tx)
 	if err := querier.DeleteMetabaseMetadata(ctx, datasetID); err != nil {
@@ -98,9 +99,6 @@ func (r *Repo) DeleteRestrictedMetabaseMetadata(ctx context.Context, datasetID u
 		Services:  mapping.Services,
 	})
 	if err != nil {
-		if err := tx.Rollback(); err != nil {
-			r.log.WithError(err).Error("Rolling back cleanup metabase metadata transaction")
-		}
 		return err
 	}
 
