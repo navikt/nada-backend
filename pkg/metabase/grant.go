@@ -369,7 +369,7 @@ func (m *Metabase) restore(ctx context.Context, datasetID uuid.UUID, mbMetadata 
 
 	err = m.accessMgr.Grant(ctx, ds.ProjectID, ds.Dataset, ds.Table, "serviceAccount:"+mbMetadata.SAEmail)
 	if err != nil {
-		m.log.Error("Unable to revoke access")
+		m.log.Error("Unable to restore access")
 		return err
 	}
 
@@ -382,7 +382,7 @@ func (m *Metabase) restore(ctx context.Context, datasetID uuid.UUID, mbMetadata 
 }
 
 func (m *Metabase) waitForDatabase(ctx context.Context, dbID int, tableName string) {
-	for i := 0; i < 50; i++ {
+	for i := 0; i < 100; i++ {
 		time.Sleep(100 * time.Millisecond)
 		tables, err := m.client.Tables(ctx, dbID)
 		if err != nil || len(tables) == 0 {
