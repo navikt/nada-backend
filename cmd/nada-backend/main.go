@@ -68,6 +68,7 @@ func init() {
 	flag.StringVar(&cfg.MetabasePassword, "metabase-password", os.Getenv("METABASE_PASSWORD"), "Password for metabase api")
 	flag.StringVar(&cfg.MetabaseAPI, "metabase-api", os.Getenv("METABASE_API"), "URL to Metabase API, including scheme and `/api`")
 	flag.StringVar(&cfg.SlackUrl, "slack-url", os.Getenv("SLACK_URL"), "URL for slack webhook")
+	flag.StringVar(&cfg.SlackToken, "slack-token", os.Getenv("SLACK_TOKEN"), "token for slack app")
 	flag.StringVar(&cfg.PollyURL, "polly-url", cfg.PollyURL, "URL for polly")
 	flag.IntVar(&cfg.DBMaxIdleConn, "max-idle-conn", 3, "Maximum number of idle db connections")
 	flag.IntVar(&cfg.DBMaxOpenConn, "max-open-conn", 17, "Maximum number of open db connections")
@@ -181,7 +182,7 @@ func newLogger() *logrus.Logger {
 }
 
 func newSlackClient(log *logrus.Logger) *slack.SlackClient {
-	return slack.NewSlackClient(log, cfg.SlackUrl, cfg.Hostname)
+	return slack.NewSlackClient(log, cfg.SlackUrl, cfg.Hostname, cfg.SlackToken)
 }
 
 func getEnv(key, fallback string) string {

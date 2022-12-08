@@ -6,7 +6,6 @@ package graph
 import (
 	"context"
 	"fmt"
-	"regexp"
 	"strings"
 	"time"
 
@@ -160,31 +159,10 @@ func (r *mutationResolver) SendNewAccessRequestSlackNotification(ctx context.Con
 		return
 	}
 
-	if IsEmail(*dp.Owner.TeamContact) {
-		r.log.Info("Access request created but skip slack message because teamcontact is email")
-		return
-	}
-
-	err = r.slack.NewAccessRequest(*dp.Owner.TeamContact, ar)
+	err = r.slack.NewAccessRequest(*dp.Owner.TeamContact, dp, ds, ar)
 	if err != nil {
 		r.log.Warn("Access request created, failed to send slack message", err)
 	}
-}
-
-func IsEmail(contact string) bool {
-	matched, err := regexp.Match(`(?:[a-z0-9!#$%&'*+/=?^_`+
-		"`"+
-		`{|}~-]+(?:\.[a-z0-9!#$%&'*+/=?^_`+
-		"`"+
-		`{|}~-]+)*|"(?:[\x01-\x08\x0b\x0c\x0e-\x1f\x21\x23-\x5b\x5d-\x7f]|\\[\x01-\x09\x0b\x0c\x0e-\x7f])*")@
-	  (?:(?:[a-z0-9](?:[a-z0-9-]*[a-z0-9])?\.)+[a-z0-9](?:[a-z0-9-]*[a-z0-9])
-	  ?|\[(?:(?:(2(5[0-5]|[0-4][0-9])|1[0-9][0-9]|[1-9]?[0-9]))\.){3}(?:(2(5[0-5]|[0-4][0-9])|1[0-9][0-9]|[1-9]?[0-9])|[a-z0-9-]*[a-z0-9]
-	  :(?:[\x01-\x08\x0b\x0c\x0e-\x1f\x21-\x5a\x53-\x7f]|\\[\x01-\x09\x0b\x0c\x0e-\x7f])+)\])`, []byte(contact))
-	if err != nil {
-		fmt.Println("Error with teamcontact")
-		return false
-	}
-	return matched
 }
 
 // UpdateAccessRequest is the resolver for the updateAccessRequest field.

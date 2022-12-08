@@ -54,7 +54,8 @@ local:
 	--hostname=localhost \
 	--mock-auth \
 	--skip-metadata-sync \
-	--log-level=debug
+	--log-level=debug \
+	--slack-token=$(SLACK_TOKEN)
 
 migrate:
 	go run github.com/pressly/goose/v3/cmd/goose -dir ./pkg/database/migrations postgres "user=postgres dbname=nada sslmode=disable password=postgres" up
