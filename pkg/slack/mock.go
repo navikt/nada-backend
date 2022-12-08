@@ -20,7 +20,7 @@ func (m MockSlackClient) NewDataproduct(dp *models.Dataproduct) error {
 	return nil
 }
 
-func (m MockSlackClient) NewAccessRequest(contact string, ar *models.AccessRequest) error {
+func (m MockSlackClient) NewAccessRequest(contact string, dp *models.Dataproduct, ds *models.Dataset, ar *models.AccessRequest) error {
 	m.log.Info("New AccessRequest send to " + contact)
 	return nil
 }
