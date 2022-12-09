@@ -62,13 +62,13 @@ func (s SlackClient) NewAccessRequest(contact string, dp *models.Dataproduct, ds
 		return e
 	}
 	link := "\nLink: " + s.datakatalogurl + "/dataproduct/" + dp.ID.String() + "/" + dp.Name + "/" + ds.ID.String()
-	dsp := "\nDataset: " + ds.Name + " " + "\nDataprodukt: " + dp.Name
-	message := ar.Subject + " har søkt om tilgang til: " + dsp + link
+	dsp := "\nDatasett: " + ds.Name + " " + "\nDataprodukt: " + dp.Name
+	message := ar.Subject + " har sendt en søknad om tilgang for: " + dsp + link
 	_, _, _, e = s.api.SendMessage(chn.ID, slack.MsgOptionText(message, false))
 	return e
 }
 
-func (s SlackClient) ValidatePublicChannel(name string) (bool, error) {
+func (s SlackClient) IsValidSlackChannel(name string) (bool, error) {
 	chn, e := s.GetPublicChannel(name)
 	return chn != nil, e
 }

@@ -6,11 +6,9 @@ package graph
 
 import (
 	"context"
-
-	"github.com/navikt/nada-backend/pkg/graph/models"
 )
 
-// Teamkatalogen is the resolver for the teamkatalogen field.
-func (r *queryResolver) Teamkatalogen(ctx context.Context, q string) ([]*models.TeamkatalogenResult, error) {
-	return r.teamkatalogen.Search(ctx, q)
+// IsValidSlackChannel is the resolver for the IsValidSlackChannel field.
+func (r *queryResolver) IsValidSlackChannel(ctx context.Context, name string) (bool, error) {
+	return r.slack.IsValidSlackChannel(name)
 }

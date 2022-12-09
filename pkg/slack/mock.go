@@ -24,3 +24,7 @@ func (m MockSlackClient) NewAccessRequest(contact string, dp *models.Dataproduct
 	m.log.Info("New AccessRequest send to " + contact)
 	return nil
 }
+
+func (s MockSlackClient) IsValidSlackChannel(name string) (bool, error) {
+	return true, nil
+}
