@@ -61,7 +61,7 @@ func (s SlackClient) NewAccessRequest(contact string, dp *models.Dataproduct, ds
 	if chn == nil || e != nil {
 		return e
 	}
-	link := "\nLink: " + s.datakatalogurl + "/dataproduct/" + dp.ID.String() + "/" + dp.Name + "/" + ds.ID.String()
+	link := "\nLink: " + s.datakatalogurl + "/dataproduct/" + dp.ID.String() + "/" + strings.ReplaceAll(dp.Name, " ", "%20") + "/" + ds.ID.String()
 	dsp := "\nDatasett: " + ds.Name + " " + "\nDataprodukt: " + dp.Name
 	message := ar.Subject + " har sendt en søknad om tilgang for: " + dsp + link
 	_, _, _, e = s.api.SendMessage(chn.ID, slack.MsgOptionText(message, false))
