@@ -51,6 +51,20 @@ RETURNS
               "dataset": "dataset1",
               "table": "table1"
           }
+        },
+        {
+          "name": "DatasetWithAllUsersAccess",
+          "description": "New description",
+          "dataproductID": "{{ .dataproduct_id }}",
+          "keywords": [],
+          "repo": "somerepo",
+          "pii": "none",
+          "datasource": {
+              "__typename": "BigQuery",
+              "projectID": "team-dev-1337",
+              "dataset": "dataset1",
+              "table": "table1"
+          }
         }
       ]
     }

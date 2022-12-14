@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+	"github.com/navikt/nada-backend/pkg/auth"
 	"github.com/navikt/nada-backend/pkg/database/gensql"
 	"github.com/navikt/nada-backend/pkg/graph/models"
 	"github.com/tabbed/pqtype"
@@ -37,7 +38,7 @@ func (r *Repo) GetDatasetsInDataproduct(ctx context.Context, id uuid.UUID) ([]*m
 	return datasetsGraph, nil
 }
 
-func (r *Repo) CreateDataset(ctx context.Context, ds models.NewDataset) (*models.Dataset, error) {
+func (r *Repo) CreateDataset(ctx context.Context, ds models.NewDataset, user *auth.User) (*models.Dataset, error) {
 	tx, err := r.db.Begin()
 	if err != nil {
 		return nil, err
@@ -82,8 +83,10 @@ func (r *Repo) CreateDataset(ctx context.Context, ds models.NewDataset) (*models
 		Created:      ds.Metadata.Created,
 		Expires:      sql.NullTime{Time: ds.Metadata.Expires, Valid: !ds.Metadata.Expires.IsZero()},
 		TableType:    string(ds.Metadata.TableType),
-		PiiTags: pqtype.NullRawMessage{RawMessage: json.RawMessage([]byte(ptrToString(ds.BigQuery.PiiTags))),
-			Valid: len(ptrToString(ds.BigQuery.PiiTags)) > 4},
+		PiiTags: pqtype.NullRawMessage{
+			RawMessage: json.RawMessage([]byte(ptrToString(ds.BigQuery.PiiTags))),
+			Valid:      len(ptrToString(ds.BigQuery.PiiTags)) > 4,
+		},
 	})
 	if err != nil {
 		if err := tx.Rollback(); err != nil {
@@ -96,6 +99,21 @@ func (r *Repo) CreateDataset(ctx context.Context, ds models.NewDataset) (*models
 		err = querier.CreateDatasetRequester(ctx, gensql.CreateDatasetRequesterParams{
 			DatasetID: created.ID,
 			Subject:   subj,
+		})
+		if err != nil {
+			if err := tx.Rollback(); err != nil {
+				r.log.WithError(err).Error("Rolling back dataset and datasource_bigquery transaction")
+			}
+			return nil, err
+		}
+	}
+
+	if ds.GrantAllUsers != nil && *ds.GrantAllUsers {
+		_, err = querier.GrantAccessToDataset(ctx, gensql.GrantAccessToDatasetParams{
+			DatasetID: created.ID,
+			Expires:   sql.NullTime{},
+			Subject:   "group:all-users@nav.no",
+			Granter:   user.Email,
 		})
 		if err != nil {
 			if err := tx.Rollback(); err != nil {
@@ -153,8 +171,10 @@ func (r *Repo) UpdateDataset(ctx context.Context, id uuid.UUID, new models.Updat
 
 	err = r.querier.UpdateBigqueryDatasourcePiiTags(ctx, gensql.UpdateBigqueryDatasourcePiiTagsParams{
 		DatasetID: id,
-		PiiTags: pqtype.NullRawMessage{RawMessage: json.RawMessage(ptrToString(new.PiiTags)),
-			Valid: len(ptrToString(new.PiiTags)) > 4},
+		PiiTags: pqtype.NullRawMessage{
+			RawMessage: json.RawMessage(ptrToString(new.PiiTags)),
+			Valid:      len(ptrToString(new.PiiTags)) > 4,
+		},
 	})
 	if err != nil {
 		return nil, err
@@ -189,7 +209,8 @@ func (r *Repo) GetBigqueryDatasource(ctx context.Context, datasetID uuid.UUID) (
 }
 
 func (r *Repo) UpdateBigqueryDatasource(ctx context.Context, id uuid.UUID, schema json.RawMessage,
-	lastModified, expires time.Time, description string) error {
+	lastModified, expires time.Time, description string,
+) error {
 	err := r.querier.UpdateBigqueryDatasourceSchema(ctx, gensql.UpdateBigqueryDatasourceSchemaParams{
 		DatasetID: id,
 		Schema: pqtype.NullRawMessage{

@@ -7,6 +7,7 @@ import (
 	"fmt"
 
 	"github.com/google/uuid"
+	"github.com/navikt/nada-backend/pkg/auth"
 	"github.com/navikt/nada-backend/pkg/database/gensql"
 	"github.com/navikt/nada-backend/pkg/graph/models"
 	"github.com/tabbed/pqtype"
@@ -84,7 +85,7 @@ func (r *Repo) GetDataproduct(ctx context.Context, id uuid.UUID) (*models.Datapr
 	return dataproductFromSQL(res), nil
 }
 
-func (r *Repo) CreateDataproduct(ctx context.Context, dp models.NewDataproduct) (*models.Dataproduct, error) {
+func (r *Repo) CreateDataproduct(ctx context.Context, dp models.NewDataproduct, user *auth.User) (*models.Dataproduct, error) {
 	tx, err := r.db.Begin()
 	if err != nil {
 		return nil, err
@@ -147,14 +148,31 @@ func (r *Repo) CreateDataproduct(ctx context.Context, dp models.NewDataproduct) 
 			Created:      ds.Metadata.Created,
 			Expires:      sql.NullTime{Time: ds.Metadata.Expires, Valid: !ds.Metadata.Expires.IsZero()},
 			TableType:    string(ds.Metadata.TableType),
-			PiiTags: pqtype.NullRawMessage{RawMessage: []byte(ptrToString(ds.Bigquery.PiiTags)),
-				Valid: len(ptrToString(ds.Bigquery.PiiTags)) > 4},
+			PiiTags: pqtype.NullRawMessage{
+				RawMessage: []byte(ptrToString(ds.Bigquery.PiiTags)),
+				Valid:      len(ptrToString(ds.Bigquery.PiiTags)) > 4,
+			},
 		})
 		if err != nil {
 			if err := tx.Rollback(); err != nil {
 				r.log.WithError(err).Error("rolling back datasource_bigquery creation")
 			}
 			return nil, err
+		}
+
+		if ds.GrantAllUsers != nil && *ds.GrantAllUsers {
+			_, err = querier.GrantAccessToDataset(ctx, gensql.GrantAccessToDatasetParams{
+				DatasetID: dataset.ID,
+				Expires:   sql.NullTime{},
+				Subject:   "group:all-users@nav.no",
+				Granter:   user.Email,
+			})
+			if err != nil {
+				if err := tx.Rollback(); err != nil {
+					r.log.WithError(err).Error("Rolling back dataset and datasource_bigquery transaction")
+				}
+				return nil, err
+			}
 		}
 
 		for _, keyword := range ds.Keywords {

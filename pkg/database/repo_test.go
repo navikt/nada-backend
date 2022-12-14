@@ -78,7 +78,11 @@ func TestRepo(t *testing.T) {
 		Group: auth.MockUser.GoogleGroups[0].Name,
 	}
 
-	createdproduct, err := repo.CreateDataproduct(context.Background(), newDataproduct)
+	user := &auth.User{
+		Email: "user@nav.no",
+	}
+
+	createdproduct, err := repo.CreateDataproduct(context.Background(), newDataproduct, user)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -106,7 +110,7 @@ func TestRepo(t *testing.T) {
 			DataproductID: createdproduct.ID,
 		}
 
-		createdDataset, err := repo.CreateDataset(context.Background(), data)
+		createdDataset, err := repo.CreateDataset(context.Background(), data, user)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -132,7 +136,7 @@ func TestRepo(t *testing.T) {
 	})
 
 	t.Run("deletes datasets", func(t *testing.T) {
-		createdDataset, err := repo.CreateDataset(context.Background(), newDataset)
+		createdDataset, err := repo.CreateDataset(context.Background(), newDataset, user)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -153,7 +157,7 @@ func TestRepo(t *testing.T) {
 
 	t.Run("handles access grants", func(t *testing.T) {
 		dpWithUserAccess := func(ti time.Time, subj string) {
-			dp, err := repo.CreateDataset(context.Background(), newDataset)
+			dp, err := repo.CreateDataset(context.Background(), newDataset, user)
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -199,7 +203,7 @@ func TestRepo(t *testing.T) {
 
 		ctx := context.Background()
 
-		_, err := repo.CreateDataproduct(ctx, dataproduct)
+		_, err := repo.CreateDataproduct(ctx, dataproduct, user)
 		if err != nil {
 			t.Fatal(err)
 		}
