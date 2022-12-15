@@ -2,6 +2,7 @@ package slack
 
 import (
 	"fmt"
+	"os"
 	"strings"
 
 	"github.com/navikt/nada-backend/pkg/graph/models"
@@ -46,12 +47,20 @@ func (s SlackClient) NewDataproduct(dp *models.Dataproduct) error {
 	}
 	message := owner + link + " har lagd et dataprodukt \nNavn: " + dp.Name + ", beskrivelse: " + desc + "\nLink: " + s.datakatalogurl + "/dataproduct/" + dp.ID.String()
 
-	err := slack.PostWebhook(s.webhookurl, &slack.WebhookMessage{
-		Username: "Nada Bot",
-		Text:     message,
-	})
-	if err != nil {
-		return fmt.Errorf("could not post message to slack %e", err)
+	channel := "nada-test"
+	if os.Getenv("NAIS_CLUSTER_NAME") == "dev-gcp" {
+		channel = "nada-test"
+	} else if os.Getenv("NAIS_CLUSTER_NAME") == "prod-gcp" {
+		channel = "nada"
+	}
+
+	chn, e := s.GetPublicChannel(channel)
+	if chn == nil || e != nil {
+		return e
+	}
+	_, _, _, e = s.api.SendMessage(chn.ID, slack.MsgOptionText(message, false))
+	if e != nil {
+		return fmt.Errorf("could not post message to slack %e", e)
 	}
 	return nil
 }
