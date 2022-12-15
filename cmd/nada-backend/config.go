@@ -19,6 +19,7 @@ type Config struct {
 	MetabasePassword                string
 	MetabaseAPI                     string
 	SlackUrl                        string
+	SlackToken                      string
 	PollyURL                        string
 	DBMaxIdleConn                   int
 	DBMaxOpenConn                   int

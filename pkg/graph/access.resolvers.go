@@ -134,7 +134,12 @@ func (r *mutationResolver) CreateAccessRequest(ctx context.Context, input models
 		pollyID = uuid.NullUUID{UUID: dbPolly.ID, Valid: true}
 	}
 
-	return r.repo.CreateAccessRequestForDataset(ctx, input.DatasetID, pollyID, subjWithType, owner, input.Expires)
+	ar, err := r.repo.CreateAccessRequestForDataset(ctx, input.DatasetID, pollyID, subjWithType, owner, input.Expires)
+	if err != nil {
+		return nil, err
+	}
+	r.SendNewAccessRequestSlackNotification(ctx, ar)
+	return ar, nil
 }
 
 // UpdateAccessRequest is the resolver for the updateAccessRequest field.
@@ -247,3 +252,33 @@ func (r *queryResolver) AccessRequest(ctx context.Context, id uuid.UUID) (*model
 func (r *Resolver) Access() generated.AccessResolver { return &accessResolver{r} }
 
 type accessResolver struct{ *Resolver }
+
+// !!! WARNING !!!
+// The code below was going to be deleted when updating resolvers. It has been copied here so you have
+// one last chance to move it out of harms way if you want. There are two reasons this happens:
+//   - When renaming or deleting a resolver the old code will be put in here. You can safely delete
+//     it when you're done.
+//   - You have helper methods in this file. Move them out to keep these resolver files clean.
+func (r *mutationResolver) SendNewAccessRequestSlackNotification(ctx context.Context, ar *models.AccessRequest) {
+	ds, err := r.repo.GetDataset(ctx, ar.DatasetID)
+	if err != nil {
+		r.log.Warn("Access request created but failed to fetch dataset during sending slack notification", err)
+		return
+	}
+
+	dp, err := r.repo.GetDataproduct(ctx, ds.DataproductID)
+	if err != nil {
+		r.log.Warn("Access request created but failed to fetch dataproduct during sending slack notification", err)
+		return
+	}
+
+	if dp.Owner.TeamContact == nil || *dp.Owner.TeamContact == "" {
+		r.log.Info("Access request created but skip slack message because teamcontact is empty")
+		return
+	}
+
+	err = r.slack.NewAccessRequest(*dp.Owner.TeamContact, dp, ds, ar)
+	if err != nil {
+		r.log.Warn("Access request created, failed to send slack message", err)
+	}
+}
