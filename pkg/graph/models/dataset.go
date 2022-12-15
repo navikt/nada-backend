@@ -61,6 +61,7 @@ type NewDataset struct {
 	BigQuery                 NewBigQuery `json:"bigquery"`
 	Requesters               []string    `json:"requesters"`
 	AnonymisationDescription *string     `json:"anonymisationDescription"`
+	GrantAllUsers            *bool       `json:"grantAllUsers"`
 	Metadata                 BigqueryMetadata
 }
 
@@ -74,6 +75,7 @@ type NewDatasetForNewDataproduct struct {
 	Bigquery                 NewBigQuery `json:"bigquery"`
 	Requesters               []string    `json:"requesters"`
 	AnonymisationDescription *string     `json:"anonymisationDescription"`
+	GrantAllUsers            *bool       `json:"grantAllUsers"`
 	Metadata                 BigqueryMetadata
 }
 

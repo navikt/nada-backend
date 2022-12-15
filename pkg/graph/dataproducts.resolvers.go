@@ -9,6 +9,7 @@ import (
 	"html"
 
 	"github.com/google/uuid"
+	"github.com/navikt/nada-backend/pkg/auth"
 	"github.com/navikt/nada-backend/pkg/graph/generated"
 	"github.com/navikt/nada-backend/pkg/graph/models"
 	log "github.com/sirupsen/logrus"
@@ -53,6 +54,7 @@ func (r *dataproductResolver) Datasets(ctx context.Context, obj *models.Dataprod
 
 // CreateDataproduct is the resolver for the createDataproduct field.
 func (r *mutationResolver) CreateDataproduct(ctx context.Context, input models.NewDataproduct) (*models.Dataproduct, error) {
+	user := auth.GetUser(ctx)
 	if err := ensureUserInGroup(ctx, input.Group); err != nil {
 		return nil, err
 	}
@@ -74,7 +76,7 @@ func (r *mutationResolver) CreateDataproduct(ctx context.Context, input models.N
 		}
 	}
 
-	dp, err := r.repo.CreateDataproduct(ctx, input)
+	dp, err := r.repo.CreateDataproduct(ctx, input, user)
 	if err != nil {
 		return nil, err
 	}

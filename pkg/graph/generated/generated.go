@@ -2576,6 +2576,8 @@ input NewDataset @goModel(model: "github.com/navikt/nada-backend/pkg/graph/model
     requesters: [String!]
     "anonymisation_description explains how the dataset was anonymised, should be null if ` + "`" + `pii` + "`" + ` isn't anonymised"
     anonymisation_description: String
+    "grantAllUsers is a boolean indicating whether the dataset shall be made available for all users on creation"
+    grantAllUsers: Boolean
 }
 
 """
@@ -2598,6 +2600,8 @@ input NewDatasetForNewDataproduct @goModel(model: "github.com/navikt/nada-backen
     requesters: [String!]
     "anonymisation_description explains how the dataset was anonymised, should be null if ` + "`" + `pii` + "`" + ` isn't anonymised"
     anonymisation_description: String
+    "grantAllUsers is a boolean indicating whether the dataset shall be made available for all users on creation"
+    grantAllUsers: Boolean
 }
 
 """
@@ -16644,7 +16648,7 @@ func (ec *executionContext) unmarshalInputNewDataset(ctx context.Context, obj in
 		asMap[k] = v
 	}
 
-	fieldsInOrder := [...]string{"dataproductID", "name", "description", "repo", "pii", "keywords", "bigquery", "requesters", "anonymisation_description"}
+	fieldsInOrder := [...]string{"dataproductID", "name", "description", "repo", "pii", "keywords", "bigquery", "requesters", "anonymisation_description", "grantAllUsers"}
 	for _, k := range fieldsInOrder {
 		v, ok := asMap[k]
 		if !ok {
@@ -16723,6 +16727,14 @@ func (ec *executionContext) unmarshalInputNewDataset(ctx context.Context, obj in
 			if err != nil {
 				return it, err
 			}
+		case "grantAllUsers":
+			var err error
+
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("grantAllUsers"))
+			it.GrantAllUsers, err = ec.unmarshalOBoolean2ᚖbool(ctx, v)
+			if err != nil {
+				return it, err
+			}
 		}
 	}
 
@@ -16736,7 +16748,7 @@ func (ec *executionContext) unmarshalInputNewDatasetForNewDataproduct(ctx contex
 		asMap[k] = v
 	}
 
-	fieldsInOrder := [...]string{"name", "description", "repo", "pii", "keywords", "bigquery", "requesters", "anonymisation_description"}
+	fieldsInOrder := [...]string{"name", "description", "repo", "pii", "keywords", "bigquery", "requesters", "anonymisation_description", "grantAllUsers"}
 	for _, k := range fieldsInOrder {
 		v, ok := asMap[k]
 		if !ok {
@@ -16804,6 +16816,14 @@ func (ec *executionContext) unmarshalInputNewDatasetForNewDataproduct(ctx contex
 
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("anonymisation_description"))
 			it.AnonymisationDescription, err = ec.unmarshalOString2ᚖstring(ctx, v)
+			if err != nil {
+				return it, err
+			}
+		case "grantAllUsers":
+			var err error
+
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("grantAllUsers"))
+			it.GrantAllUsers, err = ec.unmarshalOBoolean2ᚖbool(ctx, v)
 			if err != nil {
 				return it, err
 			}

@@ -151,6 +151,8 @@ input NewDataset @goModel(model: "github.com/navikt/nada-backend/pkg/graph/model
     requesters: [String!]
     "anonymisation_description explains how the dataset was anonymised, should be null if `pii` isn't anonymised"
     anonymisation_description: String
+    "grantAllUsers is a boolean indicating whether the dataset shall be made available for all users on creation"
+    grantAllUsers: Boolean
 }
 
 """
@@ -173,6 +175,8 @@ input NewDatasetForNewDataproduct @goModel(model: "github.com/navikt/nada-backen
     requesters: [String!]
     "anonymisation_description explains how the dataset was anonymised, should be null if `pii` isn't anonymised"
     anonymisation_description: String
+    "grantAllUsers is a boolean indicating whether the dataset shall be made available for all users on creation"
+    grantAllUsers: Boolean
 }
 
 """

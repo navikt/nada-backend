@@ -1,0 +1,25 @@
+{
+  dataset(id: "{{ .dataset_all_users_id }}"){
+    name
+    pii
+    access {
+      subject
+    }
+  }
+}
+
+RETURNS
+
+{
+  "data": {
+    "dataset": {
+      "name": "DatasetWithAllUsersAccess",
+      "pii": "none",
+      "access": [
+          {
+              "subject": "group:all-users@nav.no"
+          }
+      ]
+    }
+  }
+}

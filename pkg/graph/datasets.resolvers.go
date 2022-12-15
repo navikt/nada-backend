@@ -148,6 +148,8 @@ func (r *datasetResolver) Requesters(ctx context.Context, obj *models.Dataset) (
 
 // CreateDataset is the resolver for the createDataset field.
 func (r *mutationResolver) CreateDataset(ctx context.Context, input models.NewDataset) (*models.Dataset, error) {
+	user := auth.GetUser(ctx)
+
 	dp, err := r.repo.GetDataproduct(ctx, input.DataproductID)
 	if err != nil {
 		return nil, err
@@ -166,10 +168,11 @@ func (r *mutationResolver) CreateDataset(ctx context.Context, input models.NewDa
 	if input.Description != nil && *input.Description != "" {
 		*input.Description = html.EscapeString(*input.Description)
 	}
-	ds, err := r.repo.CreateDataset(ctx, input)
+	ds, err := r.repo.CreateDataset(ctx, input, user)
 	if err != nil {
 		return nil, err
 	}
+
 	return ds, nil
 }
 

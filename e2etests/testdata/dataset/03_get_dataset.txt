@@ -7,6 +7,9 @@
 		repo
 		pii
 		keywords
+        access {
+            subject
+        }
     datasource {
       __typename
       ...on BigQuery {
@@ -30,6 +33,7 @@ RETURNS
         "otherkeyword"
       ],
       "pii": "none",
+      "access": [],
       "repo": "somerepo",
       "datasource": {
           "__typename": "BigQuery",
