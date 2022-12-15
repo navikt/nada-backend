@@ -12,7 +12,6 @@ import (
 	"github.com/navikt/nada-backend/pkg/auth"
 	"github.com/navikt/nada-backend/pkg/graph/generated"
 	"github.com/navikt/nada-backend/pkg/graph/models"
-	log "github.com/sirupsen/logrus"
 )
 
 // Description is the resolver for the description field.
@@ -81,10 +80,6 @@ func (r *mutationResolver) CreateDataproduct(ctx context.Context, input models.N
 		return nil, err
 	}
 
-	err = r.slack.NewDataproduct(dp)
-	if err != nil {
-		log.Errorf("failed to send slack notification: %v", err)
-	}
 	return dp, nil
 }
 

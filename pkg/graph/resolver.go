@@ -41,7 +41,6 @@ type Teamkatalogen interface {
 }
 
 type Slack interface {
-	NewDataproduct(dp *models.Dataproduct) error
 	NewAccessRequest(contact string, dp *models.Dataproduct, ds *models.Dataset, ar *models.AccessRequest) error
 	IsValidSlackChannel(name string) (bool, error)
 }
