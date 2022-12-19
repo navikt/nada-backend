@@ -14,7 +14,7 @@ require (
 	github.com/pressly/goose/v3 v3.7.0
 	github.com/prometheus/client_golang v1.13.0
 	github.com/sirupsen/logrus v1.9.0
-	github.com/slack-go/slack v0.11.3
+	github.com/slack-go/slack v0.12.0
 	github.com/spf13/pflag v1.0.5
 	github.com/writeas/go-strip-markdown/v2 v2.1.1
 	golang.org/x/oauth2 v0.0.0-20220909003341-f21342109be1
