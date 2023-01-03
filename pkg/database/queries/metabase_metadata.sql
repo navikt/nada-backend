@@ -4,6 +4,7 @@ INSERT INTO metabase_metadata (
     "database_id",
     "permission_group_id",
     "aad_premission_group_id",
+    "aad_owner_group_id",
     "collection_id",
     "sa_email",
     "deleted_at"
@@ -12,6 +13,7 @@ INSERT INTO metabase_metadata (
     @database_id,
     @permission_group_id,
     @aad_premission_group_id,
+    @aad_owner_group_id,
     @collection_id,
     @sa_email,
     @deleted_at

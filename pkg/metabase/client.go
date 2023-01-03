@@ -459,6 +459,9 @@ func (c *Client) OpenAccessToDatabase(ctx context.Context, databaseID int) error
 }
 
 func (c *Client) DeletePermissionGroup(ctx context.Context, groupID int) error {
+	if groupID <= 0 {
+		return nil
+	}
 	return c.request(ctx, http.MethodDelete, fmt.Sprintf("/permissions/group/%v", groupID), nil, nil)
 }
 
@@ -576,4 +579,54 @@ func dbExists(dbs []Database, nadaID string) (int, bool) {
 	}
 
 	return 0, false
+}
+
+func (c *Client) grantAADGroupOwnerPermission(ctx context.Context, aadGroupID int, databaseID int) error {
+	type dataModelPermission struct {
+		Schemas string `json:"schemas,omitempty"`
+	}
+
+	type permissions struct {
+		Native    string              `json:"native,omitempty"`
+		Schemas   string              `json:"schemas,omitempty"`
+		DataModel dataModelPermission `json:"data-model,omitempty"`
+		Details   string              `json:"details,omitempty"`
+	}
+
+	type permissionGroup struct {
+		Data permissions `json:"data,omitempty"`
+	}
+
+	var permissionGraph struct {
+		Groups   map[string]map[string]permissionGroup `json:"groups"`
+		Revision int                                   `json:"revision"`
+	}
+
+	err := c.request(ctx, http.MethodGet, "/permissions/graph", nil, &permissionGraph)
+	if err != nil {
+		return err
+	}
+
+	dbSID := strconv.Itoa(databaseID)
+
+	grpSID := strconv.Itoa(aadGroupID)
+	if _, ok := permissionGraph.Groups[grpSID]; !ok {
+		permissionGraph.Groups[grpSID] = map[string]permissionGroup{}
+	}
+	permissionGraph.Groups[grpSID][dbSID] = permissionGroup{
+		Data: permissions{
+			Native:  "write",
+			Schemas: "all",
+			DataModel: dataModelPermission{
+				Schemas: "all",
+			},
+			Details: "yes",
+		},
+	}
+
+	if err := c.request(ctx, http.MethodPut, "/permissions/graph", permissionGraph, nil); err != nil {
+		return err
+	}
+
+	return nil
 }

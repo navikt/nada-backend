@@ -23,6 +23,7 @@ type NewDataproduct struct {
 	Description      *string  `json:"description"`
 	Slug             *string  `json:"slug"`
 	Group            string   `json:"group"`
+	AADGroup         string   `json:"aadGroup"`
 	TeamkatalogenURL *string  `json:"teamkatalogenURL"`
 	TeamContact      *string  `json:"teamContact"`
 	Requesters       []string `json:"requesters"`
