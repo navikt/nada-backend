@@ -2358,6 +2358,8 @@ input NewDataproduct @goModel(model: "github.com/navikt/nada-backend/pkg/graph/m
     description: String
     "owner group email for the dataproduct."
     group: String!
+    "owner aad group email for the dataproduct."
+    aadGroup: String!
     "owner Teamkatalogen URL for the dataproduct."
     teamkatalogenURL: String
     "The contact information of the team who owns the dataproduct, which can be slack channel, slack account, email, and so on."
@@ -16564,7 +16566,7 @@ func (ec *executionContext) unmarshalInputNewDataproduct(ctx context.Context, ob
 		asMap[k] = v
 	}
 
-	fieldsInOrder := [...]string{"name", "description", "group", "teamkatalogenURL", "teamContact", "datasets", "productAreaID", "teamID"}
+	fieldsInOrder := [...]string{"name", "description", "group", "aadGroup", "teamkatalogenURL", "teamContact", "datasets", "productAreaID", "teamID"}
 	for _, k := range fieldsInOrder {
 		v, ok := asMap[k]
 		if !ok {
@@ -16592,6 +16594,14 @@ func (ec *executionContext) unmarshalInputNewDataproduct(ctx context.Context, ob
 
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("group"))
 			it.Group, err = ec.unmarshalNString2string(ctx, v)
+			if err != nil {
+				return it, err
+			}
+		case "aadGroup":
+			var err error
+
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("aadGroup"))
+			it.AADGroup, err = ec.unmarshalNString2string(ctx, v)
 			if err != nil {
 				return it, err
 			}
