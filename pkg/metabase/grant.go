@@ -6,6 +6,7 @@ import (
 	"encoding/base64"
 	"errors"
 	"fmt"
+	"log"
 	"os"
 	"time"
 
@@ -238,6 +239,8 @@ func (m *Metabase) createRestricted(ctx context.Context, ds *models.Dataset) err
 		return err
 	}
 
+	log.Printf("Owner AAD group %v for %v, created", ownerAADGroupID, ds.Name)
+
 	// Hack/workaround necessary due to how metabase has implemented saml group sync. When removing a saml group mapping to a
 	// metabase permission group, the users in the saml group will remain members of the permission group.
 	// Adding a dummy mapping ensures that users are evicted from the permission group when an actual group mapping is removed.
@@ -273,6 +276,8 @@ func (m *Metabase) createRestricted(ctx context.Context, ds *models.Dataset) err
 }
 
 func (m *Metabase) create(ctx context.Context, ds dsWrapper) error {
+	log.Printf("Create metabase database for dataset %v", ds.Dataset.Name)
+
 	datasource, err := m.repo.GetBigqueryDatasource(ctx, ds.Dataset.ID)
 	if err != nil {
 		return err
@@ -292,6 +297,8 @@ func (m *Metabase) create(ctx context.Context, ds dsWrapper) error {
 	if err != nil {
 		return err
 	}
+
+	log.Printf("Create metabase metadata for dataset %v, owner aad group %v", ds.Dataset.Name, ds.MetabaseAADGroupID)
 
 	err = m.repo.CreateMetabaseMetadata(ctx, models.MetabaseMetadata{
 		DatasetID:            ds.Dataset.ID,
@@ -318,18 +325,24 @@ func (m *Metabase) create(ctx context.Context, ds dsWrapper) error {
 	}
 
 	if ds.MetabaseOwnerAADGroupID > 0 {
+		log.Printf("Config owner aad group %v", ds.MetabaseAADGroupID)
+
 		groupID, err := m.getOwnerAADGroupID(ctx, ds.Dataset.DataproductID)
 		if err != nil {
 			return err
 		}
+		log.Printf("Get aad group %v", groupID)
 
 		if err := m.client.UpdateGroupMapping(ctx, groupID, ds.MetabaseOwnerAADGroupID, GroupMappingOperationAdd); err != nil {
 			return err
 		}
 
+		log.Printf("update owner aad group metabase mapping")
+
 		if err := m.client.grantAADGroupOwnerPermission(ctx, ds.MetabaseOwnerAADGroupID, dbID); err != nil {
 			return err
 		}
+		log.Printf("update owner aad group metabase permission")
 	}
 
 	if err := m.HideOtherTables(ctx, dbID, datasource.Table); err != nil {
