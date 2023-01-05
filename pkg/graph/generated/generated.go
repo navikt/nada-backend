@@ -2359,7 +2359,7 @@ input NewDataproduct @goModel(model: "github.com/navikt/nada-backend/pkg/graph/m
     "owner group email for the dataproduct."
     group: String!
     "owner aad group email for the dataproduct."
-    aadGroup: String!
+    aadGroup: String
     "owner Teamkatalogen URL for the dataproduct."
     teamkatalogenURL: String
     "The contact information of the team who owns the dataproduct, which can be slack channel, slack account, email, and so on."
@@ -16601,7 +16601,7 @@ func (ec *executionContext) unmarshalInputNewDataproduct(ctx context.Context, ob
 			var err error
 
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("aadGroup"))
-			it.AADGroup, err = ec.unmarshalNString2string(ctx, v)
+			it.AADGroup, err = ec.unmarshalOString2ᚖstring(ctx, v)
 			if err != nil {
 				return it, err
 			}

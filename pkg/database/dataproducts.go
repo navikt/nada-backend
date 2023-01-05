@@ -102,7 +102,7 @@ func (r *Repo) CreateDataproduct(ctx context.Context, dp models.NewDataproduct, 
 		TeamContact:           ptrToNullString(dp.TeamContact),
 		ProductAreaID:         ptrToNullString(dp.ProductAreaID),
 		TeamID:                ptrToNullString(dp.TeamID),
-		OwnerAadGroup:         ptrToNullString(&dp.AADGroup),
+		OwnerAadGroup:         ptrToNullString(dp.AADGroup),
 	})
 	if err != nil {
 		if err := tx.Rollback(); err != nil {
