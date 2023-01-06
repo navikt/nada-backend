@@ -318,7 +318,7 @@ func (m *Metabase) create(ctx context.Context, ds dsWrapper) error {
 	}
 
 	if ds.MetabaseGroupID > 0 || ds.MetabaseAADGroupID > 0 {
-		err := m.client.RestrictAccessToDatabase(ctx, []int{ds.MetabaseGroupID, ds.MetabaseAADGroupID}, dbID)
+		//err := m.client.RestrictAccessToDatabase(ctx, []int{ds.MetabaseGroupID, ds.MetabaseAADGroupID}, dbID)
 		if err != nil {
 			return err
 		}

@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"io"
 	"io/ioutil"
+	"log"
 	"net/http"
 	"os"
 	"strconv"
@@ -624,6 +625,8 @@ func (c *Client) grantAADGroupOwnerPermission(ctx context.Context, aadGroupID in
 		},
 	}
 
+	payload, err := json.Marshal(permissionGraph)
+	log.Printf("permission request with payload %v, error %v", payload, err)
 	if err := c.request(ctx, http.MethodPut, "/permissions/graph", permissionGraph, nil); err != nil {
 		return err
 	}
