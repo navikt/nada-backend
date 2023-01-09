@@ -456,6 +456,8 @@ func (c *Client) OpenAccessToDatabase(ctx context.Context, databaseID int) error
 		}
 	}
 
+	payload, err := json.Marshal(permissionGraph)
+	log.Printf("permission graph payload %v", string(payload))
 	if err := c.request(ctx, http.MethodPut, "/permissions/graph", permissionGraph, nil); err != nil {
 		return err
 	}
