@@ -55,7 +55,6 @@ func (m *Metabase) addAllUsersDataset(ctx context.Context, dsID uuid.UUID) {
 			log.WithError(err).Error("creating metabase database")
 			return
 		}
-		return
 	} else if err != nil {
 		log.WithError(err).Error("get metabase metadata")
 		return
