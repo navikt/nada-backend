@@ -81,7 +81,7 @@ func (m *Metabase) addAllUsersDataset(ctx context.Context, dsID uuid.UUID) {
 		log.Info("all users database already exists in metabase")
 		return
 	} else {
-		if err := m.client.OpenAccessToDatabase(ctx, 0, mbMetadata.DatabaseID); err != nil {
+		if err := m.client.OpenAccessToDatabase(ctx, mbMetadata.DatabaseID); err != nil {
 			log.WithError(err).Error("open access to dataset")
 			return
 		}

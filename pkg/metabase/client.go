@@ -443,7 +443,7 @@ func (c *Client) RestrictAccessToDatabase(ctx context.Context, groupIDs []int, a
 	return nil
 }
 
-func (c *Client) OpenAccessToDatabase(ctx context.Context, ownerGroup int, databaseID int) error {
+func (c *Client) OpenAccessToDatabase(ctx context.Context, databaseID int) error {
 	var permissionGraph struct {
 		Groups   map[string]map[string]permissionGroup `json:"groups"`
 		Revision int                                   `json:"revision"`
@@ -461,6 +461,7 @@ func (c *Client) OpenAccessToDatabase(ctx context.Context, ownerGroup int, datab
 			permission[dbSID] = permissionGroup{
 				Data: permissions{Native: "write", Schemas: "all"},
 			}
+			break
 		}
 	}
 

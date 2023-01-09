@@ -21,6 +21,10 @@ func (r *Repo) CreateMetabaseMetadata(ctx context.Context, metadata models.Metab
 			Int32: int32(metadata.AADPermissionGroupID),
 			Valid: metadata.AADPermissionGroupID > 0,
 		},
+		AadOwnerGroupID: sql.NullInt32{
+			Int32: int32(metadata.OwnerAADGroupID),
+			Valid: metadata.OwnerAADGroupID > 0,
+		},
 		CollectionID: sql.NullInt32{
 			Int32: int32(metadata.CollectionID),
 			Valid: metadata.CollectionID > 0,
