@@ -321,7 +321,7 @@ func (m *Metabase) create(ctx context.Context, ds dsWrapper) error {
 
 		groupID, err := m.getOwnerAADGroupID(ctx, ds.Dataset.DataproductID)
 		if err != nil {
-			log.WithError(err).Error("Failed to get aad group of dataproduct %v", ds.Dataset.DataproductID)
+			log.WithError(err).Errorf("Failed to get aad group of dataproduct %v", ds.Dataset.DataproductID)
 		} else {
 			log.Printf("Get aad group %v", groupID)
 			if err := m.client.UpdateGroupMapping(ctx, groupID, ds.MetabaseOwnerAADGroupID, GroupMappingOperationAdd); err != nil {
