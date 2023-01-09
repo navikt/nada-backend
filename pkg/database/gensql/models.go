@@ -204,7 +204,6 @@ type Dataproduct struct {
 	TeamContact      sql.NullString
 	ProductAreaID    sql.NullString
 	TeamID           sql.NullString
-	AadGroup         sql.NullString
 }
 
 type Dataset struct {
@@ -276,7 +275,6 @@ type MetabaseMetadatum struct {
 	DeletedAt            sql.NullTime
 	DatasetID            uuid.UUID
 	AadPremissionGroupID sql.NullInt32
-	AadOwnerGroupID      sql.NullInt32
 }
 
 type PollyDocumentation struct {

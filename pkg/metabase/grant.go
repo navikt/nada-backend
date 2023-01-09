@@ -6,7 +6,6 @@ import (
 	"encoding/base64"
 	"errors"
 	"fmt"
-	"log"
 	"os"
 	"time"
 
@@ -47,17 +46,10 @@ func (m *Metabase) addAllUsersDataset(ctx context.Context, dsID uuid.UUID) {
 			return
 		}
 
-		ownerAADGroupID, err := m.client.CreatePermissionGroup(ctx, ds.Name+" (owner aad)")
-		if err != nil {
-			log.WithError(err).Error("create owner group")
-			return
-		}
-
 		err = m.create(ctx, dsWrapper{
-			Dataset:                 ds,
-			Key:                     m.sa,
-			Email:                   m.saEmail,
-			MetabaseOwnerAADGroupID: ownerAADGroupID,
+			Dataset: ds,
+			Key:     m.sa,
+			Email:   m.saEmail,
 		})
 		if err != nil {
 			log.WithError(err).Error("creating metabase database")
@@ -234,13 +226,6 @@ func (m *Metabase) createRestricted(ctx context.Context, ds *models.Dataset) err
 		return err
 	}
 
-	ownerAADGroupID, err := m.client.CreatePermissionGroup(ctx, ds.Name+" (owner aad)")
-	if err != nil {
-		return err
-	}
-
-	log.Printf("Owner AAD group %v for %v, created", ownerAADGroupID, ds.Name)
-
 	// Hack/workaround necessary due to how metabase has implemented saml group sync. When removing a saml group mapping to a
 	// metabase permission group, the users in the saml group will remain members of the permission group.
 	// Adding a dummy mapping ensures that users are evicted from the permission group when an actual group mapping is removed.
@@ -260,13 +245,12 @@ func (m *Metabase) createRestricted(ctx context.Context, ds *models.Dataset) err
 	}
 
 	err = m.create(ctx, dsWrapper{
-		Dataset:                 ds,
-		Key:                     string(key),
-		Email:                   email,
-		MetabaseGroupID:         groupID,
-		MetabaseAADGroupID:      aadGroupID,
-		MetabaseOwnerAADGroupID: ownerAADGroupID,
-		CollectionID:            colID,
+		Dataset:            ds,
+		Key:                string(key),
+		Email:              email,
+		MetabaseGroupID:    groupID,
+		MetabaseAADGroupID: aadGroupID,
+		CollectionID:       colID,
 	})
 	if err != nil {
 		return err
@@ -304,7 +288,6 @@ func (m *Metabase) create(ctx context.Context, ds dsWrapper) error {
 		DatabaseID:           dbID,
 		PermissionGroupID:    ds.MetabaseGroupID,
 		AADPermissionGroupID: ds.MetabaseAADGroupID,
-		OwnerAADGroupID:      ds.MetabaseOwnerAADGroupID,
 		CollectionID:         ds.CollectionID,
 		SAEmail:              ds.Email,
 	})
@@ -316,28 +299,8 @@ func (m *Metabase) create(ctx context.Context, ds dsWrapper) error {
 		return err
 	}
 
-	if ds.MetabaseOwnerAADGroupID > 0 {
-		log.Printf("Config owner aad group %v", ds.MetabaseOwnerAADGroupID)
-
-		groupID, err := m.getOwnerAADGroupID(ctx, ds.Dataset.DataproductID)
-		if err != nil {
-			log.WithError(err).Errorf("Failed to get aad group of dataproduct %v", ds.Dataset.DataproductID)
-		} else {
-			log.Printf("Get aad group %v", groupID)
-			if err := m.client.UpdateGroupMapping(ctx, groupID, ds.MetabaseOwnerAADGroupID, GroupMappingOperationAdd); err != nil {
-				log.WithError(err).Error("Failed to update group mapping")
-			}
-		}
-	}
-
 	if ds.MetabaseGroupID > 0 || ds.MetabaseAADGroupID > 0 {
-		err := m.client.RestrictAccessToDatabase(ctx, []int{ds.MetabaseGroupID, ds.MetabaseAADGroupID},
-			ds.MetabaseOwnerAADGroupID, dbID)
-		if err != nil {
-			return err
-		}
-	} else if ds.MetabaseOwnerAADGroupID > 0 {
-		err := m.client.grantAADGroupOwnerPermission(ctx, ds.MetabaseOwnerAADGroupID, dbID)
+		err := m.client.RestrictAccessToDatabase(ctx, []int{ds.MetabaseGroupID, ds.MetabaseAADGroupID}, dbID)
 		if err != nil {
 			return err
 		}
@@ -450,16 +413,4 @@ func containsAllUsers(accesses []*models.Access) bool {
 	}
 
 	return false
-}
-
-func (m *Metabase) getOwnerAADGroupID(ctx context.Context, dpID uuid.UUID) (string, error) {
-	dp, err := m.repo.GetDataproduct(ctx, dpID)
-	if err != nil {
-		return "", err
-	}
-	if dp.Owner.AADGroup == nil {
-		return "", fmt.Errorf("Owner aad group for dataproduct %v not found, cannot create owner permisiion group in metabase", dpID)
-	}
-
-	return m.client.GetAzureGroupID(ctx, *dp.Owner.AADGroup)
 }

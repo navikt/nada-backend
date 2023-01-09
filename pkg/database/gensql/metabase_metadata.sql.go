@@ -18,7 +18,6 @@ INSERT INTO metabase_metadata (
     "database_id",
     "permission_group_id",
     "aad_premission_group_id",
-    "aad_owner_group_id",
     "collection_id",
     "sa_email",
     "deleted_at"
@@ -29,8 +28,7 @@ INSERT INTO metabase_metadata (
     $4,
     $5,
     $6,
-    $7,
-    $8
+    $7
 )
 `
 
@@ -39,7 +37,6 @@ type CreateMetabaseMetadataParams struct {
 	DatabaseID           int32
 	PermissionGroupID    sql.NullInt32
 	AadPremissionGroupID sql.NullInt32
-	AadOwnerGroupID      sql.NullInt32
 	CollectionID         sql.NullInt32
 	SaEmail              string
 	DeletedAt            sql.NullTime
@@ -51,7 +48,6 @@ func (q *Queries) CreateMetabaseMetadata(ctx context.Context, arg CreateMetabase
 		arg.DatabaseID,
 		arg.PermissionGroupID,
 		arg.AadPremissionGroupID,
-		arg.AadOwnerGroupID,
 		arg.CollectionID,
 		arg.SaEmail,
 		arg.DeletedAt,
@@ -71,7 +67,7 @@ func (q *Queries) DeleteMetabaseMetadata(ctx context.Context, datasetID uuid.UUI
 }
 
 const getAllMetabaseMetadata = `-- name: GetAllMetabaseMetadata :many
-SELECT database_id, permission_group_id, sa_email, collection_id, deleted_at, dataset_id, aad_premission_group_id, aad_owner_group_id
+SELECT database_id, permission_group_id, sa_email, collection_id, deleted_at, dataset_id, aad_premission_group_id
 FROM metabase_metadata
 `
 
@@ -92,7 +88,6 @@ func (q *Queries) GetAllMetabaseMetadata(ctx context.Context) ([]MetabaseMetadat
 			&i.DeletedAt,
 			&i.DatasetID,
 			&i.AadPremissionGroupID,
-			&i.AadOwnerGroupID,
 		); err != nil {
 			return nil, err
 		}
@@ -108,7 +103,7 @@ func (q *Queries) GetAllMetabaseMetadata(ctx context.Context) ([]MetabaseMetadat
 }
 
 const getMetabaseMetadata = `-- name: GetMetabaseMetadata :one
-SELECT database_id, permission_group_id, sa_email, collection_id, deleted_at, dataset_id, aad_premission_group_id, aad_owner_group_id
+SELECT database_id, permission_group_id, sa_email, collection_id, deleted_at, dataset_id, aad_premission_group_id
 FROM metabase_metadata
 WHERE "dataset_id" = $1 AND "deleted_at" IS NULL
 `
@@ -124,13 +119,12 @@ func (q *Queries) GetMetabaseMetadata(ctx context.Context, datasetID uuid.UUID) 
 		&i.DeletedAt,
 		&i.DatasetID,
 		&i.AadPremissionGroupID,
-		&i.AadOwnerGroupID,
 	)
 	return i, err
 }
 
 const getMetabaseMetadataWithDeleted = `-- name: GetMetabaseMetadataWithDeleted :one
-SELECT database_id, permission_group_id, sa_email, collection_id, deleted_at, dataset_id, aad_premission_group_id, aad_owner_group_id
+SELECT database_id, permission_group_id, sa_email, collection_id, deleted_at, dataset_id, aad_premission_group_id
 FROM metabase_metadata
 WHERE "dataset_id" = $1
 `
@@ -146,7 +140,6 @@ func (q *Queries) GetMetabaseMetadataWithDeleted(ctx context.Context, datasetID 
 		&i.DeletedAt,
 		&i.DatasetID,
 		&i.AadPremissionGroupID,
-		&i.AadOwnerGroupID,
 	)
 	return i, err
 }

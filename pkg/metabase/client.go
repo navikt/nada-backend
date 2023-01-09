@@ -381,7 +381,7 @@ type permissionGroup struct {
 	DataModel *dataModelPermission `json:"data-model,omitempty"`
 }
 
-func (c *Client) RestrictAccessToDatabase(ctx context.Context, groupIDs []int, adminGroupID int, databaseID int) error {
+func (c *Client) RestrictAccessToDatabase(ctx context.Context, groupIDs []int, databaseID int) error {
 
 	var permissionGraph struct {
 		Groups   map[string]map[string]permissionGroup `json:"groups"`
@@ -402,22 +402,11 @@ func (c *Client) RestrictAccessToDatabase(ctx context.Context, groupIDs []int, a
 			permissionGraph.Groups[grpSID] = map[string]permissionGroup{}
 		}
 		permissionGraph.Groups[grpSID][dbSID] = permissionGroup{
-			Data: permissions{Native: "write", Schemas: "all"},
-		}
-
-		grpSIDs = append(grpSIDs, grpSID)
-	}
-
-	if adminGroupID > 0 {
-		grpSID := strconv.Itoa(adminGroupID)
-		if _, ok := permissionGraph.Groups[grpSID]; !ok {
-			permissionGraph.Groups[grpSID] = map[string]permissionGroup{}
-		}
-		permissionGraph.Groups[grpSID][dbSID] = permissionGroup{
 			Data:      permissions{Native: "write", Schemas: "all"},
 			DataModel: &dataModelPermission{Schemas: "all"},
 			Details:   "yes",
 		}
+
 		grpSIDs = append(grpSIDs, grpSID)
 	}
 
@@ -459,7 +448,9 @@ func (c *Client) OpenAccessToDatabase(ctx context.Context, databaseID int) error
 		if gid == "1" {
 			// All users group
 			permission[dbSID] = permissionGroup{
-				Data: permissions{Native: "write", Schemas: "all"},
+				Data:      permissions{Native: "write", Schemas: "all"},
+				DataModel: &dataModelPermission{Schemas: "all"},
+				Details:   "yes",
 			}
 			break
 		}
@@ -593,38 +584,4 @@ func dbExists(dbs []Database, nadaID string) (int, bool) {
 	}
 
 	return 0, false
-}
-
-func (c *Client) grantAADGroupOwnerPermission(ctx context.Context, aadGroupID int, databaseID int) error {
-	var permissionGraph struct {
-		Groups   map[string]map[string]permissionGroup `json:"groups"`
-		Revision int                                   `json:"revision"`
-	}
-
-	err := c.request(ctx, http.MethodGet, "/permissions/graph", nil, &permissionGraph)
-	if err != nil {
-		return err
-	}
-
-	dbSID := strconv.Itoa(databaseID)
-
-	ownerGrp := strconv.Itoa(aadGroupID)
-
-	log.Printf("owner group %v %v", aadGroupID, ownerGrp)
-	if _, ok := permissionGraph.Groups[ownerGrp]; !ok {
-		permissionGraph.Groups[ownerGrp] = map[string]permissionGroup{}
-	}
-	permissionGraph.Groups[ownerGrp][dbSID] = permissionGroup{
-		Data:      permissions{Native: "write", Schemas: "all"},
-		DataModel: &dataModelPermission{Schemas: "all"},
-		Details:   "yes",
-	}
-
-	payload, err := json.Marshal(permissionGraph)
-	log.Printf("permission request with payload %v, error %v", string(payload), err)
-	if err := c.request(ctx, http.MethodPut, "/permissions/graph", permissionGraph, nil); err != nil {
-		return err
-	}
-
-	return nil
 }
