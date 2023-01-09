@@ -137,11 +137,6 @@ func (m *Metabase) deleteAllUsersDatabase(ctx context.Context, datasetID uuid.UU
 		return
 	}
 
-	if err := m.client.DeletePermissionGroup(ctx, mbMeta.AADPermissionGroupID); err != nil {
-		log.Errorf("Unable to delete owner aad group %v", mbMeta.OwnerAADGroupID)
-		return
-	}
-
 	if err := m.client.deleteDatabase(ctx, mbMeta.DatabaseID); err != nil {
 		log.Errorf("Unable to delete all-users database %v", mbMeta.DatabaseID)
 		return
@@ -176,11 +171,6 @@ func (m *Metabase) deleteRestrictedDatabase(ctx context.Context, datasetID uuid.
 
 	if err := m.deleteServiceAccount(mbMeta.SAEmail); err != nil {
 		log.Errorf("Unable to delete service account for restricted database %v", mbMeta.DatabaseID)
-		return
-	}
-
-	if err := m.client.DeletePermissionGroup(ctx, mbMeta.OwnerAADGroupID); err != nil {
-		log.Errorf("Unable to delete owner AAD group %v", mbMeta.OwnerAADGroupID)
 		return
 	}
 

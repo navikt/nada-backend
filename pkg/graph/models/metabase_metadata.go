@@ -11,7 +11,6 @@ type MetabaseMetadata struct {
 	DatabaseID           int
 	PermissionGroupID    int
 	AADPermissionGroupID int
-	OwnerAADGroupID      int
 	CollectionID         int
 	SAEmail              string
 	DeletedAt            *time.Time
