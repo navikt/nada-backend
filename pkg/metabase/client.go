@@ -377,9 +377,9 @@ func (c *Client) RestrictAccessToDatabase(ctx context.Context, groupIDs []int, a
 	}
 
 	type permissionGroup struct {
-		Data      permissions         `json:"data,omitempty"`
-		Details   string              `json:"details,omitempty"`
-		DataModel dataModelPermission `json:"data-model,omitempty"`
+		Data      permissions          `json:"data,omitempty"`
+		Details   string               `json:"details,omitempty"`
+		DataModel *dataModelPermission `json:"data-model,omitempty"`
 	}
 
 	var permissionGraph struct {
@@ -414,7 +414,7 @@ func (c *Client) RestrictAccessToDatabase(ctx context.Context, groupIDs []int, a
 		}
 		permissionGraph.Groups[grpSID][dbSID] = permissionGroup{
 			Data:      permissions{Native: "write", Schemas: "all"},
-			DataModel: dataModelPermission{Schemas: "all"},
+			DataModel: &dataModelPermission{Schemas: "all"},
 			Details:   "yes",
 		}
 		grpSIDs = append(grpSIDs, grpSID)
