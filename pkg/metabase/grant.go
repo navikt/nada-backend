@@ -317,7 +317,7 @@ func (m *Metabase) create(ctx context.Context, ds dsWrapper) error {
 	}
 
 	if ds.MetabaseOwnerAADGroupID > 0 {
-		log.Printf("Config owner aad group %v", ds.MetabaseAADGroupID)
+		log.Printf("Config owner aad group %v", ds.MetabaseOwnerAADGroupID)
 
 		groupID, err := m.getOwnerAADGroupID(ctx, ds.Dataset.DataproductID)
 		if err != nil {

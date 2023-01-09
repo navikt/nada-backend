@@ -608,14 +608,15 @@ func (c *Client) grantAADGroupOwnerPermission(ctx context.Context, aadGroupID in
 	dbSID := strconv.Itoa(databaseID)
 
 	ownerGrp := strconv.Itoa(aadGroupID)
-	for gid, permission := range permissionGraph.Groups {
-		if gid == ownerGrp {
-			permission[dbSID] = permissionGroup{
-				Data:      permissions{Native: "write", Schemas: "all"},
-				DataModel: &dataModelPermission{Schemas: "all"},
-				Details:   "yes",
-			}
-		}
+
+	log.Printf("owner group %v %v", aadGroupID, ownerGrp)
+	if _, ok := permissionGraph.Groups[ownerGrp]; !ok {
+		permissionGraph.Groups[ownerGrp] = map[string]permissionGroup{}
+	}
+	permissionGraph.Groups[ownerGrp][dbSID] = permissionGroup{
+		Data:      permissions{Native: "write", Schemas: "all"},
+		DataModel: &dataModelPermission{Schemas: "all"},
+		Details:   "yes",
 	}
 
 	payload, err := json.Marshal(permissionGraph)
