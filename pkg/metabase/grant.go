@@ -55,6 +55,7 @@ func (m *Metabase) addAllUsersDataset(ctx context.Context, dsID uuid.UUID) {
 			log.WithError(err).Error("creating metabase database")
 			return
 		}
+		return
 	} else if err != nil {
 		log.WithError(err).Error("get metabase metadata")
 		return
@@ -300,6 +301,11 @@ func (m *Metabase) create(ctx context.Context, ds dsWrapper) error {
 
 	if ds.MetabaseGroupID > 0 || ds.MetabaseAADGroupID > 0 {
 		err := m.client.RestrictAccessToDatabase(ctx, []int{ds.MetabaseGroupID, ds.MetabaseAADGroupID}, dbID)
+		if err != nil {
+			return err
+		}
+	} else {
+		err := m.client.OpenAccessToDatabase(ctx, dbID)
 		if err != nil {
 			return err
 		}
