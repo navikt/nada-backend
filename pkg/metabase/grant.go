@@ -276,6 +276,7 @@ func (m *Metabase) createRestricted(ctx context.Context, ds *models.Dataset) err
 }
 
 func (m *Metabase) create(ctx context.Context, ds dsWrapper) error {
+	log := m.log.WithField("Dataset", ds.Dataset.Name)
 	log.Printf("Create metabase database for dataset %v", ds.Dataset.Name)
 
 	datasource, err := m.repo.GetBigqueryDatasource(ctx, ds.Dataset.ID)
@@ -298,8 +299,6 @@ func (m *Metabase) create(ctx context.Context, ds dsWrapper) error {
 		return err
 	}
 
-	log.Printf("Create metabase metadata for dataset %v, owner aad group %v", ds.Dataset.Name, ds.MetabaseAADGroupID)
-
 	err = m.repo.CreateMetabaseMetadata(ctx, models.MetabaseMetadata{
 		DatasetID:            ds.Dataset.ID,
 		DatabaseID:           dbID,
@@ -317,32 +316,26 @@ func (m *Metabase) create(ctx context.Context, ds dsWrapper) error {
 		return err
 	}
 
-	if ds.MetabaseGroupID > 0 || ds.MetabaseAADGroupID > 0 {
-		//err := m.client.RestrictAccessToDatabase(ctx, []int{ds.MetabaseGroupID, ds.MetabaseAADGroupID}, dbID)
-		if err != nil {
-			return err
-		}
-	}
-
 	if ds.MetabaseOwnerAADGroupID > 0 {
 		log.Printf("Config owner aad group %v", ds.MetabaseAADGroupID)
 
 		groupID, err := m.getOwnerAADGroupID(ctx, ds.Dataset.DataproductID)
 		if err != nil {
+			log.WithError(err).Error("Failed to get aad group of dataproduct %v", ds.Dataset.DataproductID)
+		} else {
+			log.Printf("Get aad group %v", groupID)
+			if err := m.client.UpdateGroupMapping(ctx, groupID, ds.MetabaseOwnerAADGroupID, GroupMappingOperationAdd); err != nil {
+				log.WithError(err).Error("Failed to update group mapping")
+			}
+		}
+	}
+
+	if ds.MetabaseGroupID > 0 || ds.MetabaseAADGroupID > 0 || ds.MetabaseOwnerAADGroupID > 0 {
+		err := m.client.RestrictAccessToDatabase(ctx, []int{ds.MetabaseGroupID, ds.MetabaseAADGroupID},
+			ds.MetabaseOwnerAADGroupID, dbID)
+		if err != nil {
 			return err
 		}
-		log.Printf("Get aad group %v", groupID)
-
-		if err := m.client.UpdateGroupMapping(ctx, groupID, ds.MetabaseOwnerAADGroupID, GroupMappingOperationAdd); err != nil {
-			return err
-		}
-
-		log.Printf("update owner aad group metabase mapping")
-
-		if err := m.client.grantAADGroupOwnerPermission(ctx, ds.MetabaseOwnerAADGroupID, dbID); err != nil {
-			return err
-		}
-		log.Printf("update owner aad group metabase permission")
 	}
 
 	if err := m.HideOtherTables(ctx, dbID, datasource.Table); err != nil {

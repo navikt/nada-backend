@@ -366,14 +366,20 @@ func (c *Client) AddPermissionGroupMember(ctx context.Context, groupID int, emai
 	return c.request(ctx, http.MethodPost, "/permissions/membership", payload, nil)
 }
 
-func (c *Client) RestrictAccessToDatabase(ctx context.Context, groupIDs []int, databaseID int) error {
+func (c *Client) RestrictAccessToDatabase(ctx context.Context, groupIDs []int, adminGroupID int, databaseID int) error {
 	type permissions struct {
 		Native  string `json:"native,omitempty"`
 		Schemas string `json:"schemas,omitempty"`
 	}
 
+	type dataModelPermission struct {
+		Schemas string `json:"schemas,omitempty"`
+	}
+
 	type permissionGroup struct {
-		Data permissions `json:"data,omitempty"`
+		Data      permissions         `json:"data,omitempty"`
+		Details   string              `json:"details,omitempty"`
+		DataModel dataModelPermission `json:"data-model,omitempty"`
 	}
 
 	var permissionGraph struct {
@@ -401,6 +407,19 @@ func (c *Client) RestrictAccessToDatabase(ctx context.Context, groupIDs []int, d
 		grpSIDs = append(grpSIDs, grpSID)
 	}
 
+	if adminGroupID > 0 {
+		grpSID := strconv.Itoa(adminGroupID)
+		if _, ok := permissionGraph.Groups[grpSID]; !ok {
+			permissionGraph.Groups[grpSID] = map[string]permissionGroup{}
+		}
+		permissionGraph.Groups[grpSID][dbSID] = permissionGroup{
+			Data:      permissions{Native: "write", Schemas: "all"},
+			DataModel: dataModelPermission{Schemas: "all"},
+			Details:   "yes",
+		}
+		grpSIDs = append(grpSIDs, grpSID)
+	}
+
 	for gid, permission := range permissionGraph.Groups {
 		if gid == "2" {
 			// admin group
@@ -412,6 +431,9 @@ func (c *Client) RestrictAccessToDatabase(ctx context.Context, groupIDs []int, d
 			}
 		}
 	}
+
+	payload, err := json.Marshal(permissionGraph)
+	log.Printf("permission request with payload %v, error %v", string(payload), err)
 
 	if err := c.request(ctx, http.MethodPut, "/permissions/graph", permissionGraph, nil); err != nil {
 		return err
