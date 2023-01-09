@@ -81,7 +81,7 @@ func (m *Metabase) addAllUsersDataset(ctx context.Context, dsID uuid.UUID) {
 		log.Info("all users database already exists in metabase")
 		return
 	} else {
-		if err := m.client.OpenAccessToDatabase(ctx, mbMetadata.DatabaseID); err != nil {
+		if err := m.client.OpenAccessToDatabase(ctx, 0, mbMetadata.DatabaseID); err != nil {
 			log.WithError(err).Error("open access to dataset")
 			return
 		}
@@ -330,9 +330,14 @@ func (m *Metabase) create(ctx context.Context, ds dsWrapper) error {
 		}
 	}
 
-	if ds.MetabaseGroupID > 0 || ds.MetabaseAADGroupID > 0 || ds.MetabaseOwnerAADGroupID > 0 {
+	if ds.MetabaseGroupID > 0 || ds.MetabaseAADGroupID > 0 {
 		err := m.client.RestrictAccessToDatabase(ctx, []int{ds.MetabaseGroupID, ds.MetabaseAADGroupID},
 			ds.MetabaseOwnerAADGroupID, dbID)
+		if err != nil {
+			return err
+		}
+	} else if ds.MetabaseOwnerAADGroupID > 0 {
+		err := m.client.grantAADGroupOwnerPermission(ctx, ds.MetabaseOwnerAADGroupID, dbID)
 		if err != nil {
 			return err
 		}

@@ -366,21 +366,22 @@ func (c *Client) AddPermissionGroupMember(ctx context.Context, groupID int, emai
 	return c.request(ctx, http.MethodPost, "/permissions/membership", payload, nil)
 }
 
+type permissions struct {
+	Native  string `json:"native,omitempty"`
+	Schemas string `json:"schemas,omitempty"`
+}
+
+type dataModelPermission struct {
+	Schemas string `json:"schemas,omitempty"`
+}
+
+type permissionGroup struct {
+	Data      permissions          `json:"data,omitempty"`
+	Details   string               `json:"details,omitempty"`
+	DataModel *dataModelPermission `json:"data-model,omitempty"`
+}
+
 func (c *Client) RestrictAccessToDatabase(ctx context.Context, groupIDs []int, adminGroupID int, databaseID int) error {
-	type permissions struct {
-		Native  string `json:"native,omitempty"`
-		Schemas string `json:"schemas,omitempty"`
-	}
-
-	type dataModelPermission struct {
-		Schemas string `json:"schemas,omitempty"`
-	}
-
-	type permissionGroup struct {
-		Data      permissions          `json:"data,omitempty"`
-		Details   string               `json:"details,omitempty"`
-		DataModel *dataModelPermission `json:"data-model,omitempty"`
-	}
 
 	var permissionGraph struct {
 		Groups   map[string]map[string]permissionGroup `json:"groups"`
@@ -442,16 +443,7 @@ func (c *Client) RestrictAccessToDatabase(ctx context.Context, groupIDs []int, a
 	return nil
 }
 
-func (c *Client) OpenAccessToDatabase(ctx context.Context, databaseID int) error {
-	type permissions struct {
-		Native  string `json:"native,omitempty"`
-		Schemas string `json:"schemas,omitempty"`
-	}
-
-	type permissionGroup struct {
-		Data permissions `json:"data,omitempty"`
-	}
-
+func (c *Client) OpenAccessToDatabase(ctx context.Context, ownerGroup int, databaseID int) error {
 	var permissionGraph struct {
 		Groups   map[string]map[string]permissionGroup `json:"groups"`
 		Revision int                                   `json:"revision"`
@@ -463,14 +455,12 @@ func (c *Client) OpenAccessToDatabase(ctx context.Context, databaseID int) error
 	}
 
 	dbSID := strconv.Itoa(databaseID)
-
 	for gid, permission := range permissionGraph.Groups {
 		if gid == "1" {
 			// All users group
 			permission[dbSID] = permissionGroup{
 				Data: permissions{Native: "write", Schemas: "all"},
 			}
-			break
 		}
 	}
 
@@ -605,21 +595,6 @@ func dbExists(dbs []Database, nadaID string) (int, bool) {
 }
 
 func (c *Client) grantAADGroupOwnerPermission(ctx context.Context, aadGroupID int, databaseID int) error {
-	type dataModelPermission struct {
-		Schemas string `json:"schemas,omitempty"`
-	}
-
-	type permissions struct {
-		Native    string              `json:"native,omitempty"`
-		Schemas   string              `json:"schemas,omitempty"`
-		DataModel dataModelPermission `json:"data-model,omitempty"`
-		Details   string              `json:"details,omitempty"`
-	}
-
-	type permissionGroup struct {
-		Data permissions `json:"data,omitempty"`
-	}
-
 	var permissionGraph struct {
 		Groups   map[string]map[string]permissionGroup `json:"groups"`
 		Revision int                                   `json:"revision"`
@@ -632,19 +607,15 @@ func (c *Client) grantAADGroupOwnerPermission(ctx context.Context, aadGroupID in
 
 	dbSID := strconv.Itoa(databaseID)
 
-	grpSID := strconv.Itoa(aadGroupID)
-	if _, ok := permissionGraph.Groups[grpSID]; !ok {
-		permissionGraph.Groups[grpSID] = map[string]permissionGroup{}
-	}
-	permissionGraph.Groups[grpSID][dbSID] = permissionGroup{
-		Data: permissions{
-			Native:  "write",
-			Schemas: "all",
-			DataModel: dataModelPermission{
-				Schemas: "all",
-			},
-			Details: "yes",
-		},
+	ownerGrp := strconv.Itoa(aadGroupID)
+	for gid, permission := range permissionGraph.Groups {
+		if gid == ownerGrp {
+			permission[dbSID] = permissionGroup{
+				Data:      permissions{Native: "write", Schemas: "all"},
+				DataModel: &dataModelPermission{Schemas: "all"},
+				Details:   "yes",
+			}
+		}
 	}
 
 	payload, err := json.Marshal(permissionGraph)
