@@ -260,6 +260,9 @@ func (m *Metabase) createRestricted(ctx context.Context, ds *models.Dataset) err
 }
 
 func (m *Metabase) create(ctx context.Context, ds dsWrapper) error {
+	log := m.log.WithField("Dataset", ds.Dataset.Name)
+	log.Printf("Create metabase database for dataset %v", ds.Dataset.Name)
+
 	datasource, err := m.repo.GetBigqueryDatasource(ctx, ds.Dataset.ID)
 	if err != nil {
 		return err
@@ -298,6 +301,11 @@ func (m *Metabase) create(ctx context.Context, ds dsWrapper) error {
 
 	if ds.MetabaseGroupID > 0 || ds.MetabaseAADGroupID > 0 {
 		err := m.client.RestrictAccessToDatabase(ctx, []int{ds.MetabaseGroupID, ds.MetabaseAADGroupID}, dbID)
+		if err != nil {
+			return err
+		}
+	} else {
+		err := m.client.OpenAccessToDatabase(ctx, dbID)
 		if err != nil {
 			return err
 		}
