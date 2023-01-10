@@ -1,6 +1,7 @@
 mutation{
   publishStory(input: {
     id: "{{ .draft_id }}",
+    name: "mystory"
     group: "nada@nav.no",
     teamID: "team-001"
     productAreaID: "Mocked-001"
