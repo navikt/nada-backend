@@ -91,6 +91,7 @@ func (h *Handler) Update(w http.ResponseWriter, r *http.Request) {
 
 	_, err = h.repo.UpdateStory(r.Context(), models.NewStory{
 		ID:               draftID,
+		Name:             newStory.Name,
 		Target:           &existing.ID,
 		Group:            existing.Owner.Group,
 		Keywords:         existing.Keywords,

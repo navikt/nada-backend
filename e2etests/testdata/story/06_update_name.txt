@@ -2,9 +2,9 @@ mutation{
   publishStory(input: {
     id: "{{ .draft_id }}",
     group: "nada@nav.no",
-    name: "mystory"
+    name: "my updated name",
+    target: "{{ .story_id }}"
   }){
-    id
     name
     owner{
       group
@@ -24,13 +24,11 @@ mutation{
 
 RETURNS
 
-OPTION data.publishStory.id=IGNORE
-
 ENDOPTS
 {
   "data": {
     "publishStory": {
-      "name": "mystory",
+      "name": "my updated name",
       "owner": {
         "group": "nada@nav.no",
         "teamkatalogenURL": null
@@ -47,5 +45,3 @@ ENDOPTS
     }
   }
 }
-
-STORE story_id=data.publishStory.id

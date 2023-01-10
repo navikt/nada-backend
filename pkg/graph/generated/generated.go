@@ -3212,6 +3212,8 @@ extend type Query {
 input NewStory @goModel(model: "github.com/navikt/nada-backend/pkg/graph/models.NewStory") {
 		"id is the id for the draft story."
 		id: ID!
+		"name is the title of the story"
+		name: String!
 		"target is the id of the published story to overwrite. Keep empty to create new story."
 		target: ID
 		"group is the owner group for the story."
@@ -16892,7 +16894,7 @@ func (ec *executionContext) unmarshalInputNewStory(ctx context.Context, obj inte
 		asMap[k] = v
 	}
 
-	fieldsInOrder := [...]string{"id", "target", "group", "keywords", "teamkatalogenURL", "productAreaID", "teamID"}
+	fieldsInOrder := [...]string{"id", "name", "target", "group", "keywords", "teamkatalogenURL", "productAreaID", "teamID"}
 	for _, k := range fieldsInOrder {
 		v, ok := asMap[k]
 		if !ok {
@@ -16904,6 +16906,14 @@ func (ec *executionContext) unmarshalInputNewStory(ctx context.Context, obj inte
 
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("id"))
 			it.ID, err = ec.unmarshalNID2githubᚗcomᚋgoogleᚋuuidᚐUUID(ctx, v)
+			if err != nil {
+				return it, err
+			}
+		case "name":
+			var err error
+
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("name"))
+			it.Name, err = ec.unmarshalNString2string(ctx, v)
 			if err != nil {
 				return it, err
 			}

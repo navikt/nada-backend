@@ -39,6 +39,7 @@ type GraphStory struct {
 
 type NewStory struct {
 	ID               uuid.UUID  `json:"id"`
+	Name             string     `json:"name"`
 	Target           *uuid.UUID `json:"target"`
 	Group            string     `json:"group"`
 	Keywords         []string   `json:"keywords"`

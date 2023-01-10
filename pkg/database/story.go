@@ -179,7 +179,7 @@ func (r *Repo) UpdateStory(ctx context.Context, ds models.NewStory) (*models.DBS
 	}
 
 	updated, err := querier.UpdateStory(ctx, gensql.UpdateStoryParams{
-		Name:             existing.Name,
+		Name:             ds.Name,
 		Grp:              existing.Group,
 		Description:      existing.Description,
 		Keywords:         ds.Keywords,
