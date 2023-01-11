@@ -220,6 +220,7 @@ type Dataset struct {
 	Keywords                 []string
 	DataproductID            uuid.UUID
 	AnonymisationDescription sql.NullString
+	TargetUser               sql.NullString
 }
 
 type DatasetAccess struct {

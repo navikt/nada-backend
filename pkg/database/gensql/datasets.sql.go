@@ -91,7 +91,8 @@ INSERT INTO datasets ("dataproduct_id",
                       "slug",
                       "repo",
                       "keywords",
-                      "anonymisation_description"
+                      "anonymisation_description",
+                      "target_user"
                       )
 VALUES ($1,
         $2,
@@ -101,8 +102,9 @@ VALUES ($1,
         $6,
         $7,
         $8,
-        $9)
-RETURNING id, name, description, pii, created, last_modified, type, tsv_document, slug, repo, keywords, dataproduct_id, anonymisation_description
+        $9,
+        $10)
+RETURNING id, name, description, pii, created, last_modified, type, tsv_document, slug, repo, keywords, dataproduct_id, anonymisation_description, target_user
 `
 
 type CreateDatasetParams struct {
@@ -115,6 +117,7 @@ type CreateDatasetParams struct {
 	Repo                     sql.NullString
 	Keywords                 []string
 	AnonymisationDescription sql.NullString
+	TargetUser               sql.NullString
 }
 
 func (q *Queries) CreateDataset(ctx context.Context, arg CreateDatasetParams) (Dataset, error) {
@@ -128,6 +131,7 @@ func (q *Queries) CreateDataset(ctx context.Context, arg CreateDatasetParams) (D
 		arg.Repo,
 		pq.Array(arg.Keywords),
 		arg.AnonymisationDescription,
+		arg.TargetUser,
 	)
 	var i Dataset
 	err := row.Scan(
@@ -144,6 +148,7 @@ func (q *Queries) CreateDataset(ctx context.Context, arg CreateDatasetParams) (D
 		pq.Array(&i.Keywords),
 		&i.DataproductID,
 		&i.AnonymisationDescription,
+		&i.TargetUser,
 	)
 	return i, err
 }
@@ -205,7 +210,7 @@ func (q *Queries) DatasetKeywords(ctx context.Context, keyword string) ([]Datase
 }
 
 const datasetsByMetabase = `-- name: DatasetsByMetabase :many
-SELECT id, name, description, pii, created, last_modified, type, tsv_document, slug, repo, keywords, dataproduct_id, anonymisation_description
+SELECT id, name, description, pii, created, last_modified, type, tsv_document, slug, repo, keywords, dataproduct_id, anonymisation_description, target_user
 FROM datasets
 WHERE id IN (
 	SELECT dataset_id
@@ -244,6 +249,7 @@ func (q *Queries) DatasetsByMetabase(ctx context.Context, arg DatasetsByMetabase
 			pq.Array(&i.Keywords),
 			&i.DataproductID,
 			&i.AnonymisationDescription,
+			&i.TargetUser,
 		); err != nil {
 			return nil, err
 		}
@@ -352,7 +358,7 @@ func (q *Queries) GetBigqueryDatasources(ctx context.Context) ([]DatasourceBigqu
 }
 
 const getDataset = `-- name: GetDataset :one
-SELECT id, name, description, pii, created, last_modified, type, tsv_document, slug, repo, keywords, dataproduct_id, anonymisation_description
+SELECT id, name, description, pii, created, last_modified, type, tsv_document, slug, repo, keywords, dataproduct_id, anonymisation_description, target_user
 FROM datasets
 WHERE id = $1
 `
@@ -374,6 +380,7 @@ func (q *Queries) GetDataset(ctx context.Context, id uuid.UUID) (Dataset, error)
 		pq.Array(&i.Keywords),
 		&i.DataproductID,
 		&i.AnonymisationDescription,
+		&i.TargetUser,
 	)
 	return i, err
 }
@@ -408,7 +415,7 @@ func (q *Queries) GetDatasetRequesters(ctx context.Context, datasetID uuid.UUID)
 }
 
 const getDatasets = `-- name: GetDatasets :many
-SELECT id, name, description, pii, created, last_modified, type, tsv_document, slug, repo, keywords, dataproduct_id, anonymisation_description
+SELECT id, name, description, pii, created, last_modified, type, tsv_document, slug, repo, keywords, dataproduct_id, anonymisation_description, target_user
 FROM datasets
 ORDER BY last_modified DESC
 LIMIT $2 OFFSET $1
@@ -442,6 +449,7 @@ func (q *Queries) GetDatasets(ctx context.Context, arg GetDatasetsParams) ([]Dat
 			pq.Array(&i.Keywords),
 			&i.DataproductID,
 			&i.AnonymisationDescription,
+			&i.TargetUser,
 		); err != nil {
 			return nil, err
 		}
@@ -457,7 +465,7 @@ func (q *Queries) GetDatasets(ctx context.Context, arg GetDatasetsParams) ([]Dat
 }
 
 const getDatasetsByGroups = `-- name: GetDatasetsByGroups :many
-SELECT id, name, description, pii, created, last_modified, type, tsv_document, slug, repo, keywords, dataproduct_id, anonymisation_description
+SELECT id, name, description, pii, created, last_modified, type, tsv_document, slug, repo, keywords, dataproduct_id, anonymisation_description, target_user
 FROM datasets
 WHERE "group" = ANY ($1::text[])
 ORDER BY last_modified DESC
@@ -486,6 +494,7 @@ func (q *Queries) GetDatasetsByGroups(ctx context.Context, groups []string) ([]D
 			pq.Array(&i.Keywords),
 			&i.DataproductID,
 			&i.AnonymisationDescription,
+			&i.TargetUser,
 		); err != nil {
 			return nil, err
 		}
@@ -501,7 +510,7 @@ func (q *Queries) GetDatasetsByGroups(ctx context.Context, groups []string) ([]D
 }
 
 const getDatasetsByIDs = `-- name: GetDatasetsByIDs :many
-SELECT id, name, description, pii, created, last_modified, type, tsv_document, slug, repo, keywords, dataproduct_id, anonymisation_description
+SELECT id, name, description, pii, created, last_modified, type, tsv_document, slug, repo, keywords, dataproduct_id, anonymisation_description, target_user
 FROM datasets
 WHERE id = ANY ($1::uuid[])
 ORDER BY last_modified DESC
@@ -530,6 +539,7 @@ func (q *Queries) GetDatasetsByIDs(ctx context.Context, ids []uuid.UUID) ([]Data
 			pq.Array(&i.Keywords),
 			&i.DataproductID,
 			&i.AnonymisationDescription,
+			&i.TargetUser,
 		); err != nil {
 			return nil, err
 		}
@@ -545,7 +555,7 @@ func (q *Queries) GetDatasetsByIDs(ctx context.Context, ids []uuid.UUID) ([]Data
 }
 
 const getDatasetsByUserAccess = `-- name: GetDatasetsByUserAccess :many
-SELECT id, name, description, pii, created, last_modified, type, tsv_document, slug, repo, keywords, dataproduct_id, anonymisation_description
+SELECT id, name, description, pii, created, last_modified, type, tsv_document, slug, repo, keywords, dataproduct_id, anonymisation_description, target_user
 FROM datasets
 WHERE id = ANY (SELECT dataset_id
                 FROM dataset_access
@@ -578,6 +588,7 @@ func (q *Queries) GetDatasetsByUserAccess(ctx context.Context, id string) ([]Dat
 			pq.Array(&i.Keywords),
 			&i.DataproductID,
 			&i.AnonymisationDescription,
+			&i.TargetUser,
 		); err != nil {
 			return nil, err
 		}
@@ -593,7 +604,7 @@ func (q *Queries) GetDatasetsByUserAccess(ctx context.Context, id string) ([]Dat
 }
 
 const getDatasetsInDataproduct = `-- name: GetDatasetsInDataproduct :many
-SELECT id, name, description, pii, created, last_modified, type, tsv_document, slug, repo, keywords, dataproduct_id, anonymisation_description
+SELECT id, name, description, pii, created, last_modified, type, tsv_document, slug, repo, keywords, dataproduct_id, anonymisation_description, target_user
 FROM datasets
 WHERE dataproduct_id = $1
 `
@@ -621,6 +632,7 @@ func (q *Queries) GetDatasetsInDataproduct(ctx context.Context, dataproductID uu
 			pq.Array(&i.Keywords),
 			&i.DataproductID,
 			&i.AnonymisationDescription,
+			&i.TargetUser,
 		); err != nil {
 			return nil, err
 		}
@@ -703,9 +715,10 @@ SET "name"                      = $1,
     "repo"                      = $5,
     "keywords"                  = $6,
     "dataproduct_id"            = $7,
-    "anonymisation_description" = $8
-WHERE id = $9
-RETURNING id, name, description, pii, created, last_modified, type, tsv_document, slug, repo, keywords, dataproduct_id, anonymisation_description
+    "anonymisation_description" = $8,
+    "target_user"               = $9
+WHERE id = $10
+RETURNING id, name, description, pii, created, last_modified, type, tsv_document, slug, repo, keywords, dataproduct_id, anonymisation_description, target_user
 `
 
 type UpdateDatasetParams struct {
@@ -717,6 +730,7 @@ type UpdateDatasetParams struct {
 	Keywords                 []string
 	DataproductID            uuid.UUID
 	AnonymisationDescription sql.NullString
+	TargetUser               sql.NullString
 	ID                       uuid.UUID
 }
 
@@ -730,6 +744,7 @@ func (q *Queries) UpdateDataset(ctx context.Context, arg UpdateDatasetParams) (D
 		pq.Array(arg.Keywords),
 		arg.DataproductID,
 		arg.AnonymisationDescription,
+		arg.TargetUser,
 		arg.ID,
 	)
 	var i Dataset
@@ -747,6 +762,7 @@ func (q *Queries) UpdateDataset(ctx context.Context, arg UpdateDatasetParams) (D
 		pq.Array(&i.Keywords),
 		&i.DataproductID,
 		&i.AnonymisationDescription,
+		&i.TargetUser,
 	)
 	return i, err
 }

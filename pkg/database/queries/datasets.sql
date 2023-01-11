@@ -51,7 +51,8 @@ INSERT INTO datasets ("dataproduct_id",
                       "slug",
                       "repo",
                       "keywords",
-                      "anonymisation_description"
+                      "anonymisation_description",
+                      "target_user"
                       )
 VALUES (@dataproduct_id,
         @name,
@@ -61,7 +62,8 @@ VALUES (@dataproduct_id,
         @slug,
         @repo,
         @keywords,
-        @anonymisation_description)
+        @anonymisation_description,
+        @target_user)
 RETURNING *;
 
 -- name: UpdateDataset :one
@@ -73,7 +75,8 @@ SET "name"                      = @name,
     "repo"                      = @repo,
     "keywords"                  = @keywords,
     "dataproduct_id"            = @dataproduct_id,
-    "anonymisation_description" = @anonymisation_description
+    "anonymisation_description" = @anonymisation_description,
+    "target_user"               = @target_user
 WHERE id = @id
 RETURNING *;
 

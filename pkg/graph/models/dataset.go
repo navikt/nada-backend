@@ -20,6 +20,7 @@ type Dataset struct {
 	Keywords                 []string  `json:"keywords"`
 	Type                     gensql.DatasourceType
 	AnonymisationDescription *string `json:"anonymisationDescription"`
+	TargetUser               *string `json:"targetUser"`
 }
 
 func (Dataset) IsSearchResult() {}
@@ -62,6 +63,7 @@ type NewDataset struct {
 	Requesters               []string    `json:"requesters"`
 	AnonymisationDescription *string     `json:"anonymisationDescription"`
 	GrantAllUsers            *bool       `json:"grantAllUsers"`
+	TargetUser               *string     `json:"targetUser"`
 	Metadata                 BigqueryMetadata
 }
 
@@ -76,6 +78,7 @@ type NewDatasetForNewDataproduct struct {
 	Requesters               []string    `json:"requesters"`
 	AnonymisationDescription *string     `json:"anonymisationDescription"`
 	GrantAllUsers            *bool       `json:"grantAllUsers"`
+	TargetUser               *string     `json:"targetUser"`
 	Metadata                 BigqueryMetadata
 }
 
@@ -90,6 +93,7 @@ type UpdateDataset struct {
 	DataproductID            *uuid.UUID `json:"dataproductID"`
 	AnonymisationDescription *string    `json:"anonymisationDescription"`
 	PiiTags                  *string    `json:"piiTags"`
+	TargetUser               *string    `json:"targetUser"`
 }
 
 type DatasetServices struct {

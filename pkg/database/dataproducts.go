@@ -125,6 +125,7 @@ func (r *Repo) CreateDataproduct(ctx context.Context, dp models.NewDataproduct, 
 			Type:                     gensql.DatasourceTypeBigquery,
 			Slug:                     slugify(nil, ds.Name),
 			AnonymisationDescription: ptrToNullString(ds.AnonymisationDescription),
+			TargetUser:               ptrToNullString(ds.TargetUser),
 		})
 		if err != nil {
 			if err := tx.Rollback(); err != nil {
