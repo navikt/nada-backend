@@ -59,6 +59,7 @@ func (r *Repo) CreateDataset(ctx context.Context, ds models.NewDataset, user *au
 		Repo:                     ptrToNullString(ds.Repo),
 		Keywords:                 ds.Keywords,
 		AnonymisationDescription: ptrToNullString(ds.AnonymisationDescription),
+		TargetUser:               ptrToNullString(ds.TargetUser),
 	})
 	if err != nil {
 		return nil, err
@@ -153,6 +154,7 @@ func (r *Repo) UpdateDataset(ctx context.Context, id uuid.UUID, new models.Updat
 		Keywords:                 new.Keywords,
 		DataproductID:            *new.DataproductID,
 		AnonymisationDescription: ptrToNullString(new.AnonymisationDescription),
+		TargetUser:               ptrToNullString(new.TargetUser),
 	})
 	if err != nil {
 		return nil, fmt.Errorf("updating dataset in database: %w", err)
@@ -314,5 +316,6 @@ func datasetFromSQL(ds gensql.Dataset) *models.Dataset {
 		Type:                     ds.Type,
 		DataproductID:            ds.DataproductID,
 		AnonymisationDescription: nullStringToPtr(ds.AnonymisationDescription),
+		TargetUser:               nullStringToPtr(ds.TargetUser),
 	}
 }

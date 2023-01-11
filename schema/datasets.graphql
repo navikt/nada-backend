@@ -38,6 +38,8 @@ type Dataset @goModel(model: "github.com/navikt/nada-backend/pkg/graph/models.Da
     requesters: [String!]!
     "anonymisation_description explains how the dataset was anonymised, should be null if `pii` isn't anonymised"
     anonymisation_description: String
+    "targetUser is the type of user that the dataset is meant to be used by"
+    targetUser: String
 }
 
 type DatasetServices @goModel(model: "github.com/navikt/nada-backend/pkg/graph/models.DatasetServices") {
@@ -153,6 +155,8 @@ input NewDataset @goModel(model: "github.com/navikt/nada-backend/pkg/graph/model
     anonymisation_description: String
     "grantAllUsers is a boolean indicating whether the dataset shall be made available for all users on creation"
     grantAllUsers: Boolean
+    "targetUser is the type of user that the dataset is meant to be used by"
+    targetUser: String
 }
 
 """
@@ -177,6 +181,8 @@ input NewDatasetForNewDataproduct @goModel(model: "github.com/navikt/nada-backen
     anonymisation_description: String
     "grantAllUsers is a boolean indicating whether the dataset shall be made available for all users on creation"
     grantAllUsers: Boolean
+    "targetUser is the type of user that the dataset is meant to be used by"
+    targetUser: String
 }
 
 """
@@ -199,6 +205,8 @@ input UpdateDataset @goModel(model: "github.com/navikt/nada-backend/pkg/graph/mo
     anonymisation_description: String
     "piiTags is json string from the pii tags map"
     piiTags: String
+    "targetUser is the type of user that the dataset is meant to be used by"
+    targetUser: String
 }
 
 """

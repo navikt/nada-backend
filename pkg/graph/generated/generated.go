@@ -139,6 +139,7 @@ type ComplexityRoot struct {
 		Requesters               func(childComplexity int) int
 		Services                 func(childComplexity int) int
 		Slug                     func(childComplexity int) int
+		TargetUser               func(childComplexity int) int
 	}
 
 	DatasetServices struct {
@@ -908,6 +909,13 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 		}
 
 		return e.complexity.Dataset.Slug(childComplexity), true
+
+	case "Dataset.targetUser":
+		if e.complexity.Dataset.TargetUser == nil {
+			break
+		}
+
+		return e.complexity.Dataset.TargetUser(childComplexity), true
 
 	case "DatasetServices.metabase":
 		if e.complexity.DatasetServices.Metabase == nil {
@@ -2463,6 +2471,8 @@ type Dataset @goModel(model: "github.com/navikt/nada-backend/pkg/graph/models.Da
     requesters: [String!]!
     "anonymisation_description explains how the dataset was anonymised, should be null if ` + "`" + `pii` + "`" + ` isn't anonymised"
     anonymisation_description: String
+    "targetUser is the type of user that the dataset is meant to be used by"
+    targetUser: String
 }
 
 type DatasetServices @goModel(model: "github.com/navikt/nada-backend/pkg/graph/models.DatasetServices") {
@@ -2578,6 +2588,8 @@ input NewDataset @goModel(model: "github.com/navikt/nada-backend/pkg/graph/model
     anonymisation_description: String
     "grantAllUsers is a boolean indicating whether the dataset shall be made available for all users on creation"
     grantAllUsers: Boolean
+    "targetUser is the type of user that the dataset is meant to be used by"
+    targetUser: String
 }
 
 """
@@ -2602,6 +2614,8 @@ input NewDatasetForNewDataproduct @goModel(model: "github.com/navikt/nada-backen
     anonymisation_description: String
     "grantAllUsers is a boolean indicating whether the dataset shall be made available for all users on creation"
     grantAllUsers: Boolean
+    "targetUser is the type of user that the dataset is meant to be used by"
+    targetUser: String
 }
 
 """
@@ -2624,6 +2638,8 @@ input UpdateDataset @goModel(model: "github.com/navikt/nada-backend/pkg/graph/mo
     anonymisation_description: String
     "piiTags is json string from the pii tags map"
     piiTags: String
+    "targetUser is the type of user that the dataset is meant to be used by"
+    targetUser: String
 }
 
 """
@@ -6275,6 +6291,8 @@ func (ec *executionContext) fieldContext_Dataproduct_datasets(ctx context.Contex
 				return ec.fieldContext_Dataset_requesters(ctx, field)
 			case "anonymisation_description":
 				return ec.fieldContext_Dataset_anonymisation_description(ctx, field)
+			case "targetUser":
+				return ec.fieldContext_Dataset_targetUser(ctx, field)
 			}
 			return nil, fmt.Errorf("no field named %q was found under type Dataset", field.Name)
 		},
@@ -7121,6 +7139,47 @@ func (ec *executionContext) _Dataset_anonymisation_description(ctx context.Conte
 }
 
 func (ec *executionContext) fieldContext_Dataset_anonymisation_description(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Dataset",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Dataset_targetUser(ctx context.Context, field graphql.CollectedField, obj *models.Dataset) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_Dataset_targetUser(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.TargetUser, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		return graphql.Null
+	}
+	res := resTmp.(*string)
+	fc.Result = res
+	return ec.marshalOString2ᚖstring(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_Dataset_targetUser(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
 	fc = &graphql.FieldContext{
 		Object:     "Dataset",
 		Field:      field,
@@ -8539,6 +8598,8 @@ func (ec *executionContext) fieldContext_Mutation_createDataset(ctx context.Cont
 				return ec.fieldContext_Dataset_requesters(ctx, field)
 			case "anonymisation_description":
 				return ec.fieldContext_Dataset_anonymisation_description(ctx, field)
+			case "targetUser":
+				return ec.fieldContext_Dataset_targetUser(ctx, field)
 			}
 			return nil, fmt.Errorf("no field named %q was found under type Dataset", field.Name)
 		},
@@ -8652,6 +8713,8 @@ func (ec *executionContext) fieldContext_Mutation_updateDataset(ctx context.Cont
 				return ec.fieldContext_Dataset_requesters(ctx, field)
 			case "anonymisation_description":
 				return ec.fieldContext_Dataset_anonymisation_description(ctx, field)
+			case "targetUser":
+				return ec.fieldContext_Dataset_targetUser(ctx, field)
 			}
 			return nil, fmt.Errorf("no field named %q was found under type Dataset", field.Name)
 		},
@@ -10570,6 +10633,8 @@ func (ec *executionContext) fieldContext_Query_dataset(ctx context.Context, fiel
 				return ec.fieldContext_Dataset_requesters(ctx, field)
 			case "anonymisation_description":
 				return ec.fieldContext_Dataset_anonymisation_description(ctx, field)
+			case "targetUser":
+				return ec.fieldContext_Dataset_targetUser(ctx, field)
 			}
 			return nil, fmt.Errorf("no field named %q was found under type Dataset", field.Name)
 		},
@@ -10764,6 +10829,8 @@ func (ec *executionContext) fieldContext_Query_datasetsInDataproduct(ctx context
 				return ec.fieldContext_Dataset_requesters(ctx, field)
 			case "anonymisation_description":
 				return ec.fieldContext_Dataset_anonymisation_description(ctx, field)
+			case "targetUser":
+				return ec.fieldContext_Dataset_targetUser(ctx, field)
 			}
 			return nil, fmt.Errorf("no field named %q was found under type Dataset", field.Name)
 		},
@@ -16650,7 +16717,7 @@ func (ec *executionContext) unmarshalInputNewDataset(ctx context.Context, obj in
 		asMap[k] = v
 	}
 
-	fieldsInOrder := [...]string{"dataproductID", "name", "description", "repo", "pii", "keywords", "bigquery", "requesters", "anonymisation_description", "grantAllUsers"}
+	fieldsInOrder := [...]string{"dataproductID", "name", "description", "repo", "pii", "keywords", "bigquery", "requesters", "anonymisation_description", "grantAllUsers", "targetUser"}
 	for _, k := range fieldsInOrder {
 		v, ok := asMap[k]
 		if !ok {
@@ -16737,6 +16804,14 @@ func (ec *executionContext) unmarshalInputNewDataset(ctx context.Context, obj in
 			if err != nil {
 				return it, err
 			}
+		case "targetUser":
+			var err error
+
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("targetUser"))
+			it.TargetUser, err = ec.unmarshalOString2ᚖstring(ctx, v)
+			if err != nil {
+				return it, err
+			}
 		}
 	}
 
@@ -16750,7 +16825,7 @@ func (ec *executionContext) unmarshalInputNewDatasetForNewDataproduct(ctx contex
 		asMap[k] = v
 	}
 
-	fieldsInOrder := [...]string{"name", "description", "repo", "pii", "keywords", "bigquery", "requesters", "anonymisation_description", "grantAllUsers"}
+	fieldsInOrder := [...]string{"name", "description", "repo", "pii", "keywords", "bigquery", "requesters", "anonymisation_description", "grantAllUsers", "targetUser"}
 	for _, k := range fieldsInOrder {
 		v, ok := asMap[k]
 		if !ok {
@@ -16826,6 +16901,14 @@ func (ec *executionContext) unmarshalInputNewDatasetForNewDataproduct(ctx contex
 
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("grantAllUsers"))
 			it.GrantAllUsers, err = ec.unmarshalOBoolean2ᚖbool(ctx, v)
+			if err != nil {
+				return it, err
+			}
+		case "targetUser":
+			var err error
+
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("targetUser"))
+			it.TargetUser, err = ec.unmarshalOString2ᚖstring(ctx, v)
 			if err != nil {
 				return it, err
 			}
@@ -17286,7 +17369,7 @@ func (ec *executionContext) unmarshalInputUpdateDataset(ctx context.Context, obj
 		asMap[k] = v
 	}
 
-	fieldsInOrder := [...]string{"name", "description", "repo", "pii", "keywords", "dataproductID", "anonymisation_description", "piiTags"}
+	fieldsInOrder := [...]string{"name", "description", "repo", "pii", "keywords", "dataproductID", "anonymisation_description", "piiTags", "targetUser"}
 	for _, k := range fieldsInOrder {
 		v, ok := asMap[k]
 		if !ok {
@@ -17354,6 +17437,14 @@ func (ec *executionContext) unmarshalInputUpdateDataset(ctx context.Context, obj
 
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("piiTags"))
 			it.PiiTags, err = ec.unmarshalOString2ᚖstring(ctx, v)
+			if err != nil {
+				return it, err
+			}
+		case "targetUser":
+			var err error
+
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("targetUser"))
+			it.TargetUser, err = ec.unmarshalOString2ᚖstring(ctx, v)
 			if err != nil {
 				return it, err
 			}
@@ -18153,6 +18244,10 @@ func (ec *executionContext) _Dataset(ctx context.Context, sel ast.SelectionSet, 
 		case "anonymisation_description":
 
 			out.Values[i] = ec._Dataset_anonymisation_description(ctx, field, obj)
+
+		case "targetUser":
+
+			out.Values[i] = ec._Dataset_targetUser(ctx, field, obj)
 
 		default:
 			panic("unknown field " + strconv.Quote(field.Name))
