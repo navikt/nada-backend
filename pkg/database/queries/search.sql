@@ -34,6 +34,12 @@ WHERE
 	)
 	AND (
 		CASE
+			WHEN array_length(@team_id::text[], 1) > 0 THEN "team_id" = ANY(@team_id)
+			ELSE TRUE
+		END
+	)
+	AND (
+		CASE
 			WHEN array_length(@service::text[], 1) > 0 THEN "services" && @service
 			ELSE TRUE
 		END
