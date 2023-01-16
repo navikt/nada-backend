@@ -300,7 +300,6 @@ type Search struct {
 	Description  string
 	Keywords     interface{}
 	Group        string
-	TeamID       sql.NullString
 	Created      time.Time
 	LastModified time.Time
 	TsvDocument  interface{}

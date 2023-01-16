@@ -3048,9 +3048,6 @@ input SearchQuery @goModel(model: "github.com/navikt/nada-backend/pkg/graph/mode
     "group filters results on the group."
     group: String
 
-    "teamID filters results on the team_id."
-    teamID: String
-
     "limit the number of returned search results."
     limit: Int
 
@@ -3075,9 +3072,6 @@ input SearchOptions @goModel(model: "github.com/navikt/nada-backend/pkg/graph/mo
 
     "groups filters results on the group."
     groups: [String!]
-
-    "teamIDs filters results on the team_id."
-    teamIDs: [String!]
 
     "services filters results on the service."
     services: [MappingService!]
@@ -17119,7 +17113,7 @@ func (ec *executionContext) unmarshalInputSearchOptions(ctx context.Context, obj
 		asMap[k] = v
 	}
 
-	fieldsInOrder := [...]string{"text", "keywords", "groups", "teamIDs", "services", "types", "limit", "offset"}
+	fieldsInOrder := [...]string{"text", "keywords", "groups", "services", "types", "limit", "offset"}
 	for _, k := range fieldsInOrder {
 		v, ok := asMap[k]
 		if !ok {
@@ -17147,14 +17141,6 @@ func (ec *executionContext) unmarshalInputSearchOptions(ctx context.Context, obj
 
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("groups"))
 			it.Groups, err = ec.unmarshalOString2ᚕstringᚄ(ctx, v)
-			if err != nil {
-				return it, err
-			}
-		case "teamIDs":
-			var err error
-
-			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("teamIDs"))
-			it.TeamIDs, err = ec.unmarshalOString2ᚕstringᚄ(ctx, v)
 			if err != nil {
 				return it, err
 			}
@@ -17203,7 +17189,7 @@ func (ec *executionContext) unmarshalInputSearchQuery(ctx context.Context, obj i
 		asMap[k] = v
 	}
 
-	fieldsInOrder := [...]string{"text", "keyword", "group", "teamID", "limit", "offset"}
+	fieldsInOrder := [...]string{"text", "keyword", "group", "limit", "offset"}
 	for _, k := range fieldsInOrder {
 		v, ok := asMap[k]
 		if !ok {
@@ -17231,14 +17217,6 @@ func (ec *executionContext) unmarshalInputSearchQuery(ctx context.Context, obj i
 
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("group"))
 			it.Group, err = ec.unmarshalOString2ᚖstring(ctx, v)
-			if err != nil {
-				return it, err
-			}
-		case "teamID":
-			var err error
-
-			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("teamID"))
-			it.TeamID, err = ec.unmarshalOString2ᚖstring(ctx, v)
 			if err != nil {
 				return it, err
 			}

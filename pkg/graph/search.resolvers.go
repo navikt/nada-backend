@@ -33,9 +33,6 @@ func (r *queryResolver) Search(ctx context.Context, q *models.SearchQueryOld, op
 		if q.Group != nil {
 			options.Groups = []string{*q.Group}
 		}
-		if q.TeamID != nil {
-			options.TeamIDs = []string{*q.TeamID}
-		}
 	}
 	return r.repo.Search(ctx, options)
 }

@@ -16,9 +16,7 @@ type SearchQueryOld struct {
 	// Filter on keyword
 	Keyword *string `json:"keyword"`
 	// Filter on group
-	Group *string `json:"group"`
-	// Filter on teamID
-	TeamID *string `json:"teamID"`
+	Group  *string `json:"group"`
 	Limit  *int    `json:"limit"`
 	Offset *int    `json:"offset"`
 }
@@ -30,8 +28,6 @@ type SearchQuery struct {
 	Keywords []string `json:"keywords"`
 	// Filter on group
 	Groups []string `json:"groups"`
-	//Filter on team_id
-	TeamIDs []string `json:"teamIDs"`
 	// Filter on enabled services
 	Services []MappingService `json:"services"`
 	// Filter on types
