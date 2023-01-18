@@ -25,6 +25,7 @@ func (r *Repo) Search(ctx context.Context, query *models.SearchQuery) ([]*models
 		Query:   ptrToString(query.Text),
 		Keyword: query.Keywords,
 		Grp:     query.Groups,
+		TeamID:  query.TeamIDs,
 		Service: services,
 		Types:   types,
 		Lim:     int32(ptrToIntDefault(query.Limit, 24)),
