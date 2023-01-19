@@ -18,6 +18,47 @@ func (q *Queries) CreateTagIfNotExist(ctx context.Context, phrase string) error 
 	return err
 }
 
+const getKeywords = `-- name: GetKeywords :many
+SELECT keyword::text, count(1) as "count"
+FROM (
+         SELECT unnest(ds.keywords) as keyword
+            FROM datasets ds
+         UNION ALL
+         SELECT unnest(s.keywords) as keyword
+            FROM stories s
+    ) k
+GROUP BY keyword
+ORDER BY "count" DESC
+`
+
+type GetKeywordsRow struct {
+	Keyword string
+	Count   int64
+}
+
+func (q *Queries) GetKeywords(ctx context.Context) ([]GetKeywordsRow, error) {
+	rows, err := q.db.QueryContext(ctx, getKeywords)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []GetKeywordsRow{}
+	for rows.Next() {
+		var i GetKeywordsRow
+		if err := rows.Scan(&i.Keyword, &i.Count); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const getTag = `-- name: GetTag :one
 SELECT id, phrase FROM tags WHERE id=@id
 `
