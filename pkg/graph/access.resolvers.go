@@ -197,12 +197,26 @@ func (r *mutationResolver) ApproveAccessRequest(ctx context.Context, id uuid.UUI
 		return false, err
 	}
 
+	bq, err := r.repo.GetBigqueryDatasource(ctx, ds.ID)
+	if err != nil {
+		return false, err
+	}
+
 	dp, err := r.repo.GetDataproduct(ctx, ds.DataproductID)
 	if err != nil {
 		return false, err
 	}
 
 	if err := ensureUserInGroup(ctx, dp.Owner.Group); err != nil {
+		return false, err
+	}
+
+	if ds.Pii == "sensitive" && ar.Subject == "all-users@nav.no" {
+		return false, fmt.Errorf("Datasett som inneholder personopplysninger kan ikke gjøres tilgjengelig for alle interne brukere (all-users@nav.no).")
+	}
+
+	subjWithType := ar.SubjectType.String() + ":" + ar.Subject
+	if err := r.accessMgr.Grant(ctx, bq.ProjectID, bq.Dataset, bq.Table, subjWithType); err != nil {
 		return false, err
 	}
 

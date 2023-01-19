@@ -75,8 +75,6 @@ func (r *Repo) ApproveAccessRequest(ctx context.Context, id uuid.UUID, granter s
 		return err
 	}
 
-	fmt.Println("asdf", ar.Subject, emailOfSubjectToLower(ar.Subject))
-
 	tx, err := r.db.Begin()
 	if err != nil {
 		return err

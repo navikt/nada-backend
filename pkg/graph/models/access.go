@@ -78,7 +78,7 @@ func StringToSubjectType(subjectType string) SubjectType {
 		return SubjectTypeUser
 	case "group":
 		return SubjectTypeGroup
-	case "serviceaccount":
+	case "serviceAccount":
 		return SubjectTypeServiceAccount
 	default:
 		return ""
