@@ -235,7 +235,7 @@ type ComplexityRoot struct {
 		GcpGetTables             func(childComplexity int, projectID string, datasetID string) int
 		GroupStats               func(childComplexity int, limit *int, offset *int) int
 		IsValidSlackChannel      func(childComplexity int, name string) int
-		Keywords                 func(childComplexity int, prefix *string) int
+		Keywords                 func(childComplexity int) int
 		Polly                    func(childComplexity int, q string) int
 		ProductArea              func(childComplexity int, id string) int
 		ProductAreas             func(childComplexity int) int
@@ -406,7 +406,7 @@ type QueryResolver interface {
 	GcpGetDatasets(ctx context.Context, projectID string) ([]string, error)
 	GcpGetAllTablesInProject(ctx context.Context, projectID string) ([]*models.BigQuerySource, error)
 	GcpGetColumns(ctx context.Context, projectID string, datasetID string, tableID string) ([]*models.TableColumn, error)
-	Keywords(ctx context.Context, prefix *string) ([]*models.Keyword, error)
+	Keywords(ctx context.Context) ([]*models.Keyword, error)
 	Polly(ctx context.Context, q string) ([]*models.QueryPolly, error)
 	ProductArea(ctx context.Context, id string) (*models.ProductArea, error)
 	ProductAreas(ctx context.Context) ([]*models.ProductArea, error)
@@ -1506,12 +1506,7 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 			break
 		}
 
-		args, err := ec.field_Query_keywords_args(context.TODO(), rawArgs)
-		if err != nil {
-			return 0, false
-		}
-
-		return e.complexity.Query.Keywords(childComplexity, args["prefix"].(*string)), true
+		return e.complexity.Query.Keywords(childComplexity), true
 
 	case "Query.polly":
 		if e.complexity.Query.Polly == nil {
@@ -2838,10 +2833,7 @@ extend type Query {
 	"""
 	Keywords returns all keywords, with an optional filter
 	"""
-	keywords(
-		"Match keywords with the given filter"
-		prefix: String
-	): [Keyword!]!
+	keywords: [Keyword!]!
 }
 `, BuiltIn: false},
 	{Name: "../../../schema/main.graphql", Input: `"""
@@ -4017,21 +4009,6 @@ func (ec *executionContext) field_Query_groupStats_args(ctx context.Context, raw
 		}
 	}
 	args["offset"] = arg1
-	return args, nil
-}
-
-func (ec *executionContext) field_Query_keywords_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
-	var err error
-	args := map[string]interface{}{}
-	var arg0 *string
-	if tmp, ok := rawArgs["prefix"]; ok {
-		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("prefix"))
-		arg0, err = ec.unmarshalOString2ᚖstring(ctx, tmp)
-		if err != nil {
-			return nil, err
-		}
-	}
-	args["prefix"] = arg0
 	return args, nil
 }
 
@@ -11195,7 +11172,7 @@ func (ec *executionContext) _Query_keywords(ctx context.Context, field graphql.C
 	}()
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.Query().Keywords(rctx, fc.Args["prefix"].(*string))
+		return ec.resolvers.Query().Keywords(rctx)
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -11227,17 +11204,6 @@ func (ec *executionContext) fieldContext_Query_keywords(ctx context.Context, fie
 			}
 			return nil, fmt.Errorf("no field named %q was found under type Keyword", field.Name)
 		},
-	}
-	defer func() {
-		if r := recover(); r != nil {
-			err = ec.Recover(ctx, r)
-			ec.Error(ctx, err)
-		}
-	}()
-	ctx = graphql.WithFieldContext(ctx, fc)
-	if fc.Args, err = ec.field_Query_keywords_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
-		ec.Error(ctx, err)
-		return
 	}
 	return fc, nil
 }
