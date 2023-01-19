@@ -11,10 +11,6 @@ import (
 )
 
 // Keywords is the resolver for the keywords field.
-func (r *queryResolver) Keywords(ctx context.Context, prefix *string) ([]*models.Keyword, error) {
-	pre := ""
-	if prefix != nil {
-		pre = *prefix
-	}
-	return r.repo.DataproductKeywords(ctx, pre)
+func (r *queryResolver) Keywords(ctx context.Context) ([]*models.Keyword, error) {
+	return r.repo.KeywordsSortedByPopularity(ctx)
 }

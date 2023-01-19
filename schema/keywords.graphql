@@ -12,8 +12,5 @@ extend type Query {
 	"""
 	Keywords returns all keywords, with an optional filter
 	"""
-	keywords(
-		"Match keywords with the given filter"
-		prefix: String
-	): [Keyword!]!
+	keywords: [Keyword!]!
 }
