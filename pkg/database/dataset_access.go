@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"errors"
+	"strings"
 	"time"
 
 	"github.com/google/uuid"
@@ -82,7 +83,7 @@ func (r *Repo) GrantAccessToDataset(ctx context.Context, datasetID uuid.UUID, ex
 
 	access, err := querier.GrantAccessToDataset(ctx, gensql.GrantAccessToDatasetParams{
 		DatasetID: datasetID,
-		Subject:   subject,
+		Subject:   emailOfSubjectToLower(subject),
 		Expires:   ptrToNullTime(expires),
 		Granter:   granter,
 	})
@@ -164,4 +165,11 @@ func accessFromSQL(access gensql.DatasetAccess) *models.Access {
 		DatasetID:       access.DatasetID,
 		AccessRequestID: nullUUIDToUUIDPtr(access.AccessRequestID),
 	}
+}
+
+func emailOfSubjectToLower(subectWithType string) string {
+	parts := strings.Split(subectWithType, ":")
+	parts[1] = strings.ToLower(parts[1])
+
+	return strings.Join(parts, ":")
 }

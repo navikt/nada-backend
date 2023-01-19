@@ -5,7 +5,7 @@ INSERT INTO dataset_access_requests (dataset_id,
                                         "expires",
                                         polly_documentation_id)
 VALUES (@dataset_id,
-        LOWER(@subject),
+        @subject,
         LOWER(@owner),
         @expires,
         @polly_documentation_id)

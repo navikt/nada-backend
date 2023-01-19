@@ -16,7 +16,7 @@ import (
 func (r *Repo) CreateAccessRequestForDataset(ctx context.Context, datasetID uuid.UUID, pollyDocumentationID uuid.NullUUID, subject, owner string, expires *time.Time) (*models.AccessRequest, error) {
 	accessRequestSQL, err := r.querier.CreateAccessRequestForDataset(ctx, gensql.CreateAccessRequestForDatasetParams{
 		DatasetID:            datasetID,
-		Subject:              subject,
+		Subject:              emailOfSubjectToLower(subject),
 		Owner:                owner,
 		Expires:              ptrToNullTime(expires),
 		PollyDocumentationID: pollyDocumentationID,
@@ -75,6 +75,8 @@ func (r *Repo) ApproveAccessRequest(ctx context.Context, id uuid.UUID, granter s
 		return err
 	}
 
+	fmt.Println("asdf", ar.Subject, emailOfSubjectToLower(ar.Subject))
+
 	tx, err := r.db.Begin()
 	if err != nil {
 		return err
@@ -84,7 +86,7 @@ func (r *Repo) ApproveAccessRequest(ctx context.Context, id uuid.UUID, granter s
 
 	_, err = querier.GrantAccessToDataset(ctx, gensql.GrantAccessToDatasetParams{
 		DatasetID:       ar.DatasetID,
-		Subject:         ar.Subject,
+		Subject:         emailOfSubjectToLower(ar.Subject),
 		Granter:         granter,
 		Expires:         ar.Expires,
 		AccessRequestID: uuid.NullUUID{UUID: ar.ID, Valid: true},

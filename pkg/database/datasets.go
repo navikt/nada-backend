@@ -113,7 +113,7 @@ func (r *Repo) CreateDataset(ctx context.Context, ds models.NewDataset, user *au
 		_, err = querier.GrantAccessToDataset(ctx, gensql.GrantAccessToDatasetParams{
 			DatasetID: created.ID,
 			Expires:   sql.NullTime{},
-			Subject:   "group:all-users@nav.no",
+			Subject:   emailOfSubjectToLower("group:all-users@nav.no"),
 			Granter:   user.Email,
 		})
 		if err != nil {

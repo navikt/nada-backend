@@ -78,6 +78,13 @@ func (b Bigquery) Revoke(ctx context.Context, projectID, datasetID, tableID, mem
 	role := "roles/bigquery.dataViewer"
 	policy.Remove(member, iam.RoleName(role))
 
+	fmt.Printf("member: %v\n", member)
+	for _, p := range policy.Members(iam.RoleName(role)) {
+		fmt.Println(p)
+	}
+
+	fmt.Println("rolename", iam.RoleName(role))
+
 	bqTable := bqClient.Dataset(datasetID).Table(tableID)
 	return bqTable.IAM().SetPolicy(ctx, policy)
 }

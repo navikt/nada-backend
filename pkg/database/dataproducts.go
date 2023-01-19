@@ -165,7 +165,7 @@ func (r *Repo) CreateDataproduct(ctx context.Context, dp models.NewDataproduct, 
 			_, err = querier.GrantAccessToDataset(ctx, gensql.GrantAccessToDatasetParams{
 				DatasetID: dataset.ID,
 				Expires:   sql.NullTime{},
-				Subject:   "group:all-users@nav.no",
+				Subject:   emailOfSubjectToLower("group:all-users@nav.no"),
 				Granter:   user.Email,
 			})
 			if err != nil {
