@@ -7,6 +7,7 @@ import (
 	"database/sql"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"log"
 	"os"
 	"testing"
@@ -161,21 +162,23 @@ func TestRepo(t *testing.T) {
 			if err != nil {
 				t.Fatal(err)
 			}
+
+			fmt.Println(dp)
 			_, err = repo.GrantAccessToDataset(context.Background(), dp.ID, &ti, subj, "")
 			if err != nil {
 				t.Fatal(err)
 			}
 		}
 
-		subject := "a@b.com"
+		subjectWithType := "user:a@b.com"
 		expired := time.Now().Add(-1 * time.Hour)
 		valid := time.Now().Add(1 * time.Hour)
 
-		dpWithUserAccess(valid, subject)
-		dpWithUserAccess(valid, subject)
-		dpWithUserAccess(expired, subject)
+		dpWithUserAccess(valid, subjectWithType)
+		dpWithUserAccess(valid, subjectWithType)
+		dpWithUserAccess(expired, subjectWithType)
 
-		dps, err := repo.GetDatasetsByUserAccess(context.Background(), subject)
+		dps, err := repo.GetDatasetsByUserAccess(context.Background(), subjectWithType)
 		if err != nil {
 			t.Fatal(err)
 		}
