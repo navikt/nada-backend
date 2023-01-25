@@ -14,3 +14,24 @@ extend type Query {
 	"""
 	keywords: [Keyword!]!
 }
+
+input UpdateKeywords @goModel(model: "github.com/navikt/nada-backend/pkg/graph/models.UpdateKeywords"){
+	"ObsoleteKeywords is a list of keywords to remove"
+	obsoleteKeywords: [String!]
+	"ReplacedKeywords is a list of keywords to replace"
+	replacedKeywords: [String!]
+	"NewText is a list of text to replace the keywords"
+	newText: [String!]
+}
+
+extend type Mutation {
+    """
+    updateKeywords updates keywords
+
+    Requires authentication.
+    """
+    updateKeywords(
+        "input contains information about the change to keywords"
+        input: UpdateKeywords!
+    ): Boolean! @authenticated
+}

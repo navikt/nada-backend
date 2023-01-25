@@ -44,11 +44,6 @@ type UpdateDataproduct struct {
 	TeamID           *string  `json:"teamID"`
 }
 
-type Keyword struct {
-	Keyword string `json:"keyword"`
-	Count   int    `json:"count"`
-}
-
 type GroupStats struct {
 	Email        string `json:"email"`
 	Dataproducts int    `json:"dataproducts"`
