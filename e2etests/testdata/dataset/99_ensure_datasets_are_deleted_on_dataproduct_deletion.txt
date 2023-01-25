@@ -20,5 +20,7 @@ RETURNS
       ]
     }
   ],
-  "data": null
+  "data": {
+    "dataset": null
+  }
 }
