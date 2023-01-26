@@ -37,6 +37,19 @@ func (r *userInfoResolver) GoogleGroups(ctx context.Context, obj *models.UserInf
 	return obj.Groups, nil
 }
 
+// AllGoogleGroups is the resolver for the allGoogleGroups field.
+func (r *userInfoResolver) AllGoogleGroups(ctx context.Context, obj *models.UserInfo) ([]*models.Group, error) {
+	user := auth.GetUser(ctx)
+	groups := []*models.Group{}
+	for _, g := range user.AllGoogleGroups {
+		groups = append(groups, &models.Group{
+			Name:  g.Name,
+			Email: g.Email,
+		})
+	}
+	return groups, nil
+}
+
 // AzureGroups is the resolver for the azureGroups field.
 func (r *userInfoResolver) AzureGroups(ctx context.Context, obj *models.UserInfo) ([]*models.Group, error) {
 	user := auth.GetUser(ctx)

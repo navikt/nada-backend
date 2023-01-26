@@ -25,11 +25,12 @@ type contextKey int
 const ContextUserKey contextKey = 1
 
 type User struct {
-	Name         string `json:"name"`
-	Email        string `json:"email"`
-	AzureGroups  Groups
-	GoogleGroups Groups
-	Expiry       time.Time `json:"expiry"`
+	Name            string `json:"name"`
+	Email           string `json:"email"`
+	AzureGroups     Groups
+	GoogleGroups    Groups
+	AllGoogleGroups Groups
+	Expiry          time.Time `json:"expiry"`
 }
 
 type CertificateList []*x509.Certificate
@@ -273,17 +274,26 @@ func (m *Middleware) addAzureGroups(ctx context.Context, token string, u *User) 
 
 func (m *Middleware) addGoogleGroups(ctx context.Context, u *User) error {
 	groups, ok := m.groupsCache.GetGoogleGroups(u.Email)
-	if ok {
-		u.GoogleGroups = groups
-		return nil
+	if !ok {
+		var err error
+		groups, err = m.googleGroups.Groups(ctx, &u.Email)
+		if err != nil {
+			return err
+		}
+		m.groupsCache.SetGoogleGroups(u.Email, groups)
 	}
-
-	groups, err := m.googleGroups.GroupsForUser(ctx, u.Email)
-	if err != nil {
-		return err
-	}
-
-	m.groupsCache.SetGoogleGroups(u.Email, groups)
 	u.GoogleGroups = groups
+
+	allGroups, ok := m.groupsCache.GetGoogleGroups("all")
+	if !ok {
+		var err error
+		allGroups, err = m.googleGroups.Groups(ctx, nil)
+		if err != nil {
+			return err
+		}
+		m.groupsCache.SetGoogleGroups("all", allGroups)
+	}
+	u.AllGoogleGroups = allGroups
+
 	return nil
 }
