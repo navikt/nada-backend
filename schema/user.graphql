@@ -20,6 +20,8 @@ type UserInfo @goModel(model: "github.com/navikt/nada-backend/pkg/graph/models.U
 	groups: [Group!]! @deprecated(reason: "renamed to googleGroups")
     "googleGroups is the google groups the user is member of."
     googleGroups: [Group!]
+    "allGoogleGroups is the all the known google groups of the user domains."
+    allGoogleGroups: [Group!]
     "azureGroups is the azure groups the user is member of."
     azureGroups: [Group!]
 	"gcpProjects is GCP projects the user is a member of."

@@ -51,7 +51,7 @@ func NewGoogleGroups(ctx context.Context, credentailFile, subject string, log *l
 	}, nil
 }
 
-func (g *GoogleGroupClient) GroupsForUser(ctx context.Context, email string) (groups Groups, err error) {
+func (g *GoogleGroupClient) Groups(ctx context.Context, email *string) (groups Groups, err error) {
 	if g.mock {
 		return Groups{
 			Group{Name: "All users", Email: "all-users@nav.no"},
@@ -60,7 +60,11 @@ func (g *GoogleGroupClient) GroupsForUser(ctx context.Context, email string) (gr
 		}, nil
 	}
 
-	err = g.service.Groups.List().UserKey(email).Pages(ctx, func(g *admin.Groups) error {
+	groupListCall := g.service.Groups.List().Customer(`my_customer`)
+	if email != nil {
+		groupListCall = g.service.Groups.List().UserKey(*email)
+	}
+	err = groupListCall.Pages(ctx, func(g *admin.Groups) error {
 		for _, grp := range g.Groups {
 			groups = append(groups, Group{
 				Name:  grp.Name,

@@ -329,6 +329,7 @@ type ComplexityRoot struct {
 	UserInfo struct {
 		AccessRequests  func(childComplexity int) int
 		Accessable      func(childComplexity int) int
+		AllGoogleGroups func(childComplexity int) int
 		AzureGroups     func(childComplexity int) int
 		Dataproducts    func(childComplexity int) int
 		Email           func(childComplexity int) int
@@ -437,6 +438,7 @@ type TeamResolver interface {
 }
 type UserInfoResolver interface {
 	GoogleGroups(ctx context.Context, obj *models.UserInfo) ([]*models.Group, error)
+	AllGoogleGroups(ctx context.Context, obj *models.UserInfo) ([]*models.Group, error)
 	AzureGroups(ctx context.Context, obj *models.UserInfo) ([]*models.Group, error)
 	GCPProjects(ctx context.Context, obj *models.UserInfo) ([]*models.GCPProject, error)
 
@@ -1964,6 +1966,13 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.UserInfo.Accessable(childComplexity), true
 
+	case "UserInfo.allGoogleGroups":
+		if e.complexity.UserInfo.AllGoogleGroups == nil {
+			break
+		}
+
+		return e.complexity.UserInfo.AllGoogleGroups(childComplexity), true
+
 	case "UserInfo.azureGroups":
 		if e.complexity.UserInfo.AzureGroups == nil {
 			break
@@ -3362,6 +3371,8 @@ type UserInfo @goModel(model: "github.com/navikt/nada-backend/pkg/graph/models.U
 	groups: [Group!]! @deprecated(reason: "renamed to googleGroups")
     "googleGroups is the google groups the user is member of."
     googleGroups: [Group!]
+    "allGoogleGroups is the all the known google groups of the user domains."
+    allGoogleGroups: [Group!]
     "azureGroups is the azure groups the user is member of."
     azureGroups: [Group!]
 	"gcpProjects is GCP projects the user is a member of."
@@ -12224,6 +12235,8 @@ func (ec *executionContext) fieldContext_Query_userInfo(ctx context.Context, fie
 				return ec.fieldContext_UserInfo_groups(ctx, field)
 			case "googleGroups":
 				return ec.fieldContext_UserInfo_googleGroups(ctx, field)
+			case "allGoogleGroups":
+				return ec.fieldContext_UserInfo_allGoogleGroups(ctx, field)
 			case "azureGroups":
 				return ec.fieldContext_UserInfo_azureGroups(ctx, field)
 			case "gcpProjects":
@@ -14344,6 +14357,53 @@ func (ec *executionContext) _UserInfo_googleGroups(ctx context.Context, field gr
 }
 
 func (ec *executionContext) fieldContext_UserInfo_googleGroups(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "UserInfo",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "name":
+				return ec.fieldContext_Group_name(ctx, field)
+			case "email":
+				return ec.fieldContext_Group_email(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type Group", field.Name)
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _UserInfo_allGoogleGroups(ctx context.Context, field graphql.CollectedField, obj *models.UserInfo) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_UserInfo_allGoogleGroups(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.UserInfo().AllGoogleGroups(rctx, obj)
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		return graphql.Null
+	}
+	res := resTmp.([]*models.Group)
+	fc.Result = res
+	return ec.marshalOGroup2ᚕᚖgithubᚗcomᚋnaviktᚋnadaᚑbackendᚋpkgᚋgraphᚋmodelsᚐGroupᚄ(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_UserInfo_allGoogleGroups(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
 	fc = &graphql.FieldContext{
 		Object:     "UserInfo",
 		Field:      field,
@@ -20149,6 +20209,23 @@ func (ec *executionContext) _UserInfo(ctx context.Context, sel ast.SelectionSet,
 					}
 				}()
 				res = ec._UserInfo_googleGroups(ctx, field, obj)
+				return res
+			}
+
+			out.Concurrently(i, func() graphql.Marshaler {
+				return innerFunc(ctx)
+
+			})
+		case "allGoogleGroups":
+			field := field
+
+			innerFunc := func(ctx context.Context) (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._UserInfo_allGoogleGroups(ctx, field, obj)
 				return res
 			}
 
