@@ -1,14 +1,15 @@
 package teamkatalogen
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"fmt"
-	"io"
 	"net/http"
 	"strings"
 
 	"github.com/navikt/nada-backend/pkg/graph/models"
+	"github.com/navikt/nada-backend/pkg/httpwithcache"
 )
 
 type Teamkatalogen struct {
@@ -40,13 +41,13 @@ func (t *Teamkatalogen) Search(ctx context.Context, query string) ([]*models.Tea
 	}
 
 	req.Header.Set("Accept", "application/json")
-	res, err := t.client.Do(req)
+	res, err := httpwithcache.Do(t.client, req)
 	if err != nil {
 		return nil, err
 	}
 
 	var tkRes TeamkatalogenResponse
-	if err := json.NewDecoder(res.Body).Decode(&tkRes); err != nil {
+	if err := json.NewDecoder(bytes.NewReader(res)).Decode(&tkRes); err != nil {
 		return nil, err
 	}
 
@@ -83,11 +84,10 @@ func (t *Teamkatalogen) GetTeamsInProductArea(ctx context.Context, paID string) 
 	}
 
 	req.Header.Set("Accept", "application/json")
-	res, err := t.client.Do(req)
+	res, err := httpwithcache.Do(t.client, req)
 	if err != nil {
 		return nil, err
 	}
-	defer res.Body.Close()
 
 	var teams struct {
 		Content []struct {
@@ -97,12 +97,7 @@ func (t *Teamkatalogen) GetTeamsInProductArea(ctx context.Context, paID string) 
 		} `json:"content"`
 	}
 
-	bodyBytes, err := io.ReadAll(res.Body)
-	if err != nil {
-		return nil, err
-	}
-
-	if err := json.Unmarshal(bodyBytes, &teams); err != nil {
+	if err := json.Unmarshal(res, &teams); err != nil {
 		return nil, err
 	}
 
@@ -125,23 +120,17 @@ func (t *Teamkatalogen) GetProductArea(ctx context.Context, paID string) (*model
 	}
 
 	req.Header.Set("Accept", "application/json")
-	res, err := t.client.Do(req)
+	res, err := httpwithcache.Do(t.client, req)
 	if err != nil {
 		return nil, err
 	}
-	defer res.Body.Close()
 
 	var pa struct {
 		ID   string `json:"id"`
 		Name string `json:"name"`
 	}
 
-	bodyBytes, err := io.ReadAll(res.Body)
-	if err != nil {
-		return nil, err
-	}
-
-	if err := json.Unmarshal(bodyBytes, &pa); err != nil {
+	if err := json.Unmarshal(res, &pa); err != nil {
 		return nil, err
 	}
 	return &models.ProductArea{
@@ -162,11 +151,10 @@ func (t *Teamkatalogen) GetProductAreas(ctx context.Context) ([]*models.ProductA
 
 	req.Header.Set("Accept", "application/json")
 	fmt.Print(req.URL)
-	res, err := t.client.Do(req)
+	res, err := httpwithcache.Do(t.client, req)
 	if err != nil {
 		return nil, err
 	}
-	defer res.Body.Close()
 
 	var pasdto struct {
 		Content []struct {
@@ -176,12 +164,7 @@ func (t *Teamkatalogen) GetProductAreas(ctx context.Context) ([]*models.ProductA
 		} `json:"content"`
 	}
 
-	bodyBytes, err := io.ReadAll(res.Body)
-	if err != nil {
-		return nil, err
-	}
-
-	if err := json.Unmarshal(bodyBytes, &pasdto); err != nil {
+	if err := json.Unmarshal(res, &pasdto); err != nil {
 		return nil, err
 	}
 

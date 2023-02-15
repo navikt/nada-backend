@@ -18,6 +18,7 @@ import (
 	"github.com/navikt/nada-backend/pkg/database"
 	"github.com/navikt/nada-backend/pkg/event"
 	"github.com/navikt/nada-backend/pkg/graph"
+	"github.com/navikt/nada-backend/pkg/httpwithcache"
 	"github.com/navikt/nada-backend/pkg/metabase"
 	"github.com/navikt/nada-backend/pkg/polly"
 	"github.com/navikt/nada-backend/pkg/slack"
@@ -88,6 +89,8 @@ func main() {
 	if err != nil {
 		log.WithError(err).Fatal("setting up database")
 	}
+
+	httpwithcache.SetDatabase(repo.GetDB())
 
 	mockHTTP := api.NewMockHTTP(repo, log.WithField("subsystem", "mockhttp"))
 	var httpAPI api.HTTPAPI = mockHTTP

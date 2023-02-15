@@ -268,6 +268,13 @@ type DatasourceBigquery struct {
 	PiiTags      pqtype.NullRawMessage
 }
 
+type HttpCache struct {
+	ID           int32
+	Endpoint     string
+	ResponseBody []byte
+	CreatedAt    time.Time
+}
+
 type MetabaseMetadatum struct {
 	DatabaseID           int32
 	PermissionGroupID    sql.NullInt32
