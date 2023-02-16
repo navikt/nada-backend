@@ -16,6 +16,7 @@ spec:
       replyURLs:
         - https://data.intern.nav.no/api/oauth2/callback
       tenant: nav.no
+      allowAllUsers: true
   replicas:
     min: 2
     max: 4
