@@ -22,7 +22,7 @@ jobs:
         uses: snyk/actions/golang@master
         env:
           SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
-          GOFLAGS: “-buildvcs=false” # Lagt inn pga: https://support.snyk.io/hc/en-us/articles/9332159331101-CI-CD-pipeline-failing-for-golang-tests-with-error-go-list-json-deps-command-failed-with-error-error-obtaining-VCS-status-exit-status-128
+          GOFLAGS: "-buildvcs=false" # Lagt inn pga: https://support.snyk.io/hc/en-us/articles/9332159331101-CI-CD-pipeline-failing-for-golang-tests-with-error-go-list-json-deps-command-failed-with-error-error-obtaining-VCS-status-exit-status-128
         with:
           command: monitor
           args: --org=nada
