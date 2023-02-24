@@ -8,7 +8,6 @@ mutation {
 			pii: none
 			keywords: ["keyword1", "otherkeyword"]
 			bigquery: { projectID: "team-dev-1337", dataset: "dataset1", table: "table1"}
-			requesters: ["all-users@nav.no", "nada@nav.no"]
 		}
 	) {
 		id
@@ -18,7 +17,6 @@ mutation {
 		repo
 		pii
 		keywords
-		requesters
 	}
 }
 
@@ -38,8 +36,7 @@ ENDOPTS
         "otherkeyword"
       ],
       "pii": "none",
-      "repo": "somerepo",
-      "requesters": ["all-users@nav.no", "nada@nav.no"]
+      "repo": "somerepo"
     }
   }
 }

@@ -34,8 +34,6 @@ type Dataset @goModel(model: "github.com/navikt/nada-backend/pkg/graph/models.Da
     services: DatasetServices!
     "mappings services a dataset is exposed to"
     mappings: [MappingService!]!
-    "requesters contains a list of users, groups and service accounts which can request access to the dataset"
-    requesters: [String!]!
     "anonymisation_description explains how the dataset was anonymised, should be null if `pii` isn't anonymised"
     anonymisation_description: String
     "targetUser is the type of user that the dataset is meant to be used by"
@@ -149,8 +147,6 @@ input NewDataset @goModel(model: "github.com/navikt/nada-backend/pkg/graph/model
     keywords: [String!]
     "bigquery contains metadata for the bigquery datasource added to the dataset."
     bigquery: NewBigQuery!
-    "requesters contains list of users, groups and service accounts which can request access to the dataset"
-    requesters: [String!]
     "anonymisation_description explains how the dataset was anonymised, should be null if `pii` isn't anonymised"
     anonymisation_description: String
     "grantAllUsers is a boolean indicating whether the dataset shall be made available for all users on creation"
@@ -175,8 +171,6 @@ input NewDatasetForNewDataproduct @goModel(model: "github.com/navikt/nada-backen
     keywords: [String!]
     "bigquery contains metadata for the bigquery datasource added to the dataset."
     bigquery: NewBigQuery!
-    "requesters contains list of users, groups and service accounts which can request access to the dataset"
-    requesters: [String!]
     "anonymisation_description explains how the dataset was anonymised, should be null if `pii` isn't anonymised"
     anonymisation_description: String
     "grantAllUsers is a boolean indicating whether the dataset shall be made available for all users on creation"

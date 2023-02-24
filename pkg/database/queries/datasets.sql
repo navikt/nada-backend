@@ -125,21 +125,6 @@ UPDATE datasource_bigquery
 SET "pii_tags"        = @pii_tags
 WHERE dataset_id = @dataset_id;
 
--- name: GetDatasetRequesters :many
-SELECT "subject"
-FROM dataset_requesters
-WHERE dataset_id = @dataset_id;
-
--- name: CreateDatasetRequester :exec
-INSERT INTO dataset_requesters (dataset_id, "subject")
-VALUES (@dataset_id, LOWER(@subject));
-
--- name: DeleteDatasetRequester :exec
-DELETE
-FROM dataset_requesters
-WHERE dataset_id = @dataset_id
-  AND "subject" = LOWER(@subject);
-
 -- name: DatasetKeywords :many
 SELECT keyword::text, count(1) as "count"
 FROM (

@@ -117,35 +117,6 @@ func (r *datasetResolver) Mappings(ctx context.Context, obj *models.Dataset) ([]
 	return r.repo.GetDatasetMappings(ctx, obj.ID)
 }
 
-// Requesters is the resolver for the requesters field.
-func (r *datasetResolver) Requesters(ctx context.Context, obj *models.Dataset) ([]string, error) {
-	allRequesters, err := r.repo.GetDatasetRequesters(ctx, obj.ID)
-	if err != nil {
-		return nil, err
-	}
-
-	dp, err := r.repo.GetDataproduct(ctx, obj.DataproductID)
-	if err != nil {
-		return nil, err
-	}
-
-	user := auth.GetUser(ctx)
-	if user.GoogleGroups.Contains(dp.Owner.Group) {
-		return allRequesters, nil
-	}
-
-	var ret []string
-	for _, r := range allRequesters {
-		if strings.EqualFold(r, user.Email) {
-			ret = append(ret, r)
-		} else if user.GoogleGroups.Contains(r) {
-			ret = append(ret, r)
-		}
-	}
-
-	return ret, nil
-}
-
 // CreateDataset is the resolver for the createDataset field.
 func (r *mutationResolver) CreateDataset(ctx context.Context, input models.NewDataset) (*models.Dataset, error) {
 	user := auth.GetUser(ctx)

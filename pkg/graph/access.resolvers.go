@@ -44,7 +44,7 @@ func (r *mutationResolver) GrantAccessToDataset(ctx context.Context, input model
 	if err != nil {
 		return nil, err
 	}
-	if err := isAllowedToGrantAccess(ctx, r.repo, dp, ds.ID, subj, user); err != nil {
+	if err := ensureUserInGroup(ctx, dp.Owner.Group); err != nil {
 		return nil, err
 	}
 
