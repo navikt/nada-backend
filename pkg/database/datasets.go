@@ -207,6 +207,7 @@ func (r *Repo) GetBigqueryDatasource(ctx context.Context, datasetID uuid.UUID) (
 		Expires:      nullTimeToPtr(bq.Expires),
 		Description:  bq.Description.String,
 		PiiTags:      &piiTags,
+		MissingSince: &bq.MissingSince.Time,
 	}, nil
 }
 
@@ -228,6 +229,10 @@ func (r *Repo) UpdateBigqueryDatasource(ctx context.Context, id uuid.UUID, schem
 	}
 
 	return nil
+}
+
+func (r *Repo) UpdateBigqueryDatasourceMissing(ctx context.Context, datasetID uuid.UUID) error {
+	return r.querier.UpdateBigqueryDatasourceMissing(ctx, datasetID)
 }
 
 func (r *Repo) GetDatasetMetadata(ctx context.Context, id uuid.UUID) ([]*models.TableColumn, error) {
