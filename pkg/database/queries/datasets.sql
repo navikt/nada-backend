@@ -117,12 +117,18 @@ UPDATE datasource_bigquery
 SET "schema"        = @schema,
     "last_modified" = @last_modified,
     "expires"       = @expires,
-    "description"   = @description
+    "description"   = @description,
+    "missing_since" = null
 WHERE dataset_id = @dataset_id;
 
 -- name: UpdateBigqueryDatasourcePiiTags :exec
 UPDATE datasource_bigquery
 SET "pii_tags"        = @pii_tags
+WHERE dataset_id = @dataset_id;
+
+-- name: UpdateBigqueryDatasourceMissing :exec
+UPDATE datasource_bigquery
+SET "missing_since" = NOW()
 WHERE dataset_id = @dataset_id;
 
 -- name: DatasetKeywords :many

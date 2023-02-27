@@ -261,6 +261,7 @@ type DatasourceBigquery struct {
 	TableType    string
 	Description  sql.NullString
 	PiiTags      pqtype.NullRawMessage
+	MissingSince sql.NullTime
 }
 
 type MetabaseMetadatum struct {

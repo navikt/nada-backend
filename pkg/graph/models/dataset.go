@@ -40,6 +40,7 @@ type BigQuery struct {
 	Expires      *time.Time   `json:"expired"`
 	Description  string       `json:"description"`
 	PiiTags      *string      `json:"piiTags"`
+	MissingSince *time.Time   `json:"missingSince"`
 }
 
 func (BigQuery) IsDatasource() {}

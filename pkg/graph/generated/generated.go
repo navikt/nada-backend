@@ -89,6 +89,7 @@ type ComplexityRoot struct {
 		Description  func(childComplexity int) int
 		Expires      func(childComplexity int) int
 		LastModified func(childComplexity int) int
+		MissingSince func(childComplexity int) int
 		PiiTags      func(childComplexity int) int
 		ProjectID    func(childComplexity int) int
 		Schema       func(childComplexity int) int
@@ -635,6 +636,13 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 		}
 
 		return e.complexity.BigQuery.LastModified(childComplexity), true
+
+	case "BigQuery.missingSince":
+		if e.complexity.BigQuery.MissingSince == nil {
+			break
+		}
+
+		return e.complexity.BigQuery.MissingSince(childComplexity), true
 
 	case "BigQuery.piiTags":
 		if e.complexity.BigQuery.PiiTags == nil {
@@ -2526,6 +2534,8 @@ type BigQuery @goModel(model: "github.com/navikt/nada-backend/pkg/graph/models.B
     description: String!
     "piiTags is json string from the pii tags map"
     piiTags: String
+    "missingSince, if set, is the time when the table got deleted from BigQuery"
+    missingSince: Time
 }
 
 """
@@ -5601,6 +5611,47 @@ func (ec *executionContext) fieldContext_BigQuery_piiTags(ctx context.Context, f
 		IsResolver: false,
 		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
 			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _BigQuery_missingSince(ctx context.Context, field graphql.CollectedField, obj *models.BigQuery) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_BigQuery_missingSince(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.MissingSince, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		return graphql.Null
+	}
+	res := resTmp.(*time.Time)
+	fc.Result = res
+	return ec.marshalOTime2ᚖtimeᚐTime(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_BigQuery_missingSince(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "BigQuery",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Time does not have child fields")
 		},
 	}
 	return fc, nil
@@ -17875,6 +17926,10 @@ func (ec *executionContext) _BigQuery(ctx context.Context, sel ast.SelectionSet,
 		case "piiTags":
 
 			out.Values[i] = ec._BigQuery_piiTags(ctx, field, obj)
+
+		case "missingSince":
+
+			out.Values[i] = ec._BigQuery_missingSince(ctx, field, obj)
 
 		default:
 			panic("unknown field " + strconv.Quote(field.Name))

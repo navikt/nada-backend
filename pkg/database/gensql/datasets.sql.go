@@ -36,7 +36,7 @@ VALUES ($1,
         $8,
         $9,
         $10)
-RETURNING dataset_id, project_id, dataset, table_name, schema, last_modified, created, expires, table_type, description, pii_tags
+RETURNING dataset_id, project_id, dataset, table_name, schema, last_modified, created, expires, table_type, description, pii_tags, missing_since
 `
 
 type CreateBigqueryDatasourceParams struct {
@@ -78,6 +78,7 @@ func (q *Queries) CreateBigqueryDatasource(ctx context.Context, arg CreateBigque
 		&i.TableType,
 		&i.Description,
 		&i.PiiTags,
+		&i.MissingSince,
 	)
 	return i, err
 }
@@ -261,7 +262,7 @@ func (q *Queries) DeleteDataset(ctx context.Context, id uuid.UUID) error {
 }
 
 const getBigqueryDatasource = `-- name: GetBigqueryDatasource :one
-SELECT dataset_id, project_id, dataset, table_name, schema, last_modified, created, expires, table_type, description, pii_tags
+SELECT dataset_id, project_id, dataset, table_name, schema, last_modified, created, expires, table_type, description, pii_tags, missing_since
 FROM datasource_bigquery
 WHERE dataset_id = $1
 `
@@ -281,12 +282,13 @@ func (q *Queries) GetBigqueryDatasource(ctx context.Context, datasetID uuid.UUID
 		&i.TableType,
 		&i.Description,
 		&i.PiiTags,
+		&i.MissingSince,
 	)
 	return i, err
 }
 
 const getBigqueryDatasources = `-- name: GetBigqueryDatasources :many
-SELECT dataset_id, project_id, dataset, table_name, schema, last_modified, created, expires, table_type, description, pii_tags
+SELECT dataset_id, project_id, dataset, table_name, schema, last_modified, created, expires, table_type, description, pii_tags, missing_since
 FROM datasource_bigquery
 `
 
@@ -311,6 +313,7 @@ func (q *Queries) GetBigqueryDatasources(ctx context.Context) ([]DatasourceBigqu
 			&i.TableType,
 			&i.Description,
 			&i.PiiTags,
+			&i.MissingSince,
 		); err != nil {
 			return nil, err
 		}
@@ -601,6 +604,17 @@ func (q *Queries) ReplaceDatasetsTag(ctx context.Context, arg ReplaceDatasetsTag
 	return err
 }
 
+const updateBigqueryDatasourceMissing = `-- name: UpdateBigqueryDatasourceMissing :exec
+UPDATE datasource_bigquery
+SET "missing_since" = NOW()
+WHERE dataset_id = $1
+`
+
+func (q *Queries) UpdateBigqueryDatasourceMissing(ctx context.Context, datasetID uuid.UUID) error {
+	_, err := q.db.ExecContext(ctx, updateBigqueryDatasourceMissing, datasetID)
+	return err
+}
+
 const updateBigqueryDatasourcePiiTags = `-- name: UpdateBigqueryDatasourcePiiTags :exec
 UPDATE datasource_bigquery
 SET "pii_tags"        = $1
@@ -622,7 +636,8 @@ UPDATE datasource_bigquery
 SET "schema"        = $1,
     "last_modified" = $2,
     "expires"       = $3,
-    "description"   = $4
+    "description"   = $4,
+    "missing_since" = null
 WHERE dataset_id = $5
 `
 

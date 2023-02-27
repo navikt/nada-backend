@@ -83,6 +83,8 @@ type BigQuery @goModel(model: "github.com/navikt/nada-backend/pkg/graph/models.B
     description: String!
     "piiTags is json string from the pii tags map"
     piiTags: String
+    "missingSince, if set, is the time when the table got deleted from BigQuery"
+    missingSince: Time
 }
 
 """
