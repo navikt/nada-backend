@@ -20,7 +20,6 @@ type Querier interface {
 	CreateBigqueryDatasource(ctx context.Context, arg CreateBigqueryDatasourceParams) (DatasourceBigquery, error)
 	CreateDataproduct(ctx context.Context, arg CreateDataproductParams) (Dataproduct, error)
 	CreateDataset(ctx context.Context, arg CreateDatasetParams) (Dataset, error)
-	CreateDatasetRequester(ctx context.Context, arg CreateDatasetRequesterParams) error
 	CreateMetabaseMetadata(ctx context.Context, arg CreateMetabaseMetadataParams) error
 	CreatePollyDocumentation(ctx context.Context, arg CreatePollyDocumentationParams) (PollyDocumentation, error)
 	CreateQuarto(ctx context.Context, arg CreateQuartoParams) (Quarto, error)
@@ -37,7 +36,6 @@ type Querier interface {
 	DeleteAccessRequest(ctx context.Context, id uuid.UUID) error
 	DeleteDataproduct(ctx context.Context, id uuid.UUID) error
 	DeleteDataset(ctx context.Context, id uuid.UUID) error
-	DeleteDatasetRequester(ctx context.Context, arg DeleteDatasetRequesterParams) error
 	DeleteMetabaseMetadata(ctx context.Context, datasetID uuid.UUID) error
 	DeleteQuarto(ctx context.Context, id uuid.UUID) error
 	DeleteSession(ctx context.Context, token string) error
@@ -61,7 +59,6 @@ type Querier interface {
 	GetDataproductsByTeam(ctx context.Context, teamID sql.NullString) ([]Dataproduct, error)
 	GetDataset(ctx context.Context, id uuid.UUID) (Dataset, error)
 	GetDatasetMappings(ctx context.Context, datasetID uuid.UUID) (ThirdPartyMapping, error)
-	GetDatasetRequesters(ctx context.Context, datasetID uuid.UUID) ([]string, error)
 	GetDatasets(ctx context.Context, arg GetDatasetsParams) ([]Dataset, error)
 	GetDatasetsByGroups(ctx context.Context, groups []string) ([]Dataset, error)
 	GetDatasetsByIDs(ctx context.Context, ids []uuid.UUID) ([]Dataset, error)

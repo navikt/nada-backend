@@ -249,11 +249,6 @@ type DatasetAccessRequest struct {
 	Reason               sql.NullString
 }
 
-type DatasetRequester struct {
-	Subject   string
-	DatasetID uuid.UUID
-}
-
 type DatasourceBigquery struct {
 	DatasetID    uuid.UUID
 	ProjectID    string

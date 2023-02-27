@@ -96,19 +96,6 @@ func (r *Repo) CreateDataset(ctx context.Context, ds models.NewDataset, user *au
 		return nil, err
 	}
 
-	for _, subj := range ds.Requesters {
-		err = querier.CreateDatasetRequester(ctx, gensql.CreateDatasetRequesterParams{
-			DatasetID: created.ID,
-			Subject:   subj,
-		})
-		if err != nil {
-			if err := tx.Rollback(); err != nil {
-				r.log.WithError(err).Error("Rolling back dataset and datasource_bigquery transaction")
-			}
-			return nil, err
-		}
-	}
-
 	if ds.GrantAllUsers != nil && *ds.GrantAllUsers {
 		_, err = querier.GrantAccessToDataset(ctx, gensql.GrantAccessToDatasetParams{
 			DatasetID: created.ID,
