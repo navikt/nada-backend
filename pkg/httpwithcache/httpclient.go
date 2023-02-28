@@ -21,7 +21,7 @@ func Do(client *http.Client, req *http.Request) ([]byte, error) {
 	var lastTried time.Time
 
 	cacheExpire := 2 * time.Hour
-	endpoint := req.Method + " " + req.URL.String()
+	endpoint := req.URL.String()
 	sqlerr := cacheDB.QueryRow(`SELECT response_body, created_at,
 	 last_tried_update_at FROM http_cache WHERE endpoint = $1`,
 		endpoint).Scan(&cachedResponse, &lastCached, &lastTried)
@@ -42,7 +42,7 @@ func Do(client *http.Client, req *http.Request) ([]byte, error) {
 }
 
 func updateCache(client *http.Client, req *http.Request) ([]byte, error) {
-	endpoint := req.Method + " " + req.URL.String()
+	endpoint := req.URL.String()
 	log.Printf("Update cache for %v", endpoint)
 	_, err := cacheDB.Exec(`INSERT INTO http_cache (endpoint, response_body, created_at, last_tried_update_at) 
 	VALUES ($1, $2, $3, $3) ON CONFLICT (endpoint) DO UPDATE SET last_tried_update_at = $3`, endpoint, "", time.Now().UTC())
