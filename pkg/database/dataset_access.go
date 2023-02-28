@@ -13,35 +13,6 @@ import (
 	"github.com/navikt/nada-backend/pkg/graph/models"
 )
 
-func (r *Repo) AddRequesterToDataproduct(ctx context.Context, datasetID uuid.UUID, subject string) error {
-	requesters, err := r.querier.GetDatasetRequesters(ctx, datasetID)
-	if err != nil {
-		return err
-	}
-
-	for _, r := range requesters {
-		if subject == r {
-			return nil
-		}
-	}
-
-	return r.querier.CreateDatasetRequester(ctx, gensql.CreateDatasetRequesterParams{
-		DatasetID: datasetID,
-		Subject:   subject,
-	})
-}
-
-func (r *Repo) GetDatasetRequesters(ctx context.Context, id uuid.UUID) ([]string, error) {
-	return r.querier.GetDatasetRequesters(ctx, id)
-}
-
-func (r *Repo) RemoveRequesterFromDataset(ctx context.Context, datasetID uuid.UUID, subject string) error {
-	return r.querier.DeleteDatasetRequester(ctx, gensql.DeleteDatasetRequesterParams{
-		DatasetID: datasetID,
-		Subject:   subject,
-	})
-}
-
 func (r *Repo) ListAccessToDataset(ctx context.Context, datasetID uuid.UUID) ([]*models.Access, error) {
 	access, err := r.querier.ListAccessToDataset(ctx, datasetID)
 	if err != nil {

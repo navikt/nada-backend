@@ -20,7 +20,7 @@ func (r *mutationResolver) TriggerMetadataSync(ctx context.Context) (bool, error
 	for _, bq := range bqs {
 		err := r.UpdateMetadata(ctx, bq)
 		if err != nil {
-			errs = append(errs, err)
+			errs = r.handleSyncError(ctx, errs, err, bq)
 		}
 	}
 	if len(errs) != 0 {

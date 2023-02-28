@@ -89,6 +89,7 @@ type ComplexityRoot struct {
 		Description  func(childComplexity int) int
 		Expires      func(childComplexity int) int
 		LastModified func(childComplexity int) int
+		MissingSince func(childComplexity int) int
 		PiiTags      func(childComplexity int) int
 		ProjectID    func(childComplexity int) int
 		Schema       func(childComplexity int) int
@@ -136,7 +137,6 @@ type ComplexityRoot struct {
 		Owner                    func(childComplexity int) int
 		Pii                      func(childComplexity int) int
 		Repo                     func(childComplexity int) int
-		Requesters               func(childComplexity int) int
 		Services                 func(childComplexity int) int
 		Slug                     func(childComplexity int) int
 		TargetUser               func(childComplexity int) int
@@ -365,7 +365,6 @@ type DatasetResolver interface {
 	Access(ctx context.Context, obj *models.Dataset) ([]*models.Access, error)
 	Services(ctx context.Context, obj *models.Dataset) (*models.DatasetServices, error)
 	Mappings(ctx context.Context, obj *models.Dataset) ([]models.MappingService, error)
-	Requesters(ctx context.Context, obj *models.Dataset) ([]string, error)
 }
 type MutationResolver interface {
 	Dummy(ctx context.Context, no *string) (*string, error)
@@ -638,6 +637,13 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.BigQuery.LastModified(childComplexity), true
 
+	case "BigQuery.missingSince":
+		if e.complexity.BigQuery.MissingSince == nil {
+			break
+		}
+
+		return e.complexity.BigQuery.MissingSince(childComplexity), true
+
 	case "BigQuery.piiTags":
 		if e.complexity.BigQuery.PiiTags == nil {
 			break
@@ -892,13 +898,6 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 		}
 
 		return e.complexity.Dataset.Repo(childComplexity), true
-
-	case "Dataset.requesters":
-		if e.complexity.Dataset.Requesters == nil {
-			break
-		}
-
-		return e.complexity.Dataset.Requesters(childComplexity), true
 
 	case "Dataset.services":
 		if e.complexity.Dataset.Services == nil {
@@ -2486,8 +2485,6 @@ type Dataset @goModel(model: "github.com/navikt/nada-backend/pkg/graph/models.Da
     services: DatasetServices!
     "mappings services a dataset is exposed to"
     mappings: [MappingService!]!
-    "requesters contains a list of users, groups and service accounts which can request access to the dataset"
-    requesters: [String!]!
     "anonymisation_description explains how the dataset was anonymised, should be null if ` + "`" + `pii` + "`" + ` isn't anonymised"
     anonymisation_description: String
     "targetUser is the type of user that the dataset is meant to be used by"
@@ -2537,6 +2534,8 @@ type BigQuery @goModel(model: "github.com/navikt/nada-backend/pkg/graph/models.B
     description: String!
     "piiTags is json string from the pii tags map"
     piiTags: String
+    "missingSince, if set, is the time when the table got deleted from BigQuery"
+    missingSince: Time
 }
 
 """
@@ -2601,8 +2600,6 @@ input NewDataset @goModel(model: "github.com/navikt/nada-backend/pkg/graph/model
     keywords: [String!]
     "bigquery contains metadata for the bigquery datasource added to the dataset."
     bigquery: NewBigQuery!
-    "requesters contains list of users, groups and service accounts which can request access to the dataset"
-    requesters: [String!]
     "anonymisation_description explains how the dataset was anonymised, should be null if ` + "`" + `pii` + "`" + ` isn't anonymised"
     anonymisation_description: String
     "grantAllUsers is a boolean indicating whether the dataset shall be made available for all users on creation"
@@ -2627,8 +2624,6 @@ input NewDatasetForNewDataproduct @goModel(model: "github.com/navikt/nada-backen
     keywords: [String!]
     "bigquery contains metadata for the bigquery datasource added to the dataset."
     bigquery: NewBigQuery!
-    "requesters contains list of users, groups and service accounts which can request access to the dataset"
-    requesters: [String!]
     "anonymisation_description explains how the dataset was anonymised, should be null if ` + "`" + `pii` + "`" + ` isn't anonymised"
     anonymisation_description: String
     "grantAllUsers is a boolean indicating whether the dataset shall be made available for all users on creation"
@@ -5621,6 +5616,47 @@ func (ec *executionContext) fieldContext_BigQuery_piiTags(ctx context.Context, f
 	return fc, nil
 }
 
+func (ec *executionContext) _BigQuery_missingSince(ctx context.Context, field graphql.CollectedField, obj *models.BigQuery) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_BigQuery_missingSince(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.MissingSince, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		return graphql.Null
+	}
+	res := resTmp.(*time.Time)
+	fc.Result = res
+	return ec.marshalOTime2ᚖtimeᚐTime(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_BigQuery_missingSince(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "BigQuery",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Time does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
 func (ec *executionContext) _BigQuerySource_table(ctx context.Context, field graphql.CollectedField, obj *models.BigQuerySource) (ret graphql.Marshaler) {
 	fc, err := ec.fieldContext_BigQuerySource_table(ctx, field)
 	if err != nil {
@@ -6331,8 +6367,6 @@ func (ec *executionContext) fieldContext_Dataproduct_datasets(ctx context.Contex
 				return ec.fieldContext_Dataset_services(ctx, field)
 			case "mappings":
 				return ec.fieldContext_Dataset_mappings(ctx, field)
-			case "requesters":
-				return ec.fieldContext_Dataset_requesters(ctx, field)
 			case "anonymisation_description":
 				return ec.fieldContext_Dataset_anonymisation_description(ctx, field)
 			case "targetUser":
@@ -7105,50 +7139,6 @@ func (ec *executionContext) fieldContext_Dataset_mappings(ctx context.Context, f
 		IsResolver: true,
 		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
 			return nil, errors.New("field of type MappingService does not have child fields")
-		},
-	}
-	return fc, nil
-}
-
-func (ec *executionContext) _Dataset_requesters(ctx context.Context, field graphql.CollectedField, obj *models.Dataset) (ret graphql.Marshaler) {
-	fc, err := ec.fieldContext_Dataset_requesters(ctx, field)
-	if err != nil {
-		return graphql.Null
-	}
-	ctx = graphql.WithFieldContext(ctx, fc)
-	defer func() {
-		if r := recover(); r != nil {
-			ec.Error(ctx, ec.Recover(ctx, r))
-			ret = graphql.Null
-		}
-	}()
-	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
-		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.Dataset().Requesters(rctx, obj)
-	})
-	if err != nil {
-		ec.Error(ctx, err)
-		return graphql.Null
-	}
-	if resTmp == nil {
-		if !graphql.HasFieldError(ctx, fc) {
-			ec.Errorf(ctx, "must not be null")
-		}
-		return graphql.Null
-	}
-	res := resTmp.([]string)
-	fc.Result = res
-	return ec.marshalNString2ᚕstringᚄ(ctx, field.Selections, res)
-}
-
-func (ec *executionContext) fieldContext_Dataset_requesters(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "Dataset",
-		Field:      field,
-		IsMethod:   true,
-		IsResolver: true,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type String does not have child fields")
 		},
 	}
 	return fc, nil
@@ -8626,8 +8616,6 @@ func (ec *executionContext) fieldContext_Mutation_createDataset(ctx context.Cont
 				return ec.fieldContext_Dataset_services(ctx, field)
 			case "mappings":
 				return ec.fieldContext_Dataset_mappings(ctx, field)
-			case "requesters":
-				return ec.fieldContext_Dataset_requesters(ctx, field)
 			case "anonymisation_description":
 				return ec.fieldContext_Dataset_anonymisation_description(ctx, field)
 			case "targetUser":
@@ -8740,8 +8728,6 @@ func (ec *executionContext) fieldContext_Mutation_updateDataset(ctx context.Cont
 				return ec.fieldContext_Dataset_services(ctx, field)
 			case "mappings":
 				return ec.fieldContext_Dataset_mappings(ctx, field)
-			case "requesters":
-				return ec.fieldContext_Dataset_requesters(ctx, field)
 			case "anonymisation_description":
 				return ec.fieldContext_Dataset_anonymisation_description(ctx, field)
 			case "targetUser":
@@ -10722,8 +10708,6 @@ func (ec *executionContext) fieldContext_Query_dataset(ctx context.Context, fiel
 				return ec.fieldContext_Dataset_services(ctx, field)
 			case "mappings":
 				return ec.fieldContext_Dataset_mappings(ctx, field)
-			case "requesters":
-				return ec.fieldContext_Dataset_requesters(ctx, field)
 			case "anonymisation_description":
 				return ec.fieldContext_Dataset_anonymisation_description(ctx, field)
 			case "targetUser":
@@ -10916,8 +10900,6 @@ func (ec *executionContext) fieldContext_Query_datasetsInDataproduct(ctx context
 				return ec.fieldContext_Dataset_services(ctx, field)
 			case "mappings":
 				return ec.fieldContext_Dataset_mappings(ctx, field)
-			case "requesters":
-				return ec.fieldContext_Dataset_requesters(ctx, field)
 			case "anonymisation_description":
 				return ec.fieldContext_Dataset_anonymisation_description(ctx, field)
 			case "targetUser":
@@ -16825,7 +16807,7 @@ func (ec *executionContext) unmarshalInputNewDataset(ctx context.Context, obj in
 		asMap[k] = v
 	}
 
-	fieldsInOrder := [...]string{"dataproductID", "name", "description", "repo", "pii", "keywords", "bigquery", "requesters", "anonymisation_description", "grantAllUsers", "targetUser"}
+	fieldsInOrder := [...]string{"dataproductID", "name", "description", "repo", "pii", "keywords", "bigquery", "anonymisation_description", "grantAllUsers", "targetUser"}
 	for _, k := range fieldsInOrder {
 		v, ok := asMap[k]
 		if !ok {
@@ -16888,14 +16870,6 @@ func (ec *executionContext) unmarshalInputNewDataset(ctx context.Context, obj in
 			if err != nil {
 				return it, err
 			}
-		case "requesters":
-			var err error
-
-			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("requesters"))
-			it.Requesters, err = ec.unmarshalOString2ᚕstringᚄ(ctx, v)
-			if err != nil {
-				return it, err
-			}
 		case "anonymisation_description":
 			var err error
 
@@ -16933,7 +16907,7 @@ func (ec *executionContext) unmarshalInputNewDatasetForNewDataproduct(ctx contex
 		asMap[k] = v
 	}
 
-	fieldsInOrder := [...]string{"name", "description", "repo", "pii", "keywords", "bigquery", "requesters", "anonymisation_description", "grantAllUsers", "targetUser"}
+	fieldsInOrder := [...]string{"name", "description", "repo", "pii", "keywords", "bigquery", "anonymisation_description", "grantAllUsers", "targetUser"}
 	for _, k := range fieldsInOrder {
 		v, ok := asMap[k]
 		if !ok {
@@ -16985,14 +16959,6 @@ func (ec *executionContext) unmarshalInputNewDatasetForNewDataproduct(ctx contex
 
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("bigquery"))
 			it.Bigquery, err = ec.unmarshalNNewBigQuery2githubᚗcomᚋnaviktᚋnadaᚑbackendᚋpkgᚋgraphᚋmodelsᚐNewBigQuery(ctx, v)
-			if err != nil {
-				return it, err
-			}
-		case "requesters":
-			var err error
-
-			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("requesters"))
-			it.Requesters, err = ec.unmarshalOString2ᚕstringᚄ(ctx, v)
 			if err != nil {
 				return it, err
 			}
@@ -17961,6 +17927,10 @@ func (ec *executionContext) _BigQuery(ctx context.Context, sel ast.SelectionSet,
 
 			out.Values[i] = ec._BigQuery_piiTags(ctx, field, obj)
 
+		case "missingSince":
+
+			out.Values[i] = ec._BigQuery_missingSince(ctx, field, obj)
+
 		default:
 			panic("unknown field " + strconv.Quote(field.Name))
 		}
@@ -18379,26 +18349,6 @@ func (ec *executionContext) _Dataset(ctx context.Context, sel ast.SelectionSet, 
 					}
 				}()
 				res = ec._Dataset_mappings(ctx, field, obj)
-				if res == graphql.Null {
-					atomic.AddUint32(&invalids, 1)
-				}
-				return res
-			}
-
-			out.Concurrently(i, func() graphql.Marshaler {
-				return innerFunc(ctx)
-
-			})
-		case "requesters":
-			field := field
-
-			innerFunc := func(ctx context.Context) (res graphql.Marshaler) {
-				defer func() {
-					if r := recover(); r != nil {
-						ec.Error(ctx, ec.Recover(ctx, r))
-					}
-				}()
-				res = ec._Dataset_requesters(ctx, field, obj)
 				if res == graphql.Null {
 					atomic.AddUint32(&invalids, 1)
 				}

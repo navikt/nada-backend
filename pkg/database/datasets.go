@@ -96,19 +96,6 @@ func (r *Repo) CreateDataset(ctx context.Context, ds models.NewDataset, user *au
 		return nil, err
 	}
 
-	for _, subj := range ds.Requesters {
-		err = querier.CreateDatasetRequester(ctx, gensql.CreateDatasetRequesterParams{
-			DatasetID: created.ID,
-			Subject:   subj,
-		})
-		if err != nil {
-			if err := tx.Rollback(); err != nil {
-				r.log.WithError(err).Error("Rolling back dataset and datasource_bigquery transaction")
-			}
-			return nil, err
-		}
-	}
-
 	if ds.GrantAllUsers != nil && *ds.GrantAllUsers {
 		_, err = querier.GrantAccessToDataset(ctx, gensql.GrantAccessToDatasetParams{
 			DatasetID: created.ID,
@@ -207,6 +194,7 @@ func (r *Repo) GetBigqueryDatasource(ctx context.Context, datasetID uuid.UUID) (
 		Expires:      nullTimeToPtr(bq.Expires),
 		Description:  bq.Description.String,
 		PiiTags:      &piiTags,
+		MissingSince: &bq.MissingSince.Time,
 	}, nil
 }
 
@@ -228,6 +216,10 @@ func (r *Repo) UpdateBigqueryDatasource(ctx context.Context, id uuid.UUID, schem
 	}
 
 	return nil
+}
+
+func (r *Repo) UpdateBigqueryDatasourceMissing(ctx context.Context, datasetID uuid.UUID) error {
+	return r.querier.UpdateBigqueryDatasourceMissing(ctx, datasetID)
 }
 
 func (r *Repo) GetDatasetMetadata(ctx context.Context, id uuid.UUID) ([]*models.TableColumn, error) {

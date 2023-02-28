@@ -19,13 +19,12 @@ type Dataproduct struct {
 func (Dataproduct) IsSearchResult() {}
 
 type NewDataproduct struct {
-	Name             string   `json:"name"`
-	Description      *string  `json:"description"`
-	Slug             *string  `json:"slug"`
-	Group            string   `json:"group"`
-	TeamkatalogenURL *string  `json:"teamkatalogenURL"`
-	TeamContact      *string  `json:"teamContact"`
-	Requesters       []string `json:"requesters"`
+	Name             string  `json:"name"`
+	Description      *string `json:"description"`
+	Slug             *string `json:"slug"`
+	Group            string  `json:"group"`
+	TeamkatalogenURL *string `json:"teamkatalogenURL"`
+	TeamContact      *string `json:"teamContact"`
 	Metadata         BigqueryMetadata
 	Datasets         []NewDatasetForNewDataproduct `json:"datasets"`
 	ProductAreaID    *string                       `json:"productAreaID"`
@@ -39,7 +38,6 @@ type UpdateDataproduct struct {
 	Pii              PiiLevel `json:"pii"`
 	TeamkatalogenURL *string  `json:"teamkatalogenURL"`
 	TeamContact      *string  `json:"teamContact"`
-	Requesters       []string `json:"requesters"`
 	ProductAreaID    *string  `json:"productAreaID"`
 	TeamID           *string  `json:"teamID"`
 }

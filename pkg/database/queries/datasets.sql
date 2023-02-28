@@ -117,7 +117,8 @@ UPDATE datasource_bigquery
 SET "schema"        = @schema,
     "last_modified" = @last_modified,
     "expires"       = @expires,
-    "description"   = @description
+    "description"   = @description,
+    "missing_since" = null
 WHERE dataset_id = @dataset_id;
 
 -- name: UpdateBigqueryDatasourcePiiTags :exec
@@ -125,20 +126,10 @@ UPDATE datasource_bigquery
 SET "pii_tags"        = @pii_tags
 WHERE dataset_id = @dataset_id;
 
--- name: GetDatasetRequesters :many
-SELECT "subject"
-FROM dataset_requesters
+-- name: UpdateBigqueryDatasourceMissing :exec
+UPDATE datasource_bigquery
+SET "missing_since" = NOW()
 WHERE dataset_id = @dataset_id;
-
--- name: CreateDatasetRequester :exec
-INSERT INTO dataset_requesters (dataset_id, "subject")
-VALUES (@dataset_id, LOWER(@subject));
-
--- name: DeleteDatasetRequester :exec
-DELETE
-FROM dataset_requesters
-WHERE dataset_id = @dataset_id
-  AND "subject" = LOWER(@subject);
 
 -- name: DatasetKeywords :many
 SELECT keyword::text, count(1) as "count"

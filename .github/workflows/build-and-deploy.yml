@@ -1,6 +1,17 @@
-name: build and deploy to dev
-on:
+name: build and push
+on: 
+  push:
+    branches:
+      - '*'
   workflow_dispatch:
+    inputs:
+      environment:
+        description: Environment du kjører i
+        type: choice
+        options:
+          - dev
+          - prod
+        required: true
 
 jobs:
   snyk:
@@ -11,6 +22,7 @@ jobs:
         uses: snyk/actions/golang@master
         env:
           SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
+          GOFLAGS: "-buildvcs=false" # Lagt inn pga: https://support.snyk.io/hc/en-us/articles/9332159331101-CI-CD-pipeline-failing-for-golang-tests-with-error-go-list-json-deps-command-failed-with-error-error-obtaining-VCS-status-exit-status-128
         with:
           command: monitor
           args: --org=nada
@@ -48,8 +60,6 @@ jobs:
       run: |
         version=${{ needs.set-version.outputs.version }}
         prefix=ghcr.io/${{ github.repository }}
-        echo "image_version=$version" >> $GITHUB_ENV
-        echo "image_prefix=$prefix" >> $GITHUB_ENV
         echo "IMAGE=$prefix:$version" >> $GITHUB_ENV
     - name: Login to GitHub Container Registry
       uses: docker/login-action@49ed152c8eca782a232dede0303416e8f356c37b # Use commit-sha1 instead of tag for security concerns
@@ -59,14 +69,23 @@ jobs:
         password: ${{ secrets.GITHUB_TOKEN }}
 
     - name: Build and push Dockerimage
-      uses: docker/build-push-action@v3
+      uses: docker/build-push-action@v4
       with:
         context: .
         push: true
-        tags: ${{ env.image_prefix }}:latest, ${{ env.IMAGE }}
+        tags: ${{ env.IMAGE }}
+
     - name: Deploy to dev-gcp
-      uses: nais/deploy/actions/deploy@master
+      if: inputs.environment != 'prod'
+      uses: nais/deploy/actions/deploy@v1
       env:
         APIKEY: ${{ secrets.NAIS_DEPLOY_APIKEY }}
         CLUSTER: dev-gcp
         RESOURCE: .nais/dev-gcp.yml
+    - name: Deploy to prod-gcp
+      if: github.ref == 'refs/heads/main' && inputs.environment != 'dev'
+      uses: nais/deploy/actions/deploy@v1
+      env:
+        APIKEY: ${{ secrets.NAIS_DEPLOY_APIKEY }}
+        CLUSTER: prod-gcp
+        RESOURCE: .nais/prod-gcp.yml

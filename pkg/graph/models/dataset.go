@@ -40,6 +40,7 @@ type BigQuery struct {
 	Expires      *time.Time   `json:"expired"`
 	Description  string       `json:"description"`
 	PiiTags      *string      `json:"piiTags"`
+	MissingSince *time.Time   `json:"missingSince"`
 }
 
 func (BigQuery) IsDatasource() {}
@@ -60,7 +61,6 @@ type NewDataset struct {
 	Pii                      PiiLevel    `json:"pii"`
 	Keywords                 []string    `json:"keywords"`
 	BigQuery                 NewBigQuery `json:"bigquery"`
-	Requesters               []string    `json:"requesters"`
 	AnonymisationDescription *string     `json:"anonymisationDescription"`
 	GrantAllUsers            *bool       `json:"grantAllUsers"`
 	TargetUser               *string     `json:"targetUser"`
@@ -75,7 +75,6 @@ type NewDatasetForNewDataproduct struct {
 	Pii                      PiiLevel    `json:"pii"`
 	Keywords                 []string    `json:"keywords"`
 	Bigquery                 NewBigQuery `json:"bigquery"`
-	Requesters               []string    `json:"requesters"`
 	AnonymisationDescription *string     `json:"anonymisationDescription"`
 	GrantAllUsers            *bool       `json:"grantAllUsers"`
 	TargetUser               *string     `json:"targetUser"`
@@ -89,7 +88,6 @@ type UpdateDataset struct {
 	Repo                     *string    `json:"repo"`
 	Pii                      PiiLevel   `json:"pii"`
 	Keywords                 []string   `json:"keywords"`
-	Requesters               []string   `json:"requesters"`
 	DataproductID            *uuid.UUID `json:"dataproductID"`
 	AnonymisationDescription *string    `json:"anonymisationDescription"`
 	PiiTags                  *string    `json:"piiTags"`
