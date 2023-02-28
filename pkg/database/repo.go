@@ -124,3 +124,7 @@ func nameFromQuery(q string) string {
 	}
 	return "Unknown"
 }
+
+func (repo *Repo) GetDB() *sql.DB {
+	return repo.db
+}
