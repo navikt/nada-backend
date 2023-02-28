@@ -16,17 +16,14 @@ func SetDatabase(db *sql.DB) {
 }
 
 func Do(client *http.Client, req *http.Request) ([]byte, error) {
-	return DoWithCacheExpire(client, req, 2*time.Hour)
-}
-
-func DoWithCacheExpire(client *http.Client, req *http.Request, cacheExpire time.Duration) ([]byte, error) {
 	var cachedResponse []byte
 	var lastCached time.Time
 	var lastTried time.Time
 
+	cacheExpire := 2 * time.Hour
 	endpoint := req.Method + " " + req.URL.String()
 	sqlerr := cacheDB.QueryRow(`SELECT response_body, created_at,
-	 tried_at FROM http_cache WHERE endpoint = $1`,
+	 last_tried_update_at FROM http_cache WHERE endpoint = $1`,
 		endpoint).Scan(&cachedResponse, &lastCached, &lastTried)
 	if sqlerr == nil {
 		if time.Since(lastCached) > cacheExpire && time.Since(lastTried) > cacheExpire {
@@ -38,16 +35,17 @@ func DoWithCacheExpire(client *http.Client, req *http.Request, cacheExpire time.
 			}
 		}
 		return cachedResponse, nil
+	} else {
+		log.WithError(sqlerr).Errorf("Failed to query database for cached request")
 	}
-
 	return updateCache(client, req)
 }
 
 func updateCache(client *http.Client, req *http.Request) ([]byte, error) {
 	endpoint := req.Method + " " + req.URL.String()
 	log.Printf("Update cache for %v", endpoint)
-	_, err := cacheDB.Exec(`INSERT INTO http_cache (endpoint, response_body, created_at, tried_at) 
-	VALUES ($1, $2, $3, $3) ON CONFLICT (endpoint) DO UPDATE SET tried_at = $3`, endpoint, "", time.Now().UTC())
+	_, err := cacheDB.Exec(`INSERT INTO http_cache (endpoint, response_body, created_at, last_tried_update_at) 
+	VALUES ($1, $2, $3, $3) ON CONFLICT (endpoint) DO UPDATE SET last_tried_update_at = $3`, endpoint, "", time.Now().UTC())
 	if err != nil {
 		log.WithError(err).Errorf("Failed to write to database for %v", req.URL.String())
 		return nil, err
@@ -59,8 +57,8 @@ func updateCache(client *http.Client, req *http.Request) ([]byte, error) {
 		return nil, err
 	}
 
-	_, err = cacheDB.Exec(`INSERT INTO http_cache (endpoint, response_body, created_at, tried_at) 
-		VALUES ($1, $2, $3, $3) ON CONFLICT (endpoint) DO UPDATE SET response_body = $2, created_at= $3, tried_at = $3`, endpoint, body, time.Now().UTC())
+	_, err = cacheDB.Exec(`INSERT INTO http_cache (endpoint, response_body, created_at, last_tried_update_at) 
+		VALUES ($1, $2, $3, $3) ON CONFLICT (endpoint) DO UPDATE SET response_body = $2, created_at= $3, last_tried_update_at = $3`, endpoint, body, time.Now().UTC())
 	if err != nil {
 		log.WithError(err).Errorf("Failed to save response to database %v", req.URL.String())
 		return body, nil
