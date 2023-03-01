@@ -178,4 +178,14 @@ extend type Mutation {
 		"id is the id for the published story."
 		id: ID!
 	): Boolean! @authenticated
+
+	"""
+    createStory creates a quarto story.
+
+    Requires authentication.
+    """
+	createStory(
+		"input contains information about the new quarto story."
+		input: NewStory!
+	): Story! @authenticated
 }

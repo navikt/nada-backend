@@ -171,6 +171,7 @@ type ComplexityRoot struct {
 		CreateAccessRequest   func(childComplexity int, input models.NewAccessRequest) int
 		CreateDataproduct     func(childComplexity int, input models.NewDataproduct) int
 		CreateDataset         func(childComplexity int, input models.NewDataset) int
+		CreateStory           func(childComplexity int, input models.NewStory) int
 		DeleteAccessRequest   func(childComplexity int, id uuid.UUID) int
 		DeleteDataproduct     func(childComplexity int, id uuid.UUID) int
 		DeleteDataset         func(childComplexity int, id uuid.UUID) int
@@ -248,7 +249,7 @@ type ComplexityRoot struct {
 		StoryToken               func(childComplexity int, id uuid.UUID) int
 		StoryView                func(childComplexity int, id uuid.UUID, draft *bool) int
 		Team                     func(childComplexity int, id string) int
-		Teamkatalogen            func(childComplexity int, q string) int
+		Teamkatalogen            func(childComplexity int, q []string) int
 		UserInfo                 func(childComplexity int) int
 		Version                  func(childComplexity int) int
 	}
@@ -387,6 +388,7 @@ type MutationResolver interface {
 	PublishStory(ctx context.Context, input models.NewStory) (*models.GraphStory, error)
 	UpdateStoryMetadata(ctx context.Context, id uuid.UUID, name string, keywords []string, teamkatalogenURL *string, productAreaID *string, teamID *string) (*models.GraphStory, error)
 	DeleteStory(ctx context.Context, id uuid.UUID) (bool, error)
+	CreateStory(ctx context.Context, input models.NewStory) (*models.GraphStory, error)
 }
 type ProductAreaResolver interface {
 	Dataproducts(ctx context.Context, obj *models.ProductArea) ([]*models.Dataproduct, error)
@@ -421,7 +423,7 @@ type QueryResolver interface {
 	Story(ctx context.Context, id uuid.UUID, draft *bool) (*models.GraphStory, error)
 	StoryView(ctx context.Context, id uuid.UUID, draft *bool) (models.GraphStoryView, error)
 	StoryToken(ctx context.Context, id uuid.UUID) (*models.StoryToken, error)
-	Teamkatalogen(ctx context.Context, q string) ([]*models.TeamkatalogenResult, error)
+	Teamkatalogen(ctx context.Context, q []string) ([]*models.TeamkatalogenResult, error)
 	UserInfo(ctx context.Context) (*models.UserInfo, error)
 }
 type SearchResultRowResolver interface {
@@ -1030,6 +1032,18 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 		}
 
 		return e.complexity.Mutation.CreateDataset(childComplexity, args["input"].(models.NewDataset)), true
+
+	case "Mutation.createStory":
+		if e.complexity.Mutation.CreateStory == nil {
+			break
+		}
+
+		args, err := ec.field_Mutation_createStory_args(context.TODO(), rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Mutation.CreateStory(childComplexity, args["input"].(models.NewStory)), true
 
 	case "Mutation.deleteAccessRequest":
 		if e.complexity.Mutation.DeleteAccessRequest == nil {
@@ -1655,7 +1669,7 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 			return 0, false
 		}
 
-		return e.complexity.Query.Teamkatalogen(childComplexity, args["q"].(string)), true
+		return e.complexity.Query.Teamkatalogen(childComplexity, args["q"].([]string)), true
 
 	case "Query.userInfo":
 		if e.complexity.Query.UserInfo == nil {
@@ -3321,6 +3335,16 @@ extend type Mutation {
 		"id is the id for the published story."
 		id: ID!
 	): Boolean! @authenticated
+
+	"""
+    createStory creates a quarto story.
+
+    Requires authentication.
+    """
+	createStory(
+		"input contains information about the new quarto story."
+		input: NewStory!
+	): Story! @authenticated
 }
 `, BuiltIn: false},
 	{Name: "../../../schema/teamkatalogen.graphql", Input: `type TeamkatalogenResult @goModel(model: "github.com/navikt/nada-backend/pkg/graph/models.TeamkatalogenResult") {
@@ -3340,7 +3364,7 @@ extend type Query {
     "searches teamkatalogen for teams where team name matches query input"
     teamkatalogen(
         "q is the search query."
-        q: String!
+        q: [String!]
     ): [TeamkatalogenResult!]!
 }
 `, BuiltIn: false},
@@ -3505,6 +3529,21 @@ func (ec *executionContext) field_Mutation_createDataset_args(ctx context.Contex
 	if tmp, ok := rawArgs["input"]; ok {
 		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("input"))
 		arg0, err = ec.unmarshalNNewDataset2githubᚗcomᚋnaviktᚋnadaᚑbackendᚋpkgᚋgraphᚋmodelsᚐNewDataset(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["input"] = arg0
+	return args, nil
+}
+
+func (ec *executionContext) field_Mutation_createStory_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
+	var err error
+	args := map[string]interface{}{}
+	var arg0 models.NewStory
+	if tmp, ok := rawArgs["input"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("input"))
+		arg0, err = ec.unmarshalNNewStory2githubᚗcomᚋnaviktᚋnadaᚑbackendᚋpkgᚋgraphᚋmodelsᚐNewStory(ctx, tmp)
 		if err != nil {
 			return nil, err
 		}
@@ -4233,10 +4272,10 @@ func (ec *executionContext) field_Query_team_args(ctx context.Context, rawArgs m
 func (ec *executionContext) field_Query_teamkatalogen_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
 	var err error
 	args := map[string]interface{}{}
-	var arg0 string
+	var arg0 []string
 	if tmp, ok := rawArgs["q"]; ok {
 		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("q"))
-		arg0, err = ec.unmarshalNString2string(ctx, tmp)
+		arg0, err = ec.unmarshalOString2ᚕstringᚄ(ctx, tmp)
 		if err != nil {
 			return nil, err
 		}
@@ -9269,6 +9308,96 @@ func (ec *executionContext) fieldContext_Mutation_deleteStory(ctx context.Contex
 	return fc, nil
 }
 
+func (ec *executionContext) _Mutation_createStory(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_Mutation_createStory(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		directive0 := func(rctx context.Context) (interface{}, error) {
+			ctx = rctx // use context from middleware stack in children
+			return ec.resolvers.Mutation().CreateStory(rctx, fc.Args["input"].(models.NewStory))
+		}
+		directive1 := func(ctx context.Context) (interface{}, error) {
+			if ec.directives.Authenticated == nil {
+				return nil, errors.New("directive authenticated is not implemented")
+			}
+			return ec.directives.Authenticated(ctx, nil, directive0, nil)
+		}
+
+		tmp, err := directive1(rctx)
+		if err != nil {
+			return nil, graphql.ErrorOnPath(ctx, err)
+		}
+		if tmp == nil {
+			return nil, nil
+		}
+		if data, ok := tmp.(*models.GraphStory); ok {
+			return data, nil
+		}
+		return nil, fmt.Errorf(`unexpected type %T from directive, should be *github.com/navikt/nada-backend/pkg/graph/models.GraphStory`, tmp)
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(*models.GraphStory)
+	fc.Result = res
+	return ec.marshalNStory2ᚖgithubᚗcomᚋnaviktᚋnadaᚑbackendᚋpkgᚋgraphᚋmodelsᚐGraphStory(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_Mutation_createStory(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Mutation",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "id":
+				return ec.fieldContext_Story_id(ctx, field)
+			case "name":
+				return ec.fieldContext_Story_name(ctx, field)
+			case "created":
+				return ec.fieldContext_Story_created(ctx, field)
+			case "lastModified":
+				return ec.fieldContext_Story_lastModified(ctx, field)
+			case "owner":
+				return ec.fieldContext_Story_owner(ctx, field)
+			case "keywords":
+				return ec.fieldContext_Story_keywords(ctx, field)
+			case "views":
+				return ec.fieldContext_Story_views(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type Story", field.Name)
+		},
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			err = ec.Recover(ctx, r)
+			ec.Error(ctx, err)
+		}
+	}()
+	ctx = graphql.WithFieldContext(ctx, fc)
+	if fc.Args, err = ec.field_Mutation_createStory_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+		ec.Error(ctx, err)
+		return
+	}
+	return fc, nil
+}
+
 func (ec *executionContext) _Owner_group(ctx context.Context, field graphql.CollectedField, obj *models.Owner) (ret graphql.Marshaler) {
 	fc, err := ec.fieldContext_Owner_group(ctx, field)
 	if err != nil {
@@ -12099,7 +12228,7 @@ func (ec *executionContext) _Query_teamkatalogen(ctx context.Context, field grap
 	}()
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.Query().Teamkatalogen(rctx, fc.Args["q"].(string))
+		return ec.resolvers.Query().Teamkatalogen(rctx, fc.Args["q"].([]string))
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -18679,6 +18808,12 @@ func (ec *executionContext) _Mutation(ctx context.Context, sel ast.SelectionSet)
 
 			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
 				return ec._Mutation_deleteStory(ctx, field)
+			})
+
+		case "createStory":
+
+			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
+				return ec._Mutation_createStory(ctx, field)
 			})
 
 		default:
