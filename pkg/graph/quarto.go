@@ -47,12 +47,15 @@ func (r *mutationResolver) NewQuartoStory(ctx context.Context, file graphql.Uplo
 		return nil, err
 	}
 
-	fmt.Println(string(fileBytes))
-
 	_, err = writer.Write(fileBytes)
 	// Write the file contents to the GCP object
 	if _, err = writer.Write(fileBytes); err != nil {
 		fmt.Println("failed to write object")
+		return nil, err
+	}
+
+	if err = writer.Close(); err != nil {
+		fmt.Printf("failed to close writer: %v", err)
 		return nil, err
 	}
 
