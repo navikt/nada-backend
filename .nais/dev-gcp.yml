@@ -69,6 +69,10 @@ spec:
         flags:
           - name: max_connections
             value: "50"
+    buckets:
+      - name: nada-quarto-storage-dev
+        publicAccessPrevention: true
+        uniformBucketLevelAccess: true
   accessPolicy:
     inbound:
       rules:
