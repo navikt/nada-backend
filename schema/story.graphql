@@ -18,6 +18,20 @@ type Story @goModel(model: "github.com/navikt/nada-backend/pkg/graph/models.Grap
 	views: [StoryView!]! @goField(forceResolver: true)
 }
 
+"""
+QuartoStory contains the metadata and content of data stories.
+"""
+type QuartoStory @goModel(model: "github.com/navikt/nada-backend/pkg/graph/models.QuartoStory"){
+	"id of the data story."
+	id: ID!
+	"name of the data story."
+	name: String!
+	"filename of the quarto story."
+	filename: String!
+	"url for the story in bucket."
+	url: String!
+}
+
 interface StoryView @goModel(model: "github.com/navikt/nada-backend/pkg/graph/models.GraphStoryView") {
 	"id of the story view."
 	id: ID!
@@ -142,17 +156,15 @@ input NewStory @goModel(model: "github.com/navikt/nada-backend/pkg/graph/models.
 scalar Upload
 
 """
-QuartoStory contains the metadata and content of data stories.
+NewQuartoStory contains the metadata and content of quarto stories.
 """
-type QuartoStory @goModel(model: "github.com/navikt/nada-backend/pkg/graph/models.QuartoStory"){
-	"id of the data story."
-	id: ID!
-	"name of the data story."
+input NewQuartoStory @goModel(model: "github.com/navikt/nada-backend/pkg/graph/models.NewQuartoStory"){
+	"name of the quarto story."
 	name: String!
-	"filename of the quarto story."
-	filename: String!
-	"url for the story in bucket."
-	url: String!
+	"description of the quarto story."
+	description: String!
+	"keywords for the story used as tags."
+	keywords: [String!]!
 }
 
 extend type Mutation {
@@ -205,6 +217,10 @@ extend type Mutation {
 		"file is the data for story"
 		file : Upload!
 		"input contains metadata about the new quarto story."
-		input: NewStory!
+		input: NewQuartoStory!
 	): QuartoStory! @authenticated
+
+	testUpload(
+		file: Upload!
+	): String!
 }

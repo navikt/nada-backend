@@ -2,6 +2,7 @@ package graph
 
 import (
 	"context"
+	"fmt"
 	"log"
 	"os"
 	"time"
@@ -12,7 +13,8 @@ import (
 	"github.com/navikt/nada-backend/pkg/graph/models"
 )
 
-func (r *mutationResolver) NewQuartoStory(ctx context.Context, file graphql.Upload, input models.NewStory) (*models.QuartoStory, error) {
+func (r *mutationResolver) NewQuartoStory(ctx context.Context, file graphql.Upload, input models.NewQuartoStory) (*models.QuartoStory, error) {
+	fmt.Println("New Quarto story")
 	// Replace with your project ID and GCP bucket name
 	bucketName := os.Getenv("GCP_QUARTO_STORAGE_BUCKET_NAME")
 

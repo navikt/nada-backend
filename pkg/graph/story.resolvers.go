@@ -6,6 +6,7 @@ package graph
 
 import (
 	"context"
+	"fmt"
 
 	"github.com/99designs/gqlgen/graphql"
 	"github.com/google/uuid"
@@ -91,8 +92,18 @@ func (r *mutationResolver) DeleteStory(ctx context.Context, id uuid.UUID) (bool,
 }
 
 // CreateStory is the resolver for the createStory field.
-func (r *mutationResolver) CreateStory(ctx context.Context, file graphql.Upload, input models.NewStory) (*models.QuartoStory, error) {
+func (r *mutationResolver) CreateStory(ctx context.Context, file graphql.Upload, input models.NewQuartoStory) (*models.QuartoStory, error) {
 	return r.NewQuartoStory(ctx, file, input)
+}
+
+// TestUpload is the resolver for the testUpload field.
+func (r *mutationResolver) TestUpload(ctx context.Context, file graphql.Upload) (string, error) {
+	fmt.Println(file.Filename)
+	var fileBytes []byte
+	n, _ := file.File.Read(fileBytes)
+	fmt.Println(n)
+	fmt.Println(string(fileBytes))
+	return "Ok", nil
 }
 
 // Stories is the resolver for the stories field.

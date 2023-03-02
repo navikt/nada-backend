@@ -32,3 +32,13 @@ type QuartoStory struct {
 	// url for the story in bucket.
 	URL string `json:"url"`
 }
+
+// NewQuartoStory contains the metadata and content of quarto stories.
+type NewQuartoStory struct {
+	// name of the quarto story.
+	Name string `json:"name"`
+	// description of the quarto story.
+	Description string `json:"description"`
+	// keywords for the story used as tags.
+	Keywords []string `json:"keywords"`
+}
