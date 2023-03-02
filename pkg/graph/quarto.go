@@ -3,6 +3,7 @@ package graph
 import (
 	"context"
 	"fmt"
+	"io/ioutil"
 	"log"
 	"os"
 	"time"
@@ -28,29 +29,36 @@ func (r *mutationResolver) NewQuartoStory(ctx context.Context, file graphql.Uplo
 	// Create a new GCP bucket handle
 	bucket := client.Bucket(bucketName)
 
+	fmt.Println(bucket)
+
 	// Generate a unique filename for the uploaded file
 	filename := time.Now().Format("20060102150405") + "-" + file.Filename
 
+	fmt.Println(filename)
 	// Create a new GCP object handle
 	object := bucket.Object(filename)
 
+	fmt.Println(object)
 	// Create a new GCP object writer
 	writer := object.NewWriter(ctx)
 
-	var fileBytes []byte
-	_, err = file.File.Read(fileBytes)
+	fileBytes, err := ioutil.ReadAll(file.File)
 	if err != nil {
 		return nil, err
 	}
 
+	fmt.Println(string(fileBytes))
+
 	_, err = writer.Write(fileBytes)
 	// Write the file contents to the GCP object
 	if _, err = writer.Write(fileBytes); err != nil {
+		fmt.Println("failed to write object")
 		return nil, err
 	}
 
 	objectAttr, err := object.Attrs(ctx)
 	if err != nil {
+		fmt.Println("failed to fetch object attributes")
 		return nil, err
 	}
 

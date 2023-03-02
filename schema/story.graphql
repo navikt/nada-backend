@@ -219,8 +219,4 @@ extend type Mutation {
 		"input contains metadata about the new quarto story."
 		input: NewQuartoStory!
 	): QuartoStory! @authenticated
-
-	testUpload(
-		file: Upload!
-	): String!
 }

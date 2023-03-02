@@ -182,7 +182,6 @@ type ComplexityRoot struct {
 		MapDataset            func(childComplexity int, datasetID uuid.UUID, services []models.MappingService) int
 		PublishStory          func(childComplexity int, input models.NewStory) int
 		RevokeAccessToDataset func(childComplexity int, id uuid.UUID) int
-		TestUpload            func(childComplexity int, file graphql.Upload) int
 		TriggerMetadataSync   func(childComplexity int) int
 		UpdateAccessRequest   func(childComplexity int, input models.UpdateAccessRequest) int
 		UpdateDataproduct     func(childComplexity int, id uuid.UUID, input models.UpdateDataproduct) int
@@ -397,7 +396,6 @@ type MutationResolver interface {
 	UpdateStoryMetadata(ctx context.Context, id uuid.UUID, name string, keywords []string, teamkatalogenURL *string, productAreaID *string, teamID *string) (*models.GraphStory, error)
 	DeleteStory(ctx context.Context, id uuid.UUID) (bool, error)
 	CreateStory(ctx context.Context, file graphql.Upload, input models.NewQuartoStory) (*models.QuartoStory, error)
-	TestUpload(ctx context.Context, file graphql.Upload) (string, error)
 }
 type ProductAreaResolver interface {
 	Dataproducts(ctx context.Context, obj *models.ProductArea) ([]*models.Dataproduct, error)
@@ -1173,18 +1171,6 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 		}
 
 		return e.complexity.Mutation.RevokeAccessToDataset(childComplexity, args["id"].(uuid.UUID)), true
-
-	case "Mutation.testUpload":
-		if e.complexity.Mutation.TestUpload == nil {
-			break
-		}
-
-		args, err := ec.field_Mutation_testUpload_args(context.TODO(), rawArgs)
-		if err != nil {
-			return 0, false
-		}
-
-		return e.complexity.Mutation.TestUpload(childComplexity, args["file"].(graphql.Upload)), true
 
 	case "Mutation.triggerMetadataSync":
 		if e.complexity.Mutation.TriggerMetadataSync == nil {
@@ -3426,10 +3412,6 @@ extend type Mutation {
 		"input contains metadata about the new quarto story."
 		input: NewQuartoStory!
 	): QuartoStory! @authenticated
-
-	testUpload(
-		file: Upload!
-	): String!
 }
 `, BuiltIn: false},
 	{Name: "../../../schema/teamkatalogen.graphql", Input: `type TeamkatalogenResult @goModel(model: "github.com/navikt/nada-backend/pkg/graph/models.TeamkatalogenResult") {
@@ -3811,21 +3793,6 @@ func (ec *executionContext) field_Mutation_revokeAccessToDataset_args(ctx contex
 		}
 	}
 	args["id"] = arg0
-	return args, nil
-}
-
-func (ec *executionContext) field_Mutation_testUpload_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
-	var err error
-	args := map[string]interface{}{}
-	var arg0 graphql.Upload
-	if tmp, ok := rawArgs["file"]; ok {
-		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("file"))
-		arg0, err = ec.unmarshalNUpload2githubᚗcomᚋ99designsᚋgqlgenᚋgraphqlᚐUpload(ctx, tmp)
-		if err != nil {
-			return nil, err
-		}
-	}
-	args["file"] = arg0
 	return args, nil
 }
 
@@ -9495,60 +9462,6 @@ func (ec *executionContext) fieldContext_Mutation_createStory(ctx context.Contex
 	}()
 	ctx = graphql.WithFieldContext(ctx, fc)
 	if fc.Args, err = ec.field_Mutation_createStory_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
-		ec.Error(ctx, err)
-		return
-	}
-	return fc, nil
-}
-
-func (ec *executionContext) _Mutation_testUpload(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
-	fc, err := ec.fieldContext_Mutation_testUpload(ctx, field)
-	if err != nil {
-		return graphql.Null
-	}
-	ctx = graphql.WithFieldContext(ctx, fc)
-	defer func() {
-		if r := recover(); r != nil {
-			ec.Error(ctx, ec.Recover(ctx, r))
-			ret = graphql.Null
-		}
-	}()
-	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
-		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.Mutation().TestUpload(rctx, fc.Args["file"].(graphql.Upload))
-	})
-	if err != nil {
-		ec.Error(ctx, err)
-	}
-	if resTmp == nil {
-		if !graphql.HasFieldError(ctx, fc) {
-			ec.Errorf(ctx, "must not be null")
-		}
-		return graphql.Null
-	}
-	res := resTmp.(string)
-	fc.Result = res
-	return ec.marshalNString2string(ctx, field.Selections, res)
-}
-
-func (ec *executionContext) fieldContext_Mutation_testUpload(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "Mutation",
-		Field:      field,
-		IsMethod:   true,
-		IsResolver: true,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type String does not have child fields")
-		},
-	}
-	defer func() {
-		if r := recover(); r != nil {
-			err = ec.Recover(ctx, r)
-			ec.Error(ctx, err)
-		}
-	}()
-	ctx = graphql.WithFieldContext(ctx, fc)
-	if fc.Args, err = ec.field_Mutation_testUpload_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
 		ec.Error(ctx, err)
 		return
 	}
@@ -19191,12 +19104,6 @@ func (ec *executionContext) _Mutation(ctx context.Context, sel ast.SelectionSet)
 
 			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
 				return ec._Mutation_createStory(ctx, field)
-			})
-
-		case "testUpload":
-
-			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
-				return ec._Mutation_testUpload(ctx, field)
 			})
 
 		default:

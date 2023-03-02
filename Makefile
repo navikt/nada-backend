@@ -49,7 +49,7 @@ local-with-auth:
 	--log-level=debug
 
 local:
-	DASHBOARD_PA_ID=Mocked-001 go run ./cmd/nada-backend \
+	GCP_QUARTO_STORAGE_BUCKET_NAME=nada-quarto-storage-dev DASHBOARD_PA_ID=Mocked-001 go run ./cmd/nada-backend \
 	--bind-address=127.0.0.1:8080 \
 	--hostname=localhost \
 	--mock-auth \
