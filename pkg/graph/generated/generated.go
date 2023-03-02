@@ -171,7 +171,7 @@ type ComplexityRoot struct {
 		CreateAccessRequest   func(childComplexity int, input models.NewAccessRequest) int
 		CreateDataproduct     func(childComplexity int, input models.NewDataproduct) int
 		CreateDataset         func(childComplexity int, input models.NewDataset) int
-		CreateStory           func(childComplexity int, input models.NewStory) int
+		CreateStory           func(childComplexity int, file graphql.Upload, input models.NewStory) int
 		DeleteAccessRequest   func(childComplexity int, id uuid.UUID) int
 		DeleteDataproduct     func(childComplexity int, id uuid.UUID) int
 		DeleteDataset         func(childComplexity int, id uuid.UUID) int
@@ -222,6 +222,13 @@ type ComplexityRoot struct {
 		Keywords     func(childComplexity int) int
 		LastModified func(childComplexity int) int
 		Owner        func(childComplexity int) int
+	}
+
+	QuartoStory struct {
+		Filename func(childComplexity int) int
+		ID       func(childComplexity int) int
+		Name     func(childComplexity int) int
+		URL      func(childComplexity int) int
 	}
 
 	Query struct {
@@ -388,7 +395,7 @@ type MutationResolver interface {
 	PublishStory(ctx context.Context, input models.NewStory) (*models.GraphStory, error)
 	UpdateStoryMetadata(ctx context.Context, id uuid.UUID, name string, keywords []string, teamkatalogenURL *string, productAreaID *string, teamID *string) (*models.GraphStory, error)
 	DeleteStory(ctx context.Context, id uuid.UUID) (bool, error)
-	CreateStory(ctx context.Context, input models.NewStory) (*models.GraphStory, error)
+	CreateStory(ctx context.Context, file graphql.Upload, input models.NewStory) (*models.QuartoStory, error)
 }
 type ProductAreaResolver interface {
 	Dataproducts(ctx context.Context, obj *models.ProductArea) ([]*models.Dataproduct, error)
@@ -1043,7 +1050,7 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 			return 0, false
 		}
 
-		return e.complexity.Mutation.CreateStory(childComplexity, args["input"].(models.NewStory)), true
+		return e.complexity.Mutation.CreateStory(childComplexity, args["file"].(graphql.Upload), args["input"].(models.NewStory)), true
 
 	case "Mutation.deleteAccessRequest":
 		if e.complexity.Mutation.DeleteAccessRequest == nil {
@@ -1385,6 +1392,34 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 		}
 
 		return e.complexity.Quarto.Owner(childComplexity), true
+
+	case "QuartoStory.filename":
+		if e.complexity.QuartoStory.Filename == nil {
+			break
+		}
+
+		return e.complexity.QuartoStory.Filename(childComplexity), true
+
+	case "QuartoStory.id":
+		if e.complexity.QuartoStory.ID == nil {
+			break
+		}
+
+		return e.complexity.QuartoStory.ID(childComplexity), true
+
+	case "QuartoStory.name":
+		if e.complexity.QuartoStory.Name == nil {
+			break
+		}
+
+		return e.complexity.QuartoStory.Name(childComplexity), true
+
+	case "QuartoStory.url":
+		if e.complexity.QuartoStory.URL == nil {
+			break
+		}
+
+		return e.complexity.QuartoStory.URL(childComplexity), true
 
 	case "Query.accessRequest":
 		if e.complexity.Query.AccessRequest == nil {
@@ -3295,6 +3330,23 @@ input NewStory @goModel(model: "github.com/navikt/nada-backend/pkg/graph/models.
 		teamID: String
 }
 
+"The ` + "`" + `UploadFile, // b.txt` + "`" + ` scalar type represents a multipart file upload."
+scalar Upload
+
+"""
+QuartoStory contains the metadata and content of data stories.
+"""
+type QuartoStory @goModel(model: "github.com/navikt/nada-backend/pkg/graph/models.QuartoStory"){
+	"id of the data story."
+	id: ID!
+	"name of the data story."
+	name: String!
+	"filename of the quarto story."
+	filename: String!
+	"url for the story in bucket."
+	url: String!
+}
+
 extend type Mutation {
 	"""
     publishStory publishes a story draft.
@@ -3342,9 +3394,11 @@ extend type Mutation {
     Requires authentication.
     """
 	createStory(
-		"input contains information about the new quarto story."
+		"file is the data for story"
+		file : Upload!
+		"input contains metadata about the new quarto story."
 		input: NewStory!
-	): Story! @authenticated
+	): QuartoStory! @authenticated
 }
 `, BuiltIn: false},
 	{Name: "../../../schema/teamkatalogen.graphql", Input: `type TeamkatalogenResult @goModel(model: "github.com/navikt/nada-backend/pkg/graph/models.TeamkatalogenResult") {
@@ -3540,15 +3594,24 @@ func (ec *executionContext) field_Mutation_createDataset_args(ctx context.Contex
 func (ec *executionContext) field_Mutation_createStory_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
 	var err error
 	args := map[string]interface{}{}
-	var arg0 models.NewStory
-	if tmp, ok := rawArgs["input"]; ok {
-		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("input"))
-		arg0, err = ec.unmarshalNNewStory2githubᚗcomᚋnaviktᚋnadaᚑbackendᚋpkgᚋgraphᚋmodelsᚐNewStory(ctx, tmp)
+	var arg0 graphql.Upload
+	if tmp, ok := rawArgs["file"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("file"))
+		arg0, err = ec.unmarshalNUpload2githubᚗcomᚋ99designsᚋgqlgenᚋgraphqlᚐUpload(ctx, tmp)
 		if err != nil {
 			return nil, err
 		}
 	}
-	args["input"] = arg0
+	args["file"] = arg0
+	var arg1 models.NewStory
+	if tmp, ok := rawArgs["input"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("input"))
+		arg1, err = ec.unmarshalNNewStory2githubᚗcomᚋnaviktᚋnadaᚑbackendᚋpkgᚋgraphᚋmodelsᚐNewStory(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["input"] = arg1
 	return args, nil
 }
 
@@ -9323,7 +9386,7 @@ func (ec *executionContext) _Mutation_createStory(ctx context.Context, field gra
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		directive0 := func(rctx context.Context) (interface{}, error) {
 			ctx = rctx // use context from middleware stack in children
-			return ec.resolvers.Mutation().CreateStory(rctx, fc.Args["input"].(models.NewStory))
+			return ec.resolvers.Mutation().CreateStory(rctx, fc.Args["file"].(graphql.Upload), fc.Args["input"].(models.NewStory))
 		}
 		directive1 := func(ctx context.Context) (interface{}, error) {
 			if ec.directives.Authenticated == nil {
@@ -9339,10 +9402,10 @@ func (ec *executionContext) _Mutation_createStory(ctx context.Context, field gra
 		if tmp == nil {
 			return nil, nil
 		}
-		if data, ok := tmp.(*models.GraphStory); ok {
+		if data, ok := tmp.(*models.QuartoStory); ok {
 			return data, nil
 		}
-		return nil, fmt.Errorf(`unexpected type %T from directive, should be *github.com/navikt/nada-backend/pkg/graph/models.GraphStory`, tmp)
+		return nil, fmt.Errorf(`unexpected type %T from directive, should be *github.com/navikt/nada-backend/pkg/graph/models.QuartoStory`, tmp)
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -9353,9 +9416,9 @@ func (ec *executionContext) _Mutation_createStory(ctx context.Context, field gra
 		}
 		return graphql.Null
 	}
-	res := resTmp.(*models.GraphStory)
+	res := resTmp.(*models.QuartoStory)
 	fc.Result = res
-	return ec.marshalNStory2ᚖgithubᚗcomᚋnaviktᚋnadaᚑbackendᚋpkgᚋgraphᚋmodelsᚐGraphStory(ctx, field.Selections, res)
+	return ec.marshalNQuartoStory2ᚖgithubᚗcomᚋnaviktᚋnadaᚑbackendᚋpkgᚋgraphᚋmodelsᚐQuartoStory(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) fieldContext_Mutation_createStory(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
@@ -9367,21 +9430,15 @@ func (ec *executionContext) fieldContext_Mutation_createStory(ctx context.Contex
 		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
 			switch field.Name {
 			case "id":
-				return ec.fieldContext_Story_id(ctx, field)
+				return ec.fieldContext_QuartoStory_id(ctx, field)
 			case "name":
-				return ec.fieldContext_Story_name(ctx, field)
-			case "created":
-				return ec.fieldContext_Story_created(ctx, field)
-			case "lastModified":
-				return ec.fieldContext_Story_lastModified(ctx, field)
-			case "owner":
-				return ec.fieldContext_Story_owner(ctx, field)
-			case "keywords":
-				return ec.fieldContext_Story_keywords(ctx, field)
-			case "views":
-				return ec.fieldContext_Story_views(ctx, field)
+				return ec.fieldContext_QuartoStory_name(ctx, field)
+			case "filename":
+				return ec.fieldContext_QuartoStory_filename(ctx, field)
+			case "url":
+				return ec.fieldContext_QuartoStory_url(ctx, field)
 			}
-			return nil, fmt.Errorf("no field named %q was found under type Story", field.Name)
+			return nil, fmt.Errorf("no field named %q was found under type QuartoStory", field.Name)
 		},
 	}
 	defer func() {
@@ -10406,6 +10463,182 @@ func (ec *executionContext) _Quarto_content(ctx context.Context, field graphql.C
 func (ec *executionContext) fieldContext_Quarto_content(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
 	fc = &graphql.FieldContext{
 		Object:     "Quarto",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _QuartoStory_id(ctx context.Context, field graphql.CollectedField, obj *models.QuartoStory) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_QuartoStory_id(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.ID, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(uuid.UUID)
+	fc.Result = res
+	return ec.marshalNID2githubᚗcomᚋgoogleᚋuuidᚐUUID(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_QuartoStory_id(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "QuartoStory",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type ID does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _QuartoStory_name(ctx context.Context, field graphql.CollectedField, obj *models.QuartoStory) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_QuartoStory_name(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Name, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(string)
+	fc.Result = res
+	return ec.marshalNString2string(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_QuartoStory_name(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "QuartoStory",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _QuartoStory_filename(ctx context.Context, field graphql.CollectedField, obj *models.QuartoStory) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_QuartoStory_filename(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Filename, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(string)
+	fc.Result = res
+	return ec.marshalNString2string(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_QuartoStory_filename(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "QuartoStory",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _QuartoStory_url(ctx context.Context, field graphql.CollectedField, obj *models.QuartoStory) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_QuartoStory_url(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.URL, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(string)
+	fc.Result = res
+	return ec.marshalNString2string(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_QuartoStory_url(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "QuartoStory",
 		Field:      field,
 		IsMethod:   false,
 		IsResolver: false,
@@ -19102,6 +19335,55 @@ func (ec *executionContext) _Quarto(ctx context.Context, sel ast.SelectionSet, o
 	return out
 }
 
+var quartoStoryImplementors = []string{"QuartoStory"}
+
+func (ec *executionContext) _QuartoStory(ctx context.Context, sel ast.SelectionSet, obj *models.QuartoStory) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, quartoStoryImplementors)
+	out := graphql.NewFieldSet(fields)
+	var invalids uint32
+	for i, field := range fields {
+		switch field.Name {
+		case "__typename":
+			out.Values[i] = graphql.MarshalString("QuartoStory")
+		case "id":
+
+			out.Values[i] = ec._QuartoStory_id(ctx, field, obj)
+
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
+		case "name":
+
+			out.Values[i] = ec._QuartoStory_name(ctx, field, obj)
+
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
+		case "filename":
+
+			out.Values[i] = ec._QuartoStory_filename(ctx, field, obj)
+
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
+		case "url":
+
+			out.Values[i] = ec._QuartoStory_url(ctx, field, obj)
+
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
+		default:
+			panic("unknown field " + strconv.Quote(field.Name))
+		}
+	}
+	out.Dispatch()
+	if invalids > 0 {
+		return graphql.Null
+	}
+	return out
+}
+
 var queryImplementors = []string{"Query"}
 
 func (ec *executionContext) _Query(ctx context.Context, sel ast.SelectionSet) graphql.Marshaler {
@@ -21732,6 +22014,20 @@ func (ec *executionContext) marshalNQuarto2ᚖgithubᚗcomᚋnaviktᚋnadaᚑbac
 	return ec._Quarto(ctx, sel, v)
 }
 
+func (ec *executionContext) marshalNQuartoStory2githubᚗcomᚋnaviktᚋnadaᚑbackendᚋpkgᚋgraphᚋmodelsᚐQuartoStory(ctx context.Context, sel ast.SelectionSet, v models.QuartoStory) graphql.Marshaler {
+	return ec._QuartoStory(ctx, sel, &v)
+}
+
+func (ec *executionContext) marshalNQuartoStory2ᚖgithubᚗcomᚋnaviktᚋnadaᚑbackendᚋpkgᚋgraphᚋmodelsᚐQuartoStory(ctx context.Context, sel ast.SelectionSet, v *models.QuartoStory) graphql.Marshaler {
+	if v == nil {
+		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
+			ec.Errorf(ctx, "the requested element is null which the schema does not allow")
+		}
+		return graphql.Null
+	}
+	return ec._QuartoStory(ctx, sel, v)
+}
+
 func (ec *executionContext) marshalNQueryPolly2ᚕᚖgithubᚗcomᚋnaviktᚋnadaᚑbackendᚋpkgᚋgraphᚋmodelsᚐQueryPollyᚄ(ctx context.Context, sel ast.SelectionSet, v []*models.QueryPolly) graphql.Marshaler {
 	ret := make(graphql.Array, len(v))
 	var wg sync.WaitGroup
@@ -22242,6 +22538,21 @@ func (ec *executionContext) unmarshalNUpdateDataset2githubᚗcomᚋnaviktᚋnada
 func (ec *executionContext) unmarshalNUpdateKeywords2githubᚗcomᚋnaviktᚋnadaᚑbackendᚋpkgᚋgraphᚋmodelsᚐUpdateKeywords(ctx context.Context, v interface{}) (models.UpdateKeywords, error) {
 	res, err := ec.unmarshalInputUpdateKeywords(ctx, v)
 	return res, graphql.ErrorOnPath(ctx, err)
+}
+
+func (ec *executionContext) unmarshalNUpload2githubᚗcomᚋ99designsᚋgqlgenᚋgraphqlᚐUpload(ctx context.Context, v interface{}) (graphql.Upload, error) {
+	res, err := graphql.UnmarshalUpload(v)
+	return res, graphql.ErrorOnPath(ctx, err)
+}
+
+func (ec *executionContext) marshalNUpload2githubᚗcomᚋ99designsᚋgqlgenᚋgraphqlᚐUpload(ctx context.Context, sel ast.SelectionSet, v graphql.Upload) graphql.Marshaler {
+	res := graphql.MarshalUpload(v)
+	if res == graphql.Null {
+		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
+			ec.Errorf(ctx, "the requested element is null which the schema does not allow")
+		}
+	}
+	return res
 }
 
 func (ec *executionContext) marshalNUserInfo2githubᚗcomᚋnaviktᚋnadaᚑbackendᚋpkgᚋgraphᚋmodelsᚐUserInfo(ctx context.Context, sel ast.SelectionSet, v models.UserInfo) graphql.Marshaler {

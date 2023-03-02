@@ -42,6 +42,7 @@ require (
 )
 
 require (
+	cloud.google.com/go/storage v1.28.1
 	github.com/btcsuite/btcutil v1.0.2
 	github.com/golang-jwt/jwt/v4 v4.4.2
 	github.com/qustavo/sqlhooks/v2 v2.1.0

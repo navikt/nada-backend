@@ -6,8 +6,8 @@ package graph
 
 import (
 	"context"
-	"fmt"
 
+	"github.com/99designs/gqlgen/graphql"
 	"github.com/google/uuid"
 	"github.com/navikt/nada-backend/pkg/auth"
 	"github.com/navikt/nada-backend/pkg/graph/generated"
@@ -91,8 +91,8 @@ func (r *mutationResolver) DeleteStory(ctx context.Context, id uuid.UUID) (bool,
 }
 
 // CreateStory is the resolver for the createStory field.
-func (r *mutationResolver) CreateStory(ctx context.Context, input models.NewStory) (*models.GraphStory, error) {
-	panic(fmt.Errorf("not implemented: CreateStory - createStory"))
+func (r *mutationResolver) CreateStory(ctx context.Context, file graphql.Upload, input models.NewStory) (*models.QuartoStory, error) {
+	return r.NewQuartoStory(ctx, file, input)
 }
 
 // Stories is the resolver for the stories field.

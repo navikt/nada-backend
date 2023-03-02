@@ -20,3 +20,15 @@ type Quarto struct {
 	// content is the content of the quarto.
 	Content string `json:"content"`
 }
+
+// QuartoStory contains the metadata and content of data stories.
+type QuartoStory struct {
+	// id of the data story.
+	ID uuid.UUID `json:"id"`
+	// name of the data story.
+	Name string `json:"name"`
+	// filename of the quarto story.
+	Filename string `json:"filename"`
+	// url for the story in bucket.
+	URL string `json:"url"`
+}
