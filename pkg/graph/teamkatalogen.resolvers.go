@@ -6,12 +6,14 @@ package graph
 
 import (
 	"context"
+	"fmt"
 
 	"github.com/navikt/nada-backend/pkg/graph/models"
 )
 
 // Teamkatalogen is the resolver for the teamkatalogen field.
 func (r *queryResolver) Teamkatalogen(ctx context.Context, q []string) ([]*models.TeamkatalogenResult, error) {
+	fmt.Println(q)
 	var teamkatalogenResult []*models.TeamkatalogenResult
 	for _, gcpGroup := range q {
 		tr, err := r.teamkatalogen.Search(ctx, gcpGroup)

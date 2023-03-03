@@ -289,13 +289,17 @@ type PollyDocumentation struct {
 	Url        string
 }
 
-type Quarto struct {
-	ID           uuid.UUID
-	Owner        string
-	Created      time.Time
-	LastModified time.Time
-	Keywords     []string
-	Content      string
+type QuartoStory struct {
+	ID               uuid.UUID
+	Name             string
+	Creator          string
+	Created          time.Time
+	LastModified     time.Time
+	Description      string
+	Keywords         []string
+	TeamkatalogenUrl sql.NullString
+	ProductAreaID    sql.NullString
+	TeamID           sql.NullString
 }
 
 type Search struct {

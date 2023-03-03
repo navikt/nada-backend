@@ -6,10 +6,7 @@ package graph
 
 import (
 	"context"
-	"fmt"
-	"io/ioutil"
 
-	"github.com/99designs/gqlgen/graphql"
 	"github.com/google/uuid"
 	"github.com/navikt/nada-backend/pkg/auth"
 	"github.com/navikt/nada-backend/pkg/graph/generated"
@@ -90,11 +87,6 @@ func (r *mutationResolver) DeleteStory(ctx context.Context, id uuid.UUID) (bool,
 	}
 
 	return true, nil
-}
-
-// CreateStory is the resolver for the createStory field.
-func (r *mutationResolver) CreateStory(ctx context.Context, file graphql.Upload, input models.NewQuartoStory) (*models.QuartoStory, error) {
-	return r.NewQuartoStory(ctx, file, input)
 }
 
 // Stories is the resolver for the stories field.
@@ -203,20 +195,3 @@ func (r *storyResolver) Views(ctx context.Context, obj *models.GraphStory) ([]mo
 func (r *Resolver) Story() generated.StoryResolver { return &storyResolver{r} }
 
 type storyResolver struct{ *Resolver }
-
-// !!! WARNING !!!
-// The code below was going to be deleted when updating resolvers. It has been copied here so you have
-// one last chance to move it out of harms way if you want. There are two reasons this happens:
-//   - When renaming or deleting a resolver the old code will be put in here. You can safely delete
-//     it when you're done.
-//   - You have helper methods in this file. Move them out to keep these resolver files clean.
-func (r *mutationResolver) TestUpload(ctx context.Context, file graphql.Upload) (string, error) {
-	fmt.Println(file.Filename)
-	// Read the contents of the uploaded file from the io.Reader object
-	fileBytes, err := ioutil.ReadAll(file.File)
-	if err != nil {
-		return "", err
-	}
-	fmt.Println(string(fileBytes))
-	return "Ok", nil
-}

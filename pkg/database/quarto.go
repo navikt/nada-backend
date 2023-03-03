@@ -8,28 +8,55 @@ import (
 	"github.com/navikt/nada-backend/pkg/graph/models"
 )
 
-func (r *Repo) CreateQuarto(ctx context.Context, team, data string) (uuid.UUID, error) {
-	quartoSQL, err := r.querier.CreateQuarto(ctx, gensql.CreateQuartoParams{
-		Team:    team,
-		Content: data,
+func (r *Repo) CreateQuartoStory(ctx context.Context, creator string,
+	newQuartoStory models.NewQuartoStory) (models.QuartoStory, error) {
+	quartoSQL, err := r.querier.CreateQuartoStory(ctx, gensql.CreateQuartoStoryParams{
+		Name:             newQuartoStory.Name,
+		Creator:          creator,
+		Description:      newQuartoStory.Description,
+		Keywords:         newQuartoStory.Keywords,
+		TeamkatalogenUrl: ptrToNullString(newQuartoStory.TeamkatalogenURL),
+		ProductAreaID:    ptrToNullString(newQuartoStory.ProductAreaID),
+		TeamID:           ptrToNullString(newQuartoStory.TeamID),
 	})
 
-	return quartoSQL.ID, err
+	return models.QuartoStory{
+		// id of the data story.
+		ID: quartoSQL.ID,
+		// name of the data story.
+		Name: quartoSQL.Name,
+		// creator of the data story.
+		Creator: quartoSQL.Creator,
+		// description of the quarto story.
+		Description: quartoSQL.Description,
+		// keywords for the story used as tags.
+		Keywords: quartoSQL.Keywords,
+		// teamkatalogenURL of the creator
+		TeamkatalogenURL: nullStringToPtr(quartoSQL.TeamkatalogenUrl),
+		// Id of the creator's product area.
+		ProductAreaID: nullStringToPtr(quartoSQL.ProductAreaID),
+		// Id of the creator's team.
+		TeamID: nullStringToPtr(quartoSQL.TeamID),
+		// created is the timestamp for when the dataproduct was created
+		Created: quartoSQL.Created,
+		// lastModified is the timestamp for when the dataproduct was last modified
+		LastModified: quartoSQL.LastModified,
+	}, err
 }
 
-func (r *Repo) GetQuarto(ctx context.Context, id uuid.UUID) (*models.Quarto, error) {
-	quartoSQL, err := r.querier.GetQuarto(ctx, id)
+func (r *Repo) GetQuartoStory(ctx context.Context, id uuid.UUID) (*models.QuartoStory, error) {
+	quartoSQL, err := r.querier.GetQuartoStory(ctx, id)
 
 	return quartoSQLToGraphql(quartoSQL), err
 }
 
-func (r *Repo) GetQuartos(ctx context.Context) ([]*models.Quarto, error) {
-	quartoSQLs, err := r.querier.GetQuartos(ctx)
+func (r *Repo) GetQuartoStories(ctx context.Context) ([]*models.QuartoStory, error) {
+	quartoSQLs, err := r.querier.GetQuartoStories(ctx)
 	if err != nil {
 		return nil, err
 	}
 
-	quartoGraphqls := make([]*models.Quarto, len(quartoSQLs))
+	quartoGraphqls := make([]*models.QuartoStory, len(quartoSQLs))
 	for idx, quarto := range quartoSQLs {
 		quartoGraphqls[idx] = quartoSQLToGraphql(quarto)
 	}
@@ -37,16 +64,16 @@ func (r *Repo) GetQuartos(ctx context.Context) ([]*models.Quarto, error) {
 	return quartoGraphqls, err
 }
 
-func quartoSQLToGraphql(quarto gensql.Quarto) *models.Quarto {
-	return &models.Quarto{
-		ID: quarto.ID,
-		Owner: &models.Owner{
-			Group:            quarto.Owner,
-			TeamkatalogenURL: stringToPtr(""),
-		},
-		Created:      quarto.Created,
-		LastModified: quarto.LastModified,
-		Keywords:     quarto.Keywords,
-		Content:      quarto.Content,
+func quartoSQLToGraphql(quarto gensql.QuartoStory) *models.QuartoStory {
+	return &models.QuartoStory{
+		ID:            quarto.ID,
+		Name:          quarto.Name,
+		Creator:       quarto.Creator,
+		Created:       quarto.Created,
+		LastModified:  quarto.LastModified,
+		Keywords:      quarto.Keywords,
+		ProductAreaID: nullStringToPtr(quarto.ProductAreaID),
+		TeamID:        nullStringToPtr(quarto.TeamID),
+		Description:   quarto.Description,
 	}
 }

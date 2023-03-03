@@ -35,16 +35,19 @@ func New(url string) *Teamkatalogen {
 }
 
 func (t *Teamkatalogen) Search(ctx context.Context, query string) ([]*models.TeamkatalogenResult, error) {
+	fmt.Println("teamkatalogen search")
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, fmt.Sprintf("%v/team", t.url), nil)
 	if err != nil {
 		return nil, err
 	}
+	fmt.Println("teamkatalogen send request")
 
 	req.Header.Set("Accept", "application/json")
 	res, err := httpwithcache.Do(t.client, req)
 	if err != nil {
 		return nil, err
 	}
+	fmt.Printf("teamkatalogen response %v", string(res))
 
 	var tkRes TeamkatalogenResponse
 	if err := json.NewDecoder(bytes.NewReader(res)).Decode(&tkRes); err != nil {

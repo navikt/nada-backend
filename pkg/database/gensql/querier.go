@@ -22,7 +22,7 @@ type Querier interface {
 	CreateDataset(ctx context.Context, arg CreateDatasetParams) (Dataset, error)
 	CreateMetabaseMetadata(ctx context.Context, arg CreateMetabaseMetadataParams) error
 	CreatePollyDocumentation(ctx context.Context, arg CreatePollyDocumentationParams) (PollyDocumentation, error)
-	CreateQuarto(ctx context.Context, arg CreateQuartoParams) (Quarto, error)
+	CreateQuartoStory(ctx context.Context, arg CreateQuartoStoryParams) (QuartoStory, error)
 	CreateSession(ctx context.Context, arg CreateSessionParams) error
 	CreateStory(ctx context.Context, arg CreateStoryParams) (Story, error)
 	CreateStoryDraft(ctx context.Context, name string) (StoryDraft, error)
@@ -37,7 +37,7 @@ type Querier interface {
 	DeleteDataproduct(ctx context.Context, id uuid.UUID) error
 	DeleteDataset(ctx context.Context, id uuid.UUID) error
 	DeleteMetabaseMetadata(ctx context.Context, datasetID uuid.UUID) error
-	DeleteQuarto(ctx context.Context, id uuid.UUID) error
+	DeleteQuartoStory(ctx context.Context, id uuid.UUID) error
 	DeleteSession(ctx context.Context, token string) error
 	DeleteStory(ctx context.Context, id uuid.UUID) error
 	DeleteStoryDraft(ctx context.Context, id uuid.UUID) error
@@ -69,9 +69,12 @@ type Querier interface {
 	GetMetabaseMetadata(ctx context.Context, datasetID uuid.UUID) (MetabaseMetadatum, error)
 	GetMetabaseMetadataWithDeleted(ctx context.Context, datasetID uuid.UUID) (MetabaseMetadatum, error)
 	GetPollyDocumentation(ctx context.Context, id uuid.UUID) (PollyDocumentation, error)
-	GetQuarto(ctx context.Context, id uuid.UUID) (Quarto, error)
-	GetQuartos(ctx context.Context) ([]Quarto, error)
-	GetQuartosForOwner(ctx context.Context, owner string) ([]Quarto, error)
+	GetQuartoStories(ctx context.Context) ([]QuartoStory, error)
+	GetQuartoStoriesByGroups(ctx context.Context, groups []string) ([]QuartoStory, error)
+	GetQuartoStoriesByIDs(ctx context.Context, ids []uuid.UUID) ([]QuartoStory, error)
+	GetQuartoStoriesByProductArea(ctx context.Context, productAreaID sql.NullString) ([]QuartoStory, error)
+	GetQuartoStoriesByTeam(ctx context.Context, teamID sql.NullString) ([]QuartoStory, error)
+	GetQuartoStory(ctx context.Context, id uuid.UUID) (QuartoStory, error)
 	GetSession(ctx context.Context, token string) (Session, error)
 	GetStories(ctx context.Context) ([]Story, error)
 	GetStoriesByGroups(ctx context.Context, groups []string) ([]Story, error)
@@ -103,6 +106,7 @@ type Querier interface {
 	ReplaceDatasetsTag(ctx context.Context, arg ReplaceDatasetsTagParams) error
 	ReplaceKeywordInDatasets(ctx context.Context, arg ReplaceKeywordInDatasetsParams) error
 	ReplaceKeywordInStories(ctx context.Context, arg ReplaceKeywordInStoriesParams) error
+	ReplaceQuartoStoriesTag(ctx context.Context, arg ReplaceQuartoStoriesTagParams) error
 	ReplaceStoriesTag(ctx context.Context, arg ReplaceStoriesTagParams) error
 	RestoreMetabaseMetadata(ctx context.Context, datasetID uuid.UUID) error
 	RevokeAccessToDataset(ctx context.Context, id uuid.UUID) error
@@ -115,7 +119,7 @@ type Querier interface {
 	UpdateBigqueryDatasourceSchema(ctx context.Context, arg UpdateBigqueryDatasourceSchemaParams) error
 	UpdateDataproduct(ctx context.Context, arg UpdateDataproductParams) (Dataproduct, error)
 	UpdateDataset(ctx context.Context, arg UpdateDatasetParams) (Dataset, error)
-	UpdateQuarto(ctx context.Context, arg UpdateQuartoParams) (Quarto, error)
+	UpdateQuartoStory(ctx context.Context, arg UpdateQuartoStoryParams) (QuartoStory, error)
 	UpdateStory(ctx context.Context, arg UpdateStoryParams) (Story, error)
 	UpdateTag(ctx context.Context, arg UpdateTagParams) error
 }
