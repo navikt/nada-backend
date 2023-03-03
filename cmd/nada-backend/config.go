@@ -23,6 +23,7 @@ type Config struct {
 	PollyURL                        string
 	DBMaxIdleConn                   int
 	DBMaxOpenConn                   int
+	QuartoStorageBucketName         string
 }
 
 type OAuth2Config struct {
