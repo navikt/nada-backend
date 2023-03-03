@@ -32,7 +32,7 @@ test-sa:
 	$(shell kubectl get --context=dev-gcp --namespace=nada secret/google-credentials -o json | jq -r '.data."sa.json"' | base64 -d > test-sa.json)
 
 local-with-auth:
-	DASHBOARD_PA_ID=6dbeedea-b23e-4bf7-a1cb-21d02d15e452 go run ./cmd/nada-backend \
+	GCP_QUARTO_STORAGE_BUCKET_NAME=nada-quarto-storage-dev DASHBOARD_PA_ID=6dbeedea-b23e-4bf7-a1cb-21d02d15e452 go run ./cmd/nada-backend \
 	--oauth2-client-id=$(NADA_CLIENT_ID) \
 	--oauth2-client-secret=$(NADA_CLIENT_SECRET) \
 	--oauth2-tenant-id=$(NADA_CLIENT_TENANT) \
@@ -49,7 +49,7 @@ local-with-auth:
 	--log-level=debug
 
 local:
-	DASHBOARD_PA_ID=Mocked-001 go run ./cmd/nada-backend \
+	GCP_QUARTO_STORAGE_BUCKET_NAME=nada-quarto-storage-dev DASHBOARD_PA_ID=Mocked-001 go run ./cmd/nada-backend \
 	--bind-address=127.0.0.1:8080 \
 	--hostname=localhost \
 	--mock-auth \

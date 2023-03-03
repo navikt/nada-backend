@@ -1,5 +1,5 @@
 {
-  teamkatalogen(q: "") {
+  teamkatalogen(q: [""]) {
     name
     description
     url

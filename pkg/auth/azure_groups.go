@@ -64,14 +64,10 @@ func (a *AzureGroupClient) GroupsForUser(ctx context.Context, token, email strin
 		return nil, err
 	}
 
-	var body []byte
-	response.Body.Read(body)
-	fmt.Println(string(body))
 	var memberOfResponse MemberOfResponse
 	if err := json.NewDecoder(response.Body).Decode(&memberOfResponse); err != nil {
 		return nil, err
 	}
-	fmt.Println(memberOfResponse)
 	var groups Groups
 
 	for _, entry := range memberOfResponse.Groups {

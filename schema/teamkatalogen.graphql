@@ -15,6 +15,6 @@ extend type Query {
     "searches teamkatalogen for teams where team name matches query input"
     teamkatalogen(
         "q is the search query."
-        q: String!
+        q: [String!]
     ): [TeamkatalogenResult!]!
 }
