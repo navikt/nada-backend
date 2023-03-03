@@ -26,25 +26,25 @@ WHERE id = @id;
 -- name: GetQuartoStories :many
 SELECT *
 FROM quarto_stories
-ORDER BY created DESC;
+ORDER BY last_modified DESC;
 
 -- name: GetQuartoStoriesByIDs :many
 SELECT *
 FROM quarto_stories
 WHERE id = ANY (@ids::uuid[])
-ORDER BY created DESC;
+ORDER BY last_modified DESC;
 
 -- name: GetQuartoStoriesByProductArea :many
 SELECT *
 FROM quarto_stories
 WHERE product_area_id = @product_area_id
-ORDER BY created DESC;
+ORDER BY last_modified DESC;
 
 -- name: GetQuartoStoriesByTeam :many
 SELECT *
 FROM quarto_stories
 WHERE team_id = @team_id
-ORDER BY created DESC;
+ORDER BY last_modified DESC;
 
 -- name: UpdateQuartoStory :one
 UPDATE quarto_stories

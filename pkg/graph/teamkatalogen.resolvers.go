@@ -15,6 +15,9 @@ import (
 func (r *queryResolver) Teamkatalogen(ctx context.Context, q []string) ([]*models.TeamkatalogenResult, error) {
 	fmt.Println(q)
 	var teamkatalogenResult []*models.TeamkatalogenResult
+	if len(q) == 0 {
+		q = []string{""}
+	}
 	for _, gcpGroup := range q {
 		tr, err := r.teamkatalogen.Search(ctx, gcpGroup)
 		if err != nil {

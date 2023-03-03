@@ -20,28 +20,7 @@ func (r *Repo) CreateQuartoStory(ctx context.Context, creator string,
 		TeamID:           ptrToNullString(newQuartoStory.TeamID),
 	})
 
-	return models.QuartoStory{
-		// id of the data story.
-		ID: quartoSQL.ID,
-		// name of the data story.
-		Name: quartoSQL.Name,
-		// creator of the data story.
-		Creator: quartoSQL.Creator,
-		// description of the quarto story.
-		Description: quartoSQL.Description,
-		// keywords for the story used as tags.
-		Keywords: quartoSQL.Keywords,
-		// teamkatalogenURL of the creator
-		TeamkatalogenURL: nullStringToPtr(quartoSQL.TeamkatalogenUrl),
-		// Id of the creator's product area.
-		ProductAreaID: nullStringToPtr(quartoSQL.ProductAreaID),
-		// Id of the creator's team.
-		TeamID: nullStringToPtr(quartoSQL.TeamID),
-		// created is the timestamp for when the dataproduct was created
-		Created: quartoSQL.Created,
-		// lastModified is the timestamp for when the dataproduct was last modified
-		LastModified: quartoSQL.LastModified,
-	}, err
+	return *quartoSQLToGraphql(quartoSQL), err
 }
 
 func (r *Repo) GetQuartoStory(ctx context.Context, id uuid.UUID) (*models.QuartoStory, error) {

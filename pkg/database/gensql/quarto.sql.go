@@ -83,7 +83,7 @@ func (q *Queries) DeleteQuartoStory(ctx context.Context, id uuid.UUID) error {
 const getQuartoStories = `-- name: GetQuartoStories :many
 SELECT id, name, creator, created, last_modified, description, keywords, teamkatalogen_url, product_area_id, team_id
 FROM quarto_stories
-ORDER BY created DESC
+ORDER BY last_modified DESC
 `
 
 func (q *Queries) GetQuartoStories(ctx context.Context) ([]QuartoStory, error) {
@@ -165,7 +165,7 @@ const getQuartoStoriesByIDs = `-- name: GetQuartoStoriesByIDs :many
 SELECT id, name, creator, created, last_modified, description, keywords, teamkatalogen_url, product_area_id, team_id
 FROM quarto_stories
 WHERE id = ANY ($1::uuid[])
-ORDER BY created DESC
+ORDER BY last_modified DESC
 `
 
 func (q *Queries) GetQuartoStoriesByIDs(ctx context.Context, ids []uuid.UUID) ([]QuartoStory, error) {
@@ -206,7 +206,7 @@ const getQuartoStoriesByProductArea = `-- name: GetQuartoStoriesByProductArea :m
 SELECT id, name, creator, created, last_modified, description, keywords, teamkatalogen_url, product_area_id, team_id
 FROM quarto_stories
 WHERE product_area_id = $1
-ORDER BY created DESC
+ORDER BY last_modified DESC
 `
 
 func (q *Queries) GetQuartoStoriesByProductArea(ctx context.Context, productAreaID sql.NullString) ([]QuartoStory, error) {
@@ -247,7 +247,7 @@ const getQuartoStoriesByTeam = `-- name: GetQuartoStoriesByTeam :many
 SELECT id, name, creator, created, last_modified, description, keywords, teamkatalogen_url, product_area_id, team_id
 FROM quarto_stories
 WHERE team_id = $1
-ORDER BY created DESC
+ORDER BY last_modified DESC
 `
 
 func (q *Queries) GetQuartoStoriesByTeam(ctx context.Context, teamID sql.NullString) ([]QuartoStory, error) {
