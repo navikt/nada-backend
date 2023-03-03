@@ -61,6 +61,8 @@ spec:
       value: /var/run/secrets/nada-credentials/meta_creds.json
     - name: DASHBOARD_PA_ID
       value: deab2907-c8ac-4db9-b997-328cce77d797
+    - name: GCP_QUARTO_STORAGE_BUCKET_NAME
+      value: nada-quarto-storage-dev
   gcp:
     sqlInstances:
       - type: POSTGRES_12
