@@ -42,6 +42,7 @@ spec:
     path: /internal/metrics
   ingresses:
     - "https://data.dev.intern.nav.no/api"
+    - "https://data.dev.intern.nav.no/quarto"
     - "https://nada.ekstern.dev.nav.no/api"
   envFrom:
     - secret: nada-backend
