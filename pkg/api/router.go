@@ -52,13 +52,9 @@ func New(
 		r.Post("/story", storyHandler.Upload)
 		r.Put("/story", storyHandler.Update)
 	})
-	router.Route("/quarto", func(r chi.Router) {
-		r.Get("/{id}", quartoHandler.Redirect)
-		r.Route("/{id}/", func(r chi.Router) {
-			// todo: fix trailing slash (e.g. <id>/) reroute
-			// r.Get("/", quartoHandler.Redirect)
-			r.Get("/*", quartoHandler.GetObject)
-		})
+	router.Route("/quarto/", func(r chi.Router) {
+		r.Use(quartoHandler.QuartoMiddleware)
+		r.Get("/*", quartoHandler.GetObject)
 	})
 	router.Route("/internal", func(r chi.Router) {
 		r.Handle("/metrics", promhttp.HandlerFor(promReg, promhttp.HandlerOpts{}))

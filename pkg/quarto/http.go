@@ -2,6 +2,7 @@ package quarto
 
 import (
 	"net/http"
+	"regexp"
 	"strings"
 
 	"github.com/navikt/nada-backend/pkg/database"
@@ -24,6 +25,7 @@ func NewHandler(repo *database.Repo, gcsClient gcs.GCS) *Handler {
 func (h *Handler) Redirect(w http.ResponseWriter, r *http.Request) {
 	pathParts := strings.Split(r.URL.Path, "/")
 	qID := pathParts[2]
+	r.URL.Path = "/quarto/"
 
 	objPath, err := h.gcsClient.GetIndexHtmlPath(r.Context(), qID)
 	if err != nil {
@@ -55,4 +57,16 @@ func (h *Handler) GetObject(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.Write(objBytes)
+}
+
+func (h *Handler) QuartoMiddleware(next http.Handler) http.Handler {
+	regex, _ := regexp.Compile(`[\n]*\.[\n]*`) // check if object path has file extension
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if !regex.MatchString(r.URL.Path) {
+			h.Redirect(w, r)
+			return
+		}
+
+		next.ServeHTTP(w, r)
+	})
 }
