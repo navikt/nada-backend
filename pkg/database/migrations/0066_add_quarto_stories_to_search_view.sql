@@ -1,8 +1,6 @@
 -- +goose Up
 DROP VIEW search;
 
-DROP VIEW IF EXISTS search;
-
 CREATE VIEW search AS (
     SELECT
         "dp"."id" AS "element_id",
@@ -147,7 +145,7 @@ SELECT
     'quarto_story' AS "element_type",
     "qs"."description" AS "description",
     "qs"."keywords" AS "keywords",
-    '' AS "group",
+    "qs"."group" AS "group",
     "qs"."team_id",
     "qs"."created",
     "qs"."last_modified",
@@ -174,6 +172,8 @@ FROM
     "quarto_stories" qs;
 
 -- +goose Down
+DROP VIEW search;
+
 CREATE VIEW search AS (
     SELECT
         "dp"."id" AS "element_id",
