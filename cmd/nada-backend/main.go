@@ -116,7 +116,7 @@ func main() {
 			log.Fatal(err)
 		}
 
-		gcsClient, err = gcs.New(ctx, cfg.QuartoStorageBucketName)
+		gcsClient, err = gcs.New(ctx, cfg.QuartoStorageBucketName, log.WithField("subsystem", "gcs"))
 		if err != nil {
 			log.Fatal(err)
 		}

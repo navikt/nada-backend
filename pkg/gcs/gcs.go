@@ -7,6 +7,7 @@ import (
 	"strings"
 
 	"cloud.google.com/go/storage"
+	"github.com/sirupsen/logrus"
 	"google.golang.org/api/iterator"
 )
 
@@ -18,9 +19,10 @@ type GCS interface {
 type Client struct {
 	client     *storage.Client
 	bucketName string
+	log        *logrus.Entry
 }
 
-func New(ctx context.Context, bucketName string) (*Client, error) {
+func New(ctx context.Context, bucketName string, log *logrus.Entry) (*Client, error) {
 	client, err := storage.NewClient(ctx)
 	if err != nil {
 		return nil, err
@@ -29,12 +31,13 @@ func New(ctx context.Context, bucketName string) (*Client, error) {
 	return &Client{
 		client:     client,
 		bucketName: bucketName,
+		log:        log,
 	}, nil
 }
 
 func (c *Client) GetIndexHtmlPath(ctx context.Context, qID string) (string, error) {
 	objs := c.client.Bucket(c.bucketName).Objects(ctx, &storage.Query{Prefix: qID + "/"})
-	return findIndexPage(qID, objs)
+	return c.findIndexPage(qID, objs)
 }
 
 func (c *Client) GetObject(ctx context.Context, path string) ([]byte, error) {
@@ -52,7 +55,7 @@ func (c *Client) GetObject(ctx context.Context, path string) ([]byte, error) {
 	return datab, nil
 }
 
-func findIndexPage(qID string, objs *storage.ObjectIterator) (string, error) {
+func (c *Client) findIndexPage(qID string, objs *storage.ObjectIterator) (string, error) {
 	page := ""
 	for {
 		o, err := objs.Next()
@@ -61,6 +64,10 @@ func findIndexPage(qID string, objs *storage.ObjectIterator) (string, error) {
 				return "", fmt.Errorf("could not find html for id %v", qID)
 			}
 			return page, nil
+		}
+		if err != nil {
+			c.log.WithError(err).Error("searching for index page in bucket")
+			return "", fmt.Errorf("index page not found")
 		}
 
 		if strings.HasSuffix(strings.ToLower(o.Name), "/index.html") {
