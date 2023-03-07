@@ -9,6 +9,8 @@ import (
 	"github.com/go-chi/cors"
 	"github.com/navikt/nada-backend/pkg/auth"
 	"github.com/navikt/nada-backend/pkg/database"
+	"github.com/navikt/nada-backend/pkg/gcs"
+	"github.com/navikt/nada-backend/pkg/quarto"
 	"github.com/navikt/nada-backend/pkg/story"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
@@ -23,6 +25,7 @@ type HTTPAPI interface {
 
 func New(
 	repo *database.Repo,
+	gcsClient gcs.GCS,
 	httpAPI HTTPAPI,
 	authMW auth.MiddlewareHandler,
 	gqlServer *handler.Server,
@@ -36,6 +39,7 @@ func New(
 	})
 
 	storyHandler := story.NewHandler(repo)
+	quartoHandler := quarto.NewHandler(repo, gcsClient)
 
 	router := chi.NewRouter()
 	router.Use(corsMW)
@@ -47,6 +51,10 @@ func New(
 		r.HandleFunc("/logout", httpAPI.Logout)
 		r.Post("/story", storyHandler.Upload)
 		r.Put("/story", storyHandler.Update)
+	})
+	router.Route("/quarto/", func(r chi.Router) {
+		r.Use(quartoHandler.QuartoMiddleware)
+		r.Get("/*", quartoHandler.GetObject)
 	})
 	router.Route("/internal", func(r chi.Router) {
 		r.Handle("/metrics", promhttp.HandlerFor(promReg, promhttp.HandlerOpts{}))

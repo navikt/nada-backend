@@ -21,6 +21,7 @@ import (
 	"github.com/navikt/nada-backend/pkg/database"
 	"github.com/navikt/nada-backend/pkg/database/gensql"
 	"github.com/navikt/nada-backend/pkg/event"
+	"github.com/navikt/nada-backend/pkg/gcs"
 	"github.com/navikt/nada-backend/pkg/graph"
 	"github.com/navikt/nada-backend/pkg/graph/models"
 	"github.com/navikt/nada-backend/pkg/polly"
@@ -92,6 +93,7 @@ func TestMain(m *testing.M) {
 	)
 	srv := api.New(
 		repo,
+		gcs.NewMock(),
 		&mockAuthHandler{},
 		auth.MockJWTValidatorMiddleware(),
 		gqlServer,
