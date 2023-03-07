@@ -31,7 +31,7 @@ INSERT INTO quarto_stories (
     $6,
     $7
 )
-RETURNING id, name, creator, created, last_modified, description, keywords, teamkatalogen_url, product_area_id, team_id
+RETURNING id, name, creator, created, last_modified, description, keywords, teamkatalogen_url, product_area_id, team_id, "group"
 `
 
 type CreateQuartoStoryParams struct {
@@ -66,6 +66,7 @@ func (q *Queries) CreateQuartoStory(ctx context.Context, arg CreateQuartoStoryPa
 		&i.TeamkatalogenUrl,
 		&i.ProductAreaID,
 		&i.TeamID,
+		&i.Group,
 	)
 	return i, err
 }
@@ -81,7 +82,7 @@ func (q *Queries) DeleteQuartoStory(ctx context.Context, id uuid.UUID) error {
 }
 
 const getQuartoStories = `-- name: GetQuartoStories :many
-SELECT id, name, creator, created, last_modified, description, keywords, teamkatalogen_url, product_area_id, team_id
+SELECT id, name, creator, created, last_modified, description, keywords, teamkatalogen_url, product_area_id, team_id, "group"
 FROM quarto_stories
 ORDER BY last_modified DESC
 `
@@ -106,6 +107,7 @@ func (q *Queries) GetQuartoStories(ctx context.Context) ([]QuartoStory, error) {
 			&i.TeamkatalogenUrl,
 			&i.ProductAreaID,
 			&i.TeamID,
+			&i.Group,
 		); err != nil {
 			return nil, err
 		}
@@ -121,7 +123,7 @@ func (q *Queries) GetQuartoStories(ctx context.Context) ([]QuartoStory, error) {
 }
 
 const getQuartoStoriesByGroups = `-- name: GetQuartoStoriesByGroups :many
-SELECT id, name, creator, created, last_modified, description, keywords, teamkatalogen_url, product_area_id, team_id
+SELECT id, name, creator, created, last_modified, description, keywords, teamkatalogen_url, product_area_id, team_id, "group"
 FROM quarto_stories
 WHERE "group" = ANY ($1::text[])
 ORDER BY last_modified DESC
@@ -147,6 +149,7 @@ func (q *Queries) GetQuartoStoriesByGroups(ctx context.Context, groups []string)
 			&i.TeamkatalogenUrl,
 			&i.ProductAreaID,
 			&i.TeamID,
+			&i.Group,
 		); err != nil {
 			return nil, err
 		}
@@ -162,7 +165,7 @@ func (q *Queries) GetQuartoStoriesByGroups(ctx context.Context, groups []string)
 }
 
 const getQuartoStoriesByIDs = `-- name: GetQuartoStoriesByIDs :many
-SELECT id, name, creator, created, last_modified, description, keywords, teamkatalogen_url, product_area_id, team_id
+SELECT id, name, creator, created, last_modified, description, keywords, teamkatalogen_url, product_area_id, team_id, "group"
 FROM quarto_stories
 WHERE id = ANY ($1::uuid[])
 ORDER BY last_modified DESC
@@ -188,6 +191,7 @@ func (q *Queries) GetQuartoStoriesByIDs(ctx context.Context, ids []uuid.UUID) ([
 			&i.TeamkatalogenUrl,
 			&i.ProductAreaID,
 			&i.TeamID,
+			&i.Group,
 		); err != nil {
 			return nil, err
 		}
@@ -203,7 +207,7 @@ func (q *Queries) GetQuartoStoriesByIDs(ctx context.Context, ids []uuid.UUID) ([
 }
 
 const getQuartoStoriesByProductArea = `-- name: GetQuartoStoriesByProductArea :many
-SELECT id, name, creator, created, last_modified, description, keywords, teamkatalogen_url, product_area_id, team_id
+SELECT id, name, creator, created, last_modified, description, keywords, teamkatalogen_url, product_area_id, team_id, "group"
 FROM quarto_stories
 WHERE product_area_id = $1
 ORDER BY last_modified DESC
@@ -229,6 +233,7 @@ func (q *Queries) GetQuartoStoriesByProductArea(ctx context.Context, productArea
 			&i.TeamkatalogenUrl,
 			&i.ProductAreaID,
 			&i.TeamID,
+			&i.Group,
 		); err != nil {
 			return nil, err
 		}
@@ -244,7 +249,7 @@ func (q *Queries) GetQuartoStoriesByProductArea(ctx context.Context, productArea
 }
 
 const getQuartoStoriesByTeam = `-- name: GetQuartoStoriesByTeam :many
-SELECT id, name, creator, created, last_modified, description, keywords, teamkatalogen_url, product_area_id, team_id
+SELECT id, name, creator, created, last_modified, description, keywords, teamkatalogen_url, product_area_id, team_id, "group"
 FROM quarto_stories
 WHERE team_id = $1
 ORDER BY last_modified DESC
@@ -270,6 +275,7 @@ func (q *Queries) GetQuartoStoriesByTeam(ctx context.Context, teamID sql.NullStr
 			&i.TeamkatalogenUrl,
 			&i.ProductAreaID,
 			&i.TeamID,
+			&i.Group,
 		); err != nil {
 			return nil, err
 		}
@@ -285,7 +291,7 @@ func (q *Queries) GetQuartoStoriesByTeam(ctx context.Context, teamID sql.NullStr
 }
 
 const getQuartoStory = `-- name: GetQuartoStory :one
-SELECT id, name, creator, created, last_modified, description, keywords, teamkatalogen_url, product_area_id, team_id
+SELECT id, name, creator, created, last_modified, description, keywords, teamkatalogen_url, product_area_id, team_id, "group"
 FROM quarto_stories
 WHERE id = $1
 `
@@ -304,6 +310,7 @@ func (q *Queries) GetQuartoStory(ctx context.Context, id uuid.UUID) (QuartoStory
 		&i.TeamkatalogenUrl,
 		&i.ProductAreaID,
 		&i.TeamID,
+		&i.Group,
 	)
 	return i, err
 }
@@ -334,7 +341,7 @@ SET
     "product_area_id" = $6,
     "team_id" = $7
 WHERE id = $8
-RETURNING id, name, creator, created, last_modified, description, keywords, teamkatalogen_url, product_area_id, team_id
+RETURNING id, name, creator, created, last_modified, description, keywords, teamkatalogen_url, product_area_id, team_id, "group"
 `
 
 type UpdateQuartoStoryParams struct {
@@ -371,6 +378,7 @@ func (q *Queries) UpdateQuartoStory(ctx context.Context, arg UpdateQuartoStoryPa
 		&i.TeamkatalogenUrl,
 		&i.ProductAreaID,
 		&i.TeamID,
+		&i.Group,
 	)
 	return i, err
 }

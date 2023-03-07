@@ -300,6 +300,7 @@ type QuartoStory struct {
 	TeamkatalogenUrl sql.NullString
 	ProductAreaID    sql.NullString
 	TeamID           sql.NullString
+	Group            string
 }
 
 type Search struct {
