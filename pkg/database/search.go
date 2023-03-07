@@ -3,6 +3,7 @@ package database
 import (
 	"context"
 	"sort"
+	"strings"
 	"time"
 
 	"github.com/google/uuid"
@@ -19,6 +20,9 @@ func (r *Repo) Search(ctx context.Context, query *models.SearchQuery) ([]*models
 	types := []string{}
 	for _, s := range query.Types {
 		types = append(types, string(s))
+		if strings.ToLower(string(s)) == "story" {
+			types = append(types, "quarto_story")
+		}
 	}
 
 	res, err := r.querier.Search(ctx, gensql.SearchParams{
@@ -39,6 +43,7 @@ func (r *Repo) Search(ctx context.Context, query *models.SearchQuery) ([]*models
 	var dataproducts []uuid.UUID
 	var stories []uuid.UUID
 	var datasets []uuid.UUID
+	var quartoStories []uuid.UUID
 	excerpts := map[uuid.UUID]string{}
 	for i, sr := range res {
 		switch sr.ElementType {
@@ -48,6 +53,8 @@ func (r *Repo) Search(ctx context.Context, query *models.SearchQuery) ([]*models
 			stories = append(stories, sr.ElementID)
 		case "dataset":
 			datasets = append(datasets, sr.ElementID)
+		case "quarto_story":
+			quartoStories = append(quartoStories, sr.ElementID)
 		default:
 			r.log.Error("unknown search result type", sr.ElementType)
 			continue
@@ -65,6 +72,8 @@ func (r *Repo) Search(ctx context.Context, query *models.SearchQuery) ([]*models
 	if err != nil {
 		return nil, err
 	}
+
+	qss, err := r.querier.GetQuartoStoriesByIDs(ctx, quartoStories)
 
 	ret := []*models.SearchResultRow{}
 	for _, d := range dps {
@@ -86,6 +95,23 @@ func (r *Repo) Search(ctx context.Context, query *models.SearchQuery) ([]*models
 					TeamkatalogenURL: nullStringToPtr(s.TeamkatalogenUrl),
 				},
 				Keywords: s.Keywords,
+			},
+		})
+	}
+
+	for _, qs := range qss {
+		ret = append(ret, &models.SearchResultRow{
+			Excerpt: excerpts[qs.ID],
+			Result: &models.GraphStory{
+				ID:           qs.ID,
+				Name:         qs.Name,
+				Created:      qs.Created,
+				LastModified: &qs.LastModified,
+				Owner: models.Owner{
+					Group:            qs.Group,
+					TeamkatalogenURL: nullStringToPtr(qs.TeamkatalogenUrl),
+				},
+				Keywords: qs.Keywords,
 			},
 		})
 	}
