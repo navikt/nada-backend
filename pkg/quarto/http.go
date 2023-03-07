@@ -37,7 +37,7 @@ func (h *Handler) Redirect(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *Handler) GetObject(w http.ResponseWriter, r *http.Request) {
-	path := strings.TrimLeft(r.URL.Path, "/quarto")
+	path := strings.TrimPrefix(r.URL.Path, "/quarto/")
 
 	objBytes, err := h.gcsClient.GetObject(r.Context(), path)
 	if err != nil {
