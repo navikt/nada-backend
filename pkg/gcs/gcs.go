@@ -63,9 +63,9 @@ func findIndexPage(qID string, objs *storage.ObjectIterator) (string, error) {
 			return page, nil
 		}
 
-		if strings.HasSuffix(o.Name, "/index.html") {
+		if strings.HasSuffix(strings.ToLower(o.Name), "/index.html") {
 			return o.Name, nil
-		} else if strings.HasSuffix(o.Name, ".html") {
+		} else if strings.HasSuffix(strings.ToLower(o.Name), ".html") {
 			page = o.Name
 		}
 	}
