@@ -22,6 +22,8 @@ type QuartoStory @goModel(model: "github.com/navikt/nada-backend/pkg/graph/model
     created: Time!
     "lastModified is the timestamp for when the dataproduct was last modified"
     lastModified: Time
+    "group is the owner group of the quarto"
+    group: String!
 }
 
 "The `UploadFile, // b.txt` scalar type represents a multipart file upload."
@@ -43,6 +45,8 @@ input NewQuartoStory @goModel(model: "github.com/navikt/nada-backend/pkg/graph/m
     productAreaID: String
     "Id of the creator's team."
     teamID: String
+    "group is the owner group of the quarto"
+    group: String!
 }
 
 extend type Mutation {

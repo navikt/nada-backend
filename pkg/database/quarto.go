@@ -9,7 +9,8 @@ import (
 )
 
 func (r *Repo) CreateQuartoStory(ctx context.Context, creator string,
-	newQuartoStory models.NewQuartoStory) (models.QuartoStory, error) {
+	newQuartoStory models.NewQuartoStory,
+) (models.QuartoStory, error) {
 	quartoSQL, err := r.querier.CreateQuartoStory(ctx, gensql.CreateQuartoStoryParams{
 		Name:             newQuartoStory.Name,
 		Creator:          creator,
@@ -18,6 +19,7 @@ func (r *Repo) CreateQuartoStory(ctx context.Context, creator string,
 		TeamkatalogenUrl: ptrToNullString(newQuartoStory.TeamkatalogenURL),
 		ProductAreaID:    ptrToNullString(newQuartoStory.ProductAreaID),
 		TeamID:           ptrToNullString(newQuartoStory.TeamID),
+		OwnerGroup:       newQuartoStory.Group,
 	})
 
 	return *quartoSQLToGraphql(quartoSQL), err
@@ -54,5 +56,6 @@ func quartoSQLToGraphql(quarto gensql.QuartoStory) *models.QuartoStory {
 		ProductAreaID: nullStringToPtr(quarto.ProductAreaID),
 		TeamID:        nullStringToPtr(quarto.TeamID),
 		Description:   quarto.Description,
+		Group:         quarto.Group,
 	}
 }

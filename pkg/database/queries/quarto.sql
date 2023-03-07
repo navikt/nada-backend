@@ -6,7 +6,8 @@ INSERT INTO quarto_stories (
 	"keywords",
 	"teamkatalogen_url",
     "product_area_id",
-    "team_id"
+    "team_id",
+    "group"
 ) VALUES (
 	@name,
 	@creator,
@@ -14,7 +15,8 @@ INSERT INTO quarto_stories (
 	@keywords,
 	@teamkatalogen_url,
     @product_area_id,
-    @team_id
+    @team_id,
+    @owner_group
 )
 RETURNING *;
 

@@ -39,7 +39,7 @@ func New(
 	})
 
 	storyHandler := story.NewHandler(repo)
-	quartoHandler := quarto.NewHandler(repo, gcsClient)
+	quartoHandler := quarto.NewHandler(repo, gcsClient, log.WithField("subsystem", "quarto"))
 
 	router := chi.NewRouter()
 	router.Use(corsMW)
@@ -55,6 +55,7 @@ func New(
 	router.Route("/quarto/", func(r chi.Router) {
 		r.Use(quartoHandler.QuartoMiddleware)
 		r.Get("/*", quartoHandler.GetObject)
+		r.Put("/{id}", quartoHandler.Update)
 	})
 	router.Route("/internal", func(r chi.Router) {
 		r.Handle("/metrics", promhttp.HandlerFor(promReg, promhttp.HandlerOpts{}))
