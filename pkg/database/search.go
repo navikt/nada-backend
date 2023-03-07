@@ -102,16 +102,13 @@ func (r *Repo) Search(ctx context.Context, query *models.SearchQuery) ([]*models
 	for _, qs := range qss {
 		ret = append(ret, &models.SearchResultRow{
 			Excerpt: excerpts[qs.ID],
-			Result: &models.GraphStory{
+			Result: &models.QuartoStory{
 				ID:           qs.ID,
 				Name:         qs.Name,
 				Created:      qs.Created,
 				LastModified: &qs.LastModified,
-				Owner: models.Owner{
-					Group:            qs.Group,
-					TeamkatalogenURL: nullStringToPtr(qs.TeamkatalogenUrl),
-				},
-				Keywords: qs.Keywords,
+				Creator:      qs.Creator,
+				Keywords:     qs.Keywords,
 			},
 		})
 	}

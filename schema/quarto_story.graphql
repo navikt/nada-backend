@@ -21,7 +21,7 @@ type QuartoStory @goModel(model: "github.com/navikt/nada-backend/pkg/graph/model
     "created is the timestamp for when the dataproduct was created"
     created: Time!
     "lastModified is the timestamp for when the dataproduct was last modified"
-    lastModified: Time!
+    lastModified: Time
 }
 
 "The `UploadFile, // b.txt` scalar type represents a multipart file upload."

@@ -3058,7 +3058,7 @@ type QuartoStory @goModel(model: "github.com/navikt/nada-backend/pkg/graph/model
     "created is the timestamp for when the dataproduct was created"
     created: Time!
     "lastModified is the timestamp for when the dataproduct was last modified"
-    lastModified: Time!
+    lastModified: Time
 }
 
 "The ` + "`" + `UploadFile, // b.txt` + "`" + ` scalar type represents a multipart file upload."
@@ -3098,7 +3098,7 @@ extend type Mutation {
 `, BuiltIn: false},
 	{Name: "../../../schema/search.graphql", Input: `union SearchResult @goModel(
     model: "github.com/navikt/nada-backend/pkg/graph/models.SearchResult"
-) = Dataproduct | Story
+) = Dataproduct | Story | QuartoStory
 
 
 enum SearchType @goModel(
@@ -10576,14 +10576,11 @@ func (ec *executionContext) _QuartoStory_lastModified(ctx context.Context, field
 		return graphql.Null
 	}
 	if resTmp == nil {
-		if !graphql.HasFieldError(ctx, fc) {
-			ec.Errorf(ctx, "must not be null")
-		}
 		return graphql.Null
 	}
-	res := resTmp.(time.Time)
+	res := resTmp.(*time.Time)
 	fc.Result = res
-	return ec.marshalNTime2timeᚐTime(ctx, field.Selections, res)
+	return ec.marshalOTime2ᚖtimeᚐTime(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) fieldContext_QuartoStory_lastModified(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
@@ -17881,6 +17878,13 @@ func (ec *executionContext) _SearchResult(ctx context.Context, sel ast.Selection
 			return graphql.Null
 		}
 		return ec._Story(ctx, sel, obj)
+	case models.QuartoStory:
+		return ec._QuartoStory(ctx, sel, &obj)
+	case *models.QuartoStory:
+		if obj == nil {
+			return graphql.Null
+		}
+		return ec._QuartoStory(ctx, sel, obj)
 	default:
 		panic(fmt.Errorf("unexpected type %T", obj))
 	}
@@ -19165,7 +19169,7 @@ func (ec *executionContext) _ProductArea(ctx context.Context, sel ast.SelectionS
 	return out
 }
 
-var quartoStoryImplementors = []string{"QuartoStory"}
+var quartoStoryImplementors = []string{"QuartoStory", "SearchResult"}
 
 func (ec *executionContext) _QuartoStory(ctx context.Context, sel ast.SelectionSet, obj *models.QuartoStory) graphql.Marshaler {
 	fields := graphql.CollectFields(ec.OperationContext, sel, quartoStoryImplementors)
@@ -19233,9 +19237,6 @@ func (ec *executionContext) _QuartoStory(ctx context.Context, sel ast.SelectionS
 
 			out.Values[i] = ec._QuartoStory_lastModified(ctx, field, obj)
 
-			if out.Values[i] == graphql.Null {
-				invalids++
-			}
 		default:
 			panic("unknown field " + strconv.Quote(field.Name))
 		}

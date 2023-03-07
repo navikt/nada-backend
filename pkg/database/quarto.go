@@ -49,7 +49,7 @@ func quartoSQLToGraphql(quarto gensql.QuartoStory) *models.QuartoStory {
 		Name:          quarto.Name,
 		Creator:       quarto.Creator,
 		Created:       quarto.Created,
-		LastModified:  quarto.LastModified,
+		LastModified:  &quarto.LastModified,
 		Keywords:      quarto.Keywords,
 		ProductAreaID: nullStringToPtr(quarto.ProductAreaID),
 		TeamID:        nullStringToPtr(quarto.TeamID),

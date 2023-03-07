@@ -27,7 +27,7 @@ type QuartoStory struct {
 	// created is the timestamp for when the dataproduct was created
 	Created time.Time `json:"created"`
 	// lastModified is the timestamp for when the dataproduct was last modified
-	LastModified time.Time `json:"lastModified"`
+	LastModified *time.Time `json:"lastModified"`
 }
 
 // NewQuartoStory contains the metadata and content of quarto stories.
@@ -45,3 +45,5 @@ type NewQuartoStory struct {
 	// Id of the creator's team.
 	TeamID *string `json:"teamID"`
 }
+
+func (QuartoStory) IsSearchResult() {}
