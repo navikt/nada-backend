@@ -56,7 +56,7 @@ func (h *Handler) GetObject(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *Handler) Update(w http.ResponseWriter, r *http.Request) {
-	qID, err := getIDFromPath(r)
+	qID, err := getIDFromPath(r, 3)
 	if err != nil {
 		h.log.WithError(err).Errorf("getting quarto id from url path")
 		h.writeError(w, http.StatusBadRequest, fmt.Errorf("invalid quarto id %v", qID))
@@ -80,7 +80,7 @@ func (h *Handler) Update(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *Handler) Redirect(w http.ResponseWriter, r *http.Request) {
-	qID, err := getIDFromPath(r)
+	qID, err := getIDFromPath(r, 2)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 	}
@@ -117,7 +117,7 @@ func (h *Handler) getQuarto(w http.ResponseWriter, r *http.Request, next http.Ha
 }
 
 func (h *Handler) updateQuarto(w http.ResponseWriter, r *http.Request, next http.Handler) {
-	qID, err := getIDFromPath(r)
+	qID, err := getIDFromPath(r, 3)
 	if err != nil {
 		h.writeError(w, http.StatusBadRequest, fmt.Errorf("invalid quarto id %v", qID))
 		return
@@ -193,9 +193,13 @@ func (h *Handler) writeError(w http.ResponseWriter, status int, err error) {
 	w.Write(respBytes)
 }
 
-func getIDFromPath(r *http.Request) (uuid.UUID, error) {
+func getIDFromPath(r *http.Request, idPos int) (uuid.UUID, error) {
 	parts := strings.Split(r.URL.Path, "/")
-	id, err := uuid.Parse(parts[2])
+	if idPos > len(parts)-1 {
+		return uuid.UUID{}, fmt.Errorf("unable to extract id from url path")
+	}
+
+	id, err := uuid.Parse(parts[idPos])
 	if err != nil {
 		return uuid.UUID{}, err
 	}

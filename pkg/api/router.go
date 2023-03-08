@@ -55,7 +55,7 @@ func New(
 	router.Route("/quarto/", func(r chi.Router) {
 		r.Use(quartoHandler.QuartoMiddleware)
 		r.Get("/*", quartoHandler.GetObject)
-		r.Put("/{id}", quartoHandler.Update)
+		r.Put("/update/{id}", quartoHandler.Update)
 	})
 	router.Route("/internal", func(r chi.Router) {
 		r.Handle("/metrics", promhttp.HandlerFor(promReg, promhttp.HandlerOpts{}))
