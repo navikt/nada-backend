@@ -23,7 +23,5 @@ OPTION errors=IGNORE
 
 ENDOPTS
 {
-    "data": {
-		"updateDataset": null
-	}
+    "data": null
 }
