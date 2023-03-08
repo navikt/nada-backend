@@ -28,7 +28,5 @@ RETURNS
       ]
     }
   ],
-  "data": {
-	"createDataproduct": null
-  }
+  "data": nil
 }

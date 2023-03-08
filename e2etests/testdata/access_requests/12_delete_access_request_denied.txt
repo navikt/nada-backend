@@ -13,7 +13,5 @@ RETURNS
       ]
     }
   ],
-  "data": {
-    "deleteAccessRequest": null
-  }
+  "data": nil
 }
