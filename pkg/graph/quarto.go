@@ -12,7 +12,8 @@ import (
 )
 
 func WriteFileToBucket(ctx context.Context, quartoStoryID string,
-	file graphql.Upload) error {
+	file graphql.Upload,
+) error {
 	// Replace with your project ID and GCP bucket name
 	bucketName := os.Getenv("GCP_QUARTO_STORAGE_BUCKET_NAME")
 

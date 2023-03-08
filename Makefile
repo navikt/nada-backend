@@ -46,6 +46,7 @@ local-with-auth:
 	--teamkatalogen-url=https://teamkatalog-api.intern.nav.no \
 	--polly-url=https://polly.dev-fss-pub.nais.io/process \
 	--team-projects-url=https://raw.githubusercontent.com/nais/teams/master/gcp-projects/dev-output.json \
+	--quarto-bucket=nada-quarto-storage-dev \
 	--log-level=debug
 
 local:
