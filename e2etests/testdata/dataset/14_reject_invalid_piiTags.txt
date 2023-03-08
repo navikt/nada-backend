@@ -23,5 +23,5 @@ OPTION errors=IGNORE
 
 ENDOPTS
 {
-    "data": nil
+    "data": null
 }

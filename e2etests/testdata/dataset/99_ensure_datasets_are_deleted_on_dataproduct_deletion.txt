@@ -20,5 +20,5 @@ RETURNS
       ]
     }
   ],
-  "data": nil
+  "data": null
 }
