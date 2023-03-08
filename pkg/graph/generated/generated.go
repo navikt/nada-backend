@@ -206,13 +206,14 @@ type ComplexityRoot struct {
 	}
 
 	ProductArea struct {
-		AreaType     func(childComplexity int) int
-		DashboardURL func(childComplexity int) int
-		Dataproducts func(childComplexity int) int
-		ID           func(childComplexity int) int
-		Name         func(childComplexity int) int
-		Stories      func(childComplexity int) int
-		Teams        func(childComplexity int) int
+		AreaType      func(childComplexity int) int
+		DashboardURL  func(childComplexity int) int
+		Dataproducts  func(childComplexity int) int
+		ID            func(childComplexity int) int
+		Name          func(childComplexity int) int
+		QuartoStories func(childComplexity int) int
+		Stories       func(childComplexity int) int
+		Teams         func(childComplexity int) int
 	}
 
 	QuartoStory struct {
@@ -318,6 +319,7 @@ type ComplexityRoot struct {
 		ID            func(childComplexity int) int
 		Name          func(childComplexity int) int
 		ProductAreaID func(childComplexity int) int
+		QuartoStories func(childComplexity int) int
 		Stories       func(childComplexity int) int
 	}
 
@@ -397,6 +399,7 @@ type ProductAreaResolver interface {
 	DashboardURL(ctx context.Context, obj *models.ProductArea) (string, error)
 
 	Stories(ctx context.Context, obj *models.ProductArea) ([]*models.GraphStory, error)
+	QuartoStories(ctx context.Context, obj *models.ProductArea) ([]*models.QuartoStory, error)
 	Teams(ctx context.Context, obj *models.ProductArea) ([]*models.Team, error)
 }
 type QueryResolver interface {
@@ -436,6 +439,7 @@ type TeamResolver interface {
 	DashboardURL(ctx context.Context, obj *models.Team) (string, error)
 	Dataproducts(ctx context.Context, obj *models.Team) ([]*models.Dataproduct, error)
 	Stories(ctx context.Context, obj *models.Team) ([]*models.GraphStory, error)
+	QuartoStories(ctx context.Context, obj *models.Team) ([]*models.QuartoStory, error)
 }
 type UserInfoResolver interface {
 	GoogleGroups(ctx context.Context, obj *models.UserInfo) ([]*models.Group, error)
@@ -1330,6 +1334,13 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.ProductArea.Name(childComplexity), true
 
+	case "ProductArea.quartoStories":
+		if e.complexity.ProductArea.QuartoStories == nil {
+			break
+		}
+
+		return e.complexity.ProductArea.QuartoStories(childComplexity), true
+
 	case "ProductArea.stories":
 		if e.complexity.ProductArea.Stories == nil {
 			break
@@ -1931,6 +1942,13 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 		}
 
 		return e.complexity.Team.ProductAreaID(childComplexity), true
+
+	case "Team.quartoStories":
+		if e.complexity.Team.QuartoStories == nil {
+			break
+		}
+
+		return e.complexity.Team.QuartoStories(childComplexity), true
 
 	case "Team.stories":
 		if e.complexity.Team.Stories == nil {
@@ -2993,6 +3011,8 @@ extend type Query {
     areaType: String!,
     "stories is the stories owned by the product area."
     stories: [Story!]!
+    "quarto stories is the stories owned by the product area."
+    quartoStories: [QuartoStory!]!
     "teams is the teams in the product area."
     teams: [Team!]!
 }
@@ -3010,6 +3030,8 @@ type Team @goModel(model: "github.com/navikt/nada-backend/pkg/graph/models.Team"
     dataproducts: [Dataproduct!]!
     "stories is the stories owned by the team."
     stories: [Story!]!
+    "quartoStories is the quartoStories owned by the team."
+    quartoStories: [QuartoStory!]!
 }
 
 extend type Query {
@@ -7704,6 +7726,7 @@ func (ec *executionContext) _Mutation_dummy(ctx context.Context, field graphql.C
 	})
 	if err != nil {
 		ec.Error(ctx, err)
+		return graphql.Null
 	}
 	if resTmp == nil {
 		return graphql.Null
@@ -7775,6 +7798,7 @@ func (ec *executionContext) _Mutation_grantAccessToDataset(ctx context.Context, 
 	})
 	if err != nil {
 		ec.Error(ctx, err)
+		return graphql.Null
 	}
 	if resTmp == nil {
 		if !graphql.HasFieldError(ctx, fc) {
@@ -7867,6 +7891,7 @@ func (ec *executionContext) _Mutation_revokeAccessToDataset(ctx context.Context,
 	})
 	if err != nil {
 		ec.Error(ctx, err)
+		return graphql.Null
 	}
 	if resTmp == nil {
 		if !graphql.HasFieldError(ctx, fc) {
@@ -7941,6 +7966,7 @@ func (ec *executionContext) _Mutation_createAccessRequest(ctx context.Context, f
 	})
 	if err != nil {
 		ec.Error(ctx, err)
+		return graphql.Null
 	}
 	if resTmp == nil {
 		if !graphql.HasFieldError(ctx, fc) {
@@ -8041,6 +8067,7 @@ func (ec *executionContext) _Mutation_updateAccessRequest(ctx context.Context, f
 	})
 	if err != nil {
 		ec.Error(ctx, err)
+		return graphql.Null
 	}
 	if resTmp == nil {
 		if !graphql.HasFieldError(ctx, fc) {
@@ -8141,6 +8168,7 @@ func (ec *executionContext) _Mutation_deleteAccessRequest(ctx context.Context, f
 	})
 	if err != nil {
 		ec.Error(ctx, err)
+		return graphql.Null
 	}
 	if resTmp == nil {
 		if !graphql.HasFieldError(ctx, fc) {
@@ -8215,6 +8243,7 @@ func (ec *executionContext) _Mutation_approveAccessRequest(ctx context.Context, 
 	})
 	if err != nil {
 		ec.Error(ctx, err)
+		return graphql.Null
 	}
 	if resTmp == nil {
 		if !graphql.HasFieldError(ctx, fc) {
@@ -8289,6 +8318,7 @@ func (ec *executionContext) _Mutation_denyAccessRequest(ctx context.Context, fie
 	})
 	if err != nil {
 		ec.Error(ctx, err)
+		return graphql.Null
 	}
 	if resTmp == nil {
 		if !graphql.HasFieldError(ctx, fc) {
@@ -8363,6 +8393,7 @@ func (ec *executionContext) _Mutation_createDataproduct(ctx context.Context, fie
 	})
 	if err != nil {
 		ec.Error(ctx, err)
+		return graphql.Null
 	}
 	if resTmp == nil {
 		if !graphql.HasFieldError(ctx, fc) {
@@ -8457,6 +8488,7 @@ func (ec *executionContext) _Mutation_updateDataproduct(ctx context.Context, fie
 	})
 	if err != nil {
 		ec.Error(ctx, err)
+		return graphql.Null
 	}
 	if resTmp == nil {
 		if !graphql.HasFieldError(ctx, fc) {
@@ -8551,6 +8583,7 @@ func (ec *executionContext) _Mutation_deleteDataproduct(ctx context.Context, fie
 	})
 	if err != nil {
 		ec.Error(ctx, err)
+		return graphql.Null
 	}
 	if resTmp == nil {
 		if !graphql.HasFieldError(ctx, fc) {
@@ -8625,6 +8658,7 @@ func (ec *executionContext) _Mutation_createDataset(ctx context.Context, field g
 	})
 	if err != nil {
 		ec.Error(ctx, err)
+		return graphql.Null
 	}
 	if resTmp == nil {
 		if !graphql.HasFieldError(ctx, fc) {
@@ -8737,6 +8771,7 @@ func (ec *executionContext) _Mutation_updateDataset(ctx context.Context, field g
 	})
 	if err != nil {
 		ec.Error(ctx, err)
+		return graphql.Null
 	}
 	if resTmp == nil {
 		if !graphql.HasFieldError(ctx, fc) {
@@ -8849,6 +8884,7 @@ func (ec *executionContext) _Mutation_deleteDataset(ctx context.Context, field g
 	})
 	if err != nil {
 		ec.Error(ctx, err)
+		return graphql.Null
 	}
 	if resTmp == nil {
 		if !graphql.HasFieldError(ctx, fc) {
@@ -8923,6 +8959,7 @@ func (ec *executionContext) _Mutation_mapDataset(ctx context.Context, field grap
 	})
 	if err != nil {
 		ec.Error(ctx, err)
+		return graphql.Null
 	}
 	if resTmp == nil {
 		if !graphql.HasFieldError(ctx, fc) {
@@ -8997,6 +9034,7 @@ func (ec *executionContext) _Mutation_updateKeywords(ctx context.Context, field 
 	})
 	if err != nil {
 		ec.Error(ctx, err)
+		return graphql.Null
 	}
 	if resTmp == nil {
 		if !graphql.HasFieldError(ctx, fc) {
@@ -9051,6 +9089,7 @@ func (ec *executionContext) _Mutation_triggerMetadataSync(ctx context.Context, f
 	})
 	if err != nil {
 		ec.Error(ctx, err)
+		return graphql.Null
 	}
 	if resTmp == nil {
 		if !graphql.HasFieldError(ctx, fc) {
@@ -9114,6 +9153,7 @@ func (ec *executionContext) _Mutation_createQuartoStory(ctx context.Context, fie
 	})
 	if err != nil {
 		ec.Error(ctx, err)
+		return graphql.Null
 	}
 	if resTmp == nil {
 		if !graphql.HasFieldError(ctx, fc) {
@@ -9210,6 +9250,7 @@ func (ec *executionContext) _Mutation_publishStory(ctx context.Context, field gr
 	})
 	if err != nil {
 		ec.Error(ctx, err)
+		return graphql.Null
 	}
 	if resTmp == nil {
 		if !graphql.HasFieldError(ctx, fc) {
@@ -9300,6 +9341,7 @@ func (ec *executionContext) _Mutation_updateStoryMetadata(ctx context.Context, f
 	})
 	if err != nil {
 		ec.Error(ctx, err)
+		return graphql.Null
 	}
 	if resTmp == nil {
 		if !graphql.HasFieldError(ctx, fc) {
@@ -9390,6 +9432,7 @@ func (ec *executionContext) _Mutation_deleteStory(ctx context.Context, field gra
 	})
 	if err != nil {
 		ec.Error(ctx, err)
+		return graphql.Null
 	}
 	if resTmp == nil {
 		if !graphql.HasFieldError(ctx, fc) {
@@ -10110,6 +10153,72 @@ func (ec *executionContext) fieldContext_ProductArea_stories(ctx context.Context
 	return fc, nil
 }
 
+func (ec *executionContext) _ProductArea_quartoStories(ctx context.Context, field graphql.CollectedField, obj *models.ProductArea) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_ProductArea_quartoStories(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.ProductArea().QuartoStories(rctx, obj)
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.([]*models.QuartoStory)
+	fc.Result = res
+	return ec.marshalNQuartoStory2ᚕᚖgithubᚗcomᚋnaviktᚋnadaᚑbackendᚋpkgᚋgraphᚋmodelsᚐQuartoStoryᚄ(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_ProductArea_quartoStories(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "ProductArea",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "id":
+				return ec.fieldContext_QuartoStory_id(ctx, field)
+			case "name":
+				return ec.fieldContext_QuartoStory_name(ctx, field)
+			case "creator":
+				return ec.fieldContext_QuartoStory_creator(ctx, field)
+			case "description":
+				return ec.fieldContext_QuartoStory_description(ctx, field)
+			case "keywords":
+				return ec.fieldContext_QuartoStory_keywords(ctx, field)
+			case "teamkatalogenURL":
+				return ec.fieldContext_QuartoStory_teamkatalogenURL(ctx, field)
+			case "productAreaID":
+				return ec.fieldContext_QuartoStory_productAreaID(ctx, field)
+			case "teamID":
+				return ec.fieldContext_QuartoStory_teamID(ctx, field)
+			case "created":
+				return ec.fieldContext_QuartoStory_created(ctx, field)
+			case "lastModified":
+				return ec.fieldContext_QuartoStory_lastModified(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type QuartoStory", field.Name)
+		},
+	}
+	return fc, nil
+}
+
 func (ec *executionContext) _ProductArea_teams(ctx context.Context, field graphql.CollectedField, obj *models.ProductArea) (ret graphql.Marshaler) {
 	fc, err := ec.fieldContext_ProductArea_teams(ctx, field)
 	if err != nil {
@@ -10161,6 +10270,8 @@ func (ec *executionContext) fieldContext_ProductArea_teams(ctx context.Context, 
 				return ec.fieldContext_Team_dataproducts(ctx, field)
 			case "stories":
 				return ec.fieldContext_Team_stories(ctx, field)
+			case "quartoStories":
+				return ec.fieldContext_Team_quartoStories(ctx, field)
 			}
 			return nil, fmt.Errorf("no field named %q was found under type Team", field.Name)
 		},
@@ -10614,6 +10725,7 @@ func (ec *executionContext) _Query_version(ctx context.Context, field graphql.Co
 	})
 	if err != nil {
 		ec.Error(ctx, err)
+		return graphql.Null
 	}
 	if resTmp == nil {
 		if !graphql.HasFieldError(ctx, fc) {
@@ -10677,6 +10789,7 @@ func (ec *executionContext) _Query_accessRequest(ctx context.Context, field grap
 	})
 	if err != nil {
 		ec.Error(ctx, err)
+		return graphql.Null
 	}
 	if resTmp == nil {
 		if !graphql.HasFieldError(ctx, fc) {
@@ -10757,6 +10870,7 @@ func (ec *executionContext) _Query_dataproduct(ctx context.Context, field graphq
 	})
 	if err != nil {
 		ec.Error(ctx, err)
+		return graphql.Null
 	}
 	if resTmp == nil {
 		if !graphql.HasFieldError(ctx, fc) {
@@ -10831,6 +10945,7 @@ func (ec *executionContext) _Query_dataproducts(ctx context.Context, field graph
 	})
 	if err != nil {
 		ec.Error(ctx, err)
+		return graphql.Null
 	}
 	if resTmp == nil {
 		if !graphql.HasFieldError(ctx, fc) {
@@ -10905,6 +11020,7 @@ func (ec *executionContext) _Query_groupStats(ctx context.Context, field graphql
 	})
 	if err != nil {
 		ec.Error(ctx, err)
+		return graphql.Null
 	}
 	if resTmp == nil {
 		if !graphql.HasFieldError(ctx, fc) {
@@ -10965,6 +11081,7 @@ func (ec *executionContext) _Query_dataset(ctx context.Context, field graphql.Co
 	})
 	if err != nil {
 		ec.Error(ctx, err)
+		return graphql.Null
 	}
 	if resTmp == nil {
 		if !graphql.HasFieldError(ctx, fc) {
@@ -11077,6 +11194,7 @@ func (ec *executionContext) _Query_accessRequestsForDataset(ctx context.Context,
 	})
 	if err != nil {
 		ec.Error(ctx, err)
+		return graphql.Null
 	}
 	if resTmp == nil {
 		if !graphql.HasFieldError(ctx, fc) {
@@ -11157,6 +11275,7 @@ func (ec *executionContext) _Query_datasetsInDataproduct(ctx context.Context, fi
 	})
 	if err != nil {
 		ec.Error(ctx, err)
+		return graphql.Null
 	}
 	if resTmp == nil {
 		if !graphql.HasFieldError(ctx, fc) {
@@ -11269,6 +11388,7 @@ func (ec *executionContext) _Query_gcpGetTables(ctx context.Context, field graph
 	})
 	if err != nil {
 		ec.Error(ctx, err)
+		return graphql.Null
 	}
 	if resTmp == nil {
 		if !graphql.HasFieldError(ctx, fc) {
@@ -11353,6 +11473,7 @@ func (ec *executionContext) _Query_gcpGetDatasets(ctx context.Context, field gra
 	})
 	if err != nil {
 		ec.Error(ctx, err)
+		return graphql.Null
 	}
 	if resTmp == nil {
 		if !graphql.HasFieldError(ctx, fc) {
@@ -11427,6 +11548,7 @@ func (ec *executionContext) _Query_gcpGetAllTablesInProject(ctx context.Context,
 	})
 	if err != nil {
 		ec.Error(ctx, err)
+		return graphql.Null
 	}
 	if resTmp == nil {
 		if !graphql.HasFieldError(ctx, fc) {
@@ -11507,6 +11629,7 @@ func (ec *executionContext) _Query_gcpGetColumns(ctx context.Context, field grap
 	})
 	if err != nil {
 		ec.Error(ctx, err)
+		return graphql.Null
 	}
 	if resTmp == nil {
 		if !graphql.HasFieldError(ctx, fc) {
@@ -11571,6 +11694,7 @@ func (ec *executionContext) _Query_keywords(ctx context.Context, field graphql.C
 	})
 	if err != nil {
 		ec.Error(ctx, err)
+		return graphql.Null
 	}
 	if resTmp == nil {
 		if !graphql.HasFieldError(ctx, fc) {
@@ -11620,6 +11744,7 @@ func (ec *executionContext) _Query_polly(ctx context.Context, field graphql.Coll
 	})
 	if err != nil {
 		ec.Error(ctx, err)
+		return graphql.Null
 	}
 	if resTmp == nil {
 		if !graphql.HasFieldError(ctx, fc) {
@@ -11682,6 +11807,7 @@ func (ec *executionContext) _Query_productArea(ctx context.Context, field graphq
 	})
 	if err != nil {
 		ec.Error(ctx, err)
+		return graphql.Null
 	}
 	if resTmp == nil {
 		if !graphql.HasFieldError(ctx, fc) {
@@ -11714,6 +11840,8 @@ func (ec *executionContext) fieldContext_Query_productArea(ctx context.Context, 
 				return ec.fieldContext_ProductArea_areaType(ctx, field)
 			case "stories":
 				return ec.fieldContext_ProductArea_stories(ctx, field)
+			case "quartoStories":
+				return ec.fieldContext_ProductArea_quartoStories(ctx, field)
 			case "teams":
 				return ec.fieldContext_ProductArea_teams(ctx, field)
 			}
@@ -11752,6 +11880,7 @@ func (ec *executionContext) _Query_productAreas(ctx context.Context, field graph
 	})
 	if err != nil {
 		ec.Error(ctx, err)
+		return graphql.Null
 	}
 	if resTmp == nil {
 		if !graphql.HasFieldError(ctx, fc) {
@@ -11784,6 +11913,8 @@ func (ec *executionContext) fieldContext_Query_productAreas(ctx context.Context,
 				return ec.fieldContext_ProductArea_areaType(ctx, field)
 			case "stories":
 				return ec.fieldContext_ProductArea_stories(ctx, field)
+			case "quartoStories":
+				return ec.fieldContext_ProductArea_quartoStories(ctx, field)
 			case "teams":
 				return ec.fieldContext_ProductArea_teams(ctx, field)
 			}
@@ -11811,6 +11942,7 @@ func (ec *executionContext) _Query_team(ctx context.Context, field graphql.Colle
 	})
 	if err != nil {
 		ec.Error(ctx, err)
+		return graphql.Null
 	}
 	if resTmp == nil {
 		if !graphql.HasFieldError(ctx, fc) {
@@ -11843,6 +11975,8 @@ func (ec *executionContext) fieldContext_Query_team(ctx context.Context, field g
 				return ec.fieldContext_Team_dataproducts(ctx, field)
 			case "stories":
 				return ec.fieldContext_Team_stories(ctx, field)
+			case "quartoStories":
+				return ec.fieldContext_Team_quartoStories(ctx, field)
 			}
 			return nil, fmt.Errorf("no field named %q was found under type Team", field.Name)
 		},
@@ -11879,6 +12013,7 @@ func (ec *executionContext) _Query_search(ctx context.Context, field graphql.Col
 	})
 	if err != nil {
 		ec.Error(ctx, err)
+		return graphql.Null
 	}
 	if resTmp == nil {
 		if !graphql.HasFieldError(ctx, fc) {
@@ -11959,6 +12094,7 @@ func (ec *executionContext) _Query_IsValidSlackChannel(ctx context.Context, fiel
 	})
 	if err != nil {
 		ec.Error(ctx, err)
+		return graphql.Null
 	}
 	if resTmp == nil {
 		if !graphql.HasFieldError(ctx, fc) {
@@ -12013,6 +12149,7 @@ func (ec *executionContext) _Query_stories(ctx context.Context, field graphql.Co
 	})
 	if err != nil {
 		ec.Error(ctx, err)
+		return graphql.Null
 	}
 	if resTmp == nil {
 		if !graphql.HasFieldError(ctx, fc) {
@@ -12083,6 +12220,7 @@ func (ec *executionContext) _Query_story(ctx context.Context, field graphql.Coll
 	})
 	if err != nil {
 		ec.Error(ctx, err)
+		return graphql.Null
 	}
 	if resTmp == nil {
 		if !graphql.HasFieldError(ctx, fc) {
@@ -12153,6 +12291,7 @@ func (ec *executionContext) _Query_storyView(ctx context.Context, field graphql.
 	})
 	if err != nil {
 		ec.Error(ctx, err)
+		return graphql.Null
 	}
 	if resTmp == nil {
 		if !graphql.HasFieldError(ctx, fc) {
@@ -12227,6 +12366,7 @@ func (ec *executionContext) _Query_storyToken(ctx context.Context, field graphql
 	})
 	if err != nil {
 		ec.Error(ctx, err)
+		return graphql.Null
 	}
 	if resTmp == nil {
 		if !graphql.HasFieldError(ctx, fc) {
@@ -12287,6 +12427,7 @@ func (ec *executionContext) _Query_teamkatalogen(ctx context.Context, field grap
 	})
 	if err != nil {
 		ec.Error(ctx, err)
+		return graphql.Null
 	}
 	if resTmp == nil {
 		if !graphql.HasFieldError(ctx, fc) {
@@ -12373,6 +12514,7 @@ func (ec *executionContext) _Query_userInfo(ctx context.Context, field graphql.C
 	})
 	if err != nil {
 		ec.Error(ctx, err)
+		return graphql.Null
 	}
 	if resTmp == nil {
 		if !graphql.HasFieldError(ctx, fc) {
@@ -12442,6 +12584,7 @@ func (ec *executionContext) _Query___type(ctx context.Context, field graphql.Col
 	})
 	if err != nil {
 		ec.Error(ctx, err)
+		return graphql.Null
 	}
 	if resTmp == nil {
 		return graphql.Null
@@ -12515,6 +12658,7 @@ func (ec *executionContext) _Query___schema(ctx context.Context, field graphql.C
 	})
 	if err != nil {
 		ec.Error(ctx, err)
+		return graphql.Null
 	}
 	if resTmp == nil {
 		return graphql.Null
@@ -14131,6 +14275,72 @@ func (ec *executionContext) fieldContext_Team_stories(ctx context.Context, field
 				return ec.fieldContext_Story_views(ctx, field)
 			}
 			return nil, fmt.Errorf("no field named %q was found under type Story", field.Name)
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Team_quartoStories(ctx context.Context, field graphql.CollectedField, obj *models.Team) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_Team_quartoStories(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.Team().QuartoStories(rctx, obj)
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.([]*models.QuartoStory)
+	fc.Result = res
+	return ec.marshalNQuartoStory2ᚕᚖgithubᚗcomᚋnaviktᚋnadaᚑbackendᚋpkgᚋgraphᚋmodelsᚐQuartoStoryᚄ(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_Team_quartoStories(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Team",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "id":
+				return ec.fieldContext_QuartoStory_id(ctx, field)
+			case "name":
+				return ec.fieldContext_QuartoStory_name(ctx, field)
+			case "creator":
+				return ec.fieldContext_QuartoStory_creator(ctx, field)
+			case "description":
+				return ec.fieldContext_QuartoStory_description(ctx, field)
+			case "keywords":
+				return ec.fieldContext_QuartoStory_keywords(ctx, field)
+			case "teamkatalogenURL":
+				return ec.fieldContext_QuartoStory_teamkatalogenURL(ctx, field)
+			case "productAreaID":
+				return ec.fieldContext_QuartoStory_productAreaID(ctx, field)
+			case "teamID":
+				return ec.fieldContext_QuartoStory_teamID(ctx, field)
+			case "created":
+				return ec.fieldContext_QuartoStory_created(ctx, field)
+			case "lastModified":
+				return ec.fieldContext_QuartoStory_lastModified(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type QuartoStory", field.Name)
 		},
 	}
 	return fc, nil
@@ -18811,6 +19021,7 @@ func (ec *executionContext) _Mutation(ctx context.Context, sel ast.SelectionSet)
 	})
 
 	out := graphql.NewFieldSet(fields)
+	var invalids uint32
 	for i, field := range fields {
 		innerCtx := graphql.WithRootFieldContext(ctx, &graphql.RootFieldContext{
 			Object: field.Name,
@@ -18832,125 +19043,188 @@ func (ec *executionContext) _Mutation(ctx context.Context, sel ast.SelectionSet)
 				return ec._Mutation_grantAccessToDataset(ctx, field)
 			})
 
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
 		case "revokeAccessToDataset":
 
 			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
 				return ec._Mutation_revokeAccessToDataset(ctx, field)
 			})
 
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
 		case "createAccessRequest":
 
 			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
 				return ec._Mutation_createAccessRequest(ctx, field)
 			})
 
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
 		case "updateAccessRequest":
 
 			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
 				return ec._Mutation_updateAccessRequest(ctx, field)
 			})
 
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
 		case "deleteAccessRequest":
 
 			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
 				return ec._Mutation_deleteAccessRequest(ctx, field)
 			})
 
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
 		case "approveAccessRequest":
 
 			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
 				return ec._Mutation_approveAccessRequest(ctx, field)
 			})
 
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
 		case "denyAccessRequest":
 
 			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
 				return ec._Mutation_denyAccessRequest(ctx, field)
 			})
 
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
 		case "createDataproduct":
 
 			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
 				return ec._Mutation_createDataproduct(ctx, field)
 			})
 
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
 		case "updateDataproduct":
 
 			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
 				return ec._Mutation_updateDataproduct(ctx, field)
 			})
 
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
 		case "deleteDataproduct":
 
 			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
 				return ec._Mutation_deleteDataproduct(ctx, field)
 			})
 
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
 		case "createDataset":
 
 			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
 				return ec._Mutation_createDataset(ctx, field)
 			})
 
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
 		case "updateDataset":
 
 			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
 				return ec._Mutation_updateDataset(ctx, field)
 			})
 
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
 		case "deleteDataset":
 
 			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
 				return ec._Mutation_deleteDataset(ctx, field)
 			})
 
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
 		case "mapDataset":
 
 			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
 				return ec._Mutation_mapDataset(ctx, field)
 			})
 
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
 		case "updateKeywords":
 
 			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
 				return ec._Mutation_updateKeywords(ctx, field)
 			})
 
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
 		case "triggerMetadataSync":
 
 			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
 				return ec._Mutation_triggerMetadataSync(ctx, field)
 			})
 
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
 		case "createQuartoStory":
 
 			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
 				return ec._Mutation_createQuartoStory(ctx, field)
 			})
 
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
 		case "publishStory":
 
 			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
 				return ec._Mutation_publishStory(ctx, field)
 			})
 
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
 		case "updateStoryMetadata":
 
 			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
 				return ec._Mutation_updateStoryMetadata(ctx, field)
 			})
 
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
 		case "deleteStory":
 
 			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
 				return ec._Mutation_deleteStory(ctx, field)
 			})
 
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
 		default:
 			panic("unknown field " + strconv.Quote(field.Name))
 		}
 	}
 	out.Dispatch()
+	if invalids > 0 {
+		return graphql.Null
+	}
 	return out
 }
 
@@ -19138,6 +19412,26 @@ func (ec *executionContext) _ProductArea(ctx context.Context, sel ast.SelectionS
 				return innerFunc(ctx)
 
 			})
+		case "quartoStories":
+			field := field
+
+			innerFunc := func(ctx context.Context) (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._ProductArea_quartoStories(ctx, field, obj)
+				if res == graphql.Null {
+					atomic.AddUint32(&invalids, 1)
+				}
+				return res
+			}
+
+			out.Concurrently(i, func() graphql.Marshaler {
+				return innerFunc(ctx)
+
+			})
 		case "teams":
 			field := field
 
@@ -19257,6 +19551,7 @@ func (ec *executionContext) _Query(ctx context.Context, sel ast.SelectionSet) gr
 	})
 
 	out := graphql.NewFieldSet(fields)
+	var invalids uint32
 	for i, field := range fields {
 		innerCtx := graphql.WithRootFieldContext(ctx, &graphql.RootFieldContext{
 			Object: field.Name,
@@ -19276,6 +19571,9 @@ func (ec *executionContext) _Query(ctx context.Context, sel ast.SelectionSet) gr
 					}
 				}()
 				res = ec._Query_version(ctx, field)
+				if res == graphql.Null {
+					atomic.AddUint32(&invalids, 1)
+				}
 				return res
 			}
 
@@ -19296,6 +19594,9 @@ func (ec *executionContext) _Query(ctx context.Context, sel ast.SelectionSet) gr
 					}
 				}()
 				res = ec._Query_accessRequest(ctx, field)
+				if res == graphql.Null {
+					atomic.AddUint32(&invalids, 1)
+				}
 				return res
 			}
 
@@ -19316,6 +19617,9 @@ func (ec *executionContext) _Query(ctx context.Context, sel ast.SelectionSet) gr
 					}
 				}()
 				res = ec._Query_dataproduct(ctx, field)
+				if res == graphql.Null {
+					atomic.AddUint32(&invalids, 1)
+				}
 				return res
 			}
 
@@ -19336,6 +19640,9 @@ func (ec *executionContext) _Query(ctx context.Context, sel ast.SelectionSet) gr
 					}
 				}()
 				res = ec._Query_dataproducts(ctx, field)
+				if res == graphql.Null {
+					atomic.AddUint32(&invalids, 1)
+				}
 				return res
 			}
 
@@ -19356,6 +19663,9 @@ func (ec *executionContext) _Query(ctx context.Context, sel ast.SelectionSet) gr
 					}
 				}()
 				res = ec._Query_groupStats(ctx, field)
+				if res == graphql.Null {
+					atomic.AddUint32(&invalids, 1)
+				}
 				return res
 			}
 
@@ -19376,6 +19686,9 @@ func (ec *executionContext) _Query(ctx context.Context, sel ast.SelectionSet) gr
 					}
 				}()
 				res = ec._Query_dataset(ctx, field)
+				if res == graphql.Null {
+					atomic.AddUint32(&invalids, 1)
+				}
 				return res
 			}
 
@@ -19396,6 +19709,9 @@ func (ec *executionContext) _Query(ctx context.Context, sel ast.SelectionSet) gr
 					}
 				}()
 				res = ec._Query_accessRequestsForDataset(ctx, field)
+				if res == graphql.Null {
+					atomic.AddUint32(&invalids, 1)
+				}
 				return res
 			}
 
@@ -19416,6 +19732,9 @@ func (ec *executionContext) _Query(ctx context.Context, sel ast.SelectionSet) gr
 					}
 				}()
 				res = ec._Query_datasetsInDataproduct(ctx, field)
+				if res == graphql.Null {
+					atomic.AddUint32(&invalids, 1)
+				}
 				return res
 			}
 
@@ -19436,6 +19755,9 @@ func (ec *executionContext) _Query(ctx context.Context, sel ast.SelectionSet) gr
 					}
 				}()
 				res = ec._Query_gcpGetTables(ctx, field)
+				if res == graphql.Null {
+					atomic.AddUint32(&invalids, 1)
+				}
 				return res
 			}
 
@@ -19456,6 +19778,9 @@ func (ec *executionContext) _Query(ctx context.Context, sel ast.SelectionSet) gr
 					}
 				}()
 				res = ec._Query_gcpGetDatasets(ctx, field)
+				if res == graphql.Null {
+					atomic.AddUint32(&invalids, 1)
+				}
 				return res
 			}
 
@@ -19476,6 +19801,9 @@ func (ec *executionContext) _Query(ctx context.Context, sel ast.SelectionSet) gr
 					}
 				}()
 				res = ec._Query_gcpGetAllTablesInProject(ctx, field)
+				if res == graphql.Null {
+					atomic.AddUint32(&invalids, 1)
+				}
 				return res
 			}
 
@@ -19496,6 +19824,9 @@ func (ec *executionContext) _Query(ctx context.Context, sel ast.SelectionSet) gr
 					}
 				}()
 				res = ec._Query_gcpGetColumns(ctx, field)
+				if res == graphql.Null {
+					atomic.AddUint32(&invalids, 1)
+				}
 				return res
 			}
 
@@ -19516,6 +19847,9 @@ func (ec *executionContext) _Query(ctx context.Context, sel ast.SelectionSet) gr
 					}
 				}()
 				res = ec._Query_keywords(ctx, field)
+				if res == graphql.Null {
+					atomic.AddUint32(&invalids, 1)
+				}
 				return res
 			}
 
@@ -19536,6 +19870,9 @@ func (ec *executionContext) _Query(ctx context.Context, sel ast.SelectionSet) gr
 					}
 				}()
 				res = ec._Query_polly(ctx, field)
+				if res == graphql.Null {
+					atomic.AddUint32(&invalids, 1)
+				}
 				return res
 			}
 
@@ -19556,6 +19893,9 @@ func (ec *executionContext) _Query(ctx context.Context, sel ast.SelectionSet) gr
 					}
 				}()
 				res = ec._Query_productArea(ctx, field)
+				if res == graphql.Null {
+					atomic.AddUint32(&invalids, 1)
+				}
 				return res
 			}
 
@@ -19576,6 +19916,9 @@ func (ec *executionContext) _Query(ctx context.Context, sel ast.SelectionSet) gr
 					}
 				}()
 				res = ec._Query_productAreas(ctx, field)
+				if res == graphql.Null {
+					atomic.AddUint32(&invalids, 1)
+				}
 				return res
 			}
 
@@ -19596,6 +19939,9 @@ func (ec *executionContext) _Query(ctx context.Context, sel ast.SelectionSet) gr
 					}
 				}()
 				res = ec._Query_team(ctx, field)
+				if res == graphql.Null {
+					atomic.AddUint32(&invalids, 1)
+				}
 				return res
 			}
 
@@ -19616,6 +19962,9 @@ func (ec *executionContext) _Query(ctx context.Context, sel ast.SelectionSet) gr
 					}
 				}()
 				res = ec._Query_search(ctx, field)
+				if res == graphql.Null {
+					atomic.AddUint32(&invalids, 1)
+				}
 				return res
 			}
 
@@ -19636,6 +19985,9 @@ func (ec *executionContext) _Query(ctx context.Context, sel ast.SelectionSet) gr
 					}
 				}()
 				res = ec._Query_IsValidSlackChannel(ctx, field)
+				if res == graphql.Null {
+					atomic.AddUint32(&invalids, 1)
+				}
 				return res
 			}
 
@@ -19656,6 +20008,9 @@ func (ec *executionContext) _Query(ctx context.Context, sel ast.SelectionSet) gr
 					}
 				}()
 				res = ec._Query_stories(ctx, field)
+				if res == graphql.Null {
+					atomic.AddUint32(&invalids, 1)
+				}
 				return res
 			}
 
@@ -19676,6 +20031,9 @@ func (ec *executionContext) _Query(ctx context.Context, sel ast.SelectionSet) gr
 					}
 				}()
 				res = ec._Query_story(ctx, field)
+				if res == graphql.Null {
+					atomic.AddUint32(&invalids, 1)
+				}
 				return res
 			}
 
@@ -19696,6 +20054,9 @@ func (ec *executionContext) _Query(ctx context.Context, sel ast.SelectionSet) gr
 					}
 				}()
 				res = ec._Query_storyView(ctx, field)
+				if res == graphql.Null {
+					atomic.AddUint32(&invalids, 1)
+				}
 				return res
 			}
 
@@ -19716,6 +20077,9 @@ func (ec *executionContext) _Query(ctx context.Context, sel ast.SelectionSet) gr
 					}
 				}()
 				res = ec._Query_storyToken(ctx, field)
+				if res == graphql.Null {
+					atomic.AddUint32(&invalids, 1)
+				}
 				return res
 			}
 
@@ -19736,6 +20100,9 @@ func (ec *executionContext) _Query(ctx context.Context, sel ast.SelectionSet) gr
 					}
 				}()
 				res = ec._Query_teamkatalogen(ctx, field)
+				if res == graphql.Null {
+					atomic.AddUint32(&invalids, 1)
+				}
 				return res
 			}
 
@@ -19756,6 +20123,9 @@ func (ec *executionContext) _Query(ctx context.Context, sel ast.SelectionSet) gr
 					}
 				}()
 				res = ec._Query_userInfo(ctx, field)
+				if res == graphql.Null {
+					atomic.AddUint32(&invalids, 1)
+				}
 				return res
 			}
 
@@ -19783,6 +20153,9 @@ func (ec *executionContext) _Query(ctx context.Context, sel ast.SelectionSet) gr
 		}
 	}
 	out.Dispatch()
+	if invalids > 0 {
+		return graphql.Null
+	}
 	return out
 }
 
@@ -20282,6 +20655,26 @@ func (ec *executionContext) _Team(ctx context.Context, sel ast.SelectionSet, obj
 					}
 				}()
 				res = ec._Team_stories(ctx, field, obj)
+				if res == graphql.Null {
+					atomic.AddUint32(&invalids, 1)
+				}
+				return res
+			}
+
+			out.Concurrently(i, func() graphql.Marshaler {
+				return innerFunc(ctx)
+
+			})
+		case "quartoStories":
+			field := field
+
+			innerFunc := func(ctx context.Context) (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._Team_quartoStories(ctx, field, obj)
 				if res == graphql.Null {
 					atomic.AddUint32(&invalids, 1)
 				}
@@ -21787,6 +22180,50 @@ func (ec *executionContext) marshalNProductArea2ᚖgithubᚗcomᚋnaviktᚋnada�
 
 func (ec *executionContext) marshalNQuartoStory2githubᚗcomᚋnaviktᚋnadaᚑbackendᚋpkgᚋgraphᚋmodelsᚐQuartoStory(ctx context.Context, sel ast.SelectionSet, v models.QuartoStory) graphql.Marshaler {
 	return ec._QuartoStory(ctx, sel, &v)
+}
+
+func (ec *executionContext) marshalNQuartoStory2ᚕᚖgithubᚗcomᚋnaviktᚋnadaᚑbackendᚋpkgᚋgraphᚋmodelsᚐQuartoStoryᚄ(ctx context.Context, sel ast.SelectionSet, v []*models.QuartoStory) graphql.Marshaler {
+	ret := make(graphql.Array, len(v))
+	var wg sync.WaitGroup
+	isLen1 := len(v) == 1
+	if !isLen1 {
+		wg.Add(len(v))
+	}
+	for i := range v {
+		i := i
+		fc := &graphql.FieldContext{
+			Index:  &i,
+			Result: &v[i],
+		}
+		ctx := graphql.WithFieldContext(ctx, fc)
+		f := func(i int) {
+			defer func() {
+				if r := recover(); r != nil {
+					ec.Error(ctx, ec.Recover(ctx, r))
+					ret = nil
+				}
+			}()
+			if !isLen1 {
+				defer wg.Done()
+			}
+			ret[i] = ec.marshalNQuartoStory2ᚖgithubᚗcomᚋnaviktᚋnadaᚑbackendᚋpkgᚋgraphᚋmodelsᚐQuartoStory(ctx, sel, v[i])
+		}
+		if isLen1 {
+			f(i)
+		} else {
+			go f(i)
+		}
+
+	}
+	wg.Wait()
+
+	for _, e := range ret {
+		if e == graphql.Null {
+			return graphql.Null
+		}
+	}
+
+	return ret
 }
 
 func (ec *executionContext) marshalNQuartoStory2ᚖgithubᚗcomᚋnaviktᚋnadaᚑbackendᚋpkgᚋgraphᚋmodelsᚐQuartoStory(ctx context.Context, sel ast.SelectionSet, v *models.QuartoStory) graphql.Marshaler {
