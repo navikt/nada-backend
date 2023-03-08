@@ -28,6 +28,8 @@ type QuartoStory struct {
 	Created time.Time `json:"created"`
 	// lastModified is the timestamp for when the dataproduct was last modified
 	LastModified *time.Time `json:"lastModified"`
+	// group is the owner group of the quarto
+	Group string `json:"group"`
 }
 
 // NewQuartoStory contains the metadata and content of quarto stories.
@@ -44,6 +46,8 @@ type NewQuartoStory struct {
 	ProductAreaID *string `json:"productAreaID"`
 	// Id of the creator's team.
 	TeamID *string `json:"teamID"`
+	// group is the owner group of the quarto
+	Group string `json:"group"`
 }
 
 func (QuartoStory) IsSearchResult() {}

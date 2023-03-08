@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"io/ioutil"
+	"mime/multipart"
 	"strings"
 
 	"cloud.google.com/go/storage"
@@ -14,6 +15,7 @@ import (
 type GCS interface {
 	GetObject(ctx context.Context, path string) ([]byte, error)
 	GetIndexHtmlPath(ctx context.Context, qID string) (string, error)
+	UploadFile(ctx context.Context, name string, file multipart.File) error
 }
 
 type Client struct {
@@ -53,6 +55,28 @@ func (c *Client) GetObject(ctx context.Context, path string) ([]byte, error) {
 	}
 
 	return datab, nil
+}
+
+func (c *Client) UploadFile(ctx context.Context, name string, file multipart.File) error {
+	datab, err := ioutil.ReadAll(file)
+	if err != nil {
+		c.log.WithError(err).Errorf("reading uploaded file %v", name)
+		return err
+	}
+
+	writer := c.client.Bucket(c.bucketName).Object(name).NewWriter(ctx)
+	_, err = writer.Write(datab)
+	if err != nil {
+		c.log.WithError(err).Errorf("writing file %v to bucket", name)
+		return err
+	}
+
+	if err = writer.Close(); err != nil {
+		c.log.WithError(err).Errorf("closing writer after writing file %v to bucket", name)
+		return err
+	}
+
+	return nil
 }
 
 func (c *Client) findIndexPage(qID string, objs *storage.ObjectIterator) (string, error) {

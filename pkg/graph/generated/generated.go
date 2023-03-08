@@ -220,6 +220,7 @@ type ComplexityRoot struct {
 		Created          func(childComplexity int) int
 		Creator          func(childComplexity int) int
 		Description      func(childComplexity int) int
+		Group            func(childComplexity int) int
 		ID               func(childComplexity int) int
 		Keywords         func(childComplexity int) int
 		LastModified     func(childComplexity int) int
@@ -1375,6 +1376,13 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 		}
 
 		return e.complexity.QuartoStory.Description(childComplexity), true
+
+	case "QuartoStory.group":
+		if e.complexity.QuartoStory.Group == nil {
+			break
+		}
+
+		return e.complexity.QuartoStory.Group(childComplexity), true
 
 	case "QuartoStory.id":
 		if e.complexity.QuartoStory.ID == nil {
@@ -3081,6 +3089,8 @@ type QuartoStory @goModel(model: "github.com/navikt/nada-backend/pkg/graph/model
     created: Time!
     "lastModified is the timestamp for when the dataproduct was last modified"
     lastModified: Time
+    "group is the owner group of the quarto"
+    group: String!
 }
 
 "The ` + "`" + `UploadFile, // b.txt` + "`" + ` scalar type represents a multipart file upload."
@@ -3102,6 +3112,8 @@ input NewQuartoStory @goModel(model: "github.com/navikt/nada-backend/pkg/graph/m
     productAreaID: String
     "Id of the creator's team."
     teamID: String
+    "group is the owner group of the quarto"
+    group: String!
 }
 
 extend type Mutation {
@@ -9194,6 +9206,8 @@ func (ec *executionContext) fieldContext_Mutation_createQuartoStory(ctx context.
 				return ec.fieldContext_QuartoStory_created(ctx, field)
 			case "lastModified":
 				return ec.fieldContext_QuartoStory_lastModified(ctx, field)
+			case "group":
+				return ec.fieldContext_QuartoStory_group(ctx, field)
 			}
 			return nil, fmt.Errorf("no field named %q was found under type QuartoStory", field.Name)
 		},
@@ -10702,6 +10716,50 @@ func (ec *executionContext) fieldContext_QuartoStory_lastModified(ctx context.Co
 		IsResolver: false,
 		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
 			return nil, errors.New("field of type Time does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _QuartoStory_group(ctx context.Context, field graphql.CollectedField, obj *models.QuartoStory) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_QuartoStory_group(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Group, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(string)
+	fc.Result = res
+	return ec.marshalNString2string(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_QuartoStory_group(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "QuartoStory",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
 		},
 	}
 	return fc, nil
@@ -17445,7 +17503,7 @@ func (ec *executionContext) unmarshalInputNewQuartoStory(ctx context.Context, ob
 		asMap[k] = v
 	}
 
-	fieldsInOrder := [...]string{"name", "description", "keywords", "teamkatalogenURL", "productAreaID", "teamID"}
+	fieldsInOrder := [...]string{"name", "description", "keywords", "teamkatalogenURL", "productAreaID", "teamID", "group"}
 	for _, k := range fieldsInOrder {
 		v, ok := asMap[k]
 		if !ok {
@@ -17497,6 +17555,14 @@ func (ec *executionContext) unmarshalInputNewQuartoStory(ctx context.Context, ob
 
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("teamID"))
 			it.TeamID, err = ec.unmarshalOString2ᚖstring(ctx, v)
+			if err != nil {
+				return it, err
+			}
+		case "group":
+			var err error
+
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("group"))
+			it.Group, err = ec.unmarshalNString2string(ctx, v)
 			if err != nil {
 				return it, err
 			}
@@ -19531,6 +19597,13 @@ func (ec *executionContext) _QuartoStory(ctx context.Context, sel ast.SelectionS
 
 			out.Values[i] = ec._QuartoStory_lastModified(ctx, field, obj)
 
+		case "group":
+
+			out.Values[i] = ec._QuartoStory_group(ctx, field, obj)
+
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
 		default:
 			panic("unknown field " + strconv.Quote(field.Name))
 		}
