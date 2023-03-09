@@ -18,6 +18,12 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
+const (
+	idURLPosUpdate         = 3
+	idURLPosGet            = 2
+	maxMemoryMultipartForm = 32 << 20 // 32 MB
+)
+
 type Handler struct {
 	repo      *database.Repo
 	gcsClient *gcs.Client
@@ -56,14 +62,14 @@ func (h *Handler) GetObject(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *Handler) Update(w http.ResponseWriter, r *http.Request) {
-	qID, err := getIDFromPath(r, 3)
+	qID, err := getIDFromPath(r, idURLPosUpdate)
 	if err != nil {
 		h.log.WithError(err).Errorf("getting quarto id from url path")
 		h.writeError(w, http.StatusBadRequest, fmt.Errorf("invalid quarto id %v", qID))
 		return
 	}
 
-	err = r.ParseMultipartForm(32 << 20)
+	err = r.ParseMultipartForm(maxMemoryMultipartForm)
 	if err != nil {
 		h.log.WithError(err).Errorf("parsing multipart form")
 		h.writeError(w, http.StatusBadRequest, fmt.Errorf("invalid request form"))
@@ -80,7 +86,7 @@ func (h *Handler) Update(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *Handler) Redirect(w http.ResponseWriter, r *http.Request) {
-	qID, err := getIDFromPath(r, 2)
+	qID, err := getIDFromPath(r, idURLPosGet)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 	}
@@ -117,7 +123,7 @@ func (h *Handler) getQuarto(w http.ResponseWriter, r *http.Request, next http.Ha
 }
 
 func (h *Handler) updateQuarto(w http.ResponseWriter, r *http.Request, next http.Handler) {
-	qID, err := getIDFromPath(r, 3)
+	qID, err := getIDFromPath(r, idURLPosUpdate)
 	if err != nil {
 		h.writeError(w, http.StatusBadRequest, fmt.Errorf("invalid quarto id %v", qID))
 		return
