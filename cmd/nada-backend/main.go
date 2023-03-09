@@ -103,10 +103,7 @@ func main() {
 	var httpAPI api.HTTPAPI = mockHTTP
 	authenticatorMiddleware := mockHTTP.Middleware
 
-	teamProjectsUpdater, err := teamprojectsupdater.NewMockTeamProjectsUpdater(repo)
-	if err != nil {
-		log.Fatal(err)
-	}
+	teamProjectsUpdater := teamprojectsupdater.NewMockTeamProjectsUpdater()
 	var oauth2Config api.OAuth2
 	var accessMgr graph.AccessManager
 	accessMgr = access.NewNoop()
