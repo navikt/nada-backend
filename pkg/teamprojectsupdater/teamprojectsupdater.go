@@ -44,8 +44,8 @@ func NewTeamProjectsUpdater(teamProjectsURL, teamsToken string, httpClient *http
 	}
 }
 
-func NewMockTeamProjectsUpdater() *TeamProjectsUpdater {
-	return &TeamProjectsUpdater{
+func NewMockTeamProjectsUpdater(ctx context.Context, repo *database.Repo) (*TeamProjectsUpdater, error) {
+	tpu := &TeamProjectsUpdater{
 		TeamProjectsMapping: &auth.TeamProjectsMapping{
 			TeamProjects: map[string]string{
 				"team@nav.no": "team-dev-1337",
@@ -54,6 +54,16 @@ func NewMockTeamProjectsUpdater() *TeamProjectsUpdater {
 			},
 		},
 	}
+
+	if err := repo.UpdateTeamProjectsCache(ctx, map[string]string{
+		"team": "team-dev-1337",
+		"nada": "dataplattform-dev-9da3",
+		"aura": "aura-dev-d9f5",
+	}); err != nil {
+		return nil, err
+	}
+
+	return tpu, nil
 }
 
 func (t *TeamProjectsUpdater) Run(ctx context.Context, frequency time.Duration) {

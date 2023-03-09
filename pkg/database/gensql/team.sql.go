@@ -11,6 +11,17 @@ import (
 	"github.com/google/uuid"
 )
 
+const deleteNadaToken = `-- name: DeleteNadaToken :exec
+DELETE 
+FROM nada_tokens
+WHERE team = $1
+`
+
+func (q *Queries) DeleteNadaToken(ctx context.Context, team string) error {
+	_, err := q.db.ExecContext(ctx, deleteNadaToken, team)
+	return err
+}
+
 const getNadaToken = `-- name: GetNadaToken :one
 SELECT token
 FROM nada_tokens

@@ -18,6 +18,7 @@ import (
 )
 
 const (
+	testTeam     = "team"
 	quartoBucket = "quarto"
 	defaultHtml  = "<html><h1>Quarto</h1></html>"
 )
@@ -74,33 +75,7 @@ func TestQuarto(t *testing.T) {
 
 	newHtml := "<html><h1>Quarto updated</h1></html>"
 
-	t.Run("update quarto team token not found", func(t *testing.T) {
-		teamToken := "d7fae699-9852-4367-a136-e6b787e2a5bd"
-
-		body, contentType, err := createMultipartForm(newHtml)
-		if err != nil {
-			t.Fatal(err)
-		}
-
-		req, err := http.NewRequestWithContext(ctx, http.MethodPut, server.URL+"/quarto/update/"+storyID.String(), body)
-		if err != nil {
-			t.Fatal(err)
-		}
-		req.Header.Add("Authorization", "Bearer "+teamToken)
-		req.Header.Add("Content-Type", contentType)
-
-		resp, err := server.Client().Do(req)
-		if err != nil {
-			t.Fatal(err)
-		}
-		defer resp.Body.Close()
-
-		if resp.StatusCode != http.StatusInternalServerError {
-			t.Fatalf("expected status code %v, got %v", http.StatusInternalServerError, resp.StatusCode)
-		}
-	})
-
-	teamToken, err := createTeamToken(ctx)
+	teamToken, err := repo.GetNadaToken(ctx, testTeam)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -224,6 +199,36 @@ func TestQuarto(t *testing.T) {
 			t.Fatalf("expected status code %v, got %v", http.StatusUnauthorized, resp.StatusCode)
 		}
 	})
+
+	if err := repo.DeleteNadaToken(ctx, testTeam); err != nil {
+		t.Fatal(err)
+	}
+
+	t.Run("update quarto team token not found", func(t *testing.T) {
+		teamToken := "d7fae699-9852-4367-a136-e6b787e2a5bd"
+
+		body, contentType, err := createMultipartForm(newHtml)
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		req, err := http.NewRequestWithContext(ctx, http.MethodPut, server.URL+"/quarto/update/"+storyID.String(), body)
+		if err != nil {
+			t.Fatal(err)
+		}
+		req.Header.Add("Authorization", "Bearer "+teamToken)
+		req.Header.Add("Content-Type", contentType)
+
+		resp, err := server.Client().Do(req)
+		if err != nil {
+			t.Fatal(err)
+		}
+		defer resp.Body.Close()
+
+		if resp.StatusCode != http.StatusInternalServerError {
+			t.Fatalf("expected status code %v, got %v", http.StatusInternalServerError, resp.StatusCode)
+		}
+	})
 }
 
 func prepareQuartoTests(ctx context.Context) (uuid.UUID, error) {
@@ -245,7 +250,7 @@ func prepareQuartoTests(ctx context.Context) (uuid.UUID, error) {
 	story, err := repo.CreateQuartoStory(ctx, "first.last@nav.no", models.NewQuartoStory{
 		Name:        "quarto",
 		Description: "this is my quarto",
-		Group:       "team@nav.no",
+		Group:       testTeam + "@nav.no",
 		Keywords:    []string{},
 	})
 	if err != nil {
@@ -284,17 +289,4 @@ func createMultipartForm(html string) (*bytes.Buffer, string, error) {
 	}
 
 	return body, writer.FormDataContentType(), nil
-}
-
-func createTeamToken(ctx context.Context) (uuid.UUID, error) {
-	if err := repo.UpdateTeamProjectsCache(ctx, map[string]string{"team": "team-dev-1337"}); err != nil {
-		return uuid.UUID{}, err
-	}
-
-	teamToken, err := repo.GetNadaToken(ctx, "team")
-	if err != nil {
-		return uuid.UUID{}, err
-	}
-
-	return teamToken, nil
 }

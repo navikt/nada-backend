@@ -136,6 +136,8 @@ func (h *Handler) updateQuarto(w http.ResponseWriter, r *http.Request, next http
 		return
 	}
 
+	fmt.Println("token:", token)
+
 	story, err := h.repo.GetQuartoStory(r.Context(), qID)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {

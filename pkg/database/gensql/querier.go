@@ -37,6 +37,7 @@ type Querier interface {
 	DeleteDataproduct(ctx context.Context, id uuid.UUID) error
 	DeleteDataset(ctx context.Context, id uuid.UUID) error
 	DeleteMetabaseMetadata(ctx context.Context, datasetID uuid.UUID) error
+	DeleteNadaToken(ctx context.Context, team string) error
 	DeleteQuartoStory(ctx context.Context, id uuid.UUID) error
 	DeleteSession(ctx context.Context, token string) error
 	DeleteStory(ctx context.Context, id uuid.UUID) error

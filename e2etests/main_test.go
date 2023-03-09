@@ -112,13 +112,18 @@ func TestMain(m *testing.M) {
 		panic(err)
 	}
 
+	tpu, err := teamprojectsupdater.NewMockTeamProjectsUpdater(context.Background(), repo)
+	if err != nil {
+		panic(err)
+	}
+
 	promReg := prometheus.NewRegistry()
 	graphProm.RegisterOn(promReg)
 
 	gqlServer := graph.New(
 		repo,
 		bigquery.NewMock(),
-		teamprojectsupdater.NewMockTeamProjectsUpdater().TeamProjectsMapping,
+		tpu.TeamProjectsMapping,
 		access.NewNoop(),
 		teamkatalogen.NewMock(),
 		slack.NewMockSlackClient(logrus.StandardLogger()),

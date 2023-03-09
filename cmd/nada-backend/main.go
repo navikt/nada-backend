@@ -103,7 +103,7 @@ func main() {
 	var httpAPI api.HTTPAPI = mockHTTP
 	authenticatorMiddleware := mockHTTP.Middleware
 
-	teamProjectsUpdater := teamprojectsupdater.NewMockTeamProjectsUpdater()
+	var teamProjectsUpdater *teamprojectsupdater.TeamProjectsUpdater
 	var oauth2Config api.OAuth2
 	var accessMgr graph.AccessManager
 	accessMgr = access.NewNoop()
@@ -127,6 +127,11 @@ func main() {
 		authenticatorMiddleware = aauth.Middleware(aauth.KeyDiscoveryURL(), azureGroups, googleGroups, repo)
 		accessMgr = access.NewBigquery()
 		pollyAPI = polly.New(cfg.PollyURL)
+	} else {
+		teamProjectsUpdater, err = teamprojectsupdater.NewMockTeamProjectsUpdater(ctx, repo)
+		if err != nil {
+			log.Fatal(err)
+		}
 	}
 
 	if err := runMetabase(ctx, log.WithField("subsystem", "metabase"), cfg, repo, accessMgr, eventMgr); err != nil {
