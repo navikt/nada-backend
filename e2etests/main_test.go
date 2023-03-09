@@ -115,10 +115,15 @@ func TestMain(m *testing.M) {
 	promReg := prometheus.NewRegistry()
 	graphProm.RegisterOn(promReg)
 
+	teamProjectsUpdater, err := teamprojectsupdater.NewMockTeamProjectsUpdater(repo)
+	if err != nil {
+		panic(err)
+	}
+
 	gqlServer := graph.New(
 		repo,
 		bigquery.NewMock(),
-		teamprojectsupdater.NewMockTeamProjectsUpdater().TeamProjectsMapping,
+		teamProjectsUpdater.TeamProjectsMapping,
 		access.NewNoop(),
 		teamkatalogen.NewMock(),
 		slack.NewMockSlackClient(logrus.StandardLogger()),
