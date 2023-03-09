@@ -16,3 +16,10 @@ services:
     restart: always
     ports:
       - 8081:8080
+
+  gcs:
+    image: fsouza/fake-gcs-server:1.44
+    restart: always
+    ports:
+      - 8082:4443
+    entrypoint: ["/bin/sh", "-c", "mkdir -p /storage/nada-quarto-storage-dev && /bin/fake-gcs-server -scheme http -public-host localhost:8082"]

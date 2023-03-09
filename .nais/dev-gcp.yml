@@ -44,6 +44,7 @@ spec:
     - "https://data.dev.intern.nav.no/api"
     - "https://data.dev.intern.nav.no/quarto"
     - "https://nada.ekstern.dev.nav.no/api"
+    - "https://nada.dev.intern.nav.no/quarto/update"
   envFrom:
     - secret: nada-backend
   filesFrom:

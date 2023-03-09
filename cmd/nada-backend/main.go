@@ -94,6 +94,11 @@ func main() {
 
 	httpwithcache.SetDatabase(repo.GetDB())
 
+	gcsClient, err := gcs.New(ctx, cfg.QuartoStorageBucketName, log.WithField("subsystem", "gcs"))
+	if err != nil {
+		log.Fatal(err)
+	}
+
 	mockHTTP := api.NewMockHTTP(repo, log.WithField("subsystem", "mockhttp"))
 	var httpAPI api.HTTPAPI = mockHTTP
 	authenticatorMiddleware := mockHTTP.Middleware
@@ -104,7 +109,6 @@ func main() {
 	accessMgr = access.NewNoop()
 	var teamcatalogue graph.Teamkatalogen = teamkatalogen.NewMock()
 	var pollyAPI graph.Polly = polly.NewMock(cfg.PollyURL)
-	var gcsClient gcs.GCS = gcs.NewMock()
 	if !cfg.MockAuth {
 		teamcatalogue = teamkatalogen.New(cfg.TeamkatalogenURL)
 		teamProjectsUpdater = teamprojectsupdater.NewTeamProjectsUpdater(cfg.TeamProjectsOutputURL, cfg.TeamsToken, http.DefaultClient, repo)
@@ -112,11 +116,6 @@ func main() {
 
 		azureGroups := auth.NewAzureGroups(http.DefaultClient, cfg.OAuth2.ClientID, cfg.OAuth2.ClientSecret, cfg.OAuth2.TenantID)
 		googleGroups, err := auth.NewGoogleGroups(ctx, cfg.ServiceAccountFile, cfg.GoogleAdminImpersonationSubject, log.WithField("subsystem", "googlegroups"))
-		if err != nil {
-			log.Fatal(err)
-		}
-
-		gcsClient, err = gcs.New(ctx, cfg.QuartoStorageBucketName, log.WithField("subsystem", "gcs"))
 		if err != nil {
 			log.Fatal(err)
 		}

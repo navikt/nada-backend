@@ -6,10 +6,13 @@ import (
 	"context"
 	"database/sql"
 	"encoding/json"
+	"fmt"
 	"log"
+	"net"
 	"net/http"
 	"net/http/httptest"
 	"os"
+	"strconv"
 	"testing"
 
 	graphProm "github.com/99designs/gqlgen-contrib/prometheus"
@@ -29,6 +32,7 @@ import (
 	"github.com/navikt/nada-backend/pkg/teamkatalogen"
 	"github.com/navikt/nada-backend/pkg/teamprojectsupdater"
 	"github.com/ory/dockertest/v3"
+	"github.com/ory/dockertest/v3/docker"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/sirupsen/logrus"
 )
@@ -59,6 +63,31 @@ func TestMain(m *testing.M) {
 		log.Fatalf("Could not start resource: %s", err)
 	}
 
+	port, err := findAvailableHostPort()
+	if err != nil {
+		log.Fatalf("Could not start gcs resource: %s", err)
+	}
+
+	gcsResource, err := pool.RunWithOptions(&dockertest.RunOptions{
+		Repository: "fsouza/fake-gcs-server",
+		Tag:        "1.44",
+		PortBindings: map[docker.Port][]docker.PortBinding{
+			"4443/tcp": {{HostIP: "localhost", HostPort: strconv.Itoa(port) + "/tcp"}},
+		},
+		Entrypoint: []string{"/bin/fake-gcs-server", "-scheme", "http", "-public-host", "localhost:" + strconv.Itoa(port)},
+	}, func(config *docker.HostConfig) {
+		config.AutoRemove = true
+		config.RestartPolicy = docker.RestartPolicy{
+			Name: "no",
+		}
+	})
+	if err != nil {
+		log.Fatalf("could not start gcs resource %v", err)
+	}
+
+	os.Setenv("STORAGE_EMULATOR_HOST", fmt.Sprintf("http://localhost:%v/storage/v1/", gcsResource.GetPort("4443/tcp")))
+	defer os.Unsetenv("STORAGE_EMULATOR_HOST")
+
 	var dbString string
 	// exponential backoff-retry, because the application in the container might not be ready to accept connections yet
 	if err := pool.Retry(func() error {
@@ -71,6 +100,11 @@ func TestMain(m *testing.M) {
 		return db.Ping()
 	}); err != nil {
 		log.Fatalf("Could not connect to docker: %s", err)
+	}
+
+	gcsClient, err := gcs.New(context.Background(), quartoBucket, logrus.NewEntry(logrus.StandardLogger()))
+	if err != nil {
+		panic(err)
 	}
 
 	repo, err = database.New(dbString, 2, 0, &event.Manager{}, logrus.NewEntry(logrus.StandardLogger()))
@@ -93,7 +127,7 @@ func TestMain(m *testing.M) {
 	)
 	srv := api.New(
 		repo,
-		gcs.NewMock(),
+		gcsClient,
 		&mockAuthHandler{},
 		auth.MockJWTValidatorMiddleware(),
 		gqlServer,
@@ -116,6 +150,10 @@ func TestMain(m *testing.M) {
 	// You can't defer this because os.Exit doesn't care for defer
 	if err := pool.Purge(resource); err != nil {
 		log.Fatalf("Could not purge resource: %s", err)
+	}
+
+	if err := pool.Purge(gcsResource); err != nil {
+		log.Fatalf("Could not purge gcs resource: %s", err)
 	}
 
 	os.Exit(code)
@@ -154,6 +192,17 @@ func createStoryDraft(ctx context.Context, repo *database.Repo) (uuid.UUID, erro
 
 func deleteStoryDraft(ctx context.Context, repo *database.Repo, draftID uuid.UUID) error {
 	return repo.DeleteStoryDraft(ctx, draftID)
+}
+
+func findAvailableHostPort() (int, error) {
+	if a, err := net.ResolveTCPAddr("tcp", "localhost:0"); err == nil {
+		var l *net.TCPListener
+		if l, err = net.ListenTCP("tcp", a); err == nil {
+			defer l.Close()
+			return l.Addr().(*net.TCPAddr).Port, nil
+		}
+	}
+	return 0, fmt.Errorf("could not find a port")
 }
 
 type noopDatasetEnricher struct{}
