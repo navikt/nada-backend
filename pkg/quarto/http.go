@@ -20,11 +20,11 @@ import (
 
 type Handler struct {
 	repo      *database.Repo
-	gcsClient gcs.GCS
+	gcsClient *gcs.Client
 	log       *logrus.Entry
 }
 
-func NewHandler(repo *database.Repo, gcsClient gcs.GCS, logger *logrus.Entry) *Handler {
+func NewHandler(repo *database.Repo, gcsClient *gcs.Client, logger *logrus.Entry) *Handler {
 	return &Handler{
 		repo:      repo,
 		gcsClient: gcsClient,

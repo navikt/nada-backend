@@ -12,12 +12,6 @@ import (
 	"google.golang.org/api/iterator"
 )
 
-type GCS interface {
-	GetObject(ctx context.Context, path string) ([]byte, error)
-	GetIndexHtmlPath(ctx context.Context, qID string) (string, error)
-	UploadFile(ctx context.Context, name string, file multipart.File) error
-}
-
 type Client struct {
 	client     *storage.Client
 	bucketName string

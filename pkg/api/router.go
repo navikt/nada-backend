@@ -25,7 +25,7 @@ type HTTPAPI interface {
 
 func New(
 	repo *database.Repo,
-	gcsClient gcs.GCS,
+	gcsClient *gcs.Client,
 	httpAPI HTTPAPI,
 	authMW auth.MiddlewareHandler,
 	gqlServer *handler.Server,
