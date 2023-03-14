@@ -75,6 +75,20 @@ func (r *Repo) GetQuartoStoriesByTeam(ctx context.Context, teamID string) ([]*mo
 	return dbStories, nil
 }
 
+func (r *Repo) GetQuartoStoriesByGroups(ctx context.Context, groups []string) ([]*models.QuartoStory, error) {
+	stories, err := r.querier.GetQuartoStoriesByGroups(ctx, groups)
+	if err != nil {
+		return nil, err
+	}
+
+	dbStories := make([]*models.QuartoStory, len(stories))
+	for idx, s := range stories {
+		dbStories[idx] = quartoSQLToGraphql(&s)
+	}
+
+	return dbStories, nil
+}
+
 func quartoSQLToGraphql(quarto *gensql.QuartoStory) *models.QuartoStory {
 	return &models.QuartoStory{
 		ID:            quarto.ID,

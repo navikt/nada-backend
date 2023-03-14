@@ -34,6 +34,8 @@ type UserInfo @goModel(model: "github.com/navikt/nada-backend/pkg/graph/models.U
 	accessable: [Dataproduct!]!
 	"stories is a list of stories with one of the users groups as owner."
 	stories: [Story!]!
+    "quarto stories is the stories owned by the product area."
+    quartoStories: [QuartoStory!]!
     "accessRequests is a list of access requests where either the user or one of the users groups is owner."
     accessRequests: [AccessRequest!]!
 }

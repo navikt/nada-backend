@@ -119,6 +119,13 @@ func (r *userInfoResolver) Stories(ctx context.Context, obj *models.UserInfo) ([
 	return gqlStories, nil
 }
 
+// QuartoStories is the resolver for the quartoStories field.
+func (r *userInfoResolver) QuartoStories(ctx context.Context, obj *models.UserInfo) ([]*models.QuartoStory, error) {
+	user := auth.GetUser(ctx)
+
+	return r.repo.GetQuartoStoriesByGroups(ctx, user.GoogleGroups.Emails())
+}
+
 // AccessRequests is the resolver for the accessRequests field.
 func (r *userInfoResolver) AccessRequests(ctx context.Context, obj *models.UserInfo) ([]*models.AccessRequest, error) {
 	user := auth.GetUser(ctx)
