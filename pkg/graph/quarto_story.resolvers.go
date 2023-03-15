@@ -73,3 +73,8 @@ func (r *mutationResolver) DeleteQuartoStory(ctx context.Context, id uuid.UUID) 
 
 	return true, nil
 }
+
+// QuartoStory is the resolver for the quartoStory field.
+func (r *queryResolver) QuartoStory(ctx context.Context, id uuid.UUID) (*models.QuartoStory, error) {
+	return r.repo.GetQuartoStory(ctx, id)
+}

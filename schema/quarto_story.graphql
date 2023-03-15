@@ -97,3 +97,13 @@ extend type Mutation {
 	): Boolean! @authenticated
 
 }
+
+extend type Query {
+	"""
+    quartoStory returns the given story.
+    """
+	quartoStory(
+		"id of the story."
+		id: ID!
+	): QuartoStory!
+}
