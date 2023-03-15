@@ -109,7 +109,7 @@ func (r *Repo) UpdateQuartoStoryMetadata(ctx context.Context, id uuid.UUID, name
 }
 
 func (r *Repo) DeleteQuartoStory(ctx context.Context, id uuid.UUID) error {
-	return r.querier.DeleteStory(ctx, id)
+	return r.querier.DeleteQuartoStory(ctx, id)
 }
 
 func quartoSQLToGraphql(quarto *gensql.QuartoStory) *models.QuartoStory {
