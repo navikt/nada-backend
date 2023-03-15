@@ -167,27 +167,29 @@ type ComplexityRoot struct {
 	}
 
 	Mutation struct {
-		ApproveAccessRequest  func(childComplexity int, id uuid.UUID) int
-		CreateAccessRequest   func(childComplexity int, input models.NewAccessRequest) int
-		CreateDataproduct     func(childComplexity int, input models.NewDataproduct) int
-		CreateDataset         func(childComplexity int, input models.NewDataset) int
-		CreateQuartoStory     func(childComplexity int, file graphql.Upload, input models.NewQuartoStory) int
-		DeleteAccessRequest   func(childComplexity int, id uuid.UUID) int
-		DeleteDataproduct     func(childComplexity int, id uuid.UUID) int
-		DeleteDataset         func(childComplexity int, id uuid.UUID) int
-		DeleteStory           func(childComplexity int, id uuid.UUID) int
-		DenyAccessRequest     func(childComplexity int, id uuid.UUID, reason *string) int
-		Dummy                 func(childComplexity int, no *string) int
-		GrantAccessToDataset  func(childComplexity int, input models.NewGrant) int
-		MapDataset            func(childComplexity int, datasetID uuid.UUID, services []models.MappingService) int
-		PublishStory          func(childComplexity int, input models.NewStory) int
-		RevokeAccessToDataset func(childComplexity int, id uuid.UUID) int
-		TriggerMetadataSync   func(childComplexity int) int
-		UpdateAccessRequest   func(childComplexity int, input models.UpdateAccessRequest) int
-		UpdateDataproduct     func(childComplexity int, id uuid.UUID, input models.UpdateDataproduct) int
-		UpdateDataset         func(childComplexity int, id uuid.UUID, input models.UpdateDataset) int
-		UpdateKeywords        func(childComplexity int, input models.UpdateKeywords) int
-		UpdateStoryMetadata   func(childComplexity int, id uuid.UUID, name string, keywords []string, teamkatalogenURL *string, productAreaID *string, teamID *string) int
+		ApproveAccessRequest      func(childComplexity int, id uuid.UUID) int
+		CreateAccessRequest       func(childComplexity int, input models.NewAccessRequest) int
+		CreateDataproduct         func(childComplexity int, input models.NewDataproduct) int
+		CreateDataset             func(childComplexity int, input models.NewDataset) int
+		CreateQuartoStory         func(childComplexity int, file graphql.Upload, input models.NewQuartoStory) int
+		DeleteAccessRequest       func(childComplexity int, id uuid.UUID) int
+		DeleteDataproduct         func(childComplexity int, id uuid.UUID) int
+		DeleteDataset             func(childComplexity int, id uuid.UUID) int
+		DeleteQuartoStory         func(childComplexity int, id uuid.UUID) int
+		DeleteStory               func(childComplexity int, id uuid.UUID) int
+		DenyAccessRequest         func(childComplexity int, id uuid.UUID, reason *string) int
+		Dummy                     func(childComplexity int, no *string) int
+		GrantAccessToDataset      func(childComplexity int, input models.NewGrant) int
+		MapDataset                func(childComplexity int, datasetID uuid.UUID, services []models.MappingService) int
+		PublishStory              func(childComplexity int, input models.NewStory) int
+		RevokeAccessToDataset     func(childComplexity int, id uuid.UUID) int
+		TriggerMetadataSync       func(childComplexity int) int
+		UpdateAccessRequest       func(childComplexity int, input models.UpdateAccessRequest) int
+		UpdateDataproduct         func(childComplexity int, id uuid.UUID, input models.UpdateDataproduct) int
+		UpdateDataset             func(childComplexity int, id uuid.UUID, input models.UpdateDataset) int
+		UpdateKeywords            func(childComplexity int, input models.UpdateKeywords) int
+		UpdateQuartoStoryMetadata func(childComplexity int, id uuid.UUID, name string, description string, keywords []string, teamkatalogenURL *string, productAreaID *string, teamID *string, group string) int
+		UpdateStoryMetadata       func(childComplexity int, id uuid.UUID, name string, keywords []string, teamkatalogenURL *string, productAreaID *string, teamID *string) int
 	}
 
 	Owner struct {
@@ -392,6 +394,8 @@ type MutationResolver interface {
 	UpdateKeywords(ctx context.Context, input models.UpdateKeywords) (bool, error)
 	TriggerMetadataSync(ctx context.Context) (bool, error)
 	CreateQuartoStory(ctx context.Context, file graphql.Upload, input models.NewQuartoStory) (*models.QuartoStory, error)
+	UpdateQuartoStoryMetadata(ctx context.Context, id uuid.UUID, name string, description string, keywords []string, teamkatalogenURL *string, productAreaID *string, teamID *string, group string) (*models.QuartoStory, error)
+	DeleteQuartoStory(ctx context.Context, id uuid.UUID) (bool, error)
 	PublishStory(ctx context.Context, input models.NewStory) (*models.GraphStory, error)
 	UpdateStoryMetadata(ctx context.Context, id uuid.UUID, name string, keywords []string, teamkatalogenURL *string, productAreaID *string, teamID *string) (*models.GraphStory, error)
 	DeleteStory(ctx context.Context, id uuid.UUID) (bool, error)
@@ -1088,6 +1092,18 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.Mutation.DeleteDataset(childComplexity, args["id"].(uuid.UUID)), true
 
+	case "Mutation.deleteQuartoStory":
+		if e.complexity.Mutation.DeleteQuartoStory == nil {
+			break
+		}
+
+		args, err := ec.field_Mutation_deleteQuartoStory_args(context.TODO(), rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Mutation.DeleteQuartoStory(childComplexity, args["id"].(uuid.UUID)), true
+
 	case "Mutation.deleteStory":
 		if e.complexity.Mutation.DeleteStory == nil {
 			break
@@ -1226,6 +1242,18 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 		}
 
 		return e.complexity.Mutation.UpdateKeywords(childComplexity, args["input"].(models.UpdateKeywords)), true
+
+	case "Mutation.updateQuartoStoryMetadata":
+		if e.complexity.Mutation.UpdateQuartoStoryMetadata == nil {
+			break
+		}
+
+		args, err := ec.field_Mutation_updateQuartoStoryMetadata_args(context.TODO(), rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Mutation.UpdateQuartoStoryMetadata(childComplexity, args["id"].(uuid.UUID), args["name"].(string), args["description"].(string), args["keywords"].([]string), args["teamkatalogenURL"].(*string), args["productAreaID"].(*string), args["teamID"].(*string), args["group"].(string)), true
 
 	case "Mutation.updateStoryMetadata":
 		if e.complexity.Mutation.UpdateStoryMetadata == nil {
@@ -3137,6 +3165,41 @@ extend type Mutation {
 		"input contains metadata about the new quarto story."
 		input: NewQuartoStory!
 	): QuartoStory! @authenticated
+
+ 	"""
+    updateQuartoStoryMetadata updates metadata on an existing quarto story.
+
+    Requires authentication.
+    """
+	updateQuartoStoryMetadata(
+		"id is the id for the quarto story you want to update."
+		id: ID!
+		"name of the quarto story"
+		name: String!
+	  	"description of the quarto story."
+    	description: String!
+    	"keywords for the quarto story used as tags."
+   		keywords: [String!]!
+		"owner Teamkatalogen URL for the dataproduct."
+		teamkatalogenURL: String
+	    "Id of the team's product area."
+    	productAreaID: String
+        "Id of the team."
+    	teamID: String
+        "group is the owner group of the quarto"
+        group: String!
+	): QuartoStory! @authenticated
+
+	"""
+    deleteQuartoStory deletes an existing quarto story.
+
+    Requires authentication.
+    """
+	deleteQuartoStory(
+		"id is the id for the quarto story."
+		id: ID!
+	): Boolean! @authenticated
+
 }
 `, BuiltIn: false},
 	{Name: "../../../schema/search.graphql", Input: `union SearchResult @goModel(
@@ -3679,6 +3742,21 @@ func (ec *executionContext) field_Mutation_deleteDataset_args(ctx context.Contex
 	return args, nil
 }
 
+func (ec *executionContext) field_Mutation_deleteQuartoStory_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
+	var err error
+	args := map[string]interface{}{}
+	var arg0 uuid.UUID
+	if tmp, ok := rawArgs["id"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("id"))
+		arg0, err = ec.unmarshalNID2githubᚗcomᚋgoogleᚋuuidᚐUUID(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["id"] = arg0
+	return args, nil
+}
+
 func (ec *executionContext) field_Mutation_deleteStory_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
 	var err error
 	args := map[string]interface{}{}
@@ -3877,6 +3955,84 @@ func (ec *executionContext) field_Mutation_updateKeywords_args(ctx context.Conte
 		}
 	}
 	args["input"] = arg0
+	return args, nil
+}
+
+func (ec *executionContext) field_Mutation_updateQuartoStoryMetadata_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
+	var err error
+	args := map[string]interface{}{}
+	var arg0 uuid.UUID
+	if tmp, ok := rawArgs["id"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("id"))
+		arg0, err = ec.unmarshalNID2githubᚗcomᚋgoogleᚋuuidᚐUUID(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["id"] = arg0
+	var arg1 string
+	if tmp, ok := rawArgs["name"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("name"))
+		arg1, err = ec.unmarshalNString2string(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["name"] = arg1
+	var arg2 string
+	if tmp, ok := rawArgs["description"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("description"))
+		arg2, err = ec.unmarshalNString2string(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["description"] = arg2
+	var arg3 []string
+	if tmp, ok := rawArgs["keywords"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("keywords"))
+		arg3, err = ec.unmarshalNString2ᚕstringᚄ(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["keywords"] = arg3
+	var arg4 *string
+	if tmp, ok := rawArgs["teamkatalogenURL"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("teamkatalogenURL"))
+		arg4, err = ec.unmarshalOString2ᚖstring(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["teamkatalogenURL"] = arg4
+	var arg5 *string
+	if tmp, ok := rawArgs["productAreaID"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("productAreaID"))
+		arg5, err = ec.unmarshalOString2ᚖstring(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["productAreaID"] = arg5
+	var arg6 *string
+	if tmp, ok := rawArgs["teamID"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("teamID"))
+		arg6, err = ec.unmarshalOString2ᚖstring(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["teamID"] = arg6
+	var arg7 string
+	if tmp, ok := rawArgs["group"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("group"))
+		arg7, err = ec.unmarshalNString2string(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["group"] = arg7
 	return args, nil
 }
 
@@ -9231,6 +9387,180 @@ func (ec *executionContext) fieldContext_Mutation_createQuartoStory(ctx context.
 	}()
 	ctx = graphql.WithFieldContext(ctx, fc)
 	if fc.Args, err = ec.field_Mutation_createQuartoStory_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+		ec.Error(ctx, err)
+		return
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Mutation_updateQuartoStoryMetadata(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_Mutation_updateQuartoStoryMetadata(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		directive0 := func(rctx context.Context) (interface{}, error) {
+			ctx = rctx // use context from middleware stack in children
+			return ec.resolvers.Mutation().UpdateQuartoStoryMetadata(rctx, fc.Args["id"].(uuid.UUID), fc.Args["name"].(string), fc.Args["description"].(string), fc.Args["keywords"].([]string), fc.Args["teamkatalogenURL"].(*string), fc.Args["productAreaID"].(*string), fc.Args["teamID"].(*string), fc.Args["group"].(string))
+		}
+		directive1 := func(ctx context.Context) (interface{}, error) {
+			if ec.directives.Authenticated == nil {
+				return nil, errors.New("directive authenticated is not implemented")
+			}
+			return ec.directives.Authenticated(ctx, nil, directive0, nil)
+		}
+
+		tmp, err := directive1(rctx)
+		if err != nil {
+			return nil, graphql.ErrorOnPath(ctx, err)
+		}
+		if tmp == nil {
+			return nil, nil
+		}
+		if data, ok := tmp.(*models.QuartoStory); ok {
+			return data, nil
+		}
+		return nil, fmt.Errorf(`unexpected type %T from directive, should be *github.com/navikt/nada-backend/pkg/graph/models.QuartoStory`, tmp)
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(*models.QuartoStory)
+	fc.Result = res
+	return ec.marshalNQuartoStory2ᚖgithubᚗcomᚋnaviktᚋnadaᚑbackendᚋpkgᚋgraphᚋmodelsᚐQuartoStory(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_Mutation_updateQuartoStoryMetadata(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Mutation",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "id":
+				return ec.fieldContext_QuartoStory_id(ctx, field)
+			case "name":
+				return ec.fieldContext_QuartoStory_name(ctx, field)
+			case "creator":
+				return ec.fieldContext_QuartoStory_creator(ctx, field)
+			case "description":
+				return ec.fieldContext_QuartoStory_description(ctx, field)
+			case "keywords":
+				return ec.fieldContext_QuartoStory_keywords(ctx, field)
+			case "teamkatalogenURL":
+				return ec.fieldContext_QuartoStory_teamkatalogenURL(ctx, field)
+			case "productAreaID":
+				return ec.fieldContext_QuartoStory_productAreaID(ctx, field)
+			case "teamID":
+				return ec.fieldContext_QuartoStory_teamID(ctx, field)
+			case "created":
+				return ec.fieldContext_QuartoStory_created(ctx, field)
+			case "lastModified":
+				return ec.fieldContext_QuartoStory_lastModified(ctx, field)
+			case "group":
+				return ec.fieldContext_QuartoStory_group(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type QuartoStory", field.Name)
+		},
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			err = ec.Recover(ctx, r)
+			ec.Error(ctx, err)
+		}
+	}()
+	ctx = graphql.WithFieldContext(ctx, fc)
+	if fc.Args, err = ec.field_Mutation_updateQuartoStoryMetadata_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+		ec.Error(ctx, err)
+		return
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Mutation_deleteQuartoStory(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_Mutation_deleteQuartoStory(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		directive0 := func(rctx context.Context) (interface{}, error) {
+			ctx = rctx // use context from middleware stack in children
+			return ec.resolvers.Mutation().DeleteQuartoStory(rctx, fc.Args["id"].(uuid.UUID))
+		}
+		directive1 := func(ctx context.Context) (interface{}, error) {
+			if ec.directives.Authenticated == nil {
+				return nil, errors.New("directive authenticated is not implemented")
+			}
+			return ec.directives.Authenticated(ctx, nil, directive0, nil)
+		}
+
+		tmp, err := directive1(rctx)
+		if err != nil {
+			return nil, graphql.ErrorOnPath(ctx, err)
+		}
+		if tmp == nil {
+			return nil, nil
+		}
+		if data, ok := tmp.(bool); ok {
+			return data, nil
+		}
+		return nil, fmt.Errorf(`unexpected type %T from directive, should be bool`, tmp)
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(bool)
+	fc.Result = res
+	return ec.marshalNBoolean2bool(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_Mutation_deleteQuartoStory(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Mutation",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Boolean does not have child fields")
+		},
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			err = ec.Recover(ctx, r)
+			ec.Error(ctx, err)
+		}
+	}()
+	ctx = graphql.WithFieldContext(ctx, fc)
+	if fc.Args, err = ec.field_Mutation_deleteQuartoStory_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
 		ec.Error(ctx, err)
 		return
 	}
@@ -19336,6 +19666,24 @@ func (ec *executionContext) _Mutation(ctx context.Context, sel ast.SelectionSet)
 
 			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
 				return ec._Mutation_createQuartoStory(ctx, field)
+			})
+
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
+		case "updateQuartoStoryMetadata":
+
+			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
+				return ec._Mutation_updateQuartoStoryMetadata(ctx, field)
+			})
+
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
+		case "deleteQuartoStory":
+
+			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
+				return ec._Mutation_deleteQuartoStory(ctx, field)
 			})
 
 			if out.Values[i] == graphql.Null {

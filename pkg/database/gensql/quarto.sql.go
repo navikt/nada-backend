@@ -338,36 +338,36 @@ const updateQuartoStory = `-- name: UpdateQuartoStory :one
 UPDATE quarto_stories
 SET
 	"name" = $1,
-    "creator" = $2,
-	"description" = $3,
-	"keywords" = $4,
-	"teamkatalogen_url" = $5,
-    "product_area_id" = $6,
-    "team_id" = $7
+	"description" = $2,
+	"keywords" = $3,
+	"teamkatalogen_url" = $4,
+    "product_area_id" = $5,
+    "team_id" = $6,
+    "group" = $7
 WHERE id = $8
 RETURNING id, name, creator, created, last_modified, description, keywords, teamkatalogen_url, product_area_id, team_id, "group"
 `
 
 type UpdateQuartoStoryParams struct {
 	Name             string
-	Creator          string
 	Description      string
 	Keywords         []string
 	TeamkatalogenUrl sql.NullString
 	ProductAreaID    sql.NullString
 	TeamID           sql.NullString
+	OwnerGroup       string
 	ID               uuid.UUID
 }
 
 func (q *Queries) UpdateQuartoStory(ctx context.Context, arg UpdateQuartoStoryParams) (QuartoStory, error) {
 	row := q.db.QueryRowContext(ctx, updateQuartoStory,
 		arg.Name,
-		arg.Creator,
 		arg.Description,
 		pq.Array(arg.Keywords),
 		arg.TeamkatalogenUrl,
 		arg.ProductAreaID,
 		arg.TeamID,
+		arg.OwnerGroup,
 		arg.ID,
 	)
 	var i QuartoStory

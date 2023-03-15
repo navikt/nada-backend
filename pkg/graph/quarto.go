@@ -62,3 +62,26 @@ func WriteFileToBucket(ctx context.Context, quartoStoryID string,
 
 	return nil
 }
+
+func deleteQuartoStoryFolder(ctx context.Context, quartoStoryID string) error {
+	// Replace with your GCP bucket name.
+	bucketName := os.Getenv("GCP_QUARTO_STORAGE_BUCKET_NAME")
+
+	// Create a client to interact with the GCP Storage API.
+	client, err := storage.NewClient(ctx)
+	if err != nil {
+		log.Fatal(err)
+		return err
+	}
+
+	// Get a handle to the bucket.
+	bucket := client.Bucket(bucketName)
+
+	// Delete the folder and its contents.
+	err = bucket.Object(quartoStoryID).Delete(ctx)
+	if err != nil {
+		return fmt.Errorf("failed to delete folder: %v", err)
+	}
+
+	return nil
+}

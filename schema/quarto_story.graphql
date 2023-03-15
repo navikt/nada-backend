@@ -61,4 +61,39 @@ extend type Mutation {
 		"input contains metadata about the new quarto story."
 		input: NewQuartoStory!
 	): QuartoStory! @authenticated
+
+ 	"""
+    updateQuartoStoryMetadata updates metadata on an existing quarto story.
+
+    Requires authentication.
+    """
+	updateQuartoStoryMetadata(
+		"id is the id for the quarto story you want to update."
+		id: ID!
+		"name of the quarto story"
+		name: String!
+	  	"description of the quarto story."
+    	description: String!
+    	"keywords for the quarto story used as tags."
+   		keywords: [String!]!
+		"owner Teamkatalogen URL for the dataproduct."
+		teamkatalogenURL: String
+	    "Id of the team's product area."
+    	productAreaID: String
+        "Id of the team."
+    	teamID: String
+        "group is the owner group of the quarto"
+        group: String!
+	): QuartoStory! @authenticated
+
+	"""
+    deleteQuartoStory deletes an existing quarto story.
+
+    Requires authentication.
+    """
+	deleteQuartoStory(
+		"id is the id for the quarto story."
+		id: ID!
+	): Boolean! @authenticated
+
 }
