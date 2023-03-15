@@ -6,6 +6,7 @@ package graph
 
 import (
 	"context"
+	"fmt"
 
 	"github.com/99designs/gqlgen/graphql"
 	"github.com/google/uuid"
@@ -61,12 +62,14 @@ func (r *mutationResolver) DeleteQuartoStory(ctx context.Context, id uuid.UUID) 
 		return false, ErrUnauthorized
 	}
 
-	if err := r.repo.DeleteQuartoStory(ctx, id); err != nil {
+	if err = r.repo.DeleteQuartoStory(ctx, id); err != nil {
 		return false, err
 	}
 
+	fmt.Println(id)
 	if err := deleteQuartoStoryFolder(ctx, id.String()); err != nil {
-		r.log.Errorf("Quarto story %v metadata deleted but failed to delete story files in GCP",
+		r.log.WithError(err).
+		Errorf("Quarto story %v metadata deleted but failed to delete story files in GCP",
 			id)
 		return false, err
 	}

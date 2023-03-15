@@ -9,6 +9,7 @@ import (
 
 	"cloud.google.com/go/storage"
 	"github.com/99designs/gqlgen/graphql"
+	"google.golang.org/api/iterator"
 )
 
 func WriteFileToBucket(ctx context.Context, quartoStoryID string,
@@ -77,11 +78,32 @@ func deleteQuartoStoryFolder(ctx context.Context, quartoStoryID string) error {
 	// Get a handle to the bucket.
 	bucket := client.Bucket(bucketName)
 
-	// Delete the folder and its contents.
-	err = bucket.Object(quartoStoryID).Delete(ctx)
-	if err != nil {
-		return fmt.Errorf("failed to delete folder: %v", err)
+	fit := bucket.Objects(ctx, &storage.Query{
+		Prefix: quartoStoryID,
+	})
+
+	var deletedFiles []string
+	for {
+		f, err := fit.Next()
+		if err == iterator.Done {
+			break
+		}
+		if err != nil {
+			log.Fatal(err)
+			return fmt.Errorf("failed to find objects %v: %v", quartoStoryID, err)			
+		}
+
+		err = bucket.Object(f.Name).Delete(ctx)
+		if err != nil {
+			return fmt.Errorf("failed to delete %v: %v", f.Name, err)
+		}
+		deletedFiles = append(deletedFiles, f.Name)
 	}
 
+	if(len(deletedFiles) == 0){
+		return fmt.Errorf("object not found %v", quartoStoryID)
+	}else{
+		log.Printf("Quarto files for %v deleted: %v\n", quartoStoryID, deletedFiles)
+	}
 	return nil
 }
