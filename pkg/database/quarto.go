@@ -75,6 +75,43 @@ func (r *Repo) GetQuartoStoriesByTeam(ctx context.Context, teamID string) ([]*mo
 	return dbStories, nil
 }
 
+func (r *Repo) GetQuartoStoriesByGroups(ctx context.Context, groups []string) ([]*models.QuartoStory, error) {
+	stories, err := r.querier.GetQuartoStoriesByGroups(ctx, groups)
+	if err != nil {
+		return nil, err
+	}
+
+	dbStories := make([]*models.QuartoStory, len(stories))
+	for idx, s := range stories {
+		dbStories[idx] = quartoSQLToGraphql(&s)
+	}
+
+	return dbStories, nil
+}
+
+func (r *Repo) UpdateQuartoStoryMetadata(ctx context.Context, id uuid.UUID, name string, description string, keywords []string, teamkatalogenURL *string, productAreaID *string, teamID *string, group string) (
+	*models.QuartoStory, error) {
+	dbStory, err := r.querier.UpdateQuartoStory(ctx, gensql.UpdateQuartoStoryParams{
+		ID:               id,
+		Name:             name,
+		Description:      description,
+		Keywords:         keywords,
+		TeamkatalogenUrl: ptrToNullString(teamkatalogenURL),
+		ProductAreaID:    ptrToNullString(productAreaID),
+		TeamID:           ptrToNullString(teamID),
+		OwnerGroup:       group,
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	return quartoSQLToGraphql(&dbStory), nil
+}
+
+func (r *Repo) DeleteQuartoStory(ctx context.Context, id uuid.UUID) error {
+	return r.querier.DeleteQuartoStory(ctx, id)
+}
+
 func quartoSQLToGraphql(quarto *gensql.QuartoStory) *models.QuartoStory {
 	return &models.QuartoStory{
 		ID:            quarto.ID,
@@ -85,6 +122,7 @@ func quartoSQLToGraphql(quarto *gensql.QuartoStory) *models.QuartoStory {
 		Keywords:      quarto.Keywords,
 		ProductAreaID: nullStringToPtr(quarto.ProductAreaID),
 		TeamID:        nullStringToPtr(quarto.TeamID),
+		TeamkatalogenURL: nullStringToPtr(quarto.TeamkatalogenUrl),
 		Description:   quarto.Description,
 		Group:         quarto.Group,
 	}

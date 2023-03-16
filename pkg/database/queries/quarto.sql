@@ -52,12 +52,12 @@ ORDER BY last_modified DESC;
 UPDATE quarto_stories
 SET
 	"name" = @name,
-    "creator" = @creator,
 	"description" = @description,
 	"keywords" = @keywords,
 	"teamkatalogen_url" = @teamkatalogen_url,
     "product_area_id" = @product_area_id,
-    "team_id" = @team_id
+    "team_id" = @team_id,
+    "group" = @owner_group
 WHERE id = @id
 RETURNING *;
 

@@ -9,6 +9,7 @@ import (
 
 	"cloud.google.com/go/storage"
 	"github.com/99designs/gqlgen/graphql"
+	"google.golang.org/api/iterator"
 )
 
 func WriteFileToBucket(ctx context.Context, quartoStoryID string,
@@ -60,5 +61,49 @@ func WriteFileToBucket(ctx context.Context, quartoStoryID string,
 		return err
 	}
 
+	return nil
+}
+
+func deleteQuartoStoryFolder(ctx context.Context, quartoStoryID string) error {
+	// Replace with your GCP bucket name.
+	bucketName := os.Getenv("GCP_QUARTO_STORAGE_BUCKET_NAME")
+
+	// Create a client to interact with the GCP Storage API.
+	client, err := storage.NewClient(ctx)
+	if err != nil {
+		log.Fatal(err)
+		return err
+	}
+
+	// Get a handle to the bucket.
+	bucket := client.Bucket(bucketName)
+
+	fit := bucket.Objects(ctx, &storage.Query{
+		Prefix: quartoStoryID,
+	})
+
+	var deletedFiles []string
+	for {
+		f, err := fit.Next()
+		if err == iterator.Done {
+			break
+		}
+		if err != nil {
+			log.Fatal(err)
+			return fmt.Errorf("failed to find objects %v: %v", quartoStoryID, err)			
+		}
+
+		err = bucket.Object(f.Name).Delete(ctx)
+		if err != nil {
+			return fmt.Errorf("failed to delete %v: %v", f.Name, err)
+		}
+		deletedFiles = append(deletedFiles, f.Name)
+	}
+
+	if(len(deletedFiles) == 0){
+		return fmt.Errorf("object not found %v", quartoStoryID)
+	}else{
+		log.Printf("Quarto files for %v deleted: %v\n", quartoStoryID, deletedFiles)
+	}
 	return nil
 }
