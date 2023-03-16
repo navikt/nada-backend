@@ -65,6 +65,9 @@ func WriteFileToBucket(ctx context.Context, quartoStoryID string,
 }
 
 func deleteQuartoStoryFolder(ctx context.Context, quartoStoryID string) error {
+	if len(quartoStoryID)== 0{
+		return fmt.Errorf("try to delete files in GCP with invalid quarto story id")
+	}
 	// Replace with your GCP bucket name.
 	bucketName := os.Getenv("GCP_QUARTO_STORAGE_BUCKET_NAME")
 
@@ -79,7 +82,7 @@ func deleteQuartoStoryFolder(ctx context.Context, quartoStoryID string) error {
 	bucket := client.Bucket(bucketName)
 
 	fit := bucket.Objects(ctx, &storage.Query{
-		Prefix: quartoStoryID,
+		Prefix: quartoStoryID + "/",
 	})
 
 	var deletedFiles []string
