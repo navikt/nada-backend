@@ -122,7 +122,7 @@ func quartoSQLToGraphql(quarto *gensql.QuartoStory) *models.QuartoStory {
 		Keywords:      quarto.Keywords,
 		ProductAreaID: nullStringToPtr(quarto.ProductAreaID),
 		TeamID:        nullStringToPtr(quarto.TeamID),
-		TeamkatalogenURL: &quarto.TeamkatalogenUrl.String,
+		TeamkatalogenURL: nullStringToPtr(quarto.TeamkatalogenUrl),
 		Description:   quarto.Description,
 		Group:         quarto.Group,
 	}

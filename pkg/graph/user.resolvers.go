@@ -122,7 +122,6 @@ func (r *userInfoResolver) Stories(ctx context.Context, obj *models.UserInfo) ([
 // QuartoStories is the resolver for the quartoStories field.
 func (r *userInfoResolver) QuartoStories(ctx context.Context, obj *models.UserInfo) ([]*models.QuartoStory, error) {
 	user := auth.GetUser(ctx)
-
 	return r.repo.GetQuartoStoriesByGroups(ctx, user.GoogleGroups.Emails())
 }
 
