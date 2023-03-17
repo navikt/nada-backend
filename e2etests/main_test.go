@@ -62,6 +62,7 @@ func TestMain(m *testing.M) {
 	if err != nil {
 		log.Fatalf("Could not start resource: %s", err)
 	}
+	resource.Expire(120) // setting resource timeout as postgres container is not terminated automatically
 
 	port, err := findAvailableHostPort()
 	if err != nil {
