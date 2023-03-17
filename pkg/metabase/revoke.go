@@ -19,15 +19,19 @@ func (m *Metabase) revokeMetabaseAccess(ctx context.Context, dsID uuid.UUID, sub
 		return
 	}
 
-	email, isGroup, err := parseSubject(subject)
+	email, sType, err := parseSubject(subject)
 	if err != nil {
 		log.WithError(err).Errorf("parsing subject %v", subject)
 		return
 	}
-	if isGroup {
+
+	switch sType {
+	case "group":
 		m.removeGroupAccess(ctx, dsID, email)
-	} else {
+	case "user":
 		m.removeMetabaseGroupMember(ctx, dsID, email)
+	default:
+		log.Infof("unsupported subject type %v for metabase access revoke", sType)
 	}
 }
 

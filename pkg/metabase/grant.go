@@ -23,15 +23,19 @@ func (m *Metabase) grantMetabaseAccess(ctx context.Context, dsID uuid.UUID, subj
 		return
 	}
 
-	email, isGroup, err := parseSubject(subject)
+	email, sType, err := parseSubject(subject)
 	if err != nil {
 		log.WithError(err).Errorf("parsing subject %v", subject)
 		return
 	}
-	if isGroup {
+
+	switch sType {
+	case "group":
 		m.addGroupAccess(ctx, dsID, email)
-	} else {
+	case "user":
 		m.addMetabaseGroupMember(ctx, dsID, email)
+	default:
+		log.Infof("unsupported subject type %v for metabase access grant", sType)
 	}
 }
 
@@ -148,14 +152,19 @@ func (m *Metabase) grantAccessesOnCreation(ctx context.Context, dsID uuid.UUID) 
 	}
 
 	for _, a := range accesses {
-		email, isGroup, err := parseSubject(a.Subject)
+		email, sType, err := parseSubject(a.Subject)
 		if err != nil {
+			m.log.WithError(err).Errorf("parsing subject %v", a.Subject)
 			return err
 		}
-		if isGroup {
+
+		switch sType {
+		case "group":
 			m.addGroupAccess(ctx, dsID, email)
-		} else {
+		case "user":
 			m.addMetabaseGroupMember(ctx, dsID, email)
+		default:
+			m.log.Infof("unsupported subject type %v for metabase access grant", sType)
 		}
 	}
 

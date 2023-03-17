@@ -146,18 +146,11 @@ func memberExists(groupMembers []PermissionGroupMember, subject string) (bool, i
 	return false, -1
 }
 
-func parseSubject(subject string) (string, bool, error) {
+func parseSubject(subject string) (string, string, error) {
 	s := strings.Split(subject, ":")
 	if len(s) != 2 {
-		return "", false, fmt.Errorf("invalid subject format, should be type:email")
+		return "", "", fmt.Errorf("invalid subject format, should be type:email")
 	}
 
-	switch s[0] {
-	case "user":
-		return s[1], false, nil
-	case "group":
-		return s[1], true, nil
-	default:
-		return "", false, fmt.Errorf("invalid subject %v, must be prefixed with either user or group", s)
-	}
+	return s[1], s[0], nil
 }
