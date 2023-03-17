@@ -99,8 +99,7 @@ func (c *Bigquery) GetTables(ctx context.Context, projectID, datasetID string) (
 			return nil, err
 		}
 
-		if m.Type != bigquery.RegularTable && m.Type != bigquery.ViewTable {
-			// We only support regular tables and views for now.
+		if !isSupportedTableType(m.Type) {
 			continue
 		}
 
@@ -113,4 +112,21 @@ func (c *Bigquery) GetTables(ctx context.Context, projectID, datasetID string) (
 	}
 
 	return tables, nil
+}
+
+func isSupportedTableType(tableType bigquery.TableType) bool {
+	// We only support regular tables, views and materialized views for now.
+	supported := []bigquery.TableType{
+		bigquery.RegularTable,
+		bigquery.ViewTable,
+		bigquery.MaterializedView,
+	}
+
+	for _, tt := range supported {
+		if tt == tableType {
+			return true
+		}
+	}
+
+	return false
 }
