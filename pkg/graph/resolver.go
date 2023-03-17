@@ -142,6 +142,8 @@ func (r *Resolver) prepareBigQuery(ctx context.Context, bq models.NewBigQuery, g
 	switch metadata.TableType {
 	case bigquery.RegularTable:
 	case bigquery.ViewTable:
+		fallthrough
+	case bigquery.MaterializedView:
 		if err := r.accessMgr.AddToAuthorizedViews(ctx, bq.ProjectID, bq.Dataset, bq.Table); err != nil {
 			return models.BigqueryMetadata{}, err
 		}
