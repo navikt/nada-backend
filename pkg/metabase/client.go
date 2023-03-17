@@ -7,7 +7,6 @@ import (
 	"fmt"
 	"io"
 	"io/ioutil"
-	"log"
 	"net/http"
 	"os"
 	"strconv"
@@ -382,7 +381,6 @@ type permissionGroup struct {
 }
 
 func (c *Client) RestrictAccessToDatabase(ctx context.Context, groupIDs []int, databaseID int) error {
-
 	var permissionGraph struct {
 		Groups   map[string]map[string]permissionGroup `json:"groups"`
 		Revision int                                   `json:"revision"`
@@ -404,7 +402,6 @@ func (c *Client) RestrictAccessToDatabase(ctx context.Context, groupIDs []int, d
 		permissionGraph.Groups[grpSID][dbSID] = permissionGroup{
 			Data:      permissions{Native: "write", Schemas: "all"},
 			DataModel: &dataModelPermission{Schemas: "all"},
-			Details:   "yes",
 		}
 
 		grpSIDs = append(grpSIDs, grpSID)
@@ -421,9 +418,6 @@ func (c *Client) RestrictAccessToDatabase(ctx context.Context, groupIDs []int, d
 			}
 		}
 	}
-
-	payload, err := json.Marshal(permissionGraph)
-	log.Printf("permission request with payload %v, error %v", string(payload), err)
 
 	if err := c.request(ctx, http.MethodPut, "/permissions/graph", permissionGraph, nil); err != nil {
 		return err
@@ -450,14 +444,11 @@ func (c *Client) OpenAccessToDatabase(ctx context.Context, databaseID int) error
 			permission[dbSID] = permissionGroup{
 				Data:      permissions{Native: "write", Schemas: "all"},
 				DataModel: &dataModelPermission{Schemas: "all"},
-				Details:   "yes",
 			}
 			break
 		}
 	}
 
-	payload, err := json.Marshal(permissionGraph)
-	log.Printf("permission graph payload %v", string(payload))
 	if err := c.request(ctx, http.MethodPut, "/permissions/graph", permissionGraph, nil); err != nil {
 		return err
 	}
