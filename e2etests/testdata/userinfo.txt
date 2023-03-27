@@ -13,6 +13,9 @@
 				email
 			}
 		}
+        nadaTokens {
+            team
+        }
 	}
 }
 
@@ -60,7 +63,18 @@ RETURNS
 						"email": "aura@nav.no"
 					}
 				}
-			]
+			],
+            "nadaTokens": [
+                {
+                    "team": "team"
+                },
+                {
+                    "team": "nada"
+                },
+                {
+                    "team": "aura"
+                }
+            ]
 		}
 	}
 }
