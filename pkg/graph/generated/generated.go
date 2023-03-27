@@ -192,6 +192,11 @@ type ComplexityRoot struct {
 		UpdateStoryMetadata       func(childComplexity int, id uuid.UUID, name string, keywords []string, teamkatalogenURL *string, productAreaID *string, teamID *string) int
 	}
 
+	NadaToken struct {
+		Team  func(childComplexity int) int
+		Token func(childComplexity int) int
+	}
+
 	Owner struct {
 		Group            func(childComplexity int) int
 		ProductAreaID    func(childComplexity int) int
@@ -346,6 +351,7 @@ type ComplexityRoot struct {
 		GoogleGroups    func(childComplexity int) int
 		Groups          func(childComplexity int) int
 		LoginExpiration func(childComplexity int) int
+		NadaTokens      func(childComplexity int) int
 		Name            func(childComplexity int) int
 		QuartoStories   func(childComplexity int) int
 		Stories         func(childComplexity int) int
@@ -454,6 +460,7 @@ type UserInfoResolver interface {
 	AllGoogleGroups(ctx context.Context, obj *models.UserInfo) ([]*models.Group, error)
 	AzureGroups(ctx context.Context, obj *models.UserInfo) ([]*models.Group, error)
 	GCPProjects(ctx context.Context, obj *models.UserInfo) ([]*models.GCPProject, error)
+	NadaTokens(ctx context.Context, obj *models.UserInfo) ([]*models.NadaToken, error)
 
 	Dataproducts(ctx context.Context, obj *models.UserInfo) ([]*models.Dataproduct, error)
 	Accessable(ctx context.Context, obj *models.UserInfo) ([]*models.Dataproduct, error)
@@ -1268,6 +1275,20 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 		}
 
 		return e.complexity.Mutation.UpdateStoryMetadata(childComplexity, args["id"].(uuid.UUID), args["name"].(string), args["keywords"].([]string), args["teamkatalogenURL"].(*string), args["productAreaID"].(*string), args["teamID"].(*string)), true
+
+	case "NadaToken.team":
+		if e.complexity.NadaToken.Team == nil {
+			break
+		}
+
+		return e.complexity.NadaToken.Team(childComplexity), true
+
+	case "NadaToken.token":
+		if e.complexity.NadaToken.Token == nil {
+			break
+		}
+
+		return e.complexity.NadaToken.Token(childComplexity), true
 
 	case "Owner.group":
 		if e.complexity.Owner.Group == nil {
@@ -2113,6 +2134,13 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 		}
 
 		return e.complexity.UserInfo.LoginExpiration(childComplexity), true
+
+	case "UserInfo.nadaTokens":
+		if e.complexity.UserInfo.NadaTokens == nil {
+			break
+		}
+
+		return e.complexity.UserInfo.NadaTokens(childComplexity), true
 
 	case "UserInfo.name":
 		if e.complexity.UserInfo.Name == nil {
@@ -3537,6 +3565,16 @@ type Group @goModel(model: "github.com/navikt/nada-backend/pkg/graph/models.Grou
 }
 
 """
+NadaToken contains the team token of the corresponding team for updating quarto stories
+"""
+type NadaToken @goModel(model: "github.com/navikt/nada-backend/pkg/graph/models.NadaToken") {
+    "name of team"
+    team: String!
+    "nada token for the team"
+    token: ID!
+}
+
+"""
 UserInfo contains metadata on a logged in user
 """
 type UserInfo @goModel(model: "github.com/navikt/nada-backend/pkg/graph/models.UserInfo") {
@@ -3554,6 +3592,8 @@ type UserInfo @goModel(model: "github.com/navikt/nada-backend/pkg/graph/models.U
     azureGroups: [Group!]
 	"gcpProjects is GCP projects the user is a member of."
 	gcpProjects: [GCPProject!]!  @goField(name: "GCPProjects") @authenticated
+    "teamTokens is a list of the nada tokens for each team the logged in user is a part of."
+    nadaTokens: [NadaToken!]!
 	"loginExpiration is when the token expires."
 	loginExpiration: Time!
 	"dataproducts is a list of dataproducts with one of the users groups as owner."
@@ -9863,6 +9903,94 @@ func (ec *executionContext) fieldContext_Mutation_deleteStory(ctx context.Contex
 	return fc, nil
 }
 
+func (ec *executionContext) _NadaToken_team(ctx context.Context, field graphql.CollectedField, obj *models.NadaToken) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_NadaToken_team(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Team, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(string)
+	fc.Result = res
+	return ec.marshalNString2string(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_NadaToken_team(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "NadaToken",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _NadaToken_token(ctx context.Context, field graphql.CollectedField, obj *models.NadaToken) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_NadaToken_token(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Token, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(uuid.UUID)
+	fc.Result = res
+	return ec.marshalNID2githubᚗcomᚋgoogleᚋuuidᚐUUID(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_NadaToken_token(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "NadaToken",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type ID does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
 func (ec *executionContext) _Owner_group(ctx context.Context, field graphql.CollectedField, obj *models.Owner) (ret graphql.Marshaler) {
 	fc, err := ec.fieldContext_Owner_group(ctx, field)
 	if err != nil {
@@ -13068,6 +13196,8 @@ func (ec *executionContext) fieldContext_Query_userInfo(ctx context.Context, fie
 				return ec.fieldContext_UserInfo_azureGroups(ctx, field)
 			case "gcpProjects":
 				return ec.fieldContext_UserInfo_gcpProjects(ctx, field)
+			case "nadaTokens":
+				return ec.fieldContext_UserInfo_nadaTokens(ctx, field)
 			case "loginExpiration":
 				return ec.fieldContext_UserInfo_loginExpiration(ctx, field)
 			case "dataproducts":
@@ -15433,6 +15563,56 @@ func (ec *executionContext) fieldContext_UserInfo_gcpProjects(ctx context.Contex
 				return ec.fieldContext_GCPProject_group(ctx, field)
 			}
 			return nil, fmt.Errorf("no field named %q was found under type GCPProject", field.Name)
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _UserInfo_nadaTokens(ctx context.Context, field graphql.CollectedField, obj *models.UserInfo) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_UserInfo_nadaTokens(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.UserInfo().NadaTokens(rctx, obj)
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.([]*models.NadaToken)
+	fc.Result = res
+	return ec.marshalNNadaToken2ᚕᚖgithubᚗcomᚋnaviktᚋnadaᚑbackendᚋpkgᚋgraphᚋmodelsᚐNadaTokenᚄ(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_UserInfo_nadaTokens(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "UserInfo",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "team":
+				return ec.fieldContext_NadaToken_team(ctx, field)
+			case "token":
+				return ec.fieldContext_NadaToken_token(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type NadaToken", field.Name)
 		},
 	}
 	return fc, nil
@@ -19845,6 +20025,41 @@ func (ec *executionContext) _Mutation(ctx context.Context, sel ast.SelectionSet)
 	return out
 }
 
+var nadaTokenImplementors = []string{"NadaToken"}
+
+func (ec *executionContext) _NadaToken(ctx context.Context, sel ast.SelectionSet, obj *models.NadaToken) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, nadaTokenImplementors)
+	out := graphql.NewFieldSet(fields)
+	var invalids uint32
+	for i, field := range fields {
+		switch field.Name {
+		case "__typename":
+			out.Values[i] = graphql.MarshalString("NadaToken")
+		case "team":
+
+			out.Values[i] = ec._NadaToken_team(ctx, field, obj)
+
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
+		case "token":
+
+			out.Values[i] = ec._NadaToken_token(ctx, field, obj)
+
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
+		default:
+			panic("unknown field " + strconv.Quote(field.Name))
+		}
+	}
+	out.Dispatch()
+	if invalids > 0 {
+		return graphql.Null
+	}
+	return out
+}
+
 var ownerImplementors = []string{"Owner"}
 
 func (ec *executionContext) _Owner(ctx context.Context, sel ast.SelectionSet, obj *models.Owner) graphql.Marshaler {
@@ -21501,6 +21716,26 @@ func (ec *executionContext) _UserInfo(ctx context.Context, sel ast.SelectionSet,
 				return innerFunc(ctx)
 
 			})
+		case "nadaTokens":
+			field := field
+
+			innerFunc := func(ctx context.Context) (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._UserInfo_nadaTokens(ctx, field, obj)
+				if res == graphql.Null {
+					atomic.AddUint32(&invalids, 1)
+				}
+				return res
+			}
+
+			out.Concurrently(i, func() graphql.Marshaler {
+				return innerFunc(ctx)
+
+			})
 		case "loginExpiration":
 
 			out.Values[i] = ec._UserInfo_loginExpiration(ctx, field, obj)
@@ -22500,7 +22735,7 @@ func (ec *executionContext) marshalNGroupStats2ᚖgithubᚗcomᚋnaviktᚋnada�
 
 func (ec *executionContext) unmarshalNID2githubᚗcomᚋgoogleᚋuuidᚐUUID(ctx context.Context, v interface{}) (uuid.UUID, error) {
 	res, err := graph.UnmarshalUUID(v)
-	return uuid.UUID(res), graphql.ErrorOnPath(ctx, err)
+	return res, graphql.ErrorOnPath(ctx, err)
 }
 
 func (ec *executionContext) marshalNID2githubᚗcomᚋgoogleᚋuuidᚐUUID(ctx context.Context, sel ast.SelectionSet, v uuid.UUID) graphql.Marshaler {
@@ -22704,6 +22939,60 @@ func (ec *executionContext) marshalNMappingService2ᚕgithubᚗcomᚋnaviktᚋna
 	}
 
 	return ret
+}
+
+func (ec *executionContext) marshalNNadaToken2ᚕᚖgithubᚗcomᚋnaviktᚋnadaᚑbackendᚋpkgᚋgraphᚋmodelsᚐNadaTokenᚄ(ctx context.Context, sel ast.SelectionSet, v []*models.NadaToken) graphql.Marshaler {
+	ret := make(graphql.Array, len(v))
+	var wg sync.WaitGroup
+	isLen1 := len(v) == 1
+	if !isLen1 {
+		wg.Add(len(v))
+	}
+	for i := range v {
+		i := i
+		fc := &graphql.FieldContext{
+			Index:  &i,
+			Result: &v[i],
+		}
+		ctx := graphql.WithFieldContext(ctx, fc)
+		f := func(i int) {
+			defer func() {
+				if r := recover(); r != nil {
+					ec.Error(ctx, ec.Recover(ctx, r))
+					ret = nil
+				}
+			}()
+			if !isLen1 {
+				defer wg.Done()
+			}
+			ret[i] = ec.marshalNNadaToken2ᚖgithubᚗcomᚋnaviktᚋnadaᚑbackendᚋpkgᚋgraphᚋmodelsᚐNadaToken(ctx, sel, v[i])
+		}
+		if isLen1 {
+			f(i)
+		} else {
+			go f(i)
+		}
+
+	}
+	wg.Wait()
+
+	for _, e := range ret {
+		if e == graphql.Null {
+			return graphql.Null
+		}
+	}
+
+	return ret
+}
+
+func (ec *executionContext) marshalNNadaToken2ᚖgithubᚗcomᚋnaviktᚋnadaᚑbackendᚋpkgᚋgraphᚋmodelsᚐNadaToken(ctx context.Context, sel ast.SelectionSet, v *models.NadaToken) graphql.Marshaler {
+	if v == nil {
+		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
+			ec.Errorf(ctx, "the requested element is null which the schema does not allow")
+		}
+		return graphql.Null
+	}
+	return ec._NadaToken(ctx, sel, v)
 }
 
 func (ec *executionContext) unmarshalNNewAccessRequest2githubᚗcomᚋnaviktᚋnadaᚑbackendᚋpkgᚋgraphᚋmodelsᚐNewAccessRequest(ctx context.Context, v interface{}) (models.NewAccessRequest, error) {

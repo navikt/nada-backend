@@ -9,6 +9,16 @@ type Group @goModel(model: "github.com/navikt/nada-backend/pkg/graph/models.Grou
 }
 
 """
+NadaToken contains the team token of the corresponding team for updating quarto stories
+"""
+type NadaToken @goModel(model: "github.com/navikt/nada-backend/pkg/graph/models.NadaToken") {
+    "name of team"
+    team: String!
+    "nada token for the team"
+    token: ID!
+}
+
+"""
 UserInfo contains metadata on a logged in user
 """
 type UserInfo @goModel(model: "github.com/navikt/nada-backend/pkg/graph/models.UserInfo") {
@@ -26,6 +36,8 @@ type UserInfo @goModel(model: "github.com/navikt/nada-backend/pkg/graph/models.U
     azureGroups: [Group!]
 	"gcpProjects is GCP projects the user is a member of."
 	gcpProjects: [GCPProject!]!  @goField(name: "GCPProjects") @authenticated
+    "teamTokens is a list of the nada tokens for each team the logged in user is a part of."
+    nadaTokens: [NadaToken!]!
 	"loginExpiration is when the token expires."
 	loginExpiration: Time!
 	"dataproducts is a list of dataproducts with one of the users groups as owner."
