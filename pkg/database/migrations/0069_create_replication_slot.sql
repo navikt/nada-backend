@@ -4,7 +4,7 @@ DO
 $$
     BEGIN
         IF EXISTS(SELECT * FROM pg_roles WHERE rolname = 'datastream') THEN
-            SELECT PG_CREATE_LOGICAL_REPLICATION_SLOT('ds_replication', 'pgoutput');
+            PERFORM PG_CREATE_LOGICAL_REPLICATION_SLOT('ds_replication', 'pgoutput');
         END IF;
     END
 $$ LANGUAGE 'plpgsql';
@@ -16,7 +16,7 @@ DO
 $$
     BEGIN
         IF EXISTS(SELECT * FROM pg_roles WHERE rolname = 'datastream') THEN
-            SELECT pg_drop_replication_slot('ds_replication');
+            PERFORM pg_drop_replication_slot('ds_replication');
         END IF;
     END
 $$ LANGUAGE 'plpgsql';
