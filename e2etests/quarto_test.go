@@ -247,9 +247,11 @@ func prepareQuartoTests(ctx context.Context) (uuid.UUID, error) {
 		}
 	}
 
+	description := "this is my quarto"
+
 	story, err := repo.CreateQuartoStory(ctx, "first.last@nav.no", models.NewQuartoStory{
 		Name:        "quarto",
-		Description: "this is my quarto",
+		Description: &description,
 		Group:       testTeam + "@nav.no",
 		Keywords:    []string{},
 	})
