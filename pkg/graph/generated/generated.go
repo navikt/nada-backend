@@ -3182,7 +3182,7 @@ input NewQuartoStory @goModel(model: "github.com/navikt/nada-backend/pkg/graph/m
 	"name of the quarto story."
 	name: String!
 	"description of the quarto story."
-	description: String!
+	description: String
 	"keywords for the story used as tags."
 	keywords: [String!]!
     "teamkatalogenURL of the creator"
@@ -18235,7 +18235,7 @@ func (ec *executionContext) unmarshalInputNewQuartoStory(ctx context.Context, ob
 			var err error
 
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("description"))
-			it.Description, err = ec.unmarshalNString2string(ctx, v)
+			it.Description, err = ec.unmarshalOString2ᚖstring(ctx, v)
 			if err != nil {
 				return it, err
 			}

@@ -36,7 +36,7 @@ input NewQuartoStory @goModel(model: "github.com/navikt/nada-backend/pkg/graph/m
 	"name of the quarto story."
 	name: String!
 	"description of the quarto story."
-	description: String!
+	description: String
 	"keywords for the story used as tags."
 	keywords: [String!]!
     "teamkatalogenURL of the creator"

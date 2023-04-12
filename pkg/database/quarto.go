@@ -15,7 +15,7 @@ func (r *Repo) CreateQuartoStory(ctx context.Context, creator string,
 	quartoSQL, err := r.querier.CreateQuartoStory(ctx, gensql.CreateQuartoStoryParams{
 		Name:             newQuartoStory.Name,
 		Creator:          creator,
-		Description:      newQuartoStory.Description,
+		Description:      ptrToString(newQuartoStory.Description),
 		Keywords:         newQuartoStory.Keywords,
 		TeamkatalogenUrl: ptrToNullString(newQuartoStory.TeamkatalogenURL),
 		ProductAreaID:    ptrToNullString(newQuartoStory.ProductAreaID),
@@ -90,7 +90,8 @@ func (r *Repo) GetQuartoStoriesByGroups(ctx context.Context, groups []string) ([
 }
 
 func (r *Repo) UpdateQuartoStoryMetadata(ctx context.Context, id uuid.UUID, name string, description string, keywords []string, teamkatalogenURL *string, productAreaID *string, teamID *string, group string) (
-	*models.QuartoStory, error) {
+	*models.QuartoStory, error,
+) {
 	dbStory, err := r.querier.UpdateQuartoStory(ctx, gensql.UpdateQuartoStoryParams{
 		ID:               id,
 		Name:             name,
@@ -114,16 +115,16 @@ func (r *Repo) DeleteQuartoStory(ctx context.Context, id uuid.UUID) error {
 
 func quartoSQLToGraphql(quarto *gensql.QuartoStory) *models.QuartoStory {
 	return &models.QuartoStory{
-		ID:            quarto.ID,
-		Name:          quarto.Name,
-		Creator:       quarto.Creator,
-		Created:       quarto.Created,
-		LastModified:  &quarto.LastModified,
-		Keywords:      quarto.Keywords,
-		ProductAreaID: nullStringToPtr(quarto.ProductAreaID),
-		TeamID:        nullStringToPtr(quarto.TeamID),
+		ID:               quarto.ID,
+		Name:             quarto.Name,
+		Creator:          quarto.Creator,
+		Created:          quarto.Created,
+		LastModified:     &quarto.LastModified,
+		Keywords:         quarto.Keywords,
+		ProductAreaID:    nullStringToPtr(quarto.ProductAreaID),
+		TeamID:           nullStringToPtr(quarto.TeamID),
 		TeamkatalogenURL: nullStringToPtr(quarto.TeamkatalogenUrl),
-		Description:   quarto.Description,
-		Group:         quarto.Group,
+		Description:      quarto.Description,
+		Group:            quarto.Group,
 	}
 }

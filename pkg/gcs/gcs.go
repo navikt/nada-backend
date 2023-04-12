@@ -36,19 +36,24 @@ func (c *Client) GetIndexHtmlPath(ctx context.Context, qID string) (string, erro
 	return c.findIndexPage(qID, objs)
 }
 
-func (c *Client) GetObject(ctx context.Context, path string) ([]byte, error) {
+func (c *Client) GetObject(ctx context.Context, path string) (*storage.ObjectAttrs, []byte, error) {
 	obj := c.client.Bucket(c.bucketName).Object(path)
 	reader, err := obj.NewReader(ctx)
 	if err != nil {
-		return []byte{}, err
+		return nil, []byte{}, err
 	}
 
 	datab, err := ioutil.ReadAll(reader)
 	if err != nil {
-		return []byte{}, err
+		return nil, []byte{}, err
 	}
 
-	return datab, nil
+	attr, err := obj.Attrs(ctx)
+	if err != nil {
+		return nil, []byte{}, err
+	}
+
+	return attr, datab, nil
 }
 
 func (c *Client) UploadFile(ctx context.Context, name string, file multipart.File) error {

@@ -41,22 +41,14 @@ func NewHandler(repo *database.Repo, gcsClient *gcs.Client, logger *logrus.Entry
 func (h *Handler) GetObject(w http.ResponseWriter, r *http.Request) {
 	path := strings.TrimPrefix(r.URL.Path, "/quarto/")
 
-	objBytes, err := h.gcsClient.GetObject(r.Context(), path)
+	attr, objBytes, err := h.gcsClient.GetObject(r.Context(), path)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
-
-	switch {
-	case strings.HasSuffix(path, ".html"):
-		w.Header().Add("content-type", "text/html")
-	case strings.HasSuffix(path, ".css"):
-		w.Header().Add("content-type", "text/css")
-	case strings.HasSuffix(path, ".js"):
-		w.Header().Add("content-type", "application/javascript")
-	case strings.HasSuffix(path, ".json"):
-		w.Header().Add("content-type", "application/json")
-	}
+	w.Header().Add("content-type", attr.ContentType)
+	w.Header().Add("content-length", strconv.Itoa(int(attr.Size)))
+	w.Header().Add("content-encoding", attr.ContentEncoding)
 
 	w.Write(objBytes)
 }

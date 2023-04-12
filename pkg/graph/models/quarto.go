@@ -37,7 +37,7 @@ type NewQuartoStory struct {
 	// name of the quarto story.
 	Name string `json:"name"`
 	// description of the quarto story.
-	Description string `json:"description"`
+	Description *string `json:"description"`
 	// keywords for the story used as tags.
 	Keywords []string `json:"keywords"`
 	// teamkatalogenURL of the creator
