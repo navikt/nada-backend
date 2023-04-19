@@ -161,35 +161,54 @@ type ComplexityRoot struct {
 		Email        func(childComplexity int) int
 	}
 
+	InsightProduct struct {
+		Created          func(childComplexity int) int
+		Creator          func(childComplexity int) int
+		Description      func(childComplexity int) int
+		Group            func(childComplexity int) int
+		ID               func(childComplexity int) int
+		Keywords         func(childComplexity int) int
+		LastModified     func(childComplexity int) int
+		Link             func(childComplexity int) int
+		Name             func(childComplexity int) int
+		ProductAreaID    func(childComplexity int) int
+		TeamID           func(childComplexity int) int
+		TeamkatalogenURL func(childComplexity int) int
+		Type             func(childComplexity int) int
+	}
+
 	Keyword struct {
 		Count   func(childComplexity int) int
 		Keyword func(childComplexity int) int
 	}
 
 	Mutation struct {
-		ApproveAccessRequest      func(childComplexity int, id uuid.UUID) int
-		CreateAccessRequest       func(childComplexity int, input models.NewAccessRequest) int
-		CreateDataproduct         func(childComplexity int, input models.NewDataproduct) int
-		CreateDataset             func(childComplexity int, input models.NewDataset) int
-		CreateQuartoStory         func(childComplexity int, file graphql.Upload, input models.NewQuartoStory) int
-		DeleteAccessRequest       func(childComplexity int, id uuid.UUID) int
-		DeleteDataproduct         func(childComplexity int, id uuid.UUID) int
-		DeleteDataset             func(childComplexity int, id uuid.UUID) int
-		DeleteQuartoStory         func(childComplexity int, id uuid.UUID) int
-		DeleteStory               func(childComplexity int, id uuid.UUID) int
-		DenyAccessRequest         func(childComplexity int, id uuid.UUID, reason *string) int
-		Dummy                     func(childComplexity int, no *string) int
-		GrantAccessToDataset      func(childComplexity int, input models.NewGrant) int
-		MapDataset                func(childComplexity int, datasetID uuid.UUID, services []models.MappingService) int
-		PublishStory              func(childComplexity int, input models.NewStory) int
-		RevokeAccessToDataset     func(childComplexity int, id uuid.UUID) int
-		TriggerMetadataSync       func(childComplexity int) int
-		UpdateAccessRequest       func(childComplexity int, input models.UpdateAccessRequest) int
-		UpdateDataproduct         func(childComplexity int, id uuid.UUID, input models.UpdateDataproduct) int
-		UpdateDataset             func(childComplexity int, id uuid.UUID, input models.UpdateDataset) int
-		UpdateKeywords            func(childComplexity int, input models.UpdateKeywords) int
-		UpdateQuartoStoryMetadata func(childComplexity int, id uuid.UUID, name string, description string, keywords []string, teamkatalogenURL *string, productAreaID *string, teamID *string, group string) int
-		UpdateStoryMetadata       func(childComplexity int, id uuid.UUID, name string, keywords []string, teamkatalogenURL *string, productAreaID *string, teamID *string) int
+		ApproveAccessRequest         func(childComplexity int, id uuid.UUID) int
+		CreateAccessRequest          func(childComplexity int, input models.NewAccessRequest) int
+		CreateDataproduct            func(childComplexity int, input models.NewDataproduct) int
+		CreateDataset                func(childComplexity int, input models.NewDataset) int
+		CreateInsightProduct         func(childComplexity int, input models.NewInsightProduct) int
+		CreateQuartoStory            func(childComplexity int, file graphql.Upload, input models.NewQuartoStory) int
+		DeleteAccessRequest          func(childComplexity int, id uuid.UUID) int
+		DeleteDataproduct            func(childComplexity int, id uuid.UUID) int
+		DeleteDataset                func(childComplexity int, id uuid.UUID) int
+		DeleteInsightProduct         func(childComplexity int, id uuid.UUID) int
+		DeleteQuartoStory            func(childComplexity int, id uuid.UUID) int
+		DeleteStory                  func(childComplexity int, id uuid.UUID) int
+		DenyAccessRequest            func(childComplexity int, id uuid.UUID, reason *string) int
+		Dummy                        func(childComplexity int, no *string) int
+		GrantAccessToDataset         func(childComplexity int, input models.NewGrant) int
+		MapDataset                   func(childComplexity int, datasetID uuid.UUID, services []models.MappingService) int
+		PublishStory                 func(childComplexity int, input models.NewStory) int
+		RevokeAccessToDataset        func(childComplexity int, id uuid.UUID) int
+		TriggerMetadataSync          func(childComplexity int) int
+		UpdateAccessRequest          func(childComplexity int, input models.UpdateAccessRequest) int
+		UpdateDataproduct            func(childComplexity int, id uuid.UUID, input models.UpdateDataproduct) int
+		UpdateDataset                func(childComplexity int, id uuid.UUID, input models.UpdateDataset) int
+		UpdateInsightProductMetadata func(childComplexity int, id uuid.UUID, name string, description string, typeArg string, link string, keywords []string, teamkatalogenURL *string, productAreaID *string, teamID *string, group string) int
+		UpdateKeywords               func(childComplexity int, input models.UpdateKeywords) int
+		UpdateQuartoStoryMetadata    func(childComplexity int, id uuid.UUID, name string, description string, keywords []string, teamkatalogenURL *string, productAreaID *string, teamID *string, group string) int
+		UpdateStoryMetadata          func(childComplexity int, id uuid.UUID, name string, keywords []string, teamkatalogenURL *string, productAreaID *string, teamID *string) int
 	}
 
 	NadaToken struct {
@@ -213,14 +232,15 @@ type ComplexityRoot struct {
 	}
 
 	ProductArea struct {
-		AreaType      func(childComplexity int) int
-		DashboardURL  func(childComplexity int) int
-		Dataproducts  func(childComplexity int) int
-		ID            func(childComplexity int) int
-		Name          func(childComplexity int) int
-		QuartoStories func(childComplexity int) int
-		Stories       func(childComplexity int) int
-		Teams         func(childComplexity int) int
+		AreaType        func(childComplexity int) int
+		DashboardURL    func(childComplexity int) int
+		Dataproducts    func(childComplexity int) int
+		ID              func(childComplexity int) int
+		InsightProducts func(childComplexity int) int
+		Name            func(childComplexity int) int
+		QuartoStories   func(childComplexity int) int
+		Stories         func(childComplexity int) int
+		Teams           func(childComplexity int) int
 	}
 
 	QuartoStory struct {
@@ -249,6 +269,7 @@ type ComplexityRoot struct {
 		GcpGetDatasets           func(childComplexity int, projectID string) int
 		GcpGetTables             func(childComplexity int, projectID string, datasetID string) int
 		GroupStats               func(childComplexity int, limit *int, offset *int) int
+		InsightProduct           func(childComplexity int, id uuid.UUID) int
 		IsValidSlackChannel      func(childComplexity int, name string) int
 		Keywords                 func(childComplexity int) int
 		Polly                    func(childComplexity int, q string) int
@@ -323,13 +344,14 @@ type ComplexityRoot struct {
 	}
 
 	Team struct {
-		DashboardURL  func(childComplexity int) int
-		Dataproducts  func(childComplexity int) int
-		ID            func(childComplexity int) int
-		Name          func(childComplexity int) int
-		ProductAreaID func(childComplexity int) int
-		QuartoStories func(childComplexity int) int
-		Stories       func(childComplexity int) int
+		DashboardURL    func(childComplexity int) int
+		Dataproducts    func(childComplexity int) int
+		ID              func(childComplexity int) int
+		InsightProducts func(childComplexity int) int
+		Name            func(childComplexity int) int
+		ProductAreaID   func(childComplexity int) int
+		QuartoStories   func(childComplexity int) int
+		Stories         func(childComplexity int) int
 	}
 
 	TeamkatalogenResult struct {
@@ -398,6 +420,9 @@ type MutationResolver interface {
 	UpdateDataset(ctx context.Context, id uuid.UUID, input models.UpdateDataset) (*models.Dataset, error)
 	DeleteDataset(ctx context.Context, id uuid.UUID) (bool, error)
 	MapDataset(ctx context.Context, datasetID uuid.UUID, services []models.MappingService) (bool, error)
+	CreateInsightProduct(ctx context.Context, input models.NewInsightProduct) (*models.InsightProduct, error)
+	UpdateInsightProductMetadata(ctx context.Context, id uuid.UUID, name string, description string, typeArg string, link string, keywords []string, teamkatalogenURL *string, productAreaID *string, teamID *string, group string) (*models.InsightProduct, error)
+	DeleteInsightProduct(ctx context.Context, id uuid.UUID) (bool, error)
 	UpdateKeywords(ctx context.Context, input models.UpdateKeywords) (bool, error)
 	TriggerMetadataSync(ctx context.Context) (bool, error)
 	CreateQuartoStory(ctx context.Context, file graphql.Upload, input models.NewQuartoStory) (*models.QuartoStory, error)
@@ -413,6 +438,7 @@ type ProductAreaResolver interface {
 
 	Stories(ctx context.Context, obj *models.ProductArea) ([]*models.GraphStory, error)
 	QuartoStories(ctx context.Context, obj *models.ProductArea) ([]*models.QuartoStory, error)
+	InsightProducts(ctx context.Context, obj *models.ProductArea) ([]*models.InsightProduct, error)
 	Teams(ctx context.Context, obj *models.ProductArea) ([]*models.Team, error)
 }
 type QueryResolver interface {
@@ -428,6 +454,7 @@ type QueryResolver interface {
 	GcpGetDatasets(ctx context.Context, projectID string) ([]string, error)
 	GcpGetAllTablesInProject(ctx context.Context, projectID string) ([]*models.BigQuerySource, error)
 	GcpGetColumns(ctx context.Context, projectID string, datasetID string, tableID string) ([]*models.TableColumn, error)
+	InsightProduct(ctx context.Context, id uuid.UUID) (*models.InsightProduct, error)
 	Keywords(ctx context.Context) ([]*models.Keyword, error)
 	Polly(ctx context.Context, q string) ([]*models.QueryPolly, error)
 	ProductArea(ctx context.Context, id string) (*models.ProductArea, error)
@@ -454,6 +481,7 @@ type TeamResolver interface {
 	Dataproducts(ctx context.Context, obj *models.Team) ([]*models.Dataproduct, error)
 	Stories(ctx context.Context, obj *models.Team) ([]*models.GraphStory, error)
 	QuartoStories(ctx context.Context, obj *models.Team) ([]*models.QuartoStory, error)
+	InsightProducts(ctx context.Context, obj *models.Team) ([]*models.InsightProduct, error)
 }
 type UserInfoResolver interface {
 	GoogleGroups(ctx context.Context, obj *models.UserInfo) ([]*models.Group, error)
@@ -991,6 +1019,97 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.GroupStats.Email(childComplexity), true
 
+	case "InsightProduct.created":
+		if e.complexity.InsightProduct.Created == nil {
+			break
+		}
+
+		return e.complexity.InsightProduct.Created(childComplexity), true
+
+	case "InsightProduct.creator":
+		if e.complexity.InsightProduct.Creator == nil {
+			break
+		}
+
+		return e.complexity.InsightProduct.Creator(childComplexity), true
+
+	case "InsightProduct.description":
+		if e.complexity.InsightProduct.Description == nil {
+			break
+		}
+
+		return e.complexity.InsightProduct.Description(childComplexity), true
+
+	case "InsightProduct.group":
+		if e.complexity.InsightProduct.Group == nil {
+			break
+		}
+
+		return e.complexity.InsightProduct.Group(childComplexity), true
+
+	case "InsightProduct.id":
+		if e.complexity.InsightProduct.ID == nil {
+			break
+		}
+
+		return e.complexity.InsightProduct.ID(childComplexity), true
+
+	case "InsightProduct.keywords":
+		if e.complexity.InsightProduct.Keywords == nil {
+			break
+		}
+
+		return e.complexity.InsightProduct.Keywords(childComplexity), true
+
+	case "InsightProduct.lastModified":
+		if e.complexity.InsightProduct.LastModified == nil {
+			break
+		}
+
+		return e.complexity.InsightProduct.LastModified(childComplexity), true
+
+	case "InsightProduct.link":
+		if e.complexity.InsightProduct.Link == nil {
+			break
+		}
+
+		return e.complexity.InsightProduct.Link(childComplexity), true
+
+	case "InsightProduct.name":
+		if e.complexity.InsightProduct.Name == nil {
+			break
+		}
+
+		return e.complexity.InsightProduct.Name(childComplexity), true
+
+	case "InsightProduct.productAreaID":
+		if e.complexity.InsightProduct.ProductAreaID == nil {
+			break
+		}
+
+		return e.complexity.InsightProduct.ProductAreaID(childComplexity), true
+
+	case "InsightProduct.teamID":
+		if e.complexity.InsightProduct.TeamID == nil {
+			break
+		}
+
+		return e.complexity.InsightProduct.TeamID(childComplexity), true
+
+	case "InsightProduct.teamkatalogenURL":
+		if e.complexity.InsightProduct.TeamkatalogenURL == nil {
+			break
+		}
+
+		return e.complexity.InsightProduct.TeamkatalogenURL(childComplexity), true
+
+	case "InsightProduct.type":
+		if e.complexity.InsightProduct.Type == nil {
+			break
+		}
+
+		return e.complexity.InsightProduct.Type(childComplexity), true
+
 	case "Keyword.count":
 		if e.complexity.Keyword.Count == nil {
 			break
@@ -1053,6 +1172,18 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.Mutation.CreateDataset(childComplexity, args["input"].(models.NewDataset)), true
 
+	case "Mutation.createInsightProduct":
+		if e.complexity.Mutation.CreateInsightProduct == nil {
+			break
+		}
+
+		args, err := ec.field_Mutation_createInsightProduct_args(context.TODO(), rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Mutation.CreateInsightProduct(childComplexity, args["input"].(models.NewInsightProduct)), true
+
 	case "Mutation.createQuartoStory":
 		if e.complexity.Mutation.CreateQuartoStory == nil {
 			break
@@ -1100,6 +1231,18 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 		}
 
 		return e.complexity.Mutation.DeleteDataset(childComplexity, args["id"].(uuid.UUID)), true
+
+	case "Mutation.deleteInsightProduct":
+		if e.complexity.Mutation.DeleteInsightProduct == nil {
+			break
+		}
+
+		args, err := ec.field_Mutation_deleteInsightProduct_args(context.TODO(), rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Mutation.DeleteInsightProduct(childComplexity, args["id"].(uuid.UUID)), true
 
 	case "Mutation.deleteQuartoStory":
 		if e.complexity.Mutation.DeleteQuartoStory == nil {
@@ -1239,6 +1382,18 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 		}
 
 		return e.complexity.Mutation.UpdateDataset(childComplexity, args["id"].(uuid.UUID), args["input"].(models.UpdateDataset)), true
+
+	case "Mutation.updateInsightProductMetadata":
+		if e.complexity.Mutation.UpdateInsightProductMetadata == nil {
+			break
+		}
+
+		args, err := ec.field_Mutation_updateInsightProductMetadata_args(context.TODO(), rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Mutation.UpdateInsightProductMetadata(childComplexity, args["id"].(uuid.UUID), args["name"].(string), args["description"].(string), args["type"].(string), args["link"].(string), args["keywords"].([]string), args["teamkatalogenURL"].(*string), args["productAreaID"].(*string), args["teamID"].(*string), args["group"].(string)), true
 
 	case "Mutation.updateKeywords":
 		if e.complexity.Mutation.UpdateKeywords == nil {
@@ -1380,6 +1535,13 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 		}
 
 		return e.complexity.ProductArea.ID(childComplexity), true
+
+	case "ProductArea.insightProducts":
+		if e.complexity.ProductArea.InsightProducts == nil {
+			break
+		}
+
+		return e.complexity.ProductArea.InsightProducts(childComplexity), true
 
 	case "ProductArea.name":
 		if e.complexity.ProductArea.Name == nil {
@@ -1617,6 +1779,18 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 		}
 
 		return e.complexity.Query.GroupStats(childComplexity, args["limit"].(*int), args["offset"].(*int)), true
+
+	case "Query.insightProduct":
+		if e.complexity.Query.InsightProduct == nil {
+			break
+		}
+
+		args, err := ec.field_Query_insightProduct_args(context.TODO(), rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Query.InsightProduct(childComplexity, args["id"].(uuid.UUID)), true
 
 	case "Query.IsValidSlackChannel":
 		if e.complexity.Query.IsValidSlackChannel == nil {
@@ -2002,6 +2176,13 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.Team.ID(childComplexity), true
 
+	case "Team.insightProducts":
+		if e.complexity.Team.InsightProducts == nil {
+			break
+		}
+
+		return e.complexity.Team.InsightProducts(childComplexity), true
+
 	case "Team.name":
 		if e.complexity.Team.Name == nil {
 			break
@@ -2177,6 +2358,7 @@ func (e *executableSchema) Exec(ctx context.Context) graphql.ResponseHandler {
 		ec.unmarshalInputNewDataset,
 		ec.unmarshalInputNewDatasetForNewDataproduct,
 		ec.unmarshalInputNewGrant,
+		ec.unmarshalInputNewInsightProduct,
 		ec.unmarshalInputNewQuartoStory,
 		ec.unmarshalInputNewStory,
 		ec.unmarshalInputPollyInput,
@@ -2967,6 +3149,123 @@ type Owner @goModel(model: "github.com/navikt/nada-backend/pkg/graph/models.Owne
     teamID: String
 }
 `, BuiltIn: false},
+	{Name: "../../../schema/insight_product.graphql", Input: `"""
+InsightProduct contains the metadata of insight product.
+"""
+type InsightProduct @goModel(model: "github.com/navikt/nada-backend/pkg/graph/models.InsightProduct"){
+	"id of the insight product."
+	id: ID!
+	"name of the insight product."
+	name: String!
+	"creator of the insight product."
+	creator: String!
+	"description of the insight product."
+	description: String!
+	"type of the insight product."
+	type: String!
+	"link to the insight product."
+	link: String!
+	"keywords for the insight product used as tags."
+	keywords: [String!]!
+    "group is the owner group of the insight product"
+    group: String!
+    "teamkatalogenURL of the creator"
+    teamkatalogenURL: String
+    "Id of the creator's product area."
+    productAreaID: String
+    "Id of the creator's team."
+    teamID: String
+    "created is the timestamp for when the insight product was created"
+    created: Time!
+    "lastModified is the timestamp for when the insight product was last modified"
+    lastModified: Time
+}
+
+"""
+NewInsightProduct contains the metadata and content of insight products.
+"""
+input NewInsightProduct  @goModel(model: "github.com/navikt/nada-backend/pkg/graph/models.NewInsightProduct"){
+	"name of the insight product."
+	name: String!
+	"description of the insight product."
+	description: String
+	"type of the insight product."
+	type: String!
+	"link to the insight product."
+	link: String!
+	"keywords for the story used as tags."
+	keywords: [String!]!
+    "group is the owner group of the insight product"
+    group: String!
+    "teamkatalogenURL of the creator"
+    teamkatalogenURL: String
+    "Id of the creator's product area."
+    productAreaID: String
+    "Id of the creator's team."
+    teamID: String
+}
+
+extend type Mutation {
+	"""
+    createInsightProduct creates an insight product.
+
+    Requires authentication.
+    """
+	createInsightProduct(
+		"input contains metadata about the new insight product."
+		input: NewInsightProduct!
+	): InsightProduct! @authenticated
+
+ 	"""
+    updateInsightProductMetadata updates metadata on an existing insight product.
+
+    Requires authentication.
+    """
+	updateInsightProductMetadata(
+		"id is the id for the insight product you want to update."
+		id: ID!
+		"name of the insight product"
+		name: String!
+	  	"description of the insight product."
+    	description: String!
+	  	"type of the insight product."
+    	type: String!
+	  	"link of the insight product."
+    	link: String!
+    	"keywords for the insight product used as tags."
+   		keywords: [String!]!
+		"owner Teamkatalogen URL for the dataproduct."
+		teamkatalogenURL: String
+	    "Id of the team's product area."
+    	productAreaID: String
+        "Id of the team."
+    	teamID: String
+        "group is the owner group of the quarto"
+        group: String!
+	): InsightProduct! @authenticated
+
+	"""
+    deleteInsightProduct deletes an existing insight product.
+
+    Requires authentication.
+    """
+	deleteInsightProduct(
+		"id is the id for the insight product."
+		id: ID!
+	): Boolean! @authenticated
+
+}
+
+extend type Query {
+	"""
+    insightProduct returns the given story.
+    """
+	insightProduct(
+		"id of the story."
+		id: ID!
+	): InsightProduct!
+}
+`, BuiltIn: false},
 	{Name: "../../../schema/keywords.graphql", Input: `"""
 Keyword represents a keyword used by other dataproducts
 """
@@ -3100,6 +3399,8 @@ extend type Query {
     stories: [Story!]!
     "quarto stories is the stories owned by the product area."
     quartoStories: [QuartoStory!]!
+    "insight products is the insight products owned by the product area."
+    insightProducts: [InsightProduct!]!
     "teams is the teams in the product area."
     teams: [Team!]!
 }
@@ -3119,6 +3420,8 @@ type Team @goModel(model: "github.com/navikt/nada-backend/pkg/graph/models.Team"
     stories: [Story!]!
     "quartoStories is the quartoStories owned by the team."
     quartoStories: [QuartoStory!]!
+    "insight products is the insight products owned by the team."
+    insightProducts: [InsightProduct!]!
 }
 
 extend type Query {
@@ -3148,11 +3451,11 @@ extend type Query {
 QuartoStory contains the metadata and content of data stories.
 """
 type QuartoStory @goModel(model: "github.com/navikt/nada-backend/pkg/graph/models.QuartoStory"){
-	"id of the data story."
+	"id of the quarto story."
 	id: ID!
-	"name of the data story."
+	"name of the quarto story."
 	name: String!
-	"creator of the data story."
+	"creator of the quarto story."
 	creator: String!
 	"description of the quarto story."
 	description: String!
@@ -3737,6 +4040,21 @@ func (ec *executionContext) field_Mutation_createDataset_args(ctx context.Contex
 	return args, nil
 }
 
+func (ec *executionContext) field_Mutation_createInsightProduct_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
+	var err error
+	args := map[string]interface{}{}
+	var arg0 models.NewInsightProduct
+	if tmp, ok := rawArgs["input"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("input"))
+		arg0, err = ec.unmarshalNNewInsightProduct2githubᚗcomᚋnaviktᚋnadaᚑbackendᚋpkgᚋgraphᚋmodelsᚐNewInsightProduct(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["input"] = arg0
+	return args, nil
+}
+
 func (ec *executionContext) field_Mutation_createQuartoStory_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
 	var err error
 	args := map[string]interface{}{}
@@ -3792,6 +4110,21 @@ func (ec *executionContext) field_Mutation_deleteDataproduct_args(ctx context.Co
 }
 
 func (ec *executionContext) field_Mutation_deleteDataset_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
+	var err error
+	args := map[string]interface{}{}
+	var arg0 uuid.UUID
+	if tmp, ok := rawArgs["id"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("id"))
+		arg0, err = ec.unmarshalNID2githubᚗcomᚋgoogleᚋuuidᚐUUID(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["id"] = arg0
+	return args, nil
+}
+
+func (ec *executionContext) field_Mutation_deleteInsightProduct_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
 	var err error
 	args := map[string]interface{}{}
 	var arg0 uuid.UUID
@@ -4004,6 +4337,102 @@ func (ec *executionContext) field_Mutation_updateDataset_args(ctx context.Contex
 		}
 	}
 	args["input"] = arg1
+	return args, nil
+}
+
+func (ec *executionContext) field_Mutation_updateInsightProductMetadata_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
+	var err error
+	args := map[string]interface{}{}
+	var arg0 uuid.UUID
+	if tmp, ok := rawArgs["id"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("id"))
+		arg0, err = ec.unmarshalNID2githubᚗcomᚋgoogleᚋuuidᚐUUID(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["id"] = arg0
+	var arg1 string
+	if tmp, ok := rawArgs["name"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("name"))
+		arg1, err = ec.unmarshalNString2string(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["name"] = arg1
+	var arg2 string
+	if tmp, ok := rawArgs["description"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("description"))
+		arg2, err = ec.unmarshalNString2string(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["description"] = arg2
+	var arg3 string
+	if tmp, ok := rawArgs["type"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("type"))
+		arg3, err = ec.unmarshalNString2string(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["type"] = arg3
+	var arg4 string
+	if tmp, ok := rawArgs["link"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("link"))
+		arg4, err = ec.unmarshalNString2string(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["link"] = arg4
+	var arg5 []string
+	if tmp, ok := rawArgs["keywords"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("keywords"))
+		arg5, err = ec.unmarshalNString2ᚕstringᚄ(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["keywords"] = arg5
+	var arg6 *string
+	if tmp, ok := rawArgs["teamkatalogenURL"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("teamkatalogenURL"))
+		arg6, err = ec.unmarshalOString2ᚖstring(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["teamkatalogenURL"] = arg6
+	var arg7 *string
+	if tmp, ok := rawArgs["productAreaID"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("productAreaID"))
+		arg7, err = ec.unmarshalOString2ᚖstring(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["productAreaID"] = arg7
+	var arg8 *string
+	if tmp, ok := rawArgs["teamID"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("teamID"))
+		arg8, err = ec.unmarshalOString2ᚖstring(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["teamID"] = arg8
+	var arg9 string
+	if tmp, ok := rawArgs["group"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("group"))
+		arg9, err = ec.unmarshalNString2string(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["group"] = arg9
 	return args, nil
 }
 
@@ -4406,6 +4835,21 @@ func (ec *executionContext) field_Query_groupStats_args(ctx context.Context, raw
 		}
 	}
 	args["offset"] = arg1
+	return args, nil
+}
+
+func (ec *executionContext) field_Query_insightProduct_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
+	var err error
+	args := map[string]interface{}{}
+	var arg0 uuid.UUID
+	if tmp, ok := rawArgs["id"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("id"))
+		arg0, err = ec.unmarshalNID2githubᚗcomᚋgoogleᚋuuidᚐUUID(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["id"] = arg0
 	return args, nil
 }
 
@@ -7878,6 +8322,566 @@ func (ec *executionContext) fieldContext_GroupStats_dataproducts(ctx context.Con
 	return fc, nil
 }
 
+func (ec *executionContext) _InsightProduct_id(ctx context.Context, field graphql.CollectedField, obj *models.InsightProduct) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_InsightProduct_id(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.ID, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(uuid.UUID)
+	fc.Result = res
+	return ec.marshalNID2githubᚗcomᚋgoogleᚋuuidᚐUUID(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_InsightProduct_id(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "InsightProduct",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type ID does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _InsightProduct_name(ctx context.Context, field graphql.CollectedField, obj *models.InsightProduct) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_InsightProduct_name(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Name, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(string)
+	fc.Result = res
+	return ec.marshalNString2string(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_InsightProduct_name(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "InsightProduct",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _InsightProduct_creator(ctx context.Context, field graphql.CollectedField, obj *models.InsightProduct) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_InsightProduct_creator(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Creator, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(string)
+	fc.Result = res
+	return ec.marshalNString2string(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_InsightProduct_creator(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "InsightProduct",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _InsightProduct_description(ctx context.Context, field graphql.CollectedField, obj *models.InsightProduct) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_InsightProduct_description(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Description, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(string)
+	fc.Result = res
+	return ec.marshalNString2string(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_InsightProduct_description(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "InsightProduct",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _InsightProduct_type(ctx context.Context, field graphql.CollectedField, obj *models.InsightProduct) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_InsightProduct_type(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Type, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(string)
+	fc.Result = res
+	return ec.marshalNString2string(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_InsightProduct_type(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "InsightProduct",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _InsightProduct_link(ctx context.Context, field graphql.CollectedField, obj *models.InsightProduct) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_InsightProduct_link(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Link, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(string)
+	fc.Result = res
+	return ec.marshalNString2string(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_InsightProduct_link(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "InsightProduct",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _InsightProduct_keywords(ctx context.Context, field graphql.CollectedField, obj *models.InsightProduct) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_InsightProduct_keywords(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Keywords, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.([]string)
+	fc.Result = res
+	return ec.marshalNString2ᚕstringᚄ(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_InsightProduct_keywords(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "InsightProduct",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _InsightProduct_group(ctx context.Context, field graphql.CollectedField, obj *models.InsightProduct) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_InsightProduct_group(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Group, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(string)
+	fc.Result = res
+	return ec.marshalNString2string(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_InsightProduct_group(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "InsightProduct",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _InsightProduct_teamkatalogenURL(ctx context.Context, field graphql.CollectedField, obj *models.InsightProduct) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_InsightProduct_teamkatalogenURL(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.TeamkatalogenURL, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		return graphql.Null
+	}
+	res := resTmp.(*string)
+	fc.Result = res
+	return ec.marshalOString2ᚖstring(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_InsightProduct_teamkatalogenURL(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "InsightProduct",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _InsightProduct_productAreaID(ctx context.Context, field graphql.CollectedField, obj *models.InsightProduct) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_InsightProduct_productAreaID(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.ProductAreaID, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		return graphql.Null
+	}
+	res := resTmp.(*string)
+	fc.Result = res
+	return ec.marshalOString2ᚖstring(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_InsightProduct_productAreaID(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "InsightProduct",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _InsightProduct_teamID(ctx context.Context, field graphql.CollectedField, obj *models.InsightProduct) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_InsightProduct_teamID(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.TeamID, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		return graphql.Null
+	}
+	res := resTmp.(*string)
+	fc.Result = res
+	return ec.marshalOString2ᚖstring(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_InsightProduct_teamID(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "InsightProduct",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _InsightProduct_created(ctx context.Context, field graphql.CollectedField, obj *models.InsightProduct) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_InsightProduct_created(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Created, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(time.Time)
+	fc.Result = res
+	return ec.marshalNTime2timeᚐTime(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_InsightProduct_created(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "InsightProduct",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Time does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _InsightProduct_lastModified(ctx context.Context, field graphql.CollectedField, obj *models.InsightProduct) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_InsightProduct_lastModified(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.LastModified, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		return graphql.Null
+	}
+	res := resTmp.(*time.Time)
+	fc.Result = res
+	return ec.marshalOTime2ᚖtimeᚐTime(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_InsightProduct_lastModified(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "InsightProduct",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Time does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
 func (ec *executionContext) _Keyword_keyword(ctx context.Context, field graphql.CollectedField, obj *models.Keyword) (ret graphql.Marshaler) {
 	fc, err := ec.fieldContext_Keyword_keyword(ctx, field)
 	if err != nil {
@@ -9248,6 +10252,287 @@ func (ec *executionContext) fieldContext_Mutation_mapDataset(ctx context.Context
 	}()
 	ctx = graphql.WithFieldContext(ctx, fc)
 	if fc.Args, err = ec.field_Mutation_mapDataset_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+		ec.Error(ctx, err)
+		return
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Mutation_createInsightProduct(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_Mutation_createInsightProduct(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		directive0 := func(rctx context.Context) (interface{}, error) {
+			ctx = rctx // use context from middleware stack in children
+			return ec.resolvers.Mutation().CreateInsightProduct(rctx, fc.Args["input"].(models.NewInsightProduct))
+		}
+		directive1 := func(ctx context.Context) (interface{}, error) {
+			if ec.directives.Authenticated == nil {
+				return nil, errors.New("directive authenticated is not implemented")
+			}
+			return ec.directives.Authenticated(ctx, nil, directive0, nil)
+		}
+
+		tmp, err := directive1(rctx)
+		if err != nil {
+			return nil, graphql.ErrorOnPath(ctx, err)
+		}
+		if tmp == nil {
+			return nil, nil
+		}
+		if data, ok := tmp.(*models.InsightProduct); ok {
+			return data, nil
+		}
+		return nil, fmt.Errorf(`unexpected type %T from directive, should be *github.com/navikt/nada-backend/pkg/graph/models.InsightProduct`, tmp)
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(*models.InsightProduct)
+	fc.Result = res
+	return ec.marshalNInsightProduct2ᚖgithubᚗcomᚋnaviktᚋnadaᚑbackendᚋpkgᚋgraphᚋmodelsᚐInsightProduct(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_Mutation_createInsightProduct(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Mutation",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "id":
+				return ec.fieldContext_InsightProduct_id(ctx, field)
+			case "name":
+				return ec.fieldContext_InsightProduct_name(ctx, field)
+			case "creator":
+				return ec.fieldContext_InsightProduct_creator(ctx, field)
+			case "description":
+				return ec.fieldContext_InsightProduct_description(ctx, field)
+			case "type":
+				return ec.fieldContext_InsightProduct_type(ctx, field)
+			case "link":
+				return ec.fieldContext_InsightProduct_link(ctx, field)
+			case "keywords":
+				return ec.fieldContext_InsightProduct_keywords(ctx, field)
+			case "group":
+				return ec.fieldContext_InsightProduct_group(ctx, field)
+			case "teamkatalogenURL":
+				return ec.fieldContext_InsightProduct_teamkatalogenURL(ctx, field)
+			case "productAreaID":
+				return ec.fieldContext_InsightProduct_productAreaID(ctx, field)
+			case "teamID":
+				return ec.fieldContext_InsightProduct_teamID(ctx, field)
+			case "created":
+				return ec.fieldContext_InsightProduct_created(ctx, field)
+			case "lastModified":
+				return ec.fieldContext_InsightProduct_lastModified(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type InsightProduct", field.Name)
+		},
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			err = ec.Recover(ctx, r)
+			ec.Error(ctx, err)
+		}
+	}()
+	ctx = graphql.WithFieldContext(ctx, fc)
+	if fc.Args, err = ec.field_Mutation_createInsightProduct_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+		ec.Error(ctx, err)
+		return
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Mutation_updateInsightProductMetadata(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_Mutation_updateInsightProductMetadata(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		directive0 := func(rctx context.Context) (interface{}, error) {
+			ctx = rctx // use context from middleware stack in children
+			return ec.resolvers.Mutation().UpdateInsightProductMetadata(rctx, fc.Args["id"].(uuid.UUID), fc.Args["name"].(string), fc.Args["description"].(string), fc.Args["type"].(string), fc.Args["link"].(string), fc.Args["keywords"].([]string), fc.Args["teamkatalogenURL"].(*string), fc.Args["productAreaID"].(*string), fc.Args["teamID"].(*string), fc.Args["group"].(string))
+		}
+		directive1 := func(ctx context.Context) (interface{}, error) {
+			if ec.directives.Authenticated == nil {
+				return nil, errors.New("directive authenticated is not implemented")
+			}
+			return ec.directives.Authenticated(ctx, nil, directive0, nil)
+		}
+
+		tmp, err := directive1(rctx)
+		if err != nil {
+			return nil, graphql.ErrorOnPath(ctx, err)
+		}
+		if tmp == nil {
+			return nil, nil
+		}
+		if data, ok := tmp.(*models.InsightProduct); ok {
+			return data, nil
+		}
+		return nil, fmt.Errorf(`unexpected type %T from directive, should be *github.com/navikt/nada-backend/pkg/graph/models.InsightProduct`, tmp)
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(*models.InsightProduct)
+	fc.Result = res
+	return ec.marshalNInsightProduct2ᚖgithubᚗcomᚋnaviktᚋnadaᚑbackendᚋpkgᚋgraphᚋmodelsᚐInsightProduct(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_Mutation_updateInsightProductMetadata(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Mutation",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "id":
+				return ec.fieldContext_InsightProduct_id(ctx, field)
+			case "name":
+				return ec.fieldContext_InsightProduct_name(ctx, field)
+			case "creator":
+				return ec.fieldContext_InsightProduct_creator(ctx, field)
+			case "description":
+				return ec.fieldContext_InsightProduct_description(ctx, field)
+			case "type":
+				return ec.fieldContext_InsightProduct_type(ctx, field)
+			case "link":
+				return ec.fieldContext_InsightProduct_link(ctx, field)
+			case "keywords":
+				return ec.fieldContext_InsightProduct_keywords(ctx, field)
+			case "group":
+				return ec.fieldContext_InsightProduct_group(ctx, field)
+			case "teamkatalogenURL":
+				return ec.fieldContext_InsightProduct_teamkatalogenURL(ctx, field)
+			case "productAreaID":
+				return ec.fieldContext_InsightProduct_productAreaID(ctx, field)
+			case "teamID":
+				return ec.fieldContext_InsightProduct_teamID(ctx, field)
+			case "created":
+				return ec.fieldContext_InsightProduct_created(ctx, field)
+			case "lastModified":
+				return ec.fieldContext_InsightProduct_lastModified(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type InsightProduct", field.Name)
+		},
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			err = ec.Recover(ctx, r)
+			ec.Error(ctx, err)
+		}
+	}()
+	ctx = graphql.WithFieldContext(ctx, fc)
+	if fc.Args, err = ec.field_Mutation_updateInsightProductMetadata_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+		ec.Error(ctx, err)
+		return
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Mutation_deleteInsightProduct(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_Mutation_deleteInsightProduct(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		directive0 := func(rctx context.Context) (interface{}, error) {
+			ctx = rctx // use context from middleware stack in children
+			return ec.resolvers.Mutation().DeleteInsightProduct(rctx, fc.Args["id"].(uuid.UUID))
+		}
+		directive1 := func(ctx context.Context) (interface{}, error) {
+			if ec.directives.Authenticated == nil {
+				return nil, errors.New("directive authenticated is not implemented")
+			}
+			return ec.directives.Authenticated(ctx, nil, directive0, nil)
+		}
+
+		tmp, err := directive1(rctx)
+		if err != nil {
+			return nil, graphql.ErrorOnPath(ctx, err)
+		}
+		if tmp == nil {
+			return nil, nil
+		}
+		if data, ok := tmp.(bool); ok {
+			return data, nil
+		}
+		return nil, fmt.Errorf(`unexpected type %T from directive, should be bool`, tmp)
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(bool)
+	fc.Result = res
+	return ec.marshalNBoolean2bool(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_Mutation_deleteInsightProduct(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Mutation",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Boolean does not have child fields")
+		},
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			err = ec.Recover(ctx, r)
+			ec.Error(ctx, err)
+		}
+	}()
+	ctx = graphql.WithFieldContext(ctx, fc)
+	if fc.Args, err = ec.field_Mutation_deleteInsightProduct_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
 		ec.Error(ctx, err)
 		return
 	}
@@ -10743,6 +12028,78 @@ func (ec *executionContext) fieldContext_ProductArea_quartoStories(ctx context.C
 	return fc, nil
 }
 
+func (ec *executionContext) _ProductArea_insightProducts(ctx context.Context, field graphql.CollectedField, obj *models.ProductArea) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_ProductArea_insightProducts(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.ProductArea().InsightProducts(rctx, obj)
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.([]*models.InsightProduct)
+	fc.Result = res
+	return ec.marshalNInsightProduct2ᚕᚖgithubᚗcomᚋnaviktᚋnadaᚑbackendᚋpkgᚋgraphᚋmodelsᚐInsightProductᚄ(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_ProductArea_insightProducts(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "ProductArea",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "id":
+				return ec.fieldContext_InsightProduct_id(ctx, field)
+			case "name":
+				return ec.fieldContext_InsightProduct_name(ctx, field)
+			case "creator":
+				return ec.fieldContext_InsightProduct_creator(ctx, field)
+			case "description":
+				return ec.fieldContext_InsightProduct_description(ctx, field)
+			case "type":
+				return ec.fieldContext_InsightProduct_type(ctx, field)
+			case "link":
+				return ec.fieldContext_InsightProduct_link(ctx, field)
+			case "keywords":
+				return ec.fieldContext_InsightProduct_keywords(ctx, field)
+			case "group":
+				return ec.fieldContext_InsightProduct_group(ctx, field)
+			case "teamkatalogenURL":
+				return ec.fieldContext_InsightProduct_teamkatalogenURL(ctx, field)
+			case "productAreaID":
+				return ec.fieldContext_InsightProduct_productAreaID(ctx, field)
+			case "teamID":
+				return ec.fieldContext_InsightProduct_teamID(ctx, field)
+			case "created":
+				return ec.fieldContext_InsightProduct_created(ctx, field)
+			case "lastModified":
+				return ec.fieldContext_InsightProduct_lastModified(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type InsightProduct", field.Name)
+		},
+	}
+	return fc, nil
+}
+
 func (ec *executionContext) _ProductArea_teams(ctx context.Context, field graphql.CollectedField, obj *models.ProductArea) (ret graphql.Marshaler) {
 	fc, err := ec.fieldContext_ProductArea_teams(ctx, field)
 	if err != nil {
@@ -10796,6 +12153,8 @@ func (ec *executionContext) fieldContext_ProductArea_teams(ctx context.Context, 
 				return ec.fieldContext_Team_stories(ctx, field)
 			case "quartoStories":
 				return ec.fieldContext_Team_quartoStories(ctx, field)
+			case "insightProducts":
+				return ec.fieldContext_Team_insightProducts(ctx, field)
 			}
 			return nil, fmt.Errorf("no field named %q was found under type Team", field.Name)
 		},
@@ -12244,6 +13603,89 @@ func (ec *executionContext) fieldContext_Query_gcpGetColumns(ctx context.Context
 	return fc, nil
 }
 
+func (ec *executionContext) _Query_insightProduct(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_Query_insightProduct(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.Query().InsightProduct(rctx, fc.Args["id"].(uuid.UUID))
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(*models.InsightProduct)
+	fc.Result = res
+	return ec.marshalNInsightProduct2ᚖgithubᚗcomᚋnaviktᚋnadaᚑbackendᚋpkgᚋgraphᚋmodelsᚐInsightProduct(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_Query_insightProduct(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Query",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "id":
+				return ec.fieldContext_InsightProduct_id(ctx, field)
+			case "name":
+				return ec.fieldContext_InsightProduct_name(ctx, field)
+			case "creator":
+				return ec.fieldContext_InsightProduct_creator(ctx, field)
+			case "description":
+				return ec.fieldContext_InsightProduct_description(ctx, field)
+			case "type":
+				return ec.fieldContext_InsightProduct_type(ctx, field)
+			case "link":
+				return ec.fieldContext_InsightProduct_link(ctx, field)
+			case "keywords":
+				return ec.fieldContext_InsightProduct_keywords(ctx, field)
+			case "group":
+				return ec.fieldContext_InsightProduct_group(ctx, field)
+			case "teamkatalogenURL":
+				return ec.fieldContext_InsightProduct_teamkatalogenURL(ctx, field)
+			case "productAreaID":
+				return ec.fieldContext_InsightProduct_productAreaID(ctx, field)
+			case "teamID":
+				return ec.fieldContext_InsightProduct_teamID(ctx, field)
+			case "created":
+				return ec.fieldContext_InsightProduct_created(ctx, field)
+			case "lastModified":
+				return ec.fieldContext_InsightProduct_lastModified(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type InsightProduct", field.Name)
+		},
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			err = ec.Recover(ctx, r)
+			ec.Error(ctx, err)
+		}
+	}()
+	ctx = graphql.WithFieldContext(ctx, fc)
+	if fc.Args, err = ec.field_Query_insightProduct_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+		ec.Error(ctx, err)
+		return
+	}
+	return fc, nil
+}
+
 func (ec *executionContext) _Query_keywords(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
 	fc, err := ec.fieldContext_Query_keywords(ctx, field)
 	if err != nil {
@@ -12410,6 +13852,8 @@ func (ec *executionContext) fieldContext_Query_productArea(ctx context.Context, 
 				return ec.fieldContext_ProductArea_stories(ctx, field)
 			case "quartoStories":
 				return ec.fieldContext_ProductArea_quartoStories(ctx, field)
+			case "insightProducts":
+				return ec.fieldContext_ProductArea_insightProducts(ctx, field)
 			case "teams":
 				return ec.fieldContext_ProductArea_teams(ctx, field)
 			}
@@ -12483,6 +13927,8 @@ func (ec *executionContext) fieldContext_Query_productAreas(ctx context.Context,
 				return ec.fieldContext_ProductArea_stories(ctx, field)
 			case "quartoStories":
 				return ec.fieldContext_ProductArea_quartoStories(ctx, field)
+			case "insightProducts":
+				return ec.fieldContext_ProductArea_insightProducts(ctx, field)
 			case "teams":
 				return ec.fieldContext_ProductArea_teams(ctx, field)
 			}
@@ -12545,6 +13991,8 @@ func (ec *executionContext) fieldContext_Query_team(ctx context.Context, field g
 				return ec.fieldContext_Team_stories(ctx, field)
 			case "quartoStories":
 				return ec.fieldContext_Team_quartoStories(ctx, field)
+			case "insightProducts":
+				return ec.fieldContext_Team_insightProducts(ctx, field)
 			}
 			return nil, fmt.Errorf("no field named %q was found under type Team", field.Name)
 		},
@@ -14994,6 +16442,78 @@ func (ec *executionContext) fieldContext_Team_quartoStories(ctx context.Context,
 				return ec.fieldContext_QuartoStory_group(ctx, field)
 			}
 			return nil, fmt.Errorf("no field named %q was found under type QuartoStory", field.Name)
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Team_insightProducts(ctx context.Context, field graphql.CollectedField, obj *models.Team) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_Team_insightProducts(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.Team().InsightProducts(rctx, obj)
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.([]*models.InsightProduct)
+	fc.Result = res
+	return ec.marshalNInsightProduct2ᚕᚖgithubᚗcomᚋnaviktᚋnadaᚑbackendᚋpkgᚋgraphᚋmodelsᚐInsightProductᚄ(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_Team_insightProducts(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Team",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "id":
+				return ec.fieldContext_InsightProduct_id(ctx, field)
+			case "name":
+				return ec.fieldContext_InsightProduct_name(ctx, field)
+			case "creator":
+				return ec.fieldContext_InsightProduct_creator(ctx, field)
+			case "description":
+				return ec.fieldContext_InsightProduct_description(ctx, field)
+			case "type":
+				return ec.fieldContext_InsightProduct_type(ctx, field)
+			case "link":
+				return ec.fieldContext_InsightProduct_link(ctx, field)
+			case "keywords":
+				return ec.fieldContext_InsightProduct_keywords(ctx, field)
+			case "group":
+				return ec.fieldContext_InsightProduct_group(ctx, field)
+			case "teamkatalogenURL":
+				return ec.fieldContext_InsightProduct_teamkatalogenURL(ctx, field)
+			case "productAreaID":
+				return ec.fieldContext_InsightProduct_productAreaID(ctx, field)
+			case "teamID":
+				return ec.fieldContext_InsightProduct_teamID(ctx, field)
+			case "created":
+				return ec.fieldContext_InsightProduct_created(ctx, field)
+			case "lastModified":
+				return ec.fieldContext_InsightProduct_lastModified(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type InsightProduct", field.Name)
 		},
 	}
 	return fc, nil
@@ -18209,6 +19729,98 @@ func (ec *executionContext) unmarshalInputNewGrant(ctx context.Context, obj inte
 	return it, nil
 }
 
+func (ec *executionContext) unmarshalInputNewInsightProduct(ctx context.Context, obj interface{}) (models.NewInsightProduct, error) {
+	var it models.NewInsightProduct
+	asMap := map[string]interface{}{}
+	for k, v := range obj.(map[string]interface{}) {
+		asMap[k] = v
+	}
+
+	fieldsInOrder := [...]string{"name", "description", "type", "link", "keywords", "group", "teamkatalogenURL", "productAreaID", "teamID"}
+	for _, k := range fieldsInOrder {
+		v, ok := asMap[k]
+		if !ok {
+			continue
+		}
+		switch k {
+		case "name":
+			var err error
+
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("name"))
+			it.Name, err = ec.unmarshalNString2string(ctx, v)
+			if err != nil {
+				return it, err
+			}
+		case "description":
+			var err error
+
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("description"))
+			it.Description, err = ec.unmarshalOString2ᚖstring(ctx, v)
+			if err != nil {
+				return it, err
+			}
+		case "type":
+			var err error
+
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("type"))
+			it.Type, err = ec.unmarshalNString2string(ctx, v)
+			if err != nil {
+				return it, err
+			}
+		case "link":
+			var err error
+
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("link"))
+			it.Link, err = ec.unmarshalNString2string(ctx, v)
+			if err != nil {
+				return it, err
+			}
+		case "keywords":
+			var err error
+
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("keywords"))
+			it.Keywords, err = ec.unmarshalNString2ᚕstringᚄ(ctx, v)
+			if err != nil {
+				return it, err
+			}
+		case "group":
+			var err error
+
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("group"))
+			it.Group, err = ec.unmarshalNString2string(ctx, v)
+			if err != nil {
+				return it, err
+			}
+		case "teamkatalogenURL":
+			var err error
+
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("teamkatalogenURL"))
+			it.TeamkatalogenURL, err = ec.unmarshalOString2ᚖstring(ctx, v)
+			if err != nil {
+				return it, err
+			}
+		case "productAreaID":
+			var err error
+
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("productAreaID"))
+			it.ProductAreaID, err = ec.unmarshalOString2ᚖstring(ctx, v)
+			if err != nil {
+				return it, err
+			}
+		case "teamID":
+			var err error
+
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("teamID"))
+			it.TeamID, err = ec.unmarshalOString2ᚖstring(ctx, v)
+			if err != nil {
+				return it, err
+			}
+		}
+	}
+
+	return it, nil
+}
+
 func (ec *executionContext) unmarshalInputNewQuartoStory(ctx context.Context, obj interface{}) (models.NewQuartoStory, error) {
 	var it models.NewQuartoStory
 	asMap := map[string]interface{}{}
@@ -19756,6 +21368,106 @@ func (ec *executionContext) _GroupStats(ctx context.Context, sel ast.SelectionSe
 	return out
 }
 
+var insightProductImplementors = []string{"InsightProduct"}
+
+func (ec *executionContext) _InsightProduct(ctx context.Context, sel ast.SelectionSet, obj *models.InsightProduct) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, insightProductImplementors)
+	out := graphql.NewFieldSet(fields)
+	var invalids uint32
+	for i, field := range fields {
+		switch field.Name {
+		case "__typename":
+			out.Values[i] = graphql.MarshalString("InsightProduct")
+		case "id":
+
+			out.Values[i] = ec._InsightProduct_id(ctx, field, obj)
+
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
+		case "name":
+
+			out.Values[i] = ec._InsightProduct_name(ctx, field, obj)
+
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
+		case "creator":
+
+			out.Values[i] = ec._InsightProduct_creator(ctx, field, obj)
+
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
+		case "description":
+
+			out.Values[i] = ec._InsightProduct_description(ctx, field, obj)
+
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
+		case "type":
+
+			out.Values[i] = ec._InsightProduct_type(ctx, field, obj)
+
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
+		case "link":
+
+			out.Values[i] = ec._InsightProduct_link(ctx, field, obj)
+
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
+		case "keywords":
+
+			out.Values[i] = ec._InsightProduct_keywords(ctx, field, obj)
+
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
+		case "group":
+
+			out.Values[i] = ec._InsightProduct_group(ctx, field, obj)
+
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
+		case "teamkatalogenURL":
+
+			out.Values[i] = ec._InsightProduct_teamkatalogenURL(ctx, field, obj)
+
+		case "productAreaID":
+
+			out.Values[i] = ec._InsightProduct_productAreaID(ctx, field, obj)
+
+		case "teamID":
+
+			out.Values[i] = ec._InsightProduct_teamID(ctx, field, obj)
+
+		case "created":
+
+			out.Values[i] = ec._InsightProduct_created(ctx, field, obj)
+
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
+		case "lastModified":
+
+			out.Values[i] = ec._InsightProduct_lastModified(ctx, field, obj)
+
+		default:
+			panic("unknown field " + strconv.Quote(field.Name))
+		}
+	}
+	out.Dispatch()
+	if invalids > 0 {
+		return graphql.Null
+	}
+	return out
+}
+
 var keywordImplementors = []string{"Keyword"}
 
 func (ec *executionContext) _Keyword(ctx context.Context, sel ast.SelectionSet, obj *models.Keyword) graphql.Marshaler {
@@ -19937,6 +21649,33 @@ func (ec *executionContext) _Mutation(ctx context.Context, sel ast.SelectionSet)
 
 			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
 				return ec._Mutation_mapDataset(ctx, field)
+			})
+
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
+		case "createInsightProduct":
+
+			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
+				return ec._Mutation_createInsightProduct(ctx, field)
+			})
+
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
+		case "updateInsightProductMetadata":
+
+			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
+				return ec._Mutation_updateInsightProductMetadata(ctx, field)
+			})
+
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
+		case "deleteInsightProduct":
+
+			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
+				return ec._Mutation_deleteInsightProduct(ctx, field)
 			})
 
 			if out.Values[i] == graphql.Null {
@@ -20254,6 +21993,26 @@ func (ec *executionContext) _ProductArea(ctx context.Context, sel ast.SelectionS
 					}
 				}()
 				res = ec._ProductArea_quartoStories(ctx, field, obj)
+				if res == graphql.Null {
+					atomic.AddUint32(&invalids, 1)
+				}
+				return res
+			}
+
+			out.Concurrently(i, func() graphql.Marshaler {
+				return innerFunc(ctx)
+
+			})
+		case "insightProducts":
+			field := field
+
+			innerFunc := func(ctx context.Context) (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._ProductArea_insightProducts(ctx, field, obj)
 				if res == graphql.Null {
 					atomic.AddUint32(&invalids, 1)
 				}
@@ -20663,6 +22422,29 @@ func (ec *executionContext) _Query(ctx context.Context, sel ast.SelectionSet) gr
 					}
 				}()
 				res = ec._Query_gcpGetColumns(ctx, field)
+				if res == graphql.Null {
+					atomic.AddUint32(&invalids, 1)
+				}
+				return res
+			}
+
+			rrm := func(ctx context.Context) graphql.Marshaler {
+				return ec.OperationContext.RootResolverMiddleware(ctx, innerFunc)
+			}
+
+			out.Concurrently(i, func() graphql.Marshaler {
+				return rrm(innerCtx)
+			})
+		case "insightProduct":
+			field := field
+
+			innerFunc := func(ctx context.Context) (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._Query_insightProduct(ctx, field)
 				if res == graphql.Null {
 					atomic.AddUint32(&invalids, 1)
 				}
@@ -21537,6 +23319,26 @@ func (ec *executionContext) _Team(ctx context.Context, sel ast.SelectionSet, obj
 					}
 				}()
 				res = ec._Team_quartoStories(ctx, field, obj)
+				if res == graphql.Null {
+					atomic.AddUint32(&invalids, 1)
+				}
+				return res
+			}
+
+			out.Concurrently(i, func() graphql.Marshaler {
+				return innerFunc(ctx)
+
+			})
+		case "insightProducts":
+			field := field
+
+			innerFunc := func(ctx context.Context) (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._Team_insightProducts(ctx, field, obj)
 				if res == graphql.Null {
 					atomic.AddUint32(&invalids, 1)
 				}
@@ -22748,6 +24550,64 @@ func (ec *executionContext) marshalNID2githubᚗcomᚋgoogleᚋuuidᚐUUID(ctx c
 	return res
 }
 
+func (ec *executionContext) marshalNInsightProduct2githubᚗcomᚋnaviktᚋnadaᚑbackendᚋpkgᚋgraphᚋmodelsᚐInsightProduct(ctx context.Context, sel ast.SelectionSet, v models.InsightProduct) graphql.Marshaler {
+	return ec._InsightProduct(ctx, sel, &v)
+}
+
+func (ec *executionContext) marshalNInsightProduct2ᚕᚖgithubᚗcomᚋnaviktᚋnadaᚑbackendᚋpkgᚋgraphᚋmodelsᚐInsightProductᚄ(ctx context.Context, sel ast.SelectionSet, v []*models.InsightProduct) graphql.Marshaler {
+	ret := make(graphql.Array, len(v))
+	var wg sync.WaitGroup
+	isLen1 := len(v) == 1
+	if !isLen1 {
+		wg.Add(len(v))
+	}
+	for i := range v {
+		i := i
+		fc := &graphql.FieldContext{
+			Index:  &i,
+			Result: &v[i],
+		}
+		ctx := graphql.WithFieldContext(ctx, fc)
+		f := func(i int) {
+			defer func() {
+				if r := recover(); r != nil {
+					ec.Error(ctx, ec.Recover(ctx, r))
+					ret = nil
+				}
+			}()
+			if !isLen1 {
+				defer wg.Done()
+			}
+			ret[i] = ec.marshalNInsightProduct2ᚖgithubᚗcomᚋnaviktᚋnadaᚑbackendᚋpkgᚋgraphᚋmodelsᚐInsightProduct(ctx, sel, v[i])
+		}
+		if isLen1 {
+			f(i)
+		} else {
+			go f(i)
+		}
+
+	}
+	wg.Wait()
+
+	for _, e := range ret {
+		if e == graphql.Null {
+			return graphql.Null
+		}
+	}
+
+	return ret
+}
+
+func (ec *executionContext) marshalNInsightProduct2ᚖgithubᚗcomᚋnaviktᚋnadaᚑbackendᚋpkgᚋgraphᚋmodelsᚐInsightProduct(ctx context.Context, sel ast.SelectionSet, v *models.InsightProduct) graphql.Marshaler {
+	if v == nil {
+		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
+			ec.Errorf(ctx, "the requested element is null which the schema does not allow")
+		}
+		return graphql.Null
+	}
+	return ec._InsightProduct(ctx, sel, v)
+}
+
 func (ec *executionContext) unmarshalNInt2int(ctx context.Context, v interface{}) (int, error) {
 	res, err := graphql.UnmarshalInt(v)
 	return res, graphql.ErrorOnPath(ctx, err)
@@ -23039,6 +24899,11 @@ func (ec *executionContext) unmarshalNNewDatasetForNewDataproduct2ᚕgithubᚗco
 
 func (ec *executionContext) unmarshalNNewGrant2githubᚗcomᚋnaviktᚋnadaᚑbackendᚋpkgᚋgraphᚋmodelsᚐNewGrant(ctx context.Context, v interface{}) (models.NewGrant, error) {
 	res, err := ec.unmarshalInputNewGrant(ctx, v)
+	return res, graphql.ErrorOnPath(ctx, err)
+}
+
+func (ec *executionContext) unmarshalNNewInsightProduct2githubᚗcomᚋnaviktᚋnadaᚑbackendᚋpkgᚋgraphᚋmodelsᚐNewInsightProduct(ctx context.Context, v interface{}) (models.NewInsightProduct, error) {
+	res, err := ec.unmarshalInputNewInsightProduct(ctx, v)
 	return res, graphql.ErrorOnPath(ctx, err)
 }
 
