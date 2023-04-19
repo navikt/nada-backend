@@ -66,6 +66,8 @@ spec:
         flags:
           - name: max_connections
             value: "50"
+          - name: cloudsql.logical_decoding
+            value: "on"
     buckets:
       - name: nada-quarto-storage-prod
         publicAccessPrevention: true
