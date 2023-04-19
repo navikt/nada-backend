@@ -63,6 +63,8 @@ spec:
       - type: POSTGRES_12
         databases:
           - name: nada
+            users:
+              - name: datastream
         flags:
           - name: max_connections
             value: "50"
