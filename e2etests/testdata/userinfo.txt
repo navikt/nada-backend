@@ -66,10 +66,10 @@ RETURNS
 			],
             "nadaTokens": [
                 {
-                    "team": "nada"
+                    "team": "aura"
                 },
                 {
-                    "team": "aura"
+                    "team": "nada"
                 },
                 {
                     "team": "team"

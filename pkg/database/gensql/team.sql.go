@@ -13,9 +13,10 @@ import (
 )
 
 const deleteNadaToken = `-- name: DeleteNadaToken :exec
-DELETE 
-FROM nada_tokens
-WHERE team = $1
+DELETE FROM
+    nada_tokens
+WHERE
+    team = $1
 `
 
 func (q *Queries) DeleteNadaToken(ctx context.Context, team string) error {
@@ -24,9 +25,12 @@ func (q *Queries) DeleteNadaToken(ctx context.Context, team string) error {
 }
 
 const getNadaToken = `-- name: GetNadaToken :one
-SELECT token
-FROM nada_tokens
-WHERE team = $1
+SELECT
+    token
+FROM
+    nada_tokens
+WHERE
+    team = $1
 `
 
 func (q *Queries) GetNadaToken(ctx context.Context, team string) (uuid.UUID, error) {
@@ -37,9 +41,14 @@ func (q *Queries) GetNadaToken(ctx context.Context, team string) (uuid.UUID, err
 }
 
 const getNadaTokens = `-- name: GetNadaTokens :many
-SELECT team, token
-FROM nada_tokens
-WHERE team = ANY ($1::text[])
+SELECT
+    team, token
+FROM
+    nada_tokens
+WHERE
+    team = ANY ($1 :: text [])
+ORDER BY
+    team
 `
 
 func (q *Queries) GetNadaTokens(ctx context.Context, teams []string) ([]NadaToken, error) {
