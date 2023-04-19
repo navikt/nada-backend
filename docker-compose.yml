@@ -7,7 +7,7 @@ services:
     environment:
       POSTGRES_PASSWORD: postgres
       POSTGRES_DB: nada
-    command: ["postgres", "-c", "log_statement=all"]
+    command: ["postgres", "-c", "log_statement=all", "-c", "wal_level=logical"]
     ports:
       - 5432:5432
 
