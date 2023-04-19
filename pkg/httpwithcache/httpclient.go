@@ -37,7 +37,7 @@ func Do(client *http.Client, req *http.Request) ([]byte, error) {
 		}
 		return cachedResponse, nil
 	}else if !isValidResponse(cachedResponse){
-		log.WithError(sqlerr).Errorf("Cached response for $1 is Invalid", endpoint)
+		log.WithError(sqlerr).Errorf("Cached response for %v is Invalid", endpoint)
 	}else {
 		log.WithError(sqlerr).Errorf("Failed to query database for cached request")
 	}
