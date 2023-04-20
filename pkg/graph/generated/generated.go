@@ -372,6 +372,7 @@ type ComplexityRoot struct {
 		GCPProjects     func(childComplexity int) int
 		GoogleGroups    func(childComplexity int) int
 		Groups          func(childComplexity int) int
+		InsightProducts func(childComplexity int) int
 		LoginExpiration func(childComplexity int) int
 		NadaTokens      func(childComplexity int) int
 		Name            func(childComplexity int) int
@@ -494,6 +495,7 @@ type UserInfoResolver interface {
 	Accessable(ctx context.Context, obj *models.UserInfo) ([]*models.Dataproduct, error)
 	Stories(ctx context.Context, obj *models.UserInfo) ([]*models.GraphStory, error)
 	QuartoStories(ctx context.Context, obj *models.UserInfo) ([]*models.QuartoStory, error)
+	InsightProducts(ctx context.Context, obj *models.UserInfo) ([]*models.InsightProduct, error)
 	AccessRequests(ctx context.Context, obj *models.UserInfo) ([]*models.AccessRequest, error)
 }
 
@@ -2309,6 +2311,13 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.UserInfo.Groups(childComplexity), true
 
+	case "UserInfo.insightProducts":
+		if e.complexity.UserInfo.InsightProducts == nil {
+			break
+		}
+
+		return e.complexity.UserInfo.InsightProducts(childComplexity), true
+
 	case "UserInfo.loginExpiration":
 		if e.complexity.UserInfo.LoginExpiration == nil {
 			break
@@ -3905,8 +3914,11 @@ type UserInfo @goModel(model: "github.com/navikt/nada-backend/pkg/graph/models.U
 	accessable: [Dataproduct!]!
 	"stories is a list of stories with one of the users groups as owner."
 	stories: [Story!]!
-    "quarto stories is the stories owned by the product area."
+    "quarto stories is the stories owned by the user's group"
     quartoStories: [QuartoStory!]!
+    "insight products is the insight products owned by the user's group"
+    insightProducts: [InsightProduct!]!
+
     "accessRequests is a list of access requests where either the user or one of the users groups is owner."
     accessRequests: [AccessRequest!]!
 }
@@ -14656,6 +14668,8 @@ func (ec *executionContext) fieldContext_Query_userInfo(ctx context.Context, fie
 				return ec.fieldContext_UserInfo_stories(ctx, field)
 			case "quartoStories":
 				return ec.fieldContext_UserInfo_quartoStories(ctx, field)
+			case "insightProducts":
+				return ec.fieldContext_UserInfo_insightProducts(ctx, field)
 			case "accessRequests":
 				return ec.fieldContext_UserInfo_accessRequests(ctx, field)
 			}
@@ -17433,6 +17447,78 @@ func (ec *executionContext) fieldContext_UserInfo_quartoStories(ctx context.Cont
 				return ec.fieldContext_QuartoStory_group(ctx, field)
 			}
 			return nil, fmt.Errorf("no field named %q was found under type QuartoStory", field.Name)
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _UserInfo_insightProducts(ctx context.Context, field graphql.CollectedField, obj *models.UserInfo) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_UserInfo_insightProducts(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.UserInfo().InsightProducts(rctx, obj)
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.([]*models.InsightProduct)
+	fc.Result = res
+	return ec.marshalNInsightProduct2ᚕᚖgithubᚗcomᚋnaviktᚋnadaᚑbackendᚋpkgᚋgraphᚋmodelsᚐInsightProductᚄ(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_UserInfo_insightProducts(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "UserInfo",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "id":
+				return ec.fieldContext_InsightProduct_id(ctx, field)
+			case "name":
+				return ec.fieldContext_InsightProduct_name(ctx, field)
+			case "creator":
+				return ec.fieldContext_InsightProduct_creator(ctx, field)
+			case "description":
+				return ec.fieldContext_InsightProduct_description(ctx, field)
+			case "type":
+				return ec.fieldContext_InsightProduct_type(ctx, field)
+			case "link":
+				return ec.fieldContext_InsightProduct_link(ctx, field)
+			case "keywords":
+				return ec.fieldContext_InsightProduct_keywords(ctx, field)
+			case "group":
+				return ec.fieldContext_InsightProduct_group(ctx, field)
+			case "teamkatalogenURL":
+				return ec.fieldContext_InsightProduct_teamkatalogenURL(ctx, field)
+			case "productAreaID":
+				return ec.fieldContext_InsightProduct_productAreaID(ctx, field)
+			case "teamID":
+				return ec.fieldContext_InsightProduct_teamID(ctx, field)
+			case "created":
+				return ec.fieldContext_InsightProduct_created(ctx, field)
+			case "lastModified":
+				return ec.fieldContext_InsightProduct_lastModified(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type InsightProduct", field.Name)
 		},
 	}
 	return fc, nil
@@ -23615,6 +23701,26 @@ func (ec *executionContext) _UserInfo(ctx context.Context, sel ast.SelectionSet,
 					}
 				}()
 				res = ec._UserInfo_quartoStories(ctx, field, obj)
+				if res == graphql.Null {
+					atomic.AddUint32(&invalids, 1)
+				}
+				return res
+			}
+
+			out.Concurrently(i, func() graphql.Marshaler {
+				return innerFunc(ctx)
+
+			})
+		case "insightProducts":
+			field := field
+
+			innerFunc := func(ctx context.Context) (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._UserInfo_insightProducts(ctx, field, obj)
 				if res == graphql.Null {
 					atomic.AddUint32(&invalids, 1)
 				}

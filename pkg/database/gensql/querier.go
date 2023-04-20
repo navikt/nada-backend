@@ -69,6 +69,7 @@ type Querier interface {
 	GetDatasetsByUserAccess(ctx context.Context, id string) ([]Dataset, error)
 	GetDatasetsInDataproduct(ctx context.Context, dataproductID uuid.UUID) ([]Dataset, error)
 	GetInsightProduct(ctx context.Context, id uuid.UUID) (InsightProduct, error)
+	GetInsightProductByGroups(ctx context.Context, groups []string) ([]InsightProduct, error)
 	GetInsightProducts(ctx context.Context) ([]InsightProduct, error)
 	GetInsightProductsByIDs(ctx context.Context, ids []uuid.UUID) ([]InsightProduct, error)
 	GetInsightProductsByProductArea(ctx context.Context, productAreaID sql.NullString) ([]InsightProduct, error)

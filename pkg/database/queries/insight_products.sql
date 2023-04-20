@@ -93,3 +93,13 @@ DELETE FROM
     insight_product
 WHERE
     id = @id;
+
+-- name: GetInsightProductByGroups :many
+SELECT
+    *
+FROM
+    insight_product
+WHERE
+    "group" = ANY (@groups :: text [])
+ORDER BY
+    last_modified DESC;

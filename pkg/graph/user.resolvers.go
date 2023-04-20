@@ -131,6 +131,12 @@ func (r *userInfoResolver) QuartoStories(ctx context.Context, obj *models.UserIn
 	return r.repo.GetQuartoStoriesByGroups(ctx, user.GoogleGroups.Emails())
 }
 
+// InsightProducts is the resolver for the insightProducts field.
+func (r *userInfoResolver) InsightProducts(ctx context.Context, obj *models.UserInfo) ([]*models.InsightProduct, error) {
+	user := auth.GetUser(ctx)
+	return r.repo.GetInsightProductsByGroups(ctx, user.GoogleGroups.Emails())
+}
+
 // AccessRequests is the resolver for the accessRequests field.
 func (r *userInfoResolver) AccessRequests(ctx context.Context, obj *models.UserInfo) ([]*models.AccessRequest, error) {
 	user := auth.GetUser(ctx)

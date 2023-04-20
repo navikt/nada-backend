@@ -101,6 +101,20 @@ func (r *Repo) GetInsightProductsByTeam(ctx context.Context, teamID string) ([]*
 	return graphqlProducts, nil
 }
 
+func (r *Repo) GetInsightProductsByGroups(ctx context.Context, groups []string) ([]*models.InsightProduct, error) {
+	dbProducts, err := r.querier.GetInsightProductByGroups(ctx, groups)
+	if err != nil {
+		return nil, err
+	}
+
+	products := make([]*models.InsightProduct, len(dbProducts))
+	for idx, p := range dbProducts {
+		products[idx] = InsightProductSQLToGraphql(&p)
+	}
+
+	return products, nil
+}
+
 func (r *Repo) DeleteInsightProduct(ctx context.Context, id uuid.UUID) error {
 	return r.querier.DeleteInsightProduct(ctx, id)
 }

@@ -76,17 +76,17 @@ func (r *Repo) GetQuartoStoriesByTeam(ctx context.Context, teamID string) ([]*mo
 }
 
 func (r *Repo) GetQuartoStoriesByGroups(ctx context.Context, groups []string) ([]*models.QuartoStory, error) {
-	stories, err := r.querier.GetQuartoStoriesByGroups(ctx, groups)
+	dbStories, err := r.querier.GetQuartoStoriesByGroups(ctx, groups)
 	if err != nil {
 		return nil, err
 	}
 
-	dbStories := make([]*models.QuartoStory, len(stories))
-	for idx, s := range stories {
-		dbStories[idx] = quartoSQLToGraphql(&s)
+	stories := make([]*models.QuartoStory, len(dbStories))
+	for idx, s := range dbStories {
+		stories[idx] = quartoSQLToGraphql(&s)
 	}
 
-	return dbStories, nil
+	return stories, nil
 }
 
 func (r *Repo) UpdateQuartoStoryMetadata(ctx context.Context, id uuid.UUID, name string, description string, keywords []string, teamkatalogenURL *string, productAreaID *string, teamID *string, group string) (
