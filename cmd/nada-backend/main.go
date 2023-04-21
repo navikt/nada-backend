@@ -111,8 +111,7 @@ func main() {
 	var pollyAPI graph.Polly = polly.NewMock(cfg.PollyURL)
 	if !cfg.MockAuth {
 		teamcatalogue = teamkatalogen.New(cfg.TeamkatalogenURL)
-		teamProjectsUpdater = teamprojectsupdater.NewTeamProjectsUpdater(cfg.TeamProjectsOutputURL, cfg.TeamsToken, http.DefaultClient, repo)
-		go teamProjectsUpdater.Run(ctx, TeamProjectsUpdateFrequency)
+		teamProjectsUpdater = teamprojectsupdater.NewTeamProjectsUpdater(ctx, cfg.TeamProjectsOutputURL, cfg.TeamsToken, http.DefaultClient, repo)
 
 		azureGroups := auth.NewAzureGroups(http.DefaultClient, cfg.OAuth2.ClientID, cfg.OAuth2.ClientSecret, cfg.OAuth2.TenantID)
 		googleGroups, err := auth.NewGoogleGroups(ctx, cfg.ServiceAccountFile, cfg.GoogleAdminImpersonationSubject, log.WithField("subsystem", "googlegroups"))

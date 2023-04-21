@@ -33,8 +33,22 @@ type OutputVariable struct {
 	Value map[string]string `json:"value"`
 }
 
-func NewTeamProjectsUpdater(teamProjectsURL, teamsToken string, httpClient *http.Client, repo *database.Repo) *TeamProjectsUpdater {
+func NewTeamProjectsUpdater(ctx context.Context, teamProjectsURL, teamsToken string, httpClient *http.Client, repo *database.Repo) *TeamProjectsUpdater {
+	teamProjectsSQL, err := repo.GetTeamProjects(ctx)
+	if err != nil {
+		if !errors.Is(err, sql.ErrNoRows) {
+			log.WithError(err).Errorf("Fetching teams from database")
+		}
+	}
+
+	teamprojects := map[string]string{}
+	for _, project := range teamProjectsSQL {
+		teamprojects[project.Team] = project.Project
+	}
+
 	teamProjectsMapping := &auth.TeamProjectsMapping{}
+	teamProjectsMapping.SetTeamProjects(teamprojects)
+
 	return &TeamProjectsUpdater{
 		TeamProjectsMapping: teamProjectsMapping,
 		teamProjectsURL:     teamProjectsURL,
