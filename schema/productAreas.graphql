@@ -13,6 +13,8 @@ type ProductArea @goModel(model: "github.com/navikt/nada-backend/pkg/graph/model
     stories: [Story!]!
     "quarto stories is the stories owned by the product area."
     quartoStories: [QuartoStory!]!
+    "insight products is the insight products owned by the product area."
+    insightProducts: [InsightProduct!]!
     "teams is the teams in the product area."
     teams: [Team!]!
 }
@@ -32,6 +34,8 @@ type Team @goModel(model: "github.com/navikt/nada-backend/pkg/graph/models.Team"
     stories: [Story!]!
     "quartoStories is the quartoStories owned by the team."
     quartoStories: [QuartoStory!]!
+    "insight products is the insight products owned by the team."
+    insightProducts: [InsightProduct!]!
 }
 
 extend type Query {
