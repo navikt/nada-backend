@@ -22,7 +22,7 @@ require (
 
 require (
 	cloud.google.com/go v0.107.0 // indirect
-	github.com/99designs/gqlgen v0.17.28
+	github.com/99designs/gqlgen v0.17.29
 	github.com/coreos/go-oidc/v3 v3.4.0
 	github.com/go-chi/cors v1.2.1
 	github.com/golang/groupcache v0.0.0-20210331224755-41bb18bfe9da // indirect

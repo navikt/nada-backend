@@ -2,6 +2,7 @@ package httpwithcache
 
 import (
 	"database/sql"
+	"encoding/json"
 	"io/ioutil"
 	"net/http"
 	"time"
@@ -25,7 +26,7 @@ func Do(client *http.Client, req *http.Request) ([]byte, error) {
 	sqlerr := cacheDB.QueryRow(`SELECT response_body, created_at,
 	 last_tried_update_at FROM http_cache WHERE endpoint = $1`,
 		endpoint).Scan(&cachedResponse, &lastCached, &lastTried)
-	if sqlerr == nil {
+	if sqlerr == nil && isValidResponse(cachedResponse){
 		if time.Since(lastCached) > cacheExpire && time.Since(lastTried) > cacheExpire {
 			reqWithoutContext, err := http.NewRequest(req.Method, req.URL.String(), req.Body)
 			if err == nil {
@@ -35,10 +36,17 @@ func Do(client *http.Client, req *http.Request) ([]byte, error) {
 			}
 		}
 		return cachedResponse, nil
-	} else {
+	}else if !isValidResponse(cachedResponse){
+		log.WithError(sqlerr).Errorf("Cached response for %v is invalid", endpoint)
+	}else {
 		log.WithError(sqlerr).Errorf("Failed to query database for cached request")
 	}
 	return updateCache(client, req)
+}
+
+func isValidResponse(response []byte) bool{
+	var jsonData interface{}
+	return 	len(response) > 0 && json.Unmarshal(response, &jsonData) == nil;
 }
 
 func updateCache(client *http.Client, req *http.Request) ([]byte, error) {
@@ -57,12 +65,15 @@ func updateCache(client *http.Client, req *http.Request) ([]byte, error) {
 		return nil, err
 	}
 
-	_, err = cacheDB.Exec(`INSERT INTO http_cache (endpoint, response_body, created_at, last_tried_update_at) 
+	if isValidResponse(body){
+		_, err = cacheDB.Exec(`INSERT INTO http_cache (endpoint, response_body, created_at, last_tried_update_at) 
 		VALUES ($1, $2, $3, $3) ON CONFLICT (endpoint) DO UPDATE SET response_body = $2, created_at= $3, last_tried_update_at = $3`, endpoint, body, time.Now().UTC())
-	if err != nil {
-		log.WithError(err).Errorf("Failed to save response to database %v", req.URL.String())
-		return body, nil
+		if err != nil {
+			log.WithError(err).Errorf("Failed to save response to database %v", req.URL.String())
+			return body, nil
+		}
 	}
+
 	return body, nil
 }
 
