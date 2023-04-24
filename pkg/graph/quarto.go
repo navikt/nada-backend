@@ -43,7 +43,6 @@ func WriteFileToBucket(ctx context.Context, quartoStoryID string,
 		return err
 	}
 
-	_, err = writer.Write(fileBytes)
 	// Write the file contents to the GCP object
 	if _, err = writer.Write(fileBytes); err != nil {
 		fmt.Println("failed to write object")
@@ -65,7 +64,7 @@ func WriteFileToBucket(ctx context.Context, quartoStoryID string,
 }
 
 func deleteQuartoStoryFolder(ctx context.Context, quartoStoryID string) error {
-	if len(quartoStoryID)== 0{
+	if len(quartoStoryID) == 0 {
 		return fmt.Errorf("try to delete files in GCP with invalid quarto story id")
 	}
 	// Replace with your GCP bucket name.
@@ -93,7 +92,7 @@ func deleteQuartoStoryFolder(ctx context.Context, quartoStoryID string) error {
 		}
 		if err != nil {
 			log.Fatal(err)
-			return fmt.Errorf("failed to find objects %v: %v", quartoStoryID, err)			
+			return fmt.Errorf("failed to find objects %v: %v", quartoStoryID, err)
 		}
 
 		err = bucket.Object(f.Name).Delete(ctx)
@@ -103,9 +102,9 @@ func deleteQuartoStoryFolder(ctx context.Context, quartoStoryID string) error {
 		deletedFiles = append(deletedFiles, f.Name)
 	}
 
-	if(len(deletedFiles) == 0){
+	if len(deletedFiles) == 0 {
 		return fmt.Errorf("object not found %v", quartoStoryID)
-	}else{
+	} else {
 		log.Printf("Quarto files for %v deleted: %v\n", quartoStoryID, deletedFiles)
 	}
 	return nil
