@@ -56,7 +56,7 @@ spec:
     - name: GOOGLE_ADMIN_CREDENTIALS_PATH
       value: /var/run/secrets/google-credentials/sa.json
     - name: HOSTNAME
-      value: "data.dev.intern.nav.no"
+      value: "data.intern.dev.nav.no"
     - name: METABASE_API
       value: "http://metabase/api"
     - name: METABASE_GOOGLE_CREDENTIALS_PATH
