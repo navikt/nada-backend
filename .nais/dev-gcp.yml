@@ -41,10 +41,10 @@ spec:
     enabled: true
     path: /internal/metrics
   ingresses:
-    - "https://data.dev.intern.nav.no/api"
-    - "https://data.dev.intern.nav.no/quarto"
+    - "https://data.intern.dev.nav.no/api"
+    - "https://data.intern.dev.nav.no/quarto"
     - "https://nada.ekstern.dev.nav.no/api"
-    - "https://nada.dev.intern.nav.no/quarto/update"
+    - "https://nada.intern.dev.nav.no/quarto/update"
   envFrom:
     - secret: nada-backend
   filesFrom:
