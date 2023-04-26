@@ -90,3 +90,5 @@ spec:
     outbound:
       rules:
         - application: metabase
+      external:
+        - host: teamkatalog-api.dev-fss-pub.nais.io
