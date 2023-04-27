@@ -164,11 +164,12 @@ func (h *Handler) updateQuarto(w http.ResponseWriter, r *http.Request, next http
 
 func (h *Handler) uploadFile(ctx context.Context, objPath string, fileHeader []*multipart.FileHeader) error {
 	for _, f := range fileHeader {
+		name := f.Filename
 		file, err := f.Open()
 		if err != nil {
 			return err
 		}
-		if err := h.gcsClient.UploadFile(ctx, objPath, file); err != nil {
+		if err := h.gcsClient.UploadFile(ctx, objPath+"/"+name, file); err != nil {
 			return err
 		}
 	}
