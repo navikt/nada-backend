@@ -57,7 +57,7 @@ extend type Mutation {
     """
 	createQuartoStory(
 		"file is the data for story"
-		file : Upload!
+		files : [Upload!]!
 		"input contains metadata about the new quarto story."
 		input: NewQuartoStory!
 	): QuartoStory! @authenticated

@@ -12,6 +12,27 @@ import (
 	"google.golang.org/api/iterator"
 )
 
+func WriteFilesToBucket(ctx context.Context, quartoStoryID string,
+	files []*graphql.Upload,
+) error {
+	var err error
+	for _, file:= range files{
+		err= WriteFileToBucket(ctx, quartoStoryID, *file)
+		if err!= nil{
+			log.Fatalf("Error writing quarto file: "+ quartoStoryID + "/" + file.Filename)
+			break
+		}
+	}
+	if err!= nil{
+		ed := deleteQuartoStoryFolder(ctx, quartoStoryID)
+		if ed!= nil{
+			log.Fatalf("Error delete quarto folder: "+ quartoStoryID)
+		}
+	}
+
+	return err
+}
+
 func WriteFileToBucket(ctx context.Context, quartoStoryID string,
 	file graphql.Upload,
 ) error {
