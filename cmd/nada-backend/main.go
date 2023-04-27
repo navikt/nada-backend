@@ -75,6 +75,7 @@ func init() {
 	flag.IntVar(&cfg.DBMaxIdleConn, "max-idle-conn", 3, "Maximum number of idle db connections")
 	flag.IntVar(&cfg.DBMaxOpenConn, "max-open-conn", 17, "Maximum number of open db connections")
 	flag.StringVar(&cfg.QuartoStorageBucketName, "quarto-bucket", os.Getenv("GCP_QUARTO_STORAGE_BUCKET_NAME"), "Name of the gcs bucket for quarto stories")
+	flag.StringVar(&cfg.ConsoleAPIKey, "console-api-key", os.Getenv("CONSOLE_API_KEY"), "API key for nais console")
 }
 
 func main() {
@@ -111,7 +112,8 @@ func main() {
 	var pollyAPI graph.Polly = polly.NewMock(cfg.PollyURL)
 	if !cfg.MockAuth {
 		teamcatalogue = teamkatalogen.New(cfg.TeamkatalogenURL)
-		teamProjectsUpdater = teamprojectsupdater.NewTeamProjectsUpdater(ctx, cfg.TeamProjectsOutputURL, cfg.TeamsToken, http.DefaultClient, repo)
+		teamProjectsUpdater = teamprojectsupdater.NewTeamProjectsUpdater(ctx, cfg.ConsoleURL, cfg.ConsoleAPIKey, http.DefaultClient, repo)
+		teamProjectsUpdater.Run(ctx, TeamProjectsUpdateFrequency)
 
 		azureGroups := auth.NewAzureGroups(http.DefaultClient, cfg.OAuth2.ClientID, cfg.OAuth2.ClientSecret, cfg.OAuth2.TenantID)
 		googleGroups, err := auth.NewGoogleGroups(ctx, cfg.ServiceAccountFile, cfg.GoogleAdminImpersonationSubject, log.WithField("subsystem", "googlegroups"))

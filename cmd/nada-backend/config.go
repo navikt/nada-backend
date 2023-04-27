@@ -24,6 +24,8 @@ type Config struct {
 	DBMaxIdleConn                   int
 	DBMaxOpenConn                   int
 	QuartoStorageBucketName         string
+	ConsoleAPIKey                   string
+	ConsoleURL                      string
 }
 
 type OAuth2Config struct {
@@ -39,5 +41,6 @@ func DefaultConfig() Config {
 		TeamkatalogenURL:      "https://teamkatalog-api.prod-fss-pub.nais.io",
 		PollyURL:              "https://polly.prod-fss-pub.nais.io/process",
 		TeamProjectsOutputURL: "https://raw.githubusercontent.com/nais/teams/master/gcp-projects/prod-output.json",
+		ConsoleURL:            "https://console.nav.cloud.nais.io",
 	}
 }

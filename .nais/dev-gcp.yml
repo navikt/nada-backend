@@ -92,3 +92,4 @@ spec:
         - application: metabase
       external:
         - host: teamkatalog-api.dev-fss-pub.nais.io
+        - host: console.nav.cloud.nais.io
