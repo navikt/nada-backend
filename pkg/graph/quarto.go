@@ -9,17 +9,19 @@ import (
 
 	"cloud.google.com/go/storage"
 	"github.com/99designs/gqlgen/graphql"
+	"github.com/navikt/nada-backend/pkg/graph/models"
 	"google.golang.org/api/iterator"
 )
 
 func WriteFilesToBucket(ctx context.Context, quartoStoryID string,
-	files []*graphql.Upload,
+	files []*models.UploadFile,
 ) error {
 	var err error
 	for _, file:= range files{
-		err= WriteFileToBucket(ctx, quartoStoryID, *file)
+		gcsPath:= quartoStoryID + "/" + file.Path
+		err= WriteFileToBucket(ctx, gcsPath, file.File)
 		if err!= nil{
-			log.Fatalf("Error writing quarto file: "+ quartoStoryID + "/" + file.Filename)
+			log.Fatalf("Error writing quarto file: "+ gcsPath)
 			break
 		}
 	}
@@ -33,7 +35,7 @@ func WriteFilesToBucket(ctx context.Context, quartoStoryID string,
 	return err
 }
 
-func WriteFileToBucket(ctx context.Context, quartoStoryID string,
+func WriteFileToBucket(ctx context.Context, gcsPath string,
 	file graphql.Upload,
 ) error {
 	// Replace with your project ID and GCP bucket name
@@ -50,11 +52,8 @@ func WriteFileToBucket(ctx context.Context, quartoStoryID string,
 	// Create a new GCP bucket handle
 	bucket := client.Bucket(bucketName)
 
-	// Generate a unique filename for the uploaded file
-	filename := quartoStoryID + "/" + file.Filename
-
 	// Create a new GCP object handle
-	object := bucket.Object(filename)
+	object := bucket.Object(gcsPath)
 
 	// Create a new GCP object writer
 	writer := object.NewWriter(ctx)

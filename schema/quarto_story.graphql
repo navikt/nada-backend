@@ -26,8 +26,18 @@ type QuartoStory @goModel(model: "github.com/navikt/nada-backend/pkg/graph/model
     group: String!
 }
 
-"The `UploadFile, // b.txt` scalar type represents a multipart file upload."
+"The Upload scalar type represents a multipart file upload."
 scalar Upload
+
+"""
+UploadFile contains path and data of a file
+"""
+input UploadFile @goModel(model: "github.com/navikt/nada-backend/pkg/graph/models.UploadFile"){
+	"path of the file uploaded"
+	path: String!
+	"file data"
+	file: Upload!
+}
 
 """
 NewQuartoStory contains the metadata and content of quarto stories.
@@ -57,7 +67,7 @@ extend type Mutation {
     """
 	createQuartoStory(
 		"file is the data for story"
-		files : [Upload!]!
+		files : [UploadFile!]!
 		"input contains metadata about the new quarto story."
 		input: NewQuartoStory!
 	): QuartoStory! @authenticated

@@ -188,7 +188,7 @@ type ComplexityRoot struct {
 		CreateDataproduct            func(childComplexity int, input models.NewDataproduct) int
 		CreateDataset                func(childComplexity int, input models.NewDataset) int
 		CreateInsightProduct         func(childComplexity int, input models.NewInsightProduct) int
-		CreateQuartoStory            func(childComplexity int, files []*graphql.Upload, input models.NewQuartoStory) int
+		CreateQuartoStory            func(childComplexity int, files []*models.UploadFile, input models.NewQuartoStory) int
 		DeleteAccessRequest          func(childComplexity int, id uuid.UUID) int
 		DeleteDataproduct            func(childComplexity int, id uuid.UUID) int
 		DeleteDataset                func(childComplexity int, id uuid.UUID) int
@@ -426,7 +426,7 @@ type MutationResolver interface {
 	DeleteInsightProduct(ctx context.Context, id uuid.UUID) (bool, error)
 	UpdateKeywords(ctx context.Context, input models.UpdateKeywords) (bool, error)
 	TriggerMetadataSync(ctx context.Context) (bool, error)
-	CreateQuartoStory(ctx context.Context, files []*graphql.Upload, input models.NewQuartoStory) (*models.QuartoStory, error)
+	CreateQuartoStory(ctx context.Context, files []*models.UploadFile, input models.NewQuartoStory) (*models.QuartoStory, error)
 	UpdateQuartoStoryMetadata(ctx context.Context, id uuid.UUID, name string, description string, keywords []string, teamkatalogenURL *string, productAreaID *string, teamID *string, group string) (*models.QuartoStory, error)
 	DeleteQuartoStory(ctx context.Context, id uuid.UUID) (bool, error)
 	PublishStory(ctx context.Context, input models.NewStory) (*models.GraphStory, error)
@@ -1196,7 +1196,7 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 			return 0, false
 		}
 
-		return e.complexity.Mutation.CreateQuartoStory(childComplexity, args["files"].([]*graphql.Upload), args["input"].(models.NewQuartoStory)), true
+		return e.complexity.Mutation.CreateQuartoStory(childComplexity, args["files"].([]*models.UploadFile), args["input"].(models.NewQuartoStory)), true
 
 	case "Mutation.deleteAccessRequest":
 		if e.complexity.Mutation.DeleteAccessRequest == nil {
@@ -2377,6 +2377,7 @@ func (e *executableSchema) Exec(ctx context.Context) graphql.ResponseHandler {
 		ec.unmarshalInputUpdateDataproduct,
 		ec.unmarshalInputUpdateDataset,
 		ec.unmarshalInputUpdateKeywords,
+		ec.unmarshalInputUploadFile,
 	)
 	first := true
 
@@ -3484,8 +3485,18 @@ type QuartoStory @goModel(model: "github.com/navikt/nada-backend/pkg/graph/model
     group: String!
 }
 
-"The ` + "`" + `UploadFile, // b.txt` + "`" + ` scalar type represents a multipart file upload."
+"The Upload scalar type represents a multipart file upload."
 scalar Upload
+
+"""
+UploadFile contains path and data of a file
+"""
+input UploadFile @goModel(model: "github.com/navikt/nada-backend/pkg/graph/models.UploadFile"){
+	"path of the file uploaded"
+	path: String!
+	"file data"
+	file: Upload!
+}
 
 """
 NewQuartoStory contains the metadata and content of quarto stories.
@@ -3515,7 +3526,7 @@ extend type Mutation {
     """
 	createQuartoStory(
 		"file is the data for story"
-		files : [Upload!]!
+		files : [UploadFile!]!
 		"input contains metadata about the new quarto story."
 		input: NewQuartoStory!
 	): QuartoStory! @authenticated
@@ -4070,10 +4081,10 @@ func (ec *executionContext) field_Mutation_createInsightProduct_args(ctx context
 func (ec *executionContext) field_Mutation_createQuartoStory_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
 	var err error
 	args := map[string]interface{}{}
-	var arg0 []*graphql.Upload
+	var arg0 []*models.UploadFile
 	if tmp, ok := rawArgs["files"]; ok {
 		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("files"))
-		arg0, err = ec.unmarshalNUpload2ᚕᚖgithubᚗcomᚋ99designsᚋgqlgenᚋgraphqlᚐUploadᚄ(ctx, tmp)
+		arg0, err = ec.unmarshalNUploadFile2ᚕᚖgithubᚗcomᚋnaviktᚋnadaᚑbackendᚋpkgᚋgraphᚋmodelsᚐUploadFileᚄ(ctx, tmp)
 		if err != nil {
 			return nil, err
 		}
@@ -10685,7 +10696,7 @@ func (ec *executionContext) _Mutation_createQuartoStory(ctx context.Context, fie
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		directive0 := func(rctx context.Context) (interface{}, error) {
 			ctx = rctx // use context from middleware stack in children
-			return ec.resolvers.Mutation().CreateQuartoStory(rctx, fc.Args["files"].([]*graphql.Upload), fc.Args["input"].(models.NewQuartoStory))
+			return ec.resolvers.Mutation().CreateQuartoStory(rctx, fc.Args["files"].([]*models.UploadFile), fc.Args["input"].(models.NewQuartoStory))
 		}
 		directive1 := func(ctx context.Context) (interface{}, error) {
 			if ec.directives.Authenticated == nil {
@@ -20527,6 +20538,42 @@ func (ec *executionContext) unmarshalInputUpdateKeywords(ctx context.Context, ob
 	return it, nil
 }
 
+func (ec *executionContext) unmarshalInputUploadFile(ctx context.Context, obj interface{}) (models.UploadFile, error) {
+	var it models.UploadFile
+	asMap := map[string]interface{}{}
+	for k, v := range obj.(map[string]interface{}) {
+		asMap[k] = v
+	}
+
+	fieldsInOrder := [...]string{"path", "file"}
+	for _, k := range fieldsInOrder {
+		v, ok := asMap[k]
+		if !ok {
+			continue
+		}
+		switch k {
+		case "path":
+			var err error
+
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("path"))
+			it.Path, err = ec.unmarshalNString2string(ctx, v)
+			if err != nil {
+				return it, err
+			}
+		case "file":
+			var err error
+
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("file"))
+			it.File, err = ec.unmarshalNUpload2githubᚗcomᚋ99designsᚋgqlgenᚋgraphqlᚐUpload(ctx, v)
+			if err != nil {
+				return it, err
+			}
+		}
+	}
+
+	return it, nil
+}
+
 // endregion **************************** input.gotpl *****************************
 
 // region    ************************** interface.gotpl ***************************
@@ -25675,16 +25722,31 @@ func (ec *executionContext) unmarshalNUpdateKeywords2githubᚗcomᚋnaviktᚋnad
 	return res, graphql.ErrorOnPath(ctx, err)
 }
 
-func (ec *executionContext) unmarshalNUpload2ᚕᚖgithubᚗcomᚋ99designsᚋgqlgenᚋgraphqlᚐUploadᚄ(ctx context.Context, v interface{}) ([]*graphql.Upload, error) {
+func (ec *executionContext) unmarshalNUpload2githubᚗcomᚋ99designsᚋgqlgenᚋgraphqlᚐUpload(ctx context.Context, v interface{}) (graphql.Upload, error) {
+	res, err := graphql.UnmarshalUpload(v)
+	return res, graphql.ErrorOnPath(ctx, err)
+}
+
+func (ec *executionContext) marshalNUpload2githubᚗcomᚋ99designsᚋgqlgenᚋgraphqlᚐUpload(ctx context.Context, sel ast.SelectionSet, v graphql.Upload) graphql.Marshaler {
+	res := graphql.MarshalUpload(v)
+	if res == graphql.Null {
+		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
+			ec.Errorf(ctx, "the requested element is null which the schema does not allow")
+		}
+	}
+	return res
+}
+
+func (ec *executionContext) unmarshalNUploadFile2ᚕᚖgithubᚗcomᚋnaviktᚋnadaᚑbackendᚋpkgᚋgraphᚋmodelsᚐUploadFileᚄ(ctx context.Context, v interface{}) ([]*models.UploadFile, error) {
 	var vSlice []interface{}
 	if v != nil {
 		vSlice = graphql.CoerceList(v)
 	}
 	var err error
-	res := make([]*graphql.Upload, len(vSlice))
+	res := make([]*models.UploadFile, len(vSlice))
 	for i := range vSlice {
 		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithIndex(i))
-		res[i], err = ec.unmarshalNUpload2ᚖgithubᚗcomᚋ99designsᚋgqlgenᚋgraphqlᚐUpload(ctx, vSlice[i])
+		res[i], err = ec.unmarshalNUploadFile2ᚖgithubᚗcomᚋnaviktᚋnadaᚑbackendᚋpkgᚋgraphᚋmodelsᚐUploadFile(ctx, vSlice[i])
 		if err != nil {
 			return nil, err
 		}
@@ -25692,40 +25754,9 @@ func (ec *executionContext) unmarshalNUpload2ᚕᚖgithubᚗcomᚋ99designsᚋgq
 	return res, nil
 }
 
-func (ec *executionContext) marshalNUpload2ᚕᚖgithubᚗcomᚋ99designsᚋgqlgenᚋgraphqlᚐUploadᚄ(ctx context.Context, sel ast.SelectionSet, v []*graphql.Upload) graphql.Marshaler {
-	ret := make(graphql.Array, len(v))
-	for i := range v {
-		ret[i] = ec.marshalNUpload2ᚖgithubᚗcomᚋ99designsᚋgqlgenᚋgraphqlᚐUpload(ctx, sel, v[i])
-	}
-
-	for _, e := range ret {
-		if e == graphql.Null {
-			return graphql.Null
-		}
-	}
-
-	return ret
-}
-
-func (ec *executionContext) unmarshalNUpload2ᚖgithubᚗcomᚋ99designsᚋgqlgenᚋgraphqlᚐUpload(ctx context.Context, v interface{}) (*graphql.Upload, error) {
-	res, err := graphql.UnmarshalUpload(v)
+func (ec *executionContext) unmarshalNUploadFile2ᚖgithubᚗcomᚋnaviktᚋnadaᚑbackendᚋpkgᚋgraphᚋmodelsᚐUploadFile(ctx context.Context, v interface{}) (*models.UploadFile, error) {
+	res, err := ec.unmarshalInputUploadFile(ctx, v)
 	return &res, graphql.ErrorOnPath(ctx, err)
-}
-
-func (ec *executionContext) marshalNUpload2ᚖgithubᚗcomᚋ99designsᚋgqlgenᚋgraphqlᚐUpload(ctx context.Context, sel ast.SelectionSet, v *graphql.Upload) graphql.Marshaler {
-	if v == nil {
-		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
-			ec.Errorf(ctx, "the requested element is null which the schema does not allow")
-		}
-		return graphql.Null
-	}
-	res := graphql.MarshalUpload(*v)
-	if res == graphql.Null {
-		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
-			ec.Errorf(ctx, "the requested element is null which the schema does not allow")
-		}
-	}
-	return res
 }
 
 func (ec *executionContext) marshalNUserInfo2githubᚗcomᚋnaviktᚋnadaᚑbackendᚋpkgᚋgraphᚋmodelsᚐUserInfo(ctx context.Context, sel ast.SelectionSet, v models.UserInfo) graphql.Marshaler {

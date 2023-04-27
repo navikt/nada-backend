@@ -61,6 +61,11 @@ func (h *Handler) Update(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	gpath, err:= h.makeGcsPath(r, idURLPosUpdate)
+	if err!= nil{
+		return
+	}
+
 	err = r.ParseMultipartForm(maxMemoryMultipartForm)
 	if err != nil {
 		h.log.WithError(err).Errorf("parsing multipart form")
@@ -69,7 +74,8 @@ func (h *Handler) Update(w http.ResponseWriter, r *http.Request) {
 	}
 
 	for _, fileHeader := range r.MultipartForm.File {
-		if err := h.uploadFile(r.Context(), qID.String(), fileHeader); err != nil {
+		fmt.Println(gpath)
+		if err := h.uploadFile(r.Context(), gpath, fileHeader); err != nil {
 			h.log.WithError(err).Errorf("uploading file")
 			h.writeError(w, http.StatusInternalServerError, fmt.Errorf("internal server error"))
 			return
@@ -164,12 +170,11 @@ func (h *Handler) updateQuarto(w http.ResponseWriter, r *http.Request, next http
 
 func (h *Handler) uploadFile(ctx context.Context, objPath string, fileHeader []*multipart.FileHeader) error {
 	for _, f := range fileHeader {
-		name := f.Filename
 		file, err := f.Open()
 		if err != nil {
 			return err
 		}
-		if err := h.gcsClient.UploadFile(ctx, objPath+"/"+name, file); err != nil {
+		if err := h.gcsClient.UploadFile(ctx, objPath, file); err != nil {
 			return err
 		}
 	}
@@ -203,6 +208,20 @@ func getIDFromPath(r *http.Request, idPos int) (uuid.UUID, error) {
 	}
 
 	return id, nil
+}
+
+func (h *Handler) makeGcsPath(r *http.Request, idPos int) (string, error) {
+	parts := strings.Split(r.URL.Path, "/")
+	if idPos>= len(parts) -1{
+		err:= fmt.Errorf("invalid quarto file path %v", r.URL.Path)
+		h.log.WithError(err).Errorf("Failed to serve quarto request")
+		return "", err 
+	}
+	gcsPath := parts[idPos]
+	for _, part := range parts[idPos+1:] {
+		gcsPath+= "/" + part
+	}
+	return gcsPath, nil
 }
 
 func getTokenFromHeader(authHeader string) (uuid.UUID, error) {

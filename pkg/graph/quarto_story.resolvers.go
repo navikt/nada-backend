@@ -7,14 +7,13 @@ package graph
 import (
 	"context"
 
-	"github.com/99designs/gqlgen/graphql"
 	"github.com/google/uuid"
 	"github.com/navikt/nada-backend/pkg/auth"
 	"github.com/navikt/nada-backend/pkg/graph/models"
 )
 
 // CreateQuartoStory is the resolver for the createQuartoStory field.
-func (r *mutationResolver) CreateQuartoStory(ctx context.Context, files []*graphql.Upload, input models.NewQuartoStory) (*models.QuartoStory, error) {
+func (r *mutationResolver) CreateQuartoStory(ctx context.Context, files []*models.UploadFile, input models.NewQuartoStory) (*models.QuartoStory, error) {
 	story, err := r.repo.CreateQuartoStory(ctx, auth.GetUser(ctx).Email, input)
 	if err != nil {
 		return nil, err
