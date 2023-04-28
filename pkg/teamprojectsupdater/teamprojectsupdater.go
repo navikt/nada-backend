@@ -28,12 +28,10 @@ type TeamProjectsUpdater struct {
 }
 
 type Team struct {
-	Slug            string `json:"slug"`
 	ReconcilerState struct {
 		GoogleWorkspaceGroupEmail string `json:"googleWorkspaceGroupEmail"`
 		GCPProjects               []struct {
 			Environment string `json:"environment"`
-			ProjectName string `json:"projectName"`
 			ProjectID   string `json:"projectId"`
 		} `json:"gcpProjects"`
 	} `json:"reconcilerState"`
@@ -115,12 +113,10 @@ func (t *TeamProjectsUpdater) FetchTeamGoogleProjectsMapping(ctx context.Context
 	gqlQuery := `
 	{
 		teams {
-		  slug
 		  reconcilerState {
 			  googleWorkspaceGroupEmail
 			  gcpProjects {
 				  environment
-				  projectName
 				  projectId
 			  }
 		  }
