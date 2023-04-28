@@ -9,6 +9,8 @@ import (
 	"fmt"
 	"io/ioutil"
 	"net/http"
+	"os"
+	"strings"
 	"time"
 
 	"github.com/navikt/nada-backend/pkg/auth"
@@ -19,21 +21,23 @@ import (
 
 type TeamProjectsUpdater struct {
 	TeamProjectsMapping *auth.TeamProjectsMapping
-	teamProjectsURL     string
-	teamsToken          string
+	consoleURL          string
+	consoleAPIKey       string
 	httpClient          *http.Client
 	repo                *database.Repo
 }
 
-type OutputFile struct {
-	TeamProjectIDMapping OutputVariable `json:"team_projectid_mapping"`
+type Team struct {
+	ReconcilerState struct {
+		GoogleWorkspaceGroupEmail string `json:"googleWorkspaceGroupEmail"`
+		GCPProjects               []struct {
+			Environment string `json:"environment"`
+			ProjectID   string `json:"projectId"`
+		} `json:"gcpProjects"`
+	} `json:"reconcilerState"`
 }
 
-type OutputVariable struct {
-	Value map[string]string `json:"value"`
-}
-
-func NewTeamProjectsUpdater(ctx context.Context, teamProjectsURL, teamsToken string, httpClient *http.Client, repo *database.Repo) *TeamProjectsUpdater {
+func NewTeamProjectsUpdater(ctx context.Context, consoleURL, consoleAPIKey string, httpClient *http.Client, repo *database.Repo) *TeamProjectsUpdater {
 	teamProjectsSQL, err := repo.GetTeamProjects(ctx)
 	if err != nil {
 		if !errors.Is(err, sql.ErrNoRows) {
@@ -51,8 +55,8 @@ func NewTeamProjectsUpdater(ctx context.Context, teamProjectsURL, teamsToken str
 
 	return &TeamProjectsUpdater{
 		TeamProjectsMapping: teamProjectsMapping,
-		teamProjectsURL:     teamProjectsURL,
-		teamsToken:          teamsToken,
+		consoleURL:          consoleURL,
+		consoleAPIKey:       consoleAPIKey,
 		httpClient:          httpClient,
 		repo:                repo,
 	}
@@ -84,20 +88,6 @@ func (t *TeamProjectsUpdater) Run(ctx context.Context, frequency time.Duration) 
 	ticker := time.NewTicker(frequency)
 	defer ticker.Stop()
 
-	teamProjectsSQL, err := t.repo.GetTeamProjects(ctx)
-	if err != nil {
-		if !errors.Is(err, sql.ErrNoRows) {
-			log.WithError(err).Errorf("Fetching teams from database")
-		}
-	}
-
-	teamprojects := map[string]string{}
-	for _, project := range teamProjectsSQL {
-		teamprojects[project.Team] = project.Project
-	}
-
-	t.TeamProjectsMapping.SetTeamProjects(teamprojects)
-
 	time.Sleep(time.Second * 60)
 
 	for {
@@ -114,12 +104,61 @@ func (t *TeamProjectsUpdater) Run(ctx context.Context, frequency time.Duration) 
 }
 
 func (t *TeamProjectsUpdater) FetchTeamGoogleProjectsMapping(ctx context.Context) error {
-	outputFile, err := getOutputFile(ctx, t.teamProjectsURL, t.teamsToken)
+	type response struct {
+		Data struct {
+			Teams []Team `json:"teams"`
+		} `json:"data"`
+	}
+
+	gqlQuery := `
+	{
+		teams {
+		  reconcilerState {
+			  googleWorkspaceGroupEmail
+			  gcpProjects {
+				  environment
+				  projectId
+			  }
+		  }
+		}
+	}
+	`
+
+	payload := map[string]string{"query": gqlQuery}
+	payloadBytes, err := json.Marshal(payload)
 	if err != nil {
 		return err
 	}
 
-	t.TeamProjectsMapping.SetTeamProjects(outputFile)
+	r, err := http.NewRequest(http.MethodPost, fmt.Sprintf("%v/query", t.consoleURL), bytes.NewBuffer(payloadBytes))
+	if err != nil {
+		return err
+	}
+	r.Header.Add("authorization", fmt.Sprintf("Bearer %v", t.consoleAPIKey))
+	r.Header.Add("content-type", "application/json")
+
+	res, err := t.httpClient.Do(r)
+	if err != nil {
+		return err
+	}
+	defer res.Body.Close()
+
+	bodyBytes, err := ioutil.ReadAll(res.Body)
+	if err != nil {
+		return err
+	}
+
+	data := response{}
+	if err := json.Unmarshal(bodyBytes, &data); err != nil {
+		return err
+	}
+
+	projectMapping, err := t.getTeamProjectsMappingForEnv(data.Data.Teams)
+	if err != nil {
+		return err
+	}
+
+	t.TeamProjectsMapping.SetTeamProjects(projectMapping)
 
 	isLeader, err := leaderelection.IsLeader()
 	if err != nil {
@@ -127,7 +166,7 @@ func (t *TeamProjectsUpdater) FetchTeamGoogleProjectsMapping(ctx context.Context
 	}
 
 	if isLeader {
-		if err := t.repo.UpdateTeamProjectsCache(ctx, outputFile); err != nil {
+		if err := t.repo.UpdateTeamProjectsCache(ctx, projectMapping); err != nil {
 			return err
 		}
 	}
@@ -135,37 +174,24 @@ func (t *TeamProjectsUpdater) FetchTeamGoogleProjectsMapping(ctx context.Context
 	return nil
 }
 
-func getOutputFile(ctx context.Context, url, token string) (map[string]string, error) {
-	request, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
-	if err != nil {
-		return nil, fmt.Errorf("creating http request for getting terraform output file: %w", err)
-	}
-	request.Header.Add("Authorization", fmt.Sprintf("Bearer %v", token))
-	client := http.Client{}
-	response, err := client.Do(request)
-	if err != nil {
-		return nil, fmt.Errorf("performing http request, URL: %v: %w", url, err)
+func (t *TeamProjectsUpdater) getTeamProjectsMappingForEnv(teams []Team) (map[string]string, error) {
+	env := "dev"
+	if os.Getenv("NAIS_CLUSTER_NAME") == "prod-gcp" {
+		env = "prod"
 	}
 
-	var outputFile OutputFile
-
-	bodyBytes, err := ioutil.ReadAll(response.Body)
-	if err != nil {
-		return nil, err
-	}
-
-	woFirstLine := bytes.Split(bodyBytes, []byte("-json"))
-	if len(woFirstLine) != 1 {
-		// Remove terraform output from file
-		body := bytes.Split(woFirstLine[1], []byte("::debug"))
-		if err := json.Unmarshal(body[0], &outputFile); err != nil {
-			return nil, err
-		}
-	} else {
-		if err := json.Unmarshal(bodyBytes, &outputFile); err != nil {
-			return nil, err
+	out := map[string]string{}
+	for _, t := range teams {
+		for _, p := range t.ReconcilerState.GCPProjects {
+			if p.Environment == env {
+				parts := strings.Split(t.ReconcilerState.GoogleWorkspaceGroupEmail, "@")
+				if len(parts) != 2 {
+					return nil, fmt.Errorf("incorrect email format for group %v", t.ReconcilerState.GoogleWorkspaceGroupEmail)
+				}
+				out[parts[0]] = p.ProjectID
+			}
 		}
 	}
 
-	return outputFile.TeamProjectIDMapping.Value, nil
+	return out, nil
 }
