@@ -57,7 +57,6 @@ func (c *Client) GetObject(ctx context.Context, path string) (*storage.ObjectAtt
 }
 
 func (c *Client) UploadFile(ctx context.Context, name string, file multipart.File) error {
-	fmt.Print(name)
 	datab, err := ioutil.ReadAll(file)
 	if err != nil {
 		c.log.WithError(err).Errorf("reading uploaded file %v", name)
