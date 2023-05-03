@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"mime"
 	"mime/multipart"
 	"net/http"
 	"regexp"
@@ -68,6 +69,13 @@ func (h *Handler) Update(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+    // Delete the root directory before uploading new files
+	if err = h.gcsClient.DeleteObjectsWithPrefix(r.Context(), qID.String()); err != nil {
+		h.log.WithError(err).Errorf("deleting objects with prefix")
+		h.writeError(w, http.StatusInternalServerError, fmt.Errorf("internal server error"))
+		return
+	}
+	
 	for _, fileHeader := range r.MultipartForm.File {
 		if err := h.uploadFile(r.Context(), qID.String(), fileHeader); err != nil {
 			h.log.WithError(err).Errorf("uploading file")
@@ -164,12 +172,22 @@ func (h *Handler) updateQuarto(w http.ResponseWriter, r *http.Request, next http
 
 func (h *Handler) uploadFile(ctx context.Context, objPath string, fileHeader []*multipart.FileHeader) error {
 	for _, f := range fileHeader {
-		name := f.Filename
+		fileFullPath:= f.Filename
+
+		//try to extract full path from content-disposition header
+		_, params, err := mime.ParseMediaType(f.Header.Get("Content-Disposition"))
+		if err == nil{
+			pathInCDHeader := params["name"]
+			if pathInCDHeader != "" {
+				fileFullPath = pathInCDHeader
+			}
+		}
+
 		file, err := f.Open()
 		if err != nil {
 			return err
 		}
-		if err := h.gcsClient.UploadFile(ctx, objPath+"/"+name, file); err != nil {
+		if err := h.gcsClient.UploadFile(ctx, objPath+"/"+fileFullPath, file); err != nil {
 			return err
 		}
 	}

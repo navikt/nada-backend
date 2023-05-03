@@ -57,6 +57,7 @@ func (c *Client) GetObject(ctx context.Context, path string) (*storage.ObjectAtt
 }
 
 func (c *Client) UploadFile(ctx context.Context, name string, file multipart.File) error {
+	fmt.Print(name)
 	datab, err := ioutil.ReadAll(file)
 	if err != nil {
 		c.log.WithError(err).Errorf("reading uploaded file %v", name)
@@ -99,4 +100,27 @@ func (c *Client) findIndexPage(qID string, objs *storage.ObjectIterator) (string
 			page = o.Name
 		}
 	}
+}
+
+
+func (c *Client) DeleteObjectsWithPrefix(ctx context.Context, prefix string) error {
+    bucket := c.client.Bucket(c.bucketName)
+    query := &storage.Query{Prefix: prefix}
+    it := bucket.Objects(ctx, query)
+
+	for {
+        attrs, err := it.Next()
+		if err == iterator.Done {
+            break
+        }
+		if err != nil {
+            return fmt.Errorf("failed to list objects with prefix: %w", err)
+        }
+
+        obj := bucket.Object(attrs.Name)
+        if err := obj.Delete(ctx); err != nil {
+            return fmt.Errorf("failed to delete object: %w", err)
+        }
+    }
+    return nil
 }
