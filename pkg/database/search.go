@@ -109,6 +109,8 @@ func (r *Repo) Search(ctx context.Context, query *models.SearchQuery) ([]*models
 				LastModified: &qs.LastModified,
 				Creator:      qs.Creator,
 				Keywords:     qs.Keywords,
+				TeamkatalogenURL: &qs.TeamkatalogenUrl.String,
+				Group: qs.Group,
 			},
 		})
 	}
