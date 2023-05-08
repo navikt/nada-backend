@@ -276,7 +276,7 @@ func prepareQuartoTests(ctx context.Context) (uuid.UUID, error) {
 func createMultipartForm(html string) (*bytes.Buffer, string, error) {
 	body := &bytes.Buffer{}
 	writer := multipart.NewWriter(body)
-	part, err := writer.CreateFormFile("file", "index.html")
+	part, err := writer.CreateFormFile("index.html", "index.html")
 	if err != nil {
 		return nil, "", err
 	}
