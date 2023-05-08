@@ -106,7 +106,7 @@ func (h *Handler) Update(w http.ResponseWriter, r *http.Request) {
 
 	host := "http://localhost:3000"
 	if os.Getenv("NAIS_CLUSTER_NAME") == "dev-gcp" {
-		host = "https://data.dev.intern.nav.no"
+		host = "https://data.intern.dev.nav.no"
 	} else if os.Getenv("NAIS_CLUSTER_NAME") == "prod-gcp" {
 		host = "https://data.intern.nav.no"
 	}
