@@ -187,6 +187,9 @@ func (h *Handler) uploadFile(ctx context.Context, objPath string, fileHeader []*
 		if err != nil {
 			return err
 		}
+		
+		h.log.Printf("file full path %v", fileFullPath)
+
 		if err := h.gcsClient.UploadFile(ctx, objPath+"/"+fileFullPath, file); err != nil {
 			return err
 		}
