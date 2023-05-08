@@ -174,11 +174,9 @@ func (h *Handler) uploadFile(ctx context.Context, objPath string, fileHeader []*
 	for _, f := range fileHeader {
 		fileFullPath:= f.Filename
 
-		h.log.Printf(f.Filename)
 		//try to extract full path from content-disposition header
 		_, params, err := mime.ParseMediaType(f.Header.Get("Content-Disposition"))
 		if err == nil{
-			h.log.Print(params)
 			pathInCDHeader := params["name"]
 			if pathInCDHeader != "" {
 				fileFullPath = pathInCDHeader
@@ -190,7 +188,7 @@ func (h *Handler) uploadFile(ctx context.Context, objPath string, fileHeader []*
 			return err
 		}
 		
-		h.log.Printf("file full path %v", objPath+"/"+fileFullPath)
+		h.log.Printf("upload quarto file full path %v", objPath+"/"+fileFullPath)
 
 		if err := h.gcsClient.UploadFile(ctx, objPath+"/"+fileFullPath, file); err != nil {
 			return err
