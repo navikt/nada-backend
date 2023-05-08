@@ -101,7 +101,7 @@ func (r *datasetResolver) Services(ctx context.Context, obj *models.Dataset) (*m
 
 	svc := &models.DatasetServices{}
 	if meta.DatabaseID > 0 {
-		base := "https://metabase.dev.intern.nav.no/browse/%v"
+		base := "https://metabase.intern.dev.nav.no/browse/%v"
 		if os.Getenv("NAIS_CLUSTER_NAME") == "prod-gcp" {
 			base = "https://metabase.intern.nav.no/browse/%v"
 		}
@@ -259,5 +259,7 @@ func (r *Resolver) BigQuery() generated.BigQueryResolver { return &bigQueryResol
 // Dataset returns generated.DatasetResolver implementation.
 func (r *Resolver) Dataset() generated.DatasetResolver { return &datasetResolver{r} }
 
-type bigQueryResolver struct{ *Resolver }
-type datasetResolver struct{ *Resolver }
+type (
+	bigQueryResolver struct{ *Resolver }
+	datasetResolver  struct{ *Resolver }
+)
