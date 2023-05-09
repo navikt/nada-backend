@@ -5,8 +5,8 @@ package teamprojectsupdater
 import (
 	"context"
 	"database/sql"
+	"encoding/json"
 	"fmt"
-	"io/ioutil"
 	"log"
 	"net/http"
 	"net/http/httptest"
@@ -60,21 +60,58 @@ func TestTeamProjectsUpdater(t *testing.T) {
 	}
 
 	server := httptest.NewServer(http.HandlerFunc(func(writer http.ResponseWriter, request *http.Request) {
-		file, err := ioutil.ReadFile(fmt.Sprintf("testdata/%v", request.URL.Path))
-		if err != nil {
-			t.Fatal(err)
+		res := map[string]any{
+			"data": map[string]any{
+				"teams": []map[string]any{
+					{
+						"reconcilerState": map[string]any{
+							"googleWorkspaceGroupEmail": "team-a@nav.no",
+							"gcpProjects": []map[string]string{
+								{
+									"environment": "dev",
+									"projectId":   "a-dev",
+								},
+							},
+						},
+					},
+					{
+						"reconcilerState": map[string]any{
+							"googleWorkspaceGroupEmail": "team-b@nav.no",
+							"gcpProjects": []map[string]string{
+								{
+									"environment": "dev",
+									"projectId":   "b-dev",
+								},
+							},
+						},
+					},
+					{
+						"reconcilerState": map[string]any{
+							"googleWorkspaceGroupEmail": "team-c@nav.no",
+							"gcpProjects": []map[string]string{
+								{
+									"environment": "dev",
+									"projectId":   "c-dev",
+								},
+							},
+						},
+					},
+				},
+			},
 		}
-		fmt.Fprintln(writer, string(file))
+		resBytes, err := json.Marshal(res)
+		if err != nil {
+			panic(err)
+		}
+
+		fmt.Fprintln(writer, string(resBytes))
 	}))
 
-	tup := NewTeamProjectsUpdater(context.TODO(), server.URL+"/dev-output.json", "token", server.Client(), repo)
-
-	fmt.Println(tup.TeamProjectsMapping.TeamProjects)
-
-	err = tup.FetchTeamGoogleProjectsMapping(context.Background())
-	if err != nil {
-		t.Fatal(err)
+	tup := NewTeamProjectsUpdater(context.TODO(), server.URL, "apiKey", server.Client(), repo)
+	if err := tup.FetchTeamGoogleProjectsMapping(context.TODO()); err != nil {
+		panic(err)
 	}
+
 	if len(tup.TeamProjectsMapping.TeamProjects) != 3 {
 		t.Errorf("got: %v, want: %v", len(tup.TeamProjectsMapping.TeamProjects), 3)
 	}
