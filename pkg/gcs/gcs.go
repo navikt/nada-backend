@@ -100,3 +100,26 @@ func (c *Client) findIndexPage(qID string, objs *storage.ObjectIterator) (string
 		}
 	}
 }
+
+
+func (c *Client) DeleteObjectsWithPrefix(ctx context.Context, prefix string) error {
+    bucket := c.client.Bucket(c.bucketName)
+    query := &storage.Query{Prefix: prefix}
+    it := bucket.Objects(ctx, query)
+
+	for {
+        attrs, err := it.Next()
+		if err == iterator.Done {
+            break
+        }
+		if err != nil {
+            return fmt.Errorf("failed to list objects with prefix: %w", err)
+        }
+
+        obj := bucket.Object(attrs.Name)
+        if err := obj.Delete(ctx); err != nil {
+            return fmt.Errorf("failed to delete object: %w", err)
+        }
+    }
+    return nil
+}
