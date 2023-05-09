@@ -165,6 +165,12 @@ SELECT
                 split_part(coalesce("qs"."creator", ''), '@', 1)
             ),
             'D'
+        ) || setweight(
+            to_tsvector(
+                'norwegian',
+                split_part(coalesce("qs"."group", ''), '@', 1)
+            ),
+            'D'
         )
     ) AS tsv_document,
     '{}' AS "services"
@@ -336,12 +342,6 @@ SELECT
             to_tsvector(
                 'norwegian',
                 split_part(coalesce("qs"."creator", ''), '@', 1)
-            ),
-            'D'
-        ) || setweight(
-            to_tsvector(
-                'norwegian',
-                split_part(coalesce("qs"."group", ''), '@', 1)
             ),
             'D'
         )
