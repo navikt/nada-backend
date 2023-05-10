@@ -84,6 +84,9 @@ spec:
     outbound:
       rules:
         - application: metabase
+      external:
+        - host: teamkatalog-api.prod-fss-pub.nais.io
+        - host: console.nav.cloud.nais.io
 
 ---
 apiVersion: monitoring.coreos.com/v1
