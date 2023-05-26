@@ -41,6 +41,6 @@ func DefaultConfig() Config {
 		TeamkatalogenURL:      "https://teamkatalog-api.prod-fss-pub.nais.io",
 		PollyURL:              "https://polly.prod-fss-pub.nais.io/process",
 		TeamProjectsOutputURL: "https://raw.githubusercontent.com/nais/teams/master/gcp-projects/prod-output.json",
-		ConsoleURL:            "https://console.nav.cloud.nais.io",
+		ConsoleURL:            "https://teams.nav.cloud.nais.io",
 	}
 }
