@@ -93,3 +93,4 @@ spec:
       external:
         - host: teamkatalog-api.dev-fss-pub.nais.io
         - host: teams.nav.cloud.nais.io
+        - host: amplitude.nav.no
