@@ -67,6 +67,8 @@ func (a *AmplitudeClient) PublishEvent(ctx context.Context, title string) error 
 	if err != nil {
 		return err
 	}
+	// Bypass isBot check in amplitude-proxy
+	request.Header.Add("User-agent", "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/113.0.0.0 Safari/537.36")
 	_, err = http.DefaultClient.Do(request)
 	if err != nil {
 		return err
