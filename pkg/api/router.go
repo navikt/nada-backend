@@ -39,7 +39,7 @@ func New(
 	})
 
 	storyHandler := story.NewHandler(repo)
-	quartoHandler := quarto.NewHandler(repo, gcsClient, log.WithField("subsystem", "quarto"))
+	quartoHandler := quarto.NewHandler(repo, gcsClient, amplitudeClient, log.WithField("subsystem", "quarto"))
 
 	router := chi.NewRouter()
 	router.Use(corsMW)
