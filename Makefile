@@ -28,7 +28,7 @@ env:
 	echo "METABASE_USERNAME=$(shell kubectl get secret --context=dev-gcp --namespace=nada nada-backend -o jsonpath='{.data.METABASE_USERNAME}' | base64 -d)" >> .env
 	echo "METABASE_PASSWORD=$(shell kubectl get secret --context=dev-gcp --namespace=nada nada-backend -o jsonpath='{.data.METABASE_PASSWORD}' | base64 -d)" >> .env
 	echo "CONSOLE_API_KEY=$(shell kubectl get secret --context=dev-gcp --namespace=nada nada-backend -o jsonpath='{.data.CONSOLE_API_KEY}' | base64 -d)" >> .env
-	echo "AMPLITUDE_API_KEY"=$(shell kubectl get secret --context=dev-gcp --namespace=nada nada-backend -o jsonpath='{.data.AMPLITUDE_API_KEY}' | base64 -d)" >> .env
+	echo "AMPLITUDE_API_KEY=$(shell kubectl get secret --context=dev-gcp --namespace=nada nada-backend -o jsonpath='{.data.AMPLITUDE_API_KEY}' | base64 -d)" >> .env
 
 test-sa:
 	$(shell kubectl get --context=dev-gcp --namespace=nada secret/google-credentials -o json | jq -r '.data."sa.json"' | base64 -d > test-sa.json)
