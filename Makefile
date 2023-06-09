@@ -28,6 +28,7 @@ env:
 	echo "METABASE_USERNAME=$(shell kubectl get secret --context=dev-gcp --namespace=nada nada-backend -o jsonpath='{.data.METABASE_USERNAME}' | base64 -d)" >> .env
 	echo "METABASE_PASSWORD=$(shell kubectl get secret --context=dev-gcp --namespace=nada nada-backend -o jsonpath='{.data.METABASE_PASSWORD}' | base64 -d)" >> .env
 	echo "CONSOLE_API_KEY=$(shell kubectl get secret --context=dev-gcp --namespace=nada nada-backend -o jsonpath='{.data.CONSOLE_API_KEY}' | base64 -d)" >> .env
+	echo "AMPLITUDE_API_KEY=$(shell kubectl get secret --context=dev-gcp --namespace=nada nada-backend -o jsonpath='{.data.AMPLITUDE_API_KEY}' | base64 -d)" >> .env
 
 test-sa:
 	$(shell kubectl get --context=dev-gcp --namespace=nada secret/google-credentials -o json | jq -r '.data."sa.json"' | base64 -d > test-sa.json)
@@ -44,6 +45,7 @@ local-with-auth:
 	--google-admin-subject=johnny.horvi@nav.no \
 	--metabase-username=$(METABASE_USERNAME) \
 	--metabase-password=$(METABASE_PASSWORD) \
+	--amplitude-api-key=$(AMPLITUDE_API_KEY) \
 	--teamkatalogen-url=https://teamkatalog-api.intern.nav.no \
 	--polly-url=https://polly.dev-fss-pub.nais.io/process \
 	--team-projects-url=https://raw.githubusercontent.com/nais/teams/master/gcp-projects/dev-output.json \

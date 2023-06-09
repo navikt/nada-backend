@@ -26,6 +26,7 @@ type Config struct {
 	QuartoStorageBucketName         string
 	ConsoleAPIKey                   string
 	ConsoleURL                      string
+	AmplitudeAPIKey                 string
 }
 
 type OAuth2Config struct {

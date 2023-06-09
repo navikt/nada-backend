@@ -11,6 +11,7 @@ import (
 	"time"
 
 	graphProm "github.com/99designs/gqlgen-contrib/prometheus"
+	"github.com/amplitude/analytics-go/amplitude"
 	"github.com/navikt/nada-backend/pkg/access"
 	"github.com/navikt/nada-backend/pkg/api"
 	"github.com/navikt/nada-backend/pkg/auth"
@@ -76,6 +77,7 @@ func init() {
 	flag.IntVar(&cfg.DBMaxOpenConn, "max-open-conn", 17, "Maximum number of open db connections")
 	flag.StringVar(&cfg.QuartoStorageBucketName, "quarto-bucket", os.Getenv("GCP_QUARTO_STORAGE_BUCKET_NAME"), "Name of the gcs bucket for quarto stories")
 	flag.StringVar(&cfg.ConsoleAPIKey, "console-api-key", os.Getenv("CONSOLE_API_KEY"), "API key for nais console")
+	flag.StringVar(&cfg.AmplitudeAPIKey, "amplitude-api-key", os.Getenv("AMPLITUDE_API_KEY"), "API key for Amplitude")
 }
 
 func main() {
@@ -86,6 +88,8 @@ func main() {
 
 	log := newLogger()
 	slackClient := newSlackClient(log)
+	amplitudeClient := newAmplitudeClient()
+
 	eventMgr := &event.Manager{}
 
 	repo, err := database.New(cfg.DBConnectionDSN, cfg.DBMaxIdleConn, cfg.DBMaxOpenConn, eventMgr, log.WithField("subsystem", "repo"))
@@ -155,7 +159,7 @@ func main() {
 
 	log.Info("Listening on :8080")
 	gqlServer := graph.New(repo, gcp, teamProjectsUpdater.TeamProjectsMapping, accessMgr, teamcatalogue, slackClient, pollyAPI, log.WithField("subsystem", "graph"))
-	srv := api.New(repo, gcsClient, httpAPI, authenticatorMiddleware, gqlServer, prom(repo.Metrics()...), log)
+	srv := api.New(repo, gcsClient, httpAPI, authenticatorMiddleware, gqlServer, prom(repo.Metrics()...), amplitudeClient, log)
 
 	server := http.Server{
 		Addr:    cfg.BindAddress,
@@ -244,4 +248,11 @@ func runMetabase(ctx context.Context, log *logrus.Entry, cfg Config, repo *datab
 	metabase := metabase.New(repo, client, accessMgr, eventMgr, string(sa), metabaseSA.ClientEmail, promErrs, iamService, crmService, log.WithField("subsystem", "metabase"))
 	go metabase.Run(ctx, MetabaseUpdateFrequency)
 	return nil
+}
+
+func newAmplitudeClient() amplitude.Client {
+	// TODO: More config
+	config := amplitude.NewConfig(cfg.AmplitudeAPIKey)
+	config.ServerURL = "https://amplitude.nav.no/collect"
+	return amplitude.NewClient(config)
 }
