@@ -137,7 +137,9 @@ func TestMain(m *testing.M) {
 		&mockAuthHandler{},
 		auth.MockJWTValidatorMiddleware(),
 		gqlServer,
-		prometheus.NewRegistry(), logrus.StandardLogger(),
+		prometheus.NewRegistry(),
+		nil,
+		logrus.StandardLogger(),
 	)
 
 	server = httptest.NewServer(srv)
