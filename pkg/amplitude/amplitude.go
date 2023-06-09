@@ -4,6 +4,8 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"fmt"
+	"io/ioutil"
 	"net/http"
 	"time"
 
@@ -43,7 +45,7 @@ func New(apiKey string, log *logrus.Entry) *AmplitudeClient {
 }
 
 func (a *AmplitudeClient) PublishEvent(ctx context.Context, title string) error {
-	e := amplitudeBody{
+	e := &amplitudeBody{
 		APIKey: a.apiKey,
 		Events: []event{
 			{
@@ -69,9 +71,19 @@ func (a *AmplitudeClient) PublishEvent(ctx context.Context, title string) error 
 	}
 	// Bypass isBot check in amplitude-proxy
 	request.Header.Add("User-agent", "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/113.0.0.0 Safari/537.36")
-	_, err = http.DefaultClient.Do(request)
+	request.Header.Add("Content-Type", "application/json")
+	r, err := http.DefaultClient.Do(request)
 	if err != nil {
 		return err
 	}
+
+	respBodyBytes, err := ioutil.ReadAll(r.Body)
+	if err != nil {
+		return err
+	}
+	if r.StatusCode > 299 {
+		return fmt.Errorf("publishing amplitude event, status code: %v, error: %v", r.StatusCode, string(respBodyBytes))
+	}
+
 	return nil
 }
