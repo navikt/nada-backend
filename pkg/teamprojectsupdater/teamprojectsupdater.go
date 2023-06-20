@@ -158,6 +158,10 @@ func (t *TeamProjectsUpdater) FetchTeamGoogleProjectsMapping(ctx context.Context
 		return err
 	}
 
+	if len(projectMapping) == 0 {
+		return fmt.Errorf("error parsing team projects from console, %v teams was mapped to %v team projects", len(data.Data.Teams), len(projectMapping))
+	}
+
 	t.TeamProjectsMapping.SetTeamProjects(projectMapping)
 
 	isLeader, err := leaderelection.IsLeader()
@@ -175,9 +179,9 @@ func (t *TeamProjectsUpdater) FetchTeamGoogleProjectsMapping(ctx context.Context
 }
 
 func (t *TeamProjectsUpdater) getTeamProjectsMappingForEnv(teams []Team) (map[string]string, error) {
-	env := "dev"
-	if os.Getenv("NAIS_CLUSTER_NAME") == "prod-gcp" {
-		env = "prod"
+	env := os.Getenv("NAIS_CLUSTER_NAME")
+	if env == "" {
+		env = "dev-gcp"
 	}
 
 	out := map[string]string{}
