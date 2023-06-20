@@ -58,6 +58,7 @@ func (c *Bigquery) TableMetadata(ctx context.Context, projectID string, datasetI
 }
 
 func (c *Bigquery) GetDatasets(ctx context.Context, projectID string) ([]string, error) {
+	fmt.Println("project", projectID)
 	client, err := bigquery.NewClient(ctx, projectID)
 	if err != nil {
 		return nil, err
