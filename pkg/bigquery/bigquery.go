@@ -2,6 +2,7 @@ package bigquery
 
 import (
 	"context"
+	"fmt"
 	"strings"
 
 	"cloud.google.com/go/bigquery"
@@ -67,11 +68,13 @@ func (c *Bigquery) GetDatasets(ctx context.Context, projectID string) ([]string,
 	for {
 		ds, err := it.Next()
 		if err == iterator.Done {
+			fmt.Println("no more")
 			break
 		}
 		if err != nil {
 			break
 		}
+		fmt.Println("ds", ds)
 		datasets = append(datasets, ds.DatasetID)
 	}
 	return datasets, nil
