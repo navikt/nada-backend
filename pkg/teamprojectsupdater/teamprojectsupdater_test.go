@@ -68,7 +68,7 @@ func TestTeamProjectsUpdater(t *testing.T) {
 							"googleWorkspaceGroupEmail": "team-a@nav.no",
 							"gcpProjects": []map[string]string{
 								{
-									"environment": "dev",
+									"environment": "dev-gcp",
 									"projectId":   "a-dev",
 								},
 							},
@@ -79,7 +79,7 @@ func TestTeamProjectsUpdater(t *testing.T) {
 							"googleWorkspaceGroupEmail": "team-b@nav.no",
 							"gcpProjects": []map[string]string{
 								{
-									"environment": "dev",
+									"environment": "dev-gcp",
 									"projectId":   "b-dev",
 								},
 							},
@@ -90,7 +90,7 @@ func TestTeamProjectsUpdater(t *testing.T) {
 							"googleWorkspaceGroupEmail": "team-c@nav.no",
 							"gcpProjects": []map[string]string{
 								{
-									"environment": "dev",
+									"environment": "dev-gcp",
 									"projectId":   "c-dev",
 								},
 							},
