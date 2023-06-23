@@ -45,16 +45,6 @@ func NewHandler(repo *database.Repo, gcsClient *gcs.Client, amplitudeClient *amp
 func (h *Handler) GetObject(w http.ResponseWriter, r *http.Request) {
 	path := strings.TrimPrefix(r.URL.Path, "/quarto/")
 
-	id := strings.Split(path, "/")[0]
-	story, err := h.repo.GetQuartoStory(r.Context(), uuid.MustParse(id))
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
-	if err := h.amplitudeClient.PublishEvent(r.Context(), story.Name); err != nil {
-		h.log.WithError(err).Warning("Failed to publish event")
-	}
-
 	attr, objBytes, err := h.gcsClient.GetObject(r.Context(), path)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -130,6 +120,18 @@ func (h *Handler) getQuarto(w http.ResponseWriter, r *http.Request, next http.Ha
 	if !regex.MatchString(r.URL.Path) {
 		h.Redirect(w, r)
 		return
+	}
+
+	if strings.HasSuffix(r.URL.Path, ".html") {
+		id := strings.Split(r.URL.Path, "/")[0]
+		story, err := h.repo.GetQuartoStory(r.Context(), uuid.MustParse(id))
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+		if err := h.amplitudeClient.PublishEvent(r.Context(), story.Name); err != nil {
+			h.log.WithError(err).Warning("Failed to publish event")
+		}
 	}
 
 	next.ServeHTTP(w, r)
