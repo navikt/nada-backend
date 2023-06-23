@@ -7,6 +7,7 @@ import (
 	"github.com/99designs/gqlgen/graphql/playground"
 	"github.com/go-chi/chi"
 	"github.com/go-chi/cors"
+	"github.com/navikt/nada-backend/pkg/amplitude"
 	"github.com/navikt/nada-backend/pkg/auth"
 	"github.com/navikt/nada-backend/pkg/database"
 	"github.com/navikt/nada-backend/pkg/gcs"
@@ -30,6 +31,7 @@ func New(
 	authMW auth.MiddlewareHandler,
 	gqlServer *handler.Server,
 	promReg *prometheus.Registry,
+	amplitudeClient amplitude.Amplitude,
 	log *logrus.Logger,
 ) *chi.Mux {
 	corsMW := cors.Handler(cors.Options{
@@ -39,7 +41,7 @@ func New(
 	})
 
 	storyHandler := story.NewHandler(repo)
-	quartoHandler := quarto.NewHandler(repo, gcsClient, log.WithField("subsystem", "quarto"))
+	quartoHandler := quarto.NewHandler(repo, gcsClient, amplitudeClient, log.WithField("subsystem", "quarto"))
 
 	router := chi.NewRouter()
 	router.Use(corsMW)

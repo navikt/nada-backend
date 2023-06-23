@@ -18,6 +18,7 @@ import (
 	graphProm "github.com/99designs/gqlgen-contrib/prometheus"
 	"github.com/google/uuid"
 	"github.com/navikt/nada-backend/pkg/access"
+	"github.com/navikt/nada-backend/pkg/amplitude"
 	"github.com/navikt/nada-backend/pkg/api"
 	"github.com/navikt/nada-backend/pkg/auth"
 	"github.com/navikt/nada-backend/pkg/bigquery"
@@ -137,7 +138,9 @@ func TestMain(m *testing.M) {
 		&mockAuthHandler{},
 		auth.MockJWTValidatorMiddleware(),
 		gqlServer,
-		prometheus.NewRegistry(), logrus.StandardLogger(),
+		prometheus.NewRegistry(),
+		amplitude.NewMock(),
+		logrus.StandardLogger(),
 	)
 
 	server = httptest.NewServer(srv)

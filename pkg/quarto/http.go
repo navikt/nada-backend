@@ -14,6 +14,7 @@ import (
 	"strings"
 
 	"github.com/google/uuid"
+	"github.com/navikt/nada-backend/pkg/amplitude"
 	"github.com/navikt/nada-backend/pkg/database"
 	"github.com/navikt/nada-backend/pkg/gcs"
 	"github.com/sirupsen/logrus"
@@ -26,16 +27,18 @@ const (
 )
 
 type Handler struct {
-	repo      *database.Repo
-	gcsClient *gcs.Client
-	log       *logrus.Entry
+	repo            *database.Repo
+	gcsClient       *gcs.Client
+	amplitudeClient amplitude.Amplitude
+	log             *logrus.Entry
 }
 
-func NewHandler(repo *database.Repo, gcsClient *gcs.Client, logger *logrus.Entry) *Handler {
+func NewHandler(repo *database.Repo, gcsClient *gcs.Client, amplitudeClient amplitude.Amplitude, logger *logrus.Entry) *Handler {
 	return &Handler{
-		repo:      repo,
-		gcsClient: gcsClient,
-		log:       logger,
+		repo:            repo,
+		gcsClient:       gcsClient,
+		amplitudeClient: amplitudeClient,
+		log:             logger,
 	}
 }
 
@@ -69,13 +72,13 @@ func (h *Handler) Update(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-    // Delete the root directory before uploading new files
+	// Delete the root directory before uploading new files
 	if err = h.gcsClient.DeleteObjectsWithPrefix(r.Context(), qID.String()); err != nil {
 		h.log.WithError(err).Errorf("deleting objects with prefix")
 		h.writeError(w, http.StatusInternalServerError, fmt.Errorf("internal server error"))
 		return
 	}
-	
+
 	for _, fileHeader := range r.MultipartForm.File {
 		if err := h.uploadFile(r.Context(), qID.String(), fileHeader); err != nil {
 			h.log.WithError(err).Errorf("uploading file")
@@ -117,6 +120,12 @@ func (h *Handler) getQuarto(w http.ResponseWriter, r *http.Request, next http.Ha
 	if !regex.MatchString(r.URL.Path) {
 		h.Redirect(w, r)
 		return
+	}
+
+	if strings.HasSuffix(r.URL.Path, ".html") {
+		if err := h.publishAmplitudeEvent(r.Context(), r.URL.Path); err != nil {
+			h.log.WithError(err).Warning("Failed to publish amplitude event")
+		}
 	}
 
 	next.ServeHTTP(w, r)
@@ -172,11 +181,11 @@ func (h *Handler) updateQuarto(w http.ResponseWriter, r *http.Request, next http
 
 func (h *Handler) uploadFile(ctx context.Context, objPath string, fileHeader []*multipart.FileHeader) error {
 	for _, f := range fileHeader {
-		fileFullPath:= f.Filename
+		fileFullPath := f.Filename
 
-		//try to extract full path from content-disposition header
+		// try to extract full path from content-disposition header
 		_, params, err := mime.ParseMediaType(f.Header.Get("Content-Disposition"))
-		if err == nil{
+		if err == nil {
 			pathInCDHeader := params["name"]
 			if pathInCDHeader != "" {
 				fileFullPath = pathInCDHeader
@@ -187,7 +196,7 @@ func (h *Handler) uploadFile(ctx context.Context, objPath string, fileHeader []*
 		if err != nil {
 			return err
 		}
-		
+
 		h.log.Printf("upload quarto file full path %v", objPath+"/"+fileFullPath)
 
 		if err := h.gcsClient.UploadFile(ctx, objPath+"/"+fileFullPath, file); err != nil {
@@ -210,6 +219,18 @@ func (h *Handler) writeError(w http.ResponseWriter, status int, err error) {
 	w.WriteHeader(status)
 	w.Header().Set("Content-Type", "application/json")
 	w.Write(respBytes)
+}
+
+func (h *Handler) publishAmplitudeEvent(ctx context.Context, urlPath string) error {
+	id := strings.Split(urlPath, "/")[2]
+	story, err := h.repo.GetQuartoStory(ctx, uuid.MustParse(id))
+	if err != nil {
+		return err
+	}
+	if err := h.amplitudeClient.PublishEvent(ctx, story.Name); err != nil {
+		return err
+	}
+	return nil
 }
 
 func getIDFromPath(r *http.Request, idPos int) (uuid.UUID, error) {

@@ -12,6 +12,7 @@ import (
 
 	graphProm "github.com/99designs/gqlgen-contrib/prometheus"
 	"github.com/navikt/nada-backend/pkg/access"
+	"github.com/navikt/nada-backend/pkg/amplitude"
 	"github.com/navikt/nada-backend/pkg/api"
 	"github.com/navikt/nada-backend/pkg/auth"
 	"github.com/navikt/nada-backend/pkg/bigquery"
@@ -76,6 +77,7 @@ func init() {
 	flag.IntVar(&cfg.DBMaxOpenConn, "max-open-conn", 17, "Maximum number of open db connections")
 	flag.StringVar(&cfg.QuartoStorageBucketName, "quarto-bucket", os.Getenv("GCP_QUARTO_STORAGE_BUCKET_NAME"), "Name of the gcs bucket for quarto stories")
 	flag.StringVar(&cfg.ConsoleAPIKey, "console-api-key", os.Getenv("CONSOLE_API_KEY"), "API key for nais console")
+	flag.StringVar(&cfg.AmplitudeAPIKey, "amplitude-api-key", os.Getenv("AMPLITUDE_API_KEY"), "API key for Amplitude")
 }
 
 func main() {
@@ -86,6 +88,7 @@ func main() {
 
 	log := newLogger()
 	slackClient := newSlackClient(log)
+
 	eventMgr := &event.Manager{}
 
 	repo, err := database.New(cfg.DBConnectionDSN, cfg.DBMaxIdleConn, cfg.DBMaxOpenConn, eventMgr, log.WithField("subsystem", "repo"))
@@ -110,6 +113,8 @@ func main() {
 	accessMgr = access.NewNoop()
 	var teamcatalogue graph.Teamkatalogen = teamkatalogen.NewMock()
 	var pollyAPI graph.Polly = polly.NewMock(cfg.PollyURL)
+	var amplitudeClient amplitude.Amplitude
+	amplitudeClient = amplitude.NewMock()
 	if !cfg.MockAuth {
 		teamcatalogue = teamkatalogen.New(cfg.TeamkatalogenURL)
 		teamProjectsUpdater = teamprojectsupdater.NewTeamProjectsUpdater(ctx, cfg.ConsoleURL, cfg.ConsoleAPIKey, http.DefaultClient, repo)
@@ -128,6 +133,7 @@ func main() {
 		authenticatorMiddleware = aauth.Middleware(aauth.KeyDiscoveryURL(), azureGroups, googleGroups, repo)
 		accessMgr = access.NewBigquery()
 		pollyAPI = polly.New(cfg.PollyURL)
+		amplitudeClient = amplitude.New(cfg.AmplitudeAPIKey, log.WithField("subsystem", "amplitude"))
 	} else {
 		teamProjectsUpdater, err = teamprojectsupdater.NewMockTeamProjectsUpdater(ctx, repo)
 		if err != nil {
@@ -155,7 +161,7 @@ func main() {
 
 	log.Info("Listening on :8080")
 	gqlServer := graph.New(repo, gcp, teamProjectsUpdater.TeamProjectsMapping, accessMgr, teamcatalogue, slackClient, pollyAPI, log.WithField("subsystem", "graph"))
-	srv := api.New(repo, gcsClient, httpAPI, authenticatorMiddleware, gqlServer, prom(repo.Metrics()...), log)
+	srv := api.New(repo, gcsClient, httpAPI, authenticatorMiddleware, gqlServer, prom(repo.Metrics()...), amplitudeClient, log)
 
 	server := http.Server{
 		Addr:    cfg.BindAddress,
