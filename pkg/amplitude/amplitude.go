@@ -13,6 +13,10 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
+type Amplitude interface {
+	PublishEvent(ctx context.Context, title string) error
+}
+
 type eventProperties struct {
 	SideTittel string `json:"sidetittel"`
 	Title      string `json:"title"`

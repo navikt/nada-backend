@@ -29,11 +29,11 @@ const (
 type Handler struct {
 	repo            *database.Repo
 	gcsClient       *gcs.Client
-	amplitudeClient *amplitude.AmplitudeClient
+	amplitudeClient amplitude.Amplitude
 	log             *logrus.Entry
 }
 
-func NewHandler(repo *database.Repo, gcsClient *gcs.Client, amplitudeClient *amplitude.AmplitudeClient, logger *logrus.Entry) *Handler {
+func NewHandler(repo *database.Repo, gcsClient *gcs.Client, amplitudeClient amplitude.Amplitude, logger *logrus.Entry) *Handler {
 	return &Handler{
 		repo:            repo,
 		gcsClient:       gcsClient,
@@ -123,14 +123,8 @@ func (h *Handler) getQuarto(w http.ResponseWriter, r *http.Request, next http.Ha
 	}
 
 	if strings.HasSuffix(r.URL.Path, ".html") {
-		id := strings.Split(r.URL.Path, "/")[0]
-		story, err := h.repo.GetQuartoStory(r.Context(), uuid.MustParse(id))
-		if err != nil {
-			http.Error(w, err.Error(), http.StatusInternalServerError)
-			return
-		}
-		if err := h.amplitudeClient.PublishEvent(r.Context(), story.Name); err != nil {
-			h.log.WithError(err).Warning("Failed to publish event")
+		if err := h.publishAmplitudeEvent(r.Context(), r.URL.Path); err != nil {
+			h.log.WithError(err).Warning("Failed to publish amplitude event")
 		}
 	}
 
@@ -225,6 +219,18 @@ func (h *Handler) writeError(w http.ResponseWriter, status int, err error) {
 	w.WriteHeader(status)
 	w.Header().Set("Content-Type", "application/json")
 	w.Write(respBytes)
+}
+
+func (h *Handler) publishAmplitudeEvent(ctx context.Context, urlPath string) error {
+	id := strings.Split(urlPath, "/")[2]
+	story, err := h.repo.GetQuartoStory(ctx, uuid.MustParse(id))
+	if err != nil {
+		return err
+	}
+	if err := h.amplitudeClient.PublishEvent(ctx, story.Name); err != nil {
+		return err
+	}
+	return nil
 }
 
 func getIDFromPath(r *http.Request, idPos int) (uuid.UUID, error) {

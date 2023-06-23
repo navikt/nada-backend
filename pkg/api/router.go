@@ -31,7 +31,7 @@ func New(
 	authMW auth.MiddlewareHandler,
 	gqlServer *handler.Server,
 	promReg *prometheus.Registry,
-	amplitudeClient *amplitude.AmplitudeClient,
+	amplitudeClient amplitude.Amplitude,
 	log *logrus.Logger,
 ) *chi.Mux {
 	corsMW := cors.Handler(cors.Options{

@@ -88,7 +88,6 @@ func main() {
 
 	log := newLogger()
 	slackClient := newSlackClient(log)
-	amplitudeClient := amplitude.New(cfg.AmplitudeAPIKey, log.WithField("subsystem", "amplitude"))
 
 	eventMgr := &event.Manager{}
 
@@ -114,6 +113,8 @@ func main() {
 	accessMgr = access.NewNoop()
 	var teamcatalogue graph.Teamkatalogen = teamkatalogen.NewMock()
 	var pollyAPI graph.Polly = polly.NewMock(cfg.PollyURL)
+	var amplitudeClient amplitude.Amplitude
+	amplitudeClient = amplitude.NewMock()
 	if !cfg.MockAuth {
 		teamcatalogue = teamkatalogen.New(cfg.TeamkatalogenURL)
 		teamProjectsUpdater = teamprojectsupdater.NewTeamProjectsUpdater(ctx, cfg.ConsoleURL, cfg.ConsoleAPIKey, http.DefaultClient, repo)
@@ -132,6 +133,7 @@ func main() {
 		authenticatorMiddleware = aauth.Middleware(aauth.KeyDiscoveryURL(), azureGroups, googleGroups, repo)
 		accessMgr = access.NewBigquery()
 		pollyAPI = polly.New(cfg.PollyURL)
+		amplitudeClient = amplitude.New(cfg.AmplitudeAPIKey, log.WithField("subsystem", "amplitude"))
 	} else {
 		teamProjectsUpdater, err = teamprojectsupdater.NewMockTeamProjectsUpdater(ctx, repo)
 		if err != nil {
