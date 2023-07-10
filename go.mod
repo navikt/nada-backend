@@ -42,7 +42,7 @@ require (
 )
 
 require (
-	cloud.google.com/go/storage v1.30.1
+	cloud.google.com/go/storage v1.31.0
 	github.com/btcsuite/btcutil v1.0.2
 	github.com/golang-jwt/jwt/v4 v4.5.0
 	github.com/qustavo/sqlhooks/v2 v2.1.0
