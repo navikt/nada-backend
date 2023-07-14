@@ -74,7 +74,7 @@ func init() {
 	flag.StringVar(&cfg.SlackToken, "slack-token", os.Getenv("SLACK_TOKEN"), "token for slack app")
 	flag.StringVar(&cfg.PollyURL, "polly-url", cfg.PollyURL, "URL for polly")
 	flag.IntVar(&cfg.DBMaxIdleConn, "max-idle-conn", 3, "Maximum number of idle db connections")
-	flag.IntVar(&cfg.DBMaxOpenConn, "max-open-conn", 17, "Maximum number of open db connections")
+	flag.IntVar(&cfg.DBMaxOpenConn, "max-open-conn", 5, "Maximum number of open db connections")
 	flag.StringVar(&cfg.QuartoStorageBucketName, "quarto-bucket", os.Getenv("GCP_QUARTO_STORAGE_BUCKET_NAME"), "Name of the gcs bucket for quarto stories")
 	flag.StringVar(&cfg.ConsoleAPIKey, "console-api-key", os.Getenv("CONSOLE_API_KEY"), "API key for nais console")
 	flag.StringVar(&cfg.AmplitudeAPIKey, "amplitude-api-key", os.Getenv("AMPLITUDE_API_KEY"), "API key for Amplitude")
