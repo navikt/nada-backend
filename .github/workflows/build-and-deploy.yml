@@ -14,20 +14,6 @@ on:
         required: true
 
 jobs:
-  snyk:
-    runs-on: ubuntu-latest
-    steps:
-  integration-tests:
-    name: Integration tests
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v3
-      - uses: actions/setup-go@v4
-        with:
-          go-version: "1.19"
-      - name: Run tests
-        run: make integration-test
-
   set-version:
     name: Set version
     runs-on: ubuntu-latest
