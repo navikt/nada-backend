@@ -25,7 +25,7 @@ require (
 	github.com/slack-go/slack v0.12.2
 	github.com/spf13/pflag v1.0.5
 	github.com/tabbed/pqtype v0.1.1
-	github.com/vektah/gqlparser/v2 v2.5.1
+	github.com/vektah/gqlparser/v2 v2.5.8
 	github.com/writeas/go-strip-markdown/v2 v2.1.1
 	golang.org/x/oauth2 v0.8.0
 	golang.org/x/xerrors v0.0.0-20220907171357-04be3eba64a2
