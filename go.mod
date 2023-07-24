@@ -6,7 +6,7 @@ require (
 	cloud.google.com/go/bigquery v1.52.0
 	cloud.google.com/go/iam v1.1.1
 	cloud.google.com/go/storage v1.31.0
-	github.com/99designs/gqlgen v0.17.30
+	github.com/99designs/gqlgen v0.17.35
 	github.com/99designs/gqlgen-contrib v0.1.1-0.20200601100547-7a955d321bbd
 	github.com/btcsuite/btcutil v1.0.2
 	github.com/coreos/go-oidc/v3 v3.6.0
@@ -63,7 +63,7 @@ require (
 	github.com/googleapis/enterprise-certificate-proxy v0.2.3 // indirect
 	github.com/googleapis/gax-go/v2 v2.11.0 // indirect
 	github.com/gorilla/websocket v1.5.0 // indirect
-	github.com/hashicorp/golang-lru/v2 v2.0.1 // indirect
+	github.com/hashicorp/golang-lru/v2 v2.0.3 // indirect
 	github.com/imdario/mergo v0.3.16 // indirect
 	github.com/klauspost/asmfmt v1.3.2 // indirect
 	github.com/klauspost/compress v1.16.7 // indirect
