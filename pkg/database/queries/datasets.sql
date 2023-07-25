@@ -131,18 +131,6 @@ UPDATE datasource_bigquery
 SET "missing_since" = NOW()
 WHERE dataset_id = @dataset_id;
 
--- name: DatasetKeywords :many
-SELECT keyword::text, count(1) as counted
-FROM (
-	SELECT unnest(keywords) as keyword
-	FROM datasets
-) keywords
-WHERE true
-AND CASE WHEN coalesce(TRIM(@keyword), '') = '' THEN true ELSE keyword ILIKE @keyword::text || '%' END
-GROUP BY keyword
-ORDER BY keywords.counted DESC
-LIMIT 15;
-
 -- name: DatasetsByMetabase :many
 SELECT *
 FROM datasets

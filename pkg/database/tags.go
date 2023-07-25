@@ -17,7 +17,7 @@ func (r *Repo) KeywordsSortedByPopularity(ctx context.Context) ([]*models.Keywor
 	for i, k := range ks {
 		km[i] = &models.Keyword{
 			Keyword: k.Keyword,
-			Count:   int(k.Count),
+			Count:   int(k.Counted),
 		}
 	}
 
