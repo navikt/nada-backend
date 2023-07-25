@@ -71,7 +71,7 @@ RETURNING *;
 
 
 -- name: DataproductKeywords :many
-SELECT keyword::text, count(1) as counted
+SELECT keyword::text, count(1) as "count"
 FROM (
 	SELECT unnest(ds.keywords) as keyword
 	FROM dataproducts dp
@@ -80,7 +80,7 @@ FROM (
 WHERE true
 AND CASE WHEN coalesce(TRIM(@keyword), '') = '' THEN true ELSE keyword ILIKE @keyword::text || '%' END
 GROUP BY keyword
-ORDER BY keywords.counted DESC
+ORDER BY keywords."count" DESC
 LIMIT 15;
 
 -- name: DataproductGroupStats :many

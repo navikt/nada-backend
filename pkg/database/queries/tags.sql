@@ -1,5 +1,5 @@
 -- name: GetKeywords :many
-SELECT keyword::text, count(1) as counted
+SELECT keyword::text, count(1) as "count"
 FROM (
          SELECT unnest(ds.keywords) as keyword
             FROM datasets ds
@@ -8,7 +8,7 @@ FROM (
             FROM stories s
     ) keywords
 GROUP BY keyword
-ORDER BY keywords.counted DESC;
+ORDER BY keywords."count" DESC;
 
 -- name: GetTags :many
 SELECT * FROM tags;

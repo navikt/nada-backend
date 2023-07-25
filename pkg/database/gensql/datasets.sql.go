@@ -154,47 +154,6 @@ func (q *Queries) CreateDataset(ctx context.Context, arg CreateDatasetParams) (D
 	return i, err
 }
 
-const datasetKeywords = `-- name: DatasetKeywords :many
-SELECT keyword::text, count(1) as counted
-FROM (
-	SELECT unnest(keywords) as keyword
-	FROM datasets
-) keywords
-WHERE true
-AND CASE WHEN coalesce(TRIM($1), '') = '' THEN true ELSE keyword ILIKE $1::text || '%' END
-GROUP BY keyword
-ORDER BY keywords.counted DESC
-LIMIT 15
-`
-
-type DatasetKeywordsRow struct {
-	Keyword string
-	Counted int64
-}
-
-func (q *Queries) DatasetKeywords(ctx context.Context, keyword string) ([]DatasetKeywordsRow, error) {
-	rows, err := q.db.QueryContext(ctx, datasetKeywords, keyword)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-	items := []DatasetKeywordsRow{}
-	for rows.Next() {
-		var i DatasetKeywordsRow
-		if err := rows.Scan(&i.Keyword, &i.Counted); err != nil {
-			return nil, err
-		}
-		items = append(items, i)
-	}
-	if err := rows.Close(); err != nil {
-		return nil, err
-	}
-	if err := rows.Err(); err != nil {
-		return nil, err
-	}
-	return items, nil
-}
-
 const datasetsByMetabase = `-- name: DatasetsByMetabase :many
 SELECT id, name, description, pii, created, last_modified, type, tsv_document, slug, repo, keywords, dataproduct_id, anonymisation_description, target_user
 FROM datasets

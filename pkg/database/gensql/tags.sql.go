@@ -19,7 +19,7 @@ func (q *Queries) CreateTagIfNotExist(ctx context.Context, phrase string) error 
 }
 
 const getKeywords = `-- name: GetKeywords :many
-SELECT keyword::text, count(1) as counted
+SELECT keyword::text, count(1) as "count"
 FROM (
          SELECT unnest(ds.keywords) as keyword
             FROM datasets ds
@@ -28,12 +28,12 @@ FROM (
             FROM stories s
     ) keywords
 GROUP BY keyword
-ORDER BY keywords.counted DESC
+ORDER BY keywords."count" DESC
 `
 
 type GetKeywordsRow struct {
 	Keyword string
-	Counted int64
+	Count   int64
 }
 
 func (q *Queries) GetKeywords(ctx context.Context) ([]GetKeywordsRow, error) {
@@ -45,7 +45,7 @@ func (q *Queries) GetKeywords(ctx context.Context) ([]GetKeywordsRow, error) {
 	items := []GetKeywordsRow{}
 	for rows.Next() {
 		var i GetKeywordsRow
-		if err := rows.Scan(&i.Keyword, &i.Counted); err != nil {
+		if err := rows.Scan(&i.Keyword, &i.Count); err != nil {
 			return nil, err
 		}
 		items = append(items, i)

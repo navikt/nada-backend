@@ -116,7 +116,7 @@ func (q *Queries) DataproductGroupStats(ctx context.Context, arg DataproductGrou
 }
 
 const dataproductKeywords = `-- name: DataproductKeywords :many
-SELECT keyword::text, count(1) as counted
+SELECT keyword::text, count(1) as "count"
 FROM (
 	SELECT unnest(ds.keywords) as keyword
 	FROM dataproducts dp
@@ -125,13 +125,13 @@ FROM (
 WHERE true
 AND CASE WHEN coalesce(TRIM($1), '') = '' THEN true ELSE keyword ILIKE $1::text || '%' END
 GROUP BY keyword
-ORDER BY keywords.counted DESC
+ORDER BY keywords."count" DESC
 LIMIT 15
 `
 
 type DataproductKeywordsRow struct {
 	Keyword string
-	Counted int64
+	Count   int64
 }
 
 func (q *Queries) DataproductKeywords(ctx context.Context, keyword string) ([]DataproductKeywordsRow, error) {
@@ -143,7 +143,7 @@ func (q *Queries) DataproductKeywords(ctx context.Context, keyword string) ([]Da
 	items := []DataproductKeywordsRow{}
 	for rows.Next() {
 		var i DataproductKeywordsRow
-		if err := rows.Scan(&i.Keyword, &i.Counted); err != nil {
+		if err := rows.Scan(&i.Keyword, &i.Count); err != nil {
 			return nil, err
 		}
 		items = append(items, i)

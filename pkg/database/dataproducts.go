@@ -231,7 +231,7 @@ func (r *Repo) DataproductKeywords(ctx context.Context, prefix string) ([]*model
 	for i, kw := range kws {
 		ret[i] = &models.Keyword{
 			Keyword: kw.Keyword,
-			Count:   int(kw.Counted),
+			Count:   int(kw.Count),
 		}
 	}
 	return ret, nil

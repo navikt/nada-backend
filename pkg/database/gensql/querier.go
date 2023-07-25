@@ -32,7 +32,6 @@ type Querier interface {
 	CreateTagIfNotExist(ctx context.Context, phrase string) error
 	DataproductGroupStats(ctx context.Context, arg DataproductGroupStatsParams) ([]DataproductGroupStatsRow, error)
 	DataproductKeywords(ctx context.Context, keyword string) ([]DataproductKeywordsRow, error)
-	DatasetKeywords(ctx context.Context, keyword string) ([]DatasetKeywordsRow, error)
 	DatasetsByMetabase(ctx context.Context, arg DatasetsByMetabaseParams) ([]Dataset, error)
 	DeleteAccessRequest(ctx context.Context, id uuid.UUID) error
 	DeleteDataproduct(ctx context.Context, id uuid.UUID) error
