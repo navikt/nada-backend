@@ -19,7 +19,7 @@ require (
 	github.com/lib/pq v1.10.9
 	github.com/ory/dockertest/v3 v3.10.0
 	github.com/pressly/goose/v3 v3.13.4
-	github.com/prometheus/client_golang v1.14.0
+	github.com/prometheus/client_golang v1.16.0
 	github.com/qustavo/sqlhooks/v2 v2.1.0
 	github.com/sirupsen/logrus v1.9.3
 	github.com/slack-go/slack v0.12.2
@@ -68,7 +68,7 @@ require (
 	github.com/klauspost/asmfmt v1.3.2 // indirect
 	github.com/klauspost/compress v1.16.7 // indirect
 	github.com/klauspost/cpuid/v2 v2.0.9 // indirect
-	github.com/matttproud/golang_protobuf_extensions v1.0.1 // indirect
+	github.com/matttproud/golang_protobuf_extensions v1.0.4 // indirect
 	github.com/minio/asm2plan9s v0.0.0-20200509001527-cdd76441f9d8 // indirect
 	github.com/minio/c2goasm v0.0.0-20190812172519-36a3d3bbc4f3 // indirect
 	github.com/mitchellh/mapstructure v1.5.0 // indirect
@@ -79,7 +79,7 @@ require (
 	github.com/pierrec/lz4/v4 v4.1.18 // indirect
 	github.com/pkg/errors v0.9.1 // indirect
 	github.com/prometheus/client_model v0.3.0 // indirect
-	github.com/prometheus/common v0.37.0 // indirect
+	github.com/prometheus/common v0.42.0 // indirect
 	github.com/prometheus/procfs v0.11.0 // indirect
 	github.com/xeipuuv/gojsonpointer v0.0.0-20190905194746-02993c407bfb // indirect
 	github.com/xeipuuv/gojsonreference v0.0.0-20180127040603-bd5ef7bd5415 // indirect
