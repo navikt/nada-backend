@@ -32,7 +32,6 @@ spec:
     enabled: true
     path: /internal/metrics
   ingresses:
-    - "https://nada.intern.nav.no/api/story"
     - "https://data.intern.nav.no/quarto"
     - "https://data.intern.nav.no/api"
     - "https://data.nav.no/quarto/update"
