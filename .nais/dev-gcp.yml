@@ -43,7 +43,6 @@ spec:
   ingresses:
     - "https://data.intern.dev.nav.no/api"
     - "https://data.intern.dev.nav.no/quarto"
-    - "https://nada.ekstern.dev.nav.no/api"
     - "https://nada.intern.dev.nav.no/quarto/update"
   envFrom:
     - secret: nada-backend
