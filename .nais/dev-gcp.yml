@@ -43,6 +43,8 @@ spec:
   ingresses:
     - "https://data.intern.dev.nav.no/api"
     - "https://data.intern.dev.nav.no/quarto"
+    - "https://nada.intern.dev.nav.no/quarto/update"
+    - "https://nada.intern.dev.nav.no/api/story"
     - "https://data.ekstern.dev.nav.no/quarto/update"
     - "https://data.ekstern.dev.nav.no/api/story"
   envFrom:
