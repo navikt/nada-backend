@@ -3,7 +3,7 @@ module github.com/navikt/nada-backend
 go 1.20
 
 require (
-	cloud.google.com/go/bigquery v1.52.0
+	cloud.google.com/go/bigquery v1.54.0
 	cloud.google.com/go/iam v1.1.1
 	cloud.google.com/go/storage v1.31.0
 	github.com/99designs/gqlgen v0.17.35
