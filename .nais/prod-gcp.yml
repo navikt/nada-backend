@@ -70,6 +70,7 @@ spec:
             value: "50"
           - name: cloudsql.logical_decoding
             value: "on"
+        diskAutoresize: true
     buckets:
       - name: nada-quarto-storage-prod
         publicAccessPrevention: true
