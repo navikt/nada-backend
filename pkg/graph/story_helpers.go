@@ -23,7 +23,6 @@ func storyFromDB(story *models.DBStory) (*models.GraphStory, error) {
 		Keywords:     story.Keywords,
 		Owner:        story.Owner,
 		Views:        views,
-		Draft:        story.Draft,
 	}, nil
 }
 

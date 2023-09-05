@@ -278,9 +278,9 @@ type ComplexityRoot struct {
 		QuartoStory              func(childComplexity int, id uuid.UUID) int
 		Search                   func(childComplexity int, q *models.SearchQueryOld, options *models.SearchQuery) int
 		Stories                  func(childComplexity int, draft *bool) int
-		Story                    func(childComplexity int, id uuid.UUID, draft *bool) int
+		Story                    func(childComplexity int, id uuid.UUID) int
 		StoryToken               func(childComplexity int, id uuid.UUID) int
-		StoryView                func(childComplexity int, id uuid.UUID, draft *bool) int
+		StoryView                func(childComplexity int, id uuid.UUID) int
 		Team                     func(childComplexity int, id string) int
 		Teamkatalogen            func(childComplexity int, q []string) int
 		UserInfo                 func(childComplexity int) int
@@ -465,8 +465,8 @@ type QueryResolver interface {
 	Search(ctx context.Context, q *models.SearchQueryOld, options *models.SearchQuery) ([]*models.SearchResultRow, error)
 	IsValidSlackChannel(ctx context.Context, name string) (bool, error)
 	Stories(ctx context.Context, draft *bool) ([]*models.GraphStory, error)
-	Story(ctx context.Context, id uuid.UUID, draft *bool) (*models.GraphStory, error)
-	StoryView(ctx context.Context, id uuid.UUID, draft *bool) (models.GraphStoryView, error)
+	Story(ctx context.Context, id uuid.UUID) (*models.GraphStory, error)
+	StoryView(ctx context.Context, id uuid.UUID) (models.GraphStoryView, error)
 	StoryToken(ctx context.Context, id uuid.UUID) (*models.StoryToken, error)
 	Teamkatalogen(ctx context.Context, q []string) ([]*models.TeamkatalogenResult, error)
 	UserInfo(ctx context.Context) (*models.UserInfo, error)
@@ -1890,7 +1890,7 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 			return 0, false
 		}
 
-		return e.complexity.Query.Story(childComplexity, args["id"].(uuid.UUID), args["draft"].(*bool)), true
+		return e.complexity.Query.Story(childComplexity, args["id"].(uuid.UUID)), true
 
 	case "Query.storyToken":
 		if e.complexity.Query.StoryToken == nil {
@@ -1914,7 +1914,7 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 			return 0, false
 		}
 
-		return e.complexity.Query.StoryView(childComplexity, args["id"].(uuid.UUID), args["draft"].(*bool)), true
+		return e.complexity.Query.StoryView(childComplexity, args["id"].(uuid.UUID)), true
 
 	case "Query.team":
 		if e.complexity.Query.Team == nil {
@@ -3807,8 +3807,6 @@ extend type Query {
 	story(
 		"id of the story."
 		id: ID!
-		"draft is a boolean indicating whether to return a draft or a published story."
-		draft: Boolean
 	): Story!
 
 	"""
@@ -3817,8 +3815,6 @@ extend type Query {
 	storyView(
 		"id of the story view."
 		id: ID!
-		"draft is a boolean indicating whether to return a draft or a published story view."
-		draft: Boolean
 	): StoryView!
 
 	"""
@@ -5024,15 +5020,6 @@ func (ec *executionContext) field_Query_storyView_args(ctx context.Context, rawA
 		}
 	}
 	args["id"] = arg0
-	var arg1 *bool
-	if tmp, ok := rawArgs["draft"]; ok {
-		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("draft"))
-		arg1, err = ec.unmarshalOBoolean2ᚖbool(ctx, tmp)
-		if err != nil {
-			return nil, err
-		}
-	}
-	args["draft"] = arg1
 	return args, nil
 }
 
@@ -5048,15 +5035,6 @@ func (ec *executionContext) field_Query_story_args(ctx context.Context, rawArgs 
 		}
 	}
 	args["id"] = arg0
-	var arg1 *bool
-	if tmp, ok := rawArgs["draft"]; ok {
-		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("draft"))
-		arg1, err = ec.unmarshalOBoolean2ᚖbool(ctx, tmp)
-		if err != nil {
-			return nil, err
-		}
-	}
-	args["draft"] = arg1
 	return args, nil
 }
 
@@ -14371,7 +14349,7 @@ func (ec *executionContext) _Query_story(ctx context.Context, field graphql.Coll
 	}()
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.Query().Story(rctx, fc.Args["id"].(uuid.UUID), fc.Args["draft"].(*bool))
+		return ec.resolvers.Query().Story(rctx, fc.Args["id"].(uuid.UUID))
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -14442,7 +14420,7 @@ func (ec *executionContext) _Query_storyView(ctx context.Context, field graphql.
 	}()
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.Query().StoryView(rctx, fc.Args["id"].(uuid.UUID), fc.Args["draft"].(*bool))
+		return ec.resolvers.Query().StoryView(rctx, fc.Args["id"].(uuid.UUID))
 	})
 	if err != nil {
 		ec.Error(ctx, err)

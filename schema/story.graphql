@@ -94,8 +94,6 @@ extend type Query {
 	story(
 		"id of the story."
 		id: ID!
-		"draft is a boolean indicating whether to return a draft or a published story."
-		draft: Boolean
 	): Story!
 
 	"""
@@ -104,8 +102,6 @@ extend type Query {
 	storyView(
 		"id of the story view."
 		id: ID!
-		"draft is a boolean indicating whether to return a draft or a published story view."
-		draft: Boolean
 	): StoryView!
 
 	"""
