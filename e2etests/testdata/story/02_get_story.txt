@@ -2,6 +2,7 @@
   story(id: "{{ .story_id }}"){
     id
     name
+
     owner{
       group
       teamkatalogenURL
@@ -28,7 +29,7 @@ ENDOPTS
     "story": {
       "name": "mystory",
       "owner": {
-        "group": "nada@nav.no",
+        "group": "team@nav.no",
         "teamkatalogenURL": null
       },
       "views": [
