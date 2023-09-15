@@ -4,6 +4,8 @@ mutation {
     keywords: ["key1", "key2"]
     name: "mystory"
     teamkatalogenURL: "https://some.url"
+    productAreaID: "Mocked-001"
+    teamID: "team-001"
   ) {
     id
     name
@@ -25,7 +27,7 @@ ENDOPTS
     "updateStoryMetadata": {
       "name": "mystory",
       "owner": {
-        "group": "nada@nav.no",
+        "group": "team@nav.no",
         "teamkatalogenURL": "https://some.url"
       },
       "keywords": [

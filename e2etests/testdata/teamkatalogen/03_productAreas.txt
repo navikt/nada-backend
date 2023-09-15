@@ -22,7 +22,11 @@ RETURNS
         "name": "Mocked Produktområde",
         "areaType": "PRODUCT_AREA",
         "dataproducts": [],
-        "stories": []
+        "stories": [
+          {
+            "name": "mystory"
+          }
+        ]
       },
       {
         "id": "Mocked-002",

@@ -1,0 +1,23 @@
+{
+	stories {
+        id
+        name
+    }
+}
+
+RETURNS
+
+OPTION data.stories.0.id=IGNORE
+
+ENDOPTS
+{
+  "data": {
+    "stories": [
+      {
+        "name": "mystory"
+      }
+    ]
+  }
+}
+
+STORE story_id=data.stories.0.id

@@ -51,7 +51,6 @@ func New(
 		r.HandleFunc("/login", httpAPI.Login)
 		r.HandleFunc("/oauth2/callback", httpAPI.Callback)
 		r.HandleFunc("/logout", httpAPI.Logout)
-		r.Post("/story", storyHandler.Upload)
 		r.Put("/story", storyHandler.Update)
 	})
 	router.Route("/quarto/", func(r chi.Router) {

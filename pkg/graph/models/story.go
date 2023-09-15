@@ -34,7 +34,6 @@ type GraphStory struct {
 	Created      time.Time        `json:"created"`
 	LastModified *time.Time       `json:"lastModified"`
 	Views        []GraphStoryView `json:"views"`
-	Draft        bool
 }
 
 type NewStory struct {

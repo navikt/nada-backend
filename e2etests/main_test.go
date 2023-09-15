@@ -146,13 +146,13 @@ func TestMain(m *testing.M) {
 	server = httptest.NewServer(srv)
 
 	ctx := context.Background()
-	draftID, err := createStoryDraft(ctx, repo)
+	storyID, err := createStory(ctx, repo)
 	if err != nil {
 		log.Fatalf("Could not create story draft for e2e tests: %s", err)
 	}
 	code := m.Run()
 
-	if err := deleteStoryDraft(ctx, repo, draftID); err != nil {
+	if err := deleteStory(ctx, repo, storyID); err != nil {
 		log.Fatalf("Could not delete story draft after e2e tests: %s", err)
 	}
 
@@ -168,7 +168,7 @@ func TestMain(m *testing.M) {
 	os.Exit(code)
 }
 
-func createStoryDraft(ctx context.Context, repo *database.Repo) (uuid.UUID, error) {
+func createStory(ctx context.Context, repo *database.Repo) (uuid.UUID, error) {
 	headerView := map[string]interface{}{
 		"content": "Header",
 		"level":   1,
@@ -196,11 +196,24 @@ func createStoryDraft(ctx context.Context, repo *database.Repo) (uuid.UUID, erro
 	if err != nil {
 		return uuid.UUID{}, err
 	}
-	return draftID, nil
+
+	story, err := repo.PublishStory(ctx, models.NewStory{
+		ID:            draftID,
+		Group:         "team@nav.no",
+		Name:          "mystory",
+		Keywords:      []string{},
+		ProductAreaID: stringToPtr("Mocked-001"),
+		TeamID:        stringToPtr("team"),
+	})
+	if err != nil {
+		return uuid.UUID{}, err
+	}
+
+	return story.ID, nil
 }
 
-func deleteStoryDraft(ctx context.Context, repo *database.Repo, draftID uuid.UUID) error {
-	return repo.DeleteStoryDraft(ctx, draftID)
+func deleteStory(ctx context.Context, repo *database.Repo, storyID uuid.UUID) error {
+	return repo.DeleteStory(ctx, storyID)
 }
 
 func findAvailableHostPort() (int, error) {
@@ -212,6 +225,10 @@ func findAvailableHostPort() (int, error) {
 		}
 	}
 	return 0, fmt.Errorf("could not find a port")
+}
+
+func stringToPtr(s string) *string {
+	return &s
 }
 
 type noopDatasetEnricher struct{}

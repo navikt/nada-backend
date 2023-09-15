@@ -1,15 +1,12 @@
-mutation{
-  publishStory(input: {
-    id: "{{ .draft_id }}",
-    group: "nada@nav.no",
-    name: "mystory"
-  }){
+{
+  story(id: "{{ .story_id }}"){
     id
     name
     owner{
       group
       teamkatalogenURL
     }
+    keywords
     views{
       ... on StoryViewHeader{
         content
@@ -24,17 +21,21 @@ mutation{
 
 RETURNS
 
-OPTION data.publishStory.id=IGNORE
+OPTION data.story.id=IGNORE
 
 ENDOPTS
 {
   "data": {
-    "publishStory": {
+    "story": {
       "name": "mystory",
       "owner": {
-        "group": "nada@nav.no",
-        "teamkatalogenURL": null
+        "group": "team@nav.no",
+        "teamkatalogenURL": "https://some.url"
       },
+      "keywords": [
+        "key1",
+        "key2"
+      ],
       "views": [
         {
           "content": "Header",
@@ -47,5 +48,3 @@ ENDOPTS
     }
   }
 }
-
-STORE story_id=data.publishStory.id

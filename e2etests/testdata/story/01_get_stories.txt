@@ -1,7 +1,5 @@
 {
-	stories(
-		draft: true
-	) {
+	stories {
         id
         name
         views{
@@ -40,4 +38,4 @@ ENDOPTS
   }
 }
 
-STORE draft_id=data.stories.0.id
+STORE story_id=data.stories.0.id
