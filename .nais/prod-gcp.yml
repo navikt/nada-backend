@@ -87,8 +87,10 @@ spec:
     outbound:
       rules:
         - application: metabase
+        - application: team-catalog-backend
+          namespace: org
       external:
-        - host: teamkatalog-api.prod-fss-pub.nais.io
+        - host: teamkatalog-api.intern.nav.no
         - host: teams.nav.cloud.nais.io
         - host: amplitude.nav.no
 
