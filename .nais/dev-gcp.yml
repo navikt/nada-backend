@@ -21,7 +21,7 @@ spec:
   command:
     - /app/nada-backend
     - --teamkatalogen-url
-    - http://team-catalog-backend.org.svc.cluster.local
+    - https://teamkatalog-api.intern.dev.nav.no
     - --polly-url
     - https://polly.dev-fss-pub.nais.io/process
     - --team-projects-url
