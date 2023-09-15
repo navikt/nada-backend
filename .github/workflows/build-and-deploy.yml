@@ -75,7 +75,7 @@ jobs:
         RESOURCE: .nais/dev-gcp.yml
 
     - name: Deploy to prod-gcp
-      if: github.ref == 'refs/heads/main' && inputs.environment != 'dev'
+      if: github.ref == 'refs/heads/main' && inputs.environment != 'dev'|| inputs.environment == 'prod'
       uses: nais/deploy/actions/deploy@v1
       env:
         APIKEY: ${{ secrets.NAIS_DEPLOY_APIKEY }}

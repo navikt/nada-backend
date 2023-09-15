@@ -26,7 +26,7 @@ func Do(client *http.Client, req *http.Request) ([]byte, error) {
 	sqlerr := cacheDB.QueryRow(`SELECT response_body, created_at,
 	 last_tried_update_at FROM http_cache WHERE endpoint = $1`,
 		endpoint).Scan(&cachedResponse, &lastCached, &lastTried)
-	if sqlerr == nil && isValidResponse(cachedResponse){
+	if sqlerr == nil && isValidResponse(cachedResponse) {
 		if time.Since(lastCached) > cacheExpire && time.Since(lastTried) > cacheExpire {
 			reqWithoutContext, err := http.NewRequest(req.Method, req.URL.String(), req.Body)
 			if err == nil {
@@ -36,17 +36,17 @@ func Do(client *http.Client, req *http.Request) ([]byte, error) {
 			}
 		}
 		return cachedResponse, nil
-	}else if !isValidResponse(cachedResponse){
+	} else if !isValidResponse(cachedResponse) {
 		log.WithError(sqlerr).Errorf("Cached response for %v is invalid", endpoint)
-	}else {
+	} else {
 		log.WithError(sqlerr).Errorf("Failed to query database for cached request")
 	}
 	return updateCache(client, req)
 }
 
-func isValidResponse(response []byte) bool{
+func isValidResponse(response []byte) bool {
 	var jsonData interface{}
-	return 	len(response) > 0 && json.Unmarshal(response, &jsonData) == nil;
+	return len(response) > 0 && json.Unmarshal(response, &jsonData) == nil
 }
 
 func updateCache(client *http.Client, req *http.Request) ([]byte, error) {
@@ -59,13 +59,13 @@ func updateCache(client *http.Client, req *http.Request) ([]byte, error) {
 		return nil, err
 	}
 
-	body, err := doActualRequest(client, req)
-	if err != nil {
-		log.WithError(err).Errorf("Failed to make request to %v", req.URL.String())
+	body, statusCode, err := doActualRequest(client, req)
+	if err != nil || !isSuccessful(statusCode) {
+		log.WithError(err).Errorf("Failed to make request to %v, status code: %v", req.URL.String(), statusCode)
 		return nil, err
 	}
 
-	if isValidResponse(body){
+	if isValidResponse(body) {
 		_, err = cacheDB.Exec(`INSERT INTO http_cache (endpoint, response_body, created_at, last_tried_update_at) 
 		VALUES ($1, $2, $3, $3) ON CONFLICT (endpoint) DO UPDATE SET response_body = $2, created_at= $3, last_tried_update_at = $3`, endpoint, body, time.Now().UTC())
 		if err != nil {
@@ -77,16 +77,20 @@ func updateCache(client *http.Client, req *http.Request) ([]byte, error) {
 	return body, nil
 }
 
-func doActualRequest(client *http.Client, req *http.Request) ([]byte, error) {
+func isSuccessful(statusCode int) bool {
+	return statusCode >= http.StatusOK && statusCode < http.StatusMultipleChoices
+}
+
+func doActualRequest(client *http.Client, req *http.Request) ([]byte, int, error) {
 	resp, err := client.Do(req)
 	if err != nil {
-		return nil, err
+		return nil, 0, err
 	}
 	defer resp.Body.Close()
 
 	body, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
-		return nil, err
+		return nil, resp.StatusCode, err
 	}
-	return body, nil
+	return body, resp.StatusCode, nil
 }
