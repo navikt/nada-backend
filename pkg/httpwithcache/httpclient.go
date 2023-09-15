@@ -84,7 +84,7 @@ func isSuccessful(statusCode int) bool {
 func doActualRequest(client *http.Client, req *http.Request) ([]byte, int, error) {
 	resp, err := client.Do(req)
 	if err != nil {
-		return nil, resp.StatusCode, err
+		return nil, 0, err
 	}
 	defer resp.Body.Close()
 
