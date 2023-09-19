@@ -16,12 +16,19 @@ type (
 )
 
 type Manager struct {
+	ctx                                           context.Context
 	lock                                          sync.RWMutex
 	datasetGrantAccessListeners                   []DatasetListenerGrantAccess
 	datasetRevokeAccessListeners                  []DatasetListenerRevokeAccess
 	datasetListenerAddMetabaseMappingListeners    []DatasetListenerAddMetabaseMapping
 	datasetListenerRemoveMetabaseMappingListeners []DatasetListenerRemoveMetabaseMapping
 	datasetDeleteListeners                        []DatasetListenerDelete
+}
+
+func New(ctx context.Context) *Manager {
+	return &Manager{
+		ctx: ctx,
+	}
 }
 
 func (m *Manager) ListenForDatasetGrant(fn DatasetListenerGrantAccess) {
@@ -34,7 +41,7 @@ func (m *Manager) TriggerDatasetGrant(ctx context.Context, dpID uuid.UUID, subje
 	m.lock.RLock()
 	defer m.lock.RUnlock()
 	for _, fn := range m.datasetGrantAccessListeners {
-		fn(ctx, dpID, subject)
+		fn(m.ctx, dpID, subject)
 	}
 }
 
@@ -48,7 +55,7 @@ func (m *Manager) TriggerDatasetRevoke(ctx context.Context, dpID uuid.UUID, subj
 	m.lock.RLock()
 	defer m.lock.RUnlock()
 	for _, fn := range m.datasetRevokeAccessListeners {
-		fn(ctx, dpID, subject)
+		fn(m.ctx, dpID, subject)
 	}
 }
 
@@ -62,7 +69,7 @@ func (m *Manager) TriggerDatasetAddMetabaseMapping(ctx context.Context, dpID uui
 	m.lock.RLock()
 	defer m.lock.RUnlock()
 	for _, fn := range m.datasetListenerAddMetabaseMappingListeners {
-		fn(ctx, dpID)
+		fn(m.ctx, dpID)
 	}
 }
 
@@ -76,7 +83,7 @@ func (m *Manager) TriggerDatasetRemoveMetabaseMapping(ctx context.Context, dpID 
 	m.lock.RLock()
 	defer m.lock.RUnlock()
 	for _, fn := range m.datasetListenerRemoveMetabaseMappingListeners {
-		fn(ctx, dpID)
+		fn(m.ctx, dpID)
 	}
 }
 
@@ -90,6 +97,6 @@ func (m *Manager) TriggerDatasetDelete(ctx context.Context, dpID uuid.UUID) {
 	m.lock.RLock()
 	defer m.lock.RUnlock()
 	for _, fn := range m.datasetDeleteListeners {
-		fn(ctx, dpID)
+		fn(m.ctx, dpID)
 	}
 }

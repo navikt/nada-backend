@@ -26,8 +26,6 @@ func (m *Metabase) revokeMetabaseAccess(ctx context.Context, dsID uuid.UUID, sub
 	}
 
 	switch sType {
-	case "group":
-		m.removeGroupAccess(ctx, dsID, email)
 	case "user":
 		m.removeMetabaseGroupMember(ctx, dsID, email)
 	default:
@@ -51,32 +49,6 @@ func (m *Metabase) deleteDatabase(ctx context.Context, dsID uuid.UUID) {
 	}
 
 	m.deleteAllUsersDatabase(ctx, dsID)
-}
-
-func (m *Metabase) removeGroupAccess(ctx context.Context, dsID uuid.UUID, email string) {
-	log := m.log.WithField("datasetID", dsID)
-
-	mbMetadata, err := m.repo.GetMetabaseMetadata(ctx, dsID, false)
-	if err != nil {
-		log.WithError(err).Error("getting metabase metadata")
-		return
-	}
-
-	if mbMetadata.AADPermissionGroupID == 0 {
-		log.WithError(err).Errorf("permission group does not exist for dataset %v", dsID)
-		return
-	}
-
-	groupID, err := m.client.GetAzureGroupID(ctx, email)
-	if err != nil {
-		log.WithError(err).Error("getting azure group id")
-		return
-	}
-
-	if err := m.client.UpdateGroupMapping(ctx, groupID, mbMetadata.AADPermissionGroupID, GroupMappingOperationRemove); err != nil {
-		log.WithError(err).Errorf("unable to remove metabase group mapping")
-		return
-	}
 }
 
 func (m *Metabase) removeMetabaseGroupMember(ctx context.Context, dsID uuid.UUID, email string) {
@@ -180,11 +152,6 @@ func (m *Metabase) deleteRestrictedDatabase(ctx context.Context, datasetID uuid.
 
 	if err := m.client.DeletePermissionGroup(ctx, mbMeta.PermissionGroupID); err != nil {
 		log.Errorf("Unable to delete permission group %v", mbMeta.PermissionGroupID)
-		return
-	}
-
-	if err := m.client.DeletePermissionGroup(ctx, mbMeta.AADPermissionGroupID); err != nil {
-		log.Errorf("Unable to delete AAD permission group %v", mbMeta.AADPermissionGroupID)
 		return
 	}
 

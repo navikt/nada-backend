@@ -3,7 +3,6 @@ INSERT INTO metabase_metadata (
     "dataset_id",
     "database_id",
     "permission_group_id",
-    "aad_premission_group_id",
     "collection_id",
     "sa_email",
     "deleted_at"
@@ -11,7 +10,6 @@ INSERT INTO metabase_metadata (
     @dataset_id,
     @database_id,
     @permission_group_id,
-    @aad_premission_group_id,
     @collection_id,
     @sa_email,
     @deleted_at
