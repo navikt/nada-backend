@@ -89,7 +89,7 @@ func main() {
 	log := newLogger()
 	slackClient := newSlackClient(log)
 
-	eventMgr := &event.Manager{}
+	eventMgr := event.New(ctx)
 
 	repo, err := database.New(cfg.DBConnectionDSN, cfg.DBMaxIdleConn, cfg.DBMaxOpenConn, eventMgr, log.WithField("subsystem", "repo"))
 	if err != nil {
