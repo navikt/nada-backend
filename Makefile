@@ -29,7 +29,6 @@ env:
 	echo "METABASE_PASSWORD=$(shell kubectl get secret --context=dev-gcp --namespace=nada nada-backend -o jsonpath='{.data.METABASE_PASSWORD}' | base64 -d)" >> .env
 	echo "CONSOLE_API_KEY=$(shell kubectl get secret --context=dev-gcp --namespace=nada nada-backend -o jsonpath='{.data.CONSOLE_API_KEY}' | base64 -d)" >> .env
 	echo "AMPLITUDE_API_KEY=$(shell kubectl get secret --context=dev-gcp --namespace=nada nada-backend -o jsonpath='{.data.AMPLITUDE_API_KEY}' | base64 -d)" >> .env
-	echo "CONN_STRING=$(shell kubectl get secret --context=prod-gcp --namespace=nada google-sql-nada-backend -o jsonpath='{.data.NAIS_DATABASE_NADA_BACKEND_NADA_URL}' | base64 -d)" >> .env	
 
 test-sa:
 	$(shell kubectl get --context=dev-gcp --namespace=nada secret/google-credentials -o json | jq -r '.data."sa.json"' | base64 -d > test-sa.json)
@@ -52,7 +51,6 @@ local-with-auth:
 	--team-projects-url=https://raw.githubusercontent.com/nais/teams/master/gcp-projects/dev-output.json \
 	--quarto-bucket=nada-quarto-storage-dev \
 	--console-api-key="$(CONSOLE_API_KEY)" \
-	--db-connection-dsn="$(CONN_STRING)" \
 	--log-level=debug
 
 local:
