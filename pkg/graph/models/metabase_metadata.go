@@ -7,11 +7,10 @@ import (
 )
 
 type MetabaseMetadata struct {
-	DatasetID            uuid.UUID
-	DatabaseID           int
-	PermissionGroupID    int
-	AADPermissionGroupID int
-	CollectionID         int
-	SAEmail              string
-	DeletedAt            *time.Time
+	DatasetID         uuid.UUID
+	DatabaseID        int
+	PermissionGroupID int
+	CollectionID      int
+	SAEmail           string
+	DeletedAt         *time.Time
 }
