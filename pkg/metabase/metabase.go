@@ -35,12 +35,11 @@ type Metabase struct {
 }
 
 type dsWrapper struct {
-	Dataset            *models.Dataset
-	Key                string
-	Email              string
-	MetabaseGroupID    int
-	MetabaseAADGroupID int
-	CollectionID       int
+	Dataset         *models.Dataset
+	Key             string
+	Email           string
+	MetabaseGroupID int
+	CollectionID    int
 }
 
 func New(repo *database.Repo, client *Client, accessMgr graph.AccessManager, eventMgr *event.Manager, serviceAccount, serviceAccountEmail string, errs *prometheus.CounterVec, iamService *iam.Service, crmService *cloudresourcemanager.Service, log *logrus.Entry) *Metabase {
