@@ -6,7 +6,7 @@ require (
 	cloud.google.com/go/bigquery v1.52.0
 	cloud.google.com/go/iam v1.1.1
 	cloud.google.com/go/storage v1.31.0
-	github.com/99designs/gqlgen v0.17.36
+	github.com/99designs/gqlgen v0.17.38
 	github.com/99designs/gqlgen-contrib v0.1.1-0.20200601100547-7a955d321bbd
 	github.com/btcsuite/btcutil v1.0.2
 	github.com/coreos/go-oidc/v3 v3.6.0
@@ -25,7 +25,7 @@ require (
 	github.com/slack-go/slack v0.12.2
 	github.com/spf13/pflag v1.0.5
 	github.com/tabbed/pqtype v0.1.1
-	github.com/vektah/gqlparser/v2 v2.5.8
+	github.com/vektah/gqlparser/v2 v2.5.10
 	github.com/writeas/go-strip-markdown/v2 v2.1.1
 	golang.org/x/oauth2 v0.10.0
 	golang.org/x/xerrors v0.0.0-20220907171357-04be3eba64a2
