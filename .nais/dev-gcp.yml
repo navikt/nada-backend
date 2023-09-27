@@ -21,7 +21,7 @@ spec:
   command:
     - /app/nada-backend
     - --teamkatalogen-url
-    - https://teamkatalog-api.intern.dev.nav.no
+    - http://team-catalog-backend.org.svc.cluster.local
     - --polly-url
     - https://polly.dev-fss-pub.nais.io/process
     - --team-projects-url
@@ -97,6 +97,5 @@ spec:
         - application: team-catalog-backend
           namespace: org
       external:
-        - host: teamkatalog-api.intern.dev.nav.no
         - host: teams.nav.cloud.nais.io
         - host: amplitude.nav.no
