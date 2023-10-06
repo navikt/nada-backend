@@ -23,7 +23,7 @@ spec:
     - --teamkatalogen-url
     - http://team-catalog-backend.org.svc.cluster.local
     - --polly-url
-    - https://polly.dev-fss-pub.nais.io/process
+    - https://behandlingskatalog-backend.intern.dev.nav.no/process
     - --team-projects-url
     - https://raw.githubusercontent.com/nais/teams/master/gcp-projects/dev-output.json
   replicas:

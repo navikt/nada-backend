@@ -27,9 +27,9 @@ type PollyResponse struct {
 }
 
 func New(apiURL string) *Polly {
-	url := "https://behandlingskatalog-backend.intern.dev.nav.no/process/purpose"
+	url := "https://behandlingskatalog.intern.dev.nav.no/process/purpose"
 	if os.Getenv("NAIS_CLUSTER_NAME") == "prod-gcp" {
-		url = "https://behandlingskatalog-backend.intern.nav.no/process/purpose"
+		url = "https://behandlingskatalog.intern.nav.no/process/purpose"
 	}
 
 	return &Polly{
