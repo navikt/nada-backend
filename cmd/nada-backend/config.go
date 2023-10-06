@@ -40,7 +40,7 @@ func DefaultConfig() Config {
 		BindAddress:           ":8080",
 		LogLevel:              "info",
 		TeamkatalogenURL:      "http://team-catalog-backend.org.svc.cluster.local",
-		PollyURL:              "https://behandlingskatalog-backend.intern.nav.no/process",
+		PollyURL:              "http://behandlingskatalog-backend.teamdatajegerne.svc.cluster.local",
 		TeamProjectsOutputURL: "https://raw.githubusercontent.com/nais/teams/master/gcp-projects/prod-output.json",
 		ConsoleURL:            "https://teams.nav.cloud.nais.io",
 	}

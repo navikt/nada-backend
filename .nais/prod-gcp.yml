@@ -89,6 +89,8 @@ spec:
         - application: metabase
         - application: team-catalog-backend
           namespace: org
+        - application: behandlingskatalog-backend
+          namespace: teamdatajegerne
       external:
         - host: teams.nav.cloud.nais.io
         - host: amplitude.nav.no

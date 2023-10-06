@@ -22,8 +22,6 @@ spec:
     - /app/nada-backend
     - --teamkatalogen-url
     - http://team-catalog-backend.org.svc.cluster.local
-    - --polly-url
-    - https://behandlingskatalog-backend.intern.dev.nav.no/process
     - --team-projects-url
     - https://raw.githubusercontent.com/nais/teams/master/gcp-projects/dev-output.json
   replicas:
@@ -96,6 +94,8 @@ spec:
         - application: metabase
         - application: team-catalog-backend
           namespace: org
+        - application: behandlingskatalog-backend
+          namespace: teamdatajegerne
       external:
         - host: teams.nav.cloud.nais.io
         - host: amplitude.nav.no
