@@ -52,7 +52,6 @@ type ResolverRoot interface {
 	Story() StoryResolver
 	Team() TeamResolver
 	UserInfo() UserInfoResolver
-	NewPseudoView() NewPseudoViewResolver
 }
 
 type DirectiveRoot struct {
@@ -191,7 +190,7 @@ type ComplexityRoot struct {
 		CreateDataproduct            func(childComplexity int, input models.NewDataproduct) int
 		CreateDataset                func(childComplexity int, input models.NewDataset) int
 		CreateInsightProduct         func(childComplexity int, input models.NewInsightProduct) int
-		CreatePseudoView             func(childComplexity int, input models.NewDataset) int
+		CreatePseudoView             func(childComplexity int, input models.NewPseudoView) int
 		CreateQuartoStory            func(childComplexity int, files []*models.UploadFile, input models.NewQuartoStory) int
 		DeleteAccessRequest          func(childComplexity int, id uuid.UUID) int
 		DeleteDataproduct            func(childComplexity int, id uuid.UUID) int
@@ -430,7 +429,7 @@ type MutationResolver interface {
 	DeleteInsightProduct(ctx context.Context, id uuid.UUID) (bool, error)
 	UpdateKeywords(ctx context.Context, input models.UpdateKeywords) (bool, error)
 	TriggerMetadataSync(ctx context.Context) (bool, error)
-	CreatePseudoView(ctx context.Context, input models.NewDataset) (string, error)
+	CreatePseudoView(ctx context.Context, input models.NewPseudoView) (string, error)
 	CreateQuartoStory(ctx context.Context, files []*models.UploadFile, input models.NewQuartoStory) (*models.QuartoStory, error)
 	UpdateQuartoStoryMetadata(ctx context.Context, id uuid.UUID, name string, description string, keywords []string, teamkatalogenURL *string, productAreaID *string, teamID *string, group string) (*models.QuartoStory, error)
 	DeleteQuartoStory(ctx context.Context, id uuid.UUID) (bool, error)
@@ -502,10 +501,6 @@ type UserInfoResolver interface {
 	QuartoStories(ctx context.Context, obj *models.UserInfo) ([]*models.QuartoStory, error)
 	InsightProducts(ctx context.Context, obj *models.UserInfo) ([]*models.InsightProduct, error)
 	AccessRequests(ctx context.Context, obj *models.UserInfo) ([]*models.AccessRequest, error)
-}
-
-type NewPseudoViewResolver interface {
-	TargetColumns(ctx context.Context, obj *models.NewDataset, data []string) error
 }
 
 type executableSchema struct {
@@ -1209,7 +1204,7 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 			return 0, false
 		}
 
-		return e.complexity.Mutation.CreatePseudoView(childComplexity, args["input"].(models.NewDataset)), true
+		return e.complexity.Mutation.CreatePseudoView(childComplexity, args["input"].(models.NewPseudoView)), true
 
 	case "Mutation.createQuartoStory":
 		if e.complexity.Mutation.CreateQuartoStory == nil {
@@ -3523,9 +3518,13 @@ extend type Query {
 	{Name: "../../../schema/pseudoView.graphql", Input: `"""
 NewPseudoView contains metadata for creating a new pseudonymised view
 """
-input NewPseudoView @goModel(model: "github.com/navikt/nada-backend/pkg/graph/models.NewDataset") {
-    "bigquery contains metadata for the input table/view in bigquery datasource."
-    bigquery: NewBigQuery!
+input NewPseudoView @goModel(model: "github.com/navikt/nada-backend/pkg/graph/models.NewPseudoView"){
+    "projectID is the GCP project ID of the target table."
+    projectID: String!
+    "dataset is the name of the dataset of the target table."
+    dataset: String!
+    "table is the name of the target table"
+    table: String!
     "targetColumns is the columns to be pseudonymised."
     targetColumns: [String!]
 }
@@ -4161,10 +4160,10 @@ func (ec *executionContext) field_Mutation_createInsightProduct_args(ctx context
 func (ec *executionContext) field_Mutation_createPseudoView_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
 	var err error
 	args := map[string]interface{}{}
-	var arg0 models.NewDataset
+	var arg0 models.NewPseudoView
 	if tmp, ok := rawArgs["input"]; ok {
 		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("input"))
-		arg0, err = ec.unmarshalNNewPseudoView2githubᚗcomᚋnaviktᚋnadaᚑbackendᚋpkgᚋgraphᚋmodelsᚐNewDataset(ctx, tmp)
+		arg0, err = ec.unmarshalNNewPseudoView2githubᚗcomᚋnaviktᚋnadaᚑbackendᚋpkgᚋgraphᚋmodelsᚐNewPseudoView(ctx, tmp)
 		if err != nil {
 			return nil, err
 		}
@@ -10773,7 +10772,7 @@ func (ec *executionContext) _Mutation_createPseudoView(ctx context.Context, fiel
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		directive0 := func(rctx context.Context) (interface{}, error) {
 			ctx = rctx // use context from middleware stack in children
-			return ec.resolvers.Mutation().CreatePseudoView(rctx, fc.Args["input"].(models.NewDataset))
+			return ec.resolvers.Mutation().CreatePseudoView(rctx, fc.Args["input"].(models.NewPseudoView))
 		}
 		directive1 := func(ctx context.Context) (interface{}, error) {
 			if ec.directives.Authenticated == nil {
@@ -20120,29 +20119,47 @@ func (ec *executionContext) unmarshalInputNewInsightProduct(ctx context.Context,
 	return it, nil
 }
 
-func (ec *executionContext) unmarshalInputNewPseudoView(ctx context.Context, obj interface{}) (models.NewDataset, error) {
-	var it models.NewDataset
+func (ec *executionContext) unmarshalInputNewPseudoView(ctx context.Context, obj interface{}) (models.NewPseudoView, error) {
+	var it models.NewPseudoView
 	asMap := map[string]interface{}{}
 	for k, v := range obj.(map[string]interface{}) {
 		asMap[k] = v
 	}
 
-	fieldsInOrder := [...]string{"bigquery", "targetColumns"}
+	fieldsInOrder := [...]string{"projectID", "dataset", "table", "targetColumns"}
 	for _, k := range fieldsInOrder {
 		v, ok := asMap[k]
 		if !ok {
 			continue
 		}
 		switch k {
-		case "bigquery":
+		case "projectID":
 			var err error
 
-			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("bigquery"))
-			data, err := ec.unmarshalNNewBigQuery2githubᚗcomᚋnaviktᚋnadaᚑbackendᚋpkgᚋgraphᚋmodelsᚐNewBigQuery(ctx, v)
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("projectID"))
+			data, err := ec.unmarshalNString2string(ctx, v)
 			if err != nil {
 				return it, err
 			}
-			it.BigQuery = data
+			it.ProjectID = data
+		case "dataset":
+			var err error
+
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("dataset"))
+			data, err := ec.unmarshalNString2string(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.Dataset = data
+		case "table":
+			var err error
+
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("table"))
+			data, err := ec.unmarshalNString2string(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.Table = data
 		case "targetColumns":
 			var err error
 
@@ -20151,9 +20168,7 @@ func (ec *executionContext) unmarshalInputNewPseudoView(ctx context.Context, obj
 			if err != nil {
 				return it, err
 			}
-			if err = ec.resolvers.NewPseudoView().TargetColumns(ctx, &it, data); err != nil {
-				return it, err
-			}
+			it.TargetColumns = data
 		}
 	}
 
@@ -26005,7 +26020,7 @@ func (ec *executionContext) unmarshalNNewInsightProduct2githubᚗcomᚋnaviktᚋ
 	return res, graphql.ErrorOnPath(ctx, err)
 }
 
-func (ec *executionContext) unmarshalNNewPseudoView2githubᚗcomᚋnaviktᚋnadaᚑbackendᚋpkgᚋgraphᚋmodelsᚐNewDataset(ctx context.Context, v interface{}) (models.NewDataset, error) {
+func (ec *executionContext) unmarshalNNewPseudoView2githubᚗcomᚋnaviktᚋnadaᚑbackendᚋpkgᚋgraphᚋmodelsᚐNewPseudoView(ctx context.Context, v interface{}) (models.NewPseudoView, error) {
 	res, err := ec.unmarshalInputNewPseudoView(ctx, v)
 	return res, graphql.ErrorOnPath(ctx, err)
 }

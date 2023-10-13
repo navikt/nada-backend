@@ -105,3 +105,7 @@ func (m *Mock) TableMetadata(ctx context.Context, projectID string, datasetID st
 		LastModified: table.LastModified,
 	}, nil
 }
+
+func (m *Mock) CreatePseudonymisedView(ctx context.Context, projectID, datasetID, tableID string, piiColumns []string) (string, string, string, error) {
+	return "p", "d", "t", nil
+}

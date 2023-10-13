@@ -21,6 +21,7 @@ type Bigquery interface {
 	GetTables(ctx context.Context, projectID, datasetID string) ([]*models.BigQueryTable, error)
 	GetDatasets(ctx context.Context, projectID string) ([]string, error)
 	TableMetadata(ctx context.Context, projectID string, datasetID string, tableID string) (models.BigqueryMetadata, error)
+	CreatePseudonymisedView(ctx context.Context, projectID string, datasetID string, tableID string, targetColumns []string) (string, string, string, error)
 }
 
 type AccessManager interface {

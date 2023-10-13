@@ -2,6 +2,7 @@ package bigquery
 
 import (
 	"context"
+	"fmt"
 	"strings"
 
 	"cloud.google.com/go/bigquery"
@@ -9,7 +10,9 @@ import (
 	"google.golang.org/api/iterator"
 )
 
-type Bigquery struct{}
+type Bigquery struct {
+	centralDataProject string
+}
 
 func New(ctx context.Context) (*Bigquery, error) {
 	return &Bigquery{}, nil
@@ -129,4 +132,49 @@ func isSupportedTableType(tableType bigquery.TableType) bool {
 	}
 
 	return false
+}
+
+func (c *Bigquery) ComposeViewQuery(projectID, datasetID, tableID string, targetColumns []string) string {
+	qGenSalt := `WITH gen_salt AS (
+		SELECT GENERATE_UUID() AS salt
+	)`
+
+	qSelect := "SELECT "
+	for _, c := range targetColumns {
+		qSelect += fmt.Sprintf(" SHA256(%v || gen_salt.salt) AS _x_%v", c, c)
+		qSelect += ","
+	}
+
+	qSelect += "I.* EXCEPT("
+
+	for i, c := range targetColumns {
+		qSelect += c
+		if i != len(targetColumns)-1 {
+			qSelect += ","
+		} else {
+			qSelect += ")"
+		}
+	}
+	qFrom := fmt.Sprintf("FROM `%v.%v.%v` AS I, gen_salt", projectID, datasetID, tableID)
+
+	return qGenSalt + " " + qSelect + " " + qFrom
+}
+
+func (c *Bigquery) CreatePseudonymisedView(ctx context.Context, projectID, datasetID, tableID string, piiColumns []string) (string, string, string, error) {
+	client, err := bigquery.NewClient(ctx, projectID)
+	if err != nil {
+		return "", "", "", fmt.Errorf("bigquery.NewClient: %v", err)
+	}
+	defer client.Close()
+
+	viewQuery := c.ComposeViewQuery(projectID, datasetID, tableID, piiColumns)
+	fmt.Println(viewQuery)
+	meta := &bigquery.TableMetadata{
+		ViewQuery: viewQuery,
+	}
+	pseudoViewID := fmt.Sprintf("_x_%v", tableID)
+	if err := client.Dataset(datasetID).Table(pseudoViewID).Create(ctx, meta); err != nil {
+		return "", "", "", err
+	}
+	return projectID, datasetID, pseudoViewID, nil
 }

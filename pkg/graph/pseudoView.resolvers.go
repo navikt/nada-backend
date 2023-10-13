@@ -8,21 +8,14 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/navikt/nada-backend/pkg/graph/generated"
 	"github.com/navikt/nada-backend/pkg/graph/models"
 )
 
 // CreatePseudoView is the resolver for the createPseudoView field.
-func (r *mutationResolver) CreatePseudoView(ctx context.Context, input models.NewDataset) (string, error) {
-	panic(fmt.Errorf("not implemented: CreatePseudoView - createPseudoView"))
+func (r *mutationResolver) CreatePseudoView(ctx context.Context, input models.NewPseudoView) (string, error) {
+	pid, did, tid, err := r.bigquery.CreatePseudonymisedView(ctx, input.ProjectID, input.Dataset, input.Table, input.TargetColumns)
+	if err != nil {
+		r.log.WithError(err).Errorf("failed to create pseudonymised view for %v %v %v", input.ProjectID, input.Dataset, input.Table)
+	}
+	return fmt.Sprintf("%v.%v.%v", pid, did, tid), err
 }
-
-// TargetColumns is the resolver for the targetColumns field.
-func (r *newPseudoViewResolver) TargetColumns(ctx context.Context, obj *models.NewDataset, data []string) error {
-	panic(fmt.Errorf("not implemented: TargetColumns - targetColumns"))
-}
-
-// NewPseudoView returns generated.NewPseudoViewResolver implementation.
-func (r *Resolver) NewPseudoView() generated.NewPseudoViewResolver { return &newPseudoViewResolver{r} }
-
-type newPseudoViewResolver struct{ *Resolver }
