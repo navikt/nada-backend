@@ -1,0 +1,21 @@
+"""
+NewPseudoView contains metadata for creating a new pseudonymised view
+"""
+input NewPseudoView @goModel(model: "github.com/navikt/nada-backend/pkg/graph/models.NewDataset") {
+    "bigquery contains metadata for the input table/view in bigquery datasource."
+    bigquery: NewBigQuery!
+    "targetColumns is the columns to be pseudonymised."
+    targetColumns: [String!]
+}
+
+extend type Mutation {
+    """
+    createPseudoView creates a new pseudoynimised view
+
+    Requires authentication.
+    """
+    createPseudoView(
+        "input contains information about the new dataset."
+        input: NewPseudoView!
+    ): String! @authenticated
+}

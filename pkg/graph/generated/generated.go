@@ -26,6 +26,7 @@ import (
 // NewExecutableSchema creates an ExecutableSchema from the ResolverRoot interface.
 func NewExecutableSchema(cfg Config) graphql.ExecutableSchema {
 	return &executableSchema{
+		schema:     cfg.Schema,
 		resolvers:  cfg.Resolvers,
 		directives: cfg.Directives,
 		complexity: cfg.Complexity,
@@ -33,6 +34,7 @@ func NewExecutableSchema(cfg Config) graphql.ExecutableSchema {
 }
 
 type Config struct {
+	Schema     *ast.Schema
 	Resolvers  ResolverRoot
 	Directives DirectiveRoot
 	Complexity ComplexityRoot
@@ -50,6 +52,7 @@ type ResolverRoot interface {
 	Story() StoryResolver
 	Team() TeamResolver
 	UserInfo() UserInfoResolver
+	NewPseudoView() NewPseudoViewResolver
 }
 
 type DirectiveRoot struct {
@@ -188,6 +191,7 @@ type ComplexityRoot struct {
 		CreateDataproduct            func(childComplexity int, input models.NewDataproduct) int
 		CreateDataset                func(childComplexity int, input models.NewDataset) int
 		CreateInsightProduct         func(childComplexity int, input models.NewInsightProduct) int
+		CreatePseudoView             func(childComplexity int, input models.NewDataset) int
 		CreateQuartoStory            func(childComplexity int, files []*models.UploadFile, input models.NewQuartoStory) int
 		DeleteAccessRequest          func(childComplexity int, id uuid.UUID) int
 		DeleteDataproduct            func(childComplexity int, id uuid.UUID) int
@@ -426,6 +430,7 @@ type MutationResolver interface {
 	DeleteInsightProduct(ctx context.Context, id uuid.UUID) (bool, error)
 	UpdateKeywords(ctx context.Context, input models.UpdateKeywords) (bool, error)
 	TriggerMetadataSync(ctx context.Context) (bool, error)
+	CreatePseudoView(ctx context.Context, input models.NewDataset) (string, error)
 	CreateQuartoStory(ctx context.Context, files []*models.UploadFile, input models.NewQuartoStory) (*models.QuartoStory, error)
 	UpdateQuartoStoryMetadata(ctx context.Context, id uuid.UUID, name string, description string, keywords []string, teamkatalogenURL *string, productAreaID *string, teamID *string, group string) (*models.QuartoStory, error)
 	DeleteQuartoStory(ctx context.Context, id uuid.UUID) (bool, error)
@@ -499,13 +504,21 @@ type UserInfoResolver interface {
 	AccessRequests(ctx context.Context, obj *models.UserInfo) ([]*models.AccessRequest, error)
 }
 
+type NewPseudoViewResolver interface {
+	TargetColumns(ctx context.Context, obj *models.NewDataset, data []string) error
+}
+
 type executableSchema struct {
+	schema     *ast.Schema
 	resolvers  ResolverRoot
 	directives DirectiveRoot
 	complexity ComplexityRoot
 }
 
 func (e *executableSchema) Schema() *ast.Schema {
+	if e.schema != nil {
+		return e.schema
+	}
 	return parsedSchema
 }
 
@@ -1185,6 +1198,18 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 		}
 
 		return e.complexity.Mutation.CreateInsightProduct(childComplexity, args["input"].(models.NewInsightProduct)), true
+
+	case "Mutation.createPseudoView":
+		if e.complexity.Mutation.CreatePseudoView == nil {
+			break
+		}
+
+		args, err := ec.field_Mutation_createPseudoView_args(context.TODO(), rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Mutation.CreatePseudoView(childComplexity, args["input"].(models.NewDataset)), true
 
 	case "Mutation.createQuartoStory":
 		if e.complexity.Mutation.CreateQuartoStory == nil {
@@ -2368,6 +2393,7 @@ func (e *executableSchema) Exec(ctx context.Context) graphql.ResponseHandler {
 		ec.unmarshalInputNewDatasetForNewDataproduct,
 		ec.unmarshalInputNewGrant,
 		ec.unmarshalInputNewInsightProduct,
+		ec.unmarshalInputNewPseudoView,
 		ec.unmarshalInputNewQuartoStory,
 		ec.unmarshalInputNewStory,
 		ec.unmarshalInputPollyInput,
@@ -2464,14 +2490,14 @@ func (ec *executionContext) introspectSchema() (*introspection.Schema, error) {
 	if ec.DisableIntrospection {
 		return nil, errors.New("introspection disabled")
 	}
-	return introspection.WrapSchema(parsedSchema), nil
+	return introspection.WrapSchema(ec.Schema()), nil
 }
 
 func (ec *executionContext) introspectType(name string) (*introspection.Type, error) {
 	if ec.DisableIntrospection {
 		return nil, errors.New("introspection disabled")
 	}
-	return introspection.WrapTypeFromDef(parsedSchema, parsedSchema.Types[name]), nil
+	return introspection.WrapTypeFromDef(ec.Schema(), ec.Schema().Types[name]), nil
 }
 
 var sources = []*ast.Source{
@@ -3494,6 +3520,27 @@ extend type Query {
     ): Team!
 }
 `, BuiltIn: false},
+	{Name: "../../../schema/pseudoView.graphql", Input: `"""
+NewPseudoView contains metadata for creating a new pseudonymised view
+"""
+input NewPseudoView @goModel(model: "github.com/navikt/nada-backend/pkg/graph/models.NewDataset") {
+    "bigquery contains metadata for the input table/view in bigquery datasource."
+    bigquery: NewBigQuery!
+    "targetColumns is the columns to be pseudonymised."
+    targetColumns: [String!]
+}
+
+extend type Mutation {
+    """
+    createPseudoView creates a new pseudoynimised view
+
+    Requires authentication.
+    """
+    createPseudoView(
+        "input contains information about the new dataset."
+        input: NewPseudoView!
+    ): String! @authenticated
+}`, BuiltIn: false},
 	{Name: "../../../schema/quarto_story.graphql", Input: `"""
 QuartoStory contains the metadata and content of data stories.
 """
@@ -4103,6 +4150,21 @@ func (ec *executionContext) field_Mutation_createInsightProduct_args(ctx context
 	if tmp, ok := rawArgs["input"]; ok {
 		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("input"))
 		arg0, err = ec.unmarshalNNewInsightProduct2githubᚗcomᚋnaviktᚋnadaᚑbackendᚋpkgᚋgraphᚋmodelsᚐNewInsightProduct(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["input"] = arg0
+	return args, nil
+}
+
+func (ec *executionContext) field_Mutation_createPseudoView_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
+	var err error
+	args := map[string]interface{}{}
+	var arg0 models.NewDataset
+	if tmp, ok := rawArgs["input"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("input"))
+		arg0, err = ec.unmarshalNNewPseudoView2githubᚗcomᚋnaviktᚋnadaᚑbackendᚋpkgᚋgraphᚋmodelsᚐNewDataset(ctx, tmp)
 		if err != nil {
 			return nil, err
 		}
@@ -10692,6 +10754,81 @@ func (ec *executionContext) fieldContext_Mutation_triggerMetadataSync(ctx contex
 		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
 			return nil, errors.New("field of type Boolean does not have child fields")
 		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Mutation_createPseudoView(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_Mutation_createPseudoView(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		directive0 := func(rctx context.Context) (interface{}, error) {
+			ctx = rctx // use context from middleware stack in children
+			return ec.resolvers.Mutation().CreatePseudoView(rctx, fc.Args["input"].(models.NewDataset))
+		}
+		directive1 := func(ctx context.Context) (interface{}, error) {
+			if ec.directives.Authenticated == nil {
+				return nil, errors.New("directive authenticated is not implemented")
+			}
+			return ec.directives.Authenticated(ctx, nil, directive0, nil)
+		}
+
+		tmp, err := directive1(rctx)
+		if err != nil {
+			return nil, graphql.ErrorOnPath(ctx, err)
+		}
+		if tmp == nil {
+			return nil, nil
+		}
+		if data, ok := tmp.(string); ok {
+			return data, nil
+		}
+		return nil, fmt.Errorf(`unexpected type %T from directive, should be string`, tmp)
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(string)
+	fc.Result = res
+	return ec.marshalNString2string(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_Mutation_createPseudoView(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Mutation",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			err = ec.Recover(ctx, r)
+			ec.Error(ctx, err)
+		}
+	}()
+	ctx = graphql.WithFieldContext(ctx, fc)
+	if fc.Args, err = ec.field_Mutation_createPseudoView_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+		ec.Error(ctx, err)
+		return fc, err
 	}
 	return fc, nil
 }
@@ -19983,6 +20120,46 @@ func (ec *executionContext) unmarshalInputNewInsightProduct(ctx context.Context,
 	return it, nil
 }
 
+func (ec *executionContext) unmarshalInputNewPseudoView(ctx context.Context, obj interface{}) (models.NewDataset, error) {
+	var it models.NewDataset
+	asMap := map[string]interface{}{}
+	for k, v := range obj.(map[string]interface{}) {
+		asMap[k] = v
+	}
+
+	fieldsInOrder := [...]string{"bigquery", "targetColumns"}
+	for _, k := range fieldsInOrder {
+		v, ok := asMap[k]
+		if !ok {
+			continue
+		}
+		switch k {
+		case "bigquery":
+			var err error
+
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("bigquery"))
+			data, err := ec.unmarshalNNewBigQuery2githubᚗcomᚋnaviktᚋnadaᚑbackendᚋpkgᚋgraphᚋmodelsᚐNewBigQuery(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.BigQuery = data
+		case "targetColumns":
+			var err error
+
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("targetColumns"))
+			data, err := ec.unmarshalOString2ᚕstringᚄ(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			if err = ec.resolvers.NewPseudoView().TargetColumns(ctx, &it, data); err != nil {
+				return it, err
+			}
+		}
+	}
+
+	return it, nil
+}
+
 func (ec *executionContext) unmarshalInputNewQuartoStory(ctx context.Context, obj interface{}) (models.NewQuartoStory, error) {
 	var it models.NewQuartoStory
 	asMap := map[string]interface{}{}
@@ -22123,6 +22300,13 @@ func (ec *executionContext) _Mutation(ctx context.Context, sel ast.SelectionSet)
 		case "triggerMetadataSync":
 			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
 				return ec._Mutation_triggerMetadataSync(ctx, field)
+			})
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "createPseudoView":
+			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
+				return ec._Mutation_createPseudoView(ctx, field)
 			})
 			if out.Values[i] == graphql.Null {
 				out.Invalids++
@@ -25818,6 +26002,11 @@ func (ec *executionContext) unmarshalNNewGrant2githubᚗcomᚋnaviktᚋnadaᚑba
 
 func (ec *executionContext) unmarshalNNewInsightProduct2githubᚗcomᚋnaviktᚋnadaᚑbackendᚋpkgᚋgraphᚋmodelsᚐNewInsightProduct(ctx context.Context, v interface{}) (models.NewInsightProduct, error) {
 	res, err := ec.unmarshalInputNewInsightProduct(ctx, v)
+	return res, graphql.ErrorOnPath(ctx, err)
+}
+
+func (ec *executionContext) unmarshalNNewPseudoView2githubᚗcomᚋnaviktᚋnadaᚑbackendᚋpkgᚋgraphᚋmodelsᚐNewDataset(ctx context.Context, v interface{}) (models.NewDataset, error) {
+	res, err := ec.unmarshalInputNewPseudoView(ctx, v)
 	return res, graphql.ErrorOnPath(ctx, err)
 }
 
