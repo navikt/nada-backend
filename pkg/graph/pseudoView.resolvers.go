@@ -19,3 +19,8 @@ func (r *mutationResolver) CreatePseudoView(ctx context.Context, input models.Ne
 	}
 	return fmt.Sprintf("%v.%v.%v", pid, did, tid), err
 }
+
+// CreateJoinableViews is the resolver for the createJoinableViews field.
+func (r *mutationResolver) CreateJoinableViews(ctx context.Context, input models.NewJoinableViews) (string, error) {
+	panic(fmt.Errorf("not implemented: CreateJoinableViews - createJoinableViews"))
+}

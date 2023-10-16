@@ -11,3 +11,9 @@ type NewPseudoView struct {
 	// targetColumns is the columns to be pseudonymised.
 	TargetColumns []string `json:"targetColumns,omitempty"`
 }
+
+// NewJoinableViews contains metadata for creating joinable views
+type NewJoinableViews struct {
+	// datasetIDs is the IDs of the dataset which connects to joinable views.
+	DatasetIDs []string `json:"datasetIDs,omitempty"`
+}

@@ -12,6 +12,14 @@ input NewPseudoView @goModel(model: "github.com/navikt/nada-backend/pkg/graph/mo
     targetColumns: [String!]
 }
 
+"""
+NewJoinableViews contains metadata for creating joinable views
+"""
+input NewJoinableViews @goModel(model: "github.com/navikt/nada-backend/pkg/graph/models.NewJoinableViews"){
+    "datasetIDs is the IDs of the dataset which connects to joinable views."
+    datasetIDs: [String!]
+}
+
 extend type Mutation {
     """
     createPseudoView creates a new pseudoynimised view
@@ -21,5 +29,10 @@ extend type Mutation {
     createPseudoView(
         "input contains information about the new dataset."
         input: NewPseudoView!
+    ): String! @authenticated
+
+    createJoinableViews(
+        "input contains information about the joinable views"
+        input: NewJoinableViews!
     ): String! @authenticated
 }
