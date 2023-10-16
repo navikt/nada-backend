@@ -7,7 +7,10 @@ package graph
 import (
 	"context"
 	"fmt"
+	"strings"
+	"time"
 
+	"github.com/navikt/nada-backend/pkg/auth"
 	"github.com/navikt/nada-backend/pkg/graph/models"
 )
 
@@ -22,5 +25,33 @@ func (r *mutationResolver) CreatePseudoView(ctx context.Context, input models.Ne
 
 // CreateJoinableViews is the resolver for the createJoinableViews field.
 func (r *mutationResolver) CreateJoinableViews(ctx context.Context, input models.NewJoinableViews) (string, error) {
-	panic(fmt.Errorf("not implemented: CreateJoinableViews - createJoinableViews"))
+	datasets := []*models.Dataset{}
+	for _, dsid := range input.DatasetIDs {
+		var dataset *models.Dataset
+		dataset, err := r.repo.GetDataset(ctx, dsid)
+		if err != nil {
+			return "", fmt.Errorf("Failed to find dataset to make joinable view: %v", err)
+		}
+		datasets = append(datasets, dataset)
+	}
+
+	tableUrls := []models.BigQuery{}
+	for _, ds := range datasets {
+		if datasource, err := r.repo.GetBigqueryDatasource(ctx, ds.ID); err == nil {
+			tableUrls = append(tableUrls, datasource)
+		} else {
+			return "", fmt.Errorf("Failed to find bigquery datasource: %v", err)
+		}
+	}
+
+	user := auth.GetUser(ctx)
+	emailFixDot := strings.ReplaceAll(user.Email, ".", "_")
+	emailFixAt := strings.ReplaceAll(emailFixDot, "@", "_")
+	joinableDatasetID := fmt.Sprintf("%v_%v", emailFixAt, time.Now().Format("20060102150405"))
+	err := r.bigquery.CreateJoinableViews(ctx, joinableDatasetID, tableUrls)
+	if err != nil {
+		return "", err
+	}
+
+	return joinableDatasetID, nil
 }

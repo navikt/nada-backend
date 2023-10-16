@@ -17,7 +17,7 @@ NewJoinableViews contains metadata for creating joinable views
 """
 input NewJoinableViews @goModel(model: "github.com/navikt/nada-backend/pkg/graph/models.NewJoinableViews"){
     "datasetIDs is the IDs of the dataset which connects to joinable views."
-    datasetIDs: [String!]
+    datasetIDs: [ID!]
 }
 
 extend type Mutation {

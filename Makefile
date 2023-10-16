@@ -51,7 +51,8 @@ local-with-auth:
 	--team-projects-url=https://raw.githubusercontent.com/nais/teams/master/gcp-projects/dev-output.json \
 	--quarto-bucket=nada-quarto-storage-dev \
 	--console-api-key="$(CONSOLE_API_KEY)" \
-	--log-level=debug
+	--log-level=debug \
+	--central-data-project=nav-central-data-dev-e170
 
 local:
 	STORAGE_EMULATOR_HOST=http://localhost:8082/storage/v1/ GCP_QUARTO_STORAGE_BUCKET_NAME=nada-quarto-storage-dev DASHBOARD_PA_ID=Mocked-001 go run ./cmd/nada-backend \

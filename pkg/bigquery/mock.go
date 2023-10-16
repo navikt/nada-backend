@@ -109,3 +109,7 @@ func (m *Mock) TableMetadata(ctx context.Context, projectID string, datasetID st
 func (m *Mock) CreatePseudonymisedView(ctx context.Context, projectID, datasetID, tableID string, piiColumns []string) (string, string, string, error) {
 	return "p", "d", "t", nil
 }
+
+func (m *Mock) CreateJoinableViews(ctx context.Context, joinableDatasetID string, tableUrls []models.BigQuery) error {
+	return nil
+}

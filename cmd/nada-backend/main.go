@@ -78,6 +78,7 @@ func init() {
 	flag.StringVar(&cfg.QuartoStorageBucketName, "quarto-bucket", os.Getenv("GCP_QUARTO_STORAGE_BUCKET_NAME"), "Name of the gcs bucket for quarto stories")
 	flag.StringVar(&cfg.ConsoleAPIKey, "console-api-key", os.Getenv("CONSOLE_API_KEY"), "API key for nais console")
 	flag.StringVar(&cfg.AmplitudeAPIKey, "amplitude-api-key", os.Getenv("AMPLITUDE_API_KEY"), "API key for Amplitude")
+	flag.StringVar(&cfg.CentralDataProject, "central-data-project", os.Getenv("CENTRAL_DATA_PROJECT"), "bigquery project for pseudo views")
 }
 
 func main() {
@@ -149,7 +150,7 @@ func main() {
 
 	var gcp graph.Bigquery = bigquery.NewMock()
 	if !cfg.SkipMetadataSync {
-		datacatalogClient, err := bigquery.New(ctx)
+		datacatalogClient, err := bigquery.New(ctx, cfg.CentralDataProject)
 		if err != nil {
 			log.WithError(err).Fatal("Creating datacatalog client")
 		}

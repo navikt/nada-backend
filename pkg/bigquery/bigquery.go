@@ -6,7 +6,9 @@ import (
 	"strings"
 
 	"cloud.google.com/go/bigquery"
+	"github.com/google/uuid"
 	"github.com/navikt/nada-backend/pkg/graph/models"
+	"google.golang.org/api/googleapi"
 	"google.golang.org/api/iterator"
 )
 
@@ -14,8 +16,10 @@ type Bigquery struct {
 	centralDataProject string
 }
 
-func New(ctx context.Context) (*Bigquery, error) {
-	return &Bigquery{}, nil
+func New(ctx context.Context, centralDataProject string) (*Bigquery, error) {
+	return &Bigquery{
+		centralDataProject: centralDataProject,
+	}, nil
 }
 
 func (c *Bigquery) TableMetadata(ctx context.Context, projectID string, datasetID string, tableID string) (models.BigqueryMetadata, error) {
@@ -134,7 +138,7 @@ func isSupportedTableType(tableType bigquery.TableType) bool {
 	return false
 }
 
-func (c *Bigquery) ComposeViewQuery(projectID, datasetID, tableID string, targetColumns []string) string {
+func (c *Bigquery) ComposePseudoViewQuery(projectID, datasetID, tableID string, targetColumns []string) string {
 	qGenSalt := `WITH gen_salt AS (
 		SELECT GENERATE_UUID() AS salt
 	)`
@@ -167,7 +171,7 @@ func (c *Bigquery) CreatePseudonymisedView(ctx context.Context, projectID, datas
 	}
 	defer client.Close()
 
-	viewQuery := c.ComposeViewQuery(projectID, datasetID, tableID, piiColumns)
+	viewQuery := c.ComposePseudoViewQuery(projectID, datasetID, tableID, piiColumns)
 	fmt.Println(viewQuery)
 	meta := &bigquery.TableMetadata{
 		ViewQuery: viewQuery,
@@ -177,4 +181,186 @@ func (c *Bigquery) CreatePseudonymisedView(ctx context.Context, projectID, datas
 		return "", "", "", err
 	}
 	return projectID, datasetID, pseudoViewID, nil
+}
+
+func (c *Bigquery) ComposeJoinableViewQuery(plainTableUrl models.BigQuery, joinableDatasetID string, pseudoColumns []string) string {
+	qSalt := fmt.Sprintf("WITH unified_salt AS (SELECT value AS salt FROM `%v.%v.%v` ds WHERE ds.key='%v')", c.centralDataProject, "secrets_vault", "secrets", joinableDatasetID)
+
+	qSelect := "SELECT "
+	for _, c := range pseudoColumns {
+		qSelect += fmt.Sprintf(" SHA256(%v || unified_salt.salt) AS _x_%v", c, c)
+		qSelect += ","
+	}
+
+	qSelect += "I.* EXCEPT("
+
+	for i, c := range pseudoColumns {
+		qSelect += c
+		if i != len(pseudoColumns)-1 {
+			qSelect += ","
+		} else {
+			qSelect += ")"
+		}
+	}
+	qFrom := fmt.Sprintf("FROM `%v.%v.%v` AS I, unified_salt", plainTableUrl.ProjectID, plainTableUrl.Dataset, plainTableUrl.Table)
+
+	return qSalt + " " + qSelect + " " + qFrom
+}
+
+func (c *Bigquery) CreateJoinableView(ctx context.Context, joinableDatasetID string, tableUrl models.BigQuery) error {
+	if !strings.HasPrefix(tableUrl.Table, "_x_") {
+		return fmt.Errorf("invalid tableUrl: not a pseudo view")
+	}
+
+	plainTable := strings.TrimPrefix(tableUrl.Table, "_x_")
+
+	client, err := bigquery.NewClient(ctx, tableUrl.ProjectID)
+	if err != nil {
+		return fmt.Errorf("bigquery.NewClient: %v", err)
+	}
+
+	meta, err := client.Dataset(tableUrl.Dataset).Table(tableUrl.Table).Metadata(ctx)
+	if err != nil {
+		return fmt.Errorf("query table metadata: %v", err)
+	}
+
+	pseudoColumns := []string{}
+	for _, field := range meta.Schema {
+		if strings.HasPrefix(field.Name, "_x_") {
+			pseudoColumns = append(pseudoColumns, strings.TrimPrefix(field.Name, "_x_"))
+		}
+	}
+
+	if len(pseudoColumns) == 0 {
+		return fmt.Errorf("invalid talbeUrl: no pseudo columns")
+	}
+
+	plainTableUrl := tableUrl
+	plainTableUrl.Table = plainTable
+	query := c.ComposeJoinableViewQuery(plainTableUrl, joinableDatasetID, pseudoColumns)
+
+	centralProjectclient, err := bigquery.NewClient(ctx, c.centralDataProject)
+	if err != nil {
+		return fmt.Errorf("bigquery.NewClient: %v", err)
+	}
+	defer centralProjectclient.Close()
+
+	joinableViewMeta := &bigquery.TableMetadata{
+		ViewQuery: query,
+	}
+
+	if err := centralProjectclient.Dataset(joinableDatasetID).Table(tableUrl.Table).Create(ctx, joinableViewMeta); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (c *Bigquery) CreateJoinableViews(ctx context.Context, joinableDatasetID string, tableUrls []models.BigQuery) error {
+	client, err := bigquery.NewClient(ctx, c.centralDataProject)
+	if err != nil {
+		return fmt.Errorf("bigquery.NewClient: %v", err)
+	}
+	defer client.Close()
+
+	c.createDatasetInCentralProject(ctx, joinableDatasetID)
+	c.createSecretTable(ctx, "secrets_vault", "secrets")
+	c.insertSecretIfNotExists(ctx, "secrets_vault", "secrets", joinableDatasetID)
+
+	for _, table := range tableUrls {
+		if err := c.CreateJoinableView(ctx, joinableDatasetID, table); err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+func (c *Bigquery) createDatasetInCentralProject(ctx context.Context, datasetID string) error {
+	client, err := bigquery.NewClient(ctx, c.centralDataProject)
+	if err != nil {
+		return fmt.Errorf("bigquery.NewClient: %v", err)
+	}
+	defer client.Close()
+
+	meta := &bigquery.DatasetMetadata{
+		Location: "europe-north1",
+	}
+	if err := client.Dataset(datasetID).Create(ctx, meta); err != nil {
+		if err != nil {
+			if gerr, ok := err.(*googleapi.Error); ok && gerr.Code == 409 {
+				return nil
+			}
+			return err
+		}
+	}
+	return nil
+}
+
+func (c *Bigquery) createSecretTable(ctx context.Context, datasetID, tableID string) error {
+	client, err := bigquery.NewClient(ctx, c.centralDataProject)
+	if err != nil {
+		return fmt.Errorf("bigquery.NewClient: %v", err)
+	}
+	defer client.Close()
+
+	meta := &bigquery.DatasetMetadata{
+		Location: "europe-north1",
+	}
+
+	if err := client.Dataset("secrets_vault").Create(ctx, meta); err != nil {
+		if gerr, ok := err.(*googleapi.Error); ok && gerr.Code != 409 {
+			return fmt.Errorf("failed to create secret dataset: %v", err)
+		}
+	}
+
+	sampleSchema := bigquery.Schema{
+		{Name: "key", Type: bigquery.StringFieldType},
+		{Name: "value", Type: bigquery.StringFieldType},
+	}
+
+	metaData := &bigquery.TableMetadata{
+		Schema: sampleSchema,
+	}
+	tableRef := client.Dataset(datasetID).Table(tableID)
+	if err := tableRef.Create(ctx, metaData); err != nil {
+		if gerr, ok := err.(*googleapi.Error); ok && gerr.Code == 409 {
+			return nil
+		}
+		return err
+	}
+	return nil
+}
+
+func (c *Bigquery) insertSecretIfNotExists(ctx context.Context, secretDatasetID, secretTableID, key string) error {
+	client, err := bigquery.NewClient(ctx, c.centralDataProject)
+	if err != nil {
+		return fmt.Errorf("bigquery.NewClient: %v", err)
+	}
+	defer client.Close()
+
+	encryptionKey, err := uuid.NewUUID()
+	if err != nil {
+		return err
+	}
+
+	var insertQuery strings.Builder
+	fmt.Fprintf(&insertQuery, "INSERT INTO `%v.%v.%v` (key, value) ", c.centralDataProject, secretDatasetID, secretTableID)
+	fmt.Fprintf(&insertQuery, "SELECT '%v', '%v' FROM UNNEST([1]) ", key, encryptionKey.String())
+	fmt.Fprintf(&insertQuery, "WHERE NOT EXISTS (SELECT 1 FROM `%v.%v.%v` WHERE key = '%v')", c.centralDataProject, secretDatasetID, secretTableID, key)
+
+	job, err := client.Query(insertQuery.String()).Run(ctx)
+	if err != nil {
+		return err
+	}
+
+	status, err := job.Wait(ctx)
+	if err != nil {
+		return err
+	}
+	if status.Err() != nil {
+		return err
+	}
+
+	return nil
 }
