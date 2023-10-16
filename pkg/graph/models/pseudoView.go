@@ -19,3 +19,8 @@ type NewJoinableViews struct {
 	// datasetIDs is the IDs of the dataset which connects to joinable views.
 	DatasetIDs []uuid.UUID `json:"datasetIDs,omitempty"`
 }
+
+type JoinableView struct {
+	BigqueryProjectID string `json:"bigqueryProjectID"`
+	BigqueryDatasetID string `json:"bigqueryDatasetID"`
+}

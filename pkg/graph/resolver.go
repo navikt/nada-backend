@@ -22,7 +22,8 @@ type Bigquery interface {
 	GetDatasets(ctx context.Context, projectID string) ([]string, error)
 	TableMetadata(ctx context.Context, projectID string, datasetID string, tableID string) (models.BigqueryMetadata, error)
 	CreatePseudonymisedView(ctx context.Context, projectID string, datasetID string, tableID string, targetColumns []string) (string, string, string, error)
-	CreateJoinableViews(ctx context.Context, joinableDatasetID string, tableUrls []models.BigQuery) error
+	CreateJoinableViewsForUser(ctx context.Context, user *auth.User, tableUrls []models.BigQuery) (string, error)
+	GetJoinableViewsForUser(ctx context.Context, user *auth.User) ([]*models.JoinableView, error)
 }
 
 type AccessManager interface {

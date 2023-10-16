@@ -7,8 +7,6 @@ package graph
 import (
 	"context"
 	"fmt"
-	"strings"
-	"time"
 
 	"github.com/navikt/nada-backend/pkg/auth"
 	"github.com/navikt/nada-backend/pkg/graph/models"
@@ -44,14 +42,15 @@ func (r *mutationResolver) CreateJoinableViews(ctx context.Context, input models
 		}
 	}
 
-	user := auth.GetUser(ctx)
-	emailFixDot := strings.ReplaceAll(user.Email, ".", "_")
-	emailFixAt := strings.ReplaceAll(emailFixDot, "@", "_")
-	joinableDatasetID := fmt.Sprintf("%v_%v", emailFixAt, time.Now().Format("20060102150405"))
-	err := r.bigquery.CreateJoinableViews(ctx, joinableDatasetID, tableUrls)
+	joinableDatasetID, err := r.bigquery.CreateJoinableViewsForUser(ctx, auth.GetUser(ctx), tableUrls)
 	if err != nil {
 		return "", err
 	}
 
 	return joinableDatasetID, nil
+}
+
+// JoinableViews is the resolver for the joinableViews field.
+func (r *queryResolver) JoinableViews(ctx context.Context) ([]*models.JoinableView, error) {
+	return r.bigquery.GetJoinableViewsForUser(ctx, auth.GetUser(ctx))
 }

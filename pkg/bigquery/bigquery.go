@@ -4,9 +4,11 @@ import (
 	"context"
 	"fmt"
 	"strings"
+	"time"
 
 	"cloud.google.com/go/bigquery"
 	"github.com/google/uuid"
+	"github.com/navikt/nada-backend/pkg/auth"
 	"github.com/navikt/nada-backend/pkg/graph/models"
 	"google.golang.org/api/googleapi"
 	"google.golang.org/api/iterator"
@@ -256,24 +258,25 @@ func (c *Bigquery) CreateJoinableView(ctx context.Context, joinableDatasetID str
 	return nil
 }
 
-func (c *Bigquery) CreateJoinableViews(ctx context.Context, joinableDatasetID string, tableUrls []models.BigQuery) error {
+func (c *Bigquery) CreateJoinableViewsForUser(ctx context.Context, user *auth.User, tableUrls []models.BigQuery) (string, error) {
 	client, err := bigquery.NewClient(ctx, c.centralDataProject)
 	if err != nil {
-		return fmt.Errorf("bigquery.NewClient: %v", err)
+		return "", fmt.Errorf("bigquery.NewClient: %v", err)
 	}
 	defer client.Close()
 
+	joinableDatasetID := fmt.Sprintf("%v_%v", makeUserPrefix(user), time.Now().Format("20060102150405"))
 	c.createDatasetInCentralProject(ctx, joinableDatasetID)
 	c.createSecretTable(ctx, "secrets_vault", "secrets")
 	c.insertSecretIfNotExists(ctx, "secrets_vault", "secrets", joinableDatasetID)
 
 	for _, table := range tableUrls {
 		if err := c.CreateJoinableView(ctx, joinableDatasetID, table); err != nil {
-			return err
+			return "", err
 		}
 	}
 
-	return nil
+	return joinableDatasetID, nil
 }
 
 func (c *Bigquery) createDatasetInCentralProject(ctx context.Context, datasetID string) error {
@@ -363,4 +366,33 @@ func (c *Bigquery) insertSecretIfNotExists(ctx context.Context, secretDatasetID,
 	}
 
 	return nil
+}
+
+func (c *Bigquery) GetJoinableViewsForUser(ctx context.Context, user *auth.User) ([]*models.JoinableView, error) {
+	client, err := bigquery.NewClient(ctx, c.centralDataProject)
+	if err != nil {
+		return nil, fmt.Errorf("bigquery.NewClient: %v", err)
+	}
+	defer client.Close()
+
+	dsiter := client.Datasets(ctx)
+
+	userPrefix := makeUserPrefix(user)
+	joinableViews := []*models.JoinableView{}
+	for ds, done := dsiter.Next(); done != iterator.Done; ds, done = dsiter.Next() {
+		if strings.HasPrefix(ds.DatasetID, userPrefix) {
+			joinableViews = append(joinableViews, &models.JoinableView{
+				BigqueryProjectID: c.centralDataProject,
+				BigqueryDatasetID: ds.DatasetID,
+			})
+		}
+	}
+
+	return joinableViews, nil
+}
+
+func makeUserPrefix(user *auth.User) string {
+	emailFixDot := strings.ReplaceAll(user.Email, ".", "_")
+	emailFixAt := strings.ReplaceAll(emailFixDot, "@", "_")
+	return emailFixAt
 }

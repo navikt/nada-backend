@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"cloud.google.com/go/bigquery"
+	"github.com/navikt/nada-backend/pkg/auth"
 	"github.com/navikt/nada-backend/pkg/graph/models"
 )
 
@@ -110,6 +111,10 @@ func (m *Mock) CreatePseudonymisedView(ctx context.Context, projectID, datasetID
 	return "p", "d", "t", nil
 }
 
-func (m *Mock) CreateJoinableViews(ctx context.Context, joinableDatasetID string, tableUrls []models.BigQuery) error {
-	return nil
+func (c *Mock) CreateJoinableViewsForUser(ctx context.Context, user *auth.User, tableUrls []models.BigQuery) (string, error) {
+	return "", nil
+}
+
+func (c *Mock) GetJoinableViewsForUser(ctx context.Context, user *auth.User) ([]*models.JoinableView, error) {
+	return nil, nil
 }

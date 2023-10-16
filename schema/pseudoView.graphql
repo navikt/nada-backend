@@ -20,6 +20,12 @@ input NewJoinableViews @goModel(model: "github.com/navikt/nada-backend/pkg/graph
     datasetIDs: [ID!]
 }
 
+
+type JoinableView @goModel(model: "github.com/navikt/nada-backend/pkg/graph/models.JoinableView"){
+    bigqueryProjectID: String!
+    bigqueryDatasetID: String!
+}
+
 extend type Mutation {
     """
     createPseudoView creates a new pseudoynimised view
@@ -35,4 +41,11 @@ extend type Mutation {
         "input contains information about the joinable views"
         input: NewJoinableViews!
     ): String! @authenticated
+}
+
+extend type Query {
+    """
+    joinableViews returns all the joinableViews for the user.
+    """
+    joinableViews: [JoinableView]!
 }

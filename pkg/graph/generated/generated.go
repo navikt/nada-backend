@@ -179,6 +179,11 @@ type ComplexityRoot struct {
 		Type             func(childComplexity int) int
 	}
 
+	JoinableView struct {
+		BigqueryDatasetID func(childComplexity int) int
+		BigqueryProjectID func(childComplexity int) int
+	}
+
 	Keyword struct {
 		Count   func(childComplexity int) int
 		Keyword func(childComplexity int) int
@@ -275,6 +280,7 @@ type ComplexityRoot struct {
 		GroupStats               func(childComplexity int, limit *int, offset *int) int
 		InsightProduct           func(childComplexity int, id uuid.UUID) int
 		IsValidSlackChannel      func(childComplexity int, name string) int
+		JoinableViews            func(childComplexity int) int
 		Keywords                 func(childComplexity int) int
 		Polly                    func(childComplexity int, q string) int
 		ProductArea              func(childComplexity int, id string) int
@@ -467,6 +473,7 @@ type QueryResolver interface {
 	ProductArea(ctx context.Context, id string) (*models.ProductArea, error)
 	ProductAreas(ctx context.Context) ([]*models.ProductArea, error)
 	Team(ctx context.Context, id string) (*models.Team, error)
+	JoinableViews(ctx context.Context) ([]*models.JoinableView, error)
 	QuartoStory(ctx context.Context, id uuid.UUID) (*models.QuartoStory, error)
 	Search(ctx context.Context, q *models.SearchQueryOld, options *models.SearchQuery) ([]*models.SearchResultRow, error)
 	IsValidSlackChannel(ctx context.Context, name string) (bool, error)
@@ -1121,6 +1128,20 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 		}
 
 		return e.complexity.InsightProduct.Type(childComplexity), true
+
+	case "JoinableView.bigqueryDatasetID":
+		if e.complexity.JoinableView.BigqueryDatasetID == nil {
+			break
+		}
+
+		return e.complexity.JoinableView.BigqueryDatasetID(childComplexity), true
+
+	case "JoinableView.bigqueryProjectID":
+		if e.complexity.JoinableView.BigqueryProjectID == nil {
+			break
+		}
+
+		return e.complexity.JoinableView.BigqueryProjectID(childComplexity), true
 
 	case "Keyword.count":
 		if e.complexity.Keyword.Count == nil {
@@ -1839,6 +1860,13 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 		}
 
 		return e.complexity.Query.IsValidSlackChannel(childComplexity, args["name"].(string)), true
+
+	case "Query.joinableViews":
+		if e.complexity.Query.JoinableViews == nil {
+			break
+		}
+
+		return e.complexity.Query.JoinableViews(childComplexity), true
 
 	case "Query.keywords":
 		if e.complexity.Query.Keywords == nil {
@@ -3552,6 +3580,12 @@ input NewJoinableViews @goModel(model: "github.com/navikt/nada-backend/pkg/graph
     datasetIDs: [ID!]
 }
 
+
+type JoinableView @goModel(model: "github.com/navikt/nada-backend/pkg/graph/models.JoinableView"){
+    bigqueryProjectID: String!
+    bigqueryDatasetID: String!
+}
+
 extend type Mutation {
     """
     createPseudoView creates a new pseudoynimised view
@@ -3567,6 +3601,13 @@ extend type Mutation {
         "input contains information about the joinable views"
         input: NewJoinableViews!
     ): String! @authenticated
+}
+
+extend type Query {
+    """
+    joinableViews returns all the joinableViews for the user.
+    """
+    joinableViews: [JoinableView]!
 }
 `, BuiltIn: false},
 	{Name: "../../../schema/quarto_story.graphql", Input: `"""
@@ -9025,6 +9066,94 @@ func (ec *executionContext) fieldContext_InsightProduct_lastModified(ctx context
 	return fc, nil
 }
 
+func (ec *executionContext) _JoinableView_bigqueryProjectID(ctx context.Context, field graphql.CollectedField, obj *models.JoinableView) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_JoinableView_bigqueryProjectID(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.BigqueryProjectID, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(string)
+	fc.Result = res
+	return ec.marshalNString2string(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_JoinableView_bigqueryProjectID(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "JoinableView",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _JoinableView_bigqueryDatasetID(ctx context.Context, field graphql.CollectedField, obj *models.JoinableView) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_JoinableView_bigqueryDatasetID(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.BigqueryDatasetID, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(string)
+	fc.Result = res
+	return ec.marshalNString2string(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_JoinableView_bigqueryDatasetID(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "JoinableView",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
 func (ec *executionContext) _Keyword_keyword(ctx context.Context, field graphql.CollectedField, obj *models.Keyword) (ret graphql.Marshaler) {
 	fc, err := ec.fieldContext_Keyword_keyword(ctx, field)
 	if err != nil {
@@ -14300,6 +14429,56 @@ func (ec *executionContext) fieldContext_Query_team(ctx context.Context, field g
 	if fc.Args, err = ec.field_Query_team_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
 		ec.Error(ctx, err)
 		return fc, err
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Query_joinableViews(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_Query_joinableViews(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.Query().JoinableViews(rctx)
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.([]*models.JoinableView)
+	fc.Result = res
+	return ec.marshalNJoinableView2ᚕᚖgithubᚗcomᚋnaviktᚋnadaᚑbackendᚋpkgᚋgraphᚋmodelsᚐJoinableView(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_Query_joinableViews(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Query",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "bigqueryProjectID":
+				return ec.fieldContext_JoinableView_bigqueryProjectID(ctx, field)
+			case "bigqueryDatasetID":
+				return ec.fieldContext_JoinableView_bigqueryDatasetID(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type JoinableView", field.Name)
+		},
 	}
 	return fc, nil
 }
@@ -22267,6 +22446,50 @@ func (ec *executionContext) _InsightProduct(ctx context.Context, sel ast.Selecti
 	return out
 }
 
+var joinableViewImplementors = []string{"JoinableView"}
+
+func (ec *executionContext) _JoinableView(ctx context.Context, sel ast.SelectionSet, obj *models.JoinableView) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, joinableViewImplementors)
+
+	out := graphql.NewFieldSet(fields)
+	deferred := make(map[string]*graphql.FieldSet)
+	for i, field := range fields {
+		switch field.Name {
+		case "__typename":
+			out.Values[i] = graphql.MarshalString("JoinableView")
+		case "bigqueryProjectID":
+			out.Values[i] = ec._JoinableView_bigqueryProjectID(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "bigqueryDatasetID":
+			out.Values[i] = ec._JoinableView_bigqueryDatasetID(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		default:
+			panic("unknown field " + strconv.Quote(field.Name))
+		}
+	}
+	out.Dispatch(ctx)
+	if out.Invalids > 0 {
+		return graphql.Null
+	}
+
+	atomic.AddInt32(&ec.deferred, int32(len(deferred)))
+
+	for label, dfs := range deferred {
+		ec.processDeferredGroup(graphql.DeferredGroup{
+			Label:    label,
+			Path:     graphql.GetPath(ctx),
+			FieldSet: dfs,
+			Context:  ctx,
+		})
+	}
+
+	return out
+}
+
 var keywordImplementors = []string{"Keyword"}
 
 func (ec *executionContext) _Keyword(ctx context.Context, sel ast.SelectionSet, obj *models.Keyword) graphql.Marshaler {
@@ -23436,6 +23659,28 @@ func (ec *executionContext) _Query(ctx context.Context, sel ast.SelectionSet) gr
 					}
 				}()
 				res = ec._Query_team(ctx, field)
+				if res == graphql.Null {
+					atomic.AddUint32(&fs.Invalids, 1)
+				}
+				return res
+			}
+
+			rrm := func(ctx context.Context) graphql.Marshaler {
+				return ec.OperationContext.RootResolverMiddleware(ctx,
+					func(ctx context.Context) graphql.Marshaler { return innerFunc(ctx, out) })
+			}
+
+			out.Concurrently(i, func(ctx context.Context) graphql.Marshaler { return rrm(innerCtx) })
+		case "joinableViews":
+			field := field
+
+			innerFunc := func(ctx context.Context, fs *graphql.FieldSet) (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._Query_joinableViews(ctx, field)
 				if res == graphql.Null {
 					atomic.AddUint32(&fs.Invalids, 1)
 				}
@@ -25891,6 +26136,44 @@ func (ec *executionContext) marshalNInt2int(ctx context.Context, sel ast.Selecti
 	return res
 }
 
+func (ec *executionContext) marshalNJoinableView2ᚕᚖgithubᚗcomᚋnaviktᚋnadaᚑbackendᚋpkgᚋgraphᚋmodelsᚐJoinableView(ctx context.Context, sel ast.SelectionSet, v []*models.JoinableView) graphql.Marshaler {
+	ret := make(graphql.Array, len(v))
+	var wg sync.WaitGroup
+	isLen1 := len(v) == 1
+	if !isLen1 {
+		wg.Add(len(v))
+	}
+	for i := range v {
+		i := i
+		fc := &graphql.FieldContext{
+			Index:  &i,
+			Result: &v[i],
+		}
+		ctx := graphql.WithFieldContext(ctx, fc)
+		f := func(i int) {
+			defer func() {
+				if r := recover(); r != nil {
+					ec.Error(ctx, ec.Recover(ctx, r))
+					ret = nil
+				}
+			}()
+			if !isLen1 {
+				defer wg.Done()
+			}
+			ret[i] = ec.marshalOJoinableView2ᚖgithubᚗcomᚋnaviktᚋnadaᚑbackendᚋpkgᚋgraphᚋmodelsᚐJoinableView(ctx, sel, v[i])
+		}
+		if isLen1 {
+			f(i)
+		} else {
+			go f(i)
+		}
+
+	}
+	wg.Wait()
+
+	return ret
+}
+
 func (ec *executionContext) marshalNKeyword2ᚕᚖgithubᚗcomᚋnaviktᚋnadaᚑbackendᚋpkgᚋgraphᚋmodelsᚐKeywordᚄ(ctx context.Context, sel ast.SelectionSet, v []*models.Keyword) graphql.Marshaler {
 	ret := make(graphql.Array, len(v))
 	var wg sync.WaitGroup
@@ -27299,6 +27582,13 @@ func (ec *executionContext) marshalOInt2ᚖint(ctx context.Context, sel ast.Sele
 	}
 	res := graphql.MarshalInt(*v)
 	return res
+}
+
+func (ec *executionContext) marshalOJoinableView2ᚖgithubᚗcomᚋnaviktᚋnadaᚑbackendᚋpkgᚋgraphᚋmodelsᚐJoinableView(ctx context.Context, sel ast.SelectionSet, v *models.JoinableView) graphql.Marshaler {
+	if v == nil {
+		return graphql.Null
+	}
+	return ec._JoinableView(ctx, sel, v)
 }
 
 func (ec *executionContext) unmarshalOMappingService2ᚕgithubᚗcomᚋnaviktᚋnadaᚑbackendᚋpkgᚋgraphᚋmodelsᚐMappingServiceᚄ(ctx context.Context, v interface{}) ([]models.MappingService, error) {
