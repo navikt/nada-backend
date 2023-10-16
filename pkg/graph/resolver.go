@@ -22,7 +22,7 @@ type Bigquery interface {
 	GetDatasets(ctx context.Context, projectID string) ([]string, error)
 	TableMetadata(ctx context.Context, projectID string, datasetID string, tableID string) (models.BigqueryMetadata, error)
 	CreatePseudonymisedView(ctx context.Context, projectID string, datasetID string, tableID string, targetColumns []string) (string, string, string, error)
-	CreateJoinableViewsForUser(ctx context.Context, user *auth.User, tableUrls []models.BigQuery) (string, error)
+	CreateJoinableViewsForUser(ctx context.Context, user *auth.User, tableUrls []models.BigQuery) (string, string, []string, error)
 	GetJoinableViewsForUser(ctx context.Context, user *auth.User) ([]*models.JoinableView, error)
 }
 

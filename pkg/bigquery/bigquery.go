@@ -209,21 +209,21 @@ func (c *Bigquery) ComposeJoinableViewQuery(plainTableUrl models.BigQuery, joina
 	return qSalt + " " + qSelect + " " + qFrom
 }
 
-func (c *Bigquery) CreateJoinableView(ctx context.Context, joinableDatasetID string, tableUrl models.BigQuery) error {
+func (c *Bigquery) CreateJoinableView(ctx context.Context, joinableDatasetID string, tableUrl models.BigQuery) (string, error) {
 	if !strings.HasPrefix(tableUrl.Table, "_x_") {
-		return fmt.Errorf("invalid tableUrl: not a pseudo view")
+		return "", fmt.Errorf("invalid tableUrl: not a pseudo view")
 	}
 
 	plainTable := strings.TrimPrefix(tableUrl.Table, "_x_")
 
 	client, err := bigquery.NewClient(ctx, tableUrl.ProjectID)
 	if err != nil {
-		return fmt.Errorf("bigquery.NewClient: %v", err)
+		return "", fmt.Errorf("bigquery.NewClient: %v", err)
 	}
 
 	meta, err := client.Dataset(tableUrl.Dataset).Table(tableUrl.Table).Metadata(ctx)
 	if err != nil {
-		return fmt.Errorf("query table metadata: %v", err)
+		return "", fmt.Errorf("query table metadata: %v", err)
 	}
 
 	pseudoColumns := []string{}
@@ -234,7 +234,7 @@ func (c *Bigquery) CreateJoinableView(ctx context.Context, joinableDatasetID str
 	}
 
 	if len(pseudoColumns) == 0 {
-		return fmt.Errorf("invalid talbeUrl: no pseudo columns")
+		return "", fmt.Errorf("invalid talbeUrl: no pseudo columns")
 	}
 
 	plainTableUrl := tableUrl
@@ -243,7 +243,7 @@ func (c *Bigquery) CreateJoinableView(ctx context.Context, joinableDatasetID str
 
 	centralProjectclient, err := bigquery.NewClient(ctx, c.centralDataProject)
 	if err != nil {
-		return fmt.Errorf("bigquery.NewClient: %v", err)
+		return "", fmt.Errorf("bigquery.NewClient: %v", err)
 	}
 	defer centralProjectclient.Close()
 
@@ -252,16 +252,16 @@ func (c *Bigquery) CreateJoinableView(ctx context.Context, joinableDatasetID str
 	}
 
 	if err := centralProjectclient.Dataset(joinableDatasetID).Table(tableUrl.Table).Create(ctx, joinableViewMeta); err != nil {
-		return err
+		return "", err
 	}
 
-	return nil
+	return tableUrl.Table, nil
 }
 
-func (c *Bigquery) CreateJoinableViewsForUser(ctx context.Context, user *auth.User, tableUrls []models.BigQuery) (string, error) {
+func (c *Bigquery) CreateJoinableViewsForUser(ctx context.Context, user *auth.User, tableUrls []models.BigQuery) (string, string, []string, error) {
 	client, err := bigquery.NewClient(ctx, c.centralDataProject)
 	if err != nil {
-		return "", fmt.Errorf("bigquery.NewClient: %v", err)
+		return "", "", nil, fmt.Errorf("bigquery.NewClient: %v", err)
 	}
 	defer client.Close()
 
@@ -270,13 +270,16 @@ func (c *Bigquery) CreateJoinableViewsForUser(ctx context.Context, user *auth.Us
 	c.createSecretTable(ctx, "secrets_vault", "secrets")
 	c.insertSecretIfNotExists(ctx, "secrets_vault", "secrets", joinableDatasetID)
 
+	views := []string{}
 	for _, table := range tableUrls {
-		if err := c.CreateJoinableView(ctx, joinableDatasetID, table); err != nil {
-			return "", err
+		if v, err := c.CreateJoinableView(ctx, joinableDatasetID, table); err != nil {
+			return "", "", nil, err
+		} else {
+			views = append(views, v)
 		}
 	}
 
-	return joinableDatasetID, nil
+	return c.centralDataProject, joinableDatasetID, views, nil
 }
 
 func (c *Bigquery) createDatasetInCentralProject(ctx context.Context, datasetID string) error {
@@ -387,7 +390,6 @@ func (c *Bigquery) GetJoinableViewsForUser(ctx context.Context, user *auth.User)
 			})
 		}
 	}
-
 	return joinableViews, nil
 }
 

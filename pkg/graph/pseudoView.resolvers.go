@@ -42,9 +42,18 @@ func (r *mutationResolver) CreateJoinableViews(ctx context.Context, input models
 		}
 	}
 
-	joinableDatasetID, err := r.bigquery.CreateJoinableViewsForUser(ctx, auth.GetUser(ctx), tableUrls)
+	projectID, joinableDatasetID, views, err := r.bigquery.CreateJoinableViewsForUser(ctx, auth.GetUser(ctx), tableUrls)
 	if err != nil {
 		return "", err
+	}
+
+	user := auth.GetUser(ctx)
+	subj := user.Email
+	subjType := models.SubjectTypeUser
+	subjWithType := subjType.String() + ":" + subj
+
+	for _, v := range views {
+		r.accessMgr.Grant(ctx, projectID, joinableDatasetID, v, subjWithType)
 	}
 
 	return joinableDatasetID, nil

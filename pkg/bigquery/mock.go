@@ -111,8 +111,8 @@ func (m *Mock) CreatePseudonymisedView(ctx context.Context, projectID, datasetID
 	return "p", "d", "t", nil
 }
 
-func (c *Mock) CreateJoinableViewsForUser(ctx context.Context, user *auth.User, tableUrls []models.BigQuery) (string, error) {
-	return "", nil
+func (c *Mock) CreateJoinableViewsForUser(ctx context.Context, user *auth.User, tableUrls []models.BigQuery) (string, string, []string, error) {
+	return "", "", nil, nil
 }
 
 func (c *Mock) GetJoinableViewsForUser(ctx context.Context, user *auth.User) ([]*models.JoinableView, error) {
