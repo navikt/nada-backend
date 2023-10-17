@@ -16,27 +16,32 @@ import (
 )
 
 const createBigqueryDatasource = `-- name: CreateBigqueryDatasource :one
-INSERT INTO datasource_bigquery ("dataset_id",
-                                 "project_id",
-                                 "dataset",
-                                 "table_name",
-                                 "schema",
-                                 "last_modified",
-                                 "created",
-                                 "expires",
-                                 "table_type",
-                                 "pii_tags")
-VALUES ($1,
-        $2,
-        $3,
-        $4,
-        $5,
-        $6,
-        $7,
-        $8,
-        $9,
-        $10)
-RETURNING dataset_id, project_id, dataset, table_name, schema, last_modified, created, expires, table_type, description, pii_tags, missing_since
+INSERT INTO
+  datasource_bigquery (
+    "dataset_id",
+    "project_id",
+    "dataset",
+    "table_name",
+    "schema",
+    "last_modified",
+    "created",
+    "expires",
+    "table_type",
+    "pii_tags"
+  )
+VALUES
+  (
+    $1,
+    $2,
+    $3,
+    $4,
+    $5,
+    $6,
+    $7,
+    $8,
+    $9,
+    $10
+  ) RETURNING dataset_id, project_id, dataset, table_name, schema, last_modified, created, expires, table_type, description, pii_tags, missing_since
 `
 
 type CreateBigqueryDatasourceParams struct {
@@ -84,28 +89,32 @@ func (q *Queries) CreateBigqueryDatasource(ctx context.Context, arg CreateBigque
 }
 
 const createDataset = `-- name: CreateDataset :one
-INSERT INTO datasets ("dataproduct_id",
-                      "name",
-                      "description",
-                      "pii",
-                      "type",
-                      "slug",
-                      "repo",
-                      "keywords",
-                      "anonymisation_description",
-                      "target_user"
-                      )
-VALUES ($1,
-        $2,
-        $3,
-        $4,
-        $5,
-        $6,
-        $7,
-        $8,
-        $9,
-        $10)
-RETURNING id, name, description, pii, created, last_modified, type, tsv_document, slug, repo, keywords, dataproduct_id, anonymisation_description, target_user
+INSERT INTO
+  datasets (
+    "dataproduct_id",
+    "name",
+    "description",
+    "pii",
+    "type",
+    "slug",
+    "repo",
+    "keywords",
+    "anonymisation_description",
+    "target_user"
+  )
+VALUES
+  (
+    $1,
+    $2,
+    $3,
+    $4,
+    $5,
+    $6,
+    $7,
+    $8,
+    $9,
+    $10
+  ) RETURNING id, name, description, pii, created, last_modified, type, tsv_document, slug, repo, keywords, dataproduct_id, anonymisation_description, target_user
 `
 
 type CreateDatasetParams struct {
@@ -155,15 +164,23 @@ func (q *Queries) CreateDataset(ctx context.Context, arg CreateDatasetParams) (D
 }
 
 const datasetsByMetabase = `-- name: DatasetsByMetabase :many
-SELECT id, name, description, pii, created, last_modified, type, tsv_document, slug, repo, keywords, dataproduct_id, anonymisation_description, target_user
-FROM datasets
-WHERE id IN (
-	SELECT dataset_id
-	FROM metabase_metadata
-  WHERE "deleted_at" IS NULL
-)
-ORDER BY last_modified DESC
-LIMIT $2 OFFSET $1
+SELECT
+  id, name, description, pii, created, last_modified, type, tsv_document, slug, repo, keywords, dataproduct_id, anonymisation_description, target_user
+FROM
+  datasets
+WHERE
+  id IN (
+    SELECT
+      dataset_id
+    FROM
+      metabase_metadata
+    WHERE
+      "deleted_at" IS NULL
+  )
+ORDER BY
+  last_modified DESC
+LIMIT
+  $2 OFFSET $1
 `
 
 type DatasetsByMetabaseParams struct {
@@ -210,9 +227,10 @@ func (q *Queries) DatasetsByMetabase(ctx context.Context, arg DatasetsByMetabase
 }
 
 const deleteDataset = `-- name: DeleteDataset :exec
-DELETE
-FROM datasets
-WHERE id = $1
+DELETE FROM
+  datasets
+WHERE
+  id = $1
 `
 
 func (q *Queries) DeleteDataset(ctx context.Context, id uuid.UUID) error {
@@ -220,10 +238,103 @@ func (q *Queries) DeleteDataset(ctx context.Context, id uuid.UUID) error {
 	return err
 }
 
+const getAccessibleDatasourcesByUser = `-- name: GetAccessibleDatasourcesByUser :many
+WITH owned_dp AS(
+  SELECT
+    dp.id
+  FROM
+    dataproducts dp
+  WHERE
+    dp.group = ANY($2 :: text [])
+)
+SELECT
+  included_ds.id AS dataset_id,
+  included_ds.name AS name,
+  sbq.project_id AS bq_project_id,
+  sbq.dataset AS bq_dataset_id,
+  sbq.table_name AS bq_table_id
+FROM
+  (
+    (
+      SELECT
+        ds.id AS id,
+        ds.name AS name,
+        ds.dataproduct_id AS dataproduct_id
+      FROM
+        datasets ds
+        JOIN dataset_access da ON ds.id = da.dataset_id
+      WHERE
+        da.subject = ANY($1 :: text [])
+        AND (
+          da.expires IS NULL
+          OR da.expires > CURRENT_TIMESTAMP
+        )
+      GROUP BY
+        ds.id
+    )
+    UNION
+    (
+      SELECT
+        ds.id AS id,
+        ds.name AS name,
+        ds.dataproduct_id AS dataproduct_id
+      FROM
+        datasets ds
+        RIGHT JOIN owned_dp ON ds.dataproduct_id = owned_dp.id
+    )
+  ) AS included_ds
+  LEFT JOIN datasource_bigquery AS sbq ON included_ds.id = sbq.dataset_id
+`
+
+type GetAccessibleDatasourcesByUserParams struct {
+	AccessSubjects []string
+	OwnerSubjects  []string
+}
+
+type GetAccessibleDatasourcesByUserRow struct {
+	DatasetID   uuid.UUID
+	Name        string
+	BqProjectID sql.NullString
+	BqDatasetID sql.NullString
+	BqTableID   sql.NullString
+}
+
+func (q *Queries) GetAccessibleDatasourcesByUser(ctx context.Context, arg GetAccessibleDatasourcesByUserParams) ([]GetAccessibleDatasourcesByUserRow, error) {
+	rows, err := q.db.QueryContext(ctx, getAccessibleDatasourcesByUser, pq.Array(arg.AccessSubjects), pq.Array(arg.OwnerSubjects))
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []GetAccessibleDatasourcesByUserRow{}
+	for rows.Next() {
+		var i GetAccessibleDatasourcesByUserRow
+		if err := rows.Scan(
+			&i.DatasetID,
+			&i.Name,
+			&i.BqProjectID,
+			&i.BqDatasetID,
+			&i.BqTableID,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const getBigqueryDatasource = `-- name: GetBigqueryDatasource :one
-SELECT dataset_id, project_id, dataset, table_name, schema, last_modified, created, expires, table_type, description, pii_tags, missing_since
-FROM datasource_bigquery
-WHERE dataset_id = $1
+SELECT
+  dataset_id, project_id, dataset, table_name, schema, last_modified, created, expires, table_type, description, pii_tags, missing_since
+FROM
+  datasource_bigquery
+WHERE
+  dataset_id = $1
 `
 
 func (q *Queries) GetBigqueryDatasource(ctx context.Context, datasetID uuid.UUID) (DatasourceBigquery, error) {
@@ -247,8 +358,10 @@ func (q *Queries) GetBigqueryDatasource(ctx context.Context, datasetID uuid.UUID
 }
 
 const getBigqueryDatasources = `-- name: GetBigqueryDatasources :many
-SELECT dataset_id, project_id, dataset, table_name, schema, last_modified, created, expires, table_type, description, pii_tags, missing_since
-FROM datasource_bigquery
+SELECT
+  dataset_id, project_id, dataset, table_name, schema, last_modified, created, expires, table_type, description, pii_tags, missing_since
+FROM
+  datasource_bigquery
 `
 
 func (q *Queries) GetBigqueryDatasources(ctx context.Context) ([]DatasourceBigquery, error) {
@@ -288,9 +401,12 @@ func (q *Queries) GetBigqueryDatasources(ctx context.Context) ([]DatasourceBigqu
 }
 
 const getDataset = `-- name: GetDataset :one
-SELECT id, name, description, pii, created, last_modified, type, tsv_document, slug, repo, keywords, dataproduct_id, anonymisation_description, target_user
-FROM datasets
-WHERE id = $1
+SELECT
+  id, name, description, pii, created, last_modified, type, tsv_document, slug, repo, keywords, dataproduct_id, anonymisation_description, target_user
+FROM
+  datasets
+WHERE
+  id = $1
 `
 
 func (q *Queries) GetDataset(ctx context.Context, id uuid.UUID) (Dataset, error) {
@@ -316,10 +432,14 @@ func (q *Queries) GetDataset(ctx context.Context, id uuid.UUID) (Dataset, error)
 }
 
 const getDatasets = `-- name: GetDatasets :many
-SELECT id, name, description, pii, created, last_modified, type, tsv_document, slug, repo, keywords, dataproduct_id, anonymisation_description, target_user
-FROM datasets
-ORDER BY last_modified DESC
-LIMIT $2 OFFSET $1
+SELECT
+  id, name, description, pii, created, last_modified, type, tsv_document, slug, repo, keywords, dataproduct_id, anonymisation_description, target_user
+FROM
+  datasets
+ORDER BY
+  last_modified DESC
+LIMIT
+  $2 OFFSET $1
 `
 
 type GetDatasetsParams struct {
@@ -366,10 +486,14 @@ func (q *Queries) GetDatasets(ctx context.Context, arg GetDatasetsParams) ([]Dat
 }
 
 const getDatasetsByGroups = `-- name: GetDatasetsByGroups :many
-SELECT id, name, description, pii, created, last_modified, type, tsv_document, slug, repo, keywords, dataproduct_id, anonymisation_description, target_user
-FROM datasets
-WHERE "group" = ANY ($1::text[])
-ORDER BY last_modified DESC
+SELECT
+  id, name, description, pii, created, last_modified, type, tsv_document, slug, repo, keywords, dataproduct_id, anonymisation_description, target_user
+FROM
+  datasets
+WHERE
+  "group" = ANY ($1 :: text [])
+ORDER BY
+  last_modified DESC
 `
 
 func (q *Queries) GetDatasetsByGroups(ctx context.Context, groups []string) ([]Dataset, error) {
@@ -411,10 +535,14 @@ func (q *Queries) GetDatasetsByGroups(ctx context.Context, groups []string) ([]D
 }
 
 const getDatasetsByIDs = `-- name: GetDatasetsByIDs :many
-SELECT id, name, description, pii, created, last_modified, type, tsv_document, slug, repo, keywords, dataproduct_id, anonymisation_description, target_user
-FROM datasets
-WHERE id = ANY ($1::uuid[])
-ORDER BY last_modified DESC
+SELECT
+  id, name, description, pii, created, last_modified, type, tsv_document, slug, repo, keywords, dataproduct_id, anonymisation_description, target_user
+FROM
+  datasets
+WHERE
+  id = ANY ($1 :: uuid [])
+ORDER BY
+  last_modified DESC
 `
 
 func (q *Queries) GetDatasetsByIDs(ctx context.Context, ids []uuid.UUID) ([]Dataset, error) {
@@ -456,14 +584,26 @@ func (q *Queries) GetDatasetsByIDs(ctx context.Context, ids []uuid.UUID) ([]Data
 }
 
 const getDatasetsByUserAccess = `-- name: GetDatasetsByUserAccess :many
-SELECT id, name, description, pii, created, last_modified, type, tsv_document, slug, repo, keywords, dataproduct_id, anonymisation_description, target_user
-FROM datasets
-WHERE id = ANY (SELECT dataset_id
-                FROM dataset_access
-                WHERE "subject" = LOWER($1)
-                  AND revoked IS NULL
-                  AND (expires > NOW() OR expires IS NULL))
-ORDER BY last_modified DESC
+SELECT
+  id, name, description, pii, created, last_modified, type, tsv_document, slug, repo, keywords, dataproduct_id, anonymisation_description, target_user
+FROM
+  datasets
+WHERE
+  id = ANY (
+    SELECT
+      dataset_id
+    FROM
+      dataset_access
+    WHERE
+      "subject" = LOWER($1)
+      AND revoked IS NULL
+      AND (
+        expires > NOW()
+        OR expires IS NULL
+      )
+  )
+ORDER BY
+  last_modified DESC
 `
 
 func (q *Queries) GetDatasetsByUserAccess(ctx context.Context, id string) ([]Dataset, error) {
@@ -505,9 +645,12 @@ func (q *Queries) GetDatasetsByUserAccess(ctx context.Context, id string) ([]Dat
 }
 
 const getDatasetsInDataproduct = `-- name: GetDatasetsInDataproduct :many
-SELECT id, name, description, pii, created, last_modified, type, tsv_document, slug, repo, keywords, dataproduct_id, anonymisation_description, target_user
-FROM datasets
-WHERE dataproduct_id = $1
+SELECT
+  id, name, description, pii, created, last_modified, type, tsv_document, slug, repo, keywords, dataproduct_id, anonymisation_description, target_user
+FROM
+  datasets
+WHERE
+  dataproduct_id = $1
 `
 
 func (q *Queries) GetDatasetsInDataproduct(ctx context.Context, dataproductID uuid.UUID) ([]Dataset, error) {
@@ -549,8 +692,10 @@ func (q *Queries) GetDatasetsInDataproduct(ctx context.Context, dataproductID uu
 }
 
 const replaceDatasetsTag = `-- name: ReplaceDatasetsTag :exec
-UPDATE datasets
-SET "keywords"          = array_replace(keywords, $1, $2)
+UPDATE
+  datasets
+SET
+  "keywords" = array_replace(keywords, $1, $2)
 `
 
 type ReplaceDatasetsTagParams struct {
@@ -564,9 +709,12 @@ func (q *Queries) ReplaceDatasetsTag(ctx context.Context, arg ReplaceDatasetsTag
 }
 
 const updateBigqueryDatasourceMissing = `-- name: UpdateBigqueryDatasourceMissing :exec
-UPDATE datasource_bigquery
-SET "missing_since" = NOW()
-WHERE dataset_id = $1
+UPDATE
+  datasource_bigquery
+SET
+  "missing_since" = NOW()
+WHERE
+  dataset_id = $1
 `
 
 func (q *Queries) UpdateBigqueryDatasourceMissing(ctx context.Context, datasetID uuid.UUID) error {
@@ -575,9 +723,12 @@ func (q *Queries) UpdateBigqueryDatasourceMissing(ctx context.Context, datasetID
 }
 
 const updateBigqueryDatasourcePiiTags = `-- name: UpdateBigqueryDatasourcePiiTags :exec
-UPDATE datasource_bigquery
-SET "pii_tags"        = $1
-WHERE dataset_id = $2
+UPDATE
+  datasource_bigquery
+SET
+  "pii_tags" = $1
+WHERE
+  dataset_id = $2
 `
 
 type UpdateBigqueryDatasourcePiiTagsParams struct {
@@ -591,13 +742,16 @@ func (q *Queries) UpdateBigqueryDatasourcePiiTags(ctx context.Context, arg Updat
 }
 
 const updateBigqueryDatasourceSchema = `-- name: UpdateBigqueryDatasourceSchema :exec
-UPDATE datasource_bigquery
-SET "schema"        = $1,
-    "last_modified" = $2,
-    "expires"       = $3,
-    "description"   = $4,
-    "missing_since" = null
-WHERE dataset_id = $5
+UPDATE
+  datasource_bigquery
+SET
+  "schema" = $1,
+  "last_modified" = $2,
+  "expires" = $3,
+  "description" = $4,
+  "missing_since" = null
+WHERE
+  dataset_id = $5
 `
 
 type UpdateBigqueryDatasourceSchemaParams struct {
@@ -620,18 +774,20 @@ func (q *Queries) UpdateBigqueryDatasourceSchema(ctx context.Context, arg Update
 }
 
 const updateDataset = `-- name: UpdateDataset :one
-UPDATE datasets
-SET "name"                      = $1,
-    "description"               = $2,
-    "pii"                       = $3,
-    "slug"                      = $4,
-    "repo"                      = $5,
-    "keywords"                  = $6,
-    "dataproduct_id"            = $7,
-    "anonymisation_description" = $8,
-    "target_user"               = $9
-WHERE id = $10
-RETURNING id, name, description, pii, created, last_modified, type, tsv_document, slug, repo, keywords, dataproduct_id, anonymisation_description, target_user
+UPDATE
+  datasets
+SET
+  "name" = $1,
+  "description" = $2,
+  "pii" = $3,
+  "slug" = $4,
+  "repo" = $5,
+  "keywords" = $6,
+  "dataproduct_id" = $7,
+  "anonymisation_description" = $8,
+  "target_user" = $9
+WHERE
+  id = $10 RETURNING id, name, description, pii, created, last_modified, type, tsv_document, slug, repo, keywords, dataproduct_id, anonymisation_description, target_user
 `
 
 type UpdateDatasetParams struct {

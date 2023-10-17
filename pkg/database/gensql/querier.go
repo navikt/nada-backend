@@ -48,6 +48,7 @@ type Querier interface {
 	DenyAccessRequest(ctx context.Context, arg DenyAccessRequestParams) error
 	GetAccessRequest(ctx context.Context, id uuid.UUID) (DatasetAccessRequest, error)
 	GetAccessToDataset(ctx context.Context, id uuid.UUID) (DatasetAccess, error)
+	GetAccessibleDatasourcesByUser(ctx context.Context, arg GetAccessibleDatasourcesByUserParams) ([]GetAccessibleDatasourcesByUserRow, error)
 	GetActiveAccessToDatasetForSubject(ctx context.Context, arg GetActiveAccessToDatasetForSubjectParams) (DatasetAccess, error)
 	GetAllMetabaseMetadata(ctx context.Context) ([]MetabaseMetadatum, error)
 	GetBigqueryDatasource(ctx context.Context, datasetID uuid.UUID) (DatasourceBigquery, error)

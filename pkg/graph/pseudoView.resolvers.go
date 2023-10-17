@@ -23,12 +23,34 @@ func (r *mutationResolver) CreatePseudoView(ctx context.Context, input models.Ne
 
 // CreateJoinableViews is the resolver for the createJoinableViews field.
 func (r *mutationResolver) CreateJoinableViews(ctx context.Context, input models.NewJoinableViews) (string, error) {
+	user := auth.GetUser(ctx)
 	datasets := []*models.Dataset{}
 	for _, dsid := range input.DatasetIDs {
 		var dataset *models.Dataset
 		dataset, err := r.repo.GetDataset(ctx, dsid)
 		if err != nil {
 			return "", fmt.Errorf("Failed to find dataset to make joinable view: %v", err)
+		}
+		dataproduct, err := r.repo.GetDataproduct(ctx, dataset.DataproductID)
+		if err != nil {
+			return "", fmt.Errorf("Failed to find dataproduct for dataset: %v", err)
+		}
+		if !user.GoogleGroups.Contains(dataproduct.Owner.Group) {
+			access, err := r.repo.ListActiveAccessToDataset(ctx, dataset.ID)
+			if err != nil {
+				return "", fmt.Errorf("Failed to check dataset access: %v", err)
+			}
+			accessSet := make(map[string]int)
+			for _, da := range access {
+				accessSet[da.Subject] = 1
+			}
+			for _, ugg := range user.GoogleGroups {
+				accessSet["group:"+ugg.Email] = 1
+			}
+			accessSet["user:"+user.Email] = 1
+			if len(accessSet) == len(user.GoogleGroups.Emails())+1+len(access) {
+				return "", fmt.Errorf("Access denied")
+			}
 		}
 		datasets = append(datasets, dataset)
 	}
@@ -47,7 +69,6 @@ func (r *mutationResolver) CreateJoinableViews(ctx context.Context, input models
 		return "", err
 	}
 
-	user := auth.GetUser(ctx)
 	subj := user.Email
 	subjType := models.SubjectTypeUser
 	subjWithType := subjType.String() + ":" + subj

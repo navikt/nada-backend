@@ -253,6 +253,18 @@ func (r *queryResolver) DatasetsInDataproduct(ctx context.Context, dataproductID
 	return r.repo.GetDatasetsInDataproduct(ctx, dataproductID)
 }
 
+// AccessibleDatasets is the resolver for the accessibleDatasets field.
+func (r *queryResolver) AccessibleDatasets(ctx context.Context) ([]*models.DatasourceMinimal, error) {
+	user := auth.GetUser(ctx)
+	subjectsAsOwner := []string{user.Email}
+	subjectsAsOwner = append(subjectsAsOwner, user.GoogleGroups.Emails()...)
+	subjectsAsAccesser := []string{"user:" + user.Email}
+	for _, geml := range user.GoogleGroups.Emails() {
+		subjectsAsAccesser = append(subjectsAsAccesser, "group:"+geml)
+	}
+	return r.repo.GetAccessibleDatasourcesByUser(ctx, subjectsAsOwner, subjectsAsAccesser)
+}
+
 // BigQuery returns generated.BigQueryResolver implementation.
 func (r *Resolver) BigQuery() generated.BigQueryResolver { return &bigQueryResolver{r} }
 

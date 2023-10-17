@@ -59,6 +59,7 @@ type TableColumn @goModel(model: "github.com/navikt/nada-backend/pkg/graph/model
     type: String!
 }
 
+
 """
 BigQuery contains metadata on a BigQuery table.
 """
@@ -85,6 +86,22 @@ type BigQuery @goModel(model: "github.com/navikt/nada-backend/pkg/graph/models.B
     piiTags: String
     "missingSince, if set, is the time when the table got deleted from BigQuery"
     missingSince: Time
+}
+
+"""
+DatasourceMinimal contains minimal information about datasource of a dataset
+"""
+type DatasourceMinimal @goModel(model: "github.com/navikt/nada-backend/pkg/graph/models.DatasourceMinimal") {
+    "bqProjectID is the bigquery project ID that contains the BigQuery table"
+    bqProjectID: String!
+    "bqDatasetID is the bigquery dataset that contains the BigQuery table"
+    bqDatasetID: String!
+    "bqTableID is the name for BigQuery table"
+    bqTableID: String!
+    "datasetID is the id of the dataset"
+    datasetID: ID!
+    "name is the name of the dataset"
+    name: String!
 }
 
 """
@@ -115,6 +132,11 @@ extend type Query {
         "dataproductID is the id of the dataproduct."
         dataproductID: ID!
     ): [Dataset!]!
+
+    """
+    accessibleDatasets returns the datasets the user has access to.
+    """
+    accessibleDatasets: [DatasourceMinimal!]!
 }
 
 """

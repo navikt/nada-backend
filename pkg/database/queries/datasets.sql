@@ -1,147 +1,262 @@
 -- name: GetDataset :one
-SELECT *
-FROM datasets
-WHERE id = @id;
+SELECT
+  *
+FROM
+  datasets
+WHERE
+  id = @id;
 
 -- name: GetDatasets :many
-SELECT *
-FROM datasets
-ORDER BY last_modified DESC
-LIMIT sqlc.arg('limit') OFFSET sqlc.arg('offset');
-
+SELECT
+  *
+FROM
+  datasets
+ORDER BY
+  last_modified DESC
+LIMIT
+  sqlc.arg('limit') OFFSET sqlc.arg('offset');
 
 -- name: GetDatasetsByIDs :many
-SELECT *
-FROM datasets
-WHERE id = ANY (@ids::uuid[])
-ORDER BY last_modified DESC;
+SELECT
+  *
+FROM
+  datasets
+WHERE
+  id = ANY (@ids :: uuid [])
+ORDER BY
+  last_modified DESC;
 
 -- name: GetDatasetsByGroups :many
-SELECT *
-FROM datasets
-WHERE "group" = ANY (@groups::text[])
-ORDER BY last_modified DESC;
+SELECT
+  *
+FROM
+  datasets
+WHERE
+  "group" = ANY (@groups :: text [])
+ORDER BY
+  last_modified DESC;
 
 -- name: GetDatasetsByUserAccess :many
-SELECT *
-FROM datasets
-WHERE id = ANY (SELECT dataset_id
-                FROM dataset_access
-                WHERE "subject" = LOWER(@id)
-                  AND revoked IS NULL
-                  AND (expires > NOW() OR expires IS NULL))
-ORDER BY last_modified DESC;
+SELECT
+  *
+FROM
+  datasets
+WHERE
+  id = ANY (
+    SELECT
+      dataset_id
+    FROM
+      dataset_access
+    WHERE
+      "subject" = LOWER(@id)
+      AND revoked IS NULL
+      AND (
+        expires > NOW()
+        OR expires IS NULL
+      )
+  )
+ORDER BY
+  last_modified DESC;
 
 -- name: GetDatasetsInDataproduct :many
-SELECT *
-FROM datasets
-WHERE dataproduct_id = @dataproduct_id;
+SELECT
+  *
+FROM
+  datasets
+WHERE
+  dataproduct_id = @dataproduct_id;
 
 -- name: DeleteDataset :exec
-DELETE
-FROM datasets
-WHERE id = @id;
+DELETE FROM
+  datasets
+WHERE
+  id = @id;
 
 -- name: CreateDataset :one
-INSERT INTO datasets ("dataproduct_id",
-                      "name",
-                      "description",
-                      "pii",
-                      "type",
-                      "slug",
-                      "repo",
-                      "keywords",
-                      "anonymisation_description",
-                      "target_user"
-                      )
-VALUES (@dataproduct_id,
-        @name,
-        @description,
-        @pii,
-        @type,
-        @slug,
-        @repo,
-        @keywords,
-        @anonymisation_description,
-        @target_user)
-RETURNING *;
+INSERT INTO
+  datasets (
+    "dataproduct_id",
+    "name",
+    "description",
+    "pii",
+    "type",
+    "slug",
+    "repo",
+    "keywords",
+    "anonymisation_description",
+    "target_user"
+  )
+VALUES
+  (
+    @dataproduct_id,
+    @name,
+    @description,
+    @pii,
+    @type,
+    @slug,
+    @repo,
+    @keywords,
+    @anonymisation_description,
+    @target_user
+  ) RETURNING *;
 
 -- name: UpdateDataset :one
-UPDATE datasets
-SET "name"                      = @name,
-    "description"               = @description,
-    "pii"                       = @pii,
-    "slug"                      = @slug,
-    "repo"                      = @repo,
-    "keywords"                  = @keywords,
-    "dataproduct_id"            = @dataproduct_id,
-    "anonymisation_description" = @anonymisation_description,
-    "target_user"               = @target_user
-WHERE id = @id
-RETURNING *;
+UPDATE
+  datasets
+SET
+  "name" = @name,
+  "description" = @description,
+  "pii" = @pii,
+  "slug" = @slug,
+  "repo" = @repo,
+  "keywords" = @keywords,
+  "dataproduct_id" = @dataproduct_id,
+  "anonymisation_description" = @anonymisation_description,
+  "target_user" = @target_user
+WHERE
+  id = @id RETURNING *;
 
 -- name: GetBigqueryDatasource :one
-SELECT *
-FROM datasource_bigquery
-WHERE dataset_id = @dataset_id;
+SELECT
+  *
+FROM
+  datasource_bigquery
+WHERE
+  dataset_id = @dataset_id;
 
 -- name: GetBigqueryDatasources :many
-SELECT *
-FROM datasource_bigquery;
+SELECT
+  *
+FROM
+  datasource_bigquery;
 
 -- name: CreateBigqueryDatasource :one
-INSERT INTO datasource_bigquery ("dataset_id",
-                                 "project_id",
-                                 "dataset",
-                                 "table_name",
-                                 "schema",
-                                 "last_modified",
-                                 "created",
-                                 "expires",
-                                 "table_type",
-                                 "pii_tags")
-VALUES (@dataset_id,
-        @project_id,
-        @dataset,
-        @table_name,
-        @schema,
-        @last_modified,
-        @created,
-        @expires,
-        @table_type,
-        @pii_tags)
-RETURNING *;
+INSERT INTO
+  datasource_bigquery (
+    "dataset_id",
+    "project_id",
+    "dataset",
+    "table_name",
+    "schema",
+    "last_modified",
+    "created",
+    "expires",
+    "table_type",
+    "pii_tags"
+  )
+VALUES
+  (
+    @dataset_id,
+    @project_id,
+    @dataset,
+    @table_name,
+    @schema,
+    @last_modified,
+    @created,
+    @expires,
+    @table_type,
+    @pii_tags
+  ) RETURNING *;
 
 -- name: UpdateBigqueryDatasourceSchema :exec
-UPDATE datasource_bigquery
-SET "schema"        = @schema,
-    "last_modified" = @last_modified,
-    "expires"       = @expires,
-    "description"   = @description,
-    "missing_since" = null
-WHERE dataset_id = @dataset_id;
+UPDATE
+  datasource_bigquery
+SET
+  "schema" = @schema,
+  "last_modified" = @last_modified,
+  "expires" = @expires,
+  "description" = @description,
+  "missing_since" = null
+WHERE
+  dataset_id = @dataset_id;
 
 -- name: UpdateBigqueryDatasourcePiiTags :exec
-UPDATE datasource_bigquery
-SET "pii_tags"        = @pii_tags
-WHERE dataset_id = @dataset_id;
+UPDATE
+  datasource_bigquery
+SET
+  "pii_tags" = @pii_tags
+WHERE
+  dataset_id = @dataset_id;
 
 -- name: UpdateBigqueryDatasourceMissing :exec
-UPDATE datasource_bigquery
-SET "missing_since" = NOW()
-WHERE dataset_id = @dataset_id;
+UPDATE
+  datasource_bigquery
+SET
+  "missing_since" = NOW()
+WHERE
+  dataset_id = @dataset_id;
 
 -- name: DatasetsByMetabase :many
-SELECT *
-FROM datasets
-WHERE id IN (
-	SELECT dataset_id
-	FROM metabase_metadata
-  WHERE "deleted_at" IS NULL
-)
-ORDER BY last_modified DESC
-LIMIT @lim OFFSET @offs;
+SELECT
+  *
+FROM
+  datasets
+WHERE
+  id IN (
+    SELECT
+      dataset_id
+    FROM
+      metabase_metadata
+    WHERE
+      "deleted_at" IS NULL
+  )
+ORDER BY
+  last_modified DESC
+LIMIT
+  @lim OFFSET @offs;
 
 -- name: ReplaceDatasetsTag :exec
-UPDATE datasets
-SET "keywords"          = array_replace(keywords, @tag_to_replace, @tag_updated);
+UPDATE
+  datasets
+SET
+  "keywords" = array_replace(keywords, @tag_to_replace, @tag_updated);
+
+-- name: GetAccessibleDatasourcesByUser :many
+WITH owned_dp AS(
+  SELECT
+    dp.id
+  FROM
+    dataproducts dp
+  WHERE
+    dp.group = ANY(@owner_subjects :: text [])
+)
+SELECT
+  included_ds.id AS dataset_id,
+  included_ds.name AS name,
+  sbq.project_id AS bq_project_id,
+  sbq.dataset AS bq_dataset_id,
+  sbq.table_name AS bq_table_id
+FROM
+  (
+    (
+      SELECT
+        ds.id AS id,
+        ds.name AS name,
+        ds.dataproduct_id AS dataproduct_id
+      FROM
+        datasets ds
+        JOIN dataset_access da ON ds.id = da.dataset_id
+      WHERE
+        da.subject = ANY(@access_subjects :: text [])
+        AND (
+          da.revoked IS NULL
+          AND(
+            da.expires IS NULL
+            OR da.expires > CURRENT_TIMESTAMP
+          )
+        )
+      GROUP BY
+        ds.id
+    )
+    UNION
+    (
+      SELECT
+        ds.id AS id,
+        ds.name AS name,
+        ds.dataproduct_id AS dataproduct_id
+      FROM
+        datasets ds
+        RIGHT JOIN owned_dp ON ds.dataproduct_id = owned_dp.id
+    )
+  ) AS included_ds
+  LEFT JOIN datasource_bigquery AS sbq ON included_ds.id = sbq.dataset_id;

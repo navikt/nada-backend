@@ -97,3 +97,17 @@ type UpdateDataset struct {
 type DatasetServices struct {
 	Metabase *string `json:"metabase"`
 }
+
+// DatasourceMinimal contains minimal information about datasource of a dataset
+type DatasourceMinimal struct {
+	// bqProjectID is the bigquery project ID that contains the BigQuery table
+	BqProjectID string `json:"bqProjectID"`
+	// bqDatasetID is the bigquery dataset that contains the BigQuery table
+	BqDatasetID string `json:"bqDatasetID"`
+	// bqTableID is the name for BigQuery table
+	BqTableID string `json:"bqTableID"`
+	// datasetID is the id of the dataset
+	DatasetID uuid.UUID `json:"datasetID"`
+	// name is the name of the dataset
+	Name string `json:"name"`
+}

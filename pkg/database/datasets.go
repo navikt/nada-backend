@@ -294,6 +294,37 @@ func (r *Repo) DeleteDataset(ctx context.Context, id uuid.UUID) error {
 	return nil
 }
 
+func (r *Repo) GetAccessibleDatasourcesByUser(ctx context.Context, subjectsAsOwner []string, subjectsAsAccesser []string) ([]*models.DatasourceMinimal, error) {
+	rows, err := r.querier.GetAccessibleDatasourcesByUser(ctx, gensql.GetAccessibleDatasourcesByUserParams{
+		OwnerSubjects:  subjectsAsOwner,
+		AccessSubjects: subjectsAsAccesser,
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	datasources := []*models.DatasourceMinimal{}
+	for _, d := range rows {
+		datasources = append(datasources, DatasourceMinimalFromSQL(&d))
+	}
+	return datasources, nil
+}
+
+func DatasourceMinimalFromSQL(d *gensql.GetAccessibleDatasourcesByUserRow) *models.DatasourceMinimal {
+	return &models.DatasourceMinimal{
+		// bqProjectID is the bigquery project ID that contains the BigQuery table
+		BqProjectID: d.BqProjectID.String,
+		// bqDatasetID is the bigquery dataset that contains the BigQuery table
+		BqDatasetID: d.BqDatasetID.String,
+		// bqTableID is the name for BigQuery table
+		BqTableID: d.BqTableID.String,
+		// datasetID is the id of the dataset
+		DatasetID: d.DatasetID,
+		// name is the name of the dataset
+		Name: d.Name,
+	}
+}
+
 func datasetFromSQL(ds gensql.Dataset) *models.Dataset {
 	return &models.Dataset{
 		ID:                       ds.ID,

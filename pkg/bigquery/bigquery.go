@@ -259,6 +259,7 @@ func (c *Bigquery) CreateJoinableView(ctx context.Context, joinableDatasetID str
 }
 
 func (c *Bigquery) CreateJoinableViewsForUser(ctx context.Context, user *auth.User, tableUrls []models.BigQuery) (string, string, []string, error) {
+	//TODO: save views to the producers' projects
 	client, err := bigquery.NewClient(ctx, c.centralDataProject)
 	if err != nil {
 		return "", "", nil, fmt.Errorf("bigquery.NewClient: %v", err)
