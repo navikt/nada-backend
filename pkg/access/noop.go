@@ -20,6 +20,6 @@ func (a Noop) HasAccess(ctx context.Context, projectID, datasetID, tableID, memb
 	return true, nil
 }
 
-func (a Noop) AddToAuthorizedViews(ctx context.Context, projectID, dataset, table string) error {
+func (a Noop) AddToAuthorizedViews(ctx context.Context, srcProjectID, srcDataset, sinkProjectID, sinkDataset, sinkTable string) error {
 	return nil
 }

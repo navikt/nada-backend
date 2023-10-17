@@ -29,7 +29,7 @@ type Bigquery interface {
 type AccessManager interface {
 	Grant(ctx context.Context, projectID, dataset, table, member string) error
 	Revoke(ctx context.Context, projectID, dataset, table, member string) error
-	AddToAuthorizedViews(ctx context.Context, projectID, dataset, table string) error
+	AddToAuthorizedViews(ctx context.Context, srcProjectID, srcDataset, sinkProjectID, sinkDataset, sinkTable string) error
 }
 
 type Polly interface {
@@ -147,7 +147,7 @@ func (r *Resolver) prepareBigQuery(ctx context.Context, bq models.NewBigQuery, g
 	case bigquery.ViewTable:
 		fallthrough
 	case bigquery.MaterializedView:
-		if err := r.accessMgr.AddToAuthorizedViews(ctx, bq.ProjectID, bq.Dataset, bq.Table); err != nil {
+		if err := r.accessMgr.AddToAuthorizedViews(ctx, bq.ProjectID, bq.Dataset, bq.ProjectID, bq.Dataset, bq.Table); err != nil {
 			return models.BigqueryMetadata{}, err
 		}
 	default:

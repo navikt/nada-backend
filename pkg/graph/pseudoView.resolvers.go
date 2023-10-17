@@ -69,12 +69,24 @@ func (r *mutationResolver) CreateJoinableViews(ctx context.Context, input models
 		return "", err
 	}
 
+	for _, dstbl := range tableUrls {
+		if err := r.accessMgr.AddToAuthorizedViews(ctx, dstbl.ProjectID, dstbl.Dataset, projectID, joinableDatasetID, dstbl.Table); err != nil {
+			return "", fmt.Errorf("Failed to add to authorized views: %v", err)
+		}
+		if err := r.accessMgr.AddToAuthorizedViews(ctx, projectID, "secrets_vault", projectID, joinableDatasetID, dstbl.Table); err != nil {
+			return "", fmt.Errorf("Failed to add to secrets' authorized views: %v", err)
+		}
+	}
+
 	subj := user.Email
 	subjType := models.SubjectTypeUser
 	subjWithType := subjType.String() + ":" + subj
 
 	for _, v := range views {
-		r.accessMgr.Grant(ctx, projectID, joinableDatasetID, v, subjWithType)
+		if err := r.accessMgr.Grant(ctx, projectID, joinableDatasetID, v, subjWithType); err != nil {
+			return "", err
+		}
+
 	}
 
 	return joinableDatasetID, nil
