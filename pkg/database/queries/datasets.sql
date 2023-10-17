@@ -235,7 +235,7 @@ FROM
         ds.dataproduct_id AS dataproduct_id
       FROM
         datasets ds
-        JOIN dataset_access da ON ds.id = da.dataset_id
+        INNER JOIN dataset_access da ON ds.id = da.dataset_id
       WHERE
         da.subject = ANY(@access_subjects :: text [])
         AND (
@@ -256,7 +256,7 @@ FROM
         ds.dataproduct_id AS dataproduct_id
       FROM
         datasets ds
-        RIGHT JOIN owned_dp ON ds.dataproduct_id = owned_dp.id
+        INNER JOIN owned_dp ON ds.dataproduct_id = owned_dp.id
     )
   ) AS included_ds
   LEFT JOIN datasource_bigquery AS sbq ON included_ds.id = sbq.dataset_id;
