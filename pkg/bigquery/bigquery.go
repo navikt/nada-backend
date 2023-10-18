@@ -262,8 +262,9 @@ func (c *Bigquery) CreateJoinableView(ctx context.Context, joinableDatasetID str
 		ViewQuery: query,
 	}
 
+	fmt.Println(query)
 	if err := centralProjectclient.Dataset(joinableDatasetID).Table(tableUrl.Table).Create(ctx, joinableViewMeta); err != nil {
-		return "", err
+		return "", fmt.Errorf("Failed to create joinable view, please make sure the datasets are located in europe-north1 region in google cloud: %v", err)
 	}
 
 	return tableUrl.Table, nil
