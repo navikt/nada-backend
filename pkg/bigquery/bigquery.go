@@ -174,14 +174,25 @@ func (c *Bigquery) CreatePseudonymisedView(ctx context.Context, projectID, datas
 	defer client.Close()
 
 	viewQuery := c.ComposePseudoViewQuery(projectID, datasetID, tableID, piiColumns)
-	fmt.Println(viewQuery)
 	meta := &bigquery.TableMetadata{
 		ViewQuery: viewQuery,
 	}
 	pseudoViewID := fmt.Sprintf("_x_%v", tableID)
 	if err := client.Dataset(datasetID).Table(pseudoViewID).Create(ctx, meta); err != nil {
-		return "", "", "", err
+		if gerr, ok := err.(*googleapi.Error); ok && gerr.Code == 409 {
+			prevMeta, err := client.Dataset(datasetID).Table(pseudoViewID).Metadata(ctx)
+			if err != nil {
+				return "", "", "", fmt.Errorf("Failed to fetch existing view metadata: %v", err)
+			}
+			_, err = client.Dataset(datasetID).Table(pseudoViewID).Update(ctx, bigquery.TableMetadataToUpdate{ViewQuery: viewQuery}, prevMeta.ETag)
+			if err != nil {
+				return "", "", "", fmt.Errorf("Failed to update existing view: %v", err)
+			}
+		} else {
+			return "", "", "", err
+		}
 	}
+
 	return projectID, datasetID, pseudoViewID, nil
 }
 
