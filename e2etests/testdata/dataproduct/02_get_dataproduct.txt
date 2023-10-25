@@ -7,19 +7,6 @@
         owner {
             group
         }
-        datasets {
-            name
-            pii
-            datasource {
-                __typename
-                ...on BigQuery {
-                    projectID
-                    dataset
-                    table
-                    piiTags
-                }
-            }
-        }
 	}
 }
 
@@ -33,17 +20,6 @@ RETURNS
       "owner": {
         "group": "team@nav.no"
       },
-      "datasets": [{
-        "name": "NewDataset",
-        "pii": "none",
-        "datasource": {
-            "__typename": "BigQuery",
-            "projectID": "team-dev-1337",
-            "dataset": "dataset1",
-            "table": "table1",
-            "piiTags": "{\"test\": \"tag\"}"
-        }
-      }]
     }
   }
 }

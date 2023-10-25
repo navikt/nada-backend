@@ -22,3 +22,5 @@ ENDOPTS
     }
   }
 }
+
+STORE dataproduct_id=data.createDataproduct.id
