@@ -8,11 +8,6 @@ mutation {
 			group: "team@nav.no"
             teamContact: "#team"
             teamkatalogenURL: "team"
-            datasets: [{
-                name: "NewDataset"
-			    pii: none
-			    bigquery: { projectID: "team-dev-1337", dataset: "dataset1", table: "table1" }
-            }]
 		}
 	) {
 		id
