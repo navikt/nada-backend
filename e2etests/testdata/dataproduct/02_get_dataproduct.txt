@@ -19,7 +19,7 @@ RETURNS
       "description": "New description",
       "owner": {
         "group": "team@nav.no"
-      },
+      }
     }
   }
 }
