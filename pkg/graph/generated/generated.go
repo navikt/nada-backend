@@ -2862,8 +2862,6 @@ input NewDataproduct @goModel(model: "github.com/navikt/nada-backend/pkg/graph/m
     teamkatalogenURL: String
     "The contact information of the team who owns the dataproduct, which can be slack channel, slack account, email, and so on."
     teamContact: String
-    "datasets to associate with the dataproduct."
-    datasets: [NewDatasetForNewDataproduct!]!
     "Id of the team's product area."
     productAreaID: String
     "Id of the team."
@@ -20314,7 +20312,7 @@ func (ec *executionContext) unmarshalInputNewDataproduct(ctx context.Context, ob
 		asMap[k] = v
 	}
 
-	fieldsInOrder := [...]string{"name", "description", "group", "teamkatalogenURL", "teamContact", "datasets", "productAreaID", "teamID"}
+	fieldsInOrder := [...]string{"name", "description", "group", "teamkatalogenURL", "teamContact", "productAreaID", "teamID"}
 	for _, k := range fieldsInOrder {
 		v, ok := asMap[k]
 		if !ok {
@@ -20366,15 +20364,6 @@ func (ec *executionContext) unmarshalInputNewDataproduct(ctx context.Context, ob
 				return it, err
 			}
 			it.TeamContact = data
-		case "datasets":
-			var err error
-
-			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("datasets"))
-			data, err := ec.unmarshalNNewDatasetForNewDataproduct2ᚕgithubᚗcomᚋnaviktᚋnadaᚑbackendᚋpkgᚋgraphᚋmodelsᚐNewDatasetForNewDataproductᚄ(ctx, v)
-			if err != nil {
-				return it, err
-			}
-			it.Datasets = data
 		case "productAreaID":
 			var err error
 
@@ -26909,28 +26898,6 @@ func (ec *executionContext) unmarshalNNewDataproduct2githubᚗcomᚋnaviktᚋnad
 func (ec *executionContext) unmarshalNNewDataset2githubᚗcomᚋnaviktᚋnadaᚑbackendᚋpkgᚋgraphᚋmodelsᚐNewDataset(ctx context.Context, v interface{}) (models.NewDataset, error) {
 	res, err := ec.unmarshalInputNewDataset(ctx, v)
 	return res, graphql.ErrorOnPath(ctx, err)
-}
-
-func (ec *executionContext) unmarshalNNewDatasetForNewDataproduct2githubᚗcomᚋnaviktᚋnadaᚑbackendᚋpkgᚋgraphᚋmodelsᚐNewDatasetForNewDataproduct(ctx context.Context, v interface{}) (models.NewDatasetForNewDataproduct, error) {
-	res, err := ec.unmarshalInputNewDatasetForNewDataproduct(ctx, v)
-	return res, graphql.ErrorOnPath(ctx, err)
-}
-
-func (ec *executionContext) unmarshalNNewDatasetForNewDataproduct2ᚕgithubᚗcomᚋnaviktᚋnadaᚑbackendᚋpkgᚋgraphᚋmodelsᚐNewDatasetForNewDataproductᚄ(ctx context.Context, v interface{}) ([]models.NewDatasetForNewDataproduct, error) {
-	var vSlice []interface{}
-	if v != nil {
-		vSlice = graphql.CoerceList(v)
-	}
-	var err error
-	res := make([]models.NewDatasetForNewDataproduct, len(vSlice))
-	for i := range vSlice {
-		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithIndex(i))
-		res[i], err = ec.unmarshalNNewDatasetForNewDataproduct2githubᚗcomᚋnaviktᚋnadaᚑbackendᚋpkgᚋgraphᚋmodelsᚐNewDatasetForNewDataproduct(ctx, vSlice[i])
-		if err != nil {
-			return nil, err
-		}
-	}
-	return res, nil
 }
 
 func (ec *executionContext) unmarshalNNewGrant2githubᚗcomᚋnaviktᚋnadaᚑbackendᚋpkgᚋgraphᚋmodelsᚐNewGrant(ctx context.Context, v interface{}) (models.NewGrant, error) {

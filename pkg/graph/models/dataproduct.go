@@ -18,17 +18,23 @@ type Dataproduct struct {
 
 func (Dataproduct) IsSearchResult() {}
 
+// NewDataproduct contains metadata for creating a new dataproduct
 type NewDataproduct struct {
-	Name             string  `json:"name"`
-	Description      *string `json:"description"`
-	Slug             *string `json:"slug"`
-	Group            string  `json:"group"`
-	TeamkatalogenURL *string `json:"teamkatalogenURL"`
-	TeamContact      *string `json:"teamContact"`
-	Metadata         BigqueryMetadata
-	Datasets         []NewDatasetForNewDataproduct `json:"datasets"`
-	ProductAreaID    *string                       `json:"productAreaID"`
-	TeamID           *string                       `json:"teamID"`
+	// name of dataproduct
+	Name string `json:"name"`
+	// description of the dataproduct
+	Description *string `json:"description,omitempty"`
+	// owner group email for the dataproduct.
+	Group string `json:"group"`
+	// owner Teamkatalogen URL for the dataproduct.
+	TeamkatalogenURL *string `json:"teamkatalogenURL,omitempty"`
+	// The contact information of the team who owns the dataproduct, which can be slack channel, slack account, email, and so on.
+	TeamContact *string `json:"teamContact,omitempty"`
+	// Id of the team's product area.
+	ProductAreaID *string `json:"productAreaID,omitempty"`
+	// Id of the team.
+	TeamID *string `json:"teamID,omitempty"`
+	Slug   *string
 }
 
 type UpdateDataproduct struct {
