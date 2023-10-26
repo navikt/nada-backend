@@ -53,7 +53,7 @@ func (r *datasetResolver) Owner(ctx context.Context, obj *models.Dataset) (*mode
 
 // Datasource is the resolver for the datasource field.
 func (r *datasetResolver) Datasource(ctx context.Context, obj *models.Dataset) (models.Datasource, error) {
-	return r.repo.GetBigqueryDatasource(ctx, obj.ID)
+	return r.repo.GetBigqueryDatasource(ctx, obj.ID, false)
 }
 
 // Access is the resolver for the access field.
@@ -130,6 +130,21 @@ func (r *mutationResolver) CreateDataset(ctx context.Context, input models.NewDa
 		return nil, err
 	}
 
+	referenceDatasource := input.BigQuery
+	if len(input.PseudoColumns) > 0 {
+		projectID, datasetID, tableID, err := r.bigquery.CreatePseudonymisedView(ctx, input.BigQuery.ProjectID,
+			input.BigQuery.Dataset, input.BigQuery.Table, input.PseudoColumns)
+		if err != nil {
+			return nil, err
+		}
+
+		input.BigQuery = models.NewBigQuery{
+			ProjectID: projectID,
+			Dataset:   datasetID,
+			Table:     tableID,
+		}
+	}
+
 	metadata, err := r.prepareBigQuery(ctx, input.BigQuery, dp.Owner.Group)
 	if err != nil {
 		return nil, err
@@ -139,7 +154,8 @@ func (r *mutationResolver) CreateDataset(ctx context.Context, input models.NewDa
 	if input.Description != nil && *input.Description != "" {
 		*input.Description = html.EscapeString(*input.Description)
 	}
-	ds, err := r.repo.CreateDataset(ctx, input, user)
+
+	ds, err := r.repo.CreateDataset(ctx, input, referenceDatasource, user)
 	if err != nil {
 		return nil, err
 	}

@@ -122,7 +122,8 @@ SELECT
 FROM
   datasource_bigquery
 WHERE
-  dataset_id = @dataset_id;
+  dataset_id = @dataset_id
+  AND is_reference = @is_reference;
 
 -- name: GetBigqueryDatasources :many
 SELECT
@@ -142,7 +143,9 @@ INSERT INTO
     "created",
     "expires",
     "table_type",
-    "pii_tags"
+    "pii_tags",
+    "pseudo_columns",
+    "is_reference"
   )
 VALUES
   (
@@ -155,7 +158,9 @@ VALUES
     @created,
     @expires,
     @table_type,
-    @pii_tags
+    @pii_tags,
+    @pseudo_columns,
+    @is_reference
   ) RETURNING *;
 
 -- name: UpdateBigqueryDatasourceSchema :exec
@@ -166,15 +171,17 @@ SET
   "last_modified" = @last_modified,
   "expires" = @expires,
   "description" = @description,
-  "missing_since" = null
+  "missing_since" = null,
+  "pseudo_columns" = @pseudo_columns
 WHERE
   dataset_id = @dataset_id;
 
--- name: UpdateBigqueryDatasourcePiiTags :exec
+-- name: UpdateBigqueryDatasource :exec
 UPDATE
   datasource_bigquery
 SET
-  "pii_tags" = @pii_tags
+  "pii_tags" = @pii_tags,
+  "pseudo_columns" = @pseudo_columns
 WHERE
   dataset_id = @dataset_id;
 

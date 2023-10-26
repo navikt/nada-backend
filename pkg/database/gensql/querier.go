@@ -51,7 +51,7 @@ type Querier interface {
 	GetAccessibleDatasourcesByUser(ctx context.Context, arg GetAccessibleDatasourcesByUserParams) ([]GetAccessibleDatasourcesByUserRow, error)
 	GetActiveAccessToDatasetForSubject(ctx context.Context, arg GetActiveAccessToDatasetForSubjectParams) (DatasetAccess, error)
 	GetAllMetabaseMetadata(ctx context.Context) ([]MetabaseMetadatum, error)
-	GetBigqueryDatasource(ctx context.Context, datasetID uuid.UUID) (DatasourceBigquery, error)
+	GetBigqueryDatasource(ctx context.Context, arg GetBigqueryDatasourceParams) (DatasourceBigquery, error)
 	GetBigqueryDatasources(ctx context.Context) ([]DatasourceBigquery, error)
 	GetDashboard(ctx context.Context, id string) (Dashboard, error)
 	GetDataproduct(ctx context.Context, id uuid.UUID) (Dataproduct, error)
@@ -125,8 +125,8 @@ type Querier interface {
 	SetPermissionGroupMetabaseMetadata(ctx context.Context, arg SetPermissionGroupMetabaseMetadataParams) error
 	SoftDeleteMetabaseMetadata(ctx context.Context, datasetID uuid.UUID) error
 	UpdateAccessRequest(ctx context.Context, arg UpdateAccessRequestParams) (DatasetAccessRequest, error)
+	UpdateBigqueryDatasource(ctx context.Context, arg UpdateBigqueryDatasourceParams) error
 	UpdateBigqueryDatasourceMissing(ctx context.Context, datasetID uuid.UUID) error
-	UpdateBigqueryDatasourcePiiTags(ctx context.Context, arg UpdateBigqueryDatasourcePiiTagsParams) error
 	UpdateBigqueryDatasourceSchema(ctx context.Context, arg UpdateBigqueryDatasourceSchemaParams) error
 	UpdateDataproduct(ctx context.Context, arg UpdateDataproductParams) (Dataproduct, error)
 	UpdateDataset(ctx context.Context, arg UpdateDatasetParams) (Dataset, error)

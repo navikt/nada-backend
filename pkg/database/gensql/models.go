@@ -250,18 +250,20 @@ type DatasetAccessRequest struct {
 }
 
 type DatasourceBigquery struct {
-	DatasetID    uuid.UUID
-	ProjectID    string
-	Dataset      string
-	TableName    string
-	Schema       pqtype.NullRawMessage
-	LastModified time.Time
-	Created      time.Time
-	Expires      sql.NullTime
-	TableType    string
-	Description  sql.NullString
-	PiiTags      pqtype.NullRawMessage
-	MissingSince sql.NullTime
+	DatasetID     uuid.UUID
+	ProjectID     string
+	Dataset       string
+	TableName     string
+	Schema        pqtype.NullRawMessage
+	LastModified  time.Time
+	Created       time.Time
+	Expires       sql.NullTime
+	TableType     string
+	Description   sql.NullString
+	PiiTags       pqtype.NullRawMessage
+	MissingSince  sql.NullTime
+	PseudoColumns []string
+	IsReference   bool
 }
 
 type HttpCache struct {

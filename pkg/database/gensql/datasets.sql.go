@@ -27,7 +27,9 @@ INSERT INTO
     "created",
     "expires",
     "table_type",
-    "pii_tags"
+    "pii_tags",
+    "pseudo_columns",
+    "is_reference"
   )
 VALUES
   (
@@ -40,21 +42,25 @@ VALUES
     $7,
     $8,
     $9,
-    $10
-  ) RETURNING dataset_id, project_id, dataset, table_name, schema, last_modified, created, expires, table_type, description, pii_tags, missing_since
+    $10,
+    $11,
+    $12
+  ) RETURNING dataset_id, project_id, dataset, table_name, schema, last_modified, created, expires, table_type, description, pii_tags, missing_since, pseudo_columns, is_reference
 `
 
 type CreateBigqueryDatasourceParams struct {
-	DatasetID    uuid.UUID
-	ProjectID    string
-	Dataset      string
-	TableName    string
-	Schema       pqtype.NullRawMessage
-	LastModified time.Time
-	Created      time.Time
-	Expires      sql.NullTime
-	TableType    string
-	PiiTags      pqtype.NullRawMessage
+	DatasetID     uuid.UUID
+	ProjectID     string
+	Dataset       string
+	TableName     string
+	Schema        pqtype.NullRawMessage
+	LastModified  time.Time
+	Created       time.Time
+	Expires       sql.NullTime
+	TableType     string
+	PiiTags       pqtype.NullRawMessage
+	PseudoColumns []string
+	IsReference   bool
 }
 
 func (q *Queries) CreateBigqueryDatasource(ctx context.Context, arg CreateBigqueryDatasourceParams) (DatasourceBigquery, error) {
@@ -69,6 +75,8 @@ func (q *Queries) CreateBigqueryDatasource(ctx context.Context, arg CreateBigque
 		arg.Expires,
 		arg.TableType,
 		arg.PiiTags,
+		pq.Array(arg.PseudoColumns),
+		arg.IsReference,
 	)
 	var i DatasourceBigquery
 	err := row.Scan(
@@ -84,6 +92,8 @@ func (q *Queries) CreateBigqueryDatasource(ctx context.Context, arg CreateBigque
 		&i.Description,
 		&i.PiiTags,
 		&i.MissingSince,
+		pq.Array(&i.PseudoColumns),
+		&i.IsReference,
 	)
 	return i, err
 }
@@ -333,15 +343,21 @@ func (q *Queries) GetAccessibleDatasourcesByUser(ctx context.Context, arg GetAcc
 
 const getBigqueryDatasource = `-- name: GetBigqueryDatasource :one
 SELECT
-  dataset_id, project_id, dataset, table_name, schema, last_modified, created, expires, table_type, description, pii_tags, missing_since
+  dataset_id, project_id, dataset, table_name, schema, last_modified, created, expires, table_type, description, pii_tags, missing_since, pseudo_columns, is_reference
 FROM
   datasource_bigquery
 WHERE
   dataset_id = $1
+  AND is_reference = $2
 `
 
-func (q *Queries) GetBigqueryDatasource(ctx context.Context, datasetID uuid.UUID) (DatasourceBigquery, error) {
-	row := q.db.QueryRowContext(ctx, getBigqueryDatasource, datasetID)
+type GetBigqueryDatasourceParams struct {
+	DatasetID   uuid.UUID
+	IsReference bool
+}
+
+func (q *Queries) GetBigqueryDatasource(ctx context.Context, arg GetBigqueryDatasourceParams) (DatasourceBigquery, error) {
+	row := q.db.QueryRowContext(ctx, getBigqueryDatasource, arg.DatasetID, arg.IsReference)
 	var i DatasourceBigquery
 	err := row.Scan(
 		&i.DatasetID,
@@ -356,13 +372,15 @@ func (q *Queries) GetBigqueryDatasource(ctx context.Context, datasetID uuid.UUID
 		&i.Description,
 		&i.PiiTags,
 		&i.MissingSince,
+		pq.Array(&i.PseudoColumns),
+		&i.IsReference,
 	)
 	return i, err
 }
 
 const getBigqueryDatasources = `-- name: GetBigqueryDatasources :many
 SELECT
-  dataset_id, project_id, dataset, table_name, schema, last_modified, created, expires, table_type, description, pii_tags, missing_since
+  dataset_id, project_id, dataset, table_name, schema, last_modified, created, expires, table_type, description, pii_tags, missing_since, pseudo_columns, is_reference
 FROM
   datasource_bigquery
 `
@@ -389,6 +407,8 @@ func (q *Queries) GetBigqueryDatasources(ctx context.Context) ([]DatasourceBigqu
 			&i.Description,
 			&i.PiiTags,
 			&i.MissingSince,
+			pq.Array(&i.PseudoColumns),
+			&i.IsReference,
 		); err != nil {
 			return nil, err
 		}
@@ -711,6 +731,27 @@ func (q *Queries) ReplaceDatasetsTag(ctx context.Context, arg ReplaceDatasetsTag
 	return err
 }
 
+const updateBigqueryDatasource = `-- name: UpdateBigqueryDatasource :exec
+UPDATE
+  datasource_bigquery
+SET
+  "pii_tags" = $1,
+  "pseudo_columns" = $2
+WHERE
+  dataset_id = $3
+`
+
+type UpdateBigqueryDatasourceParams struct {
+	PiiTags       pqtype.NullRawMessage
+	PseudoColumns []string
+	DatasetID     uuid.UUID
+}
+
+func (q *Queries) UpdateBigqueryDatasource(ctx context.Context, arg UpdateBigqueryDatasourceParams) error {
+	_, err := q.db.ExecContext(ctx, updateBigqueryDatasource, arg.PiiTags, pq.Array(arg.PseudoColumns), arg.DatasetID)
+	return err
+}
+
 const updateBigqueryDatasourceMissing = `-- name: UpdateBigqueryDatasourceMissing :exec
 UPDATE
   datasource_bigquery
@@ -725,25 +766,6 @@ func (q *Queries) UpdateBigqueryDatasourceMissing(ctx context.Context, datasetID
 	return err
 }
 
-const updateBigqueryDatasourcePiiTags = `-- name: UpdateBigqueryDatasourcePiiTags :exec
-UPDATE
-  datasource_bigquery
-SET
-  "pii_tags" = $1
-WHERE
-  dataset_id = $2
-`
-
-type UpdateBigqueryDatasourcePiiTagsParams struct {
-	PiiTags   pqtype.NullRawMessage
-	DatasetID uuid.UUID
-}
-
-func (q *Queries) UpdateBigqueryDatasourcePiiTags(ctx context.Context, arg UpdateBigqueryDatasourcePiiTagsParams) error {
-	_, err := q.db.ExecContext(ctx, updateBigqueryDatasourcePiiTags, arg.PiiTags, arg.DatasetID)
-	return err
-}
-
 const updateBigqueryDatasourceSchema = `-- name: UpdateBigqueryDatasourceSchema :exec
 UPDATE
   datasource_bigquery
@@ -752,17 +774,19 @@ SET
   "last_modified" = $2,
   "expires" = $3,
   "description" = $4,
-  "missing_since" = null
+  "missing_since" = null,
+  "pseudo_columns" = $5
 WHERE
-  dataset_id = $5
+  dataset_id = $6
 `
 
 type UpdateBigqueryDatasourceSchemaParams struct {
-	Schema       pqtype.NullRawMessage
-	LastModified time.Time
-	Expires      sql.NullTime
-	Description  sql.NullString
-	DatasetID    uuid.UUID
+	Schema        pqtype.NullRawMessage
+	LastModified  time.Time
+	Expires       sql.NullTime
+	Description   sql.NullString
+	PseudoColumns []string
+	DatasetID     uuid.UUID
 }
 
 func (q *Queries) UpdateBigqueryDatasourceSchema(ctx context.Context, arg UpdateBigqueryDatasourceSchemaParams) error {
@@ -771,6 +795,7 @@ func (q *Queries) UpdateBigqueryDatasourceSchema(ctx context.Context, arg Update
 		arg.LastModified,
 		arg.Expires,
 		arg.Description,
+		pq.Array(arg.PseudoColumns),
 		arg.DatasetID,
 	)
 	return err

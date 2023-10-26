@@ -45,7 +45,7 @@ func (m *MockRepo) RevokeAccessToDataset(ctx context.Context, id uuid.UUID) erro
 	return nil
 }
 
-func (m *MockRepo) GetBigqueryDatasource(ctx context.Context, dataproductID uuid.UUID) (models.BigQuery, error) {
+func (m *MockRepo) GetBigqueryDatasource(ctx context.Context, dataproductID uuid.UUID, isReference bool) (models.BigQuery, error) {
 	m.NGetBigqueryDatasource++
 	return models.BigQuery{}, nil
 }

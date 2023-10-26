@@ -52,7 +52,7 @@ func (r *mutationResolver) GrantAccessToDataset(ctx context.Context, input model
 		return nil, fmt.Errorf("Datasett som inneholder personopplysninger kan ikke gjøres tilgjengelig for alle interne brukere (all-users@nav.no).")
 	}
 
-	bq, err := r.repo.GetBigqueryDatasource(ctx, ds.ID)
+	bq, err := r.repo.GetBigqueryDatasource(ctx, ds.ID, false)
 	if err != nil {
 		return nil, err
 	}
@@ -88,7 +88,7 @@ func (r *mutationResolver) RevokeAccessToDataset(ctx context.Context, id uuid.UU
 		return false, err
 	}
 
-	bq, err := r.repo.GetBigqueryDatasource(ctx, access.DatasetID)
+	bq, err := r.repo.GetBigqueryDatasource(ctx, access.DatasetID, false)
 	if err != nil {
 		return false, err
 	}
@@ -197,7 +197,7 @@ func (r *mutationResolver) ApproveAccessRequest(ctx context.Context, id uuid.UUI
 		return false, err
 	}
 
-	bq, err := r.repo.GetBigqueryDatasource(ctx, ds.ID)
+	bq, err := r.repo.GetBigqueryDatasource(ctx, ds.ID, false)
 	if err != nil {
 		return false, err
 	}

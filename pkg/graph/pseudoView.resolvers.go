@@ -57,7 +57,7 @@ func (r *mutationResolver) CreateJoinableViews(ctx context.Context, input models
 
 	tableUrls := []models.BigQuery{}
 	for _, ds := range datasets {
-		if datasource, err := r.repo.GetBigqueryDatasource(ctx, ds.ID); err == nil {
+		if datasource, err := r.repo.GetBigqueryDatasource(ctx, ds.ID, false); err == nil {
 			tableUrls = append(tableUrls, datasource)
 		} else {
 			return "", fmt.Errorf("Failed to find bigquery datasource: %v", err)

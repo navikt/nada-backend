@@ -19,7 +19,7 @@ type Ensurer struct {
 
 type Repo interface {
 	RevokeAccessToDataset(ctx context.Context, id uuid.UUID) error
-	GetBigqueryDatasource(ctx context.Context, dataproductID uuid.UUID) (models.BigQuery, error)
+	GetBigqueryDatasource(ctx context.Context, dataproductID uuid.UUID, isReference bool) (models.BigQuery, error)
 	GetUnrevokedExpiredAccess(ctx context.Context) ([]*models.Access, error)
 }
 
@@ -57,7 +57,7 @@ func (e *Ensurer) run(ctx context.Context) {
 	}
 
 	for _, entry := range entries {
-		ds, err := e.repo.GetBigqueryDatasource(ctx, entry.DatasetID)
+		ds, err := e.repo.GetBigqueryDatasource(ctx, entry.DatasetID, false)
 		if err != nil {
 			e.log.WithError(err).Error("Getting dataproduct datasource for expired access entry")
 			e.errs.WithLabelValues("GetBigqueryDatasource").Inc()

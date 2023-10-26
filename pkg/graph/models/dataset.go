@@ -30,17 +30,18 @@ type Datasource interface {
 }
 
 type BigQuery struct {
-	DatasetID    uuid.UUID
-	ProjectID    string       `json:"projectID"`
-	Dataset      string       `json:"dataset"`
-	Table        string       `json:"table"`
-	TableType    BigQueryType `json:"tableType"`
-	LastModified time.Time    `json:"lastModified"`
-	Created      time.Time    `json:"created"`
-	Expires      *time.Time   `json:"expired"`
-	Description  string       `json:"description"`
-	PiiTags      *string      `json:"piiTags"`
-	MissingSince *time.Time   `json:"missingSince"`
+	DatasetID     uuid.UUID
+	ProjectID     string       `json:"projectID"`
+	Dataset       string       `json:"dataset"`
+	Table         string       `json:"table"`
+	TableType     BigQueryType `json:"tableType"`
+	LastModified  time.Time    `json:"lastModified"`
+	Created       time.Time    `json:"created"`
+	Expires       *time.Time   `json:"expired"`
+	Description   string       `json:"description"`
+	PiiTags       *string      `json:"piiTags"`
+	MissingSince  *time.Time   `json:"missingSince"`
+	PseudoColumns []string     `json:"pseudoColumns"`
 }
 
 func (BigQuery) IsDatasource() {}
@@ -65,6 +66,7 @@ type NewDataset struct {
 	GrantAllUsers            *bool       `json:"grantAllUsers"`
 	TargetUser               *string     `json:"targetUser"`
 	Metadata                 BigqueryMetadata
+	PseudoColumns            []string `json:"pseudoColumns"`
 }
 
 // NewDatasetForNewDataproduct contains metadata for creating a new dataset for a new dataproduct
@@ -92,6 +94,7 @@ type UpdateDataset struct {
 	AnonymisationDescription *string    `json:"anonymisationDescription"`
 	PiiTags                  *string    `json:"piiTags"`
 	TargetUser               *string    `json:"targetUser"`
+	PseudoColumns            []string   `json:"pseudoColumns"`
 }
 
 type DatasetServices struct {

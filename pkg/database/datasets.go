@@ -38,7 +38,7 @@ func (r *Repo) GetDatasetsInDataproduct(ctx context.Context, id uuid.UUID) ([]*m
 	return datasetsGraph, nil
 }
 
-func (r *Repo) CreateDataset(ctx context.Context, ds models.NewDataset, user *auth.User) (*models.Dataset, error) {
+func (r *Repo) CreateDataset(ctx context.Context, ds models.NewDataset, referenceDatasource models.NewBigQuery, user *auth.User) (*models.Dataset, error) {
 	tx, err := r.db.Begin()
 	if err != nil {
 		return nil, err
@@ -88,12 +88,41 @@ func (r *Repo) CreateDataset(ctx context.Context, ds models.NewDataset, user *au
 			RawMessage: json.RawMessage([]byte(ptrToString(ds.BigQuery.PiiTags))),
 			Valid:      len(ptrToString(ds.BigQuery.PiiTags)) > 4,
 		},
+		PseudoColumns: ds.PseudoColumns,
+		IsReference:   false,
 	})
+
 	if err != nil {
 		if err := tx.Rollback(); err != nil {
 			r.log.WithError(err).Error("Rolling back dataset and datasource_bigquery transaction")
 		}
 		return nil, err
+	}
+
+	if len(ds.PseudoColumns) > 0 {
+		_, err = querier.CreateBigqueryDatasource(ctx, gensql.CreateBigqueryDatasourceParams{
+			DatasetID:    created.ID,
+			ProjectID:    referenceDatasource.ProjectID,
+			Dataset:      referenceDatasource.Dataset,
+			TableName:    referenceDatasource.Table,
+			Schema:       pqtype.NullRawMessage{RawMessage: schemaJSON, Valid: len(schemaJSON) > 4},
+			LastModified: ds.Metadata.LastModified,
+			Created:      ds.Metadata.Created,
+			Expires:      sql.NullTime{Time: ds.Metadata.Expires, Valid: !ds.Metadata.Expires.IsZero()},
+			TableType:    string(ds.Metadata.TableType),
+			PiiTags: pqtype.NullRawMessage{
+				RawMessage: json.RawMessage([]byte(ptrToString(ds.BigQuery.PiiTags))),
+				Valid:      len(ptrToString(ds.BigQuery.PiiTags)) > 4,
+			},
+			PseudoColumns: ds.PseudoColumns,
+			IsReference:   true,
+		})
+		if err != nil {
+			if err := tx.Rollback(); err != nil {
+				r.log.WithError(err).Error("Rolling back dataset and datasource_bigquery transaction")
+			}
+			return nil, err
+		}
 	}
 
 	if ds.GrantAllUsers != nil && *ds.GrantAllUsers {
@@ -158,12 +187,13 @@ func (r *Repo) UpdateDataset(ctx context.Context, id uuid.UUID, new models.Updat
 		return nil, fmt.Errorf("invalid pii tags, must be json map or null: %w", err)
 	}
 
-	err = r.querier.UpdateBigqueryDatasourcePiiTags(ctx, gensql.UpdateBigqueryDatasourcePiiTagsParams{
+	err = r.querier.UpdateBigqueryDatasource(ctx, gensql.UpdateBigqueryDatasourceParams{
 		DatasetID: id,
 		PiiTags: pqtype.NullRawMessage{
 			RawMessage: json.RawMessage(ptrToString(new.PiiTags)),
 			Valid:      len(ptrToString(new.PiiTags)) > 4,
 		},
+		PseudoColumns: new.PseudoColumns,
 	})
 	if err != nil {
 		return nil, err
@@ -172,8 +202,12 @@ func (r *Repo) UpdateDataset(ctx context.Context, id uuid.UUID, new models.Updat
 	return datasetFromSQL(res), nil
 }
 
-func (r *Repo) GetBigqueryDatasource(ctx context.Context, datasetID uuid.UUID) (models.BigQuery, error) {
-	bq, err := r.querier.GetBigqueryDatasource(ctx, datasetID)
+func (r *Repo) GetBigqueryDatasource(ctx context.Context, datasetID uuid.UUID, isReference bool) (models.BigQuery, error) {
+	bq, err := r.querier.GetBigqueryDatasource(ctx, gensql.GetBigqueryDatasourceParams{
+		DatasetID:   datasetID,
+		IsReference: isReference,
+	})
+
 	if err != nil {
 		return models.BigQuery{}, err
 	}
@@ -184,22 +218,23 @@ func (r *Repo) GetBigqueryDatasource(ctx context.Context, datasetID uuid.UUID) (
 	}
 
 	return models.BigQuery{
-		DatasetID:    bq.DatasetID,
-		ProjectID:    bq.ProjectID,
-		Dataset:      bq.Dataset,
-		Table:        bq.TableName,
-		TableType:    models.BigQueryType(strings.ToLower(bq.TableType)),
-		LastModified: bq.LastModified,
-		Created:      bq.Created,
-		Expires:      nullTimeToPtr(bq.Expires),
-		Description:  bq.Description.String,
-		PiiTags:      &piiTags,
-		MissingSince: &bq.MissingSince.Time,
+		DatasetID:     bq.DatasetID,
+		ProjectID:     bq.ProjectID,
+		Dataset:       bq.Dataset,
+		Table:         bq.TableName,
+		TableType:     models.BigQueryType(strings.ToLower(bq.TableType)),
+		LastModified:  bq.LastModified,
+		Created:       bq.Created,
+		Expires:       nullTimeToPtr(bq.Expires),
+		Description:   bq.Description.String,
+		PiiTags:       &piiTags,
+		MissingSince:  &bq.MissingSince.Time,
+		PseudoColumns: bq.PseudoColumns,
 	}, nil
 }
 
 func (r *Repo) UpdateBigqueryDatasource(ctx context.Context, id uuid.UUID, schema json.RawMessage,
-	lastModified, expires time.Time, description string,
+	lastModified, expires time.Time, description string, pseudoColumns []string,
 ) error {
 	err := r.querier.UpdateBigqueryDatasourceSchema(ctx, gensql.UpdateBigqueryDatasourceSchemaParams{
 		DatasetID: id,
@@ -207,9 +242,10 @@ func (r *Repo) UpdateBigqueryDatasource(ctx context.Context, id uuid.UUID, schem
 			RawMessage: schema,
 			Valid:      true,
 		},
-		LastModified: lastModified,
-		Expires:      sql.NullTime{Time: expires, Valid: !expires.IsZero()},
-		Description:  sql.NullString{String: description, Valid: true},
+		LastModified:  lastModified,
+		Expires:       sql.NullTime{Time: expires, Valid: !expires.IsZero()},
+		Description:   sql.NullString{String: description, Valid: true},
+		PseudoColumns: pseudoColumns,
 	})
 	if err != nil {
 		return fmt.Errorf("updating datasource_bigquery schema: %w", err)
@@ -223,7 +259,10 @@ func (r *Repo) UpdateBigqueryDatasourceMissing(ctx context.Context, datasetID uu
 }
 
 func (r *Repo) GetDatasetMetadata(ctx context.Context, id uuid.UUID) ([]*models.TableColumn, error) {
-	ds, err := r.querier.GetBigqueryDatasource(ctx, id)
+	ds, err := r.querier.GetBigqueryDatasource(ctx, gensql.GetBigqueryDatasourceParams{
+		DatasetID:   id,
+		IsReference: false,
+	})
 	if err != nil {
 		return nil, fmt.Errorf("getting bigquery datasource from database: %w", err)
 	}
@@ -239,7 +278,10 @@ func (r *Repo) GetDatasetMetadata(ctx context.Context, id uuid.UUID) ([]*models.
 }
 
 func (r *Repo) GetDatasetPiiTags(ctx context.Context, id uuid.UUID) (map[string]string, error) {
-	ds, err := r.querier.GetBigqueryDatasource(ctx, id)
+	ds, err := r.querier.GetBigqueryDatasource(ctx, gensql.GetBigqueryDatasourceParams{
+		DatasetID:   id,
+		IsReference: false,
+	})
 	if err != nil {
 		return nil, fmt.Errorf("getting bigquery datasource from database: %w", err)
 	}

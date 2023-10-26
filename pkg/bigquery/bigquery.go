@@ -16,11 +16,13 @@ import (
 
 type Bigquery struct {
 	centralDataProject string
+	pseudoDataset      string
 }
 
-func New(ctx context.Context, centralDataProject string) (*Bigquery, error) {
+func New(ctx context.Context, centralDataProject, pseudoDataset string) (*Bigquery, error) {
 	return &Bigquery{
 		centralDataProject: centralDataProject,
+		pseudoDataset:      pseudoDataset,
 	}, nil
 }
 
@@ -147,7 +149,7 @@ func (c *Bigquery) ComposePseudoViewQuery(projectID, datasetID, tableID string, 
 
 	qSelect := "SELECT "
 	for _, c := range targetColumns {
-		qSelect += fmt.Sprintf(" SHA256(%v || gen_salt.salt) AS _x_%v", c, c)
+		qSelect += fmt.Sprintf(" SHA256(%v || gen_salt.salt) AS %v", c, c)
 		qSelect += ","
 	}
 
@@ -173,18 +175,22 @@ func (c *Bigquery) CreatePseudonymisedView(ctx context.Context, projectID, datas
 	}
 	defer client.Close()
 
+	if err := c.createDataset(ctx, projectID, c.pseudoDataset); err != nil {
+		return "", "", "", fmt.Errorf("create pseudo dataset: %v", err)
+	}
+
 	viewQuery := c.ComposePseudoViewQuery(projectID, datasetID, tableID, piiColumns)
 	meta := &bigquery.TableMetadata{
 		ViewQuery: viewQuery,
 	}
-	pseudoViewID := fmt.Sprintf("_x_%v", tableID)
-	if err := client.Dataset(datasetID).Table(pseudoViewID).Create(ctx, meta); err != nil {
+	pseudoViewID := fmt.Sprintf("x_%v_%v", datasetID, tableID)
+	if err := client.Dataset(c.pseudoDataset).Table(pseudoViewID).Create(ctx, meta); err != nil {
 		if gerr, ok := err.(*googleapi.Error); ok && gerr.Code == 409 {
-			prevMeta, err := client.Dataset(datasetID).Table(pseudoViewID).Metadata(ctx)
+			prevMeta, err := client.Dataset(c.pseudoDataset).Table(pseudoViewID).Metadata(ctx)
 			if err != nil {
 				return "", "", "", fmt.Errorf("Failed to fetch existing view metadata: %v", err)
 			}
-			_, err = client.Dataset(datasetID).Table(pseudoViewID).Update(ctx, bigquery.TableMetadataToUpdate{ViewQuery: viewQuery}, prevMeta.ETag)
+			_, err = client.Dataset(c.pseudoDataset).Table(pseudoViewID).Update(ctx, bigquery.TableMetadataToUpdate{ViewQuery: viewQuery}, prevMeta.ETag)
 			if err != nil {
 				return "", "", "", fmt.Errorf("Failed to update existing view: %v", err)
 			}
@@ -193,7 +199,7 @@ func (c *Bigquery) CreatePseudonymisedView(ctx context.Context, projectID, datas
 		}
 	}
 
-	return projectID, datasetID, pseudoViewID, nil
+	return projectID, c.pseudoDataset, pseudoViewID, nil
 }
 
 func (c *Bigquery) ComposeJoinableViewQuery(plainTableUrl models.BigQuery, joinableDatasetID string, pseudoColumns []string) string {
@@ -293,6 +299,28 @@ func (c *Bigquery) CreateJoinableViewsForUser(ctx context.Context, user *auth.Us
 	}
 
 	return c.centralDataProject, joinableDatasetID, views, nil
+}
+
+func (c *Bigquery) createDataset(ctx context.Context, projectID, datasetID string) error {
+	client, err := bigquery.NewClient(ctx, projectID)
+	if err != nil {
+		return fmt.Errorf("bigquery.NewClient: %v", err)
+	}
+	defer client.Close()
+
+	meta := &bigquery.DatasetMetadata{
+		Location: "europe-north1", //TODO: we can support other regions
+	}
+
+	if err := client.Dataset(datasetID).Create(ctx, meta); err != nil {
+		if err != nil {
+			if gerr, ok := err.(*googleapi.Error); ok && gerr.Code == 409 {
+				return nil
+			}
+			return err
+		}
+	}
+	return nil
 }
 
 func (c *Bigquery) createDatasetInCentralProject(ctx context.Context, datasetID string) error {

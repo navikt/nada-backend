@@ -86,17 +86,18 @@ type ComplexityRoot struct {
 	}
 
 	BigQuery struct {
-		Created      func(childComplexity int) int
-		Dataset      func(childComplexity int) int
-		Description  func(childComplexity int) int
-		Expires      func(childComplexity int) int
-		LastModified func(childComplexity int) int
-		MissingSince func(childComplexity int) int
-		PiiTags      func(childComplexity int) int
-		ProjectID    func(childComplexity int) int
-		Schema       func(childComplexity int) int
-		Table        func(childComplexity int) int
-		TableType    func(childComplexity int) int
+		Created       func(childComplexity int) int
+		Dataset       func(childComplexity int) int
+		Description   func(childComplexity int) int
+		Expires       func(childComplexity int) int
+		LastModified  func(childComplexity int) int
+		MissingSince  func(childComplexity int) int
+		PiiTags       func(childComplexity int) int
+		ProjectID     func(childComplexity int) int
+		PseudoColumns func(childComplexity int) int
+		Schema        func(childComplexity int) int
+		Table         func(childComplexity int) int
+		TableType     func(childComplexity int) int
 	}
 
 	BigQuerySource struct {
@@ -736,6 +737,13 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 		}
 
 		return e.complexity.BigQuery.ProjectID(childComplexity), true
+
+	case "BigQuery.pseudoColumns":
+		if e.complexity.BigQuery.PseudoColumns == nil {
+			break
+		}
+
+		return e.complexity.BigQuery.PseudoColumns(childComplexity), true
 
 	case "BigQuery.schema":
 		if e.complexity.BigQuery.Schema == nil {
@@ -2479,7 +2487,6 @@ func (e *executableSchema) Exec(ctx context.Context) graphql.ResponseHandler {
 		ec.unmarshalInputNewBigQuery,
 		ec.unmarshalInputNewDataproduct,
 		ec.unmarshalInputNewDataset,
-		ec.unmarshalInputNewDatasetForNewDataproduct,
 		ec.unmarshalInputNewGrant,
 		ec.unmarshalInputNewInsightProduct,
 		ec.unmarshalInputNewJoinableViews,
@@ -3009,6 +3016,9 @@ type BigQuery @goModel(model: "github.com/navikt/nada-backend/pkg/graph/models.B
     piiTags: String
     "missingSince, if set, is the time when the table got deleted from BigQuery"
     missingSince: Time
+    "pseudoColumns, if set, the columns are pseudonymised"
+    pseudoColumns: [String!]
+
 }
 
 """
@@ -3100,30 +3110,8 @@ input NewDataset @goModel(model: "github.com/navikt/nada-backend/pkg/graph/model
     grantAllUsers: Boolean
     "targetUser is the type of user that the dataset is meant to be used by"
     targetUser: String
-}
-
-"""
-NewDatasetForNewDataproduct contains metadata for creating a new dataset for a new dataproduct
-"""
-input NewDatasetForNewDataproduct @goModel(model: "github.com/navikt/nada-backend/pkg/graph/models.NewDatasetForNewDataproduct") {
-    "name of dataset"
-    name: String!
-    "description of the dataset"
-    description: String
-    "repo is the url of the repository containing the code to create the dataset"
-    repo: String
-    "pii indicates whether it is personal identifiable information in the dataset"
-    pii: PiiLevel!
-    "keywords for the dataset used as tags."
-    keywords: [String!]
-    "bigquery contains metadata for the bigquery datasource added to the dataset."
-    bigquery: NewBigQuery!
-    "anonymisation_description explains how the dataset was anonymised, should be null if ` + "`" + `pii` + "`" + ` isn't anonymised"
-    anonymisation_description: String
-    "grantAllUsers is a boolean indicating whether the dataset shall be made available for all users on creation"
-    grantAllUsers: Boolean
-    "targetUser is the type of user that the dataset is meant to be used by"
-    targetUser: String
+    "pseudoColumns is the name of the columns that need to be pseudonymised"
+    pseudoColumns: [String!]
 }
 
 """
@@ -3148,6 +3136,8 @@ input UpdateDataset @goModel(model: "github.com/navikt/nada-backend/pkg/graph/mo
     piiTags: String
     "targetUser is the type of user that the dataset is meant to be used by"
     targetUser: String
+    "pseudoColumns is the name of the columns that need to be pseudonymised"
+    pseudoColumns: [String!]
 }
 
 """
@@ -6693,6 +6683,47 @@ func (ec *executionContext) fieldContext_BigQuery_missingSince(ctx context.Conte
 		IsResolver: false,
 		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
 			return nil, errors.New("field of type Time does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _BigQuery_pseudoColumns(ctx context.Context, field graphql.CollectedField, obj *models.BigQuery) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_BigQuery_pseudoColumns(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.PseudoColumns, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		return graphql.Null
+	}
+	res := resTmp.([]string)
+	fc.Result = res
+	return ec.marshalOString2ᚕstringᚄ(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_BigQuery_pseudoColumns(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "BigQuery",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
 		},
 	}
 	return fc, nil
@@ -20395,7 +20426,7 @@ func (ec *executionContext) unmarshalInputNewDataset(ctx context.Context, obj in
 		asMap[k] = v
 	}
 
-	fieldsInOrder := [...]string{"dataproductID", "name", "description", "repo", "pii", "keywords", "bigquery", "anonymisation_description", "grantAllUsers", "targetUser"}
+	fieldsInOrder := [...]string{"dataproductID", "name", "description", "repo", "pii", "keywords", "bigquery", "anonymisation_description", "grantAllUsers", "targetUser", "pseudoColumns"}
 	for _, k := range fieldsInOrder {
 		v, ok := asMap[k]
 		if !ok {
@@ -20492,107 +20523,15 @@ func (ec *executionContext) unmarshalInputNewDataset(ctx context.Context, obj in
 				return it, err
 			}
 			it.TargetUser = data
-		}
-	}
-
-	return it, nil
-}
-
-func (ec *executionContext) unmarshalInputNewDatasetForNewDataproduct(ctx context.Context, obj interface{}) (models.NewDatasetForNewDataproduct, error) {
-	var it models.NewDatasetForNewDataproduct
-	asMap := map[string]interface{}{}
-	for k, v := range obj.(map[string]interface{}) {
-		asMap[k] = v
-	}
-
-	fieldsInOrder := [...]string{"name", "description", "repo", "pii", "keywords", "bigquery", "anonymisation_description", "grantAllUsers", "targetUser"}
-	for _, k := range fieldsInOrder {
-		v, ok := asMap[k]
-		if !ok {
-			continue
-		}
-		switch k {
-		case "name":
+		case "pseudoColumns":
 			var err error
 
-			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("name"))
-			data, err := ec.unmarshalNString2string(ctx, v)
-			if err != nil {
-				return it, err
-			}
-			it.Name = data
-		case "description":
-			var err error
-
-			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("description"))
-			data, err := ec.unmarshalOString2ᚖstring(ctx, v)
-			if err != nil {
-				return it, err
-			}
-			it.Description = data
-		case "repo":
-			var err error
-
-			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("repo"))
-			data, err := ec.unmarshalOString2ᚖstring(ctx, v)
-			if err != nil {
-				return it, err
-			}
-			it.Repo = data
-		case "pii":
-			var err error
-
-			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("pii"))
-			data, err := ec.unmarshalNPiiLevel2githubᚗcomᚋnaviktᚋnadaᚑbackendᚋpkgᚋgraphᚋmodelsᚐPiiLevel(ctx, v)
-			if err != nil {
-				return it, err
-			}
-			it.Pii = data
-		case "keywords":
-			var err error
-
-			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("keywords"))
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("pseudoColumns"))
 			data, err := ec.unmarshalOString2ᚕstringᚄ(ctx, v)
 			if err != nil {
 				return it, err
 			}
-			it.Keywords = data
-		case "bigquery":
-			var err error
-
-			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("bigquery"))
-			data, err := ec.unmarshalNNewBigQuery2githubᚗcomᚋnaviktᚋnadaᚑbackendᚋpkgᚋgraphᚋmodelsᚐNewBigQuery(ctx, v)
-			if err != nil {
-				return it, err
-			}
-			it.Bigquery = data
-		case "anonymisation_description":
-			var err error
-
-			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("anonymisation_description"))
-			data, err := ec.unmarshalOString2ᚖstring(ctx, v)
-			if err != nil {
-				return it, err
-			}
-			it.AnonymisationDescription = data
-		case "grantAllUsers":
-			var err error
-
-			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("grantAllUsers"))
-			data, err := ec.unmarshalOBoolean2ᚖbool(ctx, v)
-			if err != nil {
-				return it, err
-			}
-			it.GrantAllUsers = data
-		case "targetUser":
-			var err error
-
-			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("targetUser"))
-			data, err := ec.unmarshalOString2ᚖstring(ctx, v)
-			if err != nil {
-				return it, err
-			}
-			it.TargetUser = data
+			it.PseudoColumns = data
 		}
 	}
 
@@ -21375,7 +21314,7 @@ func (ec *executionContext) unmarshalInputUpdateDataset(ctx context.Context, obj
 		asMap[k] = v
 	}
 
-	fieldsInOrder := [...]string{"name", "description", "repo", "pii", "keywords", "dataproductID", "anonymisation_description", "piiTags", "targetUser"}
+	fieldsInOrder := [...]string{"name", "description", "repo", "pii", "keywords", "dataproductID", "anonymisation_description", "piiTags", "targetUser", "pseudoColumns"}
 	for _, k := range fieldsInOrder {
 		v, ok := asMap[k]
 		if !ok {
@@ -21463,6 +21402,15 @@ func (ec *executionContext) unmarshalInputUpdateDataset(ctx context.Context, obj
 				return it, err
 			}
 			it.TargetUser = data
+		case "pseudoColumns":
+			var err error
+
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("pseudoColumns"))
+			data, err := ec.unmarshalOString2ᚕstringᚄ(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.PseudoColumns = data
 		}
 	}
 
@@ -21905,6 +21853,8 @@ func (ec *executionContext) _BigQuery(ctx context.Context, sel ast.SelectionSet,
 			out.Values[i] = ec._BigQuery_piiTags(ctx, field, obj)
 		case "missingSince":
 			out.Values[i] = ec._BigQuery_missingSince(ctx, field, obj)
+		case "pseudoColumns":
+			out.Values[i] = ec._BigQuery_pseudoColumns(ctx, field, obj)
 		default:
 			panic("unknown field " + strconv.Quote(field.Name))
 		}
