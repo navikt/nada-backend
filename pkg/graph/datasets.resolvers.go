@@ -130,13 +130,15 @@ func (r *mutationResolver) CreateDataset(ctx context.Context, input models.NewDa
 		return nil, err
 	}
 
-	referenceDatasource := input.BigQuery
+	var referenceDatasource *models.NewBigQuery
 	if len(input.PseudoColumns) > 0 {
 		projectID, datasetID, tableID, err := r.bigquery.CreatePseudonymisedView(ctx, input.BigQuery.ProjectID,
 			input.BigQuery.Dataset, input.BigQuery.Table, input.PseudoColumns)
 		if err != nil {
 			return nil, err
 		}
+
+		referenceDatasource = &input.BigQuery
 
 		input.BigQuery = models.NewBigQuery{
 			ProjectID: projectID,

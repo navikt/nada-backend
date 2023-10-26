@@ -111,7 +111,7 @@ func TestRepo(t *testing.T) {
 			DataproductID: createdproduct.ID,
 		}
 
-		createdDataset, err := repo.CreateDataset(context.Background(), data, user)
+		createdDataset, err := repo.CreateDataset(context.Background(), data, nil, user)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -137,7 +137,7 @@ func TestRepo(t *testing.T) {
 	})
 
 	t.Run("deletes datasets", func(t *testing.T) {
-		createdDataset, err := repo.CreateDataset(context.Background(), newDataset, user)
+		createdDataset, err := repo.CreateDataset(context.Background(), newDataset, nil, user)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -158,7 +158,7 @@ func TestRepo(t *testing.T) {
 
 	t.Run("handles access grants", func(t *testing.T) {
 		dpWithUserAccess := func(ti time.Time, subj string) {
-			dp, err := repo.CreateDataset(context.Background(), newDataset, user)
+			dp, err := repo.CreateDataset(context.Background(), newDataset, nil, user)
 			if err != nil {
 				t.Fatal(err)
 			}

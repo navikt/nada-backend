@@ -38,7 +38,7 @@ func (r *Repo) GetDatasetsInDataproduct(ctx context.Context, id uuid.UUID) ([]*m
 	return datasetsGraph, nil
 }
 
-func (r *Repo) CreateDataset(ctx context.Context, ds models.NewDataset, referenceDatasource models.NewBigQuery, user *auth.User) (*models.Dataset, error) {
+func (r *Repo) CreateDataset(ctx context.Context, ds models.NewDataset, referenceDatasource *models.NewBigQuery, user *auth.User) (*models.Dataset, error) {
 	tx, err := r.db.Begin()
 	if err != nil {
 		return nil, err
@@ -99,7 +99,7 @@ func (r *Repo) CreateDataset(ctx context.Context, ds models.NewDataset, referenc
 		return nil, err
 	}
 
-	if len(ds.PseudoColumns) > 0 {
+	if len(ds.PseudoColumns) > 0 && referenceDatasource!= nil{
 		_, err = querier.CreateBigqueryDatasource(ctx, gensql.CreateBigqueryDatasourceParams{
 			DatasetID:    created.ID,
 			ProjectID:    referenceDatasource.ProjectID,
