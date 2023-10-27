@@ -79,7 +79,7 @@ func init() {
 	flag.StringVar(&cfg.ConsoleAPIKey, "console-api-key", os.Getenv("CONSOLE_API_KEY"), "API key for nais console")
 	flag.StringVar(&cfg.AmplitudeAPIKey, "amplitude-api-key", os.Getenv("AMPLITUDE_API_KEY"), "API key for Amplitude")
 	flag.StringVar(&cfg.CentralDataProject, "central-data-project", os.Getenv("CENTRAL_DATA_PROJECT"), "bigquery project for pseudo views")
-	flag.StringVar(&cfg.PseudoDataset, "pseudo-dataset", "datamarkedsplassen", "bigquery dataset in producers' project for markedplassen saving pseudo views")
+	flag.StringVar(&cfg.PseudoDataset, "pseudo-dataset", "markedsplassen_pseudo", "bigquery dataset in producers' project for markedplassen saving pseudo views")
 }
 
 func main() {

@@ -183,7 +183,7 @@ func (c *Bigquery) CreatePseudonymisedView(ctx context.Context, projectID, datas
 	meta := &bigquery.TableMetadata{
 		ViewQuery: viewQuery,
 	}
-	pseudoViewID := fmt.Sprintf("x_%v_%v", datasetID, tableID)
+	pseudoViewID := fmt.Sprintf("%v_%v", datasetID, tableID)
 	if err := client.Dataset(c.pseudoDataset).Table(pseudoViewID).Create(ctx, meta); err != nil {
 		if gerr, ok := err.(*googleapi.Error); ok && gerr.Code == 409 {
 			prevMeta, err := client.Dataset(c.pseudoDataset).Table(pseudoViewID).Metadata(ctx)

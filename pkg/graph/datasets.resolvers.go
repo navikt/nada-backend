@@ -130,7 +130,7 @@ func (r *mutationResolver) CreateDataset(ctx context.Context, input models.NewDa
 		return nil, err
 	}
 
-	var referenceDatasource *models.NewBigQuery
+	var referenceDatasource models.NewBigQuery
 	if len(input.PseudoColumns) > 0 {
 		projectID, datasetID, tableID, err := r.bigquery.CreatePseudonymisedView(ctx, input.BigQuery.ProjectID,
 			input.BigQuery.Dataset, input.BigQuery.Table, input.PseudoColumns)
@@ -138,7 +138,7 @@ func (r *mutationResolver) CreateDataset(ctx context.Context, input models.NewDa
 			return nil, err
 		}
 
-		referenceDatasource = &input.BigQuery
+		referenceDatasource = input.BigQuery
 
 		input.BigQuery = models.NewBigQuery{
 			ProjectID: projectID,
@@ -157,7 +157,7 @@ func (r *mutationResolver) CreateDataset(ctx context.Context, input models.NewDa
 		*input.Description = html.EscapeString(*input.Description)
 	}
 
-	ds, err := r.repo.CreateDataset(ctx, input, referenceDatasource, user)
+	ds, err := r.repo.CreateDataset(ctx, input, &referenceDatasource, user)
 	if err != nil {
 		return nil, err
 	}
@@ -194,6 +194,18 @@ func (r *mutationResolver) UpdateDataset(ctx context.Context, id uuid.UUID, inpu
 		}
 	} else {
 		input.DataproductID = &ds.DataproductID
+	}
+
+	if len(input.PseudoColumns) > 0 {
+		referenceDatasource, err := r.repo.GetBigqueryDatasource(ctx, id, true)
+		if err != nil {
+			return nil, err
+		}
+		_, _, _, err = r.bigquery.CreatePseudonymisedView(ctx, referenceDatasource.ProjectID,
+			referenceDatasource.Dataset, referenceDatasource.Table, input.PseudoColumns)
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	if input.Description != nil && *input.Description != "" {

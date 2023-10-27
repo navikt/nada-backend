@@ -52,8 +52,7 @@ local-with-auth:
 	--quarto-bucket=nada-quarto-storage-dev \
 	--console-api-key="$(CONSOLE_API_KEY)" \
 	--log-level=debug \
-	--central-data-project=nav-central-data-dev-e170 \
-	--pseudo-dataset=datamarkedsplassen
+	--central-data-project=nav-central-data-dev-e170 
 
 
 local:
