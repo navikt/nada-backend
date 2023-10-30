@@ -144,6 +144,7 @@ func (r *mutationResolver) CreateDataset(ctx context.Context, input models.NewDa
 			ProjectID: projectID,
 			Dataset:   datasetID,
 			Table:     tableID,
+			PiiTags:   input.BigQuery.PiiTags,
 		}
 	}
 
@@ -283,16 +284,9 @@ func (r *queryResolver) DatasetsInDataproduct(ctx context.Context, dataproductID
 	return r.repo.GetDatasetsInDataproduct(ctx, dataproductID)
 }
 
-// AccessibleDatasets is the resolver for the accessibleDatasets field.
-func (r *queryResolver) AccessibleDatasets(ctx context.Context) ([]*models.DatasourceMinimal, error) {
-	user := auth.GetUser(ctx)
-	subjectsAsOwner := []string{user.Email}
-	subjectsAsOwner = append(subjectsAsOwner, user.GoogleGroups.Emails()...)
-	subjectsAsAccesser := []string{"user:" + user.Email}
-	for _, geml := range user.GoogleGroups.Emails() {
-		subjectsAsAccesser = append(subjectsAsAccesser, "group:"+geml)
-	}
-	return r.repo.GetAccessibleDatasourcesByUser(ctx, subjectsAsOwner, subjectsAsAccesser)
+// AccessiblePseudoDatasets is the resolver for the accessiblePseudoDatasets field.
+func (r *queryResolver) AccessiblePseudoDatasets(ctx context.Context) ([]*models.PseudoDataset, error) {
+	panic(fmt.Errorf("not implemented: AccessiblePseudoDatasets - accessiblePseudoDatasets"))
 }
 
 // BigQuery returns generated.BigQueryResolver implementation.
@@ -303,3 +297,20 @@ func (r *Resolver) Dataset() generated.DatasetResolver { return &datasetResolver
 
 type bigQueryResolver struct{ *Resolver }
 type datasetResolver struct{ *Resolver }
+
+// !!! WARNING !!!
+// The code below was going to be deleted when updating resolvers. It has been copied here so you have
+// one last chance to move it out of harms way if you want. There are two reasons this happens:
+//   - When renaming or deleting a resolver the old code will be put in here. You can safely delete
+//     it when you're done.
+//   - You have helper methods in this file. Move them out to keep these resolver files clean.
+func (r *queryResolver) AccessibleReferenceDatasources(ctx context.Context) ([]*models.PseudoDataset, error) {
+	user := auth.GetUser(ctx)
+	subjectsAsOwner := []string{user.Email}
+	subjectsAsOwner = append(subjectsAsOwner, user.GoogleGroups.Emails()...)
+	subjectsAsAccesser := []string{"user:" + user.Email}
+	for _, geml := range user.GoogleGroups.Emails() {
+		subjectsAsAccesser = append(subjectsAsAccesser, "group:"+geml)
+	}
+	return r.repo.GetAccessibleReferenceDatasourcesByUser(ctx, subjectsAsOwner, subjectsAsAccesser)
+}

@@ -12,6 +12,7 @@ import (
 	"github.com/navikt/nada-backend/pkg/auth"
 	"github.com/navikt/nada-backend/pkg/database/gensql"
 	"github.com/navikt/nada-backend/pkg/graph/models"
+	"github.com/navikt/nada-backend/pkg/utils"
 	"github.com/tabbed/pqtype"
 )
 
@@ -99,7 +100,7 @@ func (r *Repo) CreateDataset(ctx context.Context, ds models.NewDataset, referenc
 		return nil, err
 	}
 
-	if len(ds.PseudoColumns) > 0 && referenceDatasource!= nil{
+	if len(ds.PseudoColumns) > 0 && referenceDatasource != nil {
 		_, err = querier.CreateBigqueryDatasource(ctx, gensql.CreateBigqueryDatasourceParams{
 			DatasetID:    created.ID,
 			ProjectID:    referenceDatasource.ProjectID,
@@ -155,6 +156,42 @@ func (r *Repo) CreateDataset(ctx context.Context, ds models.NewDataset, referenc
 	return ret, nil
 }
 
+func (r *Repo) CreateJoinableViews(ctx context.Context, name, owner string, referenceDatasourceIDs []string) (string, error) {
+	tx, err := r.db.Begin()
+	if err != nil {
+		return "", err
+	}
+
+	jv, err := r.querier.CreateJoinableViews(ctx, gensql.CreateJoinableViewsParams{
+		Name:  name,
+		Owner: owner,
+	})
+	if err != nil {
+		return "", err
+	}
+	for _, bqid := range referenceDatasourceIDs {
+		bquuid, err := uuid.Parse(bqid)
+		if err != nil {
+			return "", err
+		}
+
+		_, err = r.querier.CreateJoinableViewsReferenceDatasource(ctx, gensql.CreateJoinableViewsReferenceDatasourceParams{
+			JoinableViewID:        jv.ID,
+			ReferenceDatasourceID: bquuid,
+		})
+
+		if err != nil {
+			return "", err
+		}
+	}
+
+	if err := tx.Commit(); err != nil {
+		return "", err
+	}
+
+	return jv.ID.String(), nil
+}
+
 func (r *Repo) UpdateDataset(ctx context.Context, id uuid.UUID, new models.UpdateDataset) (*models.Dataset, error) {
 	if new.Keywords == nil {
 		new.Keywords = []string{}
@@ -200,6 +237,41 @@ func (r *Repo) UpdateDataset(ctx context.Context, id uuid.UUID, new models.Updat
 	}
 
 	return datasetFromSQL(res), nil
+}
+
+func (r *Repo) GetJoinableViewsForUser(ctx context.Context, user string) ([]*models.JoinableView, error) {
+	joinableViewsDB, err := r.querier.GetJoinableViewsForOwner(ctx, user)
+	if err != nil {
+		return nil, err
+	}
+
+	joinableViewsDBMerged := make(map[uuid.UUID][]gensql.GetJoinableViewsForOwnerRow)
+	for _, vdb := range joinableViewsDB {
+		_, _exist := joinableViewsDBMerged[vdb.ID]
+		if !_exist {
+			joinableViewsDBMerged[vdb.ID] = []gensql.GetJoinableViewsForOwnerRow{}
+		}
+		joinableViewsDBMerged[vdb.ID] = append(joinableViewsDBMerged[vdb.ID], vdb)
+	}
+
+	joinableViews := []*models.JoinableView{}
+
+	for k, v := range joinableViewsDBMerged {
+		newJoinableView := &models.JoinableView{
+			ID:           k,
+			Name:         v[0].Name,
+			BigQueryUrls: []string{},
+		}
+		joinableViews = append(joinableViews, newJoinableView)
+		for _, bq := range v {
+			newJoinableView.BigQueryUrls = append(newJoinableView.BigQueryUrls, r.MakeBigQueryUrlForJoinableViews(bq.Name, bq.ProjectID, bq.DatasetID, bq.TableID))
+		}
+	}
+	return joinableViews, nil
+}
+
+func (r *Repo) MakeBigQueryUrlForJoinableViews(name, refProjectID, refDatasetID, refTableID string) string {
+	return fmt.Sprintf("%v.%v.%v", r.centralDataProject, name, utils.MakeJoinableViewName(refProjectID, refDatasetID, refTableID))
 }
 
 func (r *Repo) GetBigqueryDatasource(ctx context.Context, datasetID uuid.UUID, isReference bool) (models.BigQuery, error) {
@@ -336,8 +408,8 @@ func (r *Repo) DeleteDataset(ctx context.Context, id uuid.UUID) error {
 	return nil
 }
 
-func (r *Repo) GetAccessibleDatasourcesByUser(ctx context.Context, subjectsAsOwner []string, subjectsAsAccesser []string) ([]*models.DatasourceMinimal, error) {
-	rows, err := r.querier.GetAccessibleDatasourcesByUser(ctx, gensql.GetAccessibleDatasourcesByUserParams{
+func (r *Repo) GetAccessibleReferenceDatasourcesByUser(ctx context.Context, subjectsAsOwner []string, subjectsAsAccesser []string) ([]*models.PseudoDataset, error) {
+	rows, err := r.querier.GetAccessiblePseudoDatasetsByUser(ctx, gensql.GetAccessiblePseudoDatasetsByUserParams{
 		OwnerSubjects:  subjectsAsOwner,
 		AccessSubjects: subjectsAsAccesser,
 	})
@@ -345,25 +417,19 @@ func (r *Repo) GetAccessibleDatasourcesByUser(ctx context.Context, subjectsAsOwn
 		return nil, err
 	}
 
-	datasources := []*models.DatasourceMinimal{}
+	pseudoDatasets := []*models.PseudoDataset{}
 	for _, d := range rows {
-		datasources = append(datasources, DatasourceMinimalFromSQL(&d))
+		pseudoDatasets = append(pseudoDatasets, ReferenceDatasourceFromSQL(&d))
 	}
-	return datasources, nil
+	return pseudoDatasets, nil
 }
 
-func DatasourceMinimalFromSQL(d *gensql.GetAccessibleDatasourcesByUserRow) *models.DatasourceMinimal {
-	return &models.DatasourceMinimal{
-		// bqProjectID is the bigquery project ID that contains the BigQuery table
-		BqProjectID: d.BqProjectID.String,
-		// bqDatasetID is the bigquery dataset that contains the BigQuery table
-		BqDatasetID: d.BqDatasetID.String,
-		// bqTableID is the name for BigQuery table
-		BqTableID: d.BqTableID.String,
-		// datasetID is the id of the dataset
-		DatasetID: d.DatasetID,
+func ReferenceDatasourceFromSQL(d *gensql.GetAccessiblePseudoDatasetsByUserRow) *models.PseudoDataset {
+	return &models.PseudoDataset{
 		// name is the name of the dataset
 		Name: d.Name,
+		// datasetID is the id of the dataset
+		DatasetID: d.DatasetID,
 	}
 }
 

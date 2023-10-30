@@ -21,6 +21,8 @@ type Querier interface {
 	CreateDataproduct(ctx context.Context, arg CreateDataproductParams) (Dataproduct, error)
 	CreateDataset(ctx context.Context, arg CreateDatasetParams) (Dataset, error)
 	CreateInsightProduct(ctx context.Context, arg CreateInsightProductParams) (InsightProduct, error)
+	CreateJoinableViews(ctx context.Context, arg CreateJoinableViewsParams) (JoinableView, error)
+	CreateJoinableViewsReferenceDatasource(ctx context.Context, arg CreateJoinableViewsReferenceDatasourceParams) (JoinableViewsReferenceDatasource, error)
 	CreateMetabaseMetadata(ctx context.Context, arg CreateMetabaseMetadataParams) error
 	CreatePollyDocumentation(ctx context.Context, arg CreatePollyDocumentationParams) (PollyDocumentation, error)
 	CreateQuartoStory(ctx context.Context, arg CreateQuartoStoryParams) (QuartoStory, error)
@@ -48,7 +50,7 @@ type Querier interface {
 	DenyAccessRequest(ctx context.Context, arg DenyAccessRequestParams) error
 	GetAccessRequest(ctx context.Context, id uuid.UUID) (DatasetAccessRequest, error)
 	GetAccessToDataset(ctx context.Context, id uuid.UUID) (DatasetAccess, error)
-	GetAccessibleDatasourcesByUser(ctx context.Context, arg GetAccessibleDatasourcesByUserParams) ([]GetAccessibleDatasourcesByUserRow, error)
+	GetAccessiblePseudoDatasetsByUser(ctx context.Context, arg GetAccessiblePseudoDatasetsByUserParams) ([]GetAccessiblePseudoDatasetsByUserRow, error)
 	GetActiveAccessToDatasetForSubject(ctx context.Context, arg GetActiveAccessToDatasetForSubjectParams) (DatasetAccess, error)
 	GetAllMetabaseMetadata(ctx context.Context) ([]MetabaseMetadatum, error)
 	GetBigqueryDatasource(ctx context.Context, arg GetBigqueryDatasourceParams) (DatasourceBigquery, error)
@@ -74,6 +76,7 @@ type Querier interface {
 	GetInsightProductsByIDs(ctx context.Context, ids []uuid.UUID) ([]InsightProduct, error)
 	GetInsightProductsByProductArea(ctx context.Context, productAreaID sql.NullString) ([]InsightProduct, error)
 	GetInsightProductsByTeam(ctx context.Context, teamID sql.NullString) ([]InsightProduct, error)
+	GetJoinableViewsForOwner(ctx context.Context, owner string) ([]GetJoinableViewsForOwnerRow, error)
 	GetKeywords(ctx context.Context) ([]GetKeywordsRow, error)
 	GetMetabaseMetadata(ctx context.Context, datasetID uuid.UUID) (MetabaseMetadatum, error)
 	GetMetabaseMetadataWithDeleted(ctx context.Context, datasetID uuid.UUID) (MetabaseMetadatum, error)

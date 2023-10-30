@@ -1,44 +1,28 @@
 """
-NewPseudoView contains metadata for creating a new pseudonymised view
-"""
-input NewPseudoView @goModel(model: "github.com/navikt/nada-backend/pkg/graph/models.NewPseudoView"){
-    "projectID is the GCP project ID of the target table."
-    projectID: String!
-    "dataset is the name of the dataset of the target table."
-    dataset: String!
-    "table is the name of the target table"
-    table: String!
-    "targetColumns is the columns to be pseudonymised."
-    targetColumns: [String!]
-}
-
-"""
 NewJoinableViews contains metadata for creating joinable views
 """
 input NewJoinableViews @goModel(model: "github.com/navikt/nada-backend/pkg/graph/models.NewJoinableViews"){
-    "datasetIDs is the IDs of the dataset which connects to joinable views."
+    "name is the name of the joinable views which will be used as the name of the dataset in bigquery, which contains all the joinable views"
+    name: String!
+    "datasetIDs is the IDs of the dataset which are made joinable."
     datasetIDs: [ID!]
 }
 
-
 type JoinableView @goModel(model: "github.com/navikt/nada-backend/pkg/graph/models.JoinableView"){
-    bigqueryProjectID: String!
-    bigqueryDatasetID: String!
+    "id is the id of the joinable view set"
+    id: ID!
+    name: String
+    bigqueryUrls: [String!]!
 }
 
 extend type Mutation {
     """
-    createPseudoView creates a new pseudoynimised view
+    createJoinableView creates a new joinable view set
 
     Requires authentication.
     """
-    createPseudoView(
-        "input contains information about the new dataset."
-        input: NewPseudoView!
-    ): String! @authenticated
-
     createJoinableViews(
-        "input contains information about the joinable views"
+        "input contains information about the joinable view set"
         input: NewJoinableViews!
     ): String! @authenticated
 }
@@ -47,5 +31,5 @@ extend type Query {
     """
     joinableViews returns all the joinableViews for the user.
     """
-    joinableViews: [JoinableView]!
+    joinableViews: [JoinableView!]!
 }

@@ -149,14 +149,6 @@ type ComplexityRoot struct {
 		Metabase func(childComplexity int) int
 	}
 
-	DatasourceMinimal struct {
-		BqDatasetID func(childComplexity int) int
-		BqProjectID func(childComplexity int) int
-		BqTableID   func(childComplexity int) int
-		DatasetID   func(childComplexity int) int
-		Name        func(childComplexity int) int
-	}
-
 	GCPProject struct {
 		Group func(childComplexity int) int
 		ID    func(childComplexity int) int
@@ -189,8 +181,9 @@ type ComplexityRoot struct {
 	}
 
 	JoinableView struct {
-		BigqueryDatasetID func(childComplexity int) int
-		BigqueryProjectID func(childComplexity int) int
+		BigQueryUrls func(childComplexity int) int
+		ID           func(childComplexity int) int
+		Name         func(childComplexity int) int
 	}
 
 	Keyword struct {
@@ -205,7 +198,6 @@ type ComplexityRoot struct {
 		CreateDataset                func(childComplexity int, input models.NewDataset) int
 		CreateInsightProduct         func(childComplexity int, input models.NewInsightProduct) int
 		CreateJoinableViews          func(childComplexity int, input models.NewJoinableViews) int
-		CreatePseudoView             func(childComplexity int, input models.NewPseudoView) int
 		CreateQuartoStory            func(childComplexity int, files []*models.UploadFile, input models.NewQuartoStory) int
 		DeleteAccessRequest          func(childComplexity int, id uuid.UUID) int
 		DeleteDataproduct            func(childComplexity int, id uuid.UUID) int
@@ -261,6 +253,11 @@ type ComplexityRoot struct {
 		Teams           func(childComplexity int) int
 	}
 
+	PseudoDataset struct {
+		DatasetID func(childComplexity int) int
+		Name      func(childComplexity int) int
+	}
+
 	QuartoStory struct {
 		Created          func(childComplexity int) int
 		Creator          func(childComplexity int) int
@@ -278,7 +275,7 @@ type ComplexityRoot struct {
 	Query struct {
 		AccessRequest            func(childComplexity int, id uuid.UUID) int
 		AccessRequestsForDataset func(childComplexity int, datasetID uuid.UUID) int
-		AccessibleDatasets       func(childComplexity int) int
+		AccessiblePseudoDatasets func(childComplexity int) int
 		Dataproduct              func(childComplexity int, id uuid.UUID) int
 		Dataproducts             func(childComplexity int, limit *int, offset *int, service *models.MappingService) int
 		Dataset                  func(childComplexity int, id uuid.UUID) int
@@ -446,7 +443,6 @@ type MutationResolver interface {
 	DeleteInsightProduct(ctx context.Context, id uuid.UUID) (bool, error)
 	UpdateKeywords(ctx context.Context, input models.UpdateKeywords) (bool, error)
 	TriggerMetadataSync(ctx context.Context) (bool, error)
-	CreatePseudoView(ctx context.Context, input models.NewPseudoView) (string, error)
 	CreateJoinableViews(ctx context.Context, input models.NewJoinableViews) (string, error)
 	CreateQuartoStory(ctx context.Context, files []*models.UploadFile, input models.NewQuartoStory) (*models.QuartoStory, error)
 	UpdateQuartoStoryMetadata(ctx context.Context, id uuid.UUID, name string, description string, keywords []string, teamkatalogenURL *string, productAreaID *string, teamID *string, group string) (*models.QuartoStory, error)
@@ -473,7 +469,7 @@ type QueryResolver interface {
 	Dataset(ctx context.Context, id uuid.UUID) (*models.Dataset, error)
 	AccessRequestsForDataset(ctx context.Context, datasetID uuid.UUID) ([]*models.AccessRequest, error)
 	DatasetsInDataproduct(ctx context.Context, dataproductID uuid.UUID) ([]*models.Dataset, error)
-	AccessibleDatasets(ctx context.Context) ([]*models.DatasourceMinimal, error)
+	AccessiblePseudoDatasets(ctx context.Context) ([]*models.PseudoDataset, error)
 	GcpGetTables(ctx context.Context, projectID string, datasetID string) ([]*models.BigQueryTable, error)
 	GcpGetDatasets(ctx context.Context, projectID string) ([]string, error)
 	GcpGetAllTablesInProject(ctx context.Context, projectID string) ([]*models.BigQuerySource, error)
@@ -1014,41 +1010,6 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.DatasetServices.Metabase(childComplexity), true
 
-	case "DatasourceMinimal.bqDatasetID":
-		if e.complexity.DatasourceMinimal.BqDatasetID == nil {
-			break
-		}
-
-		return e.complexity.DatasourceMinimal.BqDatasetID(childComplexity), true
-
-	case "DatasourceMinimal.bqProjectID":
-		if e.complexity.DatasourceMinimal.BqProjectID == nil {
-			break
-		}
-
-		return e.complexity.DatasourceMinimal.BqProjectID(childComplexity), true
-
-	case "DatasourceMinimal.bqTableID":
-		if e.complexity.DatasourceMinimal.BqTableID == nil {
-			break
-		}
-
-		return e.complexity.DatasourceMinimal.BqTableID(childComplexity), true
-
-	case "DatasourceMinimal.datasetID":
-		if e.complexity.DatasourceMinimal.DatasetID == nil {
-			break
-		}
-
-		return e.complexity.DatasourceMinimal.DatasetID(childComplexity), true
-
-	case "DatasourceMinimal.name":
-		if e.complexity.DatasourceMinimal.Name == nil {
-			break
-		}
-
-		return e.complexity.DatasourceMinimal.Name(childComplexity), true
-
 	case "GCPProject.group":
 		if e.complexity.GCPProject.Group == nil {
 			break
@@ -1182,19 +1143,26 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.InsightProduct.Type(childComplexity), true
 
-	case "JoinableView.bigqueryDatasetID":
-		if e.complexity.JoinableView.BigqueryDatasetID == nil {
+	case "JoinableView.bigqueryUrls":
+		if e.complexity.JoinableView.BigQueryUrls == nil {
 			break
 		}
 
-		return e.complexity.JoinableView.BigqueryDatasetID(childComplexity), true
+		return e.complexity.JoinableView.BigQueryUrls(childComplexity), true
 
-	case "JoinableView.bigqueryProjectID":
-		if e.complexity.JoinableView.BigqueryProjectID == nil {
+	case "JoinableView.id":
+		if e.complexity.JoinableView.ID == nil {
 			break
 		}
 
-		return e.complexity.JoinableView.BigqueryProjectID(childComplexity), true
+		return e.complexity.JoinableView.ID(childComplexity), true
+
+	case "JoinableView.name":
+		if e.complexity.JoinableView.Name == nil {
+			break
+		}
+
+		return e.complexity.JoinableView.Name(childComplexity), true
 
 	case "Keyword.count":
 		if e.complexity.Keyword.Count == nil {
@@ -1281,18 +1249,6 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 		}
 
 		return e.complexity.Mutation.CreateJoinableViews(childComplexity, args["input"].(models.NewJoinableViews)), true
-
-	case "Mutation.createPseudoView":
-		if e.complexity.Mutation.CreatePseudoView == nil {
-			break
-		}
-
-		args, err := ec.field_Mutation_createPseudoView_args(context.TODO(), rawArgs)
-		if err != nil {
-			return 0, false
-		}
-
-		return e.complexity.Mutation.CreatePseudoView(childComplexity, args["input"].(models.NewPseudoView)), true
 
 	case "Mutation.createQuartoStory":
 		if e.complexity.Mutation.CreateQuartoStory == nil {
@@ -1681,6 +1637,20 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.ProductArea.Teams(childComplexity), true
 
+	case "PseudoDataset.datasetID":
+		if e.complexity.PseudoDataset.DatasetID == nil {
+			break
+		}
+
+		return e.complexity.PseudoDataset.DatasetID(childComplexity), true
+
+	case "PseudoDataset.name":
+		if e.complexity.PseudoDataset.Name == nil {
+			break
+		}
+
+		return e.complexity.PseudoDataset.Name(childComplexity), true
+
 	case "QuartoStory.created":
 		if e.complexity.QuartoStory.Created == nil {
 			break
@@ -1782,12 +1752,12 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.Query.AccessRequestsForDataset(childComplexity, args["datasetID"].(uuid.UUID)), true
 
-	case "Query.accessibleDatasets":
-		if e.complexity.Query.AccessibleDatasets == nil {
+	case "Query.accessiblePseudoDatasets":
+		if e.complexity.Query.AccessiblePseudoDatasets == nil {
 			break
 		}
 
-		return e.complexity.Query.AccessibleDatasets(childComplexity), true
+		return e.complexity.Query.AccessiblePseudoDatasets(childComplexity), true
 
 	case "Query.dataproduct":
 		if e.complexity.Query.Dataproduct == nil {
@@ -2490,7 +2460,6 @@ func (e *executableSchema) Exec(ctx context.Context) graphql.ResponseHandler {
 		ec.unmarshalInputNewGrant,
 		ec.unmarshalInputNewInsightProduct,
 		ec.unmarshalInputNewJoinableViews,
-		ec.unmarshalInputNewPseudoView,
 		ec.unmarshalInputNewQuartoStory,
 		ec.unmarshalInputNewStory,
 		ec.unmarshalInputPollyInput,
@@ -3022,19 +2991,13 @@ type BigQuery @goModel(model: "github.com/navikt/nada-backend/pkg/graph/models.B
 }
 
 """
-DatasourceMinimal contains minimal information about datasource of a dataset
+PseudoDataset contains information about a pseudo dataset
 """
-type DatasourceMinimal @goModel(model: "github.com/navikt/nada-backend/pkg/graph/models.DatasourceMinimal") {
-    "bqProjectID is the bigquery project ID that contains the BigQuery table"
-    bqProjectID: String!
-    "bqDatasetID is the bigquery dataset that contains the BigQuery table"
-    bqDatasetID: String!
-    "bqTableID is the name for BigQuery table"
-    bqTableID: String!
-    "datasetID is the id of the dataset"
-    datasetID: ID!
+type PseudoDataset @goModel(model: "github.com/navikt/nada-backend/pkg/graph/models.PseudoDataset") {
     "name is the name of the dataset"
     name: String!
+    "datasetID is the id of the dataset"
+    datasetID: ID!
 }
 
 """
@@ -3067,9 +3030,9 @@ extend type Query {
     ): [Dataset!]!
 
     """
-    accessibleDatasets returns the datasets the user has access to.
+    accessiblePseudoDatasets returns the pseudo datasets the user has access to.
     """
-    accessibleDatasets: [DatasourceMinimal!]!
+    accessiblePseudoDatasets: [PseudoDataset!]!
 }
 
 """
@@ -3621,46 +3584,30 @@ extend type Query {
 }
 `, BuiltIn: false},
 	{Name: "../../../schema/pseudoView.graphql", Input: `"""
-NewPseudoView contains metadata for creating a new pseudonymised view
-"""
-input NewPseudoView @goModel(model: "github.com/navikt/nada-backend/pkg/graph/models.NewPseudoView"){
-    "projectID is the GCP project ID of the target table."
-    projectID: String!
-    "dataset is the name of the dataset of the target table."
-    dataset: String!
-    "table is the name of the target table"
-    table: String!
-    "targetColumns is the columns to be pseudonymised."
-    targetColumns: [String!]
-}
-
-"""
 NewJoinableViews contains metadata for creating joinable views
 """
 input NewJoinableViews @goModel(model: "github.com/navikt/nada-backend/pkg/graph/models.NewJoinableViews"){
-    "datasetIDs is the IDs of the dataset which connects to joinable views."
+    "name is the name of the joinable views which will be used as the name of the dataset in bigquery, which contains all the joinable views"
+    name: String!
+    "datasetIDs is the IDs of the dataset which are made joinable."
     datasetIDs: [ID!]
 }
 
-
 type JoinableView @goModel(model: "github.com/navikt/nada-backend/pkg/graph/models.JoinableView"){
-    bigqueryProjectID: String!
-    bigqueryDatasetID: String!
+    "id is the id of the joinable view set"
+    id: ID!
+    name: String
+    bigqueryUrls: [String!]!
 }
 
 extend type Mutation {
     """
-    createPseudoView creates a new pseudoynimised view
+    createJoinableView creates a new joinable view set
 
     Requires authentication.
     """
-    createPseudoView(
-        "input contains information about the new dataset."
-        input: NewPseudoView!
-    ): String! @authenticated
-
     createJoinableViews(
-        "input contains information about the joinable views"
+        "input contains information about the joinable view set"
         input: NewJoinableViews!
     ): String! @authenticated
 }
@@ -3669,7 +3616,7 @@ extend type Query {
     """
     joinableViews returns all the joinableViews for the user.
     """
-    joinableViews: [JoinableView]!
+    joinableViews: [JoinableView!]!
 }
 `, BuiltIn: false},
 	{Name: "../../../schema/quarto_story.graphql", Input: `"""
@@ -4296,21 +4243,6 @@ func (ec *executionContext) field_Mutation_createJoinableViews_args(ctx context.
 	if tmp, ok := rawArgs["input"]; ok {
 		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("input"))
 		arg0, err = ec.unmarshalNNewJoinableViews2githubᚗcomᚋnaviktᚋnadaᚑbackendᚋpkgᚋgraphᚋmodelsᚐNewJoinableViews(ctx, tmp)
-		if err != nil {
-			return nil, err
-		}
-	}
-	args["input"] = arg0
-	return args, nil
-}
-
-func (ec *executionContext) field_Mutation_createPseudoView_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
-	var err error
-	args := map[string]interface{}{}
-	var arg0 models.NewPseudoView
-	if tmp, ok := rawArgs["input"]; ok {
-		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("input"))
-		arg0, err = ec.unmarshalNNewPseudoView2githubᚗcomᚋnaviktᚋnadaᚑbackendᚋpkgᚋgraphᚋmodelsᚐNewPseudoView(ctx, tmp)
 		if err != nil {
 			return nil, err
 		}
@@ -8339,226 +8271,6 @@ func (ec *executionContext) fieldContext_DatasetServices_metabase(ctx context.Co
 	return fc, nil
 }
 
-func (ec *executionContext) _DatasourceMinimal_bqProjectID(ctx context.Context, field graphql.CollectedField, obj *models.DatasourceMinimal) (ret graphql.Marshaler) {
-	fc, err := ec.fieldContext_DatasourceMinimal_bqProjectID(ctx, field)
-	if err != nil {
-		return graphql.Null
-	}
-	ctx = graphql.WithFieldContext(ctx, fc)
-	defer func() {
-		if r := recover(); r != nil {
-			ec.Error(ctx, ec.Recover(ctx, r))
-			ret = graphql.Null
-		}
-	}()
-	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
-		ctx = rctx // use context from middleware stack in children
-		return obj.BqProjectID, nil
-	})
-	if err != nil {
-		ec.Error(ctx, err)
-		return graphql.Null
-	}
-	if resTmp == nil {
-		if !graphql.HasFieldError(ctx, fc) {
-			ec.Errorf(ctx, "must not be null")
-		}
-		return graphql.Null
-	}
-	res := resTmp.(string)
-	fc.Result = res
-	return ec.marshalNString2string(ctx, field.Selections, res)
-}
-
-func (ec *executionContext) fieldContext_DatasourceMinimal_bqProjectID(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "DatasourceMinimal",
-		Field:      field,
-		IsMethod:   false,
-		IsResolver: false,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type String does not have child fields")
-		},
-	}
-	return fc, nil
-}
-
-func (ec *executionContext) _DatasourceMinimal_bqDatasetID(ctx context.Context, field graphql.CollectedField, obj *models.DatasourceMinimal) (ret graphql.Marshaler) {
-	fc, err := ec.fieldContext_DatasourceMinimal_bqDatasetID(ctx, field)
-	if err != nil {
-		return graphql.Null
-	}
-	ctx = graphql.WithFieldContext(ctx, fc)
-	defer func() {
-		if r := recover(); r != nil {
-			ec.Error(ctx, ec.Recover(ctx, r))
-			ret = graphql.Null
-		}
-	}()
-	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
-		ctx = rctx // use context from middleware stack in children
-		return obj.BqDatasetID, nil
-	})
-	if err != nil {
-		ec.Error(ctx, err)
-		return graphql.Null
-	}
-	if resTmp == nil {
-		if !graphql.HasFieldError(ctx, fc) {
-			ec.Errorf(ctx, "must not be null")
-		}
-		return graphql.Null
-	}
-	res := resTmp.(string)
-	fc.Result = res
-	return ec.marshalNString2string(ctx, field.Selections, res)
-}
-
-func (ec *executionContext) fieldContext_DatasourceMinimal_bqDatasetID(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "DatasourceMinimal",
-		Field:      field,
-		IsMethod:   false,
-		IsResolver: false,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type String does not have child fields")
-		},
-	}
-	return fc, nil
-}
-
-func (ec *executionContext) _DatasourceMinimal_bqTableID(ctx context.Context, field graphql.CollectedField, obj *models.DatasourceMinimal) (ret graphql.Marshaler) {
-	fc, err := ec.fieldContext_DatasourceMinimal_bqTableID(ctx, field)
-	if err != nil {
-		return graphql.Null
-	}
-	ctx = graphql.WithFieldContext(ctx, fc)
-	defer func() {
-		if r := recover(); r != nil {
-			ec.Error(ctx, ec.Recover(ctx, r))
-			ret = graphql.Null
-		}
-	}()
-	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
-		ctx = rctx // use context from middleware stack in children
-		return obj.BqTableID, nil
-	})
-	if err != nil {
-		ec.Error(ctx, err)
-		return graphql.Null
-	}
-	if resTmp == nil {
-		if !graphql.HasFieldError(ctx, fc) {
-			ec.Errorf(ctx, "must not be null")
-		}
-		return graphql.Null
-	}
-	res := resTmp.(string)
-	fc.Result = res
-	return ec.marshalNString2string(ctx, field.Selections, res)
-}
-
-func (ec *executionContext) fieldContext_DatasourceMinimal_bqTableID(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "DatasourceMinimal",
-		Field:      field,
-		IsMethod:   false,
-		IsResolver: false,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type String does not have child fields")
-		},
-	}
-	return fc, nil
-}
-
-func (ec *executionContext) _DatasourceMinimal_datasetID(ctx context.Context, field graphql.CollectedField, obj *models.DatasourceMinimal) (ret graphql.Marshaler) {
-	fc, err := ec.fieldContext_DatasourceMinimal_datasetID(ctx, field)
-	if err != nil {
-		return graphql.Null
-	}
-	ctx = graphql.WithFieldContext(ctx, fc)
-	defer func() {
-		if r := recover(); r != nil {
-			ec.Error(ctx, ec.Recover(ctx, r))
-			ret = graphql.Null
-		}
-	}()
-	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
-		ctx = rctx // use context from middleware stack in children
-		return obj.DatasetID, nil
-	})
-	if err != nil {
-		ec.Error(ctx, err)
-		return graphql.Null
-	}
-	if resTmp == nil {
-		if !graphql.HasFieldError(ctx, fc) {
-			ec.Errorf(ctx, "must not be null")
-		}
-		return graphql.Null
-	}
-	res := resTmp.(uuid.UUID)
-	fc.Result = res
-	return ec.marshalNID2githubᚗcomᚋgoogleᚋuuidᚐUUID(ctx, field.Selections, res)
-}
-
-func (ec *executionContext) fieldContext_DatasourceMinimal_datasetID(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "DatasourceMinimal",
-		Field:      field,
-		IsMethod:   false,
-		IsResolver: false,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type ID does not have child fields")
-		},
-	}
-	return fc, nil
-}
-
-func (ec *executionContext) _DatasourceMinimal_name(ctx context.Context, field graphql.CollectedField, obj *models.DatasourceMinimal) (ret graphql.Marshaler) {
-	fc, err := ec.fieldContext_DatasourceMinimal_name(ctx, field)
-	if err != nil {
-		return graphql.Null
-	}
-	ctx = graphql.WithFieldContext(ctx, fc)
-	defer func() {
-		if r := recover(); r != nil {
-			ec.Error(ctx, ec.Recover(ctx, r))
-			ret = graphql.Null
-		}
-	}()
-	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
-		ctx = rctx // use context from middleware stack in children
-		return obj.Name, nil
-	})
-	if err != nil {
-		ec.Error(ctx, err)
-		return graphql.Null
-	}
-	if resTmp == nil {
-		if !graphql.HasFieldError(ctx, fc) {
-			ec.Errorf(ctx, "must not be null")
-		}
-		return graphql.Null
-	}
-	res := resTmp.(string)
-	fc.Result = res
-	return ec.marshalNString2string(ctx, field.Selections, res)
-}
-
-func (ec *executionContext) fieldContext_DatasourceMinimal_name(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "DatasourceMinimal",
-		Field:      field,
-		IsMethod:   false,
-		IsResolver: false,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type String does not have child fields")
-		},
-	}
-	return fc, nil
-}
-
 func (ec *executionContext) _GCPProject_id(ctx context.Context, field graphql.CollectedField, obj *models.GCPProject) (ret graphql.Marshaler) {
 	fc, err := ec.fieldContext_GCPProject_id(ctx, field)
 	if err != nil {
@@ -9389,8 +9101,8 @@ func (ec *executionContext) fieldContext_InsightProduct_lastModified(ctx context
 	return fc, nil
 }
 
-func (ec *executionContext) _JoinableView_bigqueryProjectID(ctx context.Context, field graphql.CollectedField, obj *models.JoinableView) (ret graphql.Marshaler) {
-	fc, err := ec.fieldContext_JoinableView_bigqueryProjectID(ctx, field)
+func (ec *executionContext) _JoinableView_id(ctx context.Context, field graphql.CollectedField, obj *models.JoinableView) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_JoinableView_id(ctx, field)
 	if err != nil {
 		return graphql.Null
 	}
@@ -9403,7 +9115,7 @@ func (ec *executionContext) _JoinableView_bigqueryProjectID(ctx context.Context,
 	}()
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
-		return obj.BigqueryProjectID, nil
+		return obj.ID, nil
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -9415,12 +9127,53 @@ func (ec *executionContext) _JoinableView_bigqueryProjectID(ctx context.Context,
 		}
 		return graphql.Null
 	}
-	res := resTmp.(string)
+	res := resTmp.(uuid.UUID)
 	fc.Result = res
-	return ec.marshalNString2string(ctx, field.Selections, res)
+	return ec.marshalNID2githubᚗcomᚋgoogleᚋuuidᚐUUID(ctx, field.Selections, res)
 }
 
-func (ec *executionContext) fieldContext_JoinableView_bigqueryProjectID(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+func (ec *executionContext) fieldContext_JoinableView_id(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "JoinableView",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type ID does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _JoinableView_name(ctx context.Context, field graphql.CollectedField, obj *models.JoinableView) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_JoinableView_name(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Name, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		return graphql.Null
+	}
+	res := resTmp.(string)
+	fc.Result = res
+	return ec.marshalOString2string(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_JoinableView_name(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
 	fc = &graphql.FieldContext{
 		Object:     "JoinableView",
 		Field:      field,
@@ -9433,8 +9186,8 @@ func (ec *executionContext) fieldContext_JoinableView_bigqueryProjectID(ctx cont
 	return fc, nil
 }
 
-func (ec *executionContext) _JoinableView_bigqueryDatasetID(ctx context.Context, field graphql.CollectedField, obj *models.JoinableView) (ret graphql.Marshaler) {
-	fc, err := ec.fieldContext_JoinableView_bigqueryDatasetID(ctx, field)
+func (ec *executionContext) _JoinableView_bigqueryUrls(ctx context.Context, field graphql.CollectedField, obj *models.JoinableView) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_JoinableView_bigqueryUrls(ctx, field)
 	if err != nil {
 		return graphql.Null
 	}
@@ -9447,7 +9200,7 @@ func (ec *executionContext) _JoinableView_bigqueryDatasetID(ctx context.Context,
 	}()
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
-		return obj.BigqueryDatasetID, nil
+		return obj.BigQueryUrls, nil
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -9459,12 +9212,12 @@ func (ec *executionContext) _JoinableView_bigqueryDatasetID(ctx context.Context,
 		}
 		return graphql.Null
 	}
-	res := resTmp.(string)
+	res := resTmp.([]string)
 	fc.Result = res
-	return ec.marshalNString2string(ctx, field.Selections, res)
+	return ec.marshalNString2ᚕstringᚄ(ctx, field.Selections, res)
 }
 
-func (ec *executionContext) fieldContext_JoinableView_bigqueryDatasetID(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+func (ec *executionContext) fieldContext_JoinableView_bigqueryUrls(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
 	fc = &graphql.FieldContext{
 		Object:     "JoinableView",
 		Field:      field,
@@ -11253,81 +11006,6 @@ func (ec *executionContext) fieldContext_Mutation_triggerMetadataSync(ctx contex
 	return fc, nil
 }
 
-func (ec *executionContext) _Mutation_createPseudoView(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
-	fc, err := ec.fieldContext_Mutation_createPseudoView(ctx, field)
-	if err != nil {
-		return graphql.Null
-	}
-	ctx = graphql.WithFieldContext(ctx, fc)
-	defer func() {
-		if r := recover(); r != nil {
-			ec.Error(ctx, ec.Recover(ctx, r))
-			ret = graphql.Null
-		}
-	}()
-	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
-		directive0 := func(rctx context.Context) (interface{}, error) {
-			ctx = rctx // use context from middleware stack in children
-			return ec.resolvers.Mutation().CreatePseudoView(rctx, fc.Args["input"].(models.NewPseudoView))
-		}
-		directive1 := func(ctx context.Context) (interface{}, error) {
-			if ec.directives.Authenticated == nil {
-				return nil, errors.New("directive authenticated is not implemented")
-			}
-			return ec.directives.Authenticated(ctx, nil, directive0, nil)
-		}
-
-		tmp, err := directive1(rctx)
-		if err != nil {
-			return nil, graphql.ErrorOnPath(ctx, err)
-		}
-		if tmp == nil {
-			return nil, nil
-		}
-		if data, ok := tmp.(string); ok {
-			return data, nil
-		}
-		return nil, fmt.Errorf(`unexpected type %T from directive, should be string`, tmp)
-	})
-	if err != nil {
-		ec.Error(ctx, err)
-		return graphql.Null
-	}
-	if resTmp == nil {
-		if !graphql.HasFieldError(ctx, fc) {
-			ec.Errorf(ctx, "must not be null")
-		}
-		return graphql.Null
-	}
-	res := resTmp.(string)
-	fc.Result = res
-	return ec.marshalNString2string(ctx, field.Selections, res)
-}
-
-func (ec *executionContext) fieldContext_Mutation_createPseudoView(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "Mutation",
-		Field:      field,
-		IsMethod:   true,
-		IsResolver: true,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type String does not have child fields")
-		},
-	}
-	defer func() {
-		if r := recover(); r != nil {
-			err = ec.Recover(ctx, r)
-			ec.Error(ctx, err)
-		}
-	}()
-	ctx = graphql.WithFieldContext(ctx, fc)
-	if fc.Args, err = ec.field_Mutation_createPseudoView_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
-		ec.Error(ctx, err)
-		return fc, err
-	}
-	return fc, nil
-}
-
 func (ec *executionContext) _Mutation_createJoinableViews(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
 	fc, err := ec.fieldContext_Mutation_createJoinableViews(ctx, field)
 	if err != nil {
@@ -12907,6 +12585,94 @@ func (ec *executionContext) fieldContext_ProductArea_teams(ctx context.Context, 
 	return fc, nil
 }
 
+func (ec *executionContext) _PseudoDataset_name(ctx context.Context, field graphql.CollectedField, obj *models.PseudoDataset) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_PseudoDataset_name(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Name, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(string)
+	fc.Result = res
+	return ec.marshalNString2string(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_PseudoDataset_name(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "PseudoDataset",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _PseudoDataset_datasetID(ctx context.Context, field graphql.CollectedField, obj *models.PseudoDataset) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_PseudoDataset_datasetID(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.DatasetID, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(uuid.UUID)
+	fc.Result = res
+	return ec.marshalNID2githubᚗcomᚋgoogleᚋuuidᚐUUID(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_PseudoDataset_datasetID(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "PseudoDataset",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type ID does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
 func (ec *executionContext) _QuartoStory_id(ctx context.Context, field graphql.CollectedField, obj *models.QuartoStory) (ret graphql.Marshaler) {
 	fc, err := ec.fieldContext_QuartoStory_id(ctx, field)
 	if err != nil {
@@ -14022,8 +13788,8 @@ func (ec *executionContext) fieldContext_Query_datasetsInDataproduct(ctx context
 	return fc, nil
 }
 
-func (ec *executionContext) _Query_accessibleDatasets(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
-	fc, err := ec.fieldContext_Query_accessibleDatasets(ctx, field)
+func (ec *executionContext) _Query_accessiblePseudoDatasets(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_Query_accessiblePseudoDatasets(ctx, field)
 	if err != nil {
 		return graphql.Null
 	}
@@ -14036,7 +13802,7 @@ func (ec *executionContext) _Query_accessibleDatasets(ctx context.Context, field
 	}()
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.Query().AccessibleDatasets(rctx)
+		return ec.resolvers.Query().AccessiblePseudoDatasets(rctx)
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -14048,12 +13814,12 @@ func (ec *executionContext) _Query_accessibleDatasets(ctx context.Context, field
 		}
 		return graphql.Null
 	}
-	res := resTmp.([]*models.DatasourceMinimal)
+	res := resTmp.([]*models.PseudoDataset)
 	fc.Result = res
-	return ec.marshalNDatasourceMinimal2ᚕᚖgithubᚗcomᚋnaviktᚋnadaᚑbackendᚋpkgᚋgraphᚋmodelsᚐDatasourceMinimalᚄ(ctx, field.Selections, res)
+	return ec.marshalNPseudoDataset2ᚕᚖgithubᚗcomᚋnaviktᚋnadaᚑbackendᚋpkgᚋgraphᚋmodelsᚐPseudoDatasetᚄ(ctx, field.Selections, res)
 }
 
-func (ec *executionContext) fieldContext_Query_accessibleDatasets(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+func (ec *executionContext) fieldContext_Query_accessiblePseudoDatasets(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
 	fc = &graphql.FieldContext{
 		Object:     "Query",
 		Field:      field,
@@ -14061,18 +13827,12 @@ func (ec *executionContext) fieldContext_Query_accessibleDatasets(ctx context.Co
 		IsResolver: true,
 		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
 			switch field.Name {
-			case "bqProjectID":
-				return ec.fieldContext_DatasourceMinimal_bqProjectID(ctx, field)
-			case "bqDatasetID":
-				return ec.fieldContext_DatasourceMinimal_bqDatasetID(ctx, field)
-			case "bqTableID":
-				return ec.fieldContext_DatasourceMinimal_bqTableID(ctx, field)
-			case "datasetID":
-				return ec.fieldContext_DatasourceMinimal_datasetID(ctx, field)
 			case "name":
-				return ec.fieldContext_DatasourceMinimal_name(ctx, field)
+				return ec.fieldContext_PseudoDataset_name(ctx, field)
+			case "datasetID":
+				return ec.fieldContext_PseudoDataset_datasetID(ctx, field)
 			}
-			return nil, fmt.Errorf("no field named %q was found under type DatasourceMinimal", field.Name)
+			return nil, fmt.Errorf("no field named %q was found under type PseudoDataset", field.Name)
 		},
 	}
 	return fc, nil
@@ -14840,7 +14600,7 @@ func (ec *executionContext) _Query_joinableViews(ctx context.Context, field grap
 	}
 	res := resTmp.([]*models.JoinableView)
 	fc.Result = res
-	return ec.marshalNJoinableView2ᚕᚖgithubᚗcomᚋnaviktᚋnadaᚑbackendᚋpkgᚋgraphᚋmodelsᚐJoinableView(ctx, field.Selections, res)
+	return ec.marshalNJoinableView2ᚕᚖgithubᚗcomᚋnaviktᚋnadaᚑbackendᚋpkgᚋgraphᚋmodelsᚐJoinableViewᚄ(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) fieldContext_Query_joinableViews(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
@@ -14851,10 +14611,12 @@ func (ec *executionContext) fieldContext_Query_joinableViews(ctx context.Context
 		IsResolver: true,
 		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
 			switch field.Name {
-			case "bigqueryProjectID":
-				return ec.fieldContext_JoinableView_bigqueryProjectID(ctx, field)
-			case "bigqueryDatasetID":
-				return ec.fieldContext_JoinableView_bigqueryDatasetID(ctx, field)
+			case "id":
+				return ec.fieldContext_JoinableView_id(ctx, field)
+			case "name":
+				return ec.fieldContext_JoinableView_name(ctx, field)
+			case "bigqueryUrls":
+				return ec.fieldContext_JoinableView_bigqueryUrls(ctx, field)
 			}
 			return nil, fmt.Errorf("no field named %q was found under type JoinableView", field.Name)
 		},
@@ -20702,13 +20464,22 @@ func (ec *executionContext) unmarshalInputNewJoinableViews(ctx context.Context, 
 		asMap[k] = v
 	}
 
-	fieldsInOrder := [...]string{"datasetIDs"}
+	fieldsInOrder := [...]string{"name", "datasetIDs"}
 	for _, k := range fieldsInOrder {
 		v, ok := asMap[k]
 		if !ok {
 			continue
 		}
 		switch k {
+		case "name":
+			var err error
+
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("name"))
+			data, err := ec.unmarshalNString2string(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.Name = data
 		case "datasetIDs":
 			var err error
 
@@ -20718,62 +20489,6 @@ func (ec *executionContext) unmarshalInputNewJoinableViews(ctx context.Context, 
 				return it, err
 			}
 			it.DatasetIDs = data
-		}
-	}
-
-	return it, nil
-}
-
-func (ec *executionContext) unmarshalInputNewPseudoView(ctx context.Context, obj interface{}) (models.NewPseudoView, error) {
-	var it models.NewPseudoView
-	asMap := map[string]interface{}{}
-	for k, v := range obj.(map[string]interface{}) {
-		asMap[k] = v
-	}
-
-	fieldsInOrder := [...]string{"projectID", "dataset", "table", "targetColumns"}
-	for _, k := range fieldsInOrder {
-		v, ok := asMap[k]
-		if !ok {
-			continue
-		}
-		switch k {
-		case "projectID":
-			var err error
-
-			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("projectID"))
-			data, err := ec.unmarshalNString2string(ctx, v)
-			if err != nil {
-				return it, err
-			}
-			it.ProjectID = data
-		case "dataset":
-			var err error
-
-			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("dataset"))
-			data, err := ec.unmarshalNString2string(ctx, v)
-			if err != nil {
-				return it, err
-			}
-			it.Dataset = data
-		case "table":
-			var err error
-
-			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("table"))
-			data, err := ec.unmarshalNString2string(ctx, v)
-			if err != nil {
-				return it, err
-			}
-			it.Table = data
-		case "targetColumns":
-			var err error
-
-			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("targetColumns"))
-			data, err := ec.unmarshalOString2ᚕstringᚄ(ctx, v)
-			if err != nil {
-				return it, err
-			}
-			it.TargetColumns = data
 		}
 	}
 
@@ -22516,65 +22231,6 @@ func (ec *executionContext) _DatasetServices(ctx context.Context, sel ast.Select
 	return out
 }
 
-var datasourceMinimalImplementors = []string{"DatasourceMinimal"}
-
-func (ec *executionContext) _DatasourceMinimal(ctx context.Context, sel ast.SelectionSet, obj *models.DatasourceMinimal) graphql.Marshaler {
-	fields := graphql.CollectFields(ec.OperationContext, sel, datasourceMinimalImplementors)
-
-	out := graphql.NewFieldSet(fields)
-	deferred := make(map[string]*graphql.FieldSet)
-	for i, field := range fields {
-		switch field.Name {
-		case "__typename":
-			out.Values[i] = graphql.MarshalString("DatasourceMinimal")
-		case "bqProjectID":
-			out.Values[i] = ec._DatasourceMinimal_bqProjectID(ctx, field, obj)
-			if out.Values[i] == graphql.Null {
-				out.Invalids++
-			}
-		case "bqDatasetID":
-			out.Values[i] = ec._DatasourceMinimal_bqDatasetID(ctx, field, obj)
-			if out.Values[i] == graphql.Null {
-				out.Invalids++
-			}
-		case "bqTableID":
-			out.Values[i] = ec._DatasourceMinimal_bqTableID(ctx, field, obj)
-			if out.Values[i] == graphql.Null {
-				out.Invalids++
-			}
-		case "datasetID":
-			out.Values[i] = ec._DatasourceMinimal_datasetID(ctx, field, obj)
-			if out.Values[i] == graphql.Null {
-				out.Invalids++
-			}
-		case "name":
-			out.Values[i] = ec._DatasourceMinimal_name(ctx, field, obj)
-			if out.Values[i] == graphql.Null {
-				out.Invalids++
-			}
-		default:
-			panic("unknown field " + strconv.Quote(field.Name))
-		}
-	}
-	out.Dispatch(ctx)
-	if out.Invalids > 0 {
-		return graphql.Null
-	}
-
-	atomic.AddInt32(&ec.deferred, int32(len(deferred)))
-
-	for label, dfs := range deferred {
-		ec.processDeferredGroup(graphql.DeferredGroup{
-			Label:    label,
-			Path:     graphql.GetPath(ctx),
-			FieldSet: dfs,
-			Context:  ctx,
-		})
-	}
-
-	return out
-}
-
 var gCPProjectImplementors = []string{"GCPProject"}
 
 func (ec *executionContext) _GCPProject(ctx context.Context, sel ast.SelectionSet, obj *models.GCPProject) graphql.Marshaler {
@@ -22805,13 +22461,15 @@ func (ec *executionContext) _JoinableView(ctx context.Context, sel ast.Selection
 		switch field.Name {
 		case "__typename":
 			out.Values[i] = graphql.MarshalString("JoinableView")
-		case "bigqueryProjectID":
-			out.Values[i] = ec._JoinableView_bigqueryProjectID(ctx, field, obj)
+		case "id":
+			out.Values[i] = ec._JoinableView_id(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
 				out.Invalids++
 			}
-		case "bigqueryDatasetID":
-			out.Values[i] = ec._JoinableView_bigqueryDatasetID(ctx, field, obj)
+		case "name":
+			out.Values[i] = ec._JoinableView_name(ctx, field, obj)
+		case "bigqueryUrls":
+			out.Values[i] = ec._JoinableView_bigqueryUrls(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
 				out.Invalids++
 			}
@@ -23034,13 +22692,6 @@ func (ec *executionContext) _Mutation(ctx context.Context, sel ast.SelectionSet)
 		case "triggerMetadataSync":
 			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
 				return ec._Mutation_triggerMetadataSync(ctx, field)
-			})
-			if out.Values[i] == graphql.Null {
-				out.Invalids++
-			}
-		case "createPseudoView":
-			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
-				return ec._Mutation_createPseudoView(ctx, field)
 			})
 			if out.Values[i] == graphql.Null {
 				out.Invalids++
@@ -23527,6 +23178,50 @@ func (ec *executionContext) _ProductArea(ctx context.Context, sel ast.SelectionS
 	return out
 }
 
+var pseudoDatasetImplementors = []string{"PseudoDataset"}
+
+func (ec *executionContext) _PseudoDataset(ctx context.Context, sel ast.SelectionSet, obj *models.PseudoDataset) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, pseudoDatasetImplementors)
+
+	out := graphql.NewFieldSet(fields)
+	deferred := make(map[string]*graphql.FieldSet)
+	for i, field := range fields {
+		switch field.Name {
+		case "__typename":
+			out.Values[i] = graphql.MarshalString("PseudoDataset")
+		case "name":
+			out.Values[i] = ec._PseudoDataset_name(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "datasetID":
+			out.Values[i] = ec._PseudoDataset_datasetID(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		default:
+			panic("unknown field " + strconv.Quote(field.Name))
+		}
+	}
+	out.Dispatch(ctx)
+	if out.Invalids > 0 {
+		return graphql.Null
+	}
+
+	atomic.AddInt32(&ec.deferred, int32(len(deferred)))
+
+	for label, dfs := range deferred {
+		ec.processDeferredGroup(graphql.DeferredGroup{
+			Label:    label,
+			Path:     graphql.GetPath(ctx),
+			FieldSet: dfs,
+			Context:  ctx,
+		})
+	}
+
+	return out
+}
+
 var quartoStoryImplementors = []string{"QuartoStory", "SearchResult"}
 
 func (ec *executionContext) _QuartoStory(ctx context.Context, sel ast.SelectionSet, obj *models.QuartoStory) graphql.Marshaler {
@@ -23799,7 +23494,7 @@ func (ec *executionContext) _Query(ctx context.Context, sel ast.SelectionSet) gr
 			}
 
 			out.Concurrently(i, func(ctx context.Context) graphql.Marshaler { return rrm(innerCtx) })
-		case "accessibleDatasets":
+		case "accessiblePseudoDatasets":
 			field := field
 
 			innerFunc := func(ctx context.Context, fs *graphql.FieldSet) (res graphql.Marshaler) {
@@ -23808,7 +23503,7 @@ func (ec *executionContext) _Query(ctx context.Context, sel ast.SelectionSet) gr
 						ec.Error(ctx, ec.Recover(ctx, r))
 					}
 				}()
-				res = ec._Query_accessibleDatasets(ctx, field)
+				res = ec._Query_accessiblePseudoDatasets(ctx, field)
 				if res == graphql.Null {
 					atomic.AddUint32(&fs.Invalids, 1)
 				}
@@ -26256,60 +25951,6 @@ func (ec *executionContext) marshalNDatasource2githubᚗcomᚋnaviktᚋnadaᚑba
 	return ec._Datasource(ctx, sel, v)
 }
 
-func (ec *executionContext) marshalNDatasourceMinimal2ᚕᚖgithubᚗcomᚋnaviktᚋnadaᚑbackendᚋpkgᚋgraphᚋmodelsᚐDatasourceMinimalᚄ(ctx context.Context, sel ast.SelectionSet, v []*models.DatasourceMinimal) graphql.Marshaler {
-	ret := make(graphql.Array, len(v))
-	var wg sync.WaitGroup
-	isLen1 := len(v) == 1
-	if !isLen1 {
-		wg.Add(len(v))
-	}
-	for i := range v {
-		i := i
-		fc := &graphql.FieldContext{
-			Index:  &i,
-			Result: &v[i],
-		}
-		ctx := graphql.WithFieldContext(ctx, fc)
-		f := func(i int) {
-			defer func() {
-				if r := recover(); r != nil {
-					ec.Error(ctx, ec.Recover(ctx, r))
-					ret = nil
-				}
-			}()
-			if !isLen1 {
-				defer wg.Done()
-			}
-			ret[i] = ec.marshalNDatasourceMinimal2ᚖgithubᚗcomᚋnaviktᚋnadaᚑbackendᚋpkgᚋgraphᚋmodelsᚐDatasourceMinimal(ctx, sel, v[i])
-		}
-		if isLen1 {
-			f(i)
-		} else {
-			go f(i)
-		}
-
-	}
-	wg.Wait()
-
-	for _, e := range ret {
-		if e == graphql.Null {
-			return graphql.Null
-		}
-	}
-
-	return ret
-}
-
-func (ec *executionContext) marshalNDatasourceMinimal2ᚖgithubᚗcomᚋnaviktᚋnadaᚑbackendᚋpkgᚋgraphᚋmodelsᚐDatasourceMinimal(ctx context.Context, sel ast.SelectionSet, v *models.DatasourceMinimal) graphql.Marshaler {
-	if v == nil {
-		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
-			ec.Errorf(ctx, "the requested element is null which the schema does not allow")
-		}
-		return graphql.Null
-	}
-	return ec._DatasourceMinimal(ctx, sel, v)
-}
-
 func (ec *executionContext) marshalNGCPProject2ᚕᚖgithubᚗcomᚋnaviktᚋnadaᚑbackendᚋpkgᚋgraphᚋmodelsᚐGCPProjectᚄ(ctx context.Context, sel ast.SelectionSet, v []*models.GCPProject) graphql.Marshaler {
 	ret := make(graphql.Array, len(v))
 	var wg sync.WaitGroup
@@ -26560,7 +26201,7 @@ func (ec *executionContext) marshalNInt2int(ctx context.Context, sel ast.Selecti
 	return res
 }
 
-func (ec *executionContext) marshalNJoinableView2ᚕᚖgithubᚗcomᚋnaviktᚋnadaᚑbackendᚋpkgᚋgraphᚋmodelsᚐJoinableView(ctx context.Context, sel ast.SelectionSet, v []*models.JoinableView) graphql.Marshaler {
+func (ec *executionContext) marshalNJoinableView2ᚕᚖgithubᚗcomᚋnaviktᚋnadaᚑbackendᚋpkgᚋgraphᚋmodelsᚐJoinableViewᚄ(ctx context.Context, sel ast.SelectionSet, v []*models.JoinableView) graphql.Marshaler {
 	ret := make(graphql.Array, len(v))
 	var wg sync.WaitGroup
 	isLen1 := len(v) == 1
@@ -26584,7 +26225,7 @@ func (ec *executionContext) marshalNJoinableView2ᚕᚖgithubᚗcomᚋnaviktᚋn
 			if !isLen1 {
 				defer wg.Done()
 			}
-			ret[i] = ec.marshalOJoinableView2ᚖgithubᚗcomᚋnaviktᚋnadaᚑbackendᚋpkgᚋgraphᚋmodelsᚐJoinableView(ctx, sel, v[i])
+			ret[i] = ec.marshalNJoinableView2ᚖgithubᚗcomᚋnaviktᚋnadaᚑbackendᚋpkgᚋgraphᚋmodelsᚐJoinableView(ctx, sel, v[i])
 		}
 		if isLen1 {
 			f(i)
@@ -26595,7 +26236,23 @@ func (ec *executionContext) marshalNJoinableView2ᚕᚖgithubᚗcomᚋnaviktᚋn
 	}
 	wg.Wait()
 
+	for _, e := range ret {
+		if e == graphql.Null {
+			return graphql.Null
+		}
+	}
+
 	return ret
+}
+
+func (ec *executionContext) marshalNJoinableView2ᚖgithubᚗcomᚋnaviktᚋnadaᚑbackendᚋpkgᚋgraphᚋmodelsᚐJoinableView(ctx context.Context, sel ast.SelectionSet, v *models.JoinableView) graphql.Marshaler {
+	if v == nil {
+		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
+			ec.Errorf(ctx, "the requested element is null which the schema does not allow")
+		}
+		return graphql.Null
+	}
+	return ec._JoinableView(ctx, sel, v)
 }
 
 func (ec *executionContext) marshalNKeyword2ᚕᚖgithubᚗcomᚋnaviktᚋnadaᚑbackendᚋpkgᚋgraphᚋmodelsᚐKeywordᚄ(ctx context.Context, sel ast.SelectionSet, v []*models.Keyword) graphql.Marshaler {
@@ -26865,11 +26522,6 @@ func (ec *executionContext) unmarshalNNewJoinableViews2githubᚗcomᚋnaviktᚋn
 	return res, graphql.ErrorOnPath(ctx, err)
 }
 
-func (ec *executionContext) unmarshalNNewPseudoView2githubᚗcomᚋnaviktᚋnadaᚑbackendᚋpkgᚋgraphᚋmodelsᚐNewPseudoView(ctx context.Context, v interface{}) (models.NewPseudoView, error) {
-	res, err := ec.unmarshalInputNewPseudoView(ctx, v)
-	return res, graphql.ErrorOnPath(ctx, err)
-}
-
 func (ec *executionContext) unmarshalNNewQuartoStory2githubᚗcomᚋnaviktᚋnadaᚑbackendᚋpkgᚋgraphᚋmodelsᚐNewQuartoStory(ctx context.Context, v interface{}) (models.NewQuartoStory, error) {
 	res, err := ec.unmarshalInputNewQuartoStory(ctx, v)
 	return res, graphql.ErrorOnPath(ctx, err)
@@ -26960,6 +26612,60 @@ func (ec *executionContext) marshalNProductArea2ᚖgithubᚗcomᚋnaviktᚋnada�
 		return graphql.Null
 	}
 	return ec._ProductArea(ctx, sel, v)
+}
+
+func (ec *executionContext) marshalNPseudoDataset2ᚕᚖgithubᚗcomᚋnaviktᚋnadaᚑbackendᚋpkgᚋgraphᚋmodelsᚐPseudoDatasetᚄ(ctx context.Context, sel ast.SelectionSet, v []*models.PseudoDataset) graphql.Marshaler {
+	ret := make(graphql.Array, len(v))
+	var wg sync.WaitGroup
+	isLen1 := len(v) == 1
+	if !isLen1 {
+		wg.Add(len(v))
+	}
+	for i := range v {
+		i := i
+		fc := &graphql.FieldContext{
+			Index:  &i,
+			Result: &v[i],
+		}
+		ctx := graphql.WithFieldContext(ctx, fc)
+		f := func(i int) {
+			defer func() {
+				if r := recover(); r != nil {
+					ec.Error(ctx, ec.Recover(ctx, r))
+					ret = nil
+				}
+			}()
+			if !isLen1 {
+				defer wg.Done()
+			}
+			ret[i] = ec.marshalNPseudoDataset2ᚖgithubᚗcomᚋnaviktᚋnadaᚑbackendᚋpkgᚋgraphᚋmodelsᚐPseudoDataset(ctx, sel, v[i])
+		}
+		if isLen1 {
+			f(i)
+		} else {
+			go f(i)
+		}
+
+	}
+	wg.Wait()
+
+	for _, e := range ret {
+		if e == graphql.Null {
+			return graphql.Null
+		}
+	}
+
+	return ret
+}
+
+func (ec *executionContext) marshalNPseudoDataset2ᚖgithubᚗcomᚋnaviktᚋnadaᚑbackendᚋpkgᚋgraphᚋmodelsᚐPseudoDataset(ctx context.Context, sel ast.SelectionSet, v *models.PseudoDataset) graphql.Marshaler {
+	if v == nil {
+		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
+			ec.Errorf(ctx, "the requested element is null which the schema does not allow")
+		}
+		return graphql.Null
+	}
+	return ec._PseudoDataset(ctx, sel, v)
 }
 
 func (ec *executionContext) marshalNQuartoStory2githubᚗcomᚋnaviktᚋnadaᚑbackendᚋpkgᚋgraphᚋmodelsᚐQuartoStory(ctx context.Context, sel ast.SelectionSet, v models.QuartoStory) graphql.Marshaler {
@@ -27986,13 +27692,6 @@ func (ec *executionContext) marshalOInt2ᚖint(ctx context.Context, sel ast.Sele
 	return res
 }
 
-func (ec *executionContext) marshalOJoinableView2ᚖgithubᚗcomᚋnaviktᚋnadaᚑbackendᚋpkgᚋgraphᚋmodelsᚐJoinableView(ctx context.Context, sel ast.SelectionSet, v *models.JoinableView) graphql.Marshaler {
-	if v == nil {
-		return graphql.Null
-	}
-	return ec._JoinableView(ctx, sel, v)
-}
-
 func (ec *executionContext) unmarshalOMappingService2ᚕgithubᚗcomᚋnaviktᚋnadaᚑbackendᚋpkgᚋgraphᚋmodelsᚐMappingServiceᚄ(ctx context.Context, v interface{}) ([]models.MappingService, error) {
 	if v == nil {
 		return nil, nil
@@ -28172,6 +27871,16 @@ func (ec *executionContext) marshalOSearchType2ᚕgithubᚗcomᚋnaviktᚋnada�
 	}
 
 	return ret
+}
+
+func (ec *executionContext) unmarshalOString2string(ctx context.Context, v interface{}) (string, error) {
+	res, err := graphql.UnmarshalString(v)
+	return res, graphql.ErrorOnPath(ctx, err)
+}
+
+func (ec *executionContext) marshalOString2string(ctx context.Context, sel ast.SelectionSet, v string) graphql.Marshaler {
+	res := graphql.MarshalString(v)
+	return res
 }
 
 func (ec *executionContext) unmarshalOString2ᚕstringᚄ(ctx context.Context, v interface{}) ([]string, error) {

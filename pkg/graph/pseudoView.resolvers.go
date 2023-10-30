@@ -12,15 +12,6 @@ import (
 	"github.com/navikt/nada-backend/pkg/graph/models"
 )
 
-// CreatePseudoView is the resolver for the createPseudoView field.
-func (r *mutationResolver) CreatePseudoView(ctx context.Context, input models.NewPseudoView) (string, error) {
-	pid, did, tid, err := r.bigquery.CreatePseudonymisedView(ctx, input.ProjectID, input.Dataset, input.Table, input.TargetColumns)
-	if err != nil {
-		r.log.WithError(err).Errorf("failed to create pseudonymised view for %v %v %v", input.ProjectID, input.Dataset, input.Table)
-	}
-	return fmt.Sprintf("%v.%v.%v", pid, did, tid), err
-}
-
 // CreateJoinableViews is the resolver for the createJoinableViews field.
 func (r *mutationResolver) CreateJoinableViews(ctx context.Context, input models.NewJoinableViews) (string, error) {
 	user := auth.GetUser(ctx)
@@ -55,25 +46,25 @@ func (r *mutationResolver) CreateJoinableViews(ctx context.Context, input models
 		datasets = append(datasets, dataset)
 	}
 
-	tableUrls := []models.BigQuery{}
+	refDatasources := []models.BigQuery{}
 	for _, ds := range datasets {
-		if datasource, err := r.repo.GetBigqueryDatasource(ctx, ds.ID, false); err == nil {
-			tableUrls = append(tableUrls, datasource)
+		if datasource, err := r.repo.GetBigqueryDatasource(ctx, ds.ID, true); err == nil {
+			refDatasources = append(refDatasources, datasource)
 		} else {
 			return "", fmt.Errorf("Failed to find bigquery datasource: %v", err)
 		}
 	}
 
-	projectID, joinableDatasetID, views, err := r.bigquery.CreateJoinableViewsForUser(ctx, auth.GetUser(ctx), tableUrls)
+	projectID, joinableDatasetID, joinableViewsMap, err := r.bigquery.CreateJoinableViewsForUser(ctx, input.Name, refDatasources)
 	if err != nil {
 		return "", err
 	}
 
-	for _, dstbl := range tableUrls {
-		if err := r.accessMgr.AddToAuthorizedViews(ctx, dstbl.ProjectID, dstbl.Dataset, projectID, joinableDatasetID, dstbl.Table); err != nil {
+	for _, dstbl := range refDatasources {
+		if err := r.accessMgr.AddToAuthorizedViews(ctx, dstbl.ProjectID, dstbl.Dataset, projectID, joinableDatasetID, joinableViewsMap[dstbl.DatasetID]); err != nil {
 			return "", fmt.Errorf("Failed to add to authorized views: %v", err)
 		}
-		if err := r.accessMgr.AddToAuthorizedViews(ctx, projectID, "secrets_vault", projectID, joinableDatasetID, dstbl.Table); err != nil {
+		if err := r.accessMgr.AddToAuthorizedViews(ctx, projectID, "secrets_vault", projectID, joinableDatasetID, joinableViewsMap[dstbl.DatasetID]); err != nil {
 			return "", fmt.Errorf("Failed to add to secrets' authorized views: %v", err)
 		}
 	}
@@ -82,7 +73,7 @@ func (r *mutationResolver) CreateJoinableViews(ctx context.Context, input models
 	subjType := models.SubjectTypeUser
 	subjWithType := subjType.String() + ":" + subj
 
-	for _, v := range views {
+	for _, v := range joinableViewsMap {
 		if err := r.accessMgr.Grant(ctx, projectID, joinableDatasetID, v, subjWithType); err != nil {
 			return "", err
 		}
@@ -94,5 +85,6 @@ func (r *mutationResolver) CreateJoinableViews(ctx context.Context, input models
 
 // JoinableViews is the resolver for the joinableViews field.
 func (r *queryResolver) JoinableViews(ctx context.Context) ([]*models.JoinableView, error) {
-	return r.bigquery.GetJoinableViewsForUser(ctx, auth.GetUser(ctx))
+	user := auth.GetUser(ctx)
+	return r.repo.GetJoinableViewsForUser(ctx, user.Email)
 }

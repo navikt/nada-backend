@@ -4,12 +4,12 @@ import (
 	"context"
 	"fmt"
 	"strings"
-	"time"
 
 	"cloud.google.com/go/bigquery"
 	"github.com/google/uuid"
 	"github.com/navikt/nada-backend/pkg/auth"
 	"github.com/navikt/nada-backend/pkg/graph/models"
+	"github.com/navikt/nada-backend/pkg/utils"
 	"google.golang.org/api/googleapi"
 	"google.golang.org/api/iterator"
 )
@@ -226,37 +226,8 @@ func (c *Bigquery) ComposeJoinableViewQuery(plainTableUrl models.BigQuery, joina
 	return qSalt + " " + qSelect + " " + qFrom
 }
 
-func (c *Bigquery) CreateJoinableView(ctx context.Context, joinableDatasetID string, tableUrl models.BigQuery) (string, error) {
-	if !strings.HasPrefix(tableUrl.Table, "_x_") {
-		return "", fmt.Errorf("invalid tableUrl: not a pseudo view")
-	}
-
-	plainTable := strings.TrimPrefix(tableUrl.Table, "_x_")
-
-	client, err := bigquery.NewClient(ctx, tableUrl.ProjectID)
-	if err != nil {
-		return "", fmt.Errorf("bigquery.NewClient: %v", err)
-	}
-
-	meta, err := client.Dataset(tableUrl.Dataset).Table(tableUrl.Table).Metadata(ctx)
-	if err != nil {
-		return "", fmt.Errorf("query table metadata: %v", err)
-	}
-
-	pseudoColumns := []string{}
-	for _, field := range meta.Schema {
-		if strings.HasPrefix(field.Name, "_x_") {
-			pseudoColumns = append(pseudoColumns, strings.TrimPrefix(field.Name, "_x_"))
-		}
-	}
-
-	if len(pseudoColumns) == 0 {
-		return "", fmt.Errorf("invalid talbeUrl: no pseudo columns")
-	}
-
-	plainTableUrl := tableUrl
-	plainTableUrl.Table = plainTable
-	query := c.ComposeJoinableViewQuery(plainTableUrl, joinableDatasetID, pseudoColumns)
+func (c *Bigquery) CreateJoinableView(ctx context.Context, joinableDatasetID string, refDatasource models.BigQuery) (string, error) {
+	query := c.ComposeJoinableViewQuery(refDatasource, joinableDatasetID, refDatasource.PseudoColumns)
 
 	centralProjectclient, err := bigquery.NewClient(ctx, c.centralDataProject)
 	if err != nil {
@@ -268,37 +239,40 @@ func (c *Bigquery) CreateJoinableView(ctx context.Context, joinableDatasetID str
 		ViewQuery: query,
 	}
 
-	fmt.Println(query)
-	if err := centralProjectclient.Dataset(joinableDatasetID).Table(tableUrl.Table).Create(ctx, joinableViewMeta); err != nil {
+	tableID := utils.MakeJoinableViewName(refDatasource.ProjectID, refDatasource.Dataset, refDatasource.Table)
+
+	fmt.Println(joinableViewMeta.ViewQuery)
+	if err := centralProjectclient.Dataset(joinableDatasetID).Table(tableID).Create(ctx, joinableViewMeta); err != nil {
 		return "", fmt.Errorf("Failed to create joinable view, please make sure the datasets are located in europe-north1 region in google cloud: %v", err)
 	}
 
-	return tableUrl.Table, nil
+	return refDatasource.Table, nil
 }
 
-func (c *Bigquery) CreateJoinableViewsForUser(ctx context.Context, user *auth.User, tableUrls []models.BigQuery) (string, string, []string, error) {
-	//TODO: save views to the producers' projects
+func (c *Bigquery) CreateJoinableViewsForUser(ctx context.Context, name string, tableUrls []models.BigQuery) (string, string, map[uuid.UUID]string, error) {
 	client, err := bigquery.NewClient(ctx, c.centralDataProject)
 	if err != nil {
 		return "", "", nil, fmt.Errorf("bigquery.NewClient: %v", err)
 	}
 	defer client.Close()
 
-	joinableDatasetID := fmt.Sprintf("%v_%v", makeUserPrefix(user), time.Now().Format("20060102150405"))
-	c.createDatasetInCentralProject(ctx, joinableDatasetID)
+	joinableDatasetID, err := c.createDatasetInCentralProject(ctx, name)
+	if err != nil {
+		return "", "", nil, err
+	}
 	c.createSecretTable(ctx, "secrets_vault", "secrets")
 	c.insertSecretIfNotExists(ctx, "secrets_vault", "secrets", joinableDatasetID)
 
-	views := []string{}
+	viewsMap := map[uuid.UUID]string{}
 	for _, table := range tableUrls {
 		if v, err := c.CreateJoinableView(ctx, joinableDatasetID, table); err != nil {
 			return "", "", nil, err
 		} else {
-			views = append(views, v)
+			viewsMap[table.DatasetID] = v
 		}
 	}
 
-	return c.centralDataProject, joinableDatasetID, views, nil
+	return c.centralDataProject, joinableDatasetID, viewsMap, nil
 }
 
 func (c *Bigquery) createDataset(ctx context.Context, projectID, datasetID string) error {
@@ -323,25 +297,32 @@ func (c *Bigquery) createDataset(ctx context.Context, projectID, datasetID strin
 	return nil
 }
 
-func (c *Bigquery) createDatasetInCentralProject(ctx context.Context, datasetID string) error {
+func (c *Bigquery) createDatasetInCentralProject(ctx context.Context, datasetID string) (string, error) {
 	client, err := bigquery.NewClient(ctx, c.centralDataProject)
 	if err != nil {
-		return fmt.Errorf("bigquery.NewClient: %v", err)
+		return "", fmt.Errorf("bigquery.NewClient: %v", err)
 	}
 	defer client.Close()
 
 	meta := &bigquery.DatasetMetadata{
 		Location: "europe-north1",
 	}
-	if err := client.Dataset(datasetID).Create(ctx, meta); err != nil {
-		if err != nil {
-			if gerr, ok := err.(*googleapi.Error); ok && gerr.Code == 409 {
-				return nil
-			}
-			return err
+
+	postfix := ""
+	for i := 0; ; i++ {
+		if i > 0 {
+			postfix = fmt.Sprintf("%v", i)
+		}
+		err := client.Dataset(datasetID+postfix).Create(ctx, meta)
+		if err == nil {
+			break
+		}
+
+		if gerr, ok := err.(*googleapi.Error); !ok || gerr.Code != 409 {
+			return "", err
 		}
 	}
-	return nil
+	return datasetID + postfix, nil
 }
 
 func (c *Bigquery) createSecretTable(ctx context.Context, datasetID, tableID string) error {
@@ -410,28 +391,6 @@ func (c *Bigquery) insertSecretIfNotExists(ctx context.Context, secretDatasetID,
 	}
 
 	return nil
-}
-
-func (c *Bigquery) GetJoinableViewsForUser(ctx context.Context, user *auth.User) ([]*models.JoinableView, error) {
-	client, err := bigquery.NewClient(ctx, c.centralDataProject)
-	if err != nil {
-		return nil, fmt.Errorf("bigquery.NewClient: %v", err)
-	}
-	defer client.Close()
-
-	dsiter := client.Datasets(ctx)
-
-	userPrefix := makeUserPrefix(user)
-	joinableViews := []*models.JoinableView{}
-	for ds, done := dsiter.Next(); done != iterator.Done; ds, done = dsiter.Next() {
-		if strings.HasPrefix(ds.DatasetID, userPrefix) {
-			joinableViews = append(joinableViews, &models.JoinableView{
-				BigqueryProjectID: c.centralDataProject,
-				BigqueryDatasetID: ds.DatasetID,
-			})
-		}
-	}
-	return joinableViews, nil
 }
 
 func makeUserPrefix(user *auth.User) string {

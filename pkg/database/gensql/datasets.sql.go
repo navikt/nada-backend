@@ -45,7 +45,7 @@ VALUES
     $10,
     $11,
     $12
-  ) RETURNING dataset_id, project_id, dataset, table_name, schema, last_modified, created, expires, table_type, description, pii_tags, missing_since, pseudo_columns, is_reference
+  ) RETURNING dataset_id, project_id, dataset, table_name, schema, last_modified, created, expires, table_type, description, pii_tags, missing_since, id, is_reference, pseudo_columns
 `
 
 type CreateBigqueryDatasourceParams struct {
@@ -92,8 +92,9 @@ func (q *Queries) CreateBigqueryDatasource(ctx context.Context, arg CreateBigque
 		&i.Description,
 		&i.PiiTags,
 		&i.MissingSince,
-		pq.Array(&i.PseudoColumns),
+		&i.ID,
 		&i.IsReference,
+		pq.Array(&i.PseudoColumns),
 	)
 	return i, err
 }
@@ -173,6 +174,50 @@ func (q *Queries) CreateDataset(ctx context.Context, arg CreateDatasetParams) (D
 	return i, err
 }
 
+const createJoinableViews = `-- name: CreateJoinableViews :one
+INSERT INTO
+  joinable_views ("name", "owner", "created")
+VALUES
+  ($1, $2, $3) RETURNING id, owner, name, created
+`
+
+type CreateJoinableViewsParams struct {
+	Name    string
+	Owner   string
+	Created time.Time
+}
+
+func (q *Queries) CreateJoinableViews(ctx context.Context, arg CreateJoinableViewsParams) (JoinableView, error) {
+	row := q.db.QueryRowContext(ctx, createJoinableViews, arg.Name, arg.Owner, arg.Created)
+	var i JoinableView
+	err := row.Scan(
+		&i.ID,
+		&i.Owner,
+		&i.Name,
+		&i.Created,
+	)
+	return i, err
+}
+
+const createJoinableViewsReferenceDatasource = `-- name: CreateJoinableViewsReferenceDatasource :one
+INSERT INTO
+  joinable_views_reference_datasource ("joinable_view_id", "reference_datasource_id")
+VALUES
+  ($1, $2) RETURNING id, joinable_view_id, reference_datasource_id
+`
+
+type CreateJoinableViewsReferenceDatasourceParams struct {
+	JoinableViewID        uuid.UUID
+	ReferenceDatasourceID uuid.UUID
+}
+
+func (q *Queries) CreateJoinableViewsReferenceDatasource(ctx context.Context, arg CreateJoinableViewsReferenceDatasourceParams) (JoinableViewsReferenceDatasource, error) {
+	row := q.db.QueryRowContext(ctx, createJoinableViewsReferenceDatasource, arg.JoinableViewID, arg.ReferenceDatasourceID)
+	var i JoinableViewsReferenceDatasource
+	err := row.Scan(&i.ID, &i.JoinableViewID, &i.ReferenceDatasourceID)
+	return i, err
+}
+
 const datasetsByMetabase = `-- name: DatasetsByMetabase :many
 SELECT
   id, name, description, pii, created, last_modified, type, tsv_document, slug, repo, keywords, dataproduct_id, anonymisation_description, target_user
@@ -248,7 +293,7 @@ func (q *Queries) DeleteDataset(ctx context.Context, id uuid.UUID) error {
 	return err
 }
 
-const getAccessibleDatasourcesByUser = `-- name: GetAccessibleDatasourcesByUser :many
+const getAccessiblePseudoDatasetsByUser = `-- name: GetAccessiblePseudoDatasetsByUser :many
 WITH owned_dp AS(
   SELECT
     dp.id
@@ -259,10 +304,7 @@ WITH owned_dp AS(
 )
 SELECT
   included_ds.id AS dataset_id,
-  included_ds.name AS name,
-  sbq.project_id AS bq_project_id,
-  sbq.dataset AS bq_dataset_id,
-  sbq.table_name AS bq_table_id
+  included_ds.name AS name
 FROM
   (
     (
@@ -296,38 +338,30 @@ FROM
         INNER JOIN owned_dp ON ds.dataproduct_id = owned_dp.id
     )
   ) AS included_ds
-  LEFT JOIN datasource_bigquery AS sbq ON included_ds.id = sbq.dataset_id
+  INNER JOIN datasource_bigquery AS sbq ON included_ds.id = sbq.dataset_id
+  AND sbq.is_reference = TRUE
 `
 
-type GetAccessibleDatasourcesByUserParams struct {
+type GetAccessiblePseudoDatasetsByUserParams struct {
 	AccessSubjects []string
 	OwnerSubjects  []string
 }
 
-type GetAccessibleDatasourcesByUserRow struct {
-	DatasetID   uuid.UUID
-	Name        string
-	BqProjectID sql.NullString
-	BqDatasetID sql.NullString
-	BqTableID   sql.NullString
+type GetAccessiblePseudoDatasetsByUserRow struct {
+	DatasetID uuid.UUID
+	Name      string
 }
 
-func (q *Queries) GetAccessibleDatasourcesByUser(ctx context.Context, arg GetAccessibleDatasourcesByUserParams) ([]GetAccessibleDatasourcesByUserRow, error) {
-	rows, err := q.db.QueryContext(ctx, getAccessibleDatasourcesByUser, pq.Array(arg.AccessSubjects), pq.Array(arg.OwnerSubjects))
+func (q *Queries) GetAccessiblePseudoDatasetsByUser(ctx context.Context, arg GetAccessiblePseudoDatasetsByUserParams) ([]GetAccessiblePseudoDatasetsByUserRow, error) {
+	rows, err := q.db.QueryContext(ctx, getAccessiblePseudoDatasetsByUser, pq.Array(arg.AccessSubjects), pq.Array(arg.OwnerSubjects))
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
-	items := []GetAccessibleDatasourcesByUserRow{}
+	items := []GetAccessiblePseudoDatasetsByUserRow{}
 	for rows.Next() {
-		var i GetAccessibleDatasourcesByUserRow
-		if err := rows.Scan(
-			&i.DatasetID,
-			&i.Name,
-			&i.BqProjectID,
-			&i.BqDatasetID,
-			&i.BqTableID,
-		); err != nil {
+		var i GetAccessiblePseudoDatasetsByUserRow
+		if err := rows.Scan(&i.DatasetID, &i.Name); err != nil {
 			return nil, err
 		}
 		items = append(items, i)
@@ -343,7 +377,7 @@ func (q *Queries) GetAccessibleDatasourcesByUser(ctx context.Context, arg GetAcc
 
 const getBigqueryDatasource = `-- name: GetBigqueryDatasource :one
 SELECT
-  dataset_id, project_id, dataset, table_name, schema, last_modified, created, expires, table_type, description, pii_tags, missing_since, pseudo_columns, is_reference
+  dataset_id, project_id, dataset, table_name, schema, last_modified, created, expires, table_type, description, pii_tags, missing_since, id, is_reference, pseudo_columns
 FROM
   datasource_bigquery
 WHERE
@@ -372,15 +406,16 @@ func (q *Queries) GetBigqueryDatasource(ctx context.Context, arg GetBigqueryData
 		&i.Description,
 		&i.PiiTags,
 		&i.MissingSince,
-		pq.Array(&i.PseudoColumns),
+		&i.ID,
 		&i.IsReference,
+		pq.Array(&i.PseudoColumns),
 	)
 	return i, err
 }
 
 const getBigqueryDatasources = `-- name: GetBigqueryDatasources :many
 SELECT
-  dataset_id, project_id, dataset, table_name, schema, last_modified, created, expires, table_type, description, pii_tags, missing_since, pseudo_columns, is_reference
+  dataset_id, project_id, dataset, table_name, schema, last_modified, created, expires, table_type, description, pii_tags, missing_since, id, is_reference, pseudo_columns
 FROM
   datasource_bigquery
 `
@@ -407,8 +442,9 @@ func (q *Queries) GetBigqueryDatasources(ctx context.Context) ([]DatasourceBigqu
 			&i.Description,
 			&i.PiiTags,
 			&i.MissingSince,
-			pq.Array(&i.PseudoColumns),
+			&i.ID,
 			&i.IsReference,
+			pq.Array(&i.PseudoColumns),
 		); err != nil {
 			return nil, err
 		}
@@ -700,6 +736,68 @@ func (q *Queries) GetDatasetsInDataproduct(ctx context.Context, dataproductID uu
 			&i.DataproductID,
 			&i.AnonymisationDescription,
 			&i.TargetUser,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const getJoinableViewsForOwner = `-- name: GetJoinableViewsForOwner :many
+SELECT
+  jv.id AS id,
+  jv.name AS name,
+  jv.owner AS owner,
+  jv.created AS created,
+  bq.project_id AS project_id,
+  bq.dataset AS dataset_id,
+  bq.table_name AS table_id
+FROM
+  (
+    joinable_views jv
+    INNER JOIN (
+      joinable_views_reference_datasource jds
+      INNER JOIN datasource_bigquery bq ON jds.reference_datasource_id = bq.id
+    ) ON jv.id = jds.joinable_view_id
+  )
+WHERE
+  jv.owner = $1
+`
+
+type GetJoinableViewsForOwnerRow struct {
+	ID        uuid.UUID
+	Name      string
+	Owner     string
+	Created   time.Time
+	ProjectID string
+	DatasetID string
+	TableID   string
+}
+
+func (q *Queries) GetJoinableViewsForOwner(ctx context.Context, owner string) ([]GetJoinableViewsForOwnerRow, error) {
+	rows, err := q.db.QueryContext(ctx, getJoinableViewsForOwner, owner)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []GetJoinableViewsForOwnerRow{}
+	for rows.Next() {
+		var i GetJoinableViewsForOwnerRow
+		if err := rows.Scan(
+			&i.ID,
+			&i.Name,
+			&i.Owner,
+			&i.Created,
+			&i.ProjectID,
+			&i.DatasetID,
+			&i.TableID,
 		); err != nil {
 			return nil, err
 		}

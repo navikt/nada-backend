@@ -92,19 +92,13 @@ type BigQuery @goModel(model: "github.com/navikt/nada-backend/pkg/graph/models.B
 }
 
 """
-DatasourceMinimal contains minimal information about datasource of a dataset
+PseudoDataset contains information about a pseudo dataset
 """
-type DatasourceMinimal @goModel(model: "github.com/navikt/nada-backend/pkg/graph/models.DatasourceMinimal") {
-    "bqProjectID is the bigquery project ID that contains the BigQuery table"
-    bqProjectID: String!
-    "bqDatasetID is the bigquery dataset that contains the BigQuery table"
-    bqDatasetID: String!
-    "bqTableID is the name for BigQuery table"
-    bqTableID: String!
-    "datasetID is the id of the dataset"
-    datasetID: ID!
+type PseudoDataset @goModel(model: "github.com/navikt/nada-backend/pkg/graph/models.PseudoDataset") {
     "name is the name of the dataset"
     name: String!
+    "datasetID is the id of the dataset"
+    datasetID: ID!
 }
 
 """
@@ -137,9 +131,9 @@ extend type Query {
     ): [Dataset!]!
 
     """
-    accessibleDatasets returns the datasets the user has access to.
+    accessiblePseudoDatasets returns the pseudo datasets the user has access to.
     """
-    accessibleDatasets: [DatasourceMinimal!]!
+    accessiblePseudoDatasets: [PseudoDataset!]!
 }
 
 """

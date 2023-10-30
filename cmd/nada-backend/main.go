@@ -93,7 +93,7 @@ func main() {
 
 	eventMgr := event.New(ctx)
 
-	repo, err := database.New(cfg.DBConnectionDSN, cfg.DBMaxIdleConn, cfg.DBMaxOpenConn, eventMgr, log.WithField("subsystem", "repo"))
+	repo, err := database.New(cfg.DBConnectionDSN, cfg.DBMaxIdleConn, cfg.DBMaxOpenConn, eventMgr, log.WithField("subsystem", "repo"), cfg.CentralDataProject)
 	if err != nil {
 		log.WithError(err).Fatal("setting up database")
 	}

@@ -262,8 +262,9 @@ type DatasourceBigquery struct {
 	Description   sql.NullString
 	PiiTags       pqtype.NullRawMessage
 	MissingSince  sql.NullTime
-	PseudoColumns []string
+	ID            uuid.UUID
 	IsReference   bool
+	PseudoColumns []string
 }
 
 type HttpCache struct {
@@ -289,6 +290,19 @@ type InsightProduct struct {
 	TeamkatalogenUrl sql.NullString
 	ProductAreaID    sql.NullString
 	TeamID           sql.NullString
+}
+
+type JoinableView struct {
+	ID      uuid.UUID
+	Owner   string
+	Name    string
+	Created time.Time
+}
+
+type JoinableViewsReferenceDatasource struct {
+	ID                    uuid.UUID
+	JoinableViewID        uuid.UUID
+	ReferenceDatasourceID uuid.UUID
 }
 
 type MetabaseMetadatum struct {

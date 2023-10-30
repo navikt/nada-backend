@@ -218,7 +218,7 @@ UPDATE
 SET
   "keywords" = array_replace(keywords, @tag_to_replace, @tag_updated);
 
--- name: GetAccessibleDatasourcesByUser :many
+-- name: GetAccessiblePseudoDatasetsByUser :many
 WITH owned_dp AS(
   SELECT
     dp.id
@@ -229,10 +229,7 @@ WITH owned_dp AS(
 )
 SELECT
   included_ds.id AS dataset_id,
-  included_ds.name AS name,
-  sbq.project_id AS bq_project_id,
-  sbq.dataset AS bq_dataset_id,
-  sbq.table_name AS bq_table_id
+  included_ds.name AS name
 FROM
   (
     (
@@ -266,4 +263,37 @@ FROM
         INNER JOIN owned_dp ON ds.dataproduct_id = owned_dp.id
     )
   ) AS included_ds
-  LEFT JOIN datasource_bigquery AS sbq ON included_ds.id = sbq.dataset_id;
+  INNER JOIN datasource_bigquery AS sbq ON included_ds.id = sbq.dataset_id
+  AND sbq.is_reference = TRUE;
+
+-- name: GetJoinableViewsForOwner :many
+SELECT
+  jv.id AS id,
+  jv.name AS name,
+  jv.owner AS owner,
+  jv.created AS created,
+  bq.project_id AS project_id,
+  bq.dataset AS dataset_id,
+  bq.table_name AS table_id
+FROM
+  (
+    joinable_views jv
+    INNER JOIN (
+      joinable_views_reference_datasource jds
+      INNER JOIN datasource_bigquery bq ON jds.reference_datasource_id = bq.id
+    ) ON jv.id = jds.joinable_view_id
+  )
+WHERE
+  jv.owner = @owner;
+
+-- name: CreateJoinableViews :one
+INSERT INTO
+  joinable_views ("name", "owner", "created")
+VALUES
+  (@name, @owner, @created) RETURNING *;
+
+-- name: CreateJoinableViewsReferenceDatasource :one
+INSERT INTO
+  joinable_views_reference_datasource ("joinable_view_id", "reference_datasource_id")
+VALUES
+  (@joinable_view_id, @reference_datasource_id) RETURNING *;

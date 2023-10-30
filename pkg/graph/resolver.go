@@ -8,6 +8,7 @@ import (
 	"github.com/99designs/gqlgen-contrib/prometheus"
 	"github.com/99designs/gqlgen/graphql"
 	"github.com/99designs/gqlgen/graphql/handler"
+	"github.com/google/uuid"
 	"github.com/navikt/nada-backend/pkg/auth"
 	"github.com/navikt/nada-backend/pkg/database"
 	"github.com/navikt/nada-backend/pkg/graph/generated"
@@ -22,8 +23,7 @@ type Bigquery interface {
 	GetDatasets(ctx context.Context, projectID string) ([]string, error)
 	TableMetadata(ctx context.Context, projectID string, datasetID string, tableID string) (models.BigqueryMetadata, error)
 	CreatePseudonymisedView(ctx context.Context, projectID string, datasetID string, tableID string, targetColumns []string) (string, string, string, error)
-	CreateJoinableViewsForUser(ctx context.Context, user *auth.User, tableUrls []models.BigQuery) (string, string, []string, error)
-	GetJoinableViewsForUser(ctx context.Context, user *auth.User) ([]*models.JoinableView, error)
+	CreateJoinableViewsForUser(ctx context.Context, name string, tableUrls []models.BigQuery) (string, string, map[uuid.UUID]string, error)
 }
 
 type AccessManager interface {
