@@ -3,7 +3,7 @@ module github.com/navikt/nada-backend
 go 1.21
 
 require (
-	cloud.google.com/go/bigquery v1.57.0
+	cloud.google.com/go/bigquery v1.56.0
 	cloud.google.com/go/iam v1.1.1
 	cloud.google.com/go/storage v1.31.0
 	github.com/99designs/gqlgen v0.17.36
@@ -29,7 +29,7 @@ require (
 	github.com/writeas/go-strip-markdown/v2 v2.1.1
 	golang.org/x/oauth2 v0.12.0
 	golang.org/x/xerrors v0.0.0-20220907171357-04be3eba64a2
-	google.golang.org/api v0.134.0
+	google.golang.org/api v0.139.0
 )
 
 require (
@@ -58,7 +58,7 @@ require (
 	github.com/golang/protobuf v1.5.3 // indirect
 	github.com/golang/snappy v0.0.4 // indirect
 	github.com/google/flatbuffers v2.0.8+incompatible // indirect
-	github.com/google/s2a-go v0.1.5 // indirect
+	github.com/google/s2a-go v0.1.7 // indirect
 	github.com/google/shlex v0.0.0-20191202100458-e7afc7fbc510 // indirect
 	github.com/googleapis/enterprise-certificate-proxy v0.3.1 // indirect
 	github.com/googleapis/gax-go/v2 v2.12.0 // indirect
