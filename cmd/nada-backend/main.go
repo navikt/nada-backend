@@ -143,7 +143,6 @@ func main() {
 		}
 	}
 
-	fmt.Println(cfg.PseudoDataset)
 	if err := runMetabase(ctx, log.WithField("subsystem", "metabase"), cfg, repo, accessMgr, eventMgr); err != nil {
 		log.WithError(err).Fatal("running metabase")
 	}

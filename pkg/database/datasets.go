@@ -156,28 +156,28 @@ func (r *Repo) CreateDataset(ctx context.Context, ds models.NewDataset, referenc
 	return ret, nil
 }
 
-func (r *Repo) CreateJoinableViews(ctx context.Context, name, owner string, referenceDatasourceIDs []string) (string, error) {
+func (r *Repo) CreateJoinableViews(ctx context.Context, name, owner string, referenceDatasourceIDs []uuid.UUID) (string, error) {
 	tx, err := r.db.Begin()
 	if err != nil {
 		return "", err
 	}
 
 	jv, err := r.querier.CreateJoinableViews(ctx, gensql.CreateJoinableViewsParams{
-		Name:  name,
-		Owner: owner,
+		Name:    name,
+		Owner:   owner,
+		Created: time.Now(),
 	})
 	if err != nil {
 		return "", err
 	}
 	for _, bqid := range referenceDatasourceIDs {
-		bquuid, err := uuid.Parse(bqid)
 		if err != nil {
 			return "", err
 		}
 
 		_, err = r.querier.CreateJoinableViewsReferenceDatasource(ctx, gensql.CreateJoinableViewsReferenceDatasourceParams{
 			JoinableViewID:        jv.ID,
-			ReferenceDatasourceID: bquuid,
+			ReferenceDatasourceID: bqid,
 		})
 
 		if err != nil {
@@ -258,13 +258,14 @@ func (r *Repo) GetJoinableViewsForUser(ctx context.Context, user string) ([]*mod
 
 	for k, v := range joinableViewsDBMerged {
 		newJoinableView := &models.JoinableView{
-			ID:           k,
-			Name:         v[0].Name,
-			BigQueryUrls: []string{},
+			ID:               k,
+			Name:             v[0].Name,
+			Created:          v[0].Created.Format("2006-01-02"),
+			BigQueryViewUrls: []string{},
 		}
 		joinableViews = append(joinableViews, newJoinableView)
 		for _, bq := range v {
-			newJoinableView.BigQueryUrls = append(newJoinableView.BigQueryUrls, r.MakeBigQueryUrlForJoinableViews(bq.Name, bq.ProjectID, bq.DatasetID, bq.TableID))
+			newJoinableView.BigQueryViewUrls = append(newJoinableView.BigQueryViewUrls, r.MakeBigQueryUrlForJoinableViews(bq.Name, bq.ProjectID, bq.DatasetID, bq.TableID))
 		}
 	}
 	return joinableViews, nil
@@ -272,6 +273,10 @@ func (r *Repo) GetJoinableViewsForUser(ctx context.Context, user string) ([]*mod
 
 func (r *Repo) MakeBigQueryUrlForJoinableViews(name, refProjectID, refDatasetID, refTableID string) string {
 	return fmt.Sprintf("%v.%v.%v", r.centralDataProject, name, utils.MakeJoinableViewName(refProjectID, refDatasetID, refTableID))
+}
+
+func (r *Repo) MakeBigQueryUrlForJoinableViewDataset(name string) string {
+	return fmt.Sprintf("%v.%v", r.centralDataProject, name)
 }
 
 func (r *Repo) GetBigqueryDatasource(ctx context.Context, datasetID uuid.UUID, isReference bool) (models.BigQuery, error) {
@@ -290,6 +295,7 @@ func (r *Repo) GetBigqueryDatasource(ctx context.Context, datasetID uuid.UUID, i
 	}
 
 	return models.BigQuery{
+		ID:            bq.ID,
 		DatasetID:     bq.DatasetID,
 		ProjectID:     bq.ProjectID,
 		Dataset:       bq.Dataset,
@@ -408,7 +414,7 @@ func (r *Repo) DeleteDataset(ctx context.Context, id uuid.UUID) error {
 	return nil
 }
 
-func (r *Repo) GetAccessibleReferenceDatasourcesByUser(ctx context.Context, subjectsAsOwner []string, subjectsAsAccesser []string) ([]*models.PseudoDataset, error) {
+func (r *Repo) GetAccessiblePseudoDatasourcesByUser(ctx context.Context, subjectsAsOwner []string, subjectsAsAccesser []string) ([]*models.PseudoDataset, error) {
 	rows, err := r.querier.GetAccessiblePseudoDatasetsByUser(ctx, gensql.GetAccessiblePseudoDatasetsByUserParams{
 		OwnerSubjects:  subjectsAsOwner,
 		AccessSubjects: subjectsAsAccesser,
@@ -418,19 +424,28 @@ func (r *Repo) GetAccessibleReferenceDatasourcesByUser(ctx context.Context, subj
 	}
 
 	pseudoDatasets := []*models.PseudoDataset{}
+	bqIDMap := make(map[string]int)
 	for _, d := range rows {
-		pseudoDatasets = append(pseudoDatasets, ReferenceDatasourceFromSQL(&d))
+		pseudoDataset, bqID := PseudoDatasetFromSQL(&d)
+		_, exist := bqIDMap[bqID]
+		if exist {
+			continue
+		}
+		bqIDMap[bqID] = 1
+		pseudoDatasets = append(pseudoDatasets, pseudoDataset)
 	}
 	return pseudoDatasets, nil
 }
 
-func ReferenceDatasourceFromSQL(d *gensql.GetAccessiblePseudoDatasetsByUserRow) *models.PseudoDataset {
+func PseudoDatasetFromSQL(d *gensql.GetAccessiblePseudoDatasetsByUserRow) (*models.PseudoDataset, string) {
 	return &models.PseudoDataset{
 		// name is the name of the dataset
 		Name: d.Name,
 		// datasetID is the id of the dataset
 		DatasetID: d.DatasetID,
-	}
+		// datasourceID is the id of the bigquery datasource
+		DatasourceID: d.BqDatasourceID,
+	}, fmt.Sprintf("%v.%v.%v", d.BqProjectID, d.BqDatasetID, d.BqTableID)
 }
 
 func datasetFromSQL(ds gensql.Dataset) *models.Dataset {

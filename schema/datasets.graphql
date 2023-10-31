@@ -64,6 +64,8 @@ type TableColumn @goModel(model: "github.com/navikt/nada-backend/pkg/graph/model
 BigQuery contains metadata on a BigQuery table.
 """
 type BigQuery @goModel(model: "github.com/navikt/nada-backend/pkg/graph/models.BigQuery") {
+    "id is the identifier for the datasource"
+    id: ID!
     "projectID is the GCP project ID that contains the BigQuery table"
     projectID: String!
     "dataset is the dataset that contains the BigQuery table"
@@ -99,6 +101,8 @@ type PseudoDataset @goModel(model: "github.com/navikt/nada-backend/pkg/graph/mod
     name: String!
     "datasetID is the id of the dataset"
     datasetID: ID!
+    "datasourceID is the id of the bigquery datasource"
+    datasourceID: ID!
 }
 
 """

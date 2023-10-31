@@ -241,12 +241,11 @@ func (c *Bigquery) CreateJoinableView(ctx context.Context, joinableDatasetID str
 
 	tableID := utils.MakeJoinableViewName(refDatasource.ProjectID, refDatasource.Dataset, refDatasource.Table)
 
-	fmt.Println(joinableViewMeta.ViewQuery)
 	if err := centralProjectclient.Dataset(joinableDatasetID).Table(tableID).Create(ctx, joinableViewMeta); err != nil {
 		return "", fmt.Errorf("Failed to create joinable view, please make sure the datasets are located in europe-north1 region in google cloud: %v", err)
 	}
 
-	return refDatasource.Table, nil
+	return tableID, nil
 }
 
 func (c *Bigquery) CreateJoinableViewsForUser(ctx context.Context, name string, tableUrls []models.BigQuery) (string, string, map[uuid.UUID]string, error) {

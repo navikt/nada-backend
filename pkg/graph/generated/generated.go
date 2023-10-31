@@ -90,6 +90,7 @@ type ComplexityRoot struct {
 		Dataset       func(childComplexity int) int
 		Description   func(childComplexity int) int
 		Expires       func(childComplexity int) int
+		ID            func(childComplexity int) int
 		LastModified  func(childComplexity int) int
 		MissingSince  func(childComplexity int) int
 		PiiTags       func(childComplexity int) int
@@ -181,9 +182,10 @@ type ComplexityRoot struct {
 	}
 
 	JoinableView struct {
-		BigQueryUrls func(childComplexity int) int
-		ID           func(childComplexity int) int
-		Name         func(childComplexity int) int
+		BigQueryViewUrls func(childComplexity int) int
+		Created          func(childComplexity int) int
+		ID               func(childComplexity int) int
+		Name             func(childComplexity int) int
 	}
 
 	Keyword struct {
@@ -254,8 +256,9 @@ type ComplexityRoot struct {
 	}
 
 	PseudoDataset struct {
-		DatasetID func(childComplexity int) int
-		Name      func(childComplexity int) int
+		DatasetID    func(childComplexity int) int
+		DatasourceID func(childComplexity int) int
+		Name         func(childComplexity int) int
 	}
 
 	QuartoStory struct {
@@ -706,6 +709,13 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.BigQuery.Expires(childComplexity), true
 
+	case "BigQuery.id":
+		if e.complexity.BigQuery.ID == nil {
+			break
+		}
+
+		return e.complexity.BigQuery.ID(childComplexity), true
+
 	case "BigQuery.lastModified":
 		if e.complexity.BigQuery.LastModified == nil {
 			break
@@ -1143,12 +1153,19 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.InsightProduct.Type(childComplexity), true
 
-	case "JoinableView.bigqueryUrls":
-		if e.complexity.JoinableView.BigQueryUrls == nil {
+	case "JoinableView.bigqueryViewUrls":
+		if e.complexity.JoinableView.BigQueryViewUrls == nil {
 			break
 		}
 
-		return e.complexity.JoinableView.BigQueryUrls(childComplexity), true
+		return e.complexity.JoinableView.BigQueryViewUrls(childComplexity), true
+
+	case "JoinableView.created":
+		if e.complexity.JoinableView.Created == nil {
+			break
+		}
+
+		return e.complexity.JoinableView.Created(childComplexity), true
 
 	case "JoinableView.id":
 		if e.complexity.JoinableView.ID == nil {
@@ -1643,6 +1660,13 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 		}
 
 		return e.complexity.PseudoDataset.DatasetID(childComplexity), true
+
+	case "PseudoDataset.datasourceID":
+		if e.complexity.PseudoDataset.DatasourceID == nil {
+			break
+		}
+
+		return e.complexity.PseudoDataset.DatasourceID(childComplexity), true
 
 	case "PseudoDataset.name":
 		if e.complexity.PseudoDataset.Name == nil {
@@ -2963,6 +2987,8 @@ type TableColumn @goModel(model: "github.com/navikt/nada-backend/pkg/graph/model
 BigQuery contains metadata on a BigQuery table.
 """
 type BigQuery @goModel(model: "github.com/navikt/nada-backend/pkg/graph/models.BigQuery") {
+    "id is the identifier for the datasource"
+    id: ID!
     "projectID is the GCP project ID that contains the BigQuery table"
     projectID: String!
     "dataset is the dataset that contains the BigQuery table"
@@ -2998,6 +3024,8 @@ type PseudoDataset @goModel(model: "github.com/navikt/nada-backend/pkg/graph/mod
     name: String!
     "datasetID is the id of the dataset"
     datasetID: ID!
+    "datasourceID is the id of the bigquery datasource"
+    datasourceID: ID!
 }
 
 """
@@ -3597,7 +3625,8 @@ type JoinableView @goModel(model: "github.com/navikt/nada-backend/pkg/graph/mode
     "id is the id of the joinable view set"
     id: ID!
     name: String
-    bigqueryUrls: [String!]!
+    created: String
+    bigqueryViewUrls: [String!]!
 }
 
 extend type Mutation {
@@ -6130,6 +6159,50 @@ func (ec *executionContext) fieldContext_AccessRequest_reason(ctx context.Contex
 		IsResolver: false,
 		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
 			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _BigQuery_id(ctx context.Context, field graphql.CollectedField, obj *models.BigQuery) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_BigQuery_id(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.ID, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(uuid.UUID)
+	fc.Result = res
+	return ec.marshalNID2githubᚗcomᚋgoogleᚋuuidᚐUUID(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_BigQuery_id(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "BigQuery",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type ID does not have child fields")
 		},
 	}
 	return fc, nil
@@ -9186,8 +9259,8 @@ func (ec *executionContext) fieldContext_JoinableView_name(ctx context.Context, 
 	return fc, nil
 }
 
-func (ec *executionContext) _JoinableView_bigqueryUrls(ctx context.Context, field graphql.CollectedField, obj *models.JoinableView) (ret graphql.Marshaler) {
-	fc, err := ec.fieldContext_JoinableView_bigqueryUrls(ctx, field)
+func (ec *executionContext) _JoinableView_created(ctx context.Context, field graphql.CollectedField, obj *models.JoinableView) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_JoinableView_created(ctx, field)
 	if err != nil {
 		return graphql.Null
 	}
@@ -9200,7 +9273,48 @@ func (ec *executionContext) _JoinableView_bigqueryUrls(ctx context.Context, fiel
 	}()
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
-		return obj.BigQueryUrls, nil
+		return obj.Created, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		return graphql.Null
+	}
+	res := resTmp.(string)
+	fc.Result = res
+	return ec.marshalOString2string(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_JoinableView_created(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "JoinableView",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _JoinableView_bigqueryViewUrls(ctx context.Context, field graphql.CollectedField, obj *models.JoinableView) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_JoinableView_bigqueryViewUrls(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.BigQueryViewUrls, nil
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -9217,7 +9331,7 @@ func (ec *executionContext) _JoinableView_bigqueryUrls(ctx context.Context, fiel
 	return ec.marshalNString2ᚕstringᚄ(ctx, field.Selections, res)
 }
 
-func (ec *executionContext) fieldContext_JoinableView_bigqueryUrls(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+func (ec *executionContext) fieldContext_JoinableView_bigqueryViewUrls(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
 	fc = &graphql.FieldContext{
 		Object:     "JoinableView",
 		Field:      field,
@@ -12673,6 +12787,50 @@ func (ec *executionContext) fieldContext_PseudoDataset_datasetID(ctx context.Con
 	return fc, nil
 }
 
+func (ec *executionContext) _PseudoDataset_datasourceID(ctx context.Context, field graphql.CollectedField, obj *models.PseudoDataset) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_PseudoDataset_datasourceID(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.DatasourceID, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(uuid.UUID)
+	fc.Result = res
+	return ec.marshalNID2githubᚗcomᚋgoogleᚋuuidᚐUUID(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_PseudoDataset_datasourceID(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "PseudoDataset",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type ID does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
 func (ec *executionContext) _QuartoStory_id(ctx context.Context, field graphql.CollectedField, obj *models.QuartoStory) (ret graphql.Marshaler) {
 	fc, err := ec.fieldContext_QuartoStory_id(ctx, field)
 	if err != nil {
@@ -13831,6 +13989,8 @@ func (ec *executionContext) fieldContext_Query_accessiblePseudoDatasets(ctx cont
 				return ec.fieldContext_PseudoDataset_name(ctx, field)
 			case "datasetID":
 				return ec.fieldContext_PseudoDataset_datasetID(ctx, field)
+			case "datasourceID":
+				return ec.fieldContext_PseudoDataset_datasourceID(ctx, field)
 			}
 			return nil, fmt.Errorf("no field named %q was found under type PseudoDataset", field.Name)
 		},
@@ -14615,8 +14775,10 @@ func (ec *executionContext) fieldContext_Query_joinableViews(ctx context.Context
 				return ec.fieldContext_JoinableView_id(ctx, field)
 			case "name":
 				return ec.fieldContext_JoinableView_name(ctx, field)
-			case "bigqueryUrls":
-				return ec.fieldContext_JoinableView_bigqueryUrls(ctx, field)
+			case "created":
+				return ec.fieldContext_JoinableView_created(ctx, field)
+			case "bigqueryViewUrls":
+				return ec.fieldContext_JoinableView_bigqueryViewUrls(ctx, field)
 			}
 			return nil, fmt.Errorf("no field named %q was found under type JoinableView", field.Name)
 		},
@@ -21491,6 +21653,11 @@ func (ec *executionContext) _BigQuery(ctx context.Context, sel ast.SelectionSet,
 		switch field.Name {
 		case "__typename":
 			out.Values[i] = graphql.MarshalString("BigQuery")
+		case "id":
+			out.Values[i] = ec._BigQuery_id(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				atomic.AddUint32(&out.Invalids, 1)
+			}
 		case "projectID":
 			out.Values[i] = ec._BigQuery_projectID(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
@@ -22468,8 +22635,10 @@ func (ec *executionContext) _JoinableView(ctx context.Context, sel ast.Selection
 			}
 		case "name":
 			out.Values[i] = ec._JoinableView_name(ctx, field, obj)
-		case "bigqueryUrls":
-			out.Values[i] = ec._JoinableView_bigqueryUrls(ctx, field, obj)
+		case "created":
+			out.Values[i] = ec._JoinableView_created(ctx, field, obj)
+		case "bigqueryViewUrls":
+			out.Values[i] = ec._JoinableView_bigqueryViewUrls(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
 				out.Invalids++
 			}
@@ -23196,6 +23365,11 @@ func (ec *executionContext) _PseudoDataset(ctx context.Context, sel ast.Selectio
 			}
 		case "datasetID":
 			out.Values[i] = ec._PseudoDataset_datasetID(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "datasourceID":
+			out.Values[i] = ec._PseudoDataset_datasourceID(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
 				out.Invalids++
 			}

@@ -12,7 +12,8 @@ type JoinableView @goModel(model: "github.com/navikt/nada-backend/pkg/graph/mode
     "id is the id of the joinable view set"
     id: ID!
     name: String
-    bigqueryUrls: [String!]!
+    created: String
+    bigqueryViewUrls: [String!]!
 }
 
 extend type Mutation {

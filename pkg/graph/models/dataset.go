@@ -30,6 +30,7 @@ type Datasource interface {
 }
 
 type BigQuery struct {
+	ID            uuid.UUID
 	DatasetID     uuid.UUID
 	ProjectID     string       `json:"projectID"`
 	Dataset       string       `json:"dataset"`
@@ -107,4 +108,6 @@ type PseudoDataset struct {
 	Name string `json:"name"`
 	// datasetID is the id of the dataset
 	DatasetID uuid.UUID `json:"datasetID"`
+	// datasourceID is the id of the bigquery datasource
+	DatasourceID uuid.UUID `json:"datasourceID"`
 }

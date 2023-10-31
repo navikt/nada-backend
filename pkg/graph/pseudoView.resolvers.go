@@ -8,6 +8,7 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/google/uuid"
 	"github.com/navikt/nada-backend/pkg/auth"
 	"github.com/navikt/nada-backend/pkg/graph/models"
 )
@@ -47,9 +48,11 @@ func (r *mutationResolver) CreateJoinableViews(ctx context.Context, input models
 	}
 
 	refDatasources := []models.BigQuery{}
+	refDataSourceIDs := []uuid.UUID{}
 	for _, ds := range datasets {
 		if datasource, err := r.repo.GetBigqueryDatasource(ctx, ds.ID, true); err == nil {
 			refDatasources = append(refDatasources, datasource)
+			refDataSourceIDs = append(refDataSourceIDs, datasource.ID)
 		} else {
 			return "", fmt.Errorf("Failed to find bigquery datasource: %v", err)
 		}
@@ -78,6 +81,10 @@ func (r *mutationResolver) CreateJoinableViews(ctx context.Context, input models
 			return "", err
 		}
 
+	}
+
+	if _, err := r.repo.CreateJoinableViews(ctx, input.Name, user.Email, refDataSourceIDs); err != nil {
+		return "", err
 	}
 
 	return joinableDatasetID, nil

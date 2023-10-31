@@ -304,7 +304,11 @@ WITH owned_dp AS(
 )
 SELECT
   included_ds.id AS dataset_id,
-  included_ds.name AS name
+  included_ds.name AS name,
+  sbq.project_id AS bq_project_id,
+  sbq.dataset AS bq_dataset_id,
+  sbq.table_name AS bq_table_id,
+  sbq.id AS bq_datasource_id
 FROM
   (
     (
@@ -348,8 +352,12 @@ type GetAccessiblePseudoDatasetsByUserParams struct {
 }
 
 type GetAccessiblePseudoDatasetsByUserRow struct {
-	DatasetID uuid.UUID
-	Name      string
+	DatasetID      uuid.UUID
+	Name           string
+	BqProjectID    string
+	BqDatasetID    string
+	BqTableID      string
+	BqDatasourceID uuid.UUID
 }
 
 func (q *Queries) GetAccessiblePseudoDatasetsByUser(ctx context.Context, arg GetAccessiblePseudoDatasetsByUserParams) ([]GetAccessiblePseudoDatasetsByUserRow, error) {
@@ -361,7 +369,14 @@ func (q *Queries) GetAccessiblePseudoDatasetsByUser(ctx context.Context, arg Get
 	items := []GetAccessiblePseudoDatasetsByUserRow{}
 	for rows.Next() {
 		var i GetAccessiblePseudoDatasetsByUserRow
-		if err := rows.Scan(&i.DatasetID, &i.Name); err != nil {
+		if err := rows.Scan(
+			&i.DatasetID,
+			&i.Name,
+			&i.BqProjectID,
+			&i.BqDatasetID,
+			&i.BqTableID,
+			&i.BqDatasourceID,
+		); err != nil {
 			return nil, err
 		}
 		items = append(items, i)
