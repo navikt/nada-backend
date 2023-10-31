@@ -69,7 +69,7 @@ func TestMain(m *testing.M) {
 }
 
 func TestRepo(t *testing.T) {
-	repo, err := New(dbString, 2, 0, &event.Manager{}, logrus.NewEntry(logrus.StandardLogger()))
+	repo, err := New(dbString, 2, 0, &event.Manager{}, logrus.NewEntry(logrus.StandardLogger()), "nav-central-data-dev-e170")
 	if err != nil {
 		t.Fatal(err)
 	}

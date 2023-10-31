@@ -109,7 +109,7 @@ func TestMain(m *testing.M) {
 		panic(err)
 	}
 
-	repo, err = database.New(dbString, 2, 0, &event.Manager{}, logrus.NewEntry(logrus.StandardLogger()))
+	repo, err = database.New(dbString, 2, 0, &event.Manager{}, logrus.NewEntry(logrus.StandardLogger()), "nav-central-data-dev-e170")
 	if err != nil {
 		panic(err)
 	}
