@@ -35,8 +35,7 @@ func (r *mutationResolver) UpdateMetadata(ctx context.Context, ds gensql.Datasou
 		return fmt.Errorf("marshalling schema: %w", err)
 	}
 
-	//TODO: pass in pseudo columns!
-	if err := r.repo.UpdateBigqueryDatasource(ctx, ds.DatasetID, schemaJSON, metadata.LastModified, metadata.Expires, metadata.Description, []string{}); err != nil {
+	if err := r.repo.UpdateBigqueryDatasource(ctx, ds.DatasetID, schemaJSON, metadata.LastModified, metadata.Expires, metadata.Description, nil); err != nil {
 		return fmt.Errorf("writing metadata to database: %w", err)
 	}
 

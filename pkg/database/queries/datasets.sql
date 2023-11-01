@@ -172,7 +172,10 @@ SET
   "expires" = @expires,
   "description" = @description,
   "missing_since" = null,
-  "pseudo_columns" = @pseudo_columns
+  "pseudo_columns" = CASE
+    WHEN @pseudo_columns IS NOT NULL THEN @pseudo_columns
+    ELSE "pseudo_columns"
+  END
 WHERE
   dataset_id = @dataset_id;
 

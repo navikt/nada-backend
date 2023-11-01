@@ -888,7 +888,10 @@ SET
   "expires" = $3,
   "description" = $4,
   "missing_since" = null,
-  "pseudo_columns" = $5
+  "pseudo_columns" = CASE
+    WHEN $5 IS NOT NULL THEN $5
+    ELSE "pseudo_columns"
+  END
 WHERE
   dataset_id = $6
 `
