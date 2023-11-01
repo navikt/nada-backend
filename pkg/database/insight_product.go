@@ -16,12 +16,12 @@ func (r *Repo) CreateInsightProduct(ctx context.Context, creator string,
 		Creator:          creator,
 		Description:      ptrToNullString(newInsightProduct.Description),
 		Keywords:         newInsightProduct.Keywords,
-		OwnerGroup: newInsightProduct.Group,
+		OwnerGroup:       newInsightProduct.Group,
 		TeamkatalogenUrl: ptrToNullString(newInsightProduct.TeamkatalogenURL),
 		ProductAreaID:    ptrToNullString(newInsightProduct.ProductAreaID),
 		TeamID:           ptrToNullString(newInsightProduct.TeamID),
-		Type: newInsightProduct.Type,
-		Link: newInsightProduct.Link,
+		Type:             newInsightProduct.Type,
+		Link:             newInsightProduct.Link,
 	})
 
 	return InsightProductSQLToGraphql(&insightProductSQL), err
@@ -50,21 +50,21 @@ func (r *Repo) GetInsightProducts(ctx context.Context) ([]*models.InsightProduct
 	return productGraphqls, nil
 }
 
-func (r *Repo) UpdateInsightProductMetadata(ctx context.Context, id uuid.UUID, name string, 
-	description string, keywords []string, teamkatalogenURL *string, productAreaID *string, teamID *string, 
+func (r *Repo) UpdateInsightProductMetadata(ctx context.Context, id uuid.UUID, name string,
+	description string, keywords []string, teamkatalogenURL *string, productAreaID *string, teamID *string,
 	insightProductType string, link string) (
 	*models.InsightProduct, error,
 ) {
 	dbProduct, err := r.querier.UpdateInsightProduct(ctx, gensql.UpdateInsightProductParams{
-		ID:                 id,
-		Name:               name,
-		Description:        ptrToNullString(&description),
-		Keywords:           keywords,
-		TeamkatalogenUrl:   ptrToNullString(teamkatalogenURL),
-		ProductAreaID:      ptrToNullString(productAreaID),
-		TeamID:             ptrToNullString(teamID),
-		Type: insightProductType,
-		Link:               link,
+		ID:               id,
+		Name:             name,
+		Description:      ptrToNullString(&description),
+		Keywords:         keywords,
+		TeamkatalogenUrl: ptrToNullString(teamkatalogenURL),
+		ProductAreaID:    ptrToNullString(productAreaID),
+		TeamID:           ptrToNullString(teamID),
+		Type:             insightProductType,
+		Link:             link,
 	})
 	if err != nil {
 		return nil, err
@@ -119,20 +119,19 @@ func (r *Repo) DeleteInsightProduct(ctx context.Context, id uuid.UUID) error {
 	return r.querier.DeleteInsightProduct(ctx, id)
 }
 
-
-func InsightProductSQLToGraphql(insightProductSQL *gensql.InsightProduct) *models.InsightProduct{
+func InsightProductSQLToGraphql(insightProductSQL *gensql.InsightProduct) *models.InsightProduct {
 	return &models.InsightProduct{
-		ID:			      insightProductSQL.ID,
+		ID:               insightProductSQL.ID,
 		Name:             insightProductSQL.Name,
 		Creator:          insightProductSQL.Creator,
-		Created: 		  insightProductSQL.Created,
-		Description:      *nullStringToPtr(insightProductSQL.Description),
-		Type: insightProductSQL.Type,
+		Created:          insightProductSQL.Created,
+		Description:      insightProductSQL.Description.String,
+		Type:             insightProductSQL.Type,
 		Keywords:         insightProductSQL.Keywords,
 		TeamkatalogenURL: nullStringToPtr(insightProductSQL.TeamkatalogenUrl),
 		ProductAreaID:    nullStringToPtr(insightProductSQL.ProductAreaID),
 		TeamID:           nullStringToPtr(insightProductSQL.TeamID),
-		Group: insightProductSQL.Group,
-		Link: insightProductSQL.Link,
+		Group:            insightProductSQL.Group,
+		Link:             insightProductSQL.Link,
 	}
 }
