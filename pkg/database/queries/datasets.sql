@@ -286,8 +286,8 @@ FROM
   (
     joinable_views jv
     INNER JOIN (
-      joinable_views_reference_datasource jds
-      INNER JOIN datasource_bigquery bq ON jds.reference_datasource_id = bq.id
+      joinable_views_datasource jds
+      INNER JOIN datasource_bigquery bq ON jds.datasource_id = bq.id
     ) ON jv.id = jds.joinable_view_id
   )
 WHERE
@@ -299,8 +299,8 @@ INSERT INTO
 VALUES
   (@name, @owner, @created) RETURNING *;
 
--- name: CreateJoinableViewsReferenceDatasource :one
+-- name: CreateJoinableViewsDatasource :one
 INSERT INTO
-  joinable_views_reference_datasource ("joinable_view_id", "reference_datasource_id")
+  joinable_views_datasource ("joinable_view_id", "datasource_id")
 VALUES
-  (@joinable_view_id, @reference_datasource_id) RETURNING *;
+  (@joinable_view_id, @datasource_id) RETURNING *;

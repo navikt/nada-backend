@@ -199,22 +199,22 @@ func (q *Queries) CreateJoinableViews(ctx context.Context, arg CreateJoinableVie
 	return i, err
 }
 
-const createJoinableViewsReferenceDatasource = `-- name: CreateJoinableViewsReferenceDatasource :one
+const createJoinableViewsDatasource = `-- name: CreateJoinableViewsDatasource :one
 INSERT INTO
-  joinable_views_reference_datasource ("joinable_view_id", "reference_datasource_id")
+  joinable_views_datasource ("joinable_view_id", "datasource_id")
 VALUES
-  ($1, $2) RETURNING id, joinable_view_id, reference_datasource_id
+  ($1, $2) RETURNING id, joinable_view_id, datasource_id
 `
 
-type CreateJoinableViewsReferenceDatasourceParams struct {
-	JoinableViewID        uuid.UUID
-	ReferenceDatasourceID uuid.UUID
+type CreateJoinableViewsDatasourceParams struct {
+	JoinableViewID uuid.UUID
+	DatasourceID   uuid.UUID
 }
 
-func (q *Queries) CreateJoinableViewsReferenceDatasource(ctx context.Context, arg CreateJoinableViewsReferenceDatasourceParams) (JoinableViewsReferenceDatasource, error) {
-	row := q.db.QueryRowContext(ctx, createJoinableViewsReferenceDatasource, arg.JoinableViewID, arg.ReferenceDatasourceID)
-	var i JoinableViewsReferenceDatasource
-	err := row.Scan(&i.ID, &i.JoinableViewID, &i.ReferenceDatasourceID)
+func (q *Queries) CreateJoinableViewsDatasource(ctx context.Context, arg CreateJoinableViewsDatasourceParams) (JoinableViewsDatasource, error) {
+	row := q.db.QueryRowContext(ctx, createJoinableViewsDatasource, arg.JoinableViewID, arg.DatasourceID)
+	var i JoinableViewsDatasource
+	err := row.Scan(&i.ID, &i.JoinableViewID, &i.DatasourceID)
 	return i, err
 }
 
@@ -778,8 +778,8 @@ FROM
   (
     joinable_views jv
     INNER JOIN (
-      joinable_views_reference_datasource jds
-      INNER JOIN datasource_bigquery bq ON jds.reference_datasource_id = bq.id
+      joinable_views_datasource jds
+      INNER JOIN datasource_bigquery bq ON jds.datasource_id = bq.id
     ) ON jv.id = jds.joinable_view_id
   )
 WHERE

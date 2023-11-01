@@ -156,7 +156,7 @@ func (r *Repo) CreateDataset(ctx context.Context, ds models.NewDataset, referenc
 	return ret, nil
 }
 
-func (r *Repo) CreateJoinableViews(ctx context.Context, name, owner string, referenceDatasourceIDs []uuid.UUID) (string, error) {
+func (r *Repo) CreateJoinableViews(ctx context.Context, name, owner string, datasourceIDs []uuid.UUID) (string, error) {
 	tx, err := r.db.Begin()
 	if err != nil {
 		return "", err
@@ -170,14 +170,14 @@ func (r *Repo) CreateJoinableViews(ctx context.Context, name, owner string, refe
 	if err != nil {
 		return "", err
 	}
-	for _, bqid := range referenceDatasourceIDs {
+	for _, bqid := range datasourceIDs {
 		if err != nil {
 			return "", err
 		}
 
-		_, err = r.querier.CreateJoinableViewsReferenceDatasource(ctx, gensql.CreateJoinableViewsReferenceDatasourceParams{
-			JoinableViewID:        jv.ID,
-			ReferenceDatasourceID: bqid,
+		_, err = r.querier.CreateJoinableViewsDatasource(ctx, gensql.CreateJoinableViewsDatasourceParams{
+			JoinableViewID: jv.ID,
+			DatasourceID:   bqid,
 		})
 
 		if err != nil {
@@ -271,8 +271,8 @@ func (r *Repo) GetJoinableViewsForUser(ctx context.Context, user string) ([]*mod
 	return joinableViews, nil
 }
 
-func (r *Repo) MakeBigQueryUrlForJoinableViews(name, refProjectID, refDatasetID, refTableID string) string {
-	return fmt.Sprintf("%v.%v.%v", r.centralDataProject, name, utils.MakeJoinableViewName(refProjectID, refDatasetID, refTableID))
+func (r *Repo) MakeBigQueryUrlForJoinableViews(name, projectID, datasetID, tableID string) string {
+	return fmt.Sprintf("%v.%v.%v", r.centralDataProject, name, utils.MakeJoinableViewName(projectID, datasetID, tableID))
 }
 
 func (r *Repo) MakeBigQueryUrlForJoinableViewDataset(name string) string {

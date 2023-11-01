@@ -10,6 +10,7 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/navikt/nada-backend/pkg/auth"
+	"github.com/navikt/nada-backend/pkg/bigquery"
 	"github.com/navikt/nada-backend/pkg/graph/models"
 )
 
@@ -47,23 +48,33 @@ func (r *mutationResolver) CreateJoinableViews(ctx context.Context, input models
 		datasets = append(datasets, dataset)
 	}
 
-	refDatasources := []models.BigQuery{}
-	refDataSourceIDs := []uuid.UUID{}
+	datasources := []bigquery.JoinableViewDatasource{}
+	pseudoDatasourceIDs := []uuid.UUID{}
 	for _, ds := range datasets {
-		if datasource, err := r.repo.GetBigqueryDatasource(ctx, ds.ID, true); err == nil {
-			refDatasources = append(refDatasources, datasource)
-			refDataSourceIDs = append(refDataSourceIDs, datasource.ID)
-		} else {
-			return "", fmt.Errorf("Failed to find bigquery datasource: %v", err)
+		var refDatasource models.BigQuery
+		var pseudoDatasource models.BigQuery
+		var err error
+		if refDatasource, err = r.repo.GetBigqueryDatasource(ctx, ds.ID, true); err != nil {
+			return "", fmt.Errorf("Failed to find reference bigquery datasource: %v", err)
 		}
+
+		if pseudoDatasource, err = r.repo.GetBigqueryDatasource(ctx, ds.ID, false); err != nil {
+			return "", fmt.Errorf("failed to find bigquery datasource: %v", err)
+		}
+		datasources = append(datasources, bigquery.JoinableViewDatasource{
+			RefDatasource:    &refDatasource,
+			PseudoDatasource: &pseudoDatasource,
+		})
+		pseudoDatasourceIDs = append(pseudoDatasourceIDs, pseudoDatasource.ID)
 	}
 
-	projectID, joinableDatasetID, joinableViewsMap, err := r.bigquery.CreateJoinableViewsForUser(ctx, input.Name, refDatasources)
+	projectID, joinableDatasetID, joinableViewsMap, err := r.bigquery.CreateJoinableViewsForUser(ctx, input.Name, datasources)
 	if err != nil {
 		return "", err
 	}
 
-	for _, dstbl := range refDatasources {
+	for _, d := range datasources {
+		dstbl := d.RefDatasource
 		if err := r.accessMgr.AddToAuthorizedViews(ctx, dstbl.ProjectID, dstbl.Dataset, projectID, joinableDatasetID, joinableViewsMap[dstbl.DatasetID]); err != nil {
 			return "", fmt.Errorf("Failed to add to authorized views: %v", err)
 		}
@@ -83,7 +94,7 @@ func (r *mutationResolver) CreateJoinableViews(ctx context.Context, input models
 
 	}
 
-	if _, err := r.repo.CreateJoinableViews(ctx, input.Name, user.Email, refDataSourceIDs); err != nil {
+	if _, err := r.repo.CreateJoinableViews(ctx, joinableDatasetID, user.Email, pseudoDatasourceIDs); err != nil {
 		return "", err
 	}
 

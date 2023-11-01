@@ -226,8 +226,8 @@ func (c *Bigquery) ComposeJoinableViewQuery(plainTableUrl models.BigQuery, joina
 	return qSalt + " " + qSelect + " " + qFrom
 }
 
-func (c *Bigquery) CreateJoinableView(ctx context.Context, joinableDatasetID string, refDatasource models.BigQuery) (string, error) {
-	query := c.ComposeJoinableViewQuery(refDatasource, joinableDatasetID, refDatasource.PseudoColumns)
+func (c *Bigquery) CreateJoinableView(ctx context.Context, joinableDatasetID string, datasource JoinableViewDatasource) (string, error) {
+	query := c.ComposeJoinableViewQuery(*datasource.RefDatasource, joinableDatasetID, datasource.PseudoDatasource.PseudoColumns)
 
 	centralProjectclient, err := bigquery.NewClient(ctx, c.centralDataProject)
 	if err != nil {
@@ -239,7 +239,7 @@ func (c *Bigquery) CreateJoinableView(ctx context.Context, joinableDatasetID str
 		ViewQuery: query,
 	}
 
-	tableID := utils.MakeJoinableViewName(refDatasource.ProjectID, refDatasource.Dataset, refDatasource.Table)
+	tableID := utils.MakeJoinableViewName(datasource.PseudoDatasource.ProjectID, datasource.PseudoDatasource.Dataset, datasource.PseudoDatasource.Table)
 
 	if err := centralProjectclient.Dataset(joinableDatasetID).Table(tableID).Create(ctx, joinableViewMeta); err != nil {
 		return "", fmt.Errorf("Failed to create joinable view, please make sure the datasets are located in europe-north1 region in google cloud: %v", err)
@@ -248,7 +248,12 @@ func (c *Bigquery) CreateJoinableView(ctx context.Context, joinableDatasetID str
 	return tableID, nil
 }
 
-func (c *Bigquery) CreateJoinableViewsForUser(ctx context.Context, name string, tableUrls []models.BigQuery) (string, string, map[uuid.UUID]string, error) {
+type JoinableViewDatasource struct {
+	RefDatasource    *models.BigQuery
+	PseudoDatasource *models.BigQuery
+}
+
+func (c *Bigquery) CreateJoinableViewsForUser(ctx context.Context, name string, datasources []JoinableViewDatasource) (string, string, map[uuid.UUID]string, error) {
 	client, err := bigquery.NewClient(ctx, c.centralDataProject)
 	if err != nil {
 		return "", "", nil, fmt.Errorf("bigquery.NewClient: %v", err)
@@ -263,11 +268,11 @@ func (c *Bigquery) CreateJoinableViewsForUser(ctx context.Context, name string, 
 	c.insertSecretIfNotExists(ctx, "secrets_vault", "secrets", joinableDatasetID)
 
 	viewsMap := map[uuid.UUID]string{}
-	for _, table := range tableUrls {
-		if v, err := c.CreateJoinableView(ctx, joinableDatasetID, table); err != nil {
+	for _, d := range datasources {
+		if v, err := c.CreateJoinableView(ctx, joinableDatasetID, d); err != nil {
 			return "", "", nil, err
 		} else {
-			viewsMap[table.DatasetID] = v
+			viewsMap[d.RefDatasource.DatasetID] = v
 		}
 	}
 

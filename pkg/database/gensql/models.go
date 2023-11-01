@@ -299,10 +299,10 @@ type JoinableView struct {
 	Created time.Time
 }
 
-type JoinableViewsReferenceDatasource struct {
-	ID                    uuid.UUID
-	JoinableViewID        uuid.UUID
-	ReferenceDatasourceID uuid.UUID
+type JoinableViewsDatasource struct {
+	ID             uuid.UUID
+	JoinableViewID uuid.UUID
+	DatasourceID   uuid.UUID
 }
 
 type MetabaseMetadatum struct {

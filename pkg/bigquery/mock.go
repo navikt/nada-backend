@@ -112,7 +112,7 @@ func (m *Mock) CreatePseudonymisedView(ctx context.Context, projectID, datasetID
 	return "p", "d", "t", nil
 }
 
-func (c *Mock) CreateJoinableViewsForUser(ctx context.Context, user string, tableUrls []models.BigQuery) (string, string, map[uuid.UUID]string, error) {
+func (c *Mock) CreateJoinableViewsForUser(ctx context.Context, user string, tableUrls []JoinableViewDatasource) (string, string, map[uuid.UUID]string, error) {
 	return "", "", nil, nil
 }
 

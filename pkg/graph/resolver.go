@@ -10,6 +10,7 @@ import (
 	"github.com/99designs/gqlgen/graphql/handler"
 	"github.com/google/uuid"
 	"github.com/navikt/nada-backend/pkg/auth"
+	bq "github.com/navikt/nada-backend/pkg/bigquery"
 	"github.com/navikt/nada-backend/pkg/database"
 	"github.com/navikt/nada-backend/pkg/graph/generated"
 	"github.com/navikt/nada-backend/pkg/graph/models"
@@ -23,7 +24,7 @@ type Bigquery interface {
 	GetDatasets(ctx context.Context, projectID string) ([]string, error)
 	TableMetadata(ctx context.Context, projectID string, datasetID string, tableID string) (models.BigqueryMetadata, error)
 	CreatePseudonymisedView(ctx context.Context, projectID string, datasetID string, tableID string, targetColumns []string) (string, string, string, error)
-	CreateJoinableViewsForUser(ctx context.Context, name string, tableUrls []models.BigQuery) (string, string, map[uuid.UUID]string, error)
+	CreateJoinableViewsForUser(ctx context.Context, name string, datasources []bq.JoinableViewDatasource) (string, string, map[uuid.UUID]string, error)
 }
 
 type AccessManager interface {

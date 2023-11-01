@@ -4,6 +4,7 @@ import (
 	"fmt"
 )
 
-func MakeJoinableViewName(refProjectID, refDatasetID, refTableID string) string {
-	return fmt.Sprintf("%v_%v_%v", refProjectID, refDatasetID, refTableID)
+func MakeJoinableViewName(projectID, datasetID, tableID string) string {
+	//datasetID will always be same markedsplassen dataset id
+	return fmt.Sprintf("%v_%v", projectID, tableID)
 }

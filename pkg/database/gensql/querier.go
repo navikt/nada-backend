@@ -22,7 +22,7 @@ type Querier interface {
 	CreateDataset(ctx context.Context, arg CreateDatasetParams) (Dataset, error)
 	CreateInsightProduct(ctx context.Context, arg CreateInsightProductParams) (InsightProduct, error)
 	CreateJoinableViews(ctx context.Context, arg CreateJoinableViewsParams) (JoinableView, error)
-	CreateJoinableViewsReferenceDatasource(ctx context.Context, arg CreateJoinableViewsReferenceDatasourceParams) (JoinableViewsReferenceDatasource, error)
+	CreateJoinableViewsDatasource(ctx context.Context, arg CreateJoinableViewsDatasourceParams) (JoinableViewsDatasource, error)
 	CreateMetabaseMetadata(ctx context.Context, arg CreateMetabaseMetadataParams) error
 	CreatePollyDocumentation(ctx context.Context, arg CreatePollyDocumentationParams) (PollyDocumentation, error)
 	CreateQuartoStory(ctx context.Context, arg CreateQuartoStoryParams) (QuartoStory, error)
