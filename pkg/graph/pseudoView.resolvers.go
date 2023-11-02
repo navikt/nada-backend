@@ -11,6 +11,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/navikt/nada-backend/pkg/auth"
 	"github.com/navikt/nada-backend/pkg/bigquery"
+	"github.com/navikt/nada-backend/pkg/database"
 	"github.com/navikt/nada-backend/pkg/graph/models"
 )
 
@@ -104,5 +105,32 @@ func (r *mutationResolver) CreateJoinableViews(ctx context.Context, input models
 // JoinableViews is the resolver for the joinableViews field.
 func (r *queryResolver) JoinableViews(ctx context.Context) ([]*models.JoinableView, error) {
 	user := auth.GetUser(ctx)
-	return r.repo.GetJoinableViewsForUser(ctx, user.Email)
+	jviewsDB, err := r.repo.GetJoinableViewsForUser(ctx, user.Email)
+	if err != nil {
+		return nil, err
+	}
+	return r.JoinableViewsDBToGraph(jviewsDB), nil
+
+}
+
+func (r *queryResolver) JoinableViewsDBToGraph(jviewsDB []*database.JoinableView) []*models.JoinableView {
+	jviews := []*models.JoinableView{}
+	for _, v := range jviewsDB {
+		jviews = append(jviews, r.JoinableViewDBToGraph(v))
+	}
+	return jviews
+}
+
+func (r *queryResolver) JoinableViewDBToGraph(jviewDB *database.JoinableView) *models.JoinableView {
+	jview := &models.JoinableView{
+		ID:               jviewDB.ID,
+		Name:             jviewDB.Name,
+		Created:          jviewDB.Created,
+		BigQueryViewUrls: []string{},
+	}
+
+	for _, v := range jviewDB.PseudoDatasources {
+		jview.BigQueryViewUrls = append(jview.BigQueryViewUrls, r.bigquery.MakeBigQueryUrlForJoinableViews(jviewDB.Name, v.ProjectID, v.Dataset, v.Table))
+	}
+	return jview
 }

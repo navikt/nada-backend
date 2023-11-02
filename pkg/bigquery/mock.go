@@ -119,3 +119,7 @@ func (c *Mock) CreateJoinableViewsForUser(ctx context.Context, user string, tabl
 func (c *Mock) GetJoinableViewsForUser(ctx context.Context, user *auth.User) ([]*models.JoinableView, error) {
 	return nil, nil
 }
+
+func (c *Mock) MakeBigQueryUrlForJoinableViews(name, projectID, datasetID, tableID string) string {
+	return fmt.Sprintf("%v.%v.%v", "centralDataProject", name, fmt.Sprintf("%v_%v_%v", projectID, datasetID, tableID))
+}

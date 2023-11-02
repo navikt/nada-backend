@@ -9,7 +9,6 @@ import (
 	"github.com/google/uuid"
 	"github.com/navikt/nada-backend/pkg/auth"
 	"github.com/navikt/nada-backend/pkg/graph/models"
-	"github.com/navikt/nada-backend/pkg/utils"
 	"google.golang.org/api/googleapi"
 	"google.golang.org/api/iterator"
 )
@@ -226,6 +225,15 @@ func (c *Bigquery) ComposeJoinableViewQuery(plainTableUrl models.BigQuery, joina
 	return qSalt + " " + qSelect + " " + qFrom
 }
 
+func (c *Bigquery) MakeJoinableViewName(projectID, datasetID, tableID string) string {
+	//datasetID will always be same markedsplassen dataset id
+	return fmt.Sprintf("%v_%v", projectID, tableID)
+}
+
+func (c *Bigquery) MakeBigQueryUrlForJoinableViews(name, projectID, datasetID, tableID string) string {
+	return fmt.Sprintf("%v.%v.%v", c.centralDataProject, name, c.MakeJoinableViewName(projectID, datasetID, tableID))
+}
+
 func (c *Bigquery) CreateJoinableView(ctx context.Context, joinableDatasetID string, datasource JoinableViewDatasource) (string, error) {
 	query := c.ComposeJoinableViewQuery(*datasource.RefDatasource, joinableDatasetID, datasource.PseudoDatasource.PseudoColumns)
 
@@ -239,7 +247,7 @@ func (c *Bigquery) CreateJoinableView(ctx context.Context, joinableDatasetID str
 		ViewQuery: query,
 	}
 
-	tableID := utils.MakeJoinableViewName(datasource.PseudoDatasource.ProjectID, datasource.PseudoDatasource.Dataset, datasource.PseudoDatasource.Table)
+	tableID := c.MakeJoinableViewName(datasource.PseudoDatasource.ProjectID, datasource.PseudoDatasource.Dataset, datasource.PseudoDatasource.Table)
 
 	if err := centralProjectclient.Dataset(joinableDatasetID).Table(tableID).Create(ctx, joinableViewMeta); err != nil {
 		return "", fmt.Errorf("Failed to create joinable view, please make sure the datasets are located in europe-north1 region in google cloud: %v", err)

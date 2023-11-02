@@ -12,7 +12,6 @@ import (
 	"github.com/navikt/nada-backend/pkg/auth"
 	"github.com/navikt/nada-backend/pkg/database/gensql"
 	"github.com/navikt/nada-backend/pkg/graph/models"
-	"github.com/navikt/nada-backend/pkg/utils"
 	"github.com/tabbed/pqtype"
 )
 
@@ -239,7 +238,14 @@ func (r *Repo) UpdateDataset(ctx context.Context, id uuid.UUID, new models.Updat
 	return datasetFromSQL(res), nil
 }
 
-func (r *Repo) GetJoinableViewsForUser(ctx context.Context, user string) ([]*models.JoinableView, error) {
+type JoinableView struct {
+	ID                uuid.UUID
+	Name              string
+	Created           string
+	PseudoDatasources []*models.BigQuery
+}
+
+func (r *Repo) GetJoinableViewsForUser(ctx context.Context, user string) ([]*JoinableView, error) {
 	joinableViewsDB, err := r.querier.GetJoinableViewsForOwner(ctx, user)
 	if err != nil {
 		return nil, err
@@ -254,25 +260,25 @@ func (r *Repo) GetJoinableViewsForUser(ctx context.Context, user string) ([]*mod
 		joinableViewsDBMerged[vdb.ID] = append(joinableViewsDBMerged[vdb.ID], vdb)
 	}
 
-	joinableViews := []*models.JoinableView{}
+	joinableViews := []*JoinableView{}
 
 	for k, v := range joinableViewsDBMerged {
-		newJoinableView := &models.JoinableView{
-			ID:               k,
-			Name:             v[0].Name,
-			Created:          v[0].Created.Format("2006-01-02"),
-			BigQueryViewUrls: []string{},
+		newJoinableView := JoinableView{
+			ID:                k,
+			Name:              v[0].Name,
+			Created:           v[0].Created.Format("2006-01-02"),
+			PseudoDatasources: []*models.BigQuery{},
 		}
-		joinableViews = append(joinableViews, newJoinableView)
+		joinableViews = append(joinableViews, &newJoinableView)
 		for _, bq := range v {
-			newJoinableView.BigQueryViewUrls = append(newJoinableView.BigQueryViewUrls, r.MakeBigQueryUrlForJoinableViews(bq.Name, bq.ProjectID, bq.DatasetID, bq.TableID))
+			newJoinableView.PseudoDatasources = append(newJoinableView.PseudoDatasources, &models.BigQuery{
+				ProjectID: bq.ProjectID,
+				Dataset:   bq.DatasetID,
+				Table:     bq.TableID,
+			})
 		}
 	}
 	return joinableViews, nil
-}
-
-func (r *Repo) MakeBigQueryUrlForJoinableViews(name, projectID, datasetID, tableID string) string {
-	return fmt.Sprintf("%v.%v.%v", r.centralDataProject, name, utils.MakeJoinableViewName(projectID, datasetID, tableID))
 }
 
 func (r *Repo) MakeBigQueryUrlForJoinableViewDataset(name string) string {

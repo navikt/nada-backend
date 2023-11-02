@@ -25,6 +25,7 @@ type Bigquery interface {
 	TableMetadata(ctx context.Context, projectID string, datasetID string, tableID string) (models.BigqueryMetadata, error)
 	CreatePseudonymisedView(ctx context.Context, projectID string, datasetID string, tableID string, targetColumns []string) (string, string, string, error)
 	CreateJoinableViewsForUser(ctx context.Context, name string, datasources []bq.JoinableViewDatasource) (string, string, map[uuid.UUID]string, error)
+	MakeBigQueryUrlForJoinableViews(name, projectID, datasetID, tableID string) string
 }
 
 type AccessManager interface {
@@ -50,14 +51,14 @@ type Slack interface {
 }
 
 type Resolver struct {
-	repo          *database.Repo
-	bigquery      Bigquery
-	gcpProjects   *auth.TeamProjectsMapping
-	accessMgr     AccessManager
-	teamkatalogen Teamkatalogen
-	slack         Slack
-	pollyAPI      Polly
-	log           *logrus.Entry
+	repo           *database.Repo
+	bigquery       Bigquery
+	gcpProjects    *auth.TeamProjectsMapping
+	accessMgr      AccessManager
+	teamkatalogen  Teamkatalogen
+	slack          Slack
+	pollyAPI       Polly
+	log            *logrus.Entry
 }
 
 func New(repo *database.Repo, gcp Bigquery, gcpProjects *auth.TeamProjectsMapping, accessMgr AccessManager, tk Teamkatalogen, slack Slack, pollyAPI Polly, log *logrus.Entry) *handler.Server {
