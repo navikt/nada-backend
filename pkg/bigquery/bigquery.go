@@ -225,13 +225,13 @@ func (c *Bigquery) ComposeJoinableViewQuery(plainTableUrl models.BigQuery, joina
 	return qSalt + " " + qSelect + " " + qFrom
 }
 
-func (c *Bigquery) MakeJoinableViewName(projectID, datasetID, tableID string) string {
-	//datasetID will always be same markedsplassen dataset id
+func MakeJoinableViewName(projectID, datasetID, tableID string) string {
+	// datasetID will always be same markedsplassen dataset id
 	return fmt.Sprintf("%v_%v", projectID, tableID)
 }
 
 func (c *Bigquery) MakeBigQueryUrlForJoinableViews(name, projectID, datasetID, tableID string) string {
-	return fmt.Sprintf("%v.%v.%v", c.centralDataProject, name, c.MakeJoinableViewName(projectID, datasetID, tableID))
+	return fmt.Sprintf("%v.%v.%v", c.centralDataProject, name, MakeJoinableViewName(projectID, datasetID, tableID))
 }
 
 func (c *Bigquery) CreateJoinableView(ctx context.Context, joinableDatasetID string, datasource JoinableViewDatasource) (string, error) {
@@ -247,7 +247,7 @@ func (c *Bigquery) CreateJoinableView(ctx context.Context, joinableDatasetID str
 		ViewQuery: query,
 	}
 
-	tableID := c.MakeJoinableViewName(datasource.PseudoDatasource.ProjectID, datasource.PseudoDatasource.Dataset, datasource.PseudoDatasource.Table)
+	tableID := MakeJoinableViewName(datasource.PseudoDatasource.ProjectID, datasource.PseudoDatasource.Dataset, datasource.PseudoDatasource.Table)
 
 	if err := centralProjectclient.Dataset(joinableDatasetID).Table(tableID).Create(ctx, joinableViewMeta); err != nil {
 		return "", fmt.Errorf("Failed to create joinable view, please make sure the datasets are located in europe-north1 region in google cloud: %v", err)
@@ -295,7 +295,7 @@ func (c *Bigquery) createDataset(ctx context.Context, projectID, datasetID strin
 	defer client.Close()
 
 	meta := &bigquery.DatasetMetadata{
-		Location: "europe-north1", //TODO: we can support other regions
+		Location: "europe-north1", // TODO: we can support other regions
 	}
 
 	if err := client.Dataset(datasetID).Create(ctx, meta); err != nil {

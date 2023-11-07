@@ -454,6 +454,14 @@ func (r *Repo) GetJoinableViewsForReferenceAndUser(ctx context.Context, user str
 	return joinableViews, nil
 }
 
+func (r *Repo) GetJoinableViewsWithReference(ctx context.Context) ([]gensql.GetJoinableViewsWithReferenceRow, error) {
+	return r.querier.GetJoinableViewsWithReference(ctx)
+}
+
+func (r *Repo) GetOwnerGroupOfDataset(ctx context.Context, datasetID uuid.UUID) (string, error) {
+	return r.querier.GetOwnerGroupOfDataset(ctx, datasetID)
+}
+
 func PseudoDatasetFromSQL(d *gensql.GetAccessiblePseudoDatasetsByUserRow) (*models.PseudoDataset, string) {
 	return &models.PseudoDataset{
 		// name is the name of the dataset

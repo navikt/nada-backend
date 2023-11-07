@@ -306,9 +306,28 @@ VALUES
   (@joinable_view_id, @datasource_id) RETURNING *;
 
 -- name: GetJoinableViewsForReferenceAndUser :many
-SELECT a.id as id, a.name as dataset
+SELECT 
+    a.id as id, 
+    a.name as dataset
 FROM joinable_views a 
 JOIN joinable_views_datasource b ON a.id = b.joinable_view_id
 JOIN datasource_bigquery c ON b.datasource_id = c.id
 WHERE owner = @owner
 AND c.dataset_id = @pseudo_dataset_id;
+
+-- name: GetJoinableViewsWithReference :many
+SELECT 
+    a.owner as owner,
+    a.id as joinable_view_id,
+    a.name as joinable_view_dataset,
+    c.dataset_id as pseudo_view_id,
+    c.project_id as pseudo_project_id,
+    c.dataset as pseudo_dataset,
+    c.table_name as pseudo_table
+FROM joinable_views a
+JOIN joinable_views_datasource b ON a.id = b.joinable_view_id
+JOIN datasource_bigquery c ON b.datasource_id = c.id;
+
+-- name: GetOwnerGroupOfDataset :one
+SELECT d.group as group FROM dataproducts d
+WHERE d.id = (SELECT dataproduct_id FROM datasets ds WHERE ds.id = @dataset_id);

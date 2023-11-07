@@ -828,7 +828,9 @@ func (q *Queries) GetJoinableViewsForOwner(ctx context.Context, owner string) ([
 }
 
 const getJoinableViewsForReferenceAndUser = `-- name: GetJoinableViewsForReferenceAndUser :many
-SELECT a.id as id, a.name as dataset
+SELECT 
+    a.id as id, 
+    a.name as dataset
 FROM joinable_views a 
 JOIN joinable_views_datasource b ON a.id = b.joinable_view_id
 JOIN datasource_bigquery c ON b.datasource_id = c.id
@@ -867,6 +869,73 @@ func (q *Queries) GetJoinableViewsForReferenceAndUser(ctx context.Context, arg G
 		return nil, err
 	}
 	return items, nil
+}
+
+const getJoinableViewsWithReference = `-- name: GetJoinableViewsWithReference :many
+SELECT 
+    a.owner as owner,
+    a.id as joinable_view_id,
+    a.name as joinable_view_dataset,
+    c.dataset_id as pseudo_view_id,
+    c.project_id as pseudo_project_id,
+    c.dataset as pseudo_dataset,
+    c.table_name as pseudo_table
+FROM joinable_views a
+JOIN joinable_views_datasource b ON a.id = b.joinable_view_id
+JOIN datasource_bigquery c ON b.datasource_id = c.id
+`
+
+type GetJoinableViewsWithReferenceRow struct {
+	Owner               string
+	JoinableViewID      uuid.UUID
+	JoinableViewDataset string
+	PseudoViewID        uuid.UUID
+	PseudoProjectID     string
+	PseudoDataset       string
+	PseudoTable         string
+}
+
+func (q *Queries) GetJoinableViewsWithReference(ctx context.Context) ([]GetJoinableViewsWithReferenceRow, error) {
+	rows, err := q.db.QueryContext(ctx, getJoinableViewsWithReference)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []GetJoinableViewsWithReferenceRow{}
+	for rows.Next() {
+		var i GetJoinableViewsWithReferenceRow
+		if err := rows.Scan(
+			&i.Owner,
+			&i.JoinableViewID,
+			&i.JoinableViewDataset,
+			&i.PseudoViewID,
+			&i.PseudoProjectID,
+			&i.PseudoDataset,
+			&i.PseudoTable,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const getOwnerGroupOfDataset = `-- name: GetOwnerGroupOfDataset :one
+SELECT d.group as group FROM dataproducts d
+WHERE d.id = (SELECT dataproduct_id FROM datasets ds WHERE ds.id = $1)
+`
+
+func (q *Queries) GetOwnerGroupOfDataset(ctx context.Context, datasetID uuid.UUID) (string, error) {
+	row := q.db.QueryRowContext(ctx, getOwnerGroupOfDataset, datasetID)
+	var group string
+	err := row.Scan(&group)
+	return group, err
 }
 
 const replaceDatasetsTag = `-- name: ReplaceDatasetsTag :exec

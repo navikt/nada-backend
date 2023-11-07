@@ -105,6 +105,11 @@ func main() {
 		log.Fatal(err)
 	}
 
+	googleGroups, err := auth.NewGoogleGroups(ctx, cfg.ServiceAccountFile, cfg.GoogleAdminImpersonationSubject, log.WithField("subsystem", "googlegroups"))
+	if err != nil {
+		log.Fatal(err)
+	}
+
 	mockHTTP := api.NewMockHTTP(repo, log.WithField("subsystem", "mockhttp"))
 	var httpAPI api.HTTPAPI = mockHTTP
 	authenticatorMiddleware := mockHTTP.Middleware
@@ -123,10 +128,6 @@ func main() {
 		go teamProjectsUpdater.Run(ctx, TeamProjectsUpdateFrequency)
 
 		azureGroups := auth.NewAzureGroups(http.DefaultClient, cfg.OAuth2.ClientID, cfg.OAuth2.ClientSecret, cfg.OAuth2.TenantID)
-		googleGroups, err := auth.NewGoogleGroups(ctx, cfg.ServiceAccountFile, cfg.GoogleAdminImpersonationSubject, log.WithField("subsystem", "googlegroups"))
-		if err != nil {
-			log.Fatal(err)
-		}
 
 		aauth := auth.NewAzure(cfg.OAuth2.ClientID, cfg.OAuth2.ClientSecret, cfg.OAuth2.TenantID, cfg.Hostname)
 		oauth2Config = aauth
@@ -147,7 +148,7 @@ func main() {
 		log.WithError(err).Fatal("running metabase")
 	}
 
-	go access.NewEnsurer(repo, accessMgr, promErrs, log.WithField("subsystem", "accessensurer")).Run(ctx, AccessEnsurerFrequency)
+	go access.NewEnsurer(repo, accessMgr, googleGroups, cfg.CentralDataProject, promErrs, log.WithField("subsystem", "accessensurer")).Run(ctx, AccessEnsurerFrequency)
 
 	var gcp graph.Bigquery = bigquery.NewMock()
 	if !cfg.SkipMetadataSync {

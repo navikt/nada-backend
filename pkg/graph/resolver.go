@@ -26,7 +26,6 @@ type Bigquery interface {
 	CreatePseudonymisedView(ctx context.Context, projectID string, datasetID string, tableID string, targetColumns []string) (string, string, string, error)
 	CreateJoinableViewsForUser(ctx context.Context, name string, datasources []bq.JoinableViewDatasource) (string, string, map[uuid.UUID]string, error)
 	MakeBigQueryUrlForJoinableViews(name, projectID, datasetID, tableID string) string
-	MakeJoinableViewName(projectID, datasetID, tableID string) string
 }
 
 type AccessManager interface {

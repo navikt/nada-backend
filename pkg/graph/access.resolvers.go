@@ -12,6 +12,7 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/navikt/nada-backend/pkg/auth"
+	"github.com/navikt/nada-backend/pkg/bigquery"
 	"github.com/navikt/nada-backend/pkg/graph/generated"
 	"github.com/navikt/nada-backend/pkg/graph/models"
 )
@@ -70,7 +71,7 @@ func (r *mutationResolver) GrantAccessToDataset(ctx context.Context, input model
 			return nil, err
 		}
 		for _, jv := range joinableViews {
-			joinableViewName := r.bigquery.MakeJoinableViewName(bq.ProjectID, bq.Dataset, bq.Table)
+			joinableViewName := bigquery.MakeJoinableViewName(bq.ProjectID, bq.Dataset, bq.Table)
 			if err := r.accessMgr.Grant(ctx, r.centralDataProject, jv.Dataset, joinableViewName, subjWithType); err != nil {
 				return nil, err
 			}
@@ -123,7 +124,7 @@ func (r *mutationResolver) RevokeAccessToDataset(ctx context.Context, id uuid.UU
 			return false, err
 		}
 		for _, jv := range joinableViews {
-			joinableViewName := r.bigquery.MakeJoinableViewName(bq.ProjectID, bq.Dataset, bq.Table)
+			joinableViewName := bigquery.MakeJoinableViewName(bq.ProjectID, bq.Dataset, bq.Table)
 			if err := r.accessMgr.Revoke(ctx, r.centralDataProject, jv.Dataset, joinableViewName, access.Subject); err != nil {
 				return false, err
 			}
