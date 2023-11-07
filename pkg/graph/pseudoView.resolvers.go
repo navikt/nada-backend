@@ -92,7 +92,6 @@ func (r *mutationResolver) CreateJoinableViews(ctx context.Context, input models
 		if err := r.accessMgr.Grant(ctx, projectID, joinableDatasetID, v, subjWithType); err != nil {
 			return "", err
 		}
-
 	}
 
 	if _, err := r.repo.CreateJoinableViews(ctx, joinableDatasetID, user.Email, pseudoDatasourceIDs); err != nil {
@@ -110,7 +109,6 @@ func (r *queryResolver) JoinableViews(ctx context.Context) ([]*models.JoinableVi
 		return nil, err
 	}
 	return r.JoinableViewsDBToGraph(jviewsDB), nil
-
 }
 
 func (r *queryResolver) JoinableViewsDBToGraph(jviewsDB []*database.JoinableView) []*models.JoinableView {

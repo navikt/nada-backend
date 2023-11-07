@@ -304,3 +304,11 @@ INSERT INTO
   joinable_views_datasource ("joinable_view_id", "datasource_id")
 VALUES
   (@joinable_view_id, @datasource_id) RETURNING *;
+
+-- name: GetJoinableViewsForReferenceAndUser :many
+SELECT a.id as id, a.name as dataset
+FROM joinable_views a 
+JOIN joinable_views_datasource b ON a.id = b.joinable_view_id
+JOIN datasource_bigquery c ON b.datasource_id = c.id
+WHERE owner = @owner
+AND c.dataset_id = @pseudo_dataset_id;

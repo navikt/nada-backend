@@ -12,7 +12,7 @@ import (
 	"github.com/navikt/nada-backend/pkg/auth"
 	"github.com/navikt/nada-backend/pkg/database/gensql"
 	"github.com/navikt/nada-backend/pkg/graph/models"
-	"github.com/tabbed/pqtype"
+	"github.com/sqlc-dev/pqtype"
 )
 
 func (r *Repo) GetDataset(ctx context.Context, id uuid.UUID) (*models.Dataset, error) {
@@ -290,7 +290,6 @@ func (r *Repo) GetBigqueryDatasource(ctx context.Context, datasetID uuid.UUID, i
 		DatasetID:   datasetID,
 		IsReference: isReference,
 	})
-
 	if err != nil {
 		return models.BigQuery{}, err
 	}
@@ -441,6 +440,18 @@ func (r *Repo) GetAccessiblePseudoDatasourcesByUser(ctx context.Context, subject
 		pseudoDatasets = append(pseudoDatasets, pseudoDataset)
 	}
 	return pseudoDatasets, nil
+}
+
+func (r *Repo) GetJoinableViewsForReferenceAndUser(ctx context.Context, user string, pseudoDatasetID uuid.UUID) ([]gensql.GetJoinableViewsForReferenceAndUserRow, error) {
+	joinableViews, err := r.querier.GetJoinableViewsForReferenceAndUser(ctx, gensql.GetJoinableViewsForReferenceAndUserParams{
+		Owner:           user,
+		PseudoDatasetID: pseudoDatasetID,
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	return joinableViews, nil
 }
 
 func PseudoDatasetFromSQL(d *gensql.GetAccessiblePseudoDatasetsByUserRow) (*models.PseudoDataset, string) {

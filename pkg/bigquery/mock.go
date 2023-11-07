@@ -65,7 +65,7 @@ func (m *Mock) TableMetadata(ctx context.Context, projectID string, datasetID st
 	return models.BigqueryMetadata{
 		TableType:   bigquery.TableType(strings.ToUpper(string(table.Type))),
 		Created:     time.Now(),
-		Expires:     time.Date(2033, time.April, 14, 18, 00, 00, 00, time.UTC),
+		Expires:     time.Date(2033, time.April, 14, 18, 0o0, 0o0, 0o0, time.UTC),
 		Description: "This is a table description explaining the contents of the table",
 		Schema: models.BigquerySchema{
 			Columns: []models.BigqueryColumn{
@@ -122,4 +122,8 @@ func (c *Mock) GetJoinableViewsForUser(ctx context.Context, user *auth.User) ([]
 
 func (c *Mock) MakeBigQueryUrlForJoinableViews(name, projectID, datasetID, tableID string) string {
 	return fmt.Sprintf("%v.%v.%v", "centralDataProject", name, fmt.Sprintf("%v_%v_%v", projectID, datasetID, tableID))
+}
+
+func (c *Mock) MakeJoinableViewName(projectID, datasetID, tableID string) string {
+	return fmt.Sprintf("%v_%v", projectID, tableID)
 }

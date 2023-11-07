@@ -162,7 +162,7 @@ func main() {
 	go story.NewDraftCleaner(repo, log.WithField("subsystem", "storydraftcleaner")).Run(ctx, StoryDraftCleanerFrequency)
 
 	log.Info("Listening on :8080")
-	gqlServer := graph.New(repo, gcp, teamProjectsUpdater.TeamProjectsMapping, accessMgr, teamcatalogue, slackClient, pollyAPI, log.WithField("subsystem", "graph"))
+	gqlServer := graph.New(repo, gcp, teamProjectsUpdater.TeamProjectsMapping, accessMgr, teamcatalogue, slackClient, pollyAPI, cfg.CentralDataProject, log.WithField("subsystem", "graph"))
 	srv := api.New(repo, gcsClient, httpAPI, authenticatorMiddleware, gqlServer, prom(repo.Metrics()...), amplitudeClient, log)
 
 	server := http.Server{

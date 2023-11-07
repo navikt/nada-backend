@@ -26,6 +26,7 @@ type Bigquery interface {
 	CreatePseudonymisedView(ctx context.Context, projectID string, datasetID string, tableID string, targetColumns []string) (string, string, string, error)
 	CreateJoinableViewsForUser(ctx context.Context, name string, datasources []bq.JoinableViewDatasource) (string, string, map[uuid.UUID]string, error)
 	MakeBigQueryUrlForJoinableViews(name, projectID, datasetID, tableID string) string
+	MakeJoinableViewName(projectID, datasetID, tableID string) string
 }
 
 type AccessManager interface {
@@ -51,26 +52,28 @@ type Slack interface {
 }
 
 type Resolver struct {
-	repo           *database.Repo
-	bigquery       Bigquery
-	gcpProjects    *auth.TeamProjectsMapping
-	accessMgr      AccessManager
-	teamkatalogen  Teamkatalogen
-	slack          Slack
-	pollyAPI       Polly
-	log            *logrus.Entry
+	repo               *database.Repo
+	bigquery           Bigquery
+	gcpProjects        *auth.TeamProjectsMapping
+	accessMgr          AccessManager
+	teamkatalogen      Teamkatalogen
+	slack              Slack
+	pollyAPI           Polly
+	centralDataProject string
+	log                *logrus.Entry
 }
 
-func New(repo *database.Repo, gcp Bigquery, gcpProjects *auth.TeamProjectsMapping, accessMgr AccessManager, tk Teamkatalogen, slack Slack, pollyAPI Polly, log *logrus.Entry) *handler.Server {
+func New(repo *database.Repo, gcp Bigquery, gcpProjects *auth.TeamProjectsMapping, accessMgr AccessManager, tk Teamkatalogen, slack Slack, pollyAPI Polly, centralDataProject string, log *logrus.Entry) *handler.Server {
 	resolver := &Resolver{
-		repo:          repo,
-		bigquery:      gcp,
-		gcpProjects:   gcpProjects,
-		accessMgr:     accessMgr,
-		teamkatalogen: tk,
-		slack:         slack,
-		pollyAPI:      pollyAPI,
-		log:           log,
+		repo:               repo,
+		bigquery:           gcp,
+		gcpProjects:        gcpProjects,
+		accessMgr:          accessMgr,
+		teamkatalogen:      tk,
+		slack:              slack,
+		pollyAPI:           pollyAPI,
+		centralDataProject: centralDataProject,
+		log:                log,
 	}
 
 	config := generated.Config{Resolvers: resolver}

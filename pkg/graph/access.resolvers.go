@@ -64,6 +64,19 @@ func (r *mutationResolver) GrantAccessToDataset(ctx context.Context, input model
 
 	subjWithType := subjType.String() + ":" + subj
 
+	if len(bq.PseudoColumns) > 0 {
+		joinableViews, err := r.repo.GetJoinableViewsForReferenceAndUser(ctx, subj, ds.ID)
+		if err != nil {
+			return nil, err
+		}
+		for _, jv := range joinableViews {
+			joinableViewName := r.bigquery.MakeJoinableViewName(bq.ProjectID, bq.Dataset, bq.Table)
+			if err := r.accessMgr.Grant(ctx, r.centralDataProject, jv.Dataset, joinableViewName, subjWithType); err != nil {
+				return nil, err
+			}
+		}
+	}
+
 	if err := r.accessMgr.Grant(ctx, bq.ProjectID, bq.Dataset, bq.Table, subjWithType); err != nil {
 		return nil, err
 	}
@@ -96,6 +109,25 @@ func (r *mutationResolver) RevokeAccessToDataset(ctx context.Context, id uuid.UU
 	user := auth.GetUser(ctx)
 	if !user.GoogleGroups.Contains(dp.Owner.Group) && !strings.EqualFold("user:"+user.Email, access.Subject) {
 		return false, ErrUnauthorized
+	}
+
+	subjectParts := strings.Split(access.Subject, ":")
+	if len(subjectParts) != 2 {
+		return false, fmt.Errorf("invalid access subject %v (should be on format type:email)", access.Subject)
+	}
+	subjectWithoutType := subjectParts[1]
+
+	if len(bq.PseudoColumns) > 0 {
+		joinableViews, err := r.repo.GetJoinableViewsForReferenceAndUser(ctx, subjectWithoutType, ds.ID)
+		if err != nil {
+			return false, err
+		}
+		for _, jv := range joinableViews {
+			joinableViewName := r.bigquery.MakeJoinableViewName(bq.ProjectID, bq.Dataset, bq.Table)
+			if err := r.accessMgr.Revoke(ctx, r.centralDataProject, jv.Dataset, joinableViewName, access.Subject); err != nil {
+				return false, err
+			}
+		}
 	}
 
 	if err := r.accessMgr.Revoke(ctx, bq.ProjectID, bq.Dataset, bq.Table, access.Subject); err != nil {
