@@ -276,36 +276,35 @@ type ComplexityRoot struct {
 	}
 
 	Query struct {
-		AccessRequest             func(childComplexity int, id uuid.UUID) int
-		AccessRequestsForDataset  func(childComplexity int, datasetID uuid.UUID) int
-		AccessiblePseudoDatasets  func(childComplexity int) int
-		Dataproduct               func(childComplexity int, id uuid.UUID) int
-		Dataproducts              func(childComplexity int, limit *int, offset *int, service *models.MappingService) int
-		Dataset                   func(childComplexity int, id uuid.UUID) int
-		DatasetsAccessibleForUser func(childComplexity int) int
-		DatasetsInDataproduct     func(childComplexity int, dataproductID uuid.UUID) int
-		GcpGetAllTablesInProject  func(childComplexity int, projectID string) int
-		GcpGetColumns             func(childComplexity int, projectID string, datasetID string, tableID string) int
-		GcpGetDatasets            func(childComplexity int, projectID string) int
-		GcpGetTables              func(childComplexity int, projectID string, datasetID string) int
-		GroupStats                func(childComplexity int, limit *int, offset *int) int
-		InsightProduct            func(childComplexity int, id uuid.UUID) int
-		IsValidSlackChannel       func(childComplexity int, name string) int
-		JoinableViews             func(childComplexity int) int
-		Keywords                  func(childComplexity int) int
-		Polly                     func(childComplexity int, q string) int
-		ProductArea               func(childComplexity int, id string) int
-		ProductAreas              func(childComplexity int) int
-		QuartoStory               func(childComplexity int, id uuid.UUID) int
-		Search                    func(childComplexity int, q *models.SearchQueryOld, options *models.SearchQuery) int
-		Stories                   func(childComplexity int, draft *bool) int
-		Story                     func(childComplexity int, id uuid.UUID) int
-		StoryToken                func(childComplexity int, id uuid.UUID) int
-		StoryView                 func(childComplexity int, id uuid.UUID) int
-		Team                      func(childComplexity int, id string) int
-		Teamkatalogen             func(childComplexity int, q []string) int
-		UserInfo                  func(childComplexity int) int
-		Version                   func(childComplexity int) int
+		AccessRequest            func(childComplexity int, id uuid.UUID) int
+		AccessRequestsForDataset func(childComplexity int, datasetID uuid.UUID) int
+		AccessiblePseudoDatasets func(childComplexity int) int
+		Dataproduct              func(childComplexity int, id uuid.UUID) int
+		Dataproducts             func(childComplexity int, limit *int, offset *int, service *models.MappingService) int
+		Dataset                  func(childComplexity int, id uuid.UUID) int
+		DatasetsInDataproduct    func(childComplexity int, dataproductID uuid.UUID) int
+		GcpGetAllTablesInProject func(childComplexity int, projectID string) int
+		GcpGetColumns            func(childComplexity int, projectID string, datasetID string, tableID string) int
+		GcpGetDatasets           func(childComplexity int, projectID string) int
+		GcpGetTables             func(childComplexity int, projectID string, datasetID string) int
+		GroupStats               func(childComplexity int, limit *int, offset *int) int
+		InsightProduct           func(childComplexity int, id uuid.UUID) int
+		IsValidSlackChannel      func(childComplexity int, name string) int
+		JoinableViews            func(childComplexity int) int
+		Keywords                 func(childComplexity int) int
+		Polly                    func(childComplexity int, q string) int
+		ProductArea              func(childComplexity int, id string) int
+		ProductAreas             func(childComplexity int) int
+		QuartoStory              func(childComplexity int, id uuid.UUID) int
+		Search                   func(childComplexity int, q *models.SearchQueryOld, options *models.SearchQuery) int
+		Stories                  func(childComplexity int, draft *bool) int
+		Story                    func(childComplexity int, id uuid.UUID) int
+		StoryToken               func(childComplexity int, id uuid.UUID) int
+		StoryView                func(childComplexity int, id uuid.UUID) int
+		Team                     func(childComplexity int, id string) int
+		Teamkatalogen            func(childComplexity int, q []string) int
+		UserInfo                 func(childComplexity int) int
+		Version                  func(childComplexity int) int
 	}
 
 	QueryPolly struct {
@@ -474,7 +473,6 @@ type QueryResolver interface {
 	AccessRequestsForDataset(ctx context.Context, datasetID uuid.UUID) ([]*models.AccessRequest, error)
 	DatasetsInDataproduct(ctx context.Context, dataproductID uuid.UUID) ([]*models.Dataset, error)
 	AccessiblePseudoDatasets(ctx context.Context) ([]*models.PseudoDataset, error)
-	DatasetsAccessibleForUser(ctx context.Context) ([]*models.Dataset, error)
 	GcpGetTables(ctx context.Context, projectID string, datasetID string) ([]*models.BigQueryTable, error)
 	GcpGetDatasets(ctx context.Context, projectID string) ([]string, error)
 	GcpGetAllTablesInProject(ctx context.Context, projectID string) ([]*models.BigQuerySource, error)
@@ -517,7 +515,7 @@ type UserInfoResolver interface {
 	NadaTokens(ctx context.Context, obj *models.UserInfo) ([]*models.NadaToken, error)
 
 	Dataproducts(ctx context.Context, obj *models.UserInfo) ([]*models.Dataproduct, error)
-	Accessable(ctx context.Context, obj *models.UserInfo) ([]*models.Dataproduct, error)
+	Accessable(ctx context.Context, obj *models.UserInfo) ([]*models.Dataset, error)
 	Stories(ctx context.Context, obj *models.UserInfo) ([]*models.GraphStory, error)
 	QuartoStories(ctx context.Context, obj *models.UserInfo) ([]*models.QuartoStory, error)
 	InsightProducts(ctx context.Context, obj *models.UserInfo) ([]*models.InsightProduct, error)
@@ -1821,13 +1819,6 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.Query.Dataset(childComplexity, args["id"].(uuid.UUID)), true
 
-	case "Query.datasetsAccessibleForUser":
-		if e.complexity.Query.DatasetsAccessibleForUser == nil {
-			break
-		}
-
-		return e.complexity.Query.DatasetsAccessibleForUser(childComplexity), true
-
 	case "Query.datasetsInDataproduct":
 		if e.complexity.Query.DatasetsInDataproduct == nil {
 			break
@@ -3070,11 +3061,6 @@ extend type Query {
     accessiblePseudoDatasets returns the pseudo datasets the user has access to.
     """
     accessiblePseudoDatasets: [PseudoDataset!]!
-
-    """
-    datasetsAccessibleForUser returns a list of the datasets for which the logged in user has access
-    """
-    datasetsAccessibleForUser: [Dataset!]! @authenticated
 }
 
 """
@@ -4122,8 +4108,8 @@ type UserInfo @goModel(model: "github.com/navikt/nada-backend/pkg/graph/models.U
 	loginExpiration: Time!
 	"dataproducts is a list of dataproducts with one of the users groups as owner."
 	dataproducts: [Dataproduct!]!
-	"accessable is a list of dataproducts which the user has explicit access to."
-	accessable: [Dataproduct!]!
+	"accessable is a list of datasets which the user has either owns or has explicit access to."
+	accessable: [Dataset!]!
 	"stories is a list of stories with one of the users groups as owner."
 	stories: [Story!]!
     "quarto stories is the stories owned by the user's group"
@@ -14012,108 +13998,6 @@ func (ec *executionContext) fieldContext_Query_accessiblePseudoDatasets(ctx cont
 	return fc, nil
 }
 
-func (ec *executionContext) _Query_datasetsAccessibleForUser(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
-	fc, err := ec.fieldContext_Query_datasetsAccessibleForUser(ctx, field)
-	if err != nil {
-		return graphql.Null
-	}
-	ctx = graphql.WithFieldContext(ctx, fc)
-	defer func() {
-		if r := recover(); r != nil {
-			ec.Error(ctx, ec.Recover(ctx, r))
-			ret = graphql.Null
-		}
-	}()
-	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
-		directive0 := func(rctx context.Context) (interface{}, error) {
-			ctx = rctx // use context from middleware stack in children
-			return ec.resolvers.Query().DatasetsAccessibleForUser(rctx)
-		}
-		directive1 := func(ctx context.Context) (interface{}, error) {
-			if ec.directives.Authenticated == nil {
-				return nil, errors.New("directive authenticated is not implemented")
-			}
-			return ec.directives.Authenticated(ctx, nil, directive0, nil)
-		}
-
-		tmp, err := directive1(rctx)
-		if err != nil {
-			return nil, graphql.ErrorOnPath(ctx, err)
-		}
-		if tmp == nil {
-			return nil, nil
-		}
-		if data, ok := tmp.([]*models.Dataset); ok {
-			return data, nil
-		}
-		return nil, fmt.Errorf(`unexpected type %T from directive, should be []*github.com/navikt/nada-backend/pkg/graph/models.Dataset`, tmp)
-	})
-	if err != nil {
-		ec.Error(ctx, err)
-		return graphql.Null
-	}
-	if resTmp == nil {
-		if !graphql.HasFieldError(ctx, fc) {
-			ec.Errorf(ctx, "must not be null")
-		}
-		return graphql.Null
-	}
-	res := resTmp.([]*models.Dataset)
-	fc.Result = res
-	return ec.marshalNDataset2ᚕᚖgithubᚗcomᚋnaviktᚋnadaᚑbackendᚋpkgᚋgraphᚋmodelsᚐDatasetᚄ(ctx, field.Selections, res)
-}
-
-func (ec *executionContext) fieldContext_Query_datasetsAccessibleForUser(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "Query",
-		Field:      field,
-		IsMethod:   true,
-		IsResolver: true,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			switch field.Name {
-			case "id":
-				return ec.fieldContext_Dataset_id(ctx, field)
-			case "dataproductID":
-				return ec.fieldContext_Dataset_dataproductID(ctx, field)
-			case "dataproduct":
-				return ec.fieldContext_Dataset_dataproduct(ctx, field)
-			case "name":
-				return ec.fieldContext_Dataset_name(ctx, field)
-			case "description":
-				return ec.fieldContext_Dataset_description(ctx, field)
-			case "created":
-				return ec.fieldContext_Dataset_created(ctx, field)
-			case "lastModified":
-				return ec.fieldContext_Dataset_lastModified(ctx, field)
-			case "repo":
-				return ec.fieldContext_Dataset_repo(ctx, field)
-			case "pii":
-				return ec.fieldContext_Dataset_pii(ctx, field)
-			case "keywords":
-				return ec.fieldContext_Dataset_keywords(ctx, field)
-			case "owner":
-				return ec.fieldContext_Dataset_owner(ctx, field)
-			case "slug":
-				return ec.fieldContext_Dataset_slug(ctx, field)
-			case "datasource":
-				return ec.fieldContext_Dataset_datasource(ctx, field)
-			case "access":
-				return ec.fieldContext_Dataset_access(ctx, field)
-			case "services":
-				return ec.fieldContext_Dataset_services(ctx, field)
-			case "mappings":
-				return ec.fieldContext_Dataset_mappings(ctx, field)
-			case "anonymisation_description":
-				return ec.fieldContext_Dataset_anonymisation_description(ctx, field)
-			case "targetUser":
-				return ec.fieldContext_Dataset_targetUser(ctx, field)
-			}
-			return nil, fmt.Errorf("no field named %q was found under type Dataset", field.Name)
-		},
-	}
-	return fc, nil
-}
-
 func (ec *executionContext) _Query_gcpGetTables(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
 	fc, err := ec.fieldContext_Query_gcpGetTables(ctx, field)
 	if err != nil {
@@ -18165,9 +18049,9 @@ func (ec *executionContext) _UserInfo_accessable(ctx context.Context, field grap
 		}
 		return graphql.Null
 	}
-	res := resTmp.([]*models.Dataproduct)
+	res := resTmp.([]*models.Dataset)
 	fc.Result = res
-	return ec.marshalNDataproduct2ᚕᚖgithubᚗcomᚋnaviktᚋnadaᚑbackendᚋpkgᚋgraphᚋmodelsᚐDataproductᚄ(ctx, field.Selections, res)
+	return ec.marshalNDataset2ᚕᚖgithubᚗcomᚋnaviktᚋnadaᚑbackendᚋpkgᚋgraphᚋmodelsᚐDatasetᚄ(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) fieldContext_UserInfo_accessable(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
@@ -18179,25 +18063,43 @@ func (ec *executionContext) fieldContext_UserInfo_accessable(ctx context.Context
 		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
 			switch field.Name {
 			case "id":
-				return ec.fieldContext_Dataproduct_id(ctx, field)
+				return ec.fieldContext_Dataset_id(ctx, field)
+			case "dataproductID":
+				return ec.fieldContext_Dataset_dataproductID(ctx, field)
+			case "dataproduct":
+				return ec.fieldContext_Dataset_dataproduct(ctx, field)
 			case "name":
-				return ec.fieldContext_Dataproduct_name(ctx, field)
+				return ec.fieldContext_Dataset_name(ctx, field)
 			case "description":
-				return ec.fieldContext_Dataproduct_description(ctx, field)
+				return ec.fieldContext_Dataset_description(ctx, field)
 			case "created":
-				return ec.fieldContext_Dataproduct_created(ctx, field)
+				return ec.fieldContext_Dataset_created(ctx, field)
 			case "lastModified":
-				return ec.fieldContext_Dataproduct_lastModified(ctx, field)
-			case "slug":
-				return ec.fieldContext_Dataproduct_slug(ctx, field)
-			case "owner":
-				return ec.fieldContext_Dataproduct_owner(ctx, field)
+				return ec.fieldContext_Dataset_lastModified(ctx, field)
+			case "repo":
+				return ec.fieldContext_Dataset_repo(ctx, field)
+			case "pii":
+				return ec.fieldContext_Dataset_pii(ctx, field)
 			case "keywords":
-				return ec.fieldContext_Dataproduct_keywords(ctx, field)
-			case "datasets":
-				return ec.fieldContext_Dataproduct_datasets(ctx, field)
+				return ec.fieldContext_Dataset_keywords(ctx, field)
+			case "owner":
+				return ec.fieldContext_Dataset_owner(ctx, field)
+			case "slug":
+				return ec.fieldContext_Dataset_slug(ctx, field)
+			case "datasource":
+				return ec.fieldContext_Dataset_datasource(ctx, field)
+			case "access":
+				return ec.fieldContext_Dataset_access(ctx, field)
+			case "services":
+				return ec.fieldContext_Dataset_services(ctx, field)
+			case "mappings":
+				return ec.fieldContext_Dataset_mappings(ctx, field)
+			case "anonymisation_description":
+				return ec.fieldContext_Dataset_anonymisation_description(ctx, field)
+			case "targetUser":
+				return ec.fieldContext_Dataset_targetUser(ctx, field)
 			}
-			return nil, fmt.Errorf("no field named %q was found under type Dataproduct", field.Name)
+			return nil, fmt.Errorf("no field named %q was found under type Dataset", field.Name)
 		},
 	}
 	return fc, nil
@@ -23794,28 +23696,6 @@ func (ec *executionContext) _Query(ctx context.Context, sel ast.SelectionSet) gr
 					}
 				}()
 				res = ec._Query_accessiblePseudoDatasets(ctx, field)
-				if res == graphql.Null {
-					atomic.AddUint32(&fs.Invalids, 1)
-				}
-				return res
-			}
-
-			rrm := func(ctx context.Context) graphql.Marshaler {
-				return ec.OperationContext.RootResolverMiddleware(ctx,
-					func(ctx context.Context) graphql.Marshaler { return innerFunc(ctx, out) })
-			}
-
-			out.Concurrently(i, func(ctx context.Context) graphql.Marshaler { return rrm(innerCtx) })
-		case "datasetsAccessibleForUser":
-			field := field
-
-			innerFunc := func(ctx context.Context, fs *graphql.FieldSet) (res graphql.Marshaler) {
-				defer func() {
-					if r := recover(); r != nil {
-						ec.Error(ctx, ec.Recover(ctx, r))
-					}
-				}()
-				res = ec._Query_datasetsAccessibleForUser(ctx, field)
 				if res == graphql.Null {
 					atomic.AddUint32(&fs.Invalids, 1)
 				}
