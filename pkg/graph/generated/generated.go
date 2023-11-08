@@ -85,6 +85,11 @@ type ComplexityRoot struct {
 		SubjectType func(childComplexity int) int
 	}
 
+	AccessibleDatasets struct {
+		Granted func(childComplexity int) int
+		Owned   func(childComplexity int) int
+	}
+
 	BigQuery struct {
 		Created       func(childComplexity int) int
 		Dataset       func(childComplexity int) int
@@ -515,7 +520,7 @@ type UserInfoResolver interface {
 	NadaTokens(ctx context.Context, obj *models.UserInfo) ([]*models.NadaToken, error)
 
 	Dataproducts(ctx context.Context, obj *models.UserInfo) ([]*models.Dataproduct, error)
-	Accessable(ctx context.Context, obj *models.UserInfo) ([]*models.Dataset, error)
+	Accessable(ctx context.Context, obj *models.UserInfo) (*models.AccessibleDatasets, error)
 	Stories(ctx context.Context, obj *models.UserInfo) ([]*models.GraphStory, error)
 	QuartoStories(ctx context.Context, obj *models.UserInfo) ([]*models.QuartoStory, error)
 	InsightProducts(ctx context.Context, obj *models.UserInfo) ([]*models.InsightProduct, error)
@@ -680,6 +685,20 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 		}
 
 		return e.complexity.AccessRequest.SubjectType(childComplexity), true
+
+	case "AccessibleDatasets.granted":
+		if e.complexity.AccessibleDatasets.Granted == nil {
+			break
+		}
+
+		return e.complexity.AccessibleDatasets.Granted(childComplexity), true
+
+	case "AccessibleDatasets.owned":
+		if e.complexity.AccessibleDatasets.Owned == nil {
+			break
+		}
+
+		return e.complexity.AccessibleDatasets.Owned(childComplexity), true
 
 	case "BigQuery.created":
 		if e.complexity.BigQuery.Created == nil {
@@ -4084,6 +4103,13 @@ type NadaToken @goModel(model: "github.com/navikt/nada-backend/pkg/graph/models.
     token: ID!
 }
 
+type AccessibleDatasets @goModel(model: "github.com/navikt/nada-backend/pkg/graph/models.AccessibleDatasets") {
+    "owned"
+    owned: [Dataset!]!
+    "granted"
+    granted: [Dataset!]!
+}
+
 """
 UserInfo contains metadata on a logged in user
 """
@@ -4109,14 +4135,13 @@ type UserInfo @goModel(model: "github.com/navikt/nada-backend/pkg/graph/models.U
 	"dataproducts is a list of dataproducts with one of the users groups as owner."
 	dataproducts: [Dataproduct!]!
 	"accessable is a list of datasets which the user has either owns or has explicit access to."
-	accessable: [Dataset!]!
+	accessable: AccessibleDatasets!
 	"stories is a list of stories with one of the users groups as owner."
 	stories: [Story!]!
     "quarto stories is the stories owned by the user's group"
     quartoStories: [QuartoStory!]!
     "insight products is the insight products owned by the user's group"
     insightProducts: [InsightProduct!]!
-
     "accessRequests is a list of access requests where either the user or one of the users groups is owner."
     accessRequests: [AccessRequest!]!
 }
@@ -6159,6 +6184,170 @@ func (ec *executionContext) fieldContext_AccessRequest_reason(ctx context.Contex
 		IsResolver: false,
 		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
 			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _AccessibleDatasets_owned(ctx context.Context, field graphql.CollectedField, obj *models.AccessibleDatasets) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_AccessibleDatasets_owned(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Owned, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.([]*models.Dataset)
+	fc.Result = res
+	return ec.marshalNDataset2ᚕᚖgithubᚗcomᚋnaviktᚋnadaᚑbackendᚋpkgᚋgraphᚋmodelsᚐDatasetᚄ(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_AccessibleDatasets_owned(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "AccessibleDatasets",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "id":
+				return ec.fieldContext_Dataset_id(ctx, field)
+			case "dataproductID":
+				return ec.fieldContext_Dataset_dataproductID(ctx, field)
+			case "dataproduct":
+				return ec.fieldContext_Dataset_dataproduct(ctx, field)
+			case "name":
+				return ec.fieldContext_Dataset_name(ctx, field)
+			case "description":
+				return ec.fieldContext_Dataset_description(ctx, field)
+			case "created":
+				return ec.fieldContext_Dataset_created(ctx, field)
+			case "lastModified":
+				return ec.fieldContext_Dataset_lastModified(ctx, field)
+			case "repo":
+				return ec.fieldContext_Dataset_repo(ctx, field)
+			case "pii":
+				return ec.fieldContext_Dataset_pii(ctx, field)
+			case "keywords":
+				return ec.fieldContext_Dataset_keywords(ctx, field)
+			case "owner":
+				return ec.fieldContext_Dataset_owner(ctx, field)
+			case "slug":
+				return ec.fieldContext_Dataset_slug(ctx, field)
+			case "datasource":
+				return ec.fieldContext_Dataset_datasource(ctx, field)
+			case "access":
+				return ec.fieldContext_Dataset_access(ctx, field)
+			case "services":
+				return ec.fieldContext_Dataset_services(ctx, field)
+			case "mappings":
+				return ec.fieldContext_Dataset_mappings(ctx, field)
+			case "anonymisation_description":
+				return ec.fieldContext_Dataset_anonymisation_description(ctx, field)
+			case "targetUser":
+				return ec.fieldContext_Dataset_targetUser(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type Dataset", field.Name)
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _AccessibleDatasets_granted(ctx context.Context, field graphql.CollectedField, obj *models.AccessibleDatasets) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_AccessibleDatasets_granted(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Granted, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.([]*models.Dataset)
+	fc.Result = res
+	return ec.marshalNDataset2ᚕᚖgithubᚗcomᚋnaviktᚋnadaᚑbackendᚋpkgᚋgraphᚋmodelsᚐDatasetᚄ(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_AccessibleDatasets_granted(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "AccessibleDatasets",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "id":
+				return ec.fieldContext_Dataset_id(ctx, field)
+			case "dataproductID":
+				return ec.fieldContext_Dataset_dataproductID(ctx, field)
+			case "dataproduct":
+				return ec.fieldContext_Dataset_dataproduct(ctx, field)
+			case "name":
+				return ec.fieldContext_Dataset_name(ctx, field)
+			case "description":
+				return ec.fieldContext_Dataset_description(ctx, field)
+			case "created":
+				return ec.fieldContext_Dataset_created(ctx, field)
+			case "lastModified":
+				return ec.fieldContext_Dataset_lastModified(ctx, field)
+			case "repo":
+				return ec.fieldContext_Dataset_repo(ctx, field)
+			case "pii":
+				return ec.fieldContext_Dataset_pii(ctx, field)
+			case "keywords":
+				return ec.fieldContext_Dataset_keywords(ctx, field)
+			case "owner":
+				return ec.fieldContext_Dataset_owner(ctx, field)
+			case "slug":
+				return ec.fieldContext_Dataset_slug(ctx, field)
+			case "datasource":
+				return ec.fieldContext_Dataset_datasource(ctx, field)
+			case "access":
+				return ec.fieldContext_Dataset_access(ctx, field)
+			case "services":
+				return ec.fieldContext_Dataset_services(ctx, field)
+			case "mappings":
+				return ec.fieldContext_Dataset_mappings(ctx, field)
+			case "anonymisation_description":
+				return ec.fieldContext_Dataset_anonymisation_description(ctx, field)
+			case "targetUser":
+				return ec.fieldContext_Dataset_targetUser(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type Dataset", field.Name)
 		},
 	}
 	return fc, nil
@@ -18049,9 +18238,9 @@ func (ec *executionContext) _UserInfo_accessable(ctx context.Context, field grap
 		}
 		return graphql.Null
 	}
-	res := resTmp.([]*models.Dataset)
+	res := resTmp.(*models.AccessibleDatasets)
 	fc.Result = res
-	return ec.marshalNDataset2ᚕᚖgithubᚗcomᚋnaviktᚋnadaᚑbackendᚋpkgᚋgraphᚋmodelsᚐDatasetᚄ(ctx, field.Selections, res)
+	return ec.marshalNAccessibleDatasets2ᚖgithubᚗcomᚋnaviktᚋnadaᚑbackendᚋpkgᚋgraphᚋmodelsᚐAccessibleDatasets(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) fieldContext_UserInfo_accessable(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
@@ -18062,44 +18251,12 @@ func (ec *executionContext) fieldContext_UserInfo_accessable(ctx context.Context
 		IsResolver: true,
 		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
 			switch field.Name {
-			case "id":
-				return ec.fieldContext_Dataset_id(ctx, field)
-			case "dataproductID":
-				return ec.fieldContext_Dataset_dataproductID(ctx, field)
-			case "dataproduct":
-				return ec.fieldContext_Dataset_dataproduct(ctx, field)
-			case "name":
-				return ec.fieldContext_Dataset_name(ctx, field)
-			case "description":
-				return ec.fieldContext_Dataset_description(ctx, field)
-			case "created":
-				return ec.fieldContext_Dataset_created(ctx, field)
-			case "lastModified":
-				return ec.fieldContext_Dataset_lastModified(ctx, field)
-			case "repo":
-				return ec.fieldContext_Dataset_repo(ctx, field)
-			case "pii":
-				return ec.fieldContext_Dataset_pii(ctx, field)
-			case "keywords":
-				return ec.fieldContext_Dataset_keywords(ctx, field)
-			case "owner":
-				return ec.fieldContext_Dataset_owner(ctx, field)
-			case "slug":
-				return ec.fieldContext_Dataset_slug(ctx, field)
-			case "datasource":
-				return ec.fieldContext_Dataset_datasource(ctx, field)
-			case "access":
-				return ec.fieldContext_Dataset_access(ctx, field)
-			case "services":
-				return ec.fieldContext_Dataset_services(ctx, field)
-			case "mappings":
-				return ec.fieldContext_Dataset_mappings(ctx, field)
-			case "anonymisation_description":
-				return ec.fieldContext_Dataset_anonymisation_description(ctx, field)
-			case "targetUser":
-				return ec.fieldContext_Dataset_targetUser(ctx, field)
+			case "owned":
+				return ec.fieldContext_AccessibleDatasets_owned(ctx, field)
+			case "granted":
+				return ec.fieldContext_AccessibleDatasets_granted(ctx, field)
 			}
-			return nil, fmt.Errorf("no field named %q was found under type Dataset", field.Name)
+			return nil, fmt.Errorf("no field named %q was found under type AccessibleDatasets", field.Name)
 		},
 	}
 	return fc, nil
@@ -21637,6 +21794,50 @@ func (ec *executionContext) _AccessRequest(ctx context.Context, sel ast.Selectio
 			out.Values[i] = ec._AccessRequest_polly(ctx, field, obj)
 		case "reason":
 			out.Values[i] = ec._AccessRequest_reason(ctx, field, obj)
+		default:
+			panic("unknown field " + strconv.Quote(field.Name))
+		}
+	}
+	out.Dispatch(ctx)
+	if out.Invalids > 0 {
+		return graphql.Null
+	}
+
+	atomic.AddInt32(&ec.deferred, int32(len(deferred)))
+
+	for label, dfs := range deferred {
+		ec.processDeferredGroup(graphql.DeferredGroup{
+			Label:    label,
+			Path:     graphql.GetPath(ctx),
+			FieldSet: dfs,
+			Context:  ctx,
+		})
+	}
+
+	return out
+}
+
+var accessibleDatasetsImplementors = []string{"AccessibleDatasets"}
+
+func (ec *executionContext) _AccessibleDatasets(ctx context.Context, sel ast.SelectionSet, obj *models.AccessibleDatasets) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, accessibleDatasetsImplementors)
+
+	out := graphql.NewFieldSet(fields)
+	deferred := make(map[string]*graphql.FieldSet)
+	for i, field := range fields {
+		switch field.Name {
+		case "__typename":
+			out.Values[i] = graphql.MarshalString("AccessibleDatasets")
+		case "owned":
+			out.Values[i] = ec._AccessibleDatasets_owned(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "granted":
+			out.Values[i] = ec._AccessibleDatasets_granted(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
 		default:
 			panic("unknown field " + strconv.Quote(field.Name))
 		}
@@ -25868,6 +26069,20 @@ func (ec *executionContext) unmarshalNAccessRequestStatus2githubᚗcomᚋnavikt�
 
 func (ec *executionContext) marshalNAccessRequestStatus2githubᚗcomᚋnaviktᚋnadaᚑbackendᚋpkgᚋgraphᚋmodelsᚐAccessRequestStatus(ctx context.Context, sel ast.SelectionSet, v models.AccessRequestStatus) graphql.Marshaler {
 	return v
+}
+
+func (ec *executionContext) marshalNAccessibleDatasets2githubᚗcomᚋnaviktᚋnadaᚑbackendᚋpkgᚋgraphᚋmodelsᚐAccessibleDatasets(ctx context.Context, sel ast.SelectionSet, v models.AccessibleDatasets) graphql.Marshaler {
+	return ec._AccessibleDatasets(ctx, sel, &v)
+}
+
+func (ec *executionContext) marshalNAccessibleDatasets2ᚖgithubᚗcomᚋnaviktᚋnadaᚑbackendᚋpkgᚋgraphᚋmodelsᚐAccessibleDatasets(ctx context.Context, sel ast.SelectionSet, v *models.AccessibleDatasets) graphql.Marshaler {
+	if v == nil {
+		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
+			ec.Errorf(ctx, "the requested element is null which the schema does not allow")
+		}
+		return graphql.Null
+	}
+	return ec._AccessibleDatasets(ctx, sel, v)
 }
 
 func (ec *executionContext) marshalNBigQuerySource2ᚕᚖgithubᚗcomᚋnaviktᚋnadaᚑbackendᚋpkgᚋgraphᚋmodelsᚐBigQuerySourceᚄ(ctx context.Context, sel ast.SelectionSet, v []*models.BigQuerySource) graphql.Marshaler {

@@ -101,7 +101,7 @@ func (r *userInfoResolver) Dataproducts(ctx context.Context, obj *models.UserInf
 }
 
 // Accessable is the resolver for the accessable field.
-func (r *userInfoResolver) Accessable(ctx context.Context, obj *models.UserInfo) ([]*models.Dataset, error) {
+func (r *userInfoResolver) Accessable(ctx context.Context, obj *models.UserInfo) (*models.AccessibleDatasets, error) {
 	user := auth.GetUser(ctx)
 
 	ownedDatasets, err := r.repo.GetDatasetsForOwner(ctx, user.GoogleGroups.Emails())
@@ -114,7 +114,10 @@ func (r *userInfoResolver) Accessable(ctx context.Context, obj *models.UserInfo)
 		return nil, err
 	}
 
-	return append(ownedDatasets, grantedDatasets...), nil
+	return &models.AccessibleDatasets{
+		Owned:   ownedDatasets,
+		Granted: grantedDatasets,
+	}, nil
 }
 
 // Stories is the resolver for the stories field.

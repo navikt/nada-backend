@@ -111,3 +111,10 @@ type PseudoDataset struct {
 	// datasourceID is the id of the bigquery datasource
 	DatasourceID uuid.UUID `json:"datasourceID"`
 }
+
+type AccessibleDatasets struct {
+	// owned
+	Owned []*Dataset `json:"owned"`
+	// granted
+	Granted []*Dataset `json:"granted"`
+}
