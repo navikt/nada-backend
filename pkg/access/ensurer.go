@@ -102,11 +102,6 @@ func (e *Ensurer) ensureJoinableViewAccesses(ctx context.Context) error {
 OUTER:
 	for _, jv := range joinableViews {
 		joinableViewName := bigquery.MakeJoinableViewName(jv.PseudoProjectID, jv.PseudoDataset, jv.PseudoTable)
-		accesses, err := e.repo.ListActiveAccessToDataset(ctx, jv.PseudoViewID)
-		if err != nil {
-			return err
-		}
-
 		datasetOwnerGroup, err := e.repo.GetOwnerGroupOfDataset(ctx, jv.PseudoViewID)
 		if err != nil {
 			return err
@@ -125,6 +120,11 @@ OUTER:
 				}
 				continue OUTER
 			}
+		}
+
+		accesses, err := e.repo.ListActiveAccessToDataset(ctx, jv.PseudoViewID)
+		if err != nil {
+			return err
 		}
 
 		for _, a := range accesses {
