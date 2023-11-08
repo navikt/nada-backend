@@ -409,6 +409,19 @@ func (r *Repo) GetDatasetsByUserAccess(ctx context.Context, user string) ([]*mod
 	return dss, nil
 }
 
+func (r *Repo) GetDatasetsForOwner(ctx context.Context, userGroups []string) ([]*models.Dataset, error) {
+	datasetsSQL, err := r.querier.GetDatasetsForOwner(ctx, userGroups)
+	if err != nil {
+		return nil, err
+	}
+
+	dss := []*models.Dataset{}
+	for _, d := range datasetsSQL {
+		dss = append(dss, datasetFromSQL(d))
+	}
+	return dss, nil
+}
+
 func (r *Repo) DeleteDataset(ctx context.Context, id uuid.UUID) error {
 	r.events.TriggerDatasetDelete(ctx, id)
 

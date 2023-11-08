@@ -296,11 +296,30 @@ func (r *queryResolver) AccessiblePseudoDatasets(ctx context.Context) ([]*models
 	return r.repo.GetAccessiblePseudoDatasourcesByUser(ctx, subjectsAsOwner, subjectsAsAccesser)
 }
 
+// DatasetsAccessibleForUser is the resolver for the datasetsAccessibleForUser field.
+func (r *queryResolver) DatasetsAccessibleForUser(ctx context.Context) ([]*models.Dataset, error) {
+	user := auth.GetUser(ctx)
+
+	ownedDatasets, err := r.repo.GetDatasetsForOwner(ctx, user.GoogleGroups.Emails())
+	if err != nil {
+		return nil, err
+	}
+
+	grantedDatasets, err := r.repo.GetDatasetsByUserAccess(ctx, "user:"+user.Email)
+	if err != nil {
+		return nil, err
+	}
+
+	return append(ownedDatasets, grantedDatasets...), nil
+}
+
 // BigQuery returns generated.BigQueryResolver implementation.
 func (r *Resolver) BigQuery() generated.BigQueryResolver { return &bigQueryResolver{r} }
 
 // Dataset returns generated.DatasetResolver implementation.
 func (r *Resolver) Dataset() generated.DatasetResolver { return &datasetResolver{r} }
 
-type bigQueryResolver struct{ *Resolver }
-type datasetResolver struct{ *Resolver }
+type (
+	bigQueryResolver struct{ *Resolver }
+	datasetResolver  struct{ *Resolver }
+)

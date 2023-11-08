@@ -331,3 +331,9 @@ JOIN datasource_bigquery c ON b.datasource_id = c.id;
 -- name: GetOwnerGroupOfDataset :one
 SELECT d.group as group FROM dataproducts d
 WHERE d.id = (SELECT dataproduct_id FROM datasets ds WHERE ds.id = @dataset_id);
+
+-- name: GetDatasetsForOwner :many
+SELECT ds.*
+FROM datasets ds
+WHERE dataproduct_id IN
+(SELECT id FROM dataproducts dp WHERE dp.group = ANY(@groups::text[]));

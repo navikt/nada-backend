@@ -718,6 +718,51 @@ func (q *Queries) GetDatasetsByUserAccess(ctx context.Context, id string) ([]Dat
 	return items, nil
 }
 
+const getDatasetsForOwner = `-- name: GetDatasetsForOwner :many
+SELECT ds.id, ds.name, ds.description, ds.pii, ds.created, ds.last_modified, ds.type, ds.tsv_document, ds.slug, ds.repo, ds.keywords, ds.dataproduct_id, ds.anonymisation_description, ds.target_user
+FROM datasets ds
+WHERE dataproduct_id IN
+(SELECT id FROM dataproducts dp WHERE dp.group = ANY($1::text[]))
+`
+
+func (q *Queries) GetDatasetsForOwner(ctx context.Context, groups []string) ([]Dataset, error) {
+	rows, err := q.db.QueryContext(ctx, getDatasetsForOwner, pq.Array(groups))
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []Dataset{}
+	for rows.Next() {
+		var i Dataset
+		if err := rows.Scan(
+			&i.ID,
+			&i.Name,
+			&i.Description,
+			&i.Pii,
+			&i.Created,
+			&i.LastModified,
+			&i.Type,
+			&i.TsvDocument,
+			&i.Slug,
+			&i.Repo,
+			pq.Array(&i.Keywords),
+			&i.DataproductID,
+			&i.AnonymisationDescription,
+			&i.TargetUser,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const getDatasetsInDataproduct = `-- name: GetDatasetsInDataproduct :many
 SELECT
   id, name, description, pii, created, last_modified, type, tsv_document, slug, repo, keywords, dataproduct_id, anonymisation_description, target_user
