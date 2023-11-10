@@ -15,6 +15,7 @@ type JoinableView @goModel(model: "github.com/navikt/nada-backend/pkg/graph/mode
     id: ID!
     name: String
     created: String
+    expires: Time
     bigqueryViewUrls: [String!]!
 }
 

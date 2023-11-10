@@ -279,6 +279,7 @@ SELECT
   jv.name AS name,
   jv.owner AS owner,
   jv.created AS created,
+  jv.expires AS expires,
   bq.project_id AS project_id,
   bq.dataset AS dataset_id,
   bq.table_name AS table_id

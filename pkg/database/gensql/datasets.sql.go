@@ -824,6 +824,7 @@ SELECT
   jv.name AS name,
   jv.owner AS owner,
   jv.created AS created,
+  jv.expires AS expires,
   bq.project_id AS project_id,
   bq.dataset AS dataset_id,
   bq.table_name AS table_id
@@ -846,6 +847,7 @@ type GetJoinableViewsForOwnerRow struct {
 	Name      string
 	Owner     string
 	Created   time.Time
+	Expires   sql.NullTime
 	ProjectID string
 	DatasetID string
 	TableID   string
@@ -865,6 +867,7 @@ func (q *Queries) GetJoinableViewsForOwner(ctx context.Context, owner string) ([
 			&i.Name,
 			&i.Owner,
 			&i.Created,
+			&i.Expires,
 			&i.ProjectID,
 			&i.DatasetID,
 			&i.TableID,

@@ -243,6 +243,7 @@ type JoinableView struct {
 	ID                uuid.UUID
 	Name              string
 	Created           string
+	Expires           *time.Time
 	PseudoDatasources []*models.BigQuery
 }
 
@@ -268,6 +269,7 @@ func (r *Repo) GetJoinableViewsForUser(ctx context.Context, user string) ([]*Joi
 			ID:                k,
 			Name:              v[0].Name,
 			Created:           v[0].Created.Format("2006-01-02"),
+			Expires:           nullTimeToPtr(v[0].Expires),
 			PseudoDatasources: []*models.BigQuery{},
 		}
 		joinableViews = append(joinableViews, &newJoinableView)

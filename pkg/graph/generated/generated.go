@@ -189,6 +189,7 @@ type ComplexityRoot struct {
 	JoinableView struct {
 		BigQueryViewUrls func(childComplexity int) int
 		Created          func(childComplexity int) int
+		Expires          func(childComplexity int) int
 		ID               func(childComplexity int) int
 		Name             func(childComplexity int) int
 	}
@@ -1185,6 +1186,13 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 		}
 
 		return e.complexity.JoinableView.Created(childComplexity), true
+
+	case "JoinableView.expires":
+		if e.complexity.JoinableView.Expires == nil {
+			break
+		}
+
+		return e.complexity.JoinableView.Expires(childComplexity), true
 
 	case "JoinableView.id":
 		if e.complexity.JoinableView.ID == nil {
@@ -3647,6 +3655,7 @@ type JoinableView @goModel(model: "github.com/navikt/nada-backend/pkg/graph/mode
     id: ID!
     name: String
     created: String
+    expires: Time
     bigqueryViewUrls: [String!]!
 }
 
@@ -9491,6 +9500,47 @@ func (ec *executionContext) fieldContext_JoinableView_created(ctx context.Contex
 	return fc, nil
 }
 
+func (ec *executionContext) _JoinableView_expires(ctx context.Context, field graphql.CollectedField, obj *models.JoinableView) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_JoinableView_expires(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Expires, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		return graphql.Null
+	}
+	res := resTmp.(*time.Time)
+	fc.Result = res
+	return ec.marshalOTime2ᚖtimeᚐTime(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_JoinableView_expires(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "JoinableView",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Time does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
 func (ec *executionContext) _JoinableView_bigqueryViewUrls(ctx context.Context, field graphql.CollectedField, obj *models.JoinableView) (ret graphql.Marshaler) {
 	fc, err := ec.fieldContext_JoinableView_bigqueryViewUrls(ctx, field)
 	if err != nil {
@@ -14988,6 +15038,8 @@ func (ec *executionContext) fieldContext_Query_joinableViews(ctx context.Context
 				return ec.fieldContext_JoinableView_name(ctx, field)
 			case "created":
 				return ec.fieldContext_JoinableView_created(ctx, field)
+			case "expires":
+				return ec.fieldContext_JoinableView_expires(ctx, field)
 			case "bigqueryViewUrls":
 				return ec.fieldContext_JoinableView_bigqueryViewUrls(ctx, field)
 			}
@@ -22887,6 +22939,8 @@ func (ec *executionContext) _JoinableView(ctx context.Context, sel ast.Selection
 			out.Values[i] = ec._JoinableView_name(ctx, field, obj)
 		case "created":
 			out.Values[i] = ec._JoinableView_created(ctx, field, obj)
+		case "expires":
+			out.Values[i] = ec._JoinableView_expires(ctx, field, obj)
 		case "bigqueryViewUrls":
 			out.Values[i] = ec._JoinableView_bigqueryViewUrls(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
