@@ -16,9 +16,9 @@ import (
 	"github.com/navikt/nada-backend/pkg/event"
 
 	// Pin version of sqlc and goose for cli
-	_ "github.com/kyleconroy/sqlc"
 	"github.com/pressly/goose/v3"
 	"github.com/qustavo/sqlhooks/v2"
+	_ "github.com/sqlc-dev/sqlc"
 )
 
 //go:embed migrations/*.sql
