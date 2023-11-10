@@ -155,7 +155,7 @@ func (r *Repo) CreateDataset(ctx context.Context, ds models.NewDataset, referenc
 	return ret, nil
 }
 
-func (r *Repo) CreateJoinableViews(ctx context.Context, name, owner string, datasourceIDs []uuid.UUID) (string, error) {
+func (r *Repo) CreateJoinableViews(ctx context.Context, name, owner string, expires *time.Time, datasourceIDs []uuid.UUID) (string, error) {
 	tx, err := r.db.Begin()
 	if err != nil {
 		return "", err
@@ -165,6 +165,7 @@ func (r *Repo) CreateJoinableViews(ctx context.Context, name, owner string, data
 		Name:    name,
 		Owner:   owner,
 		Created: time.Now(),
+		Expires: ptrToNullTime(expires),
 	})
 	if err != nil {
 		return "", err
@@ -279,6 +280,10 @@ func (r *Repo) GetJoinableViewsForUser(ctx context.Context, user string) ([]*Joi
 		}
 	}
 	return joinableViews, nil
+}
+
+func (r *Repo) SetJoinableViewDeleted(ctx context.Context, id uuid.UUID) error {
+	return r.querier.SetJoinableViewDeleted(ctx, id)
 }
 
 func (r *Repo) MakeBigQueryUrlForJoinableViewDataset(name string) string {

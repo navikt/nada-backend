@@ -291,13 +291,15 @@ FROM
     ) ON jv.id = jds.joinable_view_id
   )
 WHERE
-  jv.owner = @owner;
+  jv.owner = @owner
+AND 
+  jv.expires IS NULL OR jv.expires > NOW();
 
 -- name: CreateJoinableViews :one
 INSERT INTO
-  joinable_views ("name", "owner", "created")
+  joinable_views ("name", "owner", "created", "expires")
 VALUES
-  (@name, @owner, @created) RETURNING *;
+  (@name, @owner, @created, @expires) RETURNING *;
 
 -- name: CreateJoinableViewsDatasource :one
 INSERT INTO
@@ -323,10 +325,12 @@ SELECT
     c.dataset_id as pseudo_view_id,
     c.project_id as pseudo_project_id,
     c.dataset as pseudo_dataset,
-    c.table_name as pseudo_table
+    c.table_name as pseudo_table,
+    a.expires as expires
 FROM joinable_views a
 JOIN joinable_views_datasource b ON a.id = b.joinable_view_id
-JOIN datasource_bigquery c ON b.datasource_id = c.id;
+JOIN datasource_bigquery c ON b.datasource_id = c.id
+WHERE a.deleted IS NULL;
 
 -- name: GetOwnerGroupOfDataset :one
 SELECT d.group as group FROM dataproducts d
@@ -337,3 +341,8 @@ SELECT ds.*
 FROM datasets ds
 WHERE dataproduct_id IN
 (SELECT id FROM dataproducts dp WHERE dp.group = ANY(@groups::text[]));
+
+-- name: SetJoinableViewDeleted :exec
+UPDATE joinable_views
+SET deleted = NOW()
+WHERE id = @id;

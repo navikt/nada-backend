@@ -4,6 +4,8 @@ NewJoinableViews contains metadata for creating joinable views
 input NewJoinableViews @goModel(model: "github.com/navikt/nada-backend/pkg/graph/models.NewJoinableViews"){
     "name is the name of the joinable views which will be used as the name of the dataset in bigquery, which contains all the joinable views"
     name: String!
+    "expires is the time when the created joinable dataset should be deleted, default never"
+    expires: Time
     "datasetIDs is the IDs of the dataset which are made joinable."
     datasetIDs: [ID!]
 }

@@ -94,7 +94,7 @@ func (r *mutationResolver) CreateJoinableViews(ctx context.Context, input models
 		}
 	}
 
-	if _, err := r.repo.CreateJoinableViews(ctx, joinableDatasetID, user.Email, pseudoDatasourceIDs); err != nil {
+	if _, err := r.repo.CreateJoinableViews(ctx, joinableDatasetID, user.Email, input.Expires, pseudoDatasourceIDs); err != nil {
 		return "", err
 	}
 
@@ -124,6 +124,7 @@ func (r *queryResolver) JoinableViewsDBToGraph(jviewsDB []*database.JoinableView
 	}
 	return jviews
 }
+
 func (r *queryResolver) JoinableViewDBToGraph(jviewDB *database.JoinableView) *models.JoinableView {
 	jview := &models.JoinableView{
 		ID:               jviewDB.ID,

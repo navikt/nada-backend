@@ -87,6 +87,22 @@ func (c *Bigquery) GetDatasets(ctx context.Context, projectID string) ([]string,
 	return datasets, nil
 }
 
+func (c *Bigquery) DeleteJoinableDataset(ctx context.Context, datasetID string) error {
+	client, err := bigquery.NewClient(ctx, c.centralDataProject)
+	if err != nil {
+		return err
+	}
+
+	if err := client.Dataset(datasetID).DeleteWithContents(ctx); err != nil {
+		if gerr, ok := err.(*googleapi.Error); ok && gerr.Code == 404 {
+			return nil
+		}
+		return err
+	}
+
+	return nil
+}
+
 func (c *Bigquery) GetTables(ctx context.Context, projectID, datasetID string) ([]*models.BigQueryTable, error) {
 	client, err := bigquery.NewClient(ctx, projectID)
 	if err != nil {

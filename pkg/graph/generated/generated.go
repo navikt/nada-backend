@@ -3079,7 +3079,7 @@ extend type Query {
     """
     accessiblePseudoDatasets returns the pseudo datasets the user has access to.
     """
-    accessiblePseudoDatasets: [PseudoDataset!]!
+    accessiblePseudoDatasets: [PseudoDataset!]! @authenticated
 }
 
 """
@@ -3636,6 +3636,8 @@ NewJoinableViews contains metadata for creating joinable views
 input NewJoinableViews @goModel(model: "github.com/navikt/nada-backend/pkg/graph/models.NewJoinableViews"){
     "name is the name of the joinable views which will be used as the name of the dataset in bigquery, which contains all the joinable views"
     name: String!
+    "expires is the time when the created joinable dataset should be deleted, default never"
+    expires: Time
     "datasetIDs is the IDs of the dataset which are made joinable."
     datasetIDs: [ID!]
 }
@@ -14148,8 +14150,28 @@ func (ec *executionContext) _Query_accessiblePseudoDatasets(ctx context.Context,
 		}
 	}()
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
-		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.Query().AccessiblePseudoDatasets(rctx)
+		directive0 := func(rctx context.Context) (interface{}, error) {
+			ctx = rctx // use context from middleware stack in children
+			return ec.resolvers.Query().AccessiblePseudoDatasets(rctx)
+		}
+		directive1 := func(ctx context.Context) (interface{}, error) {
+			if ec.directives.Authenticated == nil {
+				return nil, errors.New("directive authenticated is not implemented")
+			}
+			return ec.directives.Authenticated(ctx, nil, directive0, nil)
+		}
+
+		tmp, err := directive1(rctx)
+		if err != nil {
+			return nil, graphql.ErrorOnPath(ctx, err)
+		}
+		if tmp == nil {
+			return nil, nil
+		}
+		if data, ok := tmp.([]*models.PseudoDataset); ok {
+			return data, nil
+		}
+		return nil, fmt.Errorf(`unexpected type %T from directive, should be []*github.com/navikt/nada-backend/pkg/graph/models.PseudoDataset`, tmp)
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -20801,7 +20823,7 @@ func (ec *executionContext) unmarshalInputNewJoinableViews(ctx context.Context, 
 		asMap[k] = v
 	}
 
-	fieldsInOrder := [...]string{"name", "datasetIDs"}
+	fieldsInOrder := [...]string{"name", "expires", "datasetIDs"}
 	for _, k := range fieldsInOrder {
 		v, ok := asMap[k]
 		if !ok {
@@ -20817,6 +20839,15 @@ func (ec *executionContext) unmarshalInputNewJoinableViews(ctx context.Context, 
 				return it, err
 			}
 			it.Name = data
+		case "expires":
+			var err error
+
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("expires"))
+			data, err := ec.unmarshalOTime2ᚖtimeᚐTime(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.Expires = data
 		case "datasetIDs":
 			var err error
 

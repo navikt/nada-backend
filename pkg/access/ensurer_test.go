@@ -19,7 +19,8 @@ var expired = []*models.Access{
 func TestEnsurer(t *testing.T) {
 	am := &MockAM{}
 	repo := &MockRepo{}
-	NewEnsurer(repo, am, nil, "", nil, logrus.StandardLogger().WithField("", "")).run(context.Background())
+	bq := &MockBigQuery{}
+	NewEnsurer(repo, am, bq, nil, "", nil, logrus.StandardLogger().WithField("", "")).run(context.Background())
 
 	if repo.NGetUnrevokedExpiredAccess != 1 {
 		t.Errorf("got: %v, want: %v", repo.NGetUnrevokedExpiredAccess, 1)
@@ -42,6 +43,7 @@ type MockRepo struct {
 	NGetJoinableViewsWithReference int
 	NListActiveAccessToDataset     int
 	NGetOwnerGroupOfDataset        int
+	NSetJoinableViewDeleted        int
 }
 
 func (m *MockRepo) RevokeAccessToDataset(ctx context.Context, id uuid.UUID) error {
@@ -74,6 +76,11 @@ func (m *MockRepo) GetOwnerGroupOfDataset(ctx context.Context, datasetID uuid.UU
 	return "", nil
 }
 
+func (m *MockRepo) SetJoinableViewDeleted(ctx context.Context, joinableViewID uuid.UUID) error {
+	m.NSetJoinableViewDeleted++
+	return nil
+}
+
 type MockAM struct {
 	NGrant  int
 	NRevoke int
@@ -86,5 +93,14 @@ func (a *MockAM) Grant(ctx context.Context, projectID, dataset, table, member st
 
 func (a *MockAM) Revoke(ctx context.Context, projectID, dataset, table, member string) error {
 	a.NRevoke++
+	return nil
+}
+
+type MockBigQuery struct {
+	NDeleteDataset int
+}
+
+func (b *MockBigQuery) DeleteJoinableDataset(ctx context.Context, datasetID string) error {
+	b.NDeleteDataset++
 	return nil
 }

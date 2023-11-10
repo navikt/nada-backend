@@ -18,6 +18,7 @@ import (
 type Ensurer struct {
 	repo               Repo
 	r                  Revoker
+	bq                 BigQuery
 	googleGroups       *auth.GoogleGroupClient
 	centralDataProject string
 	log                *logrus.Entry
@@ -31,6 +32,11 @@ type Repo interface {
 	GetJoinableViewsWithReference(ctx context.Context) ([]gensql.GetJoinableViewsWithReferenceRow, error)
 	ListActiveAccessToDataset(ctx context.Context, datasetID uuid.UUID) ([]*models.Access, error)
 	GetOwnerGroupOfDataset(ctx context.Context, datasetID uuid.UUID) (string, error)
+	SetJoinableViewDeleted(ctx context.Context, id uuid.UUID) error
+}
+
+type BigQuery interface {
+	DeleteJoinableDataset(ctx context.Context, datasetID string) error
 }
 
 type Revoker interface {
@@ -38,10 +44,11 @@ type Revoker interface {
 	Revoke(ctx context.Context, projectID, dataset, table, member string) error
 }
 
-func NewEnsurer(repo Repo, r Revoker, googleGroups *auth.GoogleGroupClient, centralDataProject string, errs *prometheus.CounterVec, log *logrus.Entry) *Ensurer {
+func NewEnsurer(repo Repo, r Revoker, bq BigQuery, googleGroups *auth.GoogleGroupClient, centralDataProject string, errs *prometheus.CounterVec, log *logrus.Entry) *Ensurer {
 	return &Ensurer{
 		repo:               repo,
 		r:                  r,
+		bq:                 bq,
 		googleGroups:       googleGroups,
 		centralDataProject: centralDataProject,
 		log:                log,
@@ -101,6 +108,20 @@ func (e *Ensurer) ensureJoinableViewAccesses(ctx context.Context) error {
 
 OUTER:
 	for _, jv := range joinableViews {
+		if hasExpired(jv) {
+			if err := e.bq.DeleteJoinableDataset(ctx, jv.JoinableViewDataset); err != nil {
+				e.log.WithError(err).Errorf("deleting expired joinable view dataset %v", jv.JoinableViewDataset)
+				e.errs.WithLabelValues("DeleteExpiredDataset").Inc()
+				continue
+			}
+			if err := e.repo.SetJoinableViewDeleted(ctx, jv.JoinableViewID); err != nil {
+				e.log.WithError(err).Errorf("setting joinable view deleted in db, view id: %v", jv.JoinableViewID)
+				e.errs.WithLabelValues("SetJoinableViewDeleted").Inc()
+				continue
+			}
+			continue
+		}
+
 		joinableViewName := bigquery.MakeJoinableViewName(jv.PseudoProjectID, jv.PseudoDataset, jv.PseudoTable)
 		datasetOwnerGroup, err := e.repo.GetOwnerGroupOfDataset(ctx, jv.PseudoViewID)
 		if err != nil {
@@ -152,4 +173,12 @@ OUTER:
 	}
 
 	return nil
+}
+
+func hasExpired(jv gensql.GetJoinableViewsWithReferenceRow) bool {
+	if jv.Expires.Valid {
+		return jv.Expires.Time.Before(time.Now())
+	}
+
+	return false
 }

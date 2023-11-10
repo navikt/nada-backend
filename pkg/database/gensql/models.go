@@ -297,6 +297,8 @@ type JoinableView struct {
 	Owner   string
 	Name    string
 	Created time.Time
+	Expires sql.NullTime
+	Deleted sql.NullTime
 }
 
 type JoinableViewsDatasource struct {

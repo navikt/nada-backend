@@ -129,6 +129,7 @@ type Querier interface {
 	RestoreMetabaseMetadata(ctx context.Context, datasetID uuid.UUID) error
 	RevokeAccessToDataset(ctx context.Context, id uuid.UUID) error
 	Search(ctx context.Context, arg SearchParams) ([]SearchRow, error)
+	SetJoinableViewDeleted(ctx context.Context, id uuid.UUID) error
 	SetPermissionGroupMetabaseMetadata(ctx context.Context, arg SetPermissionGroupMetabaseMetadataParams) error
 	SoftDeleteMetabaseMetadata(ctx context.Context, datasetID uuid.UUID) error
 	UpdateAccessRequest(ctx context.Context, arg UpdateAccessRequestParams) (DatasetAccessRequest, error)

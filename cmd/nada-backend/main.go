@@ -148,8 +148,6 @@ func main() {
 		log.WithError(err).Fatal("running metabase")
 	}
 
-	go access.NewEnsurer(repo, accessMgr, googleGroups, cfg.CentralDataProject, promErrs, log.WithField("subsystem", "accessensurer")).Run(ctx, AccessEnsurerFrequency)
-
 	var gcp graph.Bigquery = bigquery.NewMock()
 	if !cfg.SkipMetadataSync {
 		datacatalogClient, err := bigquery.New(ctx, cfg.CentralDataProject, cfg.PseudoDataset)
@@ -159,6 +157,8 @@ func main() {
 
 		gcp = datacatalogClient
 	}
+
+	go access.NewEnsurer(repo, accessMgr, gcp, googleGroups, cfg.CentralDataProject, promErrs, log.WithField("subsystem", "accessensurer")).Run(ctx, AccessEnsurerFrequency)
 
 	go story.NewDraftCleaner(repo, log.WithField("subsystem", "storydraftcleaner")).Run(ctx, StoryDraftCleanerFrequency)
 

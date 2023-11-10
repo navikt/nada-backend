@@ -176,25 +176,33 @@ func (q *Queries) CreateDataset(ctx context.Context, arg CreateDatasetParams) (D
 
 const createJoinableViews = `-- name: CreateJoinableViews :one
 INSERT INTO
-  joinable_views ("name", "owner", "created")
+  joinable_views ("name", "owner", "created", "expires")
 VALUES
-  ($1, $2, $3) RETURNING id, owner, name, created
+  ($1, $2, $3, $4) RETURNING id, owner, name, created, expires, deleted
 `
 
 type CreateJoinableViewsParams struct {
 	Name    string
 	Owner   string
 	Created time.Time
+	Expires sql.NullTime
 }
 
 func (q *Queries) CreateJoinableViews(ctx context.Context, arg CreateJoinableViewsParams) (JoinableView, error) {
-	row := q.db.QueryRowContext(ctx, createJoinableViews, arg.Name, arg.Owner, arg.Created)
+	row := q.db.QueryRowContext(ctx, createJoinableViews,
+		arg.Name,
+		arg.Owner,
+		arg.Created,
+		arg.Expires,
+	)
 	var i JoinableView
 	err := row.Scan(
 		&i.ID,
 		&i.Owner,
 		&i.Name,
 		&i.Created,
+		&i.Expires,
+		&i.Deleted,
 	)
 	return i, err
 }
@@ -829,6 +837,8 @@ FROM
   )
 WHERE
   jv.owner = $1
+AND 
+  jv.expires IS NULL OR jv.expires > NOW()
 `
 
 type GetJoinableViewsForOwnerRow struct {
@@ -924,10 +934,12 @@ SELECT
     c.dataset_id as pseudo_view_id,
     c.project_id as pseudo_project_id,
     c.dataset as pseudo_dataset,
-    c.table_name as pseudo_table
+    c.table_name as pseudo_table,
+    a.expires as expires
 FROM joinable_views a
 JOIN joinable_views_datasource b ON a.id = b.joinable_view_id
 JOIN datasource_bigquery c ON b.datasource_id = c.id
+WHERE a.deleted IS NULL
 `
 
 type GetJoinableViewsWithReferenceRow struct {
@@ -938,6 +950,7 @@ type GetJoinableViewsWithReferenceRow struct {
 	PseudoProjectID     string
 	PseudoDataset       string
 	PseudoTable         string
+	Expires             sql.NullTime
 }
 
 func (q *Queries) GetJoinableViewsWithReference(ctx context.Context) ([]GetJoinableViewsWithReferenceRow, error) {
@@ -957,6 +970,7 @@ func (q *Queries) GetJoinableViewsWithReference(ctx context.Context) ([]GetJoina
 			&i.PseudoProjectID,
 			&i.PseudoDataset,
 			&i.PseudoTable,
+			&i.Expires,
 		); err != nil {
 			return nil, err
 		}
@@ -997,6 +1011,17 @@ type ReplaceDatasetsTagParams struct {
 
 func (q *Queries) ReplaceDatasetsTag(ctx context.Context, arg ReplaceDatasetsTagParams) error {
 	_, err := q.db.ExecContext(ctx, replaceDatasetsTag, arg.TagToReplace, arg.TagUpdated)
+	return err
+}
+
+const setJoinableViewDeleted = `-- name: SetJoinableViewDeleted :exec
+UPDATE joinable_views
+SET deleted = NOW()
+WHERE id = $1
+`
+
+func (q *Queries) SetJoinableViewDeleted(ctx context.Context, id uuid.UUID) error {
+	_, err := q.db.ExecContext(ctx, setJoinableViewDeleted, id)
 	return err
 }
 

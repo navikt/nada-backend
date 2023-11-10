@@ -137,7 +137,7 @@ extend type Query {
     """
     accessiblePseudoDatasets returns the pseudo datasets the user has access to.
     """
-    accessiblePseudoDatasets: [PseudoDataset!]!
+    accessiblePseudoDatasets: [PseudoDataset!]! @authenticated
 }
 
 """
