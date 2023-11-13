@@ -727,10 +727,19 @@ func (q *Queries) GetDatasetsByUserAccess(ctx context.Context, id string) ([]Dat
 }
 
 const getDatasetsForOwner = `-- name: GetDatasetsForOwner :many
-SELECT ds.id, ds.name, ds.description, ds.pii, ds.created, ds.last_modified, ds.type, ds.tsv_document, ds.slug, ds.repo, ds.keywords, ds.dataproduct_id, ds.anonymisation_description, ds.target_user
-FROM datasets ds
-WHERE dataproduct_id IN
-(SELECT id FROM dataproducts dp WHERE dp.group = ANY($1::text[]))
+SELECT
+  ds.id, ds.name, ds.description, ds.pii, ds.created, ds.last_modified, ds.type, ds.tsv_document, ds.slug, ds.repo, ds.keywords, ds.dataproduct_id, ds.anonymisation_description, ds.target_user
+FROM
+  datasets ds
+WHERE
+  dataproduct_id IN (
+    SELECT
+      id
+    FROM
+      dataproducts dp
+    WHERE
+      dp.group = ANY($1 :: text [])
+  )
 `
 
 func (q *Queries) GetDatasetsForOwner(ctx context.Context, groups []string) ([]Dataset, error) {
@@ -838,8 +847,10 @@ FROM
   )
 WHERE
   jv.owner = $1
-AND 
-  jv.expires IS NULL OR jv.expires > NOW()
+  AND (
+    jv.expires IS NULL
+    OR jv.expires > NOW()
+  )
 `
 
 type GetJoinableViewsForOwnerRow struct {
@@ -886,14 +897,16 @@ func (q *Queries) GetJoinableViewsForOwner(ctx context.Context, owner string) ([
 }
 
 const getJoinableViewsForReferenceAndUser = `-- name: GetJoinableViewsForReferenceAndUser :many
-SELECT 
-    a.id as id, 
-    a.name as dataset
-FROM joinable_views a 
-JOIN joinable_views_datasource b ON a.id = b.joinable_view_id
-JOIN datasource_bigquery c ON b.datasource_id = c.id
-WHERE owner = $1
-AND c.dataset_id = $2
+SELECT
+  a.id as id,
+  a.name as dataset
+FROM
+  joinable_views a
+  JOIN joinable_views_datasource b ON a.id = b.joinable_view_id
+  JOIN datasource_bigquery c ON b.datasource_id = c.id
+WHERE
+  owner = $1
+  AND c.dataset_id = $2
 `
 
 type GetJoinableViewsForReferenceAndUserParams struct {
@@ -930,19 +943,21 @@ func (q *Queries) GetJoinableViewsForReferenceAndUser(ctx context.Context, arg G
 }
 
 const getJoinableViewsWithReference = `-- name: GetJoinableViewsWithReference :many
-SELECT 
-    a.owner as owner,
-    a.id as joinable_view_id,
-    a.name as joinable_view_dataset,
-    c.dataset_id as pseudo_view_id,
-    c.project_id as pseudo_project_id,
-    c.dataset as pseudo_dataset,
-    c.table_name as pseudo_table,
-    a.expires as expires
-FROM joinable_views a
-JOIN joinable_views_datasource b ON a.id = b.joinable_view_id
-JOIN datasource_bigquery c ON b.datasource_id = c.id
-WHERE a.deleted IS NULL
+SELECT
+  a.owner as owner,
+  a.id as joinable_view_id,
+  a.name as joinable_view_dataset,
+  c.dataset_id as pseudo_view_id,
+  c.project_id as pseudo_project_id,
+  c.dataset as pseudo_dataset,
+  c.table_name as pseudo_table,
+  a.expires as expires
+FROM
+  joinable_views a
+  JOIN joinable_views_datasource b ON a.id = b.joinable_view_id
+  JOIN datasource_bigquery c ON b.datasource_id = c.id
+WHERE
+  a.deleted IS NULL
 `
 
 type GetJoinableViewsWithReferenceRow struct {
@@ -989,8 +1004,19 @@ func (q *Queries) GetJoinableViewsWithReference(ctx context.Context) ([]GetJoina
 }
 
 const getOwnerGroupOfDataset = `-- name: GetOwnerGroupOfDataset :one
-SELECT d.group as group FROM dataproducts d
-WHERE d.id = (SELECT dataproduct_id FROM datasets ds WHERE ds.id = $1)
+SELECT
+  d.group as group
+FROM
+  dataproducts d
+WHERE
+  d.id = (
+    SELECT
+      dataproduct_id
+    FROM
+      datasets ds
+    WHERE
+      ds.id = $1
+  )
 `
 
 func (q *Queries) GetOwnerGroupOfDataset(ctx context.Context, datasetID uuid.UUID) (string, error) {
@@ -1018,9 +1044,12 @@ func (q *Queries) ReplaceDatasetsTag(ctx context.Context, arg ReplaceDatasetsTag
 }
 
 const setJoinableViewDeleted = `-- name: SetJoinableViewDeleted :exec
-UPDATE joinable_views
-SET deleted = NOW()
-WHERE id = $1
+UPDATE
+  joinable_views
+SET
+  deleted = NOW()
+WHERE
+  id = $1
 `
 
 func (q *Queries) SetJoinableViewDeleted(ctx context.Context, id uuid.UUID) error {

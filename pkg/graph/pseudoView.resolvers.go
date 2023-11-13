@@ -124,7 +124,6 @@ func (r *queryResolver) JoinableViewsDBToGraph(jviewsDB []*database.JoinableView
 	}
 	return jviews
 }
-
 func (r *queryResolver) JoinableViewDBToGraph(jviewDB *database.JoinableView) *models.JoinableView {
 	jview := &models.JoinableView{
 		ID:               jviewDB.ID,
