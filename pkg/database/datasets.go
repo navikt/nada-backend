@@ -239,58 +239,6 @@ func (r *Repo) UpdateDataset(ctx context.Context, id uuid.UUID, new models.Updat
 	return datasetFromSQL(res), nil
 }
 
-type JoinableView struct {
-	ID                uuid.UUID
-	Name              string
-	Created           string
-	Expires           *time.Time
-	PseudoDatasources []*models.BigQuery
-}
-
-func (r *Repo) GetJoinableViewsForUser(ctx context.Context, user string) ([]*JoinableView, error) {
-	joinableViewsDB, err := r.querier.GetJoinableViewsForOwner(ctx, user)
-	if err != nil {
-		return nil, err
-	}
-
-	joinableViewsDBMerged := make(map[uuid.UUID][]gensql.GetJoinableViewsForOwnerRow)
-	for _, vdb := range joinableViewsDB {
-		_, _exist := joinableViewsDBMerged[vdb.ID]
-		if !_exist {
-			joinableViewsDBMerged[vdb.ID] = []gensql.GetJoinableViewsForOwnerRow{}
-		}
-		joinableViewsDBMerged[vdb.ID] = append(joinableViewsDBMerged[vdb.ID], vdb)
-	}
-
-	joinableViews := []*JoinableView{}
-
-	for k, v := range joinableViewsDBMerged {
-		newJoinableView := JoinableView{
-			ID:                k,
-			Name:              v[0].Name,
-			Created:           v[0].Created.Format("2006-01-02"),
-			Expires:           nullTimeToPtr(v[0].Expires),
-			PseudoDatasources: []*models.BigQuery{},
-		}
-		joinableViews = append(joinableViews, &newJoinableView)
-		for _, bq := range v {
-			newJoinableView.PseudoDatasources = append(newJoinableView.PseudoDatasources, &models.BigQuery{
-				ProjectID: bq.ProjectID,
-				Dataset:   bq.DatasetID,
-				Table:     bq.TableID,
-			})
-		}
-	}
-	return joinableViews, nil
-}
-
-func (r *Repo) SetJoinableViewDeleted(ctx context.Context, id uuid.UUID) error {
-	return r.querier.SetJoinableViewDeleted(ctx, id)
-}
-
-func (r *Repo) MakeBigQueryUrlForJoinableViewDataset(name string) string {
-	return fmt.Sprintf("%v.%v", r.centralDataProject, name)
-}
 
 func (r *Repo) GetBigqueryDatasource(ctx context.Context, datasetID uuid.UUID, isReference bool) (models.BigQuery, error) {
 	bq, err := r.querier.GetBigqueryDatasource(ctx, gensql.GetBigqueryDatasourceParams{
@@ -462,21 +410,7 @@ func (r *Repo) GetAccessiblePseudoDatasourcesByUser(ctx context.Context, subject
 	return pseudoDatasets, nil
 }
 
-func (r *Repo) GetJoinableViewsForReferenceAndUser(ctx context.Context, user string, pseudoDatasetID uuid.UUID) ([]gensql.GetJoinableViewsForReferenceAndUserRow, error) {
-	joinableViews, err := r.querier.GetJoinableViewsForReferenceAndUser(ctx, gensql.GetJoinableViewsForReferenceAndUserParams{
-		Owner:           user,
-		PseudoDatasetID: pseudoDatasetID,
-	})
-	if err != nil {
-		return nil, err
-	}
 
-	return joinableViews, nil
-}
-
-func (r *Repo) GetJoinableViewsWithReference(ctx context.Context) ([]gensql.GetJoinableViewsWithReferenceRow, error) {
-	return r.querier.GetJoinableViewsWithReference(ctx)
-}
 
 func (r *Repo) GetOwnerGroupOfDataset(ctx context.Context, datasetID uuid.UUID) (string, error) {
 	return r.querier.GetOwnerGroupOfDataset(ctx, datasetID)
