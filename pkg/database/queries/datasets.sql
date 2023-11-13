@@ -273,72 +273,6 @@ FROM
   INNER JOIN datasource_bigquery AS sbq ON included_ds.id = sbq.dataset_id
   AND sbq.is_reference = TRUE;
 
--- name: GetJoinableViewsForOwner :many
-SELECT
-  jv.id AS id,
-  jv.name AS name,
-  jv.owner AS owner,
-  jv.created AS created,
-  jv.expires AS expires,
-  bq.project_id AS project_id,
-  bq.dataset AS dataset_id,
-  bq.table_name AS table_id
-FROM
-  (
-    joinable_views jv
-    INNER JOIN (
-      joinable_views_datasource jds
-      INNER JOIN datasource_bigquery bq ON jds.datasource_id = bq.id
-    ) ON jv.id = jds.joinable_view_id
-  )
-WHERE
-  jv.owner = @owner
-  AND (
-    jv.expires IS NULL
-    OR jv.expires > NOW()
-  );
-
--- name: CreateJoinableViews :one
-INSERT INTO
-  joinable_views ("name", "owner", "created", "expires")
-VALUES
-  (@name, @owner, @created, @expires) RETURNING *;
-
--- name: CreateJoinableViewsDatasource :one
-INSERT INTO
-  joinable_views_datasource ("joinable_view_id", "datasource_id")
-VALUES
-  (@joinable_view_id, @datasource_id) RETURNING *;
-
--- name: GetJoinableViewsForReferenceAndUser :many
-SELECT
-  a.id as id,
-  a.name as dataset
-FROM
-  joinable_views a
-  JOIN joinable_views_datasource b ON a.id = b.joinable_view_id
-  JOIN datasource_bigquery c ON b.datasource_id = c.id
-WHERE
-  owner = @owner
-  AND c.dataset_id = @pseudo_dataset_id;
-
--- name: GetJoinableViewsWithReference :many
-SELECT
-  a.owner as owner,
-  a.id as joinable_view_id,
-  a.name as joinable_view_dataset,
-  c.dataset_id as pseudo_view_id,
-  c.project_id as pseudo_project_id,
-  c.dataset as pseudo_dataset,
-  c.table_name as pseudo_table,
-  a.expires as expires
-FROM
-  joinable_views a
-  JOIN joinable_views_datasource b ON a.id = b.joinable_view_id
-  JOIN datasource_bigquery c ON b.datasource_id = c.id
-WHERE
-  a.deleted IS NULL;
-
 -- name: GetOwnerGroupOfDataset :one
 SELECT
   d.group as group
@@ -368,11 +302,3 @@ WHERE
     WHERE
       dp.group = ANY(@groups :: text [])
   );
-
--- name: SetJoinableViewDeleted :exec
-UPDATE
-  joinable_views
-SET
-  deleted = NOW()
-WHERE
-  id = @id;

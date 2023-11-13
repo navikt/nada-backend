@@ -19,7 +19,12 @@ type JoinableView struct {
 	// id is the id of the joinable view set
 	ID               uuid.UUID  `json:"id"`
 	Name             string     `json:"name"`
-	Created          string     `json:"created"`
+	Created          time.Time     `json:"created"`
 	Expires          *time.Time `json:"expires"`
 	BigQueryViewUrls []string   `json:"bigqueryViewUrls"`
+}
+
+type JoinableViewInDetail struct {
+	JoinableView
+	AccessToViews []bool `json:"accessToViews"`
 }

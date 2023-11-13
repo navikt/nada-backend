@@ -11,7 +11,6 @@ import (
 	"github.com/google/uuid"
 	"github.com/navikt/nada-backend/pkg/auth"
 	"github.com/navikt/nada-backend/pkg/bigquery"
-	"github.com/navikt/nada-backend/pkg/database"
 	"github.com/navikt/nada-backend/pkg/graph/models"
 )
 
@@ -111,30 +110,12 @@ func (r *queryResolver) JoinableViews(ctx context.Context) ([]*models.JoinableVi
 	return r.JoinableViewsDBToGraph(jviewsDB), nil
 }
 
-// !!! WARNING !!!
-// The code below was going to be deleted when updating resolvers. It has been copied here so you have
-// one last chance to move it out of harms way if you want. There are two reasons this happens:
-//   - When renaming or deleting a resolver the old code will be put in here. You can safely delete
-//     it when you're done.
-//   - You have helper methods in this file. Move them out to keep these resolver files clean.
-func (r *queryResolver) JoinableViewsDBToGraph(jviewsDB []*database.JoinableView) []*models.JoinableView {
-	jviews := []*models.JoinableView{}
-	for _, v := range jviewsDB {
-		jviews = append(jviews, r.JoinableViewDBToGraph(v))
+// JoinableView is the resolver for the joinableView field.
+func (r *queryResolver) JoinableView(ctx context.Context, id uuid.UUID) (*models.JoinableViewInDetail, error) {
+	user := auth.GetUser(ctx)
+	dbjv, err := r.repo.GetJoinableViewWithAccessStatus(ctx, id, user)
+	if err != nil {
+		return nil, err
 	}
-	return jviews
-}
-func (r *queryResolver) JoinableViewDBToGraph(jviewDB *database.JoinableView) *models.JoinableView {
-	jview := &models.JoinableView{
-		ID:               jviewDB.ID,
-		Name:             jviewDB.Name,
-		Created:          jviewDB.Created,
-		Expires:          jviewDB.Expires,
-		BigQueryViewUrls: []string{},
-	}
-
-	for _, v := range jviewDB.PseudoDatasources {
-		jview.BigQueryViewUrls = append(jview.BigQueryViewUrls, r.bigquery.MakeBigQueryUrlForJoinableViews(jviewDB.Name, v.ProjectID, v.Dataset, v.Table))
-	}
-	return jview
+	return r.JoinableViewWithAccessDBToGraph(dbjv), nil
 }

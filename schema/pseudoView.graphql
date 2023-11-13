@@ -13,10 +13,20 @@ input NewJoinableViews @goModel(model: "github.com/navikt/nada-backend/pkg/graph
 type JoinableView @goModel(model: "github.com/navikt/nada-backend/pkg/graph/models.JoinableView"){
     "id is the id of the joinable view set"
     id: ID!
-    name: String
-    created: String
+    name: String!
+    created: Time!
     expires: Time
     bigqueryViewUrls: [String!]!
+}
+
+type JoinableViewInDetail @goModel(model: "github.com/navikt/nada-backend/pkg/graph/models.JoinableViewInDetail"){
+    "id is the id of the joinable view set"
+    id: ID!
+    name: String!
+    created: Time!
+    expires: Time
+    bigqueryViewUrls: [String!]!
+    accessToViews: [Boolean!]!
 }
 
 extend type Mutation {
@@ -36,4 +46,9 @@ extend type Query {
     joinableViews returns all the joinableViews for the user.
     """
     joinableViews: [JoinableView!]!
+
+    """
+    joinableView returns detailed information about a joinableView.
+    """
+    joinableView(id: ID!): JoinableViewInDetail!
 }
