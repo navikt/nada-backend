@@ -81,6 +81,10 @@ func (m *MockRepo) SetJoinableViewDeleted(ctx context.Context, joinableViewID uu
 	return nil
 }
 
+func (m *MockRepo) GetJoinableViewsToBeDeletedWithRefDatasource(ctx context.Context) ([]gensql.GetJoinableViewsToBeDeletedWithRefDatasourceRow, error) {
+	return nil, nil
+}
+
 type MockAM struct {
 	NGrant  int
 	NRevoke int
@@ -102,5 +106,9 @@ type MockBigQuery struct {
 
 func (b *MockBigQuery) DeleteJoinableDataset(ctx context.Context, datasetID string) error {
 	b.NDeleteDataset++
+	return nil
+}
+
+func (b *MockBigQuery) DeleteJoinableView(ctx context.Context, joinableViewName, refProjectID, refDatasetID, refTableID string) error {
 	return nil
 }

@@ -80,6 +80,7 @@ type Querier interface {
 	GetJoinableViewWithDataset(ctx context.Context, id uuid.UUID) ([]GetJoinableViewWithDatasetRow, error)
 	GetJoinableViewsForOwner(ctx context.Context, owner string) ([]GetJoinableViewsForOwnerRow, error)
 	GetJoinableViewsForReferenceAndUser(ctx context.Context, arg GetJoinableViewsForReferenceAndUserParams) ([]GetJoinableViewsForReferenceAndUserRow, error)
+	GetJoinableViewsToBeDeletedWithRefDatasource(ctx context.Context) ([]GetJoinableViewsToBeDeletedWithRefDatasourceRow, error)
 	GetJoinableViewsWithReference(ctx context.Context) ([]GetJoinableViewsWithReferenceRow, error)
 	GetKeywords(ctx context.Context) ([]GetKeywordsRow, error)
 	GetMetabaseMetadata(ctx context.Context, datasetID uuid.UUID) (MetabaseMetadatum, error)

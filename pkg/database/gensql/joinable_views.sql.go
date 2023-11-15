@@ -50,7 +50,7 @@ const createJoinableViewsDatasource = `-- name: CreateJoinableViewsDatasource :o
 INSERT INTO
     joinable_views_datasource ("joinable_view_id", "datasource_id")
 VALUES
-    ($1, $2) RETURNING id, joinable_view_id, datasource_id
+    ($1, $2) RETURNING id, joinable_view_id, datasource_id, deleted
 `
 
 type CreateJoinableViewsDatasourceParams struct {
@@ -61,7 +61,12 @@ type CreateJoinableViewsDatasourceParams struct {
 func (q *Queries) CreateJoinableViewsDatasource(ctx context.Context, arg CreateJoinableViewsDatasourceParams) (JoinableViewsDatasource, error) {
 	row := q.db.QueryRowContext(ctx, createJoinableViewsDatasource, arg.JoinableViewID, arg.DatasourceID)
 	var i JoinableViewsDatasource
-	err := row.Scan(&i.ID, &i.JoinableViewID, &i.DatasourceID)
+	err := row.Scan(
+		&i.ID,
+		&i.JoinableViewID,
+		&i.DatasourceID,
+		&i.Deleted,
+	)
 	return i, err
 }
 
@@ -254,6 +259,58 @@ func (q *Queries) GetJoinableViewsForReferenceAndUser(ctx context.Context, arg G
 	return items, nil
 }
 
+const getJoinableViewsToBeDeletedWithRefDatasource = `-- name: GetJoinableViewsToBeDeletedWithRefDatasource :many
+SELECT
+    jv.id as joinable_view_id,
+    jv.name as joinable_view_name,
+    bq.project_id as bq_project_id,
+    bq.dataset as bq_dataset_id,
+    bq.table_name as bq_table_id
+FROM
+    joinable_views jv
+    JOIN joinable_views_datasource jvds ON jv.id = jvds.joinable_view_id
+    JOIN datasource_bigquery bq ON bq.id = jvds.datasource_id
+WHERE
+    jvds.deleted IS NOT NULL
+`
+
+type GetJoinableViewsToBeDeletedWithRefDatasourceRow struct {
+	JoinableViewID   uuid.UUID
+	JoinableViewName string
+	BqProjectID      string
+	BqDatasetID      string
+	BqTableID        string
+}
+
+func (q *Queries) GetJoinableViewsToBeDeletedWithRefDatasource(ctx context.Context) ([]GetJoinableViewsToBeDeletedWithRefDatasourceRow, error) {
+	rows, err := q.db.QueryContext(ctx, getJoinableViewsToBeDeletedWithRefDatasource)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []GetJoinableViewsToBeDeletedWithRefDatasourceRow{}
+	for rows.Next() {
+		var i GetJoinableViewsToBeDeletedWithRefDatasourceRow
+		if err := rows.Scan(
+			&i.JoinableViewID,
+			&i.JoinableViewName,
+			&i.BqProjectID,
+			&i.BqDatasetID,
+			&i.BqTableID,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const getJoinableViewsWithReference = `-- name: GetJoinableViewsWithReference :many
 SELECT
     a.owner as owner,
@@ -269,7 +326,7 @@ FROM
     JOIN joinable_views_datasource b ON a.id = b.joinable_view_id
     JOIN datasource_bigquery c ON b.datasource_id = c.id
 WHERE
-    a.deleted IS NULL
+    a.deleted IS NULL AND b.deleted IS NULL
 `
 
 type GetJoinableViewsWithReferenceRow struct {

@@ -305,6 +305,7 @@ type JoinableViewsDatasource struct {
 	ID             uuid.UUID
 	JoinableViewID uuid.UUID
 	DatasourceID   uuid.UUID
+	Deleted        sql.NullTime
 }
 
 type MetabaseMetadatum struct {

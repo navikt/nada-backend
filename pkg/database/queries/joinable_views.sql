@@ -62,7 +62,7 @@ FROM
     JOIN joinable_views_datasource b ON a.id = b.joinable_view_id
     JOIN datasource_bigquery c ON b.datasource_id = c.id
 WHERE
-    a.deleted IS NULL;
+    a.deleted IS NULL AND b.deleted IS NULL;
 
 -- name: SetJoinableViewDeleted :exec
 UPDATE
@@ -99,3 +99,17 @@ FROM
     INNER JOIN dataproducts dp ON datasets.dataproduct_id = dp.id
 WHERE
     jv.id = @id;
+
+-- name: GetJoinableViewsToBeDeletedWithRefDatasource :many
+SELECT
+    jv.id as joinable_view_id,
+    jv.name as joinable_view_name,
+    bq.project_id as bq_project_id,
+    bq.dataset as bq_dataset_id,
+    bq.table_name as bq_table_id
+FROM
+    joinable_views jv
+    JOIN joinable_views_datasource jvds ON jv.id = jvds.joinable_view_id
+    JOIN datasource_bigquery bq ON bq.id = jvds.datasource_id
+WHERE
+    jvds.deleted IS NOT NULL;

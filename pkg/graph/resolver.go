@@ -27,6 +27,7 @@ type Bigquery interface {
 	CreateJoinableViewsForUser(ctx context.Context, name string, datasources []bq.JoinableViewDatasource) (string, string, map[uuid.UUID]string, error)
 	MakeBigQueryUrlForJoinableViews(name, projectID, datasetID, tableID string) string
 	DeleteJoinableDataset(ctx context.Context, datasetID string) error
+	DeleteJoinableView(ctx context.Context, joinableViewName, refProjectID, refDatasetID, refTableID string) error
 }
 
 type AccessManager interface {

@@ -421,6 +421,23 @@ func (c *Bigquery) insertSecretIfNotExists(ctx context.Context, secretDatasetID,
 	return nil
 }
 
+func (c *Bigquery) DeleteJoinableView(ctx context.Context, joinableViewName, refProjectID, refDatasetID, refTableID string) error {
+	client, err := bigquery.NewClient(ctx, c.centralDataProject)
+	if err != nil {
+		return fmt.Errorf("bigquery.NewClient: %v", err)
+	}
+	defer client.Close()
+
+	if err := client.Dataset(joinableViewName).Table(MakeJoinableViewName(refProjectID, refDatasetID, refTableID)).Delete(ctx); err != nil {
+		if gerr, ok := err.(*googleapi.Error); ok && gerr.Code == 404 {
+			return nil
+		}
+		return err
+	}
+
+	return nil
+}
+
 func makeUserPrefix(user *auth.User) string {
 	emailFixDot := strings.ReplaceAll(user.Email, ".", "_")
 	emailFixAt := strings.ReplaceAll(emailFixDot, "@", "_")

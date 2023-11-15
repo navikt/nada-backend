@@ -33,10 +33,12 @@ type Repo interface {
 	ListActiveAccessToDataset(ctx context.Context, datasetID uuid.UUID) ([]*models.Access, error)
 	GetOwnerGroupOfDataset(ctx context.Context, datasetID uuid.UUID) (string, error)
 	SetJoinableViewDeleted(ctx context.Context, id uuid.UUID) error
+	GetJoinableViewsToBeDeletedWithRefDatasource(ctx context.Context) ([]gensql.GetJoinableViewsToBeDeletedWithRefDatasourceRow, error)
 }
 
 type BigQuery interface {
 	DeleteJoinableDataset(ctx context.Context, datasetID string) error
+	DeleteJoinableView(ctx context.Context, joinableViewName, refProjectID, refDatasetID, refTableID string) error
 }
 
 type Revoker interface {
@@ -95,14 +97,38 @@ func (e *Ensurer) run(ctx context.Context) {
 		}
 	}
 
+	if err := e.ensureDeleteBQDatasourceForDeletedDataset(ctx); err != nil {
+		e.log.WithError(err).Error("ensuring delete bq datasource for deleted dataset")
+	}
+
 	if err := e.ensureJoinableViewAccesses(ctx); err != nil {
 		e.log.WithError(err).Error("ensuring joinable view accesses")
 	}
 }
 
+func (e *Ensurer) ensureDeleteBQDatasourceForDeletedDataset(ctx context.Context) error {
+	fmt.Println("remove deleted joinable view")
+	jvdatasources, err := e.repo.GetJoinableViewsToBeDeletedWithRefDatasource(ctx)
+	if err != nil {
+		return err
+	}
+	fmt.Println(jvdatasources)
+
+	for _, jvds := range jvdatasources {
+		err := e.bq.DeleteJoinableView(ctx, jvds.JoinableViewName, jvds.BqProjectID, jvds.BqDatasetID, jvds.BqTableID)
+		if err != nil {
+			e.log.WithError(err).Errorf("deleting joinable view with deleted pseudo-datasource %v %v.%v.%v", jvds.JoinableViewName, jvds.BqProjectID, jvds.BqDatasetID, jvds.BqTableID)
+			continue
+		}
+	}
+
+	return nil
+}
+
 func (e *Ensurer) ensureJoinableViewAccesses(ctx context.Context) error {
 	joinableViews, err := e.repo.GetJoinableViewsWithReference(ctx)
 	if err != nil {
+		e.log.WithError(err).Error("getting joinable views with reference")
 		return err
 	}
 
@@ -125,6 +151,7 @@ OUTER:
 		joinableViewName := bigquery.MakeJoinableViewName(jv.PseudoProjectID, jv.PseudoDataset, jv.PseudoTable)
 		datasetOwnerGroup, err := e.repo.GetOwnerGroupOfDataset(ctx, jv.PseudoViewID)
 		if err != nil {
+			e.log.WithError(err).Errorf("getting owner group of dataset: %v", jv.PseudoViewID)
 			return err
 		}
 		userGroups, err := e.googleGroups.Groups(ctx, &jv.Owner)
@@ -145,6 +172,7 @@ OUTER:
 
 		accesses, err := e.repo.ListActiveAccessToDataset(ctx, jv.PseudoViewID)
 		if err != nil {
+			e.log.WithError(err).Errorf("listing active access to dataset: %v", jv.PseudoViewID)
 			return err
 		}
 

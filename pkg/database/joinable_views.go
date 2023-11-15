@@ -85,6 +85,10 @@ func (r *Repo) GetJoinableViewsWithReference(ctx context.Context) ([]gensql.GetJ
 	return r.querier.GetJoinableViewsWithReference(ctx)
 }
 
+func (r *Repo) GetJoinableViewsToBeDeletedWithRefDatasource(ctx context.Context) ([]gensql.GetJoinableViewsToBeDeletedWithRefDatasourceRow, error) {
+	return r.querier.GetJoinableViewsToBeDeletedWithRefDatasource(ctx)
+}
+
 func (r *Repo) GetJoinableViewWithAccessStatus(ctx context.Context, joinableViewID uuid.UUID, user *auth.User) (*JoinableViewInDetail, error) {
 	joinableViewDatasets, err := r.querier.GetJoinableViewWithDataset(ctx, joinableViewID)
 	if err != nil {
