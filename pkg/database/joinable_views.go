@@ -8,20 +8,26 @@ import (
 	"github.com/google/uuid"
 	"github.com/navikt/nada-backend/pkg/auth"
 	"github.com/navikt/nada-backend/pkg/database/gensql"
-	"github.com/navikt/nada-backend/pkg/graph/models"
 )
 
 type JoinableView struct {
-	ID                uuid.UUID
-	Name              string
-	Created           time.Time
-	Expires           *time.Time
-	PseudoDatasources []*models.BigQuery
+	ID      uuid.UUID
+	Name    string
+	Created time.Time
+	Expires *time.Time
 }
 
-type JoinableViewInDetail struct {
+type JoinableViewsDatasource struct {
+	ProjectID  string
+	DatasetID  string
+	TableID    string
+	Accessible bool
+	Deleted    bool
+}
+
+type JoinableViewWithDatasource struct {
 	JoinableView
-	AccessToViews []bool
+	PseudoDatasources []*JoinableViewsDatasource
 }
 
 func (r *Repo) GetJoinableViewsForUser(ctx context.Context, user string) ([]*JoinableView, error) {
@@ -43,20 +49,12 @@ func (r *Repo) GetJoinableViewsForUser(ctx context.Context, user string) ([]*Joi
 
 	for k, v := range joinableViewsDBMerged {
 		newJoinableView := JoinableView{
-			ID:                k,
-			Name:              v[0].Name,
-			Created:           v[0].Created,
-			Expires:           nullTimeToPtr(v[0].Expires),
-			PseudoDatasources: []*models.BigQuery{},
+			ID:      k,
+			Name:    v[0].Name,
+			Created: v[0].Created,
+			Expires: nullTimeToPtr(v[0].Expires),
 		}
 		joinableViews = append(joinableViews, &newJoinableView)
-		for _, bq := range v {
-			newJoinableView.PseudoDatasources = append(newJoinableView.PseudoDatasources, &models.BigQuery{
-				ProjectID: bq.ProjectID,
-				Dataset:   bq.DatasetID,
-				Table:     bq.TableID,
-			})
-		}
 	}
 	return joinableViews, nil
 }
@@ -89,13 +87,13 @@ func (r *Repo) GetJoinableViewsToBeDeletedWithRefDatasource(ctx context.Context)
 	return r.querier.GetJoinableViewsToBeDeletedWithRefDatasource(ctx)
 }
 
-func (r *Repo) GetJoinableViewWithAccessStatus(ctx context.Context, joinableViewID uuid.UUID, user *auth.User) (*JoinableViewInDetail, error) {
+func (r *Repo) GetJoinableViewWithDatasource(ctx context.Context, joinableViewID uuid.UUID, user *auth.User) (*JoinableViewWithDatasource, error) {
 	joinableViewDatasets, err := r.querier.GetJoinableViewWithDataset(ctx, joinableViewID)
 	if err != nil {
 		return nil, err
 	}
 
-	jvd := JoinableViewInDetail{
+	jvd := JoinableViewWithDatasource{
 		JoinableView: JoinableView{
 			ID:      joinableViewDatasets[0].JoinableViewID,
 			Name:    joinableViewDatasets[0].JoinableViewName,
@@ -104,30 +102,36 @@ func (r *Repo) GetJoinableViewWithAccessStatus(ctx context.Context, joinableView
 		},
 	}
 
-OUTER:
-	for _, jvds := range joinableViewDatasets {
-		jvd.PseudoDatasources = append(jvd.PseudoDatasources, &models.BigQuery{
-			ProjectID: jvds.BqProject,
-			Dataset:   jvds.BqDataset,
-			Table:     jvds.BqTable,
-		})
-		if user.GoogleGroups.Contains(jvds.Group) {
-			jvd.AccessToViews = append(jvd.AccessToViews, true)
+	for _, ds := range joinableViewDatasets {
+		jvbq := &JoinableViewsDatasource{
+			ProjectID: ds.BqProject,
+			DatasetID: ds.BqDataset,
+			TableID:   ds.BqTable,
+			Deleted:   ds.Deleted.Valid,
+		}
+		jvd.PseudoDatasources = append(jvd.PseudoDatasources, jvbq)
+
+		if jvbq.Deleted {
 			continue
 		}
 
-		activeAccessList, err := r.ListActiveAccessToDataset(ctx, jvds.DatasetID)
-		if err != nil {
-			return nil, err
-		}
+		if user.GoogleGroups.Contains(ds.Group.String) {
+			jvbq.Accessible = true
+		} else {
+			activeAccessList, err := r.ListActiveAccessToDataset(ctx, ds.DatasetID.UUID)
+			if err != nil {
+				return nil, err
+			}
 
-		for _, access := range activeAccessList {
-			if access.Subject == "user:"+user.Email {
-				jvd.AccessToViews = append(jvd.AccessToViews, true)
-				continue OUTER
+			jvbq.Accessible = false
+			for _, access := range activeAccessList {
+				if access.Subject == "user:"+user.Email {
+					jvbq.Accessible = true
+					break
+				}
 			}
 		}
-		jvd.AccessToViews = append(jvd.AccessToViews, false)
+
 	}
 
 	return &jvd, nil

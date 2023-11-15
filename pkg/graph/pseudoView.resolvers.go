@@ -111,11 +111,11 @@ func (r *queryResolver) JoinableViews(ctx context.Context) ([]*models.JoinableVi
 }
 
 // JoinableView is the resolver for the joinableView field.
-func (r *queryResolver) JoinableView(ctx context.Context, id uuid.UUID) (*models.JoinableViewInDetail, error) {
+func (r *queryResolver) JoinableView(ctx context.Context, id uuid.UUID) (*models.JoinableViewWithDatasource, error) {
 	user := auth.GetUser(ctx)
-	dbjv, err := r.repo.GetJoinableViewWithAccessStatus(ctx, id, user)
+	dbjv, err := r.repo.GetJoinableViewWithDatasource(ctx, id, user)
 	if err != nil {
 		return nil, err
 	}
-	return r.JoinableViewWithAccessDBToGraph(dbjv), nil
+	return r.JoinableViewWithDatasourceDBToGraph(dbjv), nil
 }

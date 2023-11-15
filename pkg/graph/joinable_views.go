@@ -14,28 +14,27 @@ func (r *queryResolver) JoinableViewsDBToGraph(jviewsDB []*database.JoinableView
 }
 func (r *queryResolver) JoinableViewDBToGraph(jviewDB *database.JoinableView) *models.JoinableView {
 	jview := &models.JoinableView{
-		ID:               jviewDB.ID,
-		Name:             jviewDB.Name,
-		Created:          jviewDB.Created,
-		Expires:          jviewDB.Expires,
-		BigQueryViewUrls: []string{},
-	}
-
-	for _, v := range jviewDB.PseudoDatasources {
-		jview.BigQueryViewUrls = append(jview.BigQueryViewUrls, r.bigquery.MakeBigQueryUrlForJoinableViews(jviewDB.Name, v.ProjectID, v.Dataset, v.Table))
+		ID:      jviewDB.ID,
+		Name:    jviewDB.Name,
+		Created: jviewDB.Created,
+		Expires: jviewDB.Expires,
 	}
 	return jview
 }
 
+func (r *queryResolver) JoinableViewWithDatasourceDBToGraph(jviewDB *database.JoinableViewWithDatasource) *models.JoinableViewWithDatasource {
 
-func (r *queryResolver) JoinableViewWithAccessDBToGraph(jviewDB *database.JoinableViewInDetail) *models.JoinableViewInDetail {
-	
-	jview := models.JoinableViewInDetail{
+	jview := models.JoinableViewWithDatasource{
 		JoinableView: *r.JoinableViewDBToGraph(&jviewDB.JoinableView),
 	}
-	for _, access:= range jviewDB.AccessToViews{
-		jview.AccessToViews = append(jview.AccessToViews, access)
+	for _, v := range jviewDB.PseudoDatasources {
+		jview.PseudoDatasources = append(jview.PseudoDatasources,
+			models.JoinableViewDatasource{
+				BigQueryUrl: r.bigquery.MakeBigQueryUrlForJoinableViews(jviewDB.Name, v.ProjectID, v.DatasetID, v.TableID),
+				Accessible:  v.Accessible,
+				Deleted:     v.Deleted,
+			})
 	}
-	
+
 	return &jview
 }

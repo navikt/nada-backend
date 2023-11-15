@@ -77,6 +77,7 @@ SELECT
     dsrc.project_id as bq_project,
     dsrc.dataset as bq_dataset,
     dsrc.table_name as bq_table,
+    jvds.deleted as deleted,
     datasets.id as dataset_id,
     jv.id as joinable_view_id,
     dp.group,
@@ -92,11 +93,11 @@ FROM
         INNER JOIN (
             (
                 datasource_bigquery dsrc
-                INNER JOIN datasets ON dsrc.dataset_id = datasets.id
+                LEFT JOIN datasets ON dsrc.dataset_id = datasets.id
             )
         ) ON jvds.datasource_id = dsrc.id
     )
-    INNER JOIN dataproducts dp ON datasets.dataproduct_id = dp.id
+    LEFT JOIN dataproducts dp ON datasets.dataproduct_id = dp.id
 WHERE
     jv.id = @id;
 

@@ -16,17 +16,21 @@ type JoinableView @goModel(model: "github.com/navikt/nada-backend/pkg/graph/mode
     name: String!
     created: Time!
     expires: Time
-    bigqueryViewUrls: [String!]!
 }
 
-type JoinableViewInDetail @goModel(model: "github.com/navikt/nada-backend/pkg/graph/models.JoinableViewInDetail"){
+type JoinableViewDatasource@goModel(model: "github.com/navikt/nada-backend/pkg/graph/models.JoinableViewDatasource"){
+    bigqueryUrl: String!
+    accessible: Boolean!
+    deleted: Boolean!
+}
+
+type JoinableViewWithDatasource @goModel(model: "github.com/navikt/nada-backend/pkg/graph/models.JoinableViewWithDatasource"){
     "id is the id of the joinable view set"
     id: ID!
     name: String!
     created: Time!
     expires: Time
-    bigqueryViewUrls: [String!]!
-    accessToViews: [Boolean!]!
+    pseudoDatasources: [JoinableViewDatasource!]!
 }
 
 extend type Mutation {
@@ -50,5 +54,5 @@ extend type Query {
     """
     joinableView returns detailed information about a joinableView.
     """
-    joinableView(id: ID!): JoinableViewInDetail!
+    joinableView(id: ID!): JoinableViewWithDatasource!
 }

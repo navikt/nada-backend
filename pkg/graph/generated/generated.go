@@ -187,20 +187,24 @@ type ComplexityRoot struct {
 	}
 
 	JoinableView struct {
-		BigQueryViewUrls func(childComplexity int) int
-		Created          func(childComplexity int) int
-		Expires          func(childComplexity int) int
-		ID               func(childComplexity int) int
-		Name             func(childComplexity int) int
+		Created func(childComplexity int) int
+		Expires func(childComplexity int) int
+		ID      func(childComplexity int) int
+		Name    func(childComplexity int) int
 	}
 
-	JoinableViewInDetail struct {
-		AccessToViews    func(childComplexity int) int
-		BigQueryViewUrls func(childComplexity int) int
-		Created          func(childComplexity int) int
-		Expires          func(childComplexity int) int
-		ID               func(childComplexity int) int
-		Name             func(childComplexity int) int
+	JoinableViewDatasource struct {
+		Accessible  func(childComplexity int) int
+		BigQueryUrl func(childComplexity int) int
+		Deleted     func(childComplexity int) int
+	}
+
+	JoinableViewWithDatasource struct {
+		Created           func(childComplexity int) int
+		Expires           func(childComplexity int) int
+		ID                func(childComplexity int) int
+		Name              func(childComplexity int) int
+		PseudoDatasources func(childComplexity int) int
 	}
 
 	Keyword struct {
@@ -500,7 +504,7 @@ type QueryResolver interface {
 	ProductAreas(ctx context.Context) ([]*models.ProductArea, error)
 	Team(ctx context.Context, id string) (*models.Team, error)
 	JoinableViews(ctx context.Context) ([]*models.JoinableView, error)
-	JoinableView(ctx context.Context, id uuid.UUID) (*models.JoinableViewInDetail, error)
+	JoinableView(ctx context.Context, id uuid.UUID) (*models.JoinableViewWithDatasource, error)
 	QuartoStory(ctx context.Context, id uuid.UUID) (*models.QuartoStory, error)
 	Search(ctx context.Context, q *models.SearchQueryOld, options *models.SearchQuery) ([]*models.SearchResultRow, error)
 	IsValidSlackChannel(ctx context.Context, name string) (bool, error)
@@ -1184,13 +1188,6 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.InsightProduct.Type(childComplexity), true
 
-	case "JoinableView.bigqueryViewUrls":
-		if e.complexity.JoinableView.BigQueryViewUrls == nil {
-			break
-		}
-
-		return e.complexity.JoinableView.BigQueryViewUrls(childComplexity), true
-
 	case "JoinableView.created":
 		if e.complexity.JoinableView.Created == nil {
 			break
@@ -1219,47 +1216,61 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.JoinableView.Name(childComplexity), true
 
-	case "JoinableViewInDetail.accessToViews":
-		if e.complexity.JoinableViewInDetail.AccessToViews == nil {
+	case "JoinableViewDatasource.accessible":
+		if e.complexity.JoinableViewDatasource.Accessible == nil {
 			break
 		}
 
-		return e.complexity.JoinableViewInDetail.AccessToViews(childComplexity), true
+		return e.complexity.JoinableViewDatasource.Accessible(childComplexity), true
 
-	case "JoinableViewInDetail.bigqueryViewUrls":
-		if e.complexity.JoinableViewInDetail.BigQueryViewUrls == nil {
+	case "JoinableViewDatasource.bigqueryUrl":
+		if e.complexity.JoinableViewDatasource.BigQueryUrl == nil {
 			break
 		}
 
-		return e.complexity.JoinableViewInDetail.BigQueryViewUrls(childComplexity), true
+		return e.complexity.JoinableViewDatasource.BigQueryUrl(childComplexity), true
 
-	case "JoinableViewInDetail.created":
-		if e.complexity.JoinableViewInDetail.Created == nil {
+	case "JoinableViewDatasource.deleted":
+		if e.complexity.JoinableViewDatasource.Deleted == nil {
 			break
 		}
 
-		return e.complexity.JoinableViewInDetail.Created(childComplexity), true
+		return e.complexity.JoinableViewDatasource.Deleted(childComplexity), true
 
-	case "JoinableViewInDetail.expires":
-		if e.complexity.JoinableViewInDetail.Expires == nil {
+	case "JoinableViewWithDatasource.created":
+		if e.complexity.JoinableViewWithDatasource.Created == nil {
 			break
 		}
 
-		return e.complexity.JoinableViewInDetail.Expires(childComplexity), true
+		return e.complexity.JoinableViewWithDatasource.Created(childComplexity), true
 
-	case "JoinableViewInDetail.id":
-		if e.complexity.JoinableViewInDetail.ID == nil {
+	case "JoinableViewWithDatasource.expires":
+		if e.complexity.JoinableViewWithDatasource.Expires == nil {
 			break
 		}
 
-		return e.complexity.JoinableViewInDetail.ID(childComplexity), true
+		return e.complexity.JoinableViewWithDatasource.Expires(childComplexity), true
 
-	case "JoinableViewInDetail.name":
-		if e.complexity.JoinableViewInDetail.Name == nil {
+	case "JoinableViewWithDatasource.id":
+		if e.complexity.JoinableViewWithDatasource.ID == nil {
 			break
 		}
 
-		return e.complexity.JoinableViewInDetail.Name(childComplexity), true
+		return e.complexity.JoinableViewWithDatasource.ID(childComplexity), true
+
+	case "JoinableViewWithDatasource.name":
+		if e.complexity.JoinableViewWithDatasource.Name == nil {
+			break
+		}
+
+		return e.complexity.JoinableViewWithDatasource.Name(childComplexity), true
+
+	case "JoinableViewWithDatasource.pseudoDatasources":
+		if e.complexity.JoinableViewWithDatasource.PseudoDatasources == nil {
+			break
+		}
+
+		return e.complexity.JoinableViewWithDatasource.PseudoDatasources(childComplexity), true
 
 	case "Keyword.count":
 		if e.complexity.Keyword.Count == nil {
@@ -3721,17 +3732,21 @@ type JoinableView @goModel(model: "github.com/navikt/nada-backend/pkg/graph/mode
     name: String!
     created: Time!
     expires: Time
-    bigqueryViewUrls: [String!]!
 }
 
-type JoinableViewInDetail @goModel(model: "github.com/navikt/nada-backend/pkg/graph/models.JoinableViewInDetail"){
+type JoinableViewDatasource@goModel(model: "github.com/navikt/nada-backend/pkg/graph/models.JoinableViewDatasource"){
+    bigqueryUrl: String!
+    accessible: Boolean!
+    deleted: Boolean!
+}
+
+type JoinableViewWithDatasource @goModel(model: "github.com/navikt/nada-backend/pkg/graph/models.JoinableViewWithDatasource"){
     "id is the id of the joinable view set"
     id: ID!
     name: String!
     created: Time!
     expires: Time
-    bigqueryViewUrls: [String!]!
-    accessToViews: [Boolean!]!
+    pseudoDatasources: [JoinableViewDatasource!]!
 }
 
 extend type Mutation {
@@ -3755,7 +3770,7 @@ extend type Query {
     """
     joinableView returns detailed information about a joinableView.
     """
-    joinableView(id: ID!): JoinableViewInDetail!
+    joinableView(id: ID!): JoinableViewWithDatasource!
 }
 `, BuiltIn: false},
 	{Name: "../../../schema/quarto_story.graphql", Input: `"""
@@ -9642,8 +9657,8 @@ func (ec *executionContext) fieldContext_JoinableView_expires(ctx context.Contex
 	return fc, nil
 }
 
-func (ec *executionContext) _JoinableView_bigqueryViewUrls(ctx context.Context, field graphql.CollectedField, obj *models.JoinableView) (ret graphql.Marshaler) {
-	fc, err := ec.fieldContext_JoinableView_bigqueryViewUrls(ctx, field)
+func (ec *executionContext) _JoinableViewDatasource_bigqueryUrl(ctx context.Context, field graphql.CollectedField, obj *models.JoinableViewDatasource) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_JoinableViewDatasource_bigqueryUrl(ctx, field)
 	if err != nil {
 		return graphql.Null
 	}
@@ -9656,7 +9671,7 @@ func (ec *executionContext) _JoinableView_bigqueryViewUrls(ctx context.Context, 
 	}()
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
-		return obj.BigQueryViewUrls, nil
+		return obj.BigQueryUrl, nil
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -9668,14 +9683,14 @@ func (ec *executionContext) _JoinableView_bigqueryViewUrls(ctx context.Context, 
 		}
 		return graphql.Null
 	}
-	res := resTmp.([]string)
+	res := resTmp.(string)
 	fc.Result = res
-	return ec.marshalNString2ᚕstringᚄ(ctx, field.Selections, res)
+	return ec.marshalNString2string(ctx, field.Selections, res)
 }
 
-func (ec *executionContext) fieldContext_JoinableView_bigqueryViewUrls(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+func (ec *executionContext) fieldContext_JoinableViewDatasource_bigqueryUrl(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
 	fc = &graphql.FieldContext{
-		Object:     "JoinableView",
+		Object:     "JoinableViewDatasource",
 		Field:      field,
 		IsMethod:   false,
 		IsResolver: false,
@@ -9686,8 +9701,96 @@ func (ec *executionContext) fieldContext_JoinableView_bigqueryViewUrls(ctx conte
 	return fc, nil
 }
 
-func (ec *executionContext) _JoinableViewInDetail_id(ctx context.Context, field graphql.CollectedField, obj *models.JoinableViewInDetail) (ret graphql.Marshaler) {
-	fc, err := ec.fieldContext_JoinableViewInDetail_id(ctx, field)
+func (ec *executionContext) _JoinableViewDatasource_accessible(ctx context.Context, field graphql.CollectedField, obj *models.JoinableViewDatasource) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_JoinableViewDatasource_accessible(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Accessible, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(bool)
+	fc.Result = res
+	return ec.marshalNBoolean2bool(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_JoinableViewDatasource_accessible(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "JoinableViewDatasource",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Boolean does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _JoinableViewDatasource_deleted(ctx context.Context, field graphql.CollectedField, obj *models.JoinableViewDatasource) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_JoinableViewDatasource_deleted(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Deleted, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(bool)
+	fc.Result = res
+	return ec.marshalNBoolean2bool(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_JoinableViewDatasource_deleted(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "JoinableViewDatasource",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Boolean does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _JoinableViewWithDatasource_id(ctx context.Context, field graphql.CollectedField, obj *models.JoinableViewWithDatasource) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_JoinableViewWithDatasource_id(ctx, field)
 	if err != nil {
 		return graphql.Null
 	}
@@ -9717,9 +9820,9 @@ func (ec *executionContext) _JoinableViewInDetail_id(ctx context.Context, field 
 	return ec.marshalNID2githubᚗcomᚋgoogleᚋuuidᚐUUID(ctx, field.Selections, res)
 }
 
-func (ec *executionContext) fieldContext_JoinableViewInDetail_id(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+func (ec *executionContext) fieldContext_JoinableViewWithDatasource_id(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
 	fc = &graphql.FieldContext{
-		Object:     "JoinableViewInDetail",
+		Object:     "JoinableViewWithDatasource",
 		Field:      field,
 		IsMethod:   false,
 		IsResolver: false,
@@ -9730,8 +9833,8 @@ func (ec *executionContext) fieldContext_JoinableViewInDetail_id(ctx context.Con
 	return fc, nil
 }
 
-func (ec *executionContext) _JoinableViewInDetail_name(ctx context.Context, field graphql.CollectedField, obj *models.JoinableViewInDetail) (ret graphql.Marshaler) {
-	fc, err := ec.fieldContext_JoinableViewInDetail_name(ctx, field)
+func (ec *executionContext) _JoinableViewWithDatasource_name(ctx context.Context, field graphql.CollectedField, obj *models.JoinableViewWithDatasource) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_JoinableViewWithDatasource_name(ctx, field)
 	if err != nil {
 		return graphql.Null
 	}
@@ -9761,9 +9864,9 @@ func (ec *executionContext) _JoinableViewInDetail_name(ctx context.Context, fiel
 	return ec.marshalNString2string(ctx, field.Selections, res)
 }
 
-func (ec *executionContext) fieldContext_JoinableViewInDetail_name(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+func (ec *executionContext) fieldContext_JoinableViewWithDatasource_name(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
 	fc = &graphql.FieldContext{
-		Object:     "JoinableViewInDetail",
+		Object:     "JoinableViewWithDatasource",
 		Field:      field,
 		IsMethod:   false,
 		IsResolver: false,
@@ -9774,8 +9877,8 @@ func (ec *executionContext) fieldContext_JoinableViewInDetail_name(ctx context.C
 	return fc, nil
 }
 
-func (ec *executionContext) _JoinableViewInDetail_created(ctx context.Context, field graphql.CollectedField, obj *models.JoinableViewInDetail) (ret graphql.Marshaler) {
-	fc, err := ec.fieldContext_JoinableViewInDetail_created(ctx, field)
+func (ec *executionContext) _JoinableViewWithDatasource_created(ctx context.Context, field graphql.CollectedField, obj *models.JoinableViewWithDatasource) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_JoinableViewWithDatasource_created(ctx, field)
 	if err != nil {
 		return graphql.Null
 	}
@@ -9805,9 +9908,9 @@ func (ec *executionContext) _JoinableViewInDetail_created(ctx context.Context, f
 	return ec.marshalNTime2timeᚐTime(ctx, field.Selections, res)
 }
 
-func (ec *executionContext) fieldContext_JoinableViewInDetail_created(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+func (ec *executionContext) fieldContext_JoinableViewWithDatasource_created(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
 	fc = &graphql.FieldContext{
-		Object:     "JoinableViewInDetail",
+		Object:     "JoinableViewWithDatasource",
 		Field:      field,
 		IsMethod:   false,
 		IsResolver: false,
@@ -9818,8 +9921,8 @@ func (ec *executionContext) fieldContext_JoinableViewInDetail_created(ctx contex
 	return fc, nil
 }
 
-func (ec *executionContext) _JoinableViewInDetail_expires(ctx context.Context, field graphql.CollectedField, obj *models.JoinableViewInDetail) (ret graphql.Marshaler) {
-	fc, err := ec.fieldContext_JoinableViewInDetail_expires(ctx, field)
+func (ec *executionContext) _JoinableViewWithDatasource_expires(ctx context.Context, field graphql.CollectedField, obj *models.JoinableViewWithDatasource) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_JoinableViewWithDatasource_expires(ctx, field)
 	if err != nil {
 		return graphql.Null
 	}
@@ -9846,9 +9949,9 @@ func (ec *executionContext) _JoinableViewInDetail_expires(ctx context.Context, f
 	return ec.marshalOTime2ᚖtimeᚐTime(ctx, field.Selections, res)
 }
 
-func (ec *executionContext) fieldContext_JoinableViewInDetail_expires(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+func (ec *executionContext) fieldContext_JoinableViewWithDatasource_expires(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
 	fc = &graphql.FieldContext{
-		Object:     "JoinableViewInDetail",
+		Object:     "JoinableViewWithDatasource",
 		Field:      field,
 		IsMethod:   false,
 		IsResolver: false,
@@ -9859,8 +9962,8 @@ func (ec *executionContext) fieldContext_JoinableViewInDetail_expires(ctx contex
 	return fc, nil
 }
 
-func (ec *executionContext) _JoinableViewInDetail_bigqueryViewUrls(ctx context.Context, field graphql.CollectedField, obj *models.JoinableViewInDetail) (ret graphql.Marshaler) {
-	fc, err := ec.fieldContext_JoinableViewInDetail_bigqueryViewUrls(ctx, field)
+func (ec *executionContext) _JoinableViewWithDatasource_pseudoDatasources(ctx context.Context, field graphql.CollectedField, obj *models.JoinableViewWithDatasource) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_JoinableViewWithDatasource_pseudoDatasources(ctx, field)
 	if err != nil {
 		return graphql.Null
 	}
@@ -9873,7 +9976,7 @@ func (ec *executionContext) _JoinableViewInDetail_bigqueryViewUrls(ctx context.C
 	}()
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
-		return obj.BigQueryViewUrls, nil
+		return obj.PseudoDatasources, nil
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -9885,63 +9988,27 @@ func (ec *executionContext) _JoinableViewInDetail_bigqueryViewUrls(ctx context.C
 		}
 		return graphql.Null
 	}
-	res := resTmp.([]string)
+	res := resTmp.([]models.JoinableViewDatasource)
 	fc.Result = res
-	return ec.marshalNString2ᚕstringᚄ(ctx, field.Selections, res)
+	return ec.marshalNJoinableViewDatasource2ᚕgithubᚗcomᚋnaviktᚋnadaᚑbackendᚋpkgᚋgraphᚋmodelsᚐJoinableViewDatasourceᚄ(ctx, field.Selections, res)
 }
 
-func (ec *executionContext) fieldContext_JoinableViewInDetail_bigqueryViewUrls(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+func (ec *executionContext) fieldContext_JoinableViewWithDatasource_pseudoDatasources(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
 	fc = &graphql.FieldContext{
-		Object:     "JoinableViewInDetail",
+		Object:     "JoinableViewWithDatasource",
 		Field:      field,
 		IsMethod:   false,
 		IsResolver: false,
 		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type String does not have child fields")
-		},
-	}
-	return fc, nil
-}
-
-func (ec *executionContext) _JoinableViewInDetail_accessToViews(ctx context.Context, field graphql.CollectedField, obj *models.JoinableViewInDetail) (ret graphql.Marshaler) {
-	fc, err := ec.fieldContext_JoinableViewInDetail_accessToViews(ctx, field)
-	if err != nil {
-		return graphql.Null
-	}
-	ctx = graphql.WithFieldContext(ctx, fc)
-	defer func() {
-		if r := recover(); r != nil {
-			ec.Error(ctx, ec.Recover(ctx, r))
-			ret = graphql.Null
-		}
-	}()
-	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
-		ctx = rctx // use context from middleware stack in children
-		return obj.AccessToViews, nil
-	})
-	if err != nil {
-		ec.Error(ctx, err)
-		return graphql.Null
-	}
-	if resTmp == nil {
-		if !graphql.HasFieldError(ctx, fc) {
-			ec.Errorf(ctx, "must not be null")
-		}
-		return graphql.Null
-	}
-	res := resTmp.([]bool)
-	fc.Result = res
-	return ec.marshalNBoolean2ᚕboolᚄ(ctx, field.Selections, res)
-}
-
-func (ec *executionContext) fieldContext_JoinableViewInDetail_accessToViews(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "JoinableViewInDetail",
-		Field:      field,
-		IsMethod:   false,
-		IsResolver: false,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type Boolean does not have child fields")
+			switch field.Name {
+			case "bigqueryUrl":
+				return ec.fieldContext_JoinableViewDatasource_bigqueryUrl(ctx, field)
+			case "accessible":
+				return ec.fieldContext_JoinableViewDatasource_accessible(ctx, field)
+			case "deleted":
+				return ec.fieldContext_JoinableViewDatasource_deleted(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type JoinableViewDatasource", field.Name)
 		},
 	}
 	return fc, nil
@@ -15402,8 +15469,6 @@ func (ec *executionContext) fieldContext_Query_joinableViews(ctx context.Context
 				return ec.fieldContext_JoinableView_created(ctx, field)
 			case "expires":
 				return ec.fieldContext_JoinableView_expires(ctx, field)
-			case "bigqueryViewUrls":
-				return ec.fieldContext_JoinableView_bigqueryViewUrls(ctx, field)
 			}
 			return nil, fmt.Errorf("no field named %q was found under type JoinableView", field.Name)
 		},
@@ -15437,9 +15502,9 @@ func (ec *executionContext) _Query_joinableView(ctx context.Context, field graph
 		}
 		return graphql.Null
 	}
-	res := resTmp.(*models.JoinableViewInDetail)
+	res := resTmp.(*models.JoinableViewWithDatasource)
 	fc.Result = res
-	return ec.marshalNJoinableViewInDetail2ᚖgithubᚗcomᚋnaviktᚋnadaᚑbackendᚋpkgᚋgraphᚋmodelsᚐJoinableViewInDetail(ctx, field.Selections, res)
+	return ec.marshalNJoinableViewWithDatasource2ᚖgithubᚗcomᚋnaviktᚋnadaᚑbackendᚋpkgᚋgraphᚋmodelsᚐJoinableViewWithDatasource(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) fieldContext_Query_joinableView(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
@@ -15451,19 +15516,17 @@ func (ec *executionContext) fieldContext_Query_joinableView(ctx context.Context,
 		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
 			switch field.Name {
 			case "id":
-				return ec.fieldContext_JoinableViewInDetail_id(ctx, field)
+				return ec.fieldContext_JoinableViewWithDatasource_id(ctx, field)
 			case "name":
-				return ec.fieldContext_JoinableViewInDetail_name(ctx, field)
+				return ec.fieldContext_JoinableViewWithDatasource_name(ctx, field)
 			case "created":
-				return ec.fieldContext_JoinableViewInDetail_created(ctx, field)
+				return ec.fieldContext_JoinableViewWithDatasource_created(ctx, field)
 			case "expires":
-				return ec.fieldContext_JoinableViewInDetail_expires(ctx, field)
-			case "bigqueryViewUrls":
-				return ec.fieldContext_JoinableViewInDetail_bigqueryViewUrls(ctx, field)
-			case "accessToViews":
-				return ec.fieldContext_JoinableViewInDetail_accessToViews(ctx, field)
+				return ec.fieldContext_JoinableViewWithDatasource_expires(ctx, field)
+			case "pseudoDatasources":
+				return ec.fieldContext_JoinableViewWithDatasource_pseudoDatasources(ctx, field)
 			}
-			return nil, fmt.Errorf("no field named %q was found under type JoinableViewInDetail", field.Name)
+			return nil, fmt.Errorf("no field named %q was found under type JoinableViewWithDatasource", field.Name)
 		},
 	}
 	defer func() {
@@ -23378,8 +23441,52 @@ func (ec *executionContext) _JoinableView(ctx context.Context, sel ast.Selection
 			}
 		case "expires":
 			out.Values[i] = ec._JoinableView_expires(ctx, field, obj)
-		case "bigqueryViewUrls":
-			out.Values[i] = ec._JoinableView_bigqueryViewUrls(ctx, field, obj)
+		default:
+			panic("unknown field " + strconv.Quote(field.Name))
+		}
+	}
+	out.Dispatch(ctx)
+	if out.Invalids > 0 {
+		return graphql.Null
+	}
+
+	atomic.AddInt32(&ec.deferred, int32(len(deferred)))
+
+	for label, dfs := range deferred {
+		ec.processDeferredGroup(graphql.DeferredGroup{
+			Label:    label,
+			Path:     graphql.GetPath(ctx),
+			FieldSet: dfs,
+			Context:  ctx,
+		})
+	}
+
+	return out
+}
+
+var joinableViewDatasourceImplementors = []string{"JoinableViewDatasource"}
+
+func (ec *executionContext) _JoinableViewDatasource(ctx context.Context, sel ast.SelectionSet, obj *models.JoinableViewDatasource) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, joinableViewDatasourceImplementors)
+
+	out := graphql.NewFieldSet(fields)
+	deferred := make(map[string]*graphql.FieldSet)
+	for i, field := range fields {
+		switch field.Name {
+		case "__typename":
+			out.Values[i] = graphql.MarshalString("JoinableViewDatasource")
+		case "bigqueryUrl":
+			out.Values[i] = ec._JoinableViewDatasource_bigqueryUrl(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "accessible":
+			out.Values[i] = ec._JoinableViewDatasource_accessible(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "deleted":
+			out.Values[i] = ec._JoinableViewDatasource_deleted(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
 				out.Invalids++
 			}
@@ -23406,41 +23513,36 @@ func (ec *executionContext) _JoinableView(ctx context.Context, sel ast.Selection
 	return out
 }
 
-var joinableViewInDetailImplementors = []string{"JoinableViewInDetail"}
+var joinableViewWithDatasourceImplementors = []string{"JoinableViewWithDatasource"}
 
-func (ec *executionContext) _JoinableViewInDetail(ctx context.Context, sel ast.SelectionSet, obj *models.JoinableViewInDetail) graphql.Marshaler {
-	fields := graphql.CollectFields(ec.OperationContext, sel, joinableViewInDetailImplementors)
+func (ec *executionContext) _JoinableViewWithDatasource(ctx context.Context, sel ast.SelectionSet, obj *models.JoinableViewWithDatasource) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, joinableViewWithDatasourceImplementors)
 
 	out := graphql.NewFieldSet(fields)
 	deferred := make(map[string]*graphql.FieldSet)
 	for i, field := range fields {
 		switch field.Name {
 		case "__typename":
-			out.Values[i] = graphql.MarshalString("JoinableViewInDetail")
+			out.Values[i] = graphql.MarshalString("JoinableViewWithDatasource")
 		case "id":
-			out.Values[i] = ec._JoinableViewInDetail_id(ctx, field, obj)
+			out.Values[i] = ec._JoinableViewWithDatasource_id(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
 				out.Invalids++
 			}
 		case "name":
-			out.Values[i] = ec._JoinableViewInDetail_name(ctx, field, obj)
+			out.Values[i] = ec._JoinableViewWithDatasource_name(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
 				out.Invalids++
 			}
 		case "created":
-			out.Values[i] = ec._JoinableViewInDetail_created(ctx, field, obj)
+			out.Values[i] = ec._JoinableViewWithDatasource_created(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
 				out.Invalids++
 			}
 		case "expires":
-			out.Values[i] = ec._JoinableViewInDetail_expires(ctx, field, obj)
-		case "bigqueryViewUrls":
-			out.Values[i] = ec._JoinableViewInDetail_bigqueryViewUrls(ctx, field, obj)
-			if out.Values[i] == graphql.Null {
-				out.Invalids++
-			}
-		case "accessToViews":
-			out.Values[i] = ec._JoinableViewInDetail_accessToViews(ctx, field, obj)
+			out.Values[i] = ec._JoinableViewWithDatasource_expires(ctx, field, obj)
+		case "pseudoDatasources":
+			out.Values[i] = ec._JoinableViewWithDatasource_pseudoDatasources(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
 				out.Invalids++
 			}
@@ -26823,38 +26925,6 @@ func (ec *executionContext) marshalNBoolean2bool(ctx context.Context, sel ast.Se
 	return res
 }
 
-func (ec *executionContext) unmarshalNBoolean2ᚕboolᚄ(ctx context.Context, v interface{}) ([]bool, error) {
-	var vSlice []interface{}
-	if v != nil {
-		vSlice = graphql.CoerceList(v)
-	}
-	var err error
-	res := make([]bool, len(vSlice))
-	for i := range vSlice {
-		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithIndex(i))
-		res[i], err = ec.unmarshalNBoolean2bool(ctx, vSlice[i])
-		if err != nil {
-			return nil, err
-		}
-	}
-	return res, nil
-}
-
-func (ec *executionContext) marshalNBoolean2ᚕboolᚄ(ctx context.Context, sel ast.SelectionSet, v []bool) graphql.Marshaler {
-	ret := make(graphql.Array, len(v))
-	for i := range v {
-		ret[i] = ec.marshalNBoolean2bool(ctx, sel, v[i])
-	}
-
-	for _, e := range ret {
-		if e == graphql.Null {
-			return graphql.Null
-		}
-	}
-
-	return ret
-}
-
 func (ec *executionContext) marshalNDataproduct2githubᚗcomᚋnaviktᚋnadaᚑbackendᚋpkgᚋgraphᚋmodelsᚐDataproduct(ctx context.Context, sel ast.SelectionSet, v models.Dataproduct) graphql.Marshaler {
 	return ec._Dataproduct(ctx, sel, &v)
 }
@@ -27299,18 +27369,66 @@ func (ec *executionContext) marshalNJoinableView2ᚖgithubᚗcomᚋnaviktᚋnada
 	return ec._JoinableView(ctx, sel, v)
 }
 
-func (ec *executionContext) marshalNJoinableViewInDetail2githubᚗcomᚋnaviktᚋnadaᚑbackendᚋpkgᚋgraphᚋmodelsᚐJoinableViewInDetail(ctx context.Context, sel ast.SelectionSet, v models.JoinableViewInDetail) graphql.Marshaler {
-	return ec._JoinableViewInDetail(ctx, sel, &v)
+func (ec *executionContext) marshalNJoinableViewDatasource2githubᚗcomᚋnaviktᚋnadaᚑbackendᚋpkgᚋgraphᚋmodelsᚐJoinableViewDatasource(ctx context.Context, sel ast.SelectionSet, v models.JoinableViewDatasource) graphql.Marshaler {
+	return ec._JoinableViewDatasource(ctx, sel, &v)
 }
 
-func (ec *executionContext) marshalNJoinableViewInDetail2ᚖgithubᚗcomᚋnaviktᚋnadaᚑbackendᚋpkgᚋgraphᚋmodelsᚐJoinableViewInDetail(ctx context.Context, sel ast.SelectionSet, v *models.JoinableViewInDetail) graphql.Marshaler {
+func (ec *executionContext) marshalNJoinableViewDatasource2ᚕgithubᚗcomᚋnaviktᚋnadaᚑbackendᚋpkgᚋgraphᚋmodelsᚐJoinableViewDatasourceᚄ(ctx context.Context, sel ast.SelectionSet, v []models.JoinableViewDatasource) graphql.Marshaler {
+	ret := make(graphql.Array, len(v))
+	var wg sync.WaitGroup
+	isLen1 := len(v) == 1
+	if !isLen1 {
+		wg.Add(len(v))
+	}
+	for i := range v {
+		i := i
+		fc := &graphql.FieldContext{
+			Index:  &i,
+			Result: &v[i],
+		}
+		ctx := graphql.WithFieldContext(ctx, fc)
+		f := func(i int) {
+			defer func() {
+				if r := recover(); r != nil {
+					ec.Error(ctx, ec.Recover(ctx, r))
+					ret = nil
+				}
+			}()
+			if !isLen1 {
+				defer wg.Done()
+			}
+			ret[i] = ec.marshalNJoinableViewDatasource2githubᚗcomᚋnaviktᚋnadaᚑbackendᚋpkgᚋgraphᚋmodelsᚐJoinableViewDatasource(ctx, sel, v[i])
+		}
+		if isLen1 {
+			f(i)
+		} else {
+			go f(i)
+		}
+
+	}
+	wg.Wait()
+
+	for _, e := range ret {
+		if e == graphql.Null {
+			return graphql.Null
+		}
+	}
+
+	return ret
+}
+
+func (ec *executionContext) marshalNJoinableViewWithDatasource2githubᚗcomᚋnaviktᚋnadaᚑbackendᚋpkgᚋgraphᚋmodelsᚐJoinableViewWithDatasource(ctx context.Context, sel ast.SelectionSet, v models.JoinableViewWithDatasource) graphql.Marshaler {
+	return ec._JoinableViewWithDatasource(ctx, sel, &v)
+}
+
+func (ec *executionContext) marshalNJoinableViewWithDatasource2ᚖgithubᚗcomᚋnaviktᚋnadaᚑbackendᚋpkgᚋgraphᚋmodelsᚐJoinableViewWithDatasource(ctx context.Context, sel ast.SelectionSet, v *models.JoinableViewWithDatasource) graphql.Marshaler {
 	if v == nil {
 		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
 			ec.Errorf(ctx, "the requested element is null which the schema does not allow")
 		}
 		return graphql.Null
 	}
-	return ec._JoinableViewInDetail(ctx, sel, v)
+	return ec._JoinableViewWithDatasource(ctx, sel, v)
 }
 
 func (ec *executionContext) marshalNKeyword2ᚕᚖgithubᚗcomᚋnaviktᚋnadaᚑbackendᚋpkgᚋgraphᚋmodelsᚐKeywordᚄ(ctx context.Context, sel ast.SelectionSet, v []*models.Keyword) graphql.Marshaler {
