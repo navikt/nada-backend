@@ -131,3 +131,7 @@ func (c *Mock) MakeBigQueryUrlForJoinableViews(name, projectID, datasetID, table
 func (c *Mock) DeleteJoinableView(ctx context.Context, joinableViewName, refProjectID, refDatasetID, refTableID string) error {
 	return nil
 }
+
+func (c *Mock) DeletePseudoView(ctx context.Context, pseudoProjectID, pseudoDatasetID, pseudoTableID string) error {
+	return nil
+}

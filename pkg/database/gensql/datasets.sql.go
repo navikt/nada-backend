@@ -45,7 +45,7 @@ VALUES
     $10,
     $11,
     $12
-  ) RETURNING dataset_id, project_id, dataset, table_name, schema, last_modified, created, expires, table_type, description, pii_tags, missing_since, id, is_reference, pseudo_columns
+  ) RETURNING dataset_id, project_id, dataset, table_name, schema, last_modified, created, expires, table_type, description, pii_tags, missing_since, id, is_reference, pseudo_columns, deleted
 `
 
 type CreateBigqueryDatasourceParams struct {
@@ -95,6 +95,7 @@ func (q *Queries) CreateBigqueryDatasource(ctx context.Context, arg CreateBigque
 		&i.ID,
 		&i.IsReference,
 		pq.Array(&i.PseudoColumns),
+		&i.Deleted,
 	)
 	return i, err
 }
@@ -348,7 +349,7 @@ func (q *Queries) GetAccessiblePseudoDatasetsByUser(ctx context.Context, arg Get
 
 const getBigqueryDatasource = `-- name: GetBigqueryDatasource :one
 SELECT
-  dataset_id, project_id, dataset, table_name, schema, last_modified, created, expires, table_type, description, pii_tags, missing_since, id, is_reference, pseudo_columns
+  dataset_id, project_id, dataset, table_name, schema, last_modified, created, expires, table_type, description, pii_tags, missing_since, id, is_reference, pseudo_columns, deleted
 FROM
   datasource_bigquery
 WHERE
@@ -380,13 +381,14 @@ func (q *Queries) GetBigqueryDatasource(ctx context.Context, arg GetBigqueryData
 		&i.ID,
 		&i.IsReference,
 		pq.Array(&i.PseudoColumns),
+		&i.Deleted,
 	)
 	return i, err
 }
 
 const getBigqueryDatasources = `-- name: GetBigqueryDatasources :many
 SELECT
-  dataset_id, project_id, dataset, table_name, schema, last_modified, created, expires, table_type, description, pii_tags, missing_since, id, is_reference, pseudo_columns
+  dataset_id, project_id, dataset, table_name, schema, last_modified, created, expires, table_type, description, pii_tags, missing_since, id, is_reference, pseudo_columns, deleted
 FROM
   datasource_bigquery
 `
@@ -416,6 +418,7 @@ func (q *Queries) GetBigqueryDatasources(ctx context.Context) ([]DatasourceBigqu
 			&i.ID,
 			&i.IsReference,
 			pq.Array(&i.PseudoColumns),
+			&i.Deleted,
 		); err != nil {
 			return nil, err
 		}
@@ -798,6 +801,58 @@ func (q *Queries) GetOwnerGroupOfDataset(ctx context.Context, datasetID uuid.UUI
 	return group, err
 }
 
+const getPseudoDatasourcesToDelete = `-- name: GetPseudoDatasourcesToDelete :many
+SELECT
+  bq.dataset_id, bq.project_id, bq.dataset, bq.table_name, bq.schema, bq.last_modified, bq.created, bq.expires, bq.table_type, bq.description, bq.pii_tags, bq.missing_since, bq.id, bq.is_reference, bq.pseudo_columns, bq.deleted
+FROM
+  datasource_bigquery bq
+  LEFT JOIN datasets ds ON bq.dataset_id = ds.id
+WHERE
+  ds.id IS NULL
+  AND bq.deleted is NULL
+  AND ARRAY_LENGTH(bq.pseudo_columns, 1) > 0
+`
+
+func (q *Queries) GetPseudoDatasourcesToDelete(ctx context.Context) ([]DatasourceBigquery, error) {
+	rows, err := q.db.QueryContext(ctx, getPseudoDatasourcesToDelete)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []DatasourceBigquery{}
+	for rows.Next() {
+		var i DatasourceBigquery
+		if err := rows.Scan(
+			&i.DatasetID,
+			&i.ProjectID,
+			&i.Dataset,
+			&i.TableName,
+			&i.Schema,
+			&i.LastModified,
+			&i.Created,
+			&i.Expires,
+			&i.TableType,
+			&i.Description,
+			&i.PiiTags,
+			&i.MissingSince,
+			&i.ID,
+			&i.IsReference,
+			pq.Array(&i.PseudoColumns),
+			&i.Deleted,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const replaceDatasetsTag = `-- name: ReplaceDatasetsTag :exec
 UPDATE
   datasets
@@ -812,6 +867,20 @@ type ReplaceDatasetsTagParams struct {
 
 func (q *Queries) ReplaceDatasetsTag(ctx context.Context, arg ReplaceDatasetsTagParams) error {
 	_, err := q.db.ExecContext(ctx, replaceDatasetsTag, arg.TagToReplace, arg.TagUpdated)
+	return err
+}
+
+const setDatasourceDeleted = `-- name: SetDatasourceDeleted :exec
+UPDATE
+  datasource_bigquery
+SET
+  deleted = NOW()
+WHERE
+  id = $1
+`
+
+func (q *Queries) SetDatasourceDeleted(ctx context.Context, id uuid.UUID) error {
+	_, err := q.db.ExecContext(ctx, setDatasourceDeleted, id)
 	return err
 }
 

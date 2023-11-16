@@ -28,6 +28,7 @@ type Bigquery interface {
 	MakeBigQueryUrlForJoinableViews(name, projectID, datasetID, tableID string) string
 	DeleteJoinableDataset(ctx context.Context, datasetID string) error
 	DeleteJoinableView(ctx context.Context, joinableViewName, refProjectID, refDatasetID, refTableID string) error
+	DeletePseudoView(ctx context.Context, pseudoProjectID, pseudoDatasetID, pseudoTableID string) error
 }
 
 type AccessManager interface {

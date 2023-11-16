@@ -422,13 +422,24 @@ func (c *Bigquery) insertSecretIfNotExists(ctx context.Context, secretDatasetID,
 }
 
 func (c *Bigquery) DeleteJoinableView(ctx context.Context, joinableViewName, refProjectID, refDatasetID, refTableID string) error {
-	client, err := bigquery.NewClient(ctx, c.centralDataProject)
+	return c.deleteBigqueryTable(ctx, c.centralDataProject, joinableViewName, MakeJoinableViewName(refProjectID, refDatasetID, refTableID))
+}
+
+func (c *Bigquery) DeletePseudoView(ctx context.Context, pseudoProjectID, pseudoDatasetID, pseudoTableID string) error {
+	if pseudoDatasetID != c.pseudoDataset {
+		return fmt.Errorf("cannot delete pseudo view from dataset %v, not a markedsplassen dataset", pseudoDatasetID)
+	}
+	return c.deleteBigqueryTable(ctx, pseudoProjectID, pseudoDatasetID, pseudoTableID)
+}
+
+func (c *Bigquery) deleteBigqueryTable(ctx context.Context, projectID, datasetID, tableID string) error {
+	client, err := bigquery.NewClient(ctx, projectID)
 	if err != nil {
 		return fmt.Errorf("bigquery.NewClient: %v", err)
 	}
 	defer client.Close()
 
-	if err := client.Dataset(joinableViewName).Table(MakeJoinableViewName(refProjectID, refDatasetID, refTableID)).Delete(ctx); err != nil {
+	if err := client.Dataset(datasetID).Table(tableID).Delete(ctx); err != nil {
 		if gerr, ok := err.(*googleapi.Error); ok && gerr.Code == 404 {
 			return nil
 		}

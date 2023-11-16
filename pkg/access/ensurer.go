@@ -34,11 +34,14 @@ type Repo interface {
 	GetOwnerGroupOfDataset(ctx context.Context, datasetID uuid.UUID) (string, error)
 	SetJoinableViewDeleted(ctx context.Context, id uuid.UUID) error
 	GetJoinableViewsToBeDeletedWithRefDatasource(ctx context.Context) ([]gensql.GetJoinableViewsToBeDeletedWithRefDatasourceRow, error)
+	GetPseudoDatasourcesToDelete(ctx context.Context) ([]*models.BigQuery, error)
+	SetDatasourceDeleted(ctx context.Context, id uuid.UUID) error
 }
 
 type BigQuery interface {
 	DeleteJoinableDataset(ctx context.Context, datasetID string) error
 	DeleteJoinableView(ctx context.Context, joinableViewName, refProjectID, refDatasetID, refTableID string) error
+	DeletePseudoView(ctx context.Context, pseudoProjectID, pseudoDatasetID, pseudoTableID string) error
 }
 
 type Revoker interface {
@@ -97,22 +100,56 @@ func (e *Ensurer) run(ctx context.Context) {
 		}
 	}
 
-	if err := e.ensureDeleteBQDatasourceForDeletedDataset(ctx); err != nil {
+	if err := e.ensureDeleteJoinableViewBQForDeletedDataset(ctx); err != nil {
 		e.log.WithError(err).Error("ensuring delete bq datasource for deleted dataset")
 	}
 
 	if err := e.ensureJoinableViewAccesses(ctx); err != nil {
 		e.log.WithError(err).Error("ensuring joinable view accesses")
 	}
+
+	if err := e.ensureDeletePseudoViewBQForDeletedDataset(ctx); err != nil {
+		e.log.WithError(err).Error("ensuring delete pseudo view for deleted dataset")
+	}
 }
 
-func (e *Ensurer) ensureDeleteBQDatasourceForDeletedDataset(ctx context.Context) error {
-	fmt.Println("remove deleted joinable view")
+func (e *Ensurer) ensureDeletePseudoViewBQForDeletedDataset(ctx context.Context) error {
+	pseudoDatasources, err := e.repo.GetPseudoDatasourcesToDelete(ctx)
+	if err != nil {
+		return err
+	}
+
+	if len(pseudoDatasources) == 0 {
+		return nil
+	}
+
+	e.log.Infof("Delete pseudo views without a dataset: %v", pseudoDatasources)
+
+	for _, pds := range pseudoDatasources {
+		if len(pds.PseudoColumns) == 0 {
+			e.log.Errorf("deleting pseudo view without pseudo columns, ignored")
+			continue
+		}
+
+		if err := e.bq.DeletePseudoView(ctx, pds.ProjectID, pds.Dataset, pds.Table); err != nil {
+			e.log.WithError(err).Errorf("deleting pseudo view with deleted dataset %v", pds.Dataset)
+			continue
+		}
+
+		if err := e.repo.SetDatasourceDeleted(ctx, pds.ID); err != nil {
+			e.log.WithError(err).Errorf("setting pseudo view deleted in db, view id: %v", pds.ID)
+		} else {
+			e.log.Infof("pseudo view without dataset deleted: %v", pds.ID)
+		}
+	}
+	return nil
+}
+
+func (e *Ensurer) ensureDeleteJoinableViewBQForDeletedDataset(ctx context.Context) error {
 	jvdatasources, err := e.repo.GetJoinableViewsToBeDeletedWithRefDatasource(ctx)
 	if err != nil {
 		return err
 	}
-	fmt.Println(jvdatasources)
 
 	for _, jvds := range jvdatasources {
 		err := e.bq.DeleteJoinableView(ctx, jvds.JoinableViewName, jvds.BqProjectID, jvds.BqDatasetID, jvds.BqTableID)

@@ -265,6 +265,7 @@ type DatasourceBigquery struct {
 	ID            uuid.UUID
 	IsReference   bool
 	PseudoColumns []string
+	Deleted       sql.NullTime
 }
 
 type HttpCache struct {

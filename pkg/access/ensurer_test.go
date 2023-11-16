@@ -81,6 +81,14 @@ func (m *MockRepo) SetJoinableViewDeleted(ctx context.Context, joinableViewID uu
 	return nil
 }
 
+func (m *MockRepo) GetPseudoDatasourcesToDelete(ctx context.Context) ([]*models.BigQuery, error) {
+	return nil, nil
+}
+
+func (m *MockRepo) SetDatasourceDeleted(ctx context.Context, id uuid.UUID) error {
+	return nil
+}
+
 func (m *MockRepo) GetJoinableViewsToBeDeletedWithRefDatasource(ctx context.Context) ([]gensql.GetJoinableViewsToBeDeletedWithRefDatasourceRow, error) {
 	return nil, nil
 }
@@ -110,5 +118,9 @@ func (b *MockBigQuery) DeleteJoinableDataset(ctx context.Context, datasetID stri
 }
 
 func (b *MockBigQuery) DeleteJoinableView(ctx context.Context, joinableViewName, refProjectID, refDatasetID, refTableID string) error {
+	return nil
+}
+
+func (b *MockBigQuery) DeletePseudoView(ctx context.Context, pseudoProjectID, pseudoDatasetID, pseudoTableID string) error {
 	return nil
 }

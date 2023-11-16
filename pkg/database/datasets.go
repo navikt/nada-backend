@@ -239,7 +239,6 @@ func (r *Repo) UpdateDataset(ctx context.Context, id uuid.UUID, new models.Updat
 	return datasetFromSQL(res), nil
 }
 
-
 func (r *Repo) GetBigqueryDatasource(ctx context.Context, datasetID uuid.UUID, isReference bool) (models.BigQuery, error) {
 	bq, err := r.querier.GetBigqueryDatasource(ctx, gensql.GetBigqueryDatasourceParams{
 		DatasetID:   datasetID,
@@ -410,7 +409,28 @@ func (r *Repo) GetAccessiblePseudoDatasourcesByUser(ctx context.Context, subject
 	return pseudoDatasets, nil
 }
 
+func (r *Repo) GetPseudoDatasourcesToDelete(ctx context.Context) ([]*models.BigQuery, error) {
+	rows, err := r.querier.GetPseudoDatasourcesToDelete(ctx)
+	if err != nil {
+		return nil, err
+	}
 
+	pseudoViews := []*models.BigQuery{}
+	for _, d := range rows {
+		pseudoViews = append(pseudoViews, &models.BigQuery{
+			ID:            d.ID,
+			Dataset:       d.Dataset,
+			ProjectID:     d.ProjectID,
+			Table:         d.TableName,
+			PseudoColumns: d.PseudoColumns,
+		})
+	}
+	return pseudoViews, nil
+}
+
+func (r *Repo) SetDatasourceDeleted(ctx context.Context, id uuid.UUID) error {
+	return r.querier.SetDatasourceDeleted(ctx, id)
+}
 
 func (r *Repo) GetOwnerGroupOfDataset(ctx context.Context, datasetID uuid.UUID) (string, error) {
 	return r.querier.GetOwnerGroupOfDataset(ctx, datasetID)

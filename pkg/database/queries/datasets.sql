@@ -302,3 +302,22 @@ WHERE
     WHERE
       dp.group = ANY(@groups :: text [])
   );
+
+-- name: GetPseudoDatasourcesToDelete :many
+SELECT
+  bq.*
+FROM
+  datasource_bigquery bq
+  LEFT JOIN datasets ds ON bq.dataset_id = ds.id
+WHERE
+  ds.id IS NULL
+  AND bq.deleted is NULL
+  AND ARRAY_LENGTH(bq.pseudo_columns, 1) > 0;
+
+-- name: SetDatasourceDeleted :exec
+UPDATE
+  datasource_bigquery
+SET
+  deleted = NOW()
+WHERE
+  id = @id;
