@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io"
 	"mime"
 	"mime/multipart"
 	"net/http"
@@ -17,6 +18,7 @@ import (
 	"github.com/navikt/nada-backend/pkg/amplitude"
 	"github.com/navikt/nada-backend/pkg/database"
 	"github.com/navikt/nada-backend/pkg/gcs"
+	"github.com/navikt/nada-backend/pkg/graph/models"
 	"github.com/sirupsen/logrus"
 )
 
@@ -55,6 +57,45 @@ func (h *Handler) GetObject(w http.ResponseWriter, r *http.Request) {
 	w.Header().Add("content-encoding", attr.ContentEncoding)
 
 	w.Write(objBytes)
+}
+
+func (h *Handler) Create(w http.ResponseWriter, r *http.Request) {
+	team := r.Context().Value("team").(string)
+
+	bodyBytes, err := io.ReadAll(r.Body)
+	if err != nil {
+		h.log.WithError(err).Errorf("reading body")
+		h.writeError(w, http.StatusBadRequest, fmt.Errorf("error reading body"))
+		return
+	}
+
+	newQuartoStory := models.NewQuartoStory{}
+	if err := json.Unmarshal(bodyBytes, &newQuartoStory); err != nil {
+		h.log.WithError(err).Errorf("unmarshalling request body")
+		h.writeError(w, http.StatusBadRequest, fmt.Errorf("error unmarshalling request body"))
+		return
+	}
+	newQuartoStory.Group = team
+	if newQuartoStory.Keywords == nil {
+		newQuartoStory.Keywords = []string{}
+	}
+
+	quarto, err := h.repo.CreateQuartoStory(r.Context(), team, newQuartoStory)
+	if err != nil {
+		h.log.WithError(err).Errorf("creating quarto story")
+		h.writeError(w, http.StatusInternalServerError, fmt.Errorf("error creating quarto story"))
+		return
+	}
+
+	retBytes, err := json.Marshal(quarto)
+	if err != nil {
+		h.log.WithError(err).Errorf("marshalling response json after creating quarto")
+		h.writeError(w, http.StatusInternalServerError, fmt.Errorf("error creating quarto story"))
+		return
+	}
+
+	w.Header().Add("content-type", "application/json")
+	w.Write(retBytes)
 }
 
 func (h *Handler) Update(w http.ResponseWriter, r *http.Request) {
@@ -109,6 +150,8 @@ func (h *Handler) QuartoMiddleware(next http.Handler) http.Handler {
 		switch r.Method {
 		case http.MethodGet:
 			h.getQuarto(w, r, next)
+		case http.MethodPost:
+			h.createQuarto(w, r, next)
 		case http.MethodPut:
 			h.updateQuarto(w, r, next)
 		}
@@ -129,6 +172,29 @@ func (h *Handler) getQuarto(w http.ResponseWriter, r *http.Request, next http.Ha
 	}
 
 	next.ServeHTTP(w, r)
+}
+
+func (h *Handler) createQuarto(w http.ResponseWriter, r *http.Request, next http.Handler) {
+	fmt.Println("middelvare")
+	authHeader := r.Header.Get("Authorization")
+	token, err := getTokenFromHeader(authHeader)
+	if err != nil {
+		h.writeError(w, http.StatusForbidden, err)
+		return
+	}
+
+	fmt.Println("token", token)
+
+	team, err := h.repo.GetTeamFromToken(r.Context(), token)
+	if err != nil {
+		h.writeError(w, http.StatusForbidden, err)
+		return
+	}
+
+	fmt.Println("team", team)
+
+	ctx := context.WithValue(r.Context(), "team", team+"@nav.no")
+	next.ServeHTTP(w, r.WithContext(ctx))
 }
 
 func (h *Handler) updateQuarto(w http.ResponseWriter, r *http.Request, next http.Handler) {

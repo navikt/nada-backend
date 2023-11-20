@@ -30,3 +30,7 @@ func (r *Repo) GetNadaTokens(ctx context.Context, teams []string) ([]*models.Nad
 func (r *Repo) DeleteNadaToken(ctx context.Context, team string) error {
 	return r.querier.DeleteNadaToken(ctx, team)
 }
+
+func (r *Repo) GetTeamFromToken(ctx context.Context, token uuid.UUID) (string, error) {
+	return r.querier.GetTeamFromNadaToken(ctx, token)
+}

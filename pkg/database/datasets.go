@@ -12,7 +12,7 @@ import (
 	"github.com/navikt/nada-backend/pkg/auth"
 	"github.com/navikt/nada-backend/pkg/database/gensql"
 	"github.com/navikt/nada-backend/pkg/graph/models"
-	"github.com/tabbed/pqtype"
+	"github.com/sqlc-dev/pqtype"
 )
 
 func (r *Repo) GetDataset(ctx context.Context, id uuid.UUID) (*models.Dataset, error) {

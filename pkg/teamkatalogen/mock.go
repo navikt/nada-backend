@@ -37,8 +37,8 @@ func (m *Mock) Search(ctx context.Context, query string) ([]*models.Teamkataloge
 }
 
 func (m *Mock) GetTeamsInProductArea(ctx context.Context, paID string) ([]*models.Team, error) {
-	var mockedTeams = CreateMockedTeams()
-	var teams = make([]*models.Team, 0)
+	mockedTeams := CreateMockedTeams()
+	teams := make([]*models.Team, 0)
 	for _, t := range mockedTeams {
 		if t.ProductAreaID == paID {
 			teams = append(teams, t)
@@ -94,7 +94,7 @@ func CreateMockedTeams() []*models.Team {
 		})
 	}
 
-	var staticMockedTeams = []*models.Team{
+	staticMockedTeams := []*models.Team{
 		{
 			ID:            "Team-Frifrokost-001",
 			Name:          "Team Frifrokost",

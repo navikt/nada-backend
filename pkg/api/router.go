@@ -56,6 +56,7 @@ func New(
 	router.Route("/quarto/", func(r chi.Router) {
 		r.Use(quartoHandler.QuartoMiddleware)
 		r.Get("/*", quartoHandler.GetObject)
+		r.Post("/create", quartoHandler.Create)
 		r.Put("/update/{id}", quartoHandler.Update)
 	})
 	router.Route("/internal", func(r chi.Router) {
