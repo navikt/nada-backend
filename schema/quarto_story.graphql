@@ -43,6 +43,8 @@ input UploadFile @goModel(model: "github.com/navikt/nada-backend/pkg/graph/model
 NewQuartoStory contains the metadata and content of quarto stories.
 """
 input NewQuartoStory @goModel(model: "github.com/navikt/nada-backend/pkg/graph/models.NewQuartoStory"){
+    "id of the quarto story."
+    id: ID
 	"name of the quarto story."
 	name: String!
 	"description of the quarto story."

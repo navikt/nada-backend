@@ -20,6 +20,30 @@ INSERT INTO quarto_stories (
 )
 RETURNING *;
 
+-- name: CreateQuartoStoryWithID :one
+INSERT INTO quarto_stories (
+    "id",
+	"name",
+    "creator",
+	"description",
+	"keywords",
+	"teamkatalogen_url",
+    "product_area_id",
+    "team_id",
+    "group"
+) VALUES (
+    @id,
+	@name,
+	@creator,
+	@description,
+	@keywords,
+	@teamkatalogen_url,
+    @product_area_id,
+    @team_id,
+    @owner_group
+)
+RETURNING *;
+
 -- name: GetQuartoStory :one
 SELECT *
 FROM quarto_stories

@@ -3818,6 +3818,8 @@ input UploadFile @goModel(model: "github.com/navikt/nada-backend/pkg/graph/model
 NewQuartoStory contains the metadata and content of quarto stories.
 """
 input NewQuartoStory @goModel(model: "github.com/navikt/nada-backend/pkg/graph/models.NewQuartoStory"){
+    "id of the quarto story."
+    id: ID
 	"name of the quarto story."
 	name: String!
 	"description of the quarto story."
@@ -21416,13 +21418,22 @@ func (ec *executionContext) unmarshalInputNewQuartoStory(ctx context.Context, ob
 		asMap[k] = v
 	}
 
-	fieldsInOrder := [...]string{"name", "description", "keywords", "teamkatalogenURL", "productAreaID", "teamID", "group"}
+	fieldsInOrder := [...]string{"id", "name", "description", "keywords", "teamkatalogenURL", "productAreaID", "teamID", "group"}
 	for _, k := range fieldsInOrder {
 		v, ok := asMap[k]
 		if !ok {
 			continue
 		}
 		switch k {
+		case "id":
+			var err error
+
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("id"))
+			data, err := ec.unmarshalOID2ᚖgithubᚗcomᚋgoogleᚋuuidᚐUUID(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.ID = data
 		case "name":
 			var err error
 

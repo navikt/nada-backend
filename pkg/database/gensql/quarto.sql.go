@@ -75,6 +75,72 @@ func (q *Queries) CreateQuartoStory(ctx context.Context, arg CreateQuartoStoryPa
 	return i, err
 }
 
+const createQuartoStoryWithID = `-- name: CreateQuartoStoryWithID :one
+INSERT INTO quarto_stories (
+    "id",
+	"name",
+    "creator",
+	"description",
+	"keywords",
+	"teamkatalogen_url",
+    "product_area_id",
+    "team_id",
+    "group"
+) VALUES (
+    $1,
+	$2,
+	$3,
+	$4,
+	$5,
+	$6,
+    $7,
+    $8,
+    $9
+)
+RETURNING id, name, creator, created, last_modified, description, keywords, teamkatalogen_url, product_area_id, team_id, "group"
+`
+
+type CreateQuartoStoryWithIDParams struct {
+	ID               uuid.UUID
+	Name             string
+	Creator          string
+	Description      string
+	Keywords         []string
+	TeamkatalogenUrl sql.NullString
+	ProductAreaID    sql.NullString
+	TeamID           sql.NullString
+	OwnerGroup       string
+}
+
+func (q *Queries) CreateQuartoStoryWithID(ctx context.Context, arg CreateQuartoStoryWithIDParams) (QuartoStory, error) {
+	row := q.db.QueryRowContext(ctx, createQuartoStoryWithID,
+		arg.ID,
+		arg.Name,
+		arg.Creator,
+		arg.Description,
+		pq.Array(arg.Keywords),
+		arg.TeamkatalogenUrl,
+		arg.ProductAreaID,
+		arg.TeamID,
+		arg.OwnerGroup,
+	)
+	var i QuartoStory
+	err := row.Scan(
+		&i.ID,
+		&i.Name,
+		&i.Creator,
+		&i.Created,
+		&i.LastModified,
+		&i.Description,
+		pq.Array(&i.Keywords),
+		&i.TeamkatalogenUrl,
+		&i.ProductAreaID,
+		&i.TeamID,
+		&i.Group,
+	)
+	return i, err
+}
+
 const deleteQuartoStory = `-- name: DeleteQuartoStory :exec
 DELETE FROM quarto_stories
 WHERE id = $1
