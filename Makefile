@@ -4,7 +4,7 @@ LAST_COMMIT = $(shell git --no-pager log -1 --pretty=%h)
 VERSION ?= $(DATE)-$(LAST_COMMIT)
 LDFLAGS := -X github.com/navikt/nada-backend/backend/version.Revision=$(shell git rev-parse --short HEAD) -X github.com/navikt/nada-backend/backend/version.Version=$(VERSION)
 APP = nada-backend
-SQLC_VERSION ?= "v1.16.0"
+SQLC_VERSION ?= "v1.23.0"
 # Get the currently used golang install path (in GOPATH/bin, unless GOBIN is set)
 ifeq (,$(shell go env GOBIN))
 	GOBIN=$(shell go env GOPATH)/bin
@@ -51,7 +51,9 @@ local-with-auth:
 	--team-projects-url=https://raw.githubusercontent.com/nais/teams/master/gcp-projects/dev-output.json \
 	--quarto-bucket=nada-quarto-storage-dev \
 	--console-api-key="$(CONSOLE_API_KEY)" \
-	--log-level=debug
+	--log-level=debug \
+	--central-data-project=nav-central-data-dev-e170 
+
 
 local:
 	STORAGE_EMULATOR_HOST=http://localhost:8082/storage/v1/ GCP_QUARTO_STORAGE_BUCKET_NAME=nada-quarto-storage-dev DASHBOARD_PA_ID=Mocked-001 go run ./cmd/nada-backend \
@@ -85,4 +87,4 @@ docker-push:
 	docker image push ghcr.io/navikt/$(APP):latest
 
 install-sqlc:
-	go install github.com/kyleconroy/sqlc/cmd/sqlc@$(SQLC_VERSION)
+	go install github.com/sqlc-dev/sqlc/cmd/sqlc@$(SQLC_VERSION)

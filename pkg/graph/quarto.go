@@ -17,18 +17,18 @@ func WriteFilesToBucket(ctx context.Context, quartoStoryID string,
 	files []*models.UploadFile,
 ) error {
 	var err error
-	for _, file:= range files{
-		gcsPath:= quartoStoryID + "/" + file.Path
-		err= WriteFileToBucket(ctx, gcsPath, file.File)
-		if err!= nil{
-			log.Fatalf("Error writing quarto file: "+ gcsPath)
+	for _, file := range files {
+		gcsPath := quartoStoryID + "/" + file.Path
+		err = WriteFileToBucket(ctx, gcsPath, file.File)
+		if err != nil {
+			log.Fatalf("Error writing quarto file: " + gcsPath)
 			break
 		}
 	}
-	if err!= nil{
+	if err != nil {
 		ed := deleteQuartoStoryFolder(ctx, quartoStoryID)
-		if ed!= nil{
-			log.Fatalf("Error delete quarto folder: "+ quartoStoryID)
+		if ed != nil {
+			log.Fatalf("Error delete quarto folder: " + quartoStoryID)
 		}
 	}
 

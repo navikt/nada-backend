@@ -85,7 +85,7 @@ func (m *Metabase) run(ctx context.Context) {
 	}
 
 	for _, db := range mbMetas {
-		bq, err := m.repo.GetBigqueryDatasource(ctx, db.DatasetID)
+		bq, err := m.repo.GetBigqueryDatasource(ctx, db.DatasetID, false)
 		if err != nil {
 			log.WithError(err).Error("getting bigquery datasource for dataset")
 		}

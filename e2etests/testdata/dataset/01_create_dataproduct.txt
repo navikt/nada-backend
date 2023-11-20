@@ -3,14 +3,6 @@ mutation {
 		input: {
 			name: "NewName"
 			description: "New description"
-            datasets: [{
-                name: "DatasetCreatedWithDataproduct"
-                description: "dataset created with dataproduct"
-			    pii: none
-			    bigquery: { projectID: "team-dev-1337", dataset: "dataset1", table: "table1" }
-                repo: "somerepo"
-                keywords: ["keyword1", "otherkeyword"]
-            }]
 			group: "team@nav.no"
             teamContact: "#team"
 		}

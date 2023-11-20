@@ -27,6 +27,8 @@ type Config struct {
 	ConsoleAPIKey                   string
 	ConsoleURL                      string
 	AmplitudeAPIKey                 string
+	CentralDataProject              string
+	PseudoDataset                   string
 }
 
 type OAuth2Config struct {

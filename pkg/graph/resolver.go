@@ -8,7 +8,9 @@ import (
 	"github.com/99designs/gqlgen-contrib/prometheus"
 	"github.com/99designs/gqlgen/graphql"
 	"github.com/99designs/gqlgen/graphql/handler"
+	"github.com/google/uuid"
 	"github.com/navikt/nada-backend/pkg/auth"
+	bq "github.com/navikt/nada-backend/pkg/bigquery"
 	"github.com/navikt/nada-backend/pkg/database"
 	"github.com/navikt/nada-backend/pkg/graph/generated"
 	"github.com/navikt/nada-backend/pkg/graph/models"
@@ -21,12 +23,18 @@ type Bigquery interface {
 	GetTables(ctx context.Context, projectID, datasetID string) ([]*models.BigQueryTable, error)
 	GetDatasets(ctx context.Context, projectID string) ([]string, error)
 	TableMetadata(ctx context.Context, projectID string, datasetID string, tableID string) (models.BigqueryMetadata, error)
+	CreatePseudonymisedView(ctx context.Context, projectID string, datasetID string, tableID string, targetColumns []string) (string, string, string, error)
+	CreateJoinableViewsForUser(ctx context.Context, name string, datasources []bq.JoinableViewDatasource) (string, string, map[uuid.UUID]string, error)
+	MakeBigQueryUrlForJoinableViews(name, projectID, datasetID, tableID string) string
+	DeleteJoinableDataset(ctx context.Context, datasetID string) error
+	DeleteJoinableView(ctx context.Context, joinableViewName, refProjectID, refDatasetID, refTableID string) error
+	DeletePseudoView(ctx context.Context, pseudoProjectID, pseudoDatasetID, pseudoTableID string) error
 }
 
 type AccessManager interface {
 	Grant(ctx context.Context, projectID, dataset, table, member string) error
 	Revoke(ctx context.Context, projectID, dataset, table, member string) error
-	AddToAuthorizedViews(ctx context.Context, projectID, dataset, table string) error
+	AddToAuthorizedViews(ctx context.Context, srcProjectID, srcDataset, sinkProjectID, sinkDataset, sinkTable string) error
 }
 
 type Polly interface {
@@ -46,26 +54,28 @@ type Slack interface {
 }
 
 type Resolver struct {
-	repo          *database.Repo
-	bigquery      Bigquery
-	gcpProjects   *auth.TeamProjectsMapping
-	accessMgr     AccessManager
-	teamkatalogen Teamkatalogen
-	slack         Slack
-	pollyAPI      Polly
-	log           *logrus.Entry
+	repo               *database.Repo
+	bigquery           Bigquery
+	gcpProjects        *auth.TeamProjectsMapping
+	accessMgr          AccessManager
+	teamkatalogen      Teamkatalogen
+	slack              Slack
+	pollyAPI           Polly
+	centralDataProject string
+	log                *logrus.Entry
 }
 
-func New(repo *database.Repo, gcp Bigquery, gcpProjects *auth.TeamProjectsMapping, accessMgr AccessManager, tk Teamkatalogen, slack Slack, pollyAPI Polly, log *logrus.Entry) *handler.Server {
+func New(repo *database.Repo, gcp Bigquery, gcpProjects *auth.TeamProjectsMapping, accessMgr AccessManager, tk Teamkatalogen, slack Slack, pollyAPI Polly, centralDataProject string, log *logrus.Entry) *handler.Server {
 	resolver := &Resolver{
-		repo:          repo,
-		bigquery:      gcp,
-		gcpProjects:   gcpProjects,
-		accessMgr:     accessMgr,
-		teamkatalogen: tk,
-		slack:         slack,
-		pollyAPI:      pollyAPI,
-		log:           log,
+		repo:               repo,
+		bigquery:           gcp,
+		gcpProjects:        gcpProjects,
+		accessMgr:          accessMgr,
+		teamkatalogen:      tk,
+		slack:              slack,
+		pollyAPI:           pollyAPI,
+		centralDataProject: centralDataProject,
+		log:                log,
 	}
 
 	config := generated.Config{Resolvers: resolver}
@@ -144,7 +154,7 @@ func (r *Resolver) prepareBigQuery(ctx context.Context, bq models.NewBigQuery, g
 	case bigquery.ViewTable:
 		fallthrough
 	case bigquery.MaterializedView:
-		if err := r.accessMgr.AddToAuthorizedViews(ctx, bq.ProjectID, bq.Dataset, bq.Table); err != nil {
+		if err := r.accessMgr.AddToAuthorizedViews(ctx, bq.ProjectID, bq.Dataset, bq.ProjectID, bq.Dataset, bq.Table); err != nil {
 			return models.BigqueryMetadata{}, err
 		}
 	default:

@@ -59,10 +59,13 @@ type TableColumn @goModel(model: "github.com/navikt/nada-backend/pkg/graph/model
     type: String!
 }
 
+
 """
 BigQuery contains metadata on a BigQuery table.
 """
 type BigQuery @goModel(model: "github.com/navikt/nada-backend/pkg/graph/models.BigQuery") {
+    "id is the identifier for the datasource"
+    id: ID!
     "projectID is the GCP project ID that contains the BigQuery table"
     projectID: String!
     "dataset is the dataset that contains the BigQuery table"
@@ -85,6 +88,21 @@ type BigQuery @goModel(model: "github.com/navikt/nada-backend/pkg/graph/models.B
     piiTags: String
     "missingSince, if set, is the time when the table got deleted from BigQuery"
     missingSince: Time
+    "pseudoColumns, if set, the columns are pseudonymised"
+    pseudoColumns: [String!]
+
+}
+
+"""
+PseudoDataset contains information about a pseudo dataset
+"""
+type PseudoDataset @goModel(model: "github.com/navikt/nada-backend/pkg/graph/models.PseudoDataset") {
+    "name is the name of the dataset"
+    name: String!
+    "datasetID is the id of the dataset"
+    datasetID: ID!
+    "datasourceID is the id of the bigquery datasource"
+    datasourceID: ID!
 }
 
 """
@@ -115,6 +133,11 @@ extend type Query {
         "dataproductID is the id of the dataproduct."
         dataproductID: ID!
     ): [Dataset!]!
+
+    """
+    accessiblePseudoDatasets returns the pseudo datasets the user has access to.
+    """
+    accessiblePseudoDatasets: [PseudoDataset!]! @authenticated
 }
 
 """
@@ -155,30 +178,8 @@ input NewDataset @goModel(model: "github.com/navikt/nada-backend/pkg/graph/model
     grantAllUsers: Boolean
     "targetUser is the type of user that the dataset is meant to be used by"
     targetUser: String
-}
-
-"""
-NewDatasetForNewDataproduct contains metadata for creating a new dataset for a new dataproduct
-"""
-input NewDatasetForNewDataproduct @goModel(model: "github.com/navikt/nada-backend/pkg/graph/models.NewDatasetForNewDataproduct") {
-    "name of dataset"
-    name: String!
-    "description of the dataset"
-    description: String
-    "repo is the url of the repository containing the code to create the dataset"
-    repo: String
-    "pii indicates whether it is personal identifiable information in the dataset"
-    pii: PiiLevel!
-    "keywords for the dataset used as tags."
-    keywords: [String!]
-    "bigquery contains metadata for the bigquery datasource added to the dataset."
-    bigquery: NewBigQuery!
-    "anonymisation_description explains how the dataset was anonymised, should be null if `pii` isn't anonymised"
-    anonymisation_description: String
-    "grantAllUsers is a boolean indicating whether the dataset shall be made available for all users on creation"
-    grantAllUsers: Boolean
-    "targetUser is the type of user that the dataset is meant to be used by"
-    targetUser: String
+    "pseudoColumns is the name of the columns that need to be pseudonymised"
+    pseudoColumns: [String!]
 }
 
 """
@@ -203,6 +204,8 @@ input UpdateDataset @goModel(model: "github.com/navikt/nada-backend/pkg/graph/mo
     piiTags: String
     "targetUser is the type of user that the dataset is meant to be used by"
     targetUser: String
+    "pseudoColumns is the name of the columns that need to be pseudonymised"
+    pseudoColumns: [String!]
 }
 
 """

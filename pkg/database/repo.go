@@ -16,9 +16,9 @@ import (
 	"github.com/navikt/nada-backend/pkg/event"
 
 	// Pin version of sqlc and goose for cli
-	_ "github.com/kyleconroy/sqlc"
 	"github.com/pressly/goose/v3"
 	"github.com/qustavo/sqlhooks/v2"
+	_ "github.com/sqlc-dev/sqlc"
 )
 
 //go:embed migrations/*.sql
@@ -31,7 +31,8 @@ type Repo struct {
 
 	events *event.Manager
 
-	hooks *Hooks
+	hooks              *Hooks
+	centralDataProject string
 }
 
 func (r *Repo) Metrics() []prometheus.Collector {
@@ -43,7 +44,7 @@ type Querier interface {
 	WithTx(tx *sql.Tx) *gensql.Queries
 }
 
-func New(dbConnDSN string, maxIdleConn, maxOpenConn int, eventMgr *event.Manager, log *logrus.Entry) (*Repo, error) {
+func New(dbConnDSN string, maxIdleConn, maxOpenConn int, eventMgr *event.Manager, log *logrus.Entry, centralDataProject string) (*Repo, error) {
 	hooks := NewHooks()
 	sql.Register("psqlhooked", sqlhooks.Wrap(&pq.Driver{}, hooks))
 
@@ -61,11 +62,12 @@ func New(dbConnDSN string, maxIdleConn, maxOpenConn int, eventMgr *event.Manager
 	}
 
 	return &Repo{
-		querier: gensql.New(db),
-		db:      db,
-		log:     log,
-		events:  eventMgr,
-		hooks:   hooks,
+		querier:            gensql.New(db),
+		db:                 db,
+		log:                log,
+		events:             eventMgr,
+		hooks:              hooks,
+		centralDataProject: centralDataProject,
 	}, nil
 }
 

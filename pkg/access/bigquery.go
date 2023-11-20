@@ -82,13 +82,13 @@ func (b Bigquery) Revoke(ctx context.Context, projectID, datasetID, tableID, mem
 	return bqTable.IAM().SetPolicy(ctx, policy)
 }
 
-func (b Bigquery) AddToAuthorizedViews(ctx context.Context, projectID, dataset, table string) error {
-	bqClient, err := bigquery.NewClient(ctx, projectID)
+func (b Bigquery) AddToAuthorizedViews(ctx context.Context, srcProjectID, srcDataset, sinkProjectID, sinkDataset, sinkTable string) error {
+	bqClient, err := bigquery.NewClient(ctx, srcProjectID)
 	if err != nil {
 		return fmt.Errorf("bigquery.NewClient: %v", err)
 	}
 	defer bqClient.Close()
-	ds := bqClient.Dataset(dataset)
+	ds := bqClient.Dataset(srcDataset)
 	m, err := ds.Metadata(ctx)
 	if err != nil {
 		return fmt.Errorf("ds.Metadata: %w", err)
@@ -97,7 +97,7 @@ func (b Bigquery) AddToAuthorizedViews(ctx context.Context, projectID, dataset, 
 	if m.Access != nil {
 		for _, e := range m.Access {
 			if e != nil && e.EntityType == bigquery.ViewEntity && e.View != nil &&
-				e.View.ProjectID == projectID && e.View.DatasetID == dataset && e.View.TableID == table {
+				e.View.ProjectID == sinkProjectID && e.View.DatasetID == sinkDataset && e.View.TableID == sinkTable {
 				return nil
 			}
 		}
@@ -106,9 +106,9 @@ func (b Bigquery) AddToAuthorizedViews(ctx context.Context, projectID, dataset, 
 	newEntry := &bigquery.AccessEntry{
 		EntityType: bigquery.ViewEntity,
 		View: &bigquery.Table{
-			ProjectID: projectID,
-			DatasetID: dataset,
-			TableID:   table,
+			ProjectID: sinkProjectID,
+			DatasetID: sinkDataset,
+			TableID:   sinkTable,
 		},
 	}
 
