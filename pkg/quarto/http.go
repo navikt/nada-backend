@@ -175,7 +175,6 @@ func (h *Handler) getQuarto(w http.ResponseWriter, r *http.Request, next http.Ha
 }
 
 func (h *Handler) createQuarto(w http.ResponseWriter, r *http.Request, next http.Handler) {
-	fmt.Println("middelvare")
 	authHeader := r.Header.Get("Authorization")
 	token, err := getTokenFromHeader(authHeader)
 	if err != nil {
@@ -183,15 +182,11 @@ func (h *Handler) createQuarto(w http.ResponseWriter, r *http.Request, next http
 		return
 	}
 
-	fmt.Println("token", token)
-
 	team, err := h.repo.GetTeamFromToken(r.Context(), token)
 	if err != nil {
 		h.writeError(w, http.StatusForbidden, err)
 		return
 	}
-
-	fmt.Println("team", team)
 
 	ctx := context.WithValue(r.Context(), "team", team+"@nav.no")
 	next.ServeHTTP(w, r.WithContext(ctx))
