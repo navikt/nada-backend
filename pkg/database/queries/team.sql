@@ -18,6 +18,11 @@ ORDER BY
 
 ;
 
+-- name: GetTeamFromNadaToken :one
+SELECT team
+FROM nada_tokens
+WHERE token = @token;
+
 -- name: DeleteNadaToken :exec
 DELETE FROM
     nada_tokens

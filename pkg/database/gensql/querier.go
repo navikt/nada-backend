@@ -26,6 +26,7 @@ type Querier interface {
 	CreateMetabaseMetadata(ctx context.Context, arg CreateMetabaseMetadataParams) error
 	CreatePollyDocumentation(ctx context.Context, arg CreatePollyDocumentationParams) (PollyDocumentation, error)
 	CreateQuartoStory(ctx context.Context, arg CreateQuartoStoryParams) (QuartoStory, error)
+	CreateQuartoStoryWithID(ctx context.Context, arg CreateQuartoStoryWithIDParams) (QuartoStory, error)
 	CreateSession(ctx context.Context, arg CreateSessionParams) error
 	CreateStory(ctx context.Context, arg CreateStoryParams) (Story, error)
 	CreateStoryDraft(ctx context.Context, name string) (StoryDraft, error)
@@ -114,6 +115,7 @@ type Querier interface {
 	GetTag(ctx context.Context) (Tag, error)
 	GetTagByPhrase(ctx context.Context) (Tag, error)
 	GetTags(ctx context.Context) ([]Tag, error)
+	GetTeamFromNadaToken(ctx context.Context, token uuid.UUID) (string, error)
 	GetTeamProjects(ctx context.Context) ([]TeamProject, error)
 	GrantAccessToDataset(ctx context.Context, arg GrantAccessToDatasetParams) (DatasetAccess, error)
 	ListAccessRequestsForDataset(ctx context.Context, datasetID uuid.UUID) ([]DatasetAccessRequest, error)

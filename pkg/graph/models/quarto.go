@@ -34,6 +34,8 @@ type QuartoStory struct {
 
 // NewQuartoStory contains the metadata and content of quarto stories.
 type NewQuartoStory struct {
+	// id of quarto story
+	ID *uuid.UUID `json:"id"`
 	// name of the quarto story.
 	Name string `json:"name"`
 	// description of the quarto story.

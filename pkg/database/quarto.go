@@ -11,19 +11,35 @@ import (
 
 func (r *Repo) CreateQuartoStory(ctx context.Context, creator string,
 	newQuartoStory models.NewQuartoStory,
-) (models.QuartoStory, error) {
-	quartoSQL, err := r.querier.CreateQuartoStory(ctx, gensql.CreateQuartoStoryParams{
-		Name:             newQuartoStory.Name,
-		Creator:          creator,
-		Description:      ptrToString(newQuartoStory.Description),
-		Keywords:         newQuartoStory.Keywords,
-		TeamkatalogenUrl: ptrToNullString(newQuartoStory.TeamkatalogenURL),
-		ProductAreaID:    ptrToNullString(newQuartoStory.ProductAreaID),
-		TeamID:           ptrToNullString(newQuartoStory.TeamID),
-		OwnerGroup:       newQuartoStory.Group,
-	})
+) (*models.QuartoStory, error) {
+	var quartoSQL gensql.QuartoStory
+	var err error
+	if newQuartoStory.ID == nil {
+		quartoSQL, err = r.querier.CreateQuartoStory(ctx, gensql.CreateQuartoStoryParams{
+			Name:             newQuartoStory.Name,
+			Creator:          creator,
+			Description:      ptrToString(newQuartoStory.Description),
+			Keywords:         newQuartoStory.Keywords,
+			TeamkatalogenUrl: ptrToNullString(newQuartoStory.TeamkatalogenURL),
+			ProductAreaID:    ptrToNullString(newQuartoStory.ProductAreaID),
+			TeamID:           ptrToNullString(newQuartoStory.TeamID),
+			OwnerGroup:       newQuartoStory.Group,
+		})
+	} else {
+		quartoSQL, err = r.querier.CreateQuartoStoryWithID(ctx, gensql.CreateQuartoStoryWithIDParams{
+			ID:               *newQuartoStory.ID,
+			Name:             newQuartoStory.Name,
+			Creator:          creator,
+			Description:      ptrToString(newQuartoStory.Description),
+			Keywords:         newQuartoStory.Keywords,
+			TeamkatalogenUrl: ptrToNullString(newQuartoStory.TeamkatalogenURL),
+			ProductAreaID:    ptrToNullString(newQuartoStory.ProductAreaID),
+			TeamID:           ptrToNullString(newQuartoStory.TeamID),
+			OwnerGroup:       newQuartoStory.Group,
+		})
+	}
 
-	return *quartoSQLToGraphql(&quartoSQL), err
+	return quartoSQLToGraphql(&quartoSQL), err
 }
 
 func (r *Repo) GetQuartoStory(ctx context.Context, id uuid.UUID) (*models.QuartoStory, error) {

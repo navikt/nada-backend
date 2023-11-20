@@ -73,3 +73,16 @@ func (q *Queries) GetNadaTokens(ctx context.Context, teams []string) ([]NadaToke
 	}
 	return items, nil
 }
+
+const getTeamFromNadaToken = `-- name: GetTeamFromNadaToken :one
+SELECT team
+FROM nada_tokens
+WHERE token = $1
+`
+
+func (q *Queries) GetTeamFromNadaToken(ctx context.Context, token uuid.UUID) (string, error) {
+	row := q.db.QueryRowContext(ctx, getTeamFromNadaToken, token)
+	var team string
+	err := row.Scan(&team)
+	return team, err
+}

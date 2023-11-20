@@ -23,8 +23,8 @@ func (r *mutationResolver) CreateQuartoStory(ctx context.Context, files []*model
 		return nil, err
 	}
 
-	//Create a new File object with the uploaded file's public URL
-	return &story, nil
+	// Create a new File object with the uploaded file's public URL
+	return story, nil
 }
 
 // UpdateQuartoStoryMetadata is the resolver for the updateQuartoStoryMetadata field.
