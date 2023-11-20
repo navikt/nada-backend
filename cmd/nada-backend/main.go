@@ -78,6 +78,8 @@ func init() {
 	flag.StringVar(&cfg.QuartoStorageBucketName, "quarto-bucket", os.Getenv("GCP_QUARTO_STORAGE_BUCKET_NAME"), "Name of the gcs bucket for quarto stories")
 	flag.StringVar(&cfg.ConsoleAPIKey, "console-api-key", os.Getenv("CONSOLE_API_KEY"), "API key for nais console")
 	flag.StringVar(&cfg.AmplitudeAPIKey, "amplitude-api-key", os.Getenv("AMPLITUDE_API_KEY"), "API key for Amplitude")
+	flag.StringVar(&cfg.CentralDataProject, "central-data-project", os.Getenv("CENTRAL_DATA_PROJECT"), "bigquery project for pseudo views")
+	flag.StringVar(&cfg.PseudoDataset, "pseudo-dataset", "markedsplassen_pseudo", "bigquery dataset in producers' project for markedplassen saving pseudo views")
 }
 
 func main() {
@@ -91,7 +93,7 @@ func main() {
 
 	eventMgr := event.New(ctx)
 
-	repo, err := database.New(cfg.DBConnectionDSN, cfg.DBMaxIdleConn, cfg.DBMaxOpenConn, eventMgr, log.WithField("subsystem", "repo"))
+	repo, err := database.New(cfg.DBConnectionDSN, cfg.DBMaxIdleConn, cfg.DBMaxOpenConn, eventMgr, log.WithField("subsystem", "repo"), cfg.CentralDataProject)
 	if err != nil {
 		log.WithError(err).Fatal("setting up database")
 	}
@@ -99,6 +101,11 @@ func main() {
 	httpwithcache.SetDatabase(repo.GetDB())
 
 	gcsClient, err := gcs.New(ctx, cfg.QuartoStorageBucketName, log.WithField("subsystem", "gcs"))
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	googleGroups, err := auth.NewGoogleGroups(ctx, cfg.ServiceAccountFile, cfg.GoogleAdminImpersonationSubject, log.WithField("subsystem", "googlegroups"))
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -121,10 +128,6 @@ func main() {
 		go teamProjectsUpdater.Run(ctx, TeamProjectsUpdateFrequency)
 
 		azureGroups := auth.NewAzureGroups(http.DefaultClient, cfg.OAuth2.ClientID, cfg.OAuth2.ClientSecret, cfg.OAuth2.TenantID)
-		googleGroups, err := auth.NewGoogleGroups(ctx, cfg.ServiceAccountFile, cfg.GoogleAdminImpersonationSubject, log.WithField("subsystem", "googlegroups"))
-		if err != nil {
-			log.Fatal(err)
-		}
 
 		aauth := auth.NewAzure(cfg.OAuth2.ClientID, cfg.OAuth2.ClientSecret, cfg.OAuth2.TenantID, cfg.Hostname)
 		oauth2Config = aauth
@@ -145,11 +148,9 @@ func main() {
 		log.WithError(err).Fatal("running metabase")
 	}
 
-	go access.NewEnsurer(repo, accessMgr, promErrs, log.WithField("subsystem", "accessensurer")).Run(ctx, AccessEnsurerFrequency)
-
 	var gcp graph.Bigquery = bigquery.NewMock()
 	if !cfg.SkipMetadataSync {
-		datacatalogClient, err := bigquery.New(ctx)
+		datacatalogClient, err := bigquery.New(ctx, cfg.CentralDataProject, cfg.PseudoDataset)
 		if err != nil {
 			log.WithError(err).Fatal("Creating datacatalog client")
 		}
@@ -157,10 +158,12 @@ func main() {
 		gcp = datacatalogClient
 	}
 
+	go access.NewEnsurer(repo, accessMgr, gcp, googleGroups, cfg.CentralDataProject, promErrs, log.WithField("subsystem", "accessensurer")).Run(ctx, AccessEnsurerFrequency)
+
 	go story.NewDraftCleaner(repo, log.WithField("subsystem", "storydraftcleaner")).Run(ctx, StoryDraftCleanerFrequency)
 
 	log.Info("Listening on :8080")
-	gqlServer := graph.New(repo, gcp, teamProjectsUpdater.TeamProjectsMapping, accessMgr, teamcatalogue, slackClient, pollyAPI, log.WithField("subsystem", "graph"))
+	gqlServer := graph.New(repo, gcp, teamProjectsUpdater.TeamProjectsMapping, accessMgr, teamcatalogue, slackClient, pollyAPI, cfg.CentralDataProject, log.WithField("subsystem", "graph"))
 	srv := api.New(repo, gcsClient, httpAPI, authenticatorMiddleware, gqlServer, prom(repo.Metrics()...), amplitudeClient, log)
 
 	server := http.Server{

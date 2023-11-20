@@ -228,7 +228,7 @@ func (m *Metabase) create(ctx context.Context, ds dsWrapper) error {
 	log := m.log.WithField("Dataset", ds.Dataset.Name)
 	log.Printf("Create metabase database for dataset %v", ds.Dataset.Name)
 
-	datasource, err := m.repo.GetBigqueryDatasource(ctx, ds.Dataset.ID)
+	datasource, err := m.repo.GetBigqueryDatasource(ctx, ds.Dataset.ID, false)
 	if err != nil {
 		return err
 	}
@@ -338,7 +338,7 @@ func (m *Metabase) createServiceAccount(ds *models.Dataset) ([]byte, string, err
 }
 
 func (m *Metabase) restore(ctx context.Context, datasetID uuid.UUID, mbMetadata *models.MetabaseMetadata) error {
-	ds, err := m.repo.GetBigqueryDatasource(ctx, datasetID)
+	ds, err := m.repo.GetBigqueryDatasource(ctx, datasetID, false)
 	if err != nil {
 		return err
 	}

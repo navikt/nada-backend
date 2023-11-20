@@ -7,6 +7,8 @@ import (
 	"time"
 
 	"cloud.google.com/go/bigquery"
+	"github.com/google/uuid"
+	"github.com/navikt/nada-backend/pkg/auth"
 	"github.com/navikt/nada-backend/pkg/graph/models"
 )
 
@@ -63,7 +65,7 @@ func (m *Mock) TableMetadata(ctx context.Context, projectID string, datasetID st
 	return models.BigqueryMetadata{
 		TableType:   bigquery.TableType(strings.ToUpper(string(table.Type))),
 		Created:     time.Now(),
-		Expires:     time.Date(2033, time.April, 14, 18, 00, 00, 00, time.UTC),
+		Expires:     time.Date(2033, time.April, 14, 18, 0o0, 0o0, 0o0, time.UTC),
 		Description: "This is a table description explaining the contents of the table",
 		Schema: models.BigquerySchema{
 			Columns: []models.BigqueryColumn{
@@ -104,4 +106,32 @@ func (m *Mock) TableMetadata(ctx context.Context, projectID string, datasetID st
 		},
 		LastModified: table.LastModified,
 	}, nil
+}
+
+func (m *Mock) CreatePseudonymisedView(ctx context.Context, projectID, datasetID, tableID string, piiColumns []string) (string, string, string, error) {
+	return "p", "d", "t", nil
+}
+
+func (c *Mock) CreateJoinableViewsForUser(ctx context.Context, user string, tableUrls []JoinableViewDatasource) (string, string, map[uuid.UUID]string, error) {
+	return "", "", nil, nil
+}
+
+func (c *Mock) GetJoinableViewsForUser(ctx context.Context, user *auth.User) ([]*models.JoinableView, error) {
+	return nil, nil
+}
+
+func (c *Mock) DeleteJoinableDataset(ctx context.Context, datasetID string) error {
+	return nil
+}
+
+func (c *Mock) MakeBigQueryUrlForJoinableViews(name, projectID, datasetID, tableID string) string {
+	return fmt.Sprintf("%v.%v.%v", "centralDataProject", name, fmt.Sprintf("%v_%v_%v", projectID, datasetID, tableID))
+}
+
+func (c *Mock) DeleteJoinableView(ctx context.Context, joinableViewName, refProjectID, refDatasetID, refTableID string) error {
+	return nil
+}
+
+func (c *Mock) DeletePseudoView(ctx context.Context, pseudoProjectID, pseudoDatasetID, pseudoTableID string) error {
+	return nil
 }

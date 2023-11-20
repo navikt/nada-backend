@@ -5,11 +5,6 @@ mutation {
 			description: "New description"
 			group: "team@nav.no"
             teamContact: "#team"
-            datasets: [{
-                name: "NewDataset"
-			    pii: none
-			    bigquery: { projectID: "team-dev-1337", dataset: "dataset1", table: "table1", piiTags: "{\"test\":\"tag\"}" }
-            }]
 		}
 	) {
 		id

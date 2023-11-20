@@ -250,18 +250,22 @@ type DatasetAccessRequest struct {
 }
 
 type DatasourceBigquery struct {
-	DatasetID    uuid.UUID
-	ProjectID    string
-	Dataset      string
-	TableName    string
-	Schema       pqtype.NullRawMessage
-	LastModified time.Time
-	Created      time.Time
-	Expires      sql.NullTime
-	TableType    string
-	Description  sql.NullString
-	PiiTags      pqtype.NullRawMessage
-	MissingSince sql.NullTime
+	DatasetID     uuid.UUID
+	ProjectID     string
+	Dataset       string
+	TableName     string
+	Schema        pqtype.NullRawMessage
+	LastModified  time.Time
+	Created       time.Time
+	Expires       sql.NullTime
+	TableType     string
+	Description   sql.NullString
+	PiiTags       pqtype.NullRawMessage
+	MissingSince  sql.NullTime
+	ID            uuid.UUID
+	IsReference   bool
+	PseudoColumns []string
+	Deleted       sql.NullTime
 }
 
 type HttpCache struct {
@@ -287,6 +291,22 @@ type InsightProduct struct {
 	TeamkatalogenUrl sql.NullString
 	ProductAreaID    sql.NullString
 	TeamID           sql.NullString
+}
+
+type JoinableView struct {
+	ID      uuid.UUID
+	Owner   string
+	Name    string
+	Created time.Time
+	Expires sql.NullTime
+	Deleted sql.NullTime
+}
+
+type JoinableViewsDatasource struct {
+	ID             uuid.UUID
+	JoinableViewID uuid.UUID
+	DatasourceID   uuid.UUID
+	Deleted        sql.NullTime
 }
 
 type MetabaseMetadatum struct {

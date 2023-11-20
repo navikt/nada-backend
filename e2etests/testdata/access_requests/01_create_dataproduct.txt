@@ -4,11 +4,6 @@ mutation {
 			name: "NewName"
 			group: "team@nav.no"
             teamContact: "#team"
-            datasets: [{
-                name: "NewDataset"
-			    pii: none
-			    bigquery: { projectID: "team-dev-1337", dataset: "dataset", table: "table1" }
-            }]
 		}
 	) {
 		id

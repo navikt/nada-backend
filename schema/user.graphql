@@ -18,6 +18,13 @@ type NadaToken @goModel(model: "github.com/navikt/nada-backend/pkg/graph/models.
     token: ID!
 }
 
+type AccessibleDatasets @goModel(model: "github.com/navikt/nada-backend/pkg/graph/models.AccessibleDatasets") {
+    "owned"
+    owned: [Dataset!]!
+    "granted"
+    granted: [Dataset!]!
+}
+
 """
 UserInfo contains metadata on a logged in user
 """
@@ -42,15 +49,14 @@ type UserInfo @goModel(model: "github.com/navikt/nada-backend/pkg/graph/models.U
 	loginExpiration: Time!
 	"dataproducts is a list of dataproducts with one of the users groups as owner."
 	dataproducts: [Dataproduct!]!
-	"accessable is a list of dataproducts which the user has explicit access to."
-	accessable: [Dataproduct!]!
+	"accessable is a list of datasets which the user has either owns or has explicit access to."
+	accessable: AccessibleDatasets!
 	"stories is a list of stories with one of the users groups as owner."
 	stories: [Story!]!
     "quarto stories is the stories owned by the user's group"
     quartoStories: [QuartoStory!]!
     "insight products is the insight products owned by the user's group"
     insightProducts: [InsightProduct!]!
-
     "accessRequests is a list of access requests where either the user or one of the users groups is owner."
     accessRequests: [AccessRequest!]!
 }

@@ -84,7 +84,7 @@ func (m *Metabase) softDeleteDatabase(ctx context.Context, datasetID uuid.UUID) 
 		return er
 	}
 
-	ds, err := m.repo.GetBigqueryDatasource(ctx, datasetID)
+	ds, err := m.repo.GetBigqueryDatasource(ctx, datasetID, false)
 	if err != nil {
 		return err
 	}
@@ -133,7 +133,7 @@ func (m *Metabase) deleteRestrictedDatabase(ctx context.Context, datasetID uuid.
 		return
 	}
 
-	ds, err := m.repo.GetBigqueryDatasource(ctx, datasetID)
+	ds, err := m.repo.GetBigqueryDatasource(ctx, datasetID, false)
 	if err != nil {
 		log.Error("Get bigquery datasource")
 		return

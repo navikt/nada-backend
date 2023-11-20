@@ -30,17 +30,19 @@ type Datasource interface {
 }
 
 type BigQuery struct {
-	DatasetID    uuid.UUID
-	ProjectID    string       `json:"projectID"`
-	Dataset      string       `json:"dataset"`
-	Table        string       `json:"table"`
-	TableType    BigQueryType `json:"tableType"`
-	LastModified time.Time    `json:"lastModified"`
-	Created      time.Time    `json:"created"`
-	Expires      *time.Time   `json:"expired"`
-	Description  string       `json:"description"`
-	PiiTags      *string      `json:"piiTags"`
-	MissingSince *time.Time   `json:"missingSince"`
+	ID            uuid.UUID
+	DatasetID     uuid.UUID
+	ProjectID     string       `json:"projectID"`
+	Dataset       string       `json:"dataset"`
+	Table         string       `json:"table"`
+	TableType     BigQueryType `json:"tableType"`
+	LastModified  time.Time    `json:"lastModified"`
+	Created       time.Time    `json:"created"`
+	Expires       *time.Time   `json:"expired"`
+	Description   string       `json:"description"`
+	PiiTags       *string      `json:"piiTags"`
+	MissingSince  *time.Time   `json:"missingSince"`
+	PseudoColumns []string     `json:"pseudoColumns"`
 }
 
 func (BigQuery) IsDatasource() {}
@@ -65,6 +67,7 @@ type NewDataset struct {
 	GrantAllUsers            *bool       `json:"grantAllUsers"`
 	TargetUser               *string     `json:"targetUser"`
 	Metadata                 BigqueryMetadata
+	PseudoColumns            []string `json:"pseudoColumns"`
 }
 
 // NewDatasetForNewDataproduct contains metadata for creating a new dataset for a new dataproduct
@@ -92,8 +95,26 @@ type UpdateDataset struct {
 	AnonymisationDescription *string    `json:"anonymisationDescription"`
 	PiiTags                  *string    `json:"piiTags"`
 	TargetUser               *string    `json:"targetUser"`
+	PseudoColumns            []string   `json:"pseudoColumns"`
 }
 
 type DatasetServices struct {
 	Metabase *string `json:"metabase"`
+}
+
+// PseudoDataset contains information about a pseudo dataset
+type PseudoDataset struct {
+	// name is the name of the dataset
+	Name string `json:"name"`
+	// datasetID is the id of the dataset
+	DatasetID uuid.UUID `json:"datasetID"`
+	// datasourceID is the id of the bigquery datasource
+	DatasourceID uuid.UUID `json:"datasourceID"`
+}
+
+type AccessibleDatasets struct {
+	// owned
+	Owned []*Dataset `json:"owned"`
+	// granted
+	Granted []*Dataset `json:"granted"`
 }
