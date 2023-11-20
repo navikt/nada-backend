@@ -356,7 +356,7 @@ func (c *Client) AddPermissionGroupMember(ctx context.Context, groupID int, emai
 		return err
 	}
 
-	userID, err := getUserID(users.Data, email)
+	userID, err := getUserID(users.Data, strings.ToLower(email))
 	if err != nil {
 		return err
 	}
