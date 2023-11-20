@@ -36,8 +36,10 @@ spec:
     - "https://data.intern.nav.no/api"
     - "https://nada.intern.nav.no/quarto/update"
     - "https://nada.intern.nav.no/api/story"
+    - "https://datamarkedsplassen.intern.nav.no/quarto/create"
     - "https://datamarkedsplassen.intern.nav.no/quarto/update"
     - "https://datamarkedsplassen.intern.nav.no/api/story"
+    - "https://data.nav.no/quarto/create"
     - "https://data.nav.no/quarto/update"
     - "https://data.nav.no/api/story"
   envFrom:
