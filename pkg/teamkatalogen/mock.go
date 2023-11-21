@@ -60,6 +60,18 @@ func (m *Mock) GetProductAreas(ctx context.Context) ([]*models.ProductArea, erro
 	return mockedProductAreas, nil
 }
 
+func (m *Mock) GetTeam(ctx context.Context, teamID string) (*models.Team, error) {
+	return &models.Team{
+		ID:            "Team-Frifrokost-001",
+		Name:          "Team Frifrokost",
+		ProductAreaID: "Mocked-002",
+	}, nil
+}
+
+func (m *Mock) GetTeamCatalogURL(teamID string) string {
+	return "https://teamkatalog.nav.no/team/" + teamID
+}
+
 var mockedProductAreas = []*models.ProductArea{
 	{
 		ID:       "Mocked-001",

@@ -46,6 +46,8 @@ type Teamkatalogen interface {
 	GetTeamsInProductArea(ctx context.Context, paID string) ([]*models.Team, error)
 	GetProductArea(ctx context.Context, paID string) (*models.ProductArea, error)
 	GetProductAreas(ctx context.Context) ([]*models.ProductArea, error)
+	GetTeam(ctx context.Context, teamID string) (*models.Team, error)
+	GetTeamCatalogURL(teamID string) string
 }
 
 type Slack interface {

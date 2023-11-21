@@ -11,6 +11,7 @@ import (
 	"github.com/navikt/nada-backend/pkg/auth"
 	"github.com/navikt/nada-backend/pkg/database"
 	"github.com/navikt/nada-backend/pkg/gcs"
+	"github.com/navikt/nada-backend/pkg/graph"
 	"github.com/navikt/nada-backend/pkg/quarto"
 	"github.com/navikt/nada-backend/pkg/story"
 	"github.com/prometheus/client_golang/prometheus"
@@ -27,6 +28,7 @@ type HTTPAPI interface {
 func New(
 	repo *database.Repo,
 	gcsClient *gcs.Client,
+	teamCatalog graph.Teamkatalogen,
 	httpAPI HTTPAPI,
 	authMW auth.MiddlewareHandler,
 	gqlServer *handler.Server,
@@ -41,7 +43,7 @@ func New(
 	})
 
 	storyHandler := story.NewHandler(repo)
-	quartoHandler := quarto.NewHandler(repo, gcsClient, amplitudeClient, log.WithField("subsystem", "quarto"))
+	quartoHandler := quarto.NewHandler(repo, gcsClient, teamCatalog, amplitudeClient, log.WithField("subsystem", "quarto"))
 
 	router := chi.NewRouter()
 	router.Use(corsMW)

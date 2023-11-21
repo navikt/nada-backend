@@ -164,7 +164,7 @@ func main() {
 
 	log.Info("Listening on :8080")
 	gqlServer := graph.New(repo, gcp, teamProjectsUpdater.TeamProjectsMapping, accessMgr, teamcatalogue, slackClient, pollyAPI, cfg.CentralDataProject, log.WithField("subsystem", "graph"))
-	srv := api.New(repo, gcsClient, httpAPI, authenticatorMiddleware, gqlServer, prom(repo.Metrics()...), amplitudeClient, log)
+	srv := api.New(repo, gcsClient, teamcatalogue, httpAPI, authenticatorMiddleware, gqlServer, prom(repo.Metrics()...), amplitudeClient, log)
 
 	server := http.Server{
 		Addr:    cfg.BindAddress,
