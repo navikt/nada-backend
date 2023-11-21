@@ -150,7 +150,6 @@ func (t *Teamkatalogen) GetProductAreas(ctx context.Context) ([]*models.ProductA
 	}
 
 	req.Header.Set("Accept", "application/json")
-	fmt.Print(req.URL)
 	res, err := httpwithcache.Do(t.client, req)
 	if err != nil {
 		return nil, err
