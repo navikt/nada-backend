@@ -136,6 +136,7 @@ func TestMain(m *testing.M) {
 	srv := api.New(
 		repo,
 		gcsClient,
+		teamkatalogen.NewMock(),
 		&mockAuthHandler{},
 		auth.MockJWTValidatorMiddleware(),
 		gqlServer,
