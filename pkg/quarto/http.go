@@ -18,6 +18,7 @@ import (
 	"github.com/navikt/nada-backend/pkg/amplitude"
 	"github.com/navikt/nada-backend/pkg/database"
 	"github.com/navikt/nada-backend/pkg/gcs"
+	"github.com/navikt/nada-backend/pkg/graph"
 	"github.com/navikt/nada-backend/pkg/graph/models"
 	"github.com/sirupsen/logrus"
 )
@@ -31,14 +32,16 @@ const (
 type Handler struct {
 	repo            *database.Repo
 	gcsClient       *gcs.Client
+	teamCatalog     graph.Teamkatalogen
 	amplitudeClient amplitude.Amplitude
 	log             *logrus.Entry
 }
 
-func NewHandler(repo *database.Repo, gcsClient *gcs.Client, amplitudeClient amplitude.Amplitude, logger *logrus.Entry) *Handler {
+func NewHandler(repo *database.Repo, gcsClient *gcs.Client, teamCatalog graph.Teamkatalogen, amplitudeClient amplitude.Amplitude, logger *logrus.Entry) *Handler {
 	return &Handler{
 		repo:            repo,
 		gcsClient:       gcsClient,
+		teamCatalog:     teamCatalog,
 		amplitudeClient: amplitudeClient,
 		log:             logger,
 	}
@@ -78,6 +81,10 @@ func (h *Handler) Create(w http.ResponseWriter, r *http.Request) {
 	newQuartoStory.Group = team
 	if newQuartoStory.Keywords == nil {
 		newQuartoStory.Keywords = []string{}
+	}
+
+	if err := h.setProductAreaAndTeamCatalogURL(r.Context(), &newQuartoStory); err != nil {
+		h.log.WithError(err).Errorf("setting product area and team catalog URL")
 	}
 
 	quarto, err := h.repo.CreateQuartoStory(r.Context(), team, newQuartoStory)
@@ -291,6 +298,24 @@ func (h *Handler) publishAmplitudeEvent(ctx context.Context, urlPath string) err
 	if err := h.amplitudeClient.PublishEvent(ctx, story.Name); err != nil {
 		return err
 	}
+	return nil
+}
+
+func (h *Handler) setProductAreaAndTeamCatalogURL(ctx context.Context, newQuartoStory *models.NewQuartoStory) error {
+	if newQuartoStory.TeamID == nil {
+		h.log.Warningf("team id not provided for quarto story %v", newQuartoStory.Name)
+		return nil
+	}
+
+	teamCatalogURL := h.teamCatalog.GetTeamCatalogURL(*newQuartoStory.TeamID)
+	team, err := h.teamCatalog.GetTeam(ctx, *newQuartoStory.TeamID)
+	if err != nil {
+		return err
+	}
+
+	newQuartoStory.TeamkatalogenURL = &teamCatalogURL
+	newQuartoStory.ProductAreaID = &team.ProductAreaID
+
 	return nil
 }
 

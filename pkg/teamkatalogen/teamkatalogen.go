@@ -150,7 +150,6 @@ func (t *Teamkatalogen) GetProductAreas(ctx context.Context) ([]*models.ProductA
 	}
 
 	req.Header.Set("Accept", "application/json")
-	fmt.Print(req.URL)
 	res, err := httpwithcache.Do(t.client, req)
 	if err != nil {
 		return nil, err
@@ -168,7 +167,7 @@ func (t *Teamkatalogen) GetProductAreas(ctx context.Context) ([]*models.ProductA
 		return nil, err
 	}
 
-	var pas = make([]*models.ProductArea, 0)
+	pas := make([]*models.ProductArea, 0)
 	for _, pa := range pasdto.Content {
 		pas = append(pas, &models.ProductArea{
 			ID:       pa.ID,
@@ -178,4 +177,38 @@ func (t *Teamkatalogen) GetProductAreas(ctx context.Context) ([]*models.ProductA
 	}
 
 	return pas, nil
+}
+
+func (t *Teamkatalogen) GetTeam(ctx context.Context, teamID string) (*models.Team, error) {
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, t.url+"/team/"+teamID, nil)
+	if err != nil {
+		return nil, err
+	}
+
+	req.Header.Set("Accept", "application/json")
+
+	res, err := httpwithcache.Do(t.client, req)
+	if err != nil {
+		return nil, err
+	}
+
+	var team struct {
+		ID            string `json:"id"`
+		Name          string `json:"name"`
+		ProductAreaID string `json:"productAreaId"`
+	}
+
+	if err := json.Unmarshal(res, &team); err != nil {
+		return nil, err
+	}
+
+	return &models.Team{
+		ID:            team.ID,
+		Name:          team.Name,
+		ProductAreaID: team.ProductAreaID,
+	}, nil
+}
+
+func (t *Teamkatalogen) GetTeamCatalogURL(teamID string) string {
+	return t.url + "/team/" + teamID
 }
