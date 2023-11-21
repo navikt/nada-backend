@@ -6,6 +6,9 @@ FROM (
          UNION ALL
          SELECT unnest(s.keywords) as keyword
             FROM stories s
+         UNION ALL
+         SELECT unnest(qs.keywords) as keyword
+            FROM quarto_stories qs
     ) keywords
 GROUP BY keyword
 ORDER BY keywords."count" DESC;
