@@ -29,6 +29,7 @@ type Config struct {
 	AmplitudeAPIKey                 string
 	CentralDataProject              string
 	PseudoDataset                   string
+	FkNadaTable                     string
 }
 
 type OAuth2Config struct {

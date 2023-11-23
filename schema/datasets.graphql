@@ -103,6 +103,8 @@ type PseudoDataset @goModel(model: "github.com/navikt/nada-backend/pkg/graph/mod
     datasetID: ID!
     "datasourceID is the id of the bigquery datasource"
     datasourceID: ID!
+	"pseudoColumns is a list of pseudo columns"
+	pseudoColumns: [String!]
 }
 
 """

@@ -68,7 +68,12 @@ func (r *mutationResolver) CreateJoinableViews(ctx context.Context, input models
 		pseudoDatasourceIDs = append(pseudoDatasourceIDs, pseudoDatasource.ID)
 	}
 
-	projectID, joinableDatasetID, joinableViewsMap, err := r.bigquery.CreateJoinableViewsForUser(ctx, input.Name, datasources)
+	var fnrColumns []string = make([]string, len(input.DatasetIDs))
+	if input.MapToFkNada {
+		fnrColumns = input.FnrColumns
+	}
+
+	projectID, joinableDatasetID, joinableViewsMap, err := r.bigquery.CreateJoinableViewsForUser(ctx, input.Name, datasources, fnrColumns)
 	if err != nil {
 		return "", err
 	}

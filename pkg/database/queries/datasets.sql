@@ -236,7 +236,8 @@ SELECT
   sbq.project_id AS bq_project_id,
   sbq.dataset AS bq_dataset_id,
   sbq.table_name AS bq_table_id,
-  sbq.id AS bq_datasource_id
+  sbq.id AS bq_datasource_id,
+  sbq.pseudo_columns AS pseudo_columns
 FROM
   (
     (

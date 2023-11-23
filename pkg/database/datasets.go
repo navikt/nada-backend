@@ -444,6 +444,8 @@ func PseudoDatasetFromSQL(d *gensql.GetAccessiblePseudoDatasetsByUserRow) (*mode
 		DatasetID: d.DatasetID,
 		// datasourceID is the id of the bigquery datasource
 		DatasourceID: d.BqDatasourceID,
+		// pseudoColumns is a list of pseudo columns
+		PseudoColumns: d.PseudoColumns,
 	}, fmt.Sprintf("%v.%v.%v", d.BqProjectID, d.BqDatasetID, d.BqTableID)
 }
 

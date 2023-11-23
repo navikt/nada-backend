@@ -80,6 +80,7 @@ func init() {
 	flag.StringVar(&cfg.AmplitudeAPIKey, "amplitude-api-key", os.Getenv("AMPLITUDE_API_KEY"), "API key for Amplitude")
 	flag.StringVar(&cfg.CentralDataProject, "central-data-project", os.Getenv("CENTRAL_DATA_PROJECT"), "bigquery project for pseudo views")
 	flag.StringVar(&cfg.PseudoDataset, "pseudo-dataset", "markedsplassen_pseudo", "bigquery dataset in producers' project for markedplassen saving pseudo views")
+	flag.StringVar(&cfg.FkNadaTable, "fk-nada-table", "who.knows.where", "table for mapping fnr column in datasets to fk-nada")
 }
 
 func main() {
@@ -150,7 +151,7 @@ func main() {
 
 	var gcp graph.Bigquery = bigquery.NewMock()
 	if !cfg.SkipMetadataSync {
-		datacatalogClient, err := bigquery.New(ctx, cfg.CentralDataProject, cfg.PseudoDataset)
+		datacatalogClient, err := bigquery.New(ctx, cfg.CentralDataProject, cfg.PseudoDataset, cfg.FkNadaTable)
 		if err != nil {
 			log.WithError(err).Fatal("Creating datacatalog client")
 		}

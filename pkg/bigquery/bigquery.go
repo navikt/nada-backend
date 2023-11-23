@@ -16,12 +16,17 @@ import (
 type Bigquery struct {
 	centralDataProject string
 	pseudoDataset      string
+	fkNadaTable        string
 }
 
-func New(ctx context.Context, centralDataProject, pseudoDataset string) (*Bigquery, error) {
+const fnr = "fnr"
+const fkNada = "fk_nada"
+
+func New(ctx context.Context, centralDataProject, pseudoDataset string, fkNadaTable string) (*Bigquery, error) {
 	return &Bigquery{
 		centralDataProject: centralDataProject,
 		pseudoDataset:      pseudoDataset,
+		fkNadaTable:        fkNadaTable,
 	}, nil
 }
 
@@ -157,22 +162,22 @@ func isSupportedTableType(tableType bigquery.TableType) bool {
 	return false
 }
 
-func (c *Bigquery) ComposePseudoViewQuery(projectID, datasetID, tableID string, targetColumns []string) string {
+func (c *Bigquery) ComposePseudoViewQuery(projectID, datasetID, tableID string, hashColumns []string) string {
 	qGenSalt := `WITH gen_salt AS (
 		SELECT GENERATE_UUID() AS salt
 	)`
 
 	qSelect := "SELECT "
-	for _, c := range targetColumns {
-		qSelect += fmt.Sprintf(" SHA256(%v || gen_salt.salt) AS %v", c, c)
+	for _, c := range hashColumns {
+		qSelect += fmt.Sprintf(" SHA256(CAST(%v AS STRING) || gen_salt.salt) AS %v", c, c)
 		qSelect += ","
 	}
 
 	qSelect += "I.* EXCEPT("
 
-	for i, c := range targetColumns {
+	for i, c := range hashColumns {
 		qSelect += c
-		if i != len(targetColumns)-1 {
+		if i != len(hashColumns)-1 {
 			qSelect += ","
 		} else {
 			qSelect += ")"
@@ -217,28 +222,41 @@ func (c *Bigquery) CreatePseudonymisedView(ctx context.Context, projectID, datas
 	return projectID, c.pseudoDataset, pseudoViewID, nil
 }
 
-func (c *Bigquery) ComposeJoinableViewQuery(plainTableUrl models.BigQuery, joinableDatasetID string, pseudoColumns []string) string {
+func (c *Bigquery) ComposeJoinableViewQuery(plainTableUrl models.BigQuery, joinableDatasetID string, hashColumns []string, fnrColumnMapToFkNada string) string {
 	qSalt := fmt.Sprintf("WITH unified_salt AS (SELECT value AS salt FROM `%v.%v.%v` ds WHERE ds.key='%v')", c.centralDataProject, "secrets_vault", "secrets", joinableDatasetID)
+	viewID := fmt.Sprintf("%v.%v.%v", plainTableUrl.ProjectID, plainTableUrl.Dataset, plainTableUrl.Table)
+
+	var qViewJoinSalt string
+
+	if fnrColumnMapToFkNada != "" {
+		qViewJoinSalt = fmt.Sprintf(",vjs AS (SELECT v.*, unified_salt.salt AS __salt, n.%v AS %v FROM `%v` v INNER JOIN `%v` n  ON v.%v=n.%v CROSS JOIN unified_salt)",
+			fkNada, fkNada, viewID, c.fkNadaTable, fnr, fnr)
+		hashColumns = append(hashColumns, fkNada)
+	} else {
+		qViewJoinSalt = fmt.Sprintf(",vjs AS (SELECT v.*, unified_salt.salt AS __salt FROM `%v` v CROSS JOIN unified_salt)",
+			viewID)
+	}
 
 	qSelect := "SELECT "
-	for _, c := range pseudoColumns {
-		qSelect += fmt.Sprintf(" SHA256(%v || unified_salt.salt) AS _x_%v", c, c)
+	for _, c := range hashColumns {
+		qSelect += fmt.Sprintf(" SHA256(CAST(%v AS STRING) || __salt) AS _x_%v", c, c)
 		qSelect += ","
 	}
 
-	qSelect += "I.* EXCEPT("
+	qSelect += "vjs.* EXCEPT(__salt,"
 
-	for i, c := range pseudoColumns {
+	for i, c := range hashColumns {
 		qSelect += c
-		if i != len(pseudoColumns)-1 {
+		if i != len(hashColumns)-1 {
 			qSelect += ","
 		} else {
 			qSelect += ")"
 		}
 	}
-	qFrom := fmt.Sprintf("FROM `%v.%v.%v` AS I, unified_salt", plainTableUrl.ProjectID, plainTableUrl.Dataset, plainTableUrl.Table)
 
-	return qSalt + " " + qSelect + " " + qFrom
+	qFrom := "FROM vjs"
+
+	return qSalt + qViewJoinSalt + " " + qSelect + " " + qFrom
 }
 
 func MakeJoinableViewName(projectID, datasetID, tableID string) string {
@@ -250,9 +268,10 @@ func (c *Bigquery) MakeBigQueryUrlForJoinableViews(name, projectID, datasetID, t
 	return fmt.Sprintf("%v.%v.%v", c.centralDataProject, name, MakeJoinableViewName(projectID, datasetID, tableID))
 }
 
-func (c *Bigquery) CreateJoinableView(ctx context.Context, joinableDatasetID string, datasource JoinableViewDatasource) (string, error) {
-	query := c.ComposeJoinableViewQuery(*datasource.RefDatasource, joinableDatasetID, datasource.PseudoDatasource.PseudoColumns)
+func (c *Bigquery) CreateJoinableView(ctx context.Context, joinableDatasetID string, datasource JoinableViewDatasource, fnrColumnMapToFkNada string) (string, error) {
+	query := c.ComposeJoinableViewQuery(*datasource.RefDatasource, joinableDatasetID, datasource.PseudoDatasource.PseudoColumns, fnrColumnMapToFkNada)
 
+	fmt.Println(query)
 	centralProjectclient, err := bigquery.NewClient(ctx, c.centralDataProject)
 	if err != nil {
 		return "", fmt.Errorf("bigquery.NewClient: %v", err)
@@ -277,7 +296,7 @@ type JoinableViewDatasource struct {
 	PseudoDatasource *models.BigQuery
 }
 
-func (c *Bigquery) CreateJoinableViewsForUser(ctx context.Context, name string, datasources []JoinableViewDatasource) (string, string, map[uuid.UUID]string, error) {
+func (c *Bigquery) CreateJoinableViewsForUser(ctx context.Context, name string, datasources []JoinableViewDatasource, fnrColumnsMapToFkNada []string) (string, string, map[uuid.UUID]string, error) {
 	client, err := bigquery.NewClient(ctx, c.centralDataProject)
 	if err != nil {
 		return "", "", nil, fmt.Errorf("bigquery.NewClient: %v", err)
@@ -292,8 +311,8 @@ func (c *Bigquery) CreateJoinableViewsForUser(ctx context.Context, name string, 
 	c.insertSecretIfNotExists(ctx, "secrets_vault", "secrets", joinableDatasetID)
 
 	viewsMap := map[uuid.UUID]string{}
-	for _, d := range datasources {
-		if v, err := c.CreateJoinableView(ctx, joinableDatasetID, d); err != nil {
+	for i, d := range datasources {
+		if v, err := c.CreateJoinableView(ctx, joinableDatasetID, d, fnrColumnsMapToFkNada[i]); err != nil {
 			return "", "", nil, err
 		} else {
 			viewsMap[d.RefDatasource.DatasetID] = v
