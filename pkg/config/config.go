@@ -1,4 +1,4 @@
-package main
+package config
 
 type Config struct {
 	BindAddress                     string
@@ -48,3 +48,5 @@ func DefaultConfig() Config {
 		ConsoleURL:            "https://teams.nav.cloud.nais.io",
 	}
 }
+
+var Cfg = DefaultConfig()

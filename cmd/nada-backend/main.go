@@ -16,6 +16,7 @@ import (
 	"github.com/navikt/nada-backend/pkg/api"
 	"github.com/navikt/nada-backend/pkg/auth"
 	"github.com/navikt/nada-backend/pkg/bigquery"
+	"github.com/navikt/nada-backend/pkg/config"
 	"github.com/navikt/nada-backend/pkg/database"
 	"github.com/navikt/nada-backend/pkg/event"
 	"github.com/navikt/nada-backend/pkg/gcs"
@@ -35,8 +36,7 @@ import (
 )
 
 var (
-	cfg = DefaultConfig()
-
+	cfg      = &config.Cfg
 	promErrs = prometheus.NewCounterVec(prometheus.CounterOpts{
 		Namespace: "nada_backend",
 		Name:      "errors",
@@ -80,7 +80,7 @@ func init() {
 	flag.StringVar(&cfg.AmplitudeAPIKey, "amplitude-api-key", os.Getenv("AMPLITUDE_API_KEY"), "API key for Amplitude")
 	flag.StringVar(&cfg.CentralDataProject, "central-data-project", os.Getenv("CENTRAL_DATA_PROJECT"), "bigquery project for pseudo views")
 	flag.StringVar(&cfg.PseudoDataset, "pseudo-dataset", "markedsplassen_pseudo", "bigquery dataset in producers' project for markedplassen saving pseudo views")
-	flag.StringVar(&cfg.FkNadaTable, "fk-nada-table", "who.knows.where", "table for mapping fnr column in datasets to fk-nada")
+	flag.StringVar(&cfg.FkNadaTable, "fk-nada-table", "nav-central-data-dev-e170.fk_nada_test.fk_nada", "table for mapping fnr column in datasets to fk-nada")
 }
 
 func main() {
@@ -145,7 +145,7 @@ func main() {
 		}
 	}
 
-	if err := runMetabase(ctx, log.WithField("subsystem", "metabase"), cfg, repo, accessMgr, eventMgr); err != nil {
+	if err := runMetabase(ctx, log.WithField("subsystem", "metabase"), *cfg, repo, accessMgr, eventMgr); err != nil {
 		log.WithError(err).Fatal("running metabase")
 	}
 
@@ -218,7 +218,7 @@ func getEnv(key, fallback string) string {
 	return fallback
 }
 
-func runMetabase(ctx context.Context, log *logrus.Entry, cfg Config, repo *database.Repo, accessMgr graph.AccessManager, eventMgr *event.Manager) error {
+func runMetabase(ctx context.Context, log *logrus.Entry, cfg config.Config, repo *database.Repo, accessMgr graph.AccessManager, eventMgr *event.Manager) error {
 	if cfg.MetabaseServiceAccountFile == "" {
 		log.Info("metabase sync disabled")
 		return nil

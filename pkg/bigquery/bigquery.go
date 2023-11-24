@@ -271,7 +271,6 @@ func (c *Bigquery) MakeBigQueryUrlForJoinableViews(name, projectID, datasetID, t
 func (c *Bigquery) CreateJoinableView(ctx context.Context, joinableDatasetID string, datasource JoinableViewDatasource, fnrColumnMapToFkNada string) (string, error) {
 	query := c.ComposeJoinableViewQuery(*datasource.RefDatasource, joinableDatasetID, datasource.PseudoDatasource.PseudoColumns, fnrColumnMapToFkNada)
 
-	fmt.Println(query)
 	centralProjectclient, err := bigquery.NewClient(ctx, c.centralDataProject)
 	if err != nil {
 		return "", fmt.Errorf("bigquery.NewClient: %v", err)
