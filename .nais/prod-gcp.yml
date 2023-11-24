@@ -123,3 +123,15 @@ spec:
       labels:
         namespace: nada
         severity: critical
+    - alert: ErrorInLogs
+      expr: sum(log_messages_errors{container="nada-backend"}) > 0
+      for: 5m
+      annotations:
+        consequence: Enten feil i kode, eller en state vi ikke kjenner til.
+        action: |-
+          Backend til Datamarkedsplassen logger error, sjekk loggene og finn feilen.
+          Logs: https://logs.adeo.no/app/r/s/7EIEB
+        summary: Vurder også om det er verdt å logge error ved denne type feil.
+      labels:
+        namespace: nada
+        severity: critical
