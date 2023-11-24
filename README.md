@@ -54,6 +54,8 @@ The application needs two GCP service accounts which are mounted in at runtime f
 - `nada-backend-google-credentials`
 - `nada-backend-metabase-sa`
 
+It also needs a GCP project where the BigQuery API is enabled to host keys for pseudonymization. 
+
 The following values used by the application are also stored in Google Secret Manager in the secret `nada-backend`:
 
 ```
