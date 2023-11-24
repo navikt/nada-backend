@@ -110,6 +110,8 @@ type PseudoDataset struct {
 	DatasetID uuid.UUID `json:"datasetID"`
 	// datasourceID is the id of the bigquery datasource
 	DatasourceID uuid.UUID `json:"datasourceID"`
+	// pseudoColumns is a list of pseudo columns
+	PseudoColumns []string `json:"pseudoColumns"`
 }
 
 type AccessibleDatasets struct {

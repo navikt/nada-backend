@@ -9,8 +9,10 @@ import (
 // NewJoinableViews contains metadata for creating joinable views
 type NewJoinableViews struct {
 	// Name is the name of the joinable views which will be used as the name of the dataset in bigquery, which contains all the joinable views
-	Name    string     `json:"name"`
-	Expires *time.Time `json:"expires"`
+	Name        string     `json:"name"`
+	Expires     *time.Time `json:"expires"`
+	MapToFkNada bool       `json:"mapToFkNada"`
+	FnrColumns  []string   `json:"fnrColumns"`
 	// DatasetIDs is the IDs of the datasets which are made joinable.
 	DatasetIDs []uuid.UUID `json:"datasetIDs"`
 }

@@ -265,7 +265,8 @@ SELECT
   sbq.project_id AS bq_project_id,
   sbq.dataset AS bq_dataset_id,
   sbq.table_name AS bq_table_id,
-  sbq.id AS bq_datasource_id
+  sbq.id AS bq_datasource_id,
+  sbq.pseudo_columns AS pseudo_columns
 FROM
   (
     (
@@ -315,6 +316,7 @@ type GetAccessiblePseudoDatasetsByUserRow struct {
 	BqDatasetID    string
 	BqTableID      string
 	BqDatasourceID uuid.UUID
+	PseudoColumns  []string
 }
 
 func (q *Queries) GetAccessiblePseudoDatasetsByUser(ctx context.Context, arg GetAccessiblePseudoDatasetsByUserParams) ([]GetAccessiblePseudoDatasetsByUserRow, error) {
@@ -333,6 +335,7 @@ func (q *Queries) GetAccessiblePseudoDatasetsByUser(ctx context.Context, arg Get
 			&i.BqDatasetID,
 			&i.BqTableID,
 			&i.BqDatasourceID,
+			pq.Array(&i.PseudoColumns),
 		); err != nil {
 			return nil, err
 		}

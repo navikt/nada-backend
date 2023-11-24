@@ -7,10 +7,12 @@ package graph
 import (
 	"context"
 	"fmt"
+	"strings"
 
 	"github.com/google/uuid"
 	"github.com/navikt/nada-backend/pkg/auth"
 	"github.com/navikt/nada-backend/pkg/bigquery"
+	"github.com/navikt/nada-backend/pkg/config"
 	"github.com/navikt/nada-backend/pkg/graph/models"
 )
 
@@ -68,11 +70,20 @@ func (r *mutationResolver) CreateJoinableViews(ctx context.Context, input models
 		pseudoDatasourceIDs = append(pseudoDatasourceIDs, pseudoDatasource.ID)
 	}
 
-	projectID, joinableDatasetID, joinableViewsMap, err := r.bigquery.CreateJoinableViewsForUser(ctx, input.Name, datasources)
+	var fnrColumns []string = make([]string, len(input.DatasetIDs))
+	if input.MapToFkNada {
+		fnrColumns = input.FnrColumns
+	}
+
+	projectID, joinableDatasetID, joinableViewsMap, err := r.bigquery.CreateJoinableViewsForUser(ctx, input.Name, datasources, fnrColumns)
 	if err != nil {
 		return "", err
 	}
 
+	fmt.Println(config.Cfg.FkNadaTable)
+	fmt.Println(strings.Split(config.Cfg.FkNadaTable, "."))
+	fkNadaProject := strings.Split(config.Cfg.FkNadaTable, ".")[0]
+	fkNadaDataset := strings.Split(config.Cfg.FkNadaTable, ".")[1]
 	for _, d := range datasources {
 		dstbl := d.RefDatasource
 		if err := r.accessMgr.AddToAuthorizedViews(ctx, dstbl.ProjectID, dstbl.Dataset, projectID, joinableDatasetID, joinableViewsMap[dstbl.DatasetID]); err != nil {
@@ -80,6 +91,9 @@ func (r *mutationResolver) CreateJoinableViews(ctx context.Context, input models
 		}
 		if err := r.accessMgr.AddToAuthorizedViews(ctx, projectID, "secrets_vault", projectID, joinableDatasetID, joinableViewsMap[dstbl.DatasetID]); err != nil {
 			return "", fmt.Errorf("Failed to add to secrets' authorized views: %v", err)
+		}
+		if err := r.accessMgr.AddToAuthorizedViews(ctx, fkNadaProject, fkNadaDataset, projectID, joinableDatasetID, joinableViewsMap[dstbl.DatasetID]); err != nil {
+			return "", fmt.Errorf("Failed to add to fk_nada' authorized views: %v", err)
 		}
 	}
 

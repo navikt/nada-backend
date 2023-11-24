@@ -1,4 +1,4 @@
-package main
+package config
 
 type Config struct {
 	BindAddress                     string
@@ -29,6 +29,7 @@ type Config struct {
 	AmplitudeAPIKey                 string
 	CentralDataProject              string
 	PseudoDataset                   string
+	FkNadaTable                     string
 }
 
 type OAuth2Config struct {
@@ -47,3 +48,5 @@ func DefaultConfig() Config {
 		ConsoleURL:            "https://teams.nav.cloud.nais.io",
 	}
 }
+
+var Cfg = DefaultConfig()

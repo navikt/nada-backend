@@ -6,8 +6,12 @@ input NewJoinableViews @goModel(model: "github.com/navikt/nada-backend/pkg/graph
     name: String!
     "expires is the time when the created joinable dataset should be deleted, default never"
     expires: Time
+    "mapToFkNada is whether we should map fnr to fk-nada"
+    mapToFkNada: Boolean!
+    "fnrColumns is the columns which contains fnr"
+    fnrColumns: [String!]!
     "datasetIDs is the IDs of the dataset which are made joinable."
-    datasetIDs: [ID!]
+    datasetIDs: [ID!]!
 }
 
 type JoinableView @goModel(model: "github.com/navikt/nada-backend/pkg/graph/models.JoinableView"){

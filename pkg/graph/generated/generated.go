@@ -275,9 +275,10 @@ type ComplexityRoot struct {
 	}
 
 	PseudoDataset struct {
-		DatasetID    func(childComplexity int) int
-		DatasourceID func(childComplexity int) int
-		Name         func(childComplexity int) int
+		DatasetID     func(childComplexity int) int
+		DatasourceID  func(childComplexity int) int
+		Name          func(childComplexity int) int
+		PseudoColumns func(childComplexity int) int
 	}
 
 	QuartoStory struct {
@@ -1766,6 +1767,13 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.PseudoDataset.Name(childComplexity), true
 
+	case "PseudoDataset.pseudoColumns":
+		if e.complexity.PseudoDataset.PseudoColumns == nil {
+			break
+		}
+
+		return e.complexity.PseudoDataset.PseudoColumns(childComplexity), true
+
 	case "QuartoStory.created":
 		if e.complexity.QuartoStory.Created == nil {
 			break
@@ -3129,6 +3137,8 @@ type PseudoDataset @goModel(model: "github.com/navikt/nada-backend/pkg/graph/mod
     datasetID: ID!
     "datasourceID is the id of the bigquery datasource"
     datasourceID: ID!
+	"pseudoColumns is a list of pseudo columns"
+	pseudoColumns: [String!]
 }
 
 """
@@ -3722,8 +3732,12 @@ input NewJoinableViews @goModel(model: "github.com/navikt/nada-backend/pkg/graph
     name: String!
     "expires is the time when the created joinable dataset should be deleted, default never"
     expires: Time
+    "mapToFkNada is whether we should map fnr to fk-nada"
+    mapToFkNada: Boolean!
+    "fnrColumns is the columns which contains fnr"
+    fnrColumns: [String!]!
     "datasetIDs is the IDs of the dataset which are made joinable."
-    datasetIDs: [ID!]
+    datasetIDs: [ID!]!
 }
 
 type JoinableView @goModel(model: "github.com/navikt/nada-backend/pkg/graph/models.JoinableView"){
@@ -13503,6 +13517,47 @@ func (ec *executionContext) fieldContext_PseudoDataset_datasourceID(ctx context.
 	return fc, nil
 }
 
+func (ec *executionContext) _PseudoDataset_pseudoColumns(ctx context.Context, field graphql.CollectedField, obj *models.PseudoDataset) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_PseudoDataset_pseudoColumns(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.PseudoColumns, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		return graphql.Null
+	}
+	res := resTmp.([]string)
+	fc.Result = res
+	return ec.marshalOString2ᚕstringᚄ(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_PseudoDataset_pseudoColumns(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "PseudoDataset",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
 func (ec *executionContext) _QuartoStory_id(ctx context.Context, field graphql.CollectedField, obj *models.QuartoStory) (ret graphql.Marshaler) {
 	fc, err := ec.fieldContext_QuartoStory_id(ctx, field)
 	if err != nil {
@@ -14683,6 +14738,8 @@ func (ec *executionContext) fieldContext_Query_accessiblePseudoDatasets(ctx cont
 				return ec.fieldContext_PseudoDataset_datasetID(ctx, field)
 			case "datasourceID":
 				return ec.fieldContext_PseudoDataset_datasourceID(ctx, field)
+			case "pseudoColumns":
+				return ec.fieldContext_PseudoDataset_pseudoColumns(ctx, field)
 			}
 			return nil, fmt.Errorf("no field named %q was found under type PseudoDataset", field.Name)
 		},
@@ -21371,7 +21428,7 @@ func (ec *executionContext) unmarshalInputNewJoinableViews(ctx context.Context, 
 		asMap[k] = v
 	}
 
-	fieldsInOrder := [...]string{"name", "expires", "datasetIDs"}
+	fieldsInOrder := [...]string{"name", "expires", "mapToFkNada", "fnrColumns", "datasetIDs"}
 	for _, k := range fieldsInOrder {
 		v, ok := asMap[k]
 		if !ok {
@@ -21396,11 +21453,29 @@ func (ec *executionContext) unmarshalInputNewJoinableViews(ctx context.Context, 
 				return it, err
 			}
 			it.Expires = data
+		case "mapToFkNada":
+			var err error
+
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("mapToFkNada"))
+			data, err := ec.unmarshalNBoolean2bool(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.MapToFkNada = data
+		case "fnrColumns":
+			var err error
+
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("fnrColumns"))
+			data, err := ec.unmarshalNString2ᚕstringᚄ(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.FnrColumns = data
 		case "datasetIDs":
 			var err error
 
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("datasetIDs"))
-			data, err := ec.unmarshalOID2ᚕgithubᚗcomᚋgoogleᚋuuidᚐUUIDᚄ(ctx, v)
+			data, err := ec.unmarshalNID2ᚕgithubᚗcomᚋgoogleᚋuuidᚐUUIDᚄ(ctx, v)
 			if err != nil {
 				return it, err
 			}
@@ -24288,6 +24363,8 @@ func (ec *executionContext) _PseudoDataset(ctx context.Context, sel ast.Selectio
 			if out.Values[i] == graphql.Null {
 				out.Invalids++
 			}
+		case "pseudoColumns":
+			out.Values[i] = ec._PseudoDataset_pseudoColumns(ctx, field, obj)
 		default:
 			panic("unknown field " + strconv.Quote(field.Name))
 		}
@@ -27253,6 +27330,38 @@ func (ec *executionContext) marshalNID2githubᚗcomᚋgoogleᚋuuidᚐUUID(ctx c
 	return res
 }
 
+func (ec *executionContext) unmarshalNID2ᚕgithubᚗcomᚋgoogleᚋuuidᚐUUIDᚄ(ctx context.Context, v interface{}) ([]uuid.UUID, error) {
+	var vSlice []interface{}
+	if v != nil {
+		vSlice = graphql.CoerceList(v)
+	}
+	var err error
+	res := make([]uuid.UUID, len(vSlice))
+	for i := range vSlice {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithIndex(i))
+		res[i], err = ec.unmarshalNID2githubᚗcomᚋgoogleᚋuuidᚐUUID(ctx, vSlice[i])
+		if err != nil {
+			return nil, err
+		}
+	}
+	return res, nil
+}
+
+func (ec *executionContext) marshalNID2ᚕgithubᚗcomᚋgoogleᚋuuidᚐUUIDᚄ(ctx context.Context, sel ast.SelectionSet, v []uuid.UUID) graphql.Marshaler {
+	ret := make(graphql.Array, len(v))
+	for i := range v {
+		ret[i] = ec.marshalNID2githubᚗcomᚋgoogleᚋuuidᚐUUID(ctx, sel, v[i])
+	}
+
+	for _, e := range ret {
+		if e == graphql.Null {
+			return graphql.Null
+		}
+	}
+
+	return ret
+}
+
 func (ec *executionContext) marshalNInsightProduct2githubᚗcomᚋnaviktᚋnadaᚑbackendᚋpkgᚋgraphᚋmodelsᚐInsightProduct(ctx context.Context, sel ast.SelectionSet, v models.InsightProduct) graphql.Marshaler {
 	return ec._InsightProduct(ctx, sel, &v)
 }
@@ -28799,44 +28908,6 @@ func (ec *executionContext) marshalOGroup2ᚕᚖgithubᚗcomᚋnaviktᚋnadaᚑb
 
 	}
 	wg.Wait()
-
-	for _, e := range ret {
-		if e == graphql.Null {
-			return graphql.Null
-		}
-	}
-
-	return ret
-}
-
-func (ec *executionContext) unmarshalOID2ᚕgithubᚗcomᚋgoogleᚋuuidᚐUUIDᚄ(ctx context.Context, v interface{}) ([]uuid.UUID, error) {
-	if v == nil {
-		return nil, nil
-	}
-	var vSlice []interface{}
-	if v != nil {
-		vSlice = graphql.CoerceList(v)
-	}
-	var err error
-	res := make([]uuid.UUID, len(vSlice))
-	for i := range vSlice {
-		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithIndex(i))
-		res[i], err = ec.unmarshalNID2githubᚗcomᚋgoogleᚋuuidᚐUUID(ctx, vSlice[i])
-		if err != nil {
-			return nil, err
-		}
-	}
-	return res, nil
-}
-
-func (ec *executionContext) marshalOID2ᚕgithubᚗcomᚋgoogleᚋuuidᚐUUIDᚄ(ctx context.Context, sel ast.SelectionSet, v []uuid.UUID) graphql.Marshaler {
-	if v == nil {
-		return graphql.Null
-	}
-	ret := make(graphql.Array, len(v))
-	for i := range v {
-		ret[i] = ec.marshalNID2githubᚗcomᚋgoogleᚋuuidᚐUUID(ctx, sel, v[i])
-	}
 
 	for _, e := range ret {
 		if e == graphql.Null {
