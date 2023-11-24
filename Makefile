@@ -52,7 +52,8 @@ local-with-auth:
 	--quarto-bucket=nada-quarto-storage-dev \
 	--console-api-key="$(CONSOLE_API_KEY)" \
 	--log-level=debug \
-	--central-data-project=nav-central-data-dev-e170 
+	--central-data-project=nav-central-data-dev-e170 \
+	--fk-nada-table=nav-central-data-dev-e170.fk_nada_test.fk_nada
 
 
 local:

@@ -80,7 +80,7 @@ func init() {
 	flag.StringVar(&cfg.AmplitudeAPIKey, "amplitude-api-key", os.Getenv("AMPLITUDE_API_KEY"), "API key for Amplitude")
 	flag.StringVar(&cfg.CentralDataProject, "central-data-project", os.Getenv("CENTRAL_DATA_PROJECT"), "bigquery project for pseudo views")
 	flag.StringVar(&cfg.PseudoDataset, "pseudo-dataset", "markedsplassen_pseudo", "bigquery dataset in producers' project for markedplassen saving pseudo views")
-	flag.StringVar(&cfg.FkNadaTable, "fk-nada-table", "nav-central-data-dev-e170.fk_nada_test.fk_nada", "table for mapping fnr column in datasets to fk-nada")
+	flag.StringVar(&cfg.FkNadaTable, "fk-nada-table", "team-sigma-prod-a20a.fk_person_nada.off_id_til_fk_person_nada", "table for mapping fnr column in datasets to fk-nada")
 }
 
 func main() {

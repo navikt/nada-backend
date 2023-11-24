@@ -19,8 +19,8 @@ type Bigquery struct {
 	fkNadaTable        string
 }
 
-const fnr = "fnr"
-const fkNada = "fk_nada"
+const fnr = "off_id"
+const fkNada = "fk_person_nada"
 
 func New(ctx context.Context, centralDataProject, pseudoDataset string, fkNadaTable string) (*Bigquery, error) {
 	return &Bigquery{
@@ -230,7 +230,7 @@ func (c *Bigquery) ComposeJoinableViewQuery(plainTableUrl models.BigQuery, joina
 
 	if fnrColumnMapToFkNada != "" {
 		qViewJoinSalt = fmt.Sprintf(",vjs AS (SELECT v.*, unified_salt.salt AS __salt, n.%v AS %v FROM `%v` v INNER JOIN `%v` n  ON v.%v=n.%v CROSS JOIN unified_salt)",
-			fkNada, fkNada, viewID, c.fkNadaTable, fnr, fnr)
+			fkNada, fkNada, viewID, c.fkNadaTable, fnrColumnMapToFkNada, fnr)
 		hashColumns = append(hashColumns, fkNada)
 	} else {
 		qViewJoinSalt = fmt.Sprintf(",vjs AS (SELECT v.*, unified_salt.salt AS __salt FROM `%v` v CROSS JOIN unified_salt)",
