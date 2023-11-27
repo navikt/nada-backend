@@ -63,7 +63,7 @@ spec:
     - name: GCP_QUARTO_STORAGE_BUCKET_NAME
       value: nada-quarto-storage-prod
     - name: CENTRAL_DATA_PROJECT
-      value: nav-central-data
+      value: datamarkedsplassen
   gcp:
     sqlInstances:
       - type: POSTGRES_12
