@@ -91,7 +91,7 @@ func (m *Metabase) run(ctx context.Context) {
 		}
 
 		if err := m.HideOtherTables(ctx, db.DatabaseID, bq.Table); err != nil {
-			log.WithError(err).Error("hiding other tables")
+			log.WithError(err).Warning("hiding other tables")
 		}
 	}
 }
