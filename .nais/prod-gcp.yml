@@ -124,7 +124,7 @@ spec:
         namespace: nada
         severity: critical
     - alert: ErrorInLogs
-      expr: sum(log_messages_errors{container="nada-backend"}) > 0
+      expr: sum(increase(log_messages_errors{container="nada-backend"}[10m])) > 0
       for: 5m
       annotations:
         consequence: Enten feil i kode, eller en state vi ikke kjenner til.
