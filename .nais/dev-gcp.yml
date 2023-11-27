@@ -72,6 +72,8 @@ spec:
       value: nada-quarto-storage-dev
     - name: CENTRAL_DATA_PROJECT
       value: nav-central-data-dev-e170
+    - name: FK_DATA_TABLE_ID
+      value: nav-central-data-dev-e170.fk_nada_test.fk_nada
   gcp:
     sqlInstances:
       - type: POSTGRES_12

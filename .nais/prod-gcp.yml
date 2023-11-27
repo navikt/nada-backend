@@ -64,6 +64,8 @@ spec:
       value: nada-quarto-storage-prod
     - name: CENTRAL_DATA_PROJECT
       value: nav-central-data
+    - name: FK_DATA_TABLE_ID
+      value: team-sigma-prod-a20a.fk_person_nada.off_id_til_fk_person_nada
   gcp:
     sqlInstances:
       - type: POSTGRES_12
