@@ -75,6 +75,7 @@ spec:
   gcp:
     sqlInstances:
       - type: POSTGRES_12
+        diskAutoresize: true
         databases:
           - name: nada
             users:
