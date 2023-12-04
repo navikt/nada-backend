@@ -24,7 +24,7 @@ ORDER BY last_modified DESC;
 -- name: GetDataproductsByProductArea :many
 SELECT *
 FROM dataproducts
-WHERE product_area_id = @product_area_id
+WHERE team_id = ANY(SELECT team_id FROM team_productarea_mapping WHERE product_area_id = @product_area_id)
 ORDER BY created DESC;
 
 -- name: GetDataproductsByTeam :many
@@ -45,7 +45,6 @@ INSERT INTO dataproducts ("name",
                           "teamkatalogen_url",
                           "slug",
                           "team_contact",
-                          "product_area_id",
                           "team_id")
 VALUES (@name,
         @description,
@@ -53,7 +52,6 @@ VALUES (@name,
         @owner_teamkatalogen_url,
         @slug,
         @team_contact,
-        @product_area_id,
         @team_id)
 RETURNING *;
 
@@ -64,7 +62,6 @@ SET "name"              = @name,
     "slug"              = @slug,
     "teamkatalogen_url" = @owner_teamkatalogen_url,
     "team_contact"      = @team_contact,
-    "product_area_id"   = @product_area_id,
     "team_id"           = @team_id
 WHERE id = @id
 RETURNING *;

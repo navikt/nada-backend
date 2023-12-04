@@ -33,6 +33,7 @@ type Querier interface {
 	CreateStoryView(ctx context.Context, arg CreateStoryViewParams) (StoryView, error)
 	CreateStoryViewDraft(ctx context.Context, arg CreateStoryViewDraftParams) (StoryViewDraft, error)
 	CreateTagIfNotExist(ctx context.Context, phrase string) error
+	CreateTeamAndProductAreaMapping(ctx context.Context, arg CreateTeamAndProductAreaMappingParams) (TeamProductareaMapping, error)
 	DataproductGroupStats(ctx context.Context, arg DataproductGroupStatsParams) ([]DataproductGroupStatsRow, error)
 	DataproductKeywords(ctx context.Context, keyword string) ([]DataproductKeywordsRow, error)
 	DatasetsByMetabase(ctx context.Context, arg DatasetsByMetabaseParams) ([]Dataset, error)
@@ -115,8 +116,10 @@ type Querier interface {
 	GetTag(ctx context.Context) (Tag, error)
 	GetTagByPhrase(ctx context.Context) (Tag, error)
 	GetTags(ctx context.Context) ([]Tag, error)
+	GetTeamAndProductAreaID(ctx context.Context, teamID string) (TeamProductareaMapping, error)
 	GetTeamFromNadaToken(ctx context.Context, token uuid.UUID) (string, error)
 	GetTeamProjects(ctx context.Context) ([]TeamProject, error)
+	GetTeamsAndProductAreaIDs(ctx context.Context) ([]TeamProductareaMapping, error)
 	GrantAccessToDataset(ctx context.Context, arg GrantAccessToDatasetParams) (DatasetAccess, error)
 	ListAccessRequestsForDataset(ctx context.Context, datasetID uuid.UUID) ([]DatasetAccessRequest, error)
 	ListAccessRequestsForOwner(ctx context.Context, owner []string) ([]DatasetAccessRequest, error)
@@ -145,6 +148,7 @@ type Querier interface {
 	UpdateDataproduct(ctx context.Context, arg UpdateDataproductParams) (Dataproduct, error)
 	UpdateDataset(ctx context.Context, arg UpdateDatasetParams) (Dataset, error)
 	UpdateInsightProduct(ctx context.Context, arg UpdateInsightProductParams) (InsightProduct, error)
+	UpdateProductAreaForTeam(ctx context.Context, arg UpdateProductAreaForTeamParams) error
 	UpdateQuartoStory(ctx context.Context, arg UpdateQuartoStoryParams) (QuartoStory, error)
 	UpdateStory(ctx context.Context, arg UpdateStoryParams) (Story, error)
 	UpdateTag(ctx context.Context, arg UpdateTagParams) error

@@ -61,7 +61,6 @@ func (h *Handler) Update(w http.ResponseWriter, r *http.Request) {
 		Group:            existing.Owner.Group,
 		Keywords:         existing.Keywords,
 		TeamkatalogenURL: existing.Owner.TeamkatalogenURL,
-		ProductAreaID:    existing.Owner.ProductAreaID,
 		TeamID:           existing.Owner.TeamID,
 	})
 	if err != nil {

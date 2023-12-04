@@ -23,6 +23,7 @@ import (
 	"github.com/navikt/nada-backend/pkg/httpwithcache"
 	"github.com/navikt/nada-backend/pkg/metabase"
 	"github.com/navikt/nada-backend/pkg/polly"
+	"github.com/navikt/nada-backend/pkg/productareaupdater"
 	"github.com/navikt/nada-backend/pkg/slack"
 	"github.com/navikt/nada-backend/pkg/story"
 	"github.com/navikt/nada-backend/pkg/teamkatalogen"
@@ -45,6 +46,7 @@ var (
 
 const (
 	TeamProjectsUpdateFrequency = 60 * time.Minute
+	ProductAreaUpdateFrequency  = 10 * time.Minute
 	AccessEnsurerFrequency      = 5 * time.Minute
 	MetabaseUpdateFrequency     = 1 * time.Hour
 	StoryDraftCleanerFrequency  = 24 * time.Hour
@@ -124,6 +126,8 @@ func main() {
 	amplitudeClient = amplitude.NewMock()
 	if !cfg.MockAuth {
 		teamcatalogue = teamkatalogen.New(cfg.TeamkatalogenURL)
+		go productareaupdater.New(repo, teamcatalogue, log.WithField("subsystem", "productareaupdater")).Run(ctx, ProductAreaUpdateFrequency)
+
 		teamProjectsUpdater = teamprojectsupdater.NewTeamProjectsUpdater(ctx, cfg.ConsoleURL, cfg.ConsoleAPIKey, http.DefaultClient, repo)
 		go teamProjectsUpdater.Run(ctx, TeamProjectsUpdateFrequency)
 

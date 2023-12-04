@@ -5,7 +5,6 @@ INSERT INTO stories (
 	"description",
 	"keywords",
 	"teamkatalogen_url",
-	"product_area_id",
     "team_id"
 ) VALUES (
 	@name,
@@ -13,7 +12,6 @@ INSERT INTO stories (
 	@description,
 	@keywords,
 	@teamkatalogen_url,
-	@product_area_id,
     @team_id
 )
 RETURNING *;
@@ -51,7 +49,7 @@ ORDER BY created DESC;
 -- name: GetStoriesByProductArea :many
 SELECT *
 FROM stories
-WHERE product_area_id = @product_area_id
+WHERE team_id = ANY(SELECT team_id FROM team_productarea_mapping WHERE product_area_id = @product_area_id) 
 ORDER BY created DESC;
 
 -- name: GetStoriesByTeam :many
@@ -79,7 +77,6 @@ SET
 	"description" = @description,
 	"keywords" = @keywords,
 	"teamkatalogen_url" = @teamkatalogen_url,
-	"product_area_id" = @product_area_id,
     "team_id" = @team_id
 WHERE id = @id
 RETURNING *;

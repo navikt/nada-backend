@@ -5,7 +5,6 @@ INSERT INTO quarto_stories (
 	"description",
 	"keywords",
 	"teamkatalogen_url",
-    "product_area_id",
     "team_id",
     "group"
 ) VALUES (
@@ -14,7 +13,6 @@ INSERT INTO quarto_stories (
 	@description,
 	@keywords,
 	@teamkatalogen_url,
-    @product_area_id,
     @team_id,
     @owner_group
 )
@@ -28,7 +26,6 @@ INSERT INTO quarto_stories (
 	"description",
 	"keywords",
 	"teamkatalogen_url",
-    "product_area_id",
     "team_id",
     "group"
 ) VALUES (
@@ -38,7 +35,6 @@ INSERT INTO quarto_stories (
 	@description,
 	@keywords,
 	@teamkatalogen_url,
-    @product_area_id,
     @team_id,
     @owner_group
 )
@@ -63,7 +59,7 @@ ORDER BY last_modified DESC;
 -- name: GetQuartoStoriesByProductArea :many
 SELECT *
 FROM quarto_stories
-WHERE product_area_id = @product_area_id
+WHERE team_id = ANY(SELECT team_id FROM team_productarea_mapping WHERE product_area_id = @product_area_id)
 ORDER BY last_modified DESC;
 
 -- name: GetQuartoStoriesByTeam :many
@@ -79,7 +75,6 @@ SET
 	"description" = @description,
 	"keywords" = @keywords,
 	"teamkatalogen_url" = @teamkatalogen_url,
-    "product_area_id" = @product_area_id,
     "team_id" = @team_id,
     "group" = @owner_group
 WHERE id = @id

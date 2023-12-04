@@ -3,6 +3,7 @@ package database
 import (
 	"context"
 	"database/sql"
+	"errors"
 
 	"github.com/google/uuid"
 	"github.com/navikt/nada-backend/pkg/database/gensql"
@@ -97,7 +98,6 @@ func (r *Repo) PublishStory(ctx context.Context, ds models.NewStory) (*models.DB
 		Description:      sql.NullString{String: "", Valid: false},
 		Keywords:         ds.Keywords,
 		TeamkatalogenUrl: ptrToNullString(ds.TeamkatalogenURL),
-		ProductAreaID:    ptrToNullString(ds.ProductAreaID),
 		TeamID:           ptrToNullString(ds.TeamID),
 	})
 	if err != nil {
@@ -105,6 +105,29 @@ func (r *Repo) PublishStory(ctx context.Context, ds models.NewStory) (*models.DB
 			r.log.WithError(err).Error("unable to roll back when create story failed")
 		}
 		return nil, err
+	}
+
+	if ds.TeamID != nil {
+		_, err = querier.GetTeamAndProductAreaID(ctx, *ds.TeamID)
+		if err != nil {
+			if !errors.Is(err, sql.ErrNoRows) {
+				if err := tx.Rollback(); err != nil {
+					r.log.WithError(err).Error("rolling back story create, get team and product area id")
+				}
+				return nil, err
+			}
+
+			_, err = querier.CreateTeamAndProductAreaMapping(ctx, gensql.CreateTeamAndProductAreaMappingParams{
+				TeamID:        *ds.TeamID,
+				ProductAreaID: ptrToNullString(ds.ProductAreaID),
+			})
+			if err != nil {
+				if err := tx.Rollback(); err != nil {
+					r.log.WithError(err).Error("rolling back story create, insert team and product mapping")
+				}
+				return nil, err
+			}
+		}
 	}
 
 	for _, view := range draftViews {
@@ -185,7 +208,6 @@ func (r *Repo) UpdateStory(ctx context.Context, ds models.NewStory) (*models.DBS
 		Keywords:         ds.Keywords,
 		ID:               *ds.Target,
 		TeamkatalogenUrl: ptrToNullString(ds.TeamkatalogenURL),
-		ProductAreaID:    ptrToNullString(ds.ProductAreaID),
 		TeamID:           ptrToNullString(ds.TeamID),
 	})
 	if err != nil {
@@ -193,6 +215,29 @@ func (r *Repo) UpdateStory(ctx context.Context, ds models.NewStory) (*models.DBS
 			r.log.WithError(err).Error("unable to roll back when updating")
 		}
 		return nil, err
+	}
+
+	if ds.TeamID != nil {
+		_, err = querier.GetTeamAndProductAreaID(ctx, *ds.TeamID)
+		if err != nil {
+			if !errors.Is(err, sql.ErrNoRows) {
+				if err := tx.Rollback(); err != nil {
+					r.log.WithError(err).Error("rolling back story create, get team and product area id")
+				}
+				return nil, err
+			}
+
+			_, err = querier.CreateTeamAndProductAreaMapping(ctx, gensql.CreateTeamAndProductAreaMappingParams{
+				TeamID:        *ds.TeamID,
+				ProductAreaID: ptrToNullString(ds.ProductAreaID),
+			})
+			if err != nil {
+				if err := tx.Rollback(); err != nil {
+					r.log.WithError(err).Error("rolling back story create, insert team and product mapping")
+				}
+				return nil, err
+			}
+		}
 	}
 
 	if err := tx.Commit(); err != nil {
@@ -208,17 +253,52 @@ func (r *Repo) UpdateStoryMetadata(ctx context.Context, id uuid.UUID, name strin
 		return nil, err
 	}
 
-	updated, err := r.querier.UpdateStory(ctx, gensql.UpdateStoryParams{
+	tx, err := r.db.Begin()
+	if err != nil {
+		return nil, err
+	}
+	querier := r.querier.WithTx(tx)
+
+	updated, err := querier.UpdateStory(ctx, gensql.UpdateStoryParams{
 		Name:             name,
 		Grp:              story.Group,
 		Description:      sql.NullString{String: "", Valid: false},
 		Keywords:         keywords,
 		ID:               id,
 		TeamkatalogenUrl: ptrToNullString(teamkatalogenURL),
-		ProductAreaID:    ptrToNullString(productAreaID),
 		TeamID:           ptrToNullString(teamID),
 	})
 	if err != nil {
+		if err := tx.Rollback(); err != nil {
+			r.log.WithError(err).Error("rolling back story metadata update")
+		}
+		return nil, err
+	}
+
+	if teamID != nil {
+		_, err = querier.GetTeamAndProductAreaID(ctx, *teamID)
+		if err != nil {
+			if !errors.Is(err, sql.ErrNoRows) {
+				if err := tx.Rollback(); err != nil {
+					r.log.WithError(err).Error("rolling back story metadata update, get team and product area id")
+				}
+				return nil, err
+			}
+
+			_, err = querier.CreateTeamAndProductAreaMapping(ctx, gensql.CreateTeamAndProductAreaMappingParams{
+				TeamID:        *teamID,
+				ProductAreaID: ptrToNullString(productAreaID),
+			})
+			if err != nil {
+				if err := tx.Rollback(); err != nil {
+					r.log.WithError(err).Error("rolling back story metadata update, insert team and product mapping")
+				}
+				return nil, err
+			}
+		}
+	}
+
+	if err := tx.Commit(); err != nil {
 		return nil, err
 	}
 
@@ -282,7 +362,6 @@ func (r *Repo) GetStoryFromToken(ctx context.Context, token uuid.UUID) (*models.
 		Owner: models.Owner{
 			Group:            story.Group,
 			TeamkatalogenURL: nullStringToPtr(story.TeamkatalogenUrl),
-			ProductAreaID:    nullStringToPtr(story.ProductAreaID),
 			TeamID:           nullStringToPtr(story.TeamID),
 		},
 		Description:  story.Description.String,
@@ -337,7 +416,6 @@ func storyFromSQL(s gensql.Story) *models.DBStory {
 		Owner: models.Owner{
 			Group:            s.Group,
 			TeamkatalogenURL: nullStringToPtr(s.TeamkatalogenUrl),
-			ProductAreaID:    nullStringToPtr(s.ProductAreaID),
 			TeamID:           nullStringToPtr(s.TeamID),
 		},
 		Description:  s.Description.String,

@@ -12,31 +12,51 @@ import (
 func (r *Repo) CreateQuartoStory(ctx context.Context, creator string,
 	newQuartoStory models.NewQuartoStory,
 ) (*models.QuartoStory, error) {
+	tx, err := r.db.Begin()
+	if err != nil {
+		return nil, err
+	}
+	querier := r.querier.WithTx(tx)
+
 	var quartoSQL gensql.QuartoStory
-	var err error
 	if newQuartoStory.ID == nil {
-		quartoSQL, err = r.querier.CreateQuartoStory(ctx, gensql.CreateQuartoStoryParams{
+		quartoSQL, err = querier.CreateQuartoStory(ctx, gensql.CreateQuartoStoryParams{
 			Name:             newQuartoStory.Name,
 			Creator:          creator,
 			Description:      ptrToString(newQuartoStory.Description),
 			Keywords:         newQuartoStory.Keywords,
 			TeamkatalogenUrl: ptrToNullString(newQuartoStory.TeamkatalogenURL),
-			ProductAreaID:    ptrToNullString(newQuartoStory.ProductAreaID),
 			TeamID:           ptrToNullString(newQuartoStory.TeamID),
 			OwnerGroup:       newQuartoStory.Group,
 		})
 	} else {
-		quartoSQL, err = r.querier.CreateQuartoStoryWithID(ctx, gensql.CreateQuartoStoryWithIDParams{
+		quartoSQL, err = querier.CreateQuartoStoryWithID(ctx, gensql.CreateQuartoStoryWithIDParams{
 			ID:               *newQuartoStory.ID,
 			Name:             newQuartoStory.Name,
 			Creator:          creator,
 			Description:      ptrToString(newQuartoStory.Description),
 			Keywords:         newQuartoStory.Keywords,
 			TeamkatalogenUrl: ptrToNullString(newQuartoStory.TeamkatalogenURL),
-			ProductAreaID:    ptrToNullString(newQuartoStory.ProductAreaID),
 			TeamID:           ptrToNullString(newQuartoStory.TeamID),
 			OwnerGroup:       newQuartoStory.Group,
 		})
+	}
+	if err != nil {
+		if err := tx.Rollback(); err != nil {
+			r.log.WithError(err).Error("rolling back quarto create")
+		}
+		return nil, err
+	}
+
+	if err := r.CreateTeamProductAreaMapping(ctx, tx, newQuartoStory.TeamID, newQuartoStory.ProductAreaID); err != nil {
+		if err := tx.Rollback(); err != nil {
+			r.log.WithError(err).Error("rolling back quarto metadata update")
+		}
+		return nil, err
+	}
+
+	if err := tx.Commit(); err != nil {
+		return nil, err
 	}
 
 	return quartoSQLToGraphql(&quartoSQL), err
@@ -108,17 +128,36 @@ func (r *Repo) GetQuartoStoriesByGroups(ctx context.Context, groups []string) ([
 func (r *Repo) UpdateQuartoStoryMetadata(ctx context.Context, id uuid.UUID, name string, description string, keywords []string, teamkatalogenURL *string, productAreaID *string, teamID *string, group string) (
 	*models.QuartoStory, error,
 ) {
-	dbStory, err := r.querier.UpdateQuartoStory(ctx, gensql.UpdateQuartoStoryParams{
+	tx, err := r.db.Begin()
+	if err != nil {
+		return nil, err
+	}
+	querier := r.querier.WithTx(tx)
+
+	dbStory, err := querier.UpdateQuartoStory(ctx, gensql.UpdateQuartoStoryParams{
 		ID:               id,
 		Name:             name,
 		Description:      description,
 		Keywords:         keywords,
 		TeamkatalogenUrl: ptrToNullString(teamkatalogenURL),
-		ProductAreaID:    ptrToNullString(productAreaID),
 		TeamID:           ptrToNullString(teamID),
 		OwnerGroup:       group,
 	})
 	if err != nil {
+		if err := tx.Rollback(); err != nil {
+			r.log.WithError(err).Error("rolling back quarto metadata update")
+		}
+		return nil, err
+	}
+
+	if err := r.CreateTeamProductAreaMapping(ctx, tx, teamID, productAreaID); err != nil {
+		if err := tx.Rollback(); err != nil {
+			r.log.WithError(err).Error("rolling back quarto metadata update")
+		}
+		return nil, err
+	}
+
+	if err := tx.Commit(); err != nil {
 		return nil, err
 	}
 
@@ -137,7 +176,6 @@ func quartoSQLToGraphql(quarto *gensql.QuartoStory) *models.QuartoStory {
 		Created:          quarto.Created,
 		LastModified:     &quarto.LastModified,
 		Keywords:         quarto.Keywords,
-		ProductAreaID:    nullStringToPtr(quarto.ProductAreaID),
 		TeamID:           nullStringToPtr(quarto.TeamID),
 		TeamkatalogenURL: nullStringToPtr(quarto.TeamkatalogenUrl),
 		Description:      quarto.Description,
