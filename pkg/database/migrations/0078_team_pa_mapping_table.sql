@@ -6,11 +6,11 @@ CREATE TABLE "team_productarea_mapping" (
 );
 
 WITH combined_team_pa AS (
-    SELECT DISTINCT(team_id), product_area_id FROM dataproducts WHERE team_id IS NOT NULL
+    SELECT DISTINCT(team_id), product_area_id FROM dataproducts WHERE team_id <> ''
     UNION
-    SELECT DISTINCT(team_id), product_area_id FROM quarto_stories WHERE team_id IS NOT NULL
+    SELECT DISTINCT(team_id), product_area_id FROM quarto_stories WHERE team_id <> ''
     UNION
-    SELECT DISTINCT(team_id), product_area_id FROM stories WHERE team_id IS NOT NULL
+    SELECT DISTINCT(team_id), product_area_id FROM stories WHERE team_id <> ''
 )
 INSERT INTO team_productarea_mapping (team_id, product_area_id)
 (SELECT team_id, product_area_id FROM combined_team_pa);
