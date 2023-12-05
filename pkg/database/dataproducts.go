@@ -107,7 +107,7 @@ func (r *Repo) CreateDataproduct(ctx context.Context, dp models.NewDataproduct, 
 		return nil, err
 	}
 
-	if err := r.CreateTeamProductAreaMapping(ctx, tx, dp.TeamID, dp.ProductAreaID); err != nil {
+	if err := r.CreateTeamProductAreaMappingIfNotExists(ctx, tx, dp.TeamID, dp.ProductAreaID); err != nil {
 		if err := tx.Rollback(); err != nil {
 			r.log.WithError(err).Error("rolling back quarto metadata update")
 		}
@@ -142,7 +142,7 @@ func (r *Repo) UpdateDataproduct(ctx context.Context, id uuid.UUID, new models.U
 		return nil, fmt.Errorf("updating dataproduct in database: %w", err)
 	}
 
-	if err := r.CreateTeamProductAreaMapping(ctx, tx, new.TeamID, new.ProductAreaID); err != nil {
+	if err := r.CreateTeamProductAreaMappingIfNotExists(ctx, tx, new.TeamID, new.ProductAreaID); err != nil {
 		if err := tx.Rollback(); err != nil {
 			r.log.WithError(err).Error("rolling back quarto metadata update")
 		}

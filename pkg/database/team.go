@@ -38,14 +38,14 @@ func (r *Repo) GetTeamFromToken(ctx context.Context, token uuid.UUID) (string, e
 	return r.querier.GetTeamFromNadaToken(ctx, token)
 }
 
-func (r *Repo) CreateTeamProductAreaMapping(ctx context.Context, tx *sql.Tx, teamID, productAreaID *string) error {
+func (r *Repo) CreateTeamProductAreaMappingIfNotExists(ctx context.Context, tx *sql.Tx, teamID, productAreaID *string) error {
 	querier := r.querier.WithTx(tx)
 	if teamID := ptrToString(teamID); teamID != "" {
 		_, err := querier.GetTeamAndProductAreaID(ctx, teamID)
 		if err != nil {
 			if !errors.Is(err, sql.ErrNoRows) {
 				if err := tx.Rollback(); err != nil {
-					r.log.WithError(err).Error("rolling back story create, get team and product area id")
+					r.log.WithError(err).Error("rolling back, get team and product area id")
 				}
 				return err
 			}
@@ -56,7 +56,7 @@ func (r *Repo) CreateTeamProductAreaMapping(ctx context.Context, tx *sql.Tx, tea
 			})
 			if err != nil {
 				if err := tx.Rollback(); err != nil {
-					r.log.WithError(err).Error("rolling back story create, insert team and product mapping")
+					r.log.WithError(err).Error("rolling back, insert team and product mapping")
 				}
 				return err
 			}

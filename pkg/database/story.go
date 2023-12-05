@@ -3,7 +3,6 @@ package database
 import (
 	"context"
 	"database/sql"
-	"errors"
 
 	"github.com/google/uuid"
 	"github.com/navikt/nada-backend/pkg/database/gensql"
@@ -107,27 +106,8 @@ func (r *Repo) PublishStory(ctx context.Context, ds models.NewStory) (*models.DB
 		return nil, err
 	}
 
-	if ds.TeamID != nil {
-		_, err = querier.GetTeamAndProductAreaID(ctx, *ds.TeamID)
-		if err != nil {
-			if !errors.Is(err, sql.ErrNoRows) {
-				if err := tx.Rollback(); err != nil {
-					r.log.WithError(err).Error("rolling back story create, get team and product area id")
-				}
-				return nil, err
-			}
-
-			_, err = querier.CreateTeamAndProductAreaMapping(ctx, gensql.CreateTeamAndProductAreaMappingParams{
-				TeamID:        *ds.TeamID,
-				ProductAreaID: ptrToNullString(ds.ProductAreaID),
-			})
-			if err != nil {
-				if err := tx.Rollback(); err != nil {
-					r.log.WithError(err).Error("rolling back story create, insert team and product mapping")
-				}
-				return nil, err
-			}
-		}
+	if err := r.CreateTeamProductAreaMappingIfNotExists(ctx, tx, ds.TeamID, ds.ProductAreaID); err != nil {
+		return nil, err
 	}
 
 	for _, view := range draftViews {
@@ -217,27 +197,8 @@ func (r *Repo) UpdateStory(ctx context.Context, ds models.NewStory) (*models.DBS
 		return nil, err
 	}
 
-	if ds.TeamID != nil {
-		_, err = querier.GetTeamAndProductAreaID(ctx, *ds.TeamID)
-		if err != nil {
-			if !errors.Is(err, sql.ErrNoRows) {
-				if err := tx.Rollback(); err != nil {
-					r.log.WithError(err).Error("rolling back story create, get team and product area id")
-				}
-				return nil, err
-			}
-
-			_, err = querier.CreateTeamAndProductAreaMapping(ctx, gensql.CreateTeamAndProductAreaMappingParams{
-				TeamID:        *ds.TeamID,
-				ProductAreaID: ptrToNullString(ds.ProductAreaID),
-			})
-			if err != nil {
-				if err := tx.Rollback(); err != nil {
-					r.log.WithError(err).Error("rolling back story create, insert team and product mapping")
-				}
-				return nil, err
-			}
-		}
+	if err := r.CreateTeamProductAreaMappingIfNotExists(ctx, tx, ds.TeamID, ds.ProductAreaID); err != nil {
+		return nil, err
 	}
 
 	if err := tx.Commit(); err != nil {
@@ -275,27 +236,8 @@ func (r *Repo) UpdateStoryMetadata(ctx context.Context, id uuid.UUID, name strin
 		return nil, err
 	}
 
-	if teamID != nil {
-		_, err = querier.GetTeamAndProductAreaID(ctx, *teamID)
-		if err != nil {
-			if !errors.Is(err, sql.ErrNoRows) {
-				if err := tx.Rollback(); err != nil {
-					r.log.WithError(err).Error("rolling back story metadata update, get team and product area id")
-				}
-				return nil, err
-			}
-
-			_, err = querier.CreateTeamAndProductAreaMapping(ctx, gensql.CreateTeamAndProductAreaMappingParams{
-				TeamID:        *teamID,
-				ProductAreaID: ptrToNullString(productAreaID),
-			})
-			if err != nil {
-				if err := tx.Rollback(); err != nil {
-					r.log.WithError(err).Error("rolling back story metadata update, insert team and product mapping")
-				}
-				return nil, err
-			}
-		}
+	if err := r.CreateTeamProductAreaMappingIfNotExists(ctx, tx, teamID, productAreaID); err != nil {
+		return nil, err
 	}
 
 	if err := tx.Commit(); err != nil {

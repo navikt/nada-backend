@@ -48,7 +48,7 @@ func (r *Repo) CreateQuartoStory(ctx context.Context, creator string,
 		return nil, err
 	}
 
-	if err := r.CreateTeamProductAreaMapping(ctx, tx, newQuartoStory.TeamID, newQuartoStory.ProductAreaID); err != nil {
+	if err := r.CreateTeamProductAreaMappingIfNotExists(ctx, tx, newQuartoStory.TeamID, newQuartoStory.ProductAreaID); err != nil {
 		if err := tx.Rollback(); err != nil {
 			r.log.WithError(err).Error("rolling back quarto metadata update")
 		}
@@ -150,7 +150,7 @@ func (r *Repo) UpdateQuartoStoryMetadata(ctx context.Context, id uuid.UUID, name
 		return nil, err
 	}
 
-	if err := r.CreateTeamProductAreaMapping(ctx, tx, teamID, productAreaID); err != nil {
+	if err := r.CreateTeamProductAreaMappingIfNotExists(ctx, tx, teamID, productAreaID); err != nil {
 		if err := tx.Rollback(); err != nil {
 			r.log.WithError(err).Error("rolling back quarto metadata update")
 		}
