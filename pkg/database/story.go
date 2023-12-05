@@ -106,10 +106,6 @@ func (r *Repo) PublishStory(ctx context.Context, ds models.NewStory) (*models.DB
 		return nil, err
 	}
 
-	if err := r.CreateTeamProductAreaMappingIfNotExists(ctx, tx, ds.TeamID, ds.ProductAreaID); err != nil {
-		return nil, err
-	}
-
 	for _, view := range draftViews {
 		_, err := querier.CreateStoryView(ctx, gensql.CreateStoryViewParams{
 			StoryID: story.ID,
@@ -214,13 +210,7 @@ func (r *Repo) UpdateStoryMetadata(ctx context.Context, id uuid.UUID, name strin
 		return nil, err
 	}
 
-	tx, err := r.db.Begin()
-	if err != nil {
-		return nil, err
-	}
-	querier := r.querier.WithTx(tx)
-
-	updated, err := querier.UpdateStory(ctx, gensql.UpdateStoryParams{
+	updated, err := r.querier.UpdateStory(ctx, gensql.UpdateStoryParams{
 		Name:             name,
 		Grp:              story.Group,
 		Description:      sql.NullString{String: "", Valid: false},
@@ -230,17 +220,6 @@ func (r *Repo) UpdateStoryMetadata(ctx context.Context, id uuid.UUID, name strin
 		TeamID:           ptrToNullString(teamID),
 	})
 	if err != nil {
-		if err := tx.Rollback(); err != nil {
-			r.log.WithError(err).Error("rolling back story metadata update")
-		}
-		return nil, err
-	}
-
-	if err := r.CreateTeamProductAreaMappingIfNotExists(ctx, tx, teamID, productAreaID); err != nil {
-		return nil, err
-	}
-
-	if err := tx.Commit(); err != nil {
 		return nil, err
 	}
 

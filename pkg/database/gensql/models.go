@@ -288,7 +288,6 @@ type InsightProduct struct {
 	Keywords         []string
 	Group            string
 	TeamkatalogenUrl sql.NullString
-	ProductAreaID    sql.NullString
 	TeamID           sql.NullString
 }
 

@@ -51,7 +51,6 @@ func isValidResponse(response []byte) bool {
 
 func updateCache(client *http.Client, req *http.Request) ([]byte, error) {
 	endpoint := req.URL.String()
-	log.Printf("Update cache for %v", endpoint)
 	_, err := cacheDB.Exec(`INSERT INTO http_cache (endpoint, response_body, created_at, last_tried_update_at) 
 	VALUES ($1, $2, $3, $3) ON CONFLICT (endpoint) DO UPDATE SET last_tried_update_at = $3`, endpoint, "", time.Now().UTC())
 	if err != nil {

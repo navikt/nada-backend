@@ -9,7 +9,6 @@ INSERT INTO
         "keywords",
         "group",
         "teamkatalogen_url",
-        "product_area_id",
         "team_id"
     )
 VALUES
@@ -22,7 +21,6 @@ VALUES
         @keywords,
         @owner_group,
         @teamkatalogen_url,
-        @product_area_id,
         @team_id
     ) RETURNING *;
 
@@ -58,7 +56,7 @@ SELECT
 FROM
     insight_product
 WHERE
-    product_area_id = @product_area_id
+    team_id = ANY(SELECT team_id FROM team_productarea_mapping WHERE product_area_id = @product_area_id) 
 ORDER BY
     last_modified DESC;
 
@@ -83,7 +81,6 @@ SET
     "link" = @link,
     "keywords" = @keywords,
     "teamkatalogen_url" = @teamkatalogen_url,
-    "product_area_id" = @product_area_id,
     "team_id" = @team_id
 WHERE
     id = @id RETURNING *;

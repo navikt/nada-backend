@@ -26,8 +26,6 @@ type InsightProduct struct {
 	Group string `json:"group"`
 	// teamkatalogenURL of the creator
 	TeamkatalogenURL *string `json:"teamkatalogenURL,omitempty"`
-	// Id of the creator's product area.
-	ProductAreaID *string `json:"productAreaID,omitempty"`
 	// Id of the creator's team.
 	TeamID *string `json:"teamID,omitempty"`
 	// created is the timestamp for when the insight product was created

@@ -84,14 +84,7 @@ func (r *Repo) GetDataproduct(ctx context.Context, id uuid.UUID) (*models.Datapr
 }
 
 func (r *Repo) CreateDataproduct(ctx context.Context, dp models.NewDataproduct, user *auth.User) (*models.Dataproduct, error) {
-	tx, err := r.db.Begin()
-	if err != nil {
-		return nil, err
-	}
-
-	querier := r.querier.WithTx(tx)
-
-	dataproduct, err := querier.CreateDataproduct(ctx, gensql.CreateDataproductParams{
+	dataproduct, err := r.querier.CreateDataproduct(ctx, gensql.CreateDataproductParams{
 		Name:                  dp.Name,
 		Description:           ptrToNullString(dp.Description),
 		OwnerGroup:            dp.Group,
@@ -101,20 +94,6 @@ func (r *Repo) CreateDataproduct(ctx context.Context, dp models.NewDataproduct, 
 		TeamID:                ptrToNullString(dp.TeamID),
 	})
 	if err != nil {
-		if err := tx.Rollback(); err != nil {
-			r.log.WithError(err).Error("rolling back dataproduct creation")
-		}
-		return nil, err
-	}
-
-	if err := r.CreateTeamProductAreaMappingIfNotExists(ctx, tx, dp.TeamID, dp.ProductAreaID); err != nil {
-		if err := tx.Rollback(); err != nil {
-			r.log.WithError(err).Error("rolling back quarto metadata update")
-		}
-		return nil, err
-	}
-
-	if err := tx.Commit(); err != nil {
 		return nil, err
 	}
 
@@ -122,14 +101,7 @@ func (r *Repo) CreateDataproduct(ctx context.Context, dp models.NewDataproduct, 
 }
 
 func (r *Repo) UpdateDataproduct(ctx context.Context, id uuid.UUID, new models.UpdateDataproduct) (*models.Dataproduct, error) {
-	tx, err := r.db.Begin()
-	if err != nil {
-		return nil, err
-	}
-
-	querier := r.querier.WithTx(tx)
-
-	res, err := querier.UpdateDataproduct(ctx, gensql.UpdateDataproductParams{
+	res, err := r.querier.UpdateDataproduct(ctx, gensql.UpdateDataproductParams{
 		Name:                  new.Name,
 		Description:           ptrToNullString(new.Description),
 		ID:                    id,
@@ -140,17 +112,6 @@ func (r *Repo) UpdateDataproduct(ctx context.Context, id uuid.UUID, new models.U
 	})
 	if err != nil {
 		return nil, fmt.Errorf("updating dataproduct in database: %w", err)
-	}
-
-	if err := r.CreateTeamProductAreaMappingIfNotExists(ctx, tx, new.TeamID, new.ProductAreaID); err != nil {
-		if err := tx.Rollback(); err != nil {
-			r.log.WithError(err).Error("rolling back quarto metadata update")
-		}
-		return nil, err
-	}
-
-	if err := tx.Commit(); err != nil {
-		return nil, err
 	}
 
 	return dataproductFromSQL(res), nil

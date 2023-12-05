@@ -77,12 +77,12 @@ func (r *mutationResolver) DeleteQuartoStory(ctx context.Context, id uuid.UUID) 
 
 // ProductAreaID is the resolver for the productAreaID field.
 func (r *quartoStoryResolver) ProductAreaID(ctx context.Context, obj *models.QuartoStory) (*string, error) {
-	if obj.TeamID != nil {
-		teamPAMapping, err := r.repo.GetTeamAndProductAreaID(ctx, *obj.TeamID)
+	if teamID := ptrToString(obj.TeamID); teamID != "" {
+		team, err := r.teamkatalogen.GetTeam(ctx, teamID)
 		if err != nil {
 			return nil, err
 		}
-		return &teamPAMapping.ProductAreaID.String, nil
+		return &team.ProductAreaID, nil
 	}
 
 	return nil, nil

@@ -24,7 +24,6 @@ INSERT INTO
         "keywords",
         "group",
         "teamkatalogen_url",
-        "product_area_id",
         "team_id"
     )
 VALUES
@@ -37,9 +36,8 @@ VALUES
         $6,
         $7,
         $8,
-        $9,
-        $10
-    ) RETURNING id, name, description, creator, created, last_modified, type, tsv_document, link, keywords, "group", teamkatalogen_url, product_area_id, team_id
+        $9
+    ) RETURNING id, name, description, creator, created, last_modified, type, tsv_document, link, keywords, "group", teamkatalogen_url, team_id
 `
 
 type CreateInsightProductParams struct {
@@ -51,7 +49,6 @@ type CreateInsightProductParams struct {
 	Keywords         []string
 	OwnerGroup       string
 	TeamkatalogenUrl sql.NullString
-	ProductAreaID    sql.NullString
 	TeamID           sql.NullString
 }
 
@@ -65,7 +62,6 @@ func (q *Queries) CreateInsightProduct(ctx context.Context, arg CreateInsightPro
 		pq.Array(arg.Keywords),
 		arg.OwnerGroup,
 		arg.TeamkatalogenUrl,
-		arg.ProductAreaID,
 		arg.TeamID,
 	)
 	var i InsightProduct
@@ -82,7 +78,6 @@ func (q *Queries) CreateInsightProduct(ctx context.Context, arg CreateInsightPro
 		pq.Array(&i.Keywords),
 		&i.Group,
 		&i.TeamkatalogenUrl,
-		&i.ProductAreaID,
 		&i.TeamID,
 	)
 	return i, err
@@ -102,7 +97,7 @@ func (q *Queries) DeleteInsightProduct(ctx context.Context, id uuid.UUID) error 
 
 const getInsightProduct = `-- name: GetInsightProduct :one
 SELECT
-    id, name, description, creator, created, last_modified, type, tsv_document, link, keywords, "group", teamkatalogen_url, product_area_id, team_id
+    id, name, description, creator, created, last_modified, type, tsv_document, link, keywords, "group", teamkatalogen_url, team_id
 FROM
     insight_product
 WHERE
@@ -125,7 +120,6 @@ func (q *Queries) GetInsightProduct(ctx context.Context, id uuid.UUID) (InsightP
 		pq.Array(&i.Keywords),
 		&i.Group,
 		&i.TeamkatalogenUrl,
-		&i.ProductAreaID,
 		&i.TeamID,
 	)
 	return i, err
@@ -133,7 +127,7 @@ func (q *Queries) GetInsightProduct(ctx context.Context, id uuid.UUID) (InsightP
 
 const getInsightProductByGroups = `-- name: GetInsightProductByGroups :many
 SELECT
-    id, name, description, creator, created, last_modified, type, tsv_document, link, keywords, "group", teamkatalogen_url, product_area_id, team_id
+    id, name, description, creator, created, last_modified, type, tsv_document, link, keywords, "group", teamkatalogen_url, team_id
 FROM
     insight_product
 WHERE
@@ -164,7 +158,6 @@ func (q *Queries) GetInsightProductByGroups(ctx context.Context, groups []string
 			pq.Array(&i.Keywords),
 			&i.Group,
 			&i.TeamkatalogenUrl,
-			&i.ProductAreaID,
 			&i.TeamID,
 		); err != nil {
 			return nil, err
@@ -182,7 +175,7 @@ func (q *Queries) GetInsightProductByGroups(ctx context.Context, groups []string
 
 const getInsightProducts = `-- name: GetInsightProducts :many
 SELECT
-    id, name, description, creator, created, last_modified, type, tsv_document, link, keywords, "group", teamkatalogen_url, product_area_id, team_id
+    id, name, description, creator, created, last_modified, type, tsv_document, link, keywords, "group", teamkatalogen_url, team_id
 FROM
     insight_product
 ORDER BY
@@ -211,7 +204,6 @@ func (q *Queries) GetInsightProducts(ctx context.Context) ([]InsightProduct, err
 			pq.Array(&i.Keywords),
 			&i.Group,
 			&i.TeamkatalogenUrl,
-			&i.ProductAreaID,
 			&i.TeamID,
 		); err != nil {
 			return nil, err
@@ -229,7 +221,7 @@ func (q *Queries) GetInsightProducts(ctx context.Context) ([]InsightProduct, err
 
 const getInsightProductsByIDs = `-- name: GetInsightProductsByIDs :many
 SELECT
-    id, name, description, creator, created, last_modified, type, tsv_document, link, keywords, "group", teamkatalogen_url, product_area_id, team_id
+    id, name, description, creator, created, last_modified, type, tsv_document, link, keywords, "group", teamkatalogen_url, team_id
 FROM
     insight_product
 WHERE
@@ -260,7 +252,6 @@ func (q *Queries) GetInsightProductsByIDs(ctx context.Context, ids []uuid.UUID) 
 			pq.Array(&i.Keywords),
 			&i.Group,
 			&i.TeamkatalogenUrl,
-			&i.ProductAreaID,
 			&i.TeamID,
 		); err != nil {
 			return nil, err
@@ -278,11 +269,11 @@ func (q *Queries) GetInsightProductsByIDs(ctx context.Context, ids []uuid.UUID) 
 
 const getInsightProductsByProductArea = `-- name: GetInsightProductsByProductArea :many
 SELECT
-    id, name, description, creator, created, last_modified, type, tsv_document, link, keywords, "group", teamkatalogen_url, product_area_id, team_id
+    id, name, description, creator, created, last_modified, type, tsv_document, link, keywords, "group", teamkatalogen_url, team_id
 FROM
     insight_product
 WHERE
-    product_area_id = $1
+    team_id = ANY(SELECT team_id FROM team_productarea_mapping WHERE product_area_id = $1) 
 ORDER BY
     last_modified DESC
 `
@@ -309,7 +300,6 @@ func (q *Queries) GetInsightProductsByProductArea(ctx context.Context, productAr
 			pq.Array(&i.Keywords),
 			&i.Group,
 			&i.TeamkatalogenUrl,
-			&i.ProductAreaID,
 			&i.TeamID,
 		); err != nil {
 			return nil, err
@@ -327,7 +317,7 @@ func (q *Queries) GetInsightProductsByProductArea(ctx context.Context, productAr
 
 const getInsightProductsByTeam = `-- name: GetInsightProductsByTeam :many
 SELECT
-    id, name, description, creator, created, last_modified, type, tsv_document, link, keywords, "group", teamkatalogen_url, product_area_id, team_id
+    id, name, description, creator, created, last_modified, type, tsv_document, link, keywords, "group", teamkatalogen_url, team_id
 FROM
     insight_product
 WHERE
@@ -358,7 +348,6 @@ func (q *Queries) GetInsightProductsByTeam(ctx context.Context, teamID sql.NullS
 			pq.Array(&i.Keywords),
 			&i.Group,
 			&i.TeamkatalogenUrl,
-			&i.ProductAreaID,
 			&i.TeamID,
 		); err != nil {
 			return nil, err
@@ -385,10 +374,9 @@ SET
     "link" = $5,
     "keywords" = $6,
     "teamkatalogen_url" = $7,
-    "product_area_id" = $8,
-    "team_id" = $9
+    "team_id" = $8
 WHERE
-    id = $10 RETURNING id, name, description, creator, created, last_modified, type, tsv_document, link, keywords, "group", teamkatalogen_url, product_area_id, team_id
+    id = $9 RETURNING id, name, description, creator, created, last_modified, type, tsv_document, link, keywords, "group", teamkatalogen_url, team_id
 `
 
 type UpdateInsightProductParams struct {
@@ -399,7 +387,6 @@ type UpdateInsightProductParams struct {
 	Link             string
 	Keywords         []string
 	TeamkatalogenUrl sql.NullString
-	ProductAreaID    sql.NullString
 	TeamID           sql.NullString
 	ID               uuid.UUID
 }
@@ -413,7 +400,6 @@ func (q *Queries) UpdateInsightProduct(ctx context.Context, arg UpdateInsightPro
 		arg.Link,
 		pq.Array(arg.Keywords),
 		arg.TeamkatalogenUrl,
-		arg.ProductAreaID,
 		arg.TeamID,
 		arg.ID,
 	)
@@ -431,7 +417,6 @@ func (q *Queries) UpdateInsightProduct(ctx context.Context, arg UpdateInsightPro
 		pq.Array(&i.Keywords),
 		&i.Group,
 		&i.TeamkatalogenUrl,
-		&i.ProductAreaID,
 		&i.TeamID,
 	)
 	return i, err

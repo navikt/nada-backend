@@ -45,6 +45,7 @@ type ResolverRoot interface {
 	BigQuery() BigQueryResolver
 	Dataproduct() DataproductResolver
 	Dataset() DatasetResolver
+	InsightProduct() InsightProductResolver
 	Mutation() MutationResolver
 	Owner() OwnerResolver
 	ProductArea() ProductAreaResolver
@@ -446,6 +447,9 @@ type DatasetResolver interface {
 	Access(ctx context.Context, obj *models.Dataset) ([]*models.Access, error)
 	Services(ctx context.Context, obj *models.Dataset) (*models.DatasetServices, error)
 	Mappings(ctx context.Context, obj *models.Dataset) ([]models.MappingService, error)
+}
+type InsightProductResolver interface {
+	ProductAreaID(ctx context.Context, obj *models.InsightProduct) (*string, error)
 }
 type MutationResolver interface {
 	Dummy(ctx context.Context, no *string) (*string, error)
@@ -9341,7 +9345,7 @@ func (ec *executionContext) _InsightProduct_productAreaID(ctx context.Context, f
 	}()
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
-		return obj.ProductAreaID, nil
+		return ec.resolvers.InsightProduct().ProductAreaID(rctx, obj)
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -9359,8 +9363,8 @@ func (ec *executionContext) fieldContext_InsightProduct_productAreaID(ctx contex
 	fc = &graphql.FieldContext{
 		Object:     "InsightProduct",
 		Field:      field,
-		IsMethod:   false,
-		IsResolver: false,
+		IsMethod:   true,
+		IsResolver: true,
 		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
 			return nil, errors.New("field of type String does not have child fields")
 		},
@@ -23153,53 +23157,84 @@ func (ec *executionContext) _InsightProduct(ctx context.Context, sel ast.Selecti
 		case "id":
 			out.Values[i] = ec._InsightProduct_id(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
-				out.Invalids++
+				atomic.AddUint32(&out.Invalids, 1)
 			}
 		case "name":
 			out.Values[i] = ec._InsightProduct_name(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
-				out.Invalids++
+				atomic.AddUint32(&out.Invalids, 1)
 			}
 		case "creator":
 			out.Values[i] = ec._InsightProduct_creator(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
-				out.Invalids++
+				atomic.AddUint32(&out.Invalids, 1)
 			}
 		case "description":
 			out.Values[i] = ec._InsightProduct_description(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
-				out.Invalids++
+				atomic.AddUint32(&out.Invalids, 1)
 			}
 		case "type":
 			out.Values[i] = ec._InsightProduct_type(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
-				out.Invalids++
+				atomic.AddUint32(&out.Invalids, 1)
 			}
 		case "link":
 			out.Values[i] = ec._InsightProduct_link(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
-				out.Invalids++
+				atomic.AddUint32(&out.Invalids, 1)
 			}
 		case "keywords":
 			out.Values[i] = ec._InsightProduct_keywords(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
-				out.Invalids++
+				atomic.AddUint32(&out.Invalids, 1)
 			}
 		case "group":
 			out.Values[i] = ec._InsightProduct_group(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
-				out.Invalids++
+				atomic.AddUint32(&out.Invalids, 1)
 			}
 		case "teamkatalogenURL":
 			out.Values[i] = ec._InsightProduct_teamkatalogenURL(ctx, field, obj)
 		case "productAreaID":
-			out.Values[i] = ec._InsightProduct_productAreaID(ctx, field, obj)
+			field := field
+
+			innerFunc := func(ctx context.Context, fs *graphql.FieldSet) (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._InsightProduct_productAreaID(ctx, field, obj)
+				return res
+			}
+
+			if field.Deferrable != nil {
+				dfs, ok := deferred[field.Deferrable.Label]
+				di := 0
+				if ok {
+					dfs.AddField(field)
+					di = len(dfs.Values) - 1
+				} else {
+					dfs = graphql.NewFieldSet([]graphql.CollectedField{field})
+					deferred[field.Deferrable.Label] = dfs
+				}
+				dfs.Concurrently(di, func(ctx context.Context) graphql.Marshaler {
+					return innerFunc(ctx, dfs)
+				})
+
+				// don't run the out.Concurrently() call below
+				out.Values[i] = graphql.Null
+				continue
+			}
+
+			out.Concurrently(i, func(ctx context.Context) graphql.Marshaler { return innerFunc(ctx, out) })
 		case "teamID":
 			out.Values[i] = ec._InsightProduct_teamID(ctx, field, obj)
 		case "created":
 			out.Values[i] = ec._InsightProduct_created(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
-				out.Invalids++
+				atomic.AddUint32(&out.Invalids, 1)
 			}
 		case "lastModified":
 			out.Values[i] = ec._InsightProduct_lastModified(ctx, field, obj)

@@ -9,8 +9,22 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/navikt/nada-backend/pkg/auth"
+	"github.com/navikt/nada-backend/pkg/graph/generated"
 	"github.com/navikt/nada-backend/pkg/graph/models"
 )
+
+// ProductAreaID is the resolver for the productAreaID field.
+func (r *insightProductResolver) ProductAreaID(ctx context.Context, obj *models.InsightProduct) (*string, error) {
+	if teamID := ptrToString(obj.TeamID); teamID != "" {
+		team, err := r.teamkatalogen.GetTeam(ctx, teamID)
+		if err != nil {
+			return nil, err
+		}
+		return &team.ProductAreaID, nil
+	}
+
+	return nil, nil
+}
 
 // CreateInsightProduct is the resolver for the createInsightProduct field.
 func (r *mutationResolver) CreateInsightProduct(ctx context.Context, input models.NewInsightProduct) (*models.InsightProduct, error) {
@@ -66,3 +80,10 @@ func (r *mutationResolver) DeleteInsightProduct(ctx context.Context, id uuid.UUI
 func (r *queryResolver) InsightProduct(ctx context.Context, id uuid.UUID) (*models.InsightProduct, error) {
 	return r.repo.GetInsightProduct(ctx, id)
 }
+
+// InsightProduct returns generated.InsightProductResolver implementation.
+func (r *Resolver) InsightProduct() generated.InsightProductResolver {
+	return &insightProductResolver{r}
+}
+
+type insightProductResolver struct{ *Resolver }

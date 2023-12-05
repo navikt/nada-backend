@@ -12,15 +12,10 @@ import (
 func (r *Repo) CreateQuartoStory(ctx context.Context, creator string,
 	newQuartoStory models.NewQuartoStory,
 ) (*models.QuartoStory, error) {
-	tx, err := r.db.Begin()
-	if err != nil {
-		return nil, err
-	}
-	querier := r.querier.WithTx(tx)
-
 	var quartoSQL gensql.QuartoStory
+	var err error
 	if newQuartoStory.ID == nil {
-		quartoSQL, err = querier.CreateQuartoStory(ctx, gensql.CreateQuartoStoryParams{
+		quartoSQL, err = r.querier.CreateQuartoStory(ctx, gensql.CreateQuartoStoryParams{
 			Name:             newQuartoStory.Name,
 			Creator:          creator,
 			Description:      ptrToString(newQuartoStory.Description),
@@ -30,7 +25,7 @@ func (r *Repo) CreateQuartoStory(ctx context.Context, creator string,
 			OwnerGroup:       newQuartoStory.Group,
 		})
 	} else {
-		quartoSQL, err = querier.CreateQuartoStoryWithID(ctx, gensql.CreateQuartoStoryWithIDParams{
+		quartoSQL, err = r.querier.CreateQuartoStoryWithID(ctx, gensql.CreateQuartoStoryWithIDParams{
 			ID:               *newQuartoStory.ID,
 			Name:             newQuartoStory.Name,
 			Creator:          creator,
@@ -42,20 +37,6 @@ func (r *Repo) CreateQuartoStory(ctx context.Context, creator string,
 		})
 	}
 	if err != nil {
-		if err := tx.Rollback(); err != nil {
-			r.log.WithError(err).Error("rolling back quarto create")
-		}
-		return nil, err
-	}
-
-	if err := r.CreateTeamProductAreaMappingIfNotExists(ctx, tx, newQuartoStory.TeamID, newQuartoStory.ProductAreaID); err != nil {
-		if err := tx.Rollback(); err != nil {
-			r.log.WithError(err).Error("rolling back quarto metadata update")
-		}
-		return nil, err
-	}
-
-	if err := tx.Commit(); err != nil {
 		return nil, err
 	}
 
