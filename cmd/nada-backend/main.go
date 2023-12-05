@@ -124,6 +124,7 @@ func main() {
 	amplitudeClient = amplitude.NewMock()
 	if !cfg.MockAuth {
 		teamcatalogue = teamkatalogen.New(cfg.TeamkatalogenURL)
+
 		teamProjectsUpdater = teamprojectsupdater.NewTeamProjectsUpdater(ctx, cfg.ConsoleURL, cfg.ConsoleAPIKey, http.DefaultClient, repo)
 		go teamProjectsUpdater.Run(ctx, TeamProjectsUpdateFrequency)
 

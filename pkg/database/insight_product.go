@@ -18,13 +18,15 @@ func (r *Repo) CreateInsightProduct(ctx context.Context, creator string,
 		Keywords:         newInsightProduct.Keywords,
 		OwnerGroup:       newInsightProduct.Group,
 		TeamkatalogenUrl: ptrToNullString(newInsightProduct.TeamkatalogenURL),
-		ProductAreaID:    ptrToNullString(newInsightProduct.ProductAreaID),
 		TeamID:           ptrToNullString(newInsightProduct.TeamID),
 		Type:             newInsightProduct.Type,
 		Link:             newInsightProduct.Link,
 	})
+	if err != nil {
+		return nil, err
+	}
 
-	return InsightProductSQLToGraphql(&insightProductSQL), err
+	return InsightProductSQLToGraphql(&insightProductSQL), nil
 }
 
 func (r *Repo) GetInsightProduct(ctx context.Context, id uuid.UUID) (*models.InsightProduct, error) {
@@ -61,7 +63,6 @@ func (r *Repo) UpdateInsightProductMetadata(ctx context.Context, id uuid.UUID, n
 		Description:      ptrToNullString(&description),
 		Keywords:         keywords,
 		TeamkatalogenUrl: ptrToNullString(teamkatalogenURL),
-		ProductAreaID:    ptrToNullString(productAreaID),
 		TeamID:           ptrToNullString(teamID),
 		Type:             insightProductType,
 		Link:             link,
@@ -73,8 +74,8 @@ func (r *Repo) UpdateInsightProductMetadata(ctx context.Context, id uuid.UUID, n
 	return InsightProductSQLToGraphql(&dbProduct), nil
 }
 
-func (r *Repo) GetInsightProductsByProductArea(ctx context.Context, productAreaID string) ([]*models.InsightProduct, error) {
-	dbProducts, err := r.querier.GetInsightProductsByProductArea(ctx, ptrToNullString(&productAreaID))
+func (r *Repo) GetInsightProductsByProductArea(ctx context.Context, teamsInPA []string) ([]*models.InsightProduct, error) {
+	dbProducts, err := r.querier.GetInsightProductsByProductArea(ctx, teamsInPA)
 	if err != nil {
 		return nil, err
 	}
@@ -129,7 +130,6 @@ func InsightProductSQLToGraphql(insightProductSQL *gensql.InsightProduct) *model
 		Type:             insightProductSQL.Type,
 		Keywords:         insightProductSQL.Keywords,
 		TeamkatalogenURL: nullStringToPtr(insightProductSQL.TeamkatalogenUrl),
-		ProductAreaID:    nullStringToPtr(insightProductSQL.ProductAreaID),
 		TeamID:           nullStringToPtr(insightProductSQL.TeamID),
 		Group:            insightProductSQL.Group,
 		Link:             insightProductSQL.Link,

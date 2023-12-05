@@ -74,6 +74,9 @@ func (r *Repo) Search(ctx context.Context, query *models.SearchQuery) ([]*models
 	}
 
 	qss, err := r.querier.GetQuartoStoriesByIDs(ctx, quartoStories)
+	if err != nil {
+		return nil, err
+	}
 
 	ret := []*models.SearchResultRow{}
 	for _, d := range dps {
@@ -102,7 +105,7 @@ func (r *Repo) Search(ctx context.Context, query *models.SearchQuery) ([]*models
 	for _, qs := range qss {
 		ret = append(ret, &models.SearchResultRow{
 			Excerpt: excerpts[qs.ID],
-			Result: quartoSQLToGraphql(&qs),
+			Result:  quartoSQLToGraphql(&qs),
 		})
 	}
 

@@ -45,8 +45,11 @@ type ResolverRoot interface {
 	BigQuery() BigQueryResolver
 	Dataproduct() DataproductResolver
 	Dataset() DatasetResolver
+	InsightProduct() InsightProductResolver
 	Mutation() MutationResolver
+	Owner() OwnerResolver
 	ProductArea() ProductAreaResolver
+	QuartoStory() QuartoStoryResolver
 	Query() QueryResolver
 	SearchResultRow() SearchResultRowResolver
 	Story() StoryResolver
@@ -445,6 +448,9 @@ type DatasetResolver interface {
 	Services(ctx context.Context, obj *models.Dataset) (*models.DatasetServices, error)
 	Mappings(ctx context.Context, obj *models.Dataset) ([]models.MappingService, error)
 }
+type InsightProductResolver interface {
+	ProductAreaID(ctx context.Context, obj *models.InsightProduct) (*string, error)
+}
 type MutationResolver interface {
 	Dummy(ctx context.Context, no *string) (*string, error)
 	GrantAccessToDataset(ctx context.Context, input models.NewGrant) (*models.Access, error)
@@ -474,6 +480,9 @@ type MutationResolver interface {
 	UpdateStoryMetadata(ctx context.Context, id uuid.UUID, name string, keywords []string, teamkatalogenURL *string, productAreaID *string, teamID *string) (*models.GraphStory, error)
 	DeleteStory(ctx context.Context, id uuid.UUID) (bool, error)
 }
+type OwnerResolver interface {
+	ProductAreaID(ctx context.Context, obj *models.Owner) (*string, error)
+}
 type ProductAreaResolver interface {
 	Dataproducts(ctx context.Context, obj *models.ProductArea) ([]*models.Dataproduct, error)
 	DashboardURL(ctx context.Context, obj *models.ProductArea) (string, error)
@@ -482,6 +491,9 @@ type ProductAreaResolver interface {
 	QuartoStories(ctx context.Context, obj *models.ProductArea) ([]*models.QuartoStory, error)
 	InsightProducts(ctx context.Context, obj *models.ProductArea) ([]*models.InsightProduct, error)
 	Teams(ctx context.Context, obj *models.ProductArea) ([]*models.Team, error)
+}
+type QuartoStoryResolver interface {
+	ProductAreaID(ctx context.Context, obj *models.QuartoStory) (*string, error)
 }
 type QueryResolver interface {
 	Version(ctx context.Context) (string, error)
@@ -9333,7 +9345,7 @@ func (ec *executionContext) _InsightProduct_productAreaID(ctx context.Context, f
 	}()
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
-		return obj.ProductAreaID, nil
+		return ec.resolvers.InsightProduct().ProductAreaID(rctx, obj)
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -9351,8 +9363,8 @@ func (ec *executionContext) fieldContext_InsightProduct_productAreaID(ctx contex
 	fc = &graphql.FieldContext{
 		Object:     "InsightProduct",
 		Field:      field,
-		IsMethod:   false,
-		IsResolver: false,
+		IsMethod:   true,
+		IsResolver: true,
 		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
 			return nil, errors.New("field of type String does not have child fields")
 		},
@@ -12625,7 +12637,7 @@ func (ec *executionContext) _Owner_productAreaID(ctx context.Context, field grap
 	}()
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
-		return obj.ProductAreaID, nil
+		return ec.resolvers.Owner().ProductAreaID(rctx, obj)
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -12643,8 +12655,8 @@ func (ec *executionContext) fieldContext_Owner_productAreaID(ctx context.Context
 	fc = &graphql.FieldContext{
 		Object:     "Owner",
 		Field:      field,
-		IsMethod:   false,
-		IsResolver: false,
+		IsMethod:   true,
+		IsResolver: true,
 		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
 			return nil, errors.New("field of type String does not have child fields")
 		},
@@ -13778,7 +13790,7 @@ func (ec *executionContext) _QuartoStory_productAreaID(ctx context.Context, fiel
 	}()
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
-		return obj.ProductAreaID, nil
+		return ec.resolvers.QuartoStory().ProductAreaID(rctx, obj)
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -13796,8 +13808,8 @@ func (ec *executionContext) fieldContext_QuartoStory_productAreaID(ctx context.C
 	fc = &graphql.FieldContext{
 		Object:     "QuartoStory",
 		Field:      field,
-		IsMethod:   false,
-		IsResolver: false,
+		IsMethod:   true,
+		IsResolver: true,
 		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
 			return nil, errors.New("field of type String does not have child fields")
 		},
@@ -20890,8 +20902,6 @@ func (ec *executionContext) unmarshalInputNewAccessRequest(ctx context.Context, 
 		}
 		switch k {
 		case "datasetID":
-			var err error
-
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("datasetID"))
 			data, err := ec.unmarshalNID2githubᚗcomᚋgoogleᚋuuidᚐUUID(ctx, v)
 			if err != nil {
@@ -20899,8 +20909,6 @@ func (ec *executionContext) unmarshalInputNewAccessRequest(ctx context.Context, 
 			}
 			it.DatasetID = data
 		case "subject":
-			var err error
-
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("subject"))
 			data, err := ec.unmarshalOString2ᚖstring(ctx, v)
 			if err != nil {
@@ -20908,8 +20916,6 @@ func (ec *executionContext) unmarshalInputNewAccessRequest(ctx context.Context, 
 			}
 			it.Subject = data
 		case "subjectType":
-			var err error
-
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("subjectType"))
 			data, err := ec.unmarshalOSubjectType2ᚖgithubᚗcomᚋnaviktᚋnadaᚑbackendᚋpkgᚋgraphᚋmodelsᚐSubjectType(ctx, v)
 			if err != nil {
@@ -20917,8 +20923,6 @@ func (ec *executionContext) unmarshalInputNewAccessRequest(ctx context.Context, 
 			}
 			it.SubjectType = data
 		case "owner":
-			var err error
-
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("owner"))
 			data, err := ec.unmarshalOString2ᚖstring(ctx, v)
 			if err != nil {
@@ -20926,8 +20930,6 @@ func (ec *executionContext) unmarshalInputNewAccessRequest(ctx context.Context, 
 			}
 			it.Owner = data
 		case "expires":
-			var err error
-
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("expires"))
 			data, err := ec.unmarshalOTime2ᚖtimeᚐTime(ctx, v)
 			if err != nil {
@@ -20935,8 +20937,6 @@ func (ec *executionContext) unmarshalInputNewAccessRequest(ctx context.Context, 
 			}
 			it.Expires = data
 		case "polly":
-			var err error
-
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("polly"))
 			data, err := ec.unmarshalOPollyInput2ᚖgithubᚗcomᚋnaviktᚋnadaᚑbackendᚋpkgᚋgraphᚋmodelsᚐPollyInput(ctx, v)
 			if err != nil {
@@ -20964,8 +20964,6 @@ func (ec *executionContext) unmarshalInputNewBigQuery(ctx context.Context, obj i
 		}
 		switch k {
 		case "projectID":
-			var err error
-
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("projectID"))
 			data, err := ec.unmarshalNString2string(ctx, v)
 			if err != nil {
@@ -20973,8 +20971,6 @@ func (ec *executionContext) unmarshalInputNewBigQuery(ctx context.Context, obj i
 			}
 			it.ProjectID = data
 		case "dataset":
-			var err error
-
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("dataset"))
 			data, err := ec.unmarshalNString2string(ctx, v)
 			if err != nil {
@@ -20982,8 +20978,6 @@ func (ec *executionContext) unmarshalInputNewBigQuery(ctx context.Context, obj i
 			}
 			it.Dataset = data
 		case "table":
-			var err error
-
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("table"))
 			data, err := ec.unmarshalNString2string(ctx, v)
 			if err != nil {
@@ -20991,8 +20985,6 @@ func (ec *executionContext) unmarshalInputNewBigQuery(ctx context.Context, obj i
 			}
 			it.Table = data
 		case "piiTags":
-			var err error
-
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("piiTags"))
 			data, err := ec.unmarshalOString2ᚖstring(ctx, v)
 			if err != nil {
@@ -21020,8 +21012,6 @@ func (ec *executionContext) unmarshalInputNewDataproduct(ctx context.Context, ob
 		}
 		switch k {
 		case "name":
-			var err error
-
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("name"))
 			data, err := ec.unmarshalNString2string(ctx, v)
 			if err != nil {
@@ -21029,8 +21019,6 @@ func (ec *executionContext) unmarshalInputNewDataproduct(ctx context.Context, ob
 			}
 			it.Name = data
 		case "description":
-			var err error
-
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("description"))
 			data, err := ec.unmarshalOString2ᚖstring(ctx, v)
 			if err != nil {
@@ -21038,8 +21026,6 @@ func (ec *executionContext) unmarshalInputNewDataproduct(ctx context.Context, ob
 			}
 			it.Description = data
 		case "group":
-			var err error
-
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("group"))
 			data, err := ec.unmarshalNString2string(ctx, v)
 			if err != nil {
@@ -21047,8 +21033,6 @@ func (ec *executionContext) unmarshalInputNewDataproduct(ctx context.Context, ob
 			}
 			it.Group = data
 		case "teamkatalogenURL":
-			var err error
-
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("teamkatalogenURL"))
 			data, err := ec.unmarshalOString2ᚖstring(ctx, v)
 			if err != nil {
@@ -21056,8 +21040,6 @@ func (ec *executionContext) unmarshalInputNewDataproduct(ctx context.Context, ob
 			}
 			it.TeamkatalogenURL = data
 		case "teamContact":
-			var err error
-
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("teamContact"))
 			data, err := ec.unmarshalOString2ᚖstring(ctx, v)
 			if err != nil {
@@ -21065,8 +21047,6 @@ func (ec *executionContext) unmarshalInputNewDataproduct(ctx context.Context, ob
 			}
 			it.TeamContact = data
 		case "productAreaID":
-			var err error
-
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("productAreaID"))
 			data, err := ec.unmarshalOString2ᚖstring(ctx, v)
 			if err != nil {
@@ -21074,8 +21054,6 @@ func (ec *executionContext) unmarshalInputNewDataproduct(ctx context.Context, ob
 			}
 			it.ProductAreaID = data
 		case "teamID":
-			var err error
-
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("teamID"))
 			data, err := ec.unmarshalOString2ᚖstring(ctx, v)
 			if err != nil {
@@ -21103,8 +21081,6 @@ func (ec *executionContext) unmarshalInputNewDataset(ctx context.Context, obj in
 		}
 		switch k {
 		case "dataproductID":
-			var err error
-
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("dataproductID"))
 			data, err := ec.unmarshalNID2githubᚗcomᚋgoogleᚋuuidᚐUUID(ctx, v)
 			if err != nil {
@@ -21112,8 +21088,6 @@ func (ec *executionContext) unmarshalInputNewDataset(ctx context.Context, obj in
 			}
 			it.DataproductID = data
 		case "name":
-			var err error
-
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("name"))
 			data, err := ec.unmarshalNString2string(ctx, v)
 			if err != nil {
@@ -21121,8 +21095,6 @@ func (ec *executionContext) unmarshalInputNewDataset(ctx context.Context, obj in
 			}
 			it.Name = data
 		case "description":
-			var err error
-
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("description"))
 			data, err := ec.unmarshalOString2ᚖstring(ctx, v)
 			if err != nil {
@@ -21130,8 +21102,6 @@ func (ec *executionContext) unmarshalInputNewDataset(ctx context.Context, obj in
 			}
 			it.Description = data
 		case "repo":
-			var err error
-
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("repo"))
 			data, err := ec.unmarshalOString2ᚖstring(ctx, v)
 			if err != nil {
@@ -21139,8 +21109,6 @@ func (ec *executionContext) unmarshalInputNewDataset(ctx context.Context, obj in
 			}
 			it.Repo = data
 		case "pii":
-			var err error
-
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("pii"))
 			data, err := ec.unmarshalNPiiLevel2githubᚗcomᚋnaviktᚋnadaᚑbackendᚋpkgᚋgraphᚋmodelsᚐPiiLevel(ctx, v)
 			if err != nil {
@@ -21148,8 +21116,6 @@ func (ec *executionContext) unmarshalInputNewDataset(ctx context.Context, obj in
 			}
 			it.Pii = data
 		case "keywords":
-			var err error
-
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("keywords"))
 			data, err := ec.unmarshalOString2ᚕstringᚄ(ctx, v)
 			if err != nil {
@@ -21157,8 +21123,6 @@ func (ec *executionContext) unmarshalInputNewDataset(ctx context.Context, obj in
 			}
 			it.Keywords = data
 		case "bigquery":
-			var err error
-
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("bigquery"))
 			data, err := ec.unmarshalNNewBigQuery2githubᚗcomᚋnaviktᚋnadaᚑbackendᚋpkgᚋgraphᚋmodelsᚐNewBigQuery(ctx, v)
 			if err != nil {
@@ -21166,8 +21130,6 @@ func (ec *executionContext) unmarshalInputNewDataset(ctx context.Context, obj in
 			}
 			it.BigQuery = data
 		case "anonymisation_description":
-			var err error
-
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("anonymisation_description"))
 			data, err := ec.unmarshalOString2ᚖstring(ctx, v)
 			if err != nil {
@@ -21175,8 +21137,6 @@ func (ec *executionContext) unmarshalInputNewDataset(ctx context.Context, obj in
 			}
 			it.AnonymisationDescription = data
 		case "grantAllUsers":
-			var err error
-
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("grantAllUsers"))
 			data, err := ec.unmarshalOBoolean2ᚖbool(ctx, v)
 			if err != nil {
@@ -21184,8 +21144,6 @@ func (ec *executionContext) unmarshalInputNewDataset(ctx context.Context, obj in
 			}
 			it.GrantAllUsers = data
 		case "targetUser":
-			var err error
-
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("targetUser"))
 			data, err := ec.unmarshalOString2ᚖstring(ctx, v)
 			if err != nil {
@@ -21193,8 +21151,6 @@ func (ec *executionContext) unmarshalInputNewDataset(ctx context.Context, obj in
 			}
 			it.TargetUser = data
 		case "pseudoColumns":
-			var err error
-
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("pseudoColumns"))
 			data, err := ec.unmarshalOString2ᚕstringᚄ(ctx, v)
 			if err != nil {
@@ -21222,8 +21178,6 @@ func (ec *executionContext) unmarshalInputNewGrant(ctx context.Context, obj inte
 		}
 		switch k {
 		case "datasetID":
-			var err error
-
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("datasetID"))
 			data, err := ec.unmarshalNID2githubᚗcomᚋgoogleᚋuuidᚐUUID(ctx, v)
 			if err != nil {
@@ -21231,8 +21185,6 @@ func (ec *executionContext) unmarshalInputNewGrant(ctx context.Context, obj inte
 			}
 			it.DatasetID = data
 		case "expires":
-			var err error
-
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("expires"))
 			data, err := ec.unmarshalOTime2ᚖtimeᚐTime(ctx, v)
 			if err != nil {
@@ -21240,8 +21192,6 @@ func (ec *executionContext) unmarshalInputNewGrant(ctx context.Context, obj inte
 			}
 			it.Expires = data
 		case "subject":
-			var err error
-
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("subject"))
 			data, err := ec.unmarshalOString2ᚖstring(ctx, v)
 			if err != nil {
@@ -21249,8 +21199,6 @@ func (ec *executionContext) unmarshalInputNewGrant(ctx context.Context, obj inte
 			}
 			it.Subject = data
 		case "subjectType":
-			var err error
-
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("subjectType"))
 			data, err := ec.unmarshalOSubjectType2ᚖgithubᚗcomᚋnaviktᚋnadaᚑbackendᚋpkgᚋgraphᚋmodelsᚐSubjectType(ctx, v)
 			if err != nil {
@@ -21278,8 +21226,6 @@ func (ec *executionContext) unmarshalInputNewInsightProduct(ctx context.Context,
 		}
 		switch k {
 		case "name":
-			var err error
-
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("name"))
 			data, err := ec.unmarshalNString2string(ctx, v)
 			if err != nil {
@@ -21287,8 +21233,6 @@ func (ec *executionContext) unmarshalInputNewInsightProduct(ctx context.Context,
 			}
 			it.Name = data
 		case "description":
-			var err error
-
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("description"))
 			data, err := ec.unmarshalOString2ᚖstring(ctx, v)
 			if err != nil {
@@ -21296,8 +21240,6 @@ func (ec *executionContext) unmarshalInputNewInsightProduct(ctx context.Context,
 			}
 			it.Description = data
 		case "type":
-			var err error
-
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("type"))
 			data, err := ec.unmarshalNString2string(ctx, v)
 			if err != nil {
@@ -21305,8 +21247,6 @@ func (ec *executionContext) unmarshalInputNewInsightProduct(ctx context.Context,
 			}
 			it.Type = data
 		case "link":
-			var err error
-
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("link"))
 			data, err := ec.unmarshalNString2string(ctx, v)
 			if err != nil {
@@ -21314,8 +21254,6 @@ func (ec *executionContext) unmarshalInputNewInsightProduct(ctx context.Context,
 			}
 			it.Link = data
 		case "keywords":
-			var err error
-
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("keywords"))
 			data, err := ec.unmarshalNString2ᚕstringᚄ(ctx, v)
 			if err != nil {
@@ -21323,8 +21261,6 @@ func (ec *executionContext) unmarshalInputNewInsightProduct(ctx context.Context,
 			}
 			it.Keywords = data
 		case "group":
-			var err error
-
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("group"))
 			data, err := ec.unmarshalNString2string(ctx, v)
 			if err != nil {
@@ -21332,8 +21268,6 @@ func (ec *executionContext) unmarshalInputNewInsightProduct(ctx context.Context,
 			}
 			it.Group = data
 		case "teamkatalogenURL":
-			var err error
-
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("teamkatalogenURL"))
 			data, err := ec.unmarshalOString2ᚖstring(ctx, v)
 			if err != nil {
@@ -21341,8 +21275,6 @@ func (ec *executionContext) unmarshalInputNewInsightProduct(ctx context.Context,
 			}
 			it.TeamkatalogenURL = data
 		case "productAreaID":
-			var err error
-
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("productAreaID"))
 			data, err := ec.unmarshalOString2ᚖstring(ctx, v)
 			if err != nil {
@@ -21350,8 +21282,6 @@ func (ec *executionContext) unmarshalInputNewInsightProduct(ctx context.Context,
 			}
 			it.ProductAreaID = data
 		case "teamID":
-			var err error
-
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("teamID"))
 			data, err := ec.unmarshalOString2ᚖstring(ctx, v)
 			if err != nil {
@@ -21379,8 +21309,6 @@ func (ec *executionContext) unmarshalInputNewJoinableViews(ctx context.Context, 
 		}
 		switch k {
 		case "name":
-			var err error
-
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("name"))
 			data, err := ec.unmarshalNString2string(ctx, v)
 			if err != nil {
@@ -21388,8 +21316,6 @@ func (ec *executionContext) unmarshalInputNewJoinableViews(ctx context.Context, 
 			}
 			it.Name = data
 		case "expires":
-			var err error
-
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("expires"))
 			data, err := ec.unmarshalOTime2ᚖtimeᚐTime(ctx, v)
 			if err != nil {
@@ -21397,8 +21323,6 @@ func (ec *executionContext) unmarshalInputNewJoinableViews(ctx context.Context, 
 			}
 			it.Expires = data
 		case "datasetIDs":
-			var err error
-
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("datasetIDs"))
 			data, err := ec.unmarshalOID2ᚕgithubᚗcomᚋgoogleᚋuuidᚐUUIDᚄ(ctx, v)
 			if err != nil {
@@ -21426,8 +21350,6 @@ func (ec *executionContext) unmarshalInputNewQuartoStory(ctx context.Context, ob
 		}
 		switch k {
 		case "id":
-			var err error
-
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("id"))
 			data, err := ec.unmarshalOID2ᚖgithubᚗcomᚋgoogleᚋuuidᚐUUID(ctx, v)
 			if err != nil {
@@ -21435,8 +21357,6 @@ func (ec *executionContext) unmarshalInputNewQuartoStory(ctx context.Context, ob
 			}
 			it.ID = data
 		case "name":
-			var err error
-
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("name"))
 			data, err := ec.unmarshalNString2string(ctx, v)
 			if err != nil {
@@ -21444,8 +21364,6 @@ func (ec *executionContext) unmarshalInputNewQuartoStory(ctx context.Context, ob
 			}
 			it.Name = data
 		case "description":
-			var err error
-
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("description"))
 			data, err := ec.unmarshalOString2ᚖstring(ctx, v)
 			if err != nil {
@@ -21453,8 +21371,6 @@ func (ec *executionContext) unmarshalInputNewQuartoStory(ctx context.Context, ob
 			}
 			it.Description = data
 		case "keywords":
-			var err error
-
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("keywords"))
 			data, err := ec.unmarshalNString2ᚕstringᚄ(ctx, v)
 			if err != nil {
@@ -21462,8 +21378,6 @@ func (ec *executionContext) unmarshalInputNewQuartoStory(ctx context.Context, ob
 			}
 			it.Keywords = data
 		case "teamkatalogenURL":
-			var err error
-
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("teamkatalogenURL"))
 			data, err := ec.unmarshalOString2ᚖstring(ctx, v)
 			if err != nil {
@@ -21471,8 +21385,6 @@ func (ec *executionContext) unmarshalInputNewQuartoStory(ctx context.Context, ob
 			}
 			it.TeamkatalogenURL = data
 		case "productAreaID":
-			var err error
-
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("productAreaID"))
 			data, err := ec.unmarshalOString2ᚖstring(ctx, v)
 			if err != nil {
@@ -21480,8 +21392,6 @@ func (ec *executionContext) unmarshalInputNewQuartoStory(ctx context.Context, ob
 			}
 			it.ProductAreaID = data
 		case "teamID":
-			var err error
-
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("teamID"))
 			data, err := ec.unmarshalOString2ᚖstring(ctx, v)
 			if err != nil {
@@ -21489,8 +21399,6 @@ func (ec *executionContext) unmarshalInputNewQuartoStory(ctx context.Context, ob
 			}
 			it.TeamID = data
 		case "group":
-			var err error
-
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("group"))
 			data, err := ec.unmarshalNString2string(ctx, v)
 			if err != nil {
@@ -21518,8 +21426,6 @@ func (ec *executionContext) unmarshalInputNewStory(ctx context.Context, obj inte
 		}
 		switch k {
 		case "id":
-			var err error
-
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("id"))
 			data, err := ec.unmarshalNID2githubᚗcomᚋgoogleᚋuuidᚐUUID(ctx, v)
 			if err != nil {
@@ -21527,8 +21433,6 @@ func (ec *executionContext) unmarshalInputNewStory(ctx context.Context, obj inte
 			}
 			it.ID = data
 		case "name":
-			var err error
-
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("name"))
 			data, err := ec.unmarshalNString2string(ctx, v)
 			if err != nil {
@@ -21536,8 +21440,6 @@ func (ec *executionContext) unmarshalInputNewStory(ctx context.Context, obj inte
 			}
 			it.Name = data
 		case "target":
-			var err error
-
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("target"))
 			data, err := ec.unmarshalOID2ᚖgithubᚗcomᚋgoogleᚋuuidᚐUUID(ctx, v)
 			if err != nil {
@@ -21545,8 +21447,6 @@ func (ec *executionContext) unmarshalInputNewStory(ctx context.Context, obj inte
 			}
 			it.Target = data
 		case "group":
-			var err error
-
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("group"))
 			data, err := ec.unmarshalNString2string(ctx, v)
 			if err != nil {
@@ -21554,8 +21454,6 @@ func (ec *executionContext) unmarshalInputNewStory(ctx context.Context, obj inte
 			}
 			it.Group = data
 		case "keywords":
-			var err error
-
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("keywords"))
 			data, err := ec.unmarshalOString2ᚕstringᚄ(ctx, v)
 			if err != nil {
@@ -21563,8 +21461,6 @@ func (ec *executionContext) unmarshalInputNewStory(ctx context.Context, obj inte
 			}
 			it.Keywords = data
 		case "teamkatalogenURL":
-			var err error
-
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("teamkatalogenURL"))
 			data, err := ec.unmarshalOString2ᚖstring(ctx, v)
 			if err != nil {
@@ -21572,8 +21468,6 @@ func (ec *executionContext) unmarshalInputNewStory(ctx context.Context, obj inte
 			}
 			it.TeamkatalogenURL = data
 		case "productAreaID":
-			var err error
-
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("productAreaID"))
 			data, err := ec.unmarshalOString2ᚖstring(ctx, v)
 			if err != nil {
@@ -21581,8 +21475,6 @@ func (ec *executionContext) unmarshalInputNewStory(ctx context.Context, obj inte
 			}
 			it.ProductAreaID = data
 		case "teamID":
-			var err error
-
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("teamID"))
 			data, err := ec.unmarshalOString2ᚖstring(ctx, v)
 			if err != nil {
@@ -21610,8 +21502,6 @@ func (ec *executionContext) unmarshalInputPollyInput(ctx context.Context, obj in
 		}
 		switch k {
 		case "id":
-			var err error
-
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("id"))
 			data, err := ec.unmarshalOID2ᚖgithubᚗcomᚋgoogleᚋuuidᚐUUID(ctx, v)
 			if err != nil {
@@ -21619,8 +21509,6 @@ func (ec *executionContext) unmarshalInputPollyInput(ctx context.Context, obj in
 			}
 			it.ID = data
 		case "externalID":
-			var err error
-
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("externalID"))
 			data, err := ec.unmarshalNString2string(ctx, v)
 			if err != nil {
@@ -21628,8 +21516,6 @@ func (ec *executionContext) unmarshalInputPollyInput(ctx context.Context, obj in
 			}
 			it.ExternalID = data
 		case "name":
-			var err error
-
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("name"))
 			data, err := ec.unmarshalNString2string(ctx, v)
 			if err != nil {
@@ -21637,8 +21523,6 @@ func (ec *executionContext) unmarshalInputPollyInput(ctx context.Context, obj in
 			}
 			it.Name = data
 		case "url":
-			var err error
-
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("url"))
 			data, err := ec.unmarshalNString2string(ctx, v)
 			if err != nil {
@@ -21666,8 +21550,6 @@ func (ec *executionContext) unmarshalInputSearchOptions(ctx context.Context, obj
 		}
 		switch k {
 		case "text":
-			var err error
-
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("text"))
 			data, err := ec.unmarshalOString2ᚖstring(ctx, v)
 			if err != nil {
@@ -21675,8 +21557,6 @@ func (ec *executionContext) unmarshalInputSearchOptions(ctx context.Context, obj
 			}
 			it.Text = data
 		case "keywords":
-			var err error
-
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("keywords"))
 			data, err := ec.unmarshalOString2ᚕstringᚄ(ctx, v)
 			if err != nil {
@@ -21684,8 +21564,6 @@ func (ec *executionContext) unmarshalInputSearchOptions(ctx context.Context, obj
 			}
 			it.Keywords = data
 		case "groups":
-			var err error
-
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("groups"))
 			data, err := ec.unmarshalOString2ᚕstringᚄ(ctx, v)
 			if err != nil {
@@ -21693,8 +21571,6 @@ func (ec *executionContext) unmarshalInputSearchOptions(ctx context.Context, obj
 			}
 			it.Groups = data
 		case "teamIDs":
-			var err error
-
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("teamIDs"))
 			data, err := ec.unmarshalOString2ᚕstringᚄ(ctx, v)
 			if err != nil {
@@ -21702,8 +21578,6 @@ func (ec *executionContext) unmarshalInputSearchOptions(ctx context.Context, obj
 			}
 			it.TeamIDs = data
 		case "services":
-			var err error
-
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("services"))
 			data, err := ec.unmarshalOMappingService2ᚕgithubᚗcomᚋnaviktᚋnadaᚑbackendᚋpkgᚋgraphᚋmodelsᚐMappingServiceᚄ(ctx, v)
 			if err != nil {
@@ -21711,8 +21585,6 @@ func (ec *executionContext) unmarshalInputSearchOptions(ctx context.Context, obj
 			}
 			it.Services = data
 		case "types":
-			var err error
-
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("types"))
 			data, err := ec.unmarshalOSearchType2ᚕgithubᚗcomᚋnaviktᚋnadaᚑbackendᚋpkgᚋgraphᚋmodelsᚐSearchTypeᚄ(ctx, v)
 			if err != nil {
@@ -21720,8 +21592,6 @@ func (ec *executionContext) unmarshalInputSearchOptions(ctx context.Context, obj
 			}
 			it.Types = data
 		case "limit":
-			var err error
-
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("limit"))
 			data, err := ec.unmarshalOInt2ᚖint(ctx, v)
 			if err != nil {
@@ -21729,8 +21599,6 @@ func (ec *executionContext) unmarshalInputSearchOptions(ctx context.Context, obj
 			}
 			it.Limit = data
 		case "offset":
-			var err error
-
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("offset"))
 			data, err := ec.unmarshalOInt2ᚖint(ctx, v)
 			if err != nil {
@@ -21758,8 +21626,6 @@ func (ec *executionContext) unmarshalInputSearchQuery(ctx context.Context, obj i
 		}
 		switch k {
 		case "text":
-			var err error
-
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("text"))
 			data, err := ec.unmarshalOString2ᚖstring(ctx, v)
 			if err != nil {
@@ -21767,8 +21633,6 @@ func (ec *executionContext) unmarshalInputSearchQuery(ctx context.Context, obj i
 			}
 			it.Text = data
 		case "keyword":
-			var err error
-
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("keyword"))
 			data, err := ec.unmarshalOString2ᚖstring(ctx, v)
 			if err != nil {
@@ -21776,8 +21640,6 @@ func (ec *executionContext) unmarshalInputSearchQuery(ctx context.Context, obj i
 			}
 			it.Keyword = data
 		case "group":
-			var err error
-
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("group"))
 			data, err := ec.unmarshalOString2ᚖstring(ctx, v)
 			if err != nil {
@@ -21785,8 +21647,6 @@ func (ec *executionContext) unmarshalInputSearchQuery(ctx context.Context, obj i
 			}
 			it.Group = data
 		case "teamID":
-			var err error
-
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("teamID"))
 			data, err := ec.unmarshalOString2ᚖstring(ctx, v)
 			if err != nil {
@@ -21794,8 +21654,6 @@ func (ec *executionContext) unmarshalInputSearchQuery(ctx context.Context, obj i
 			}
 			it.TeamID = data
 		case "limit":
-			var err error
-
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("limit"))
 			data, err := ec.unmarshalOInt2ᚖint(ctx, v)
 			if err != nil {
@@ -21803,8 +21661,6 @@ func (ec *executionContext) unmarshalInputSearchQuery(ctx context.Context, obj i
 			}
 			it.Limit = data
 		case "offset":
-			var err error
-
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("offset"))
 			data, err := ec.unmarshalOInt2ᚖint(ctx, v)
 			if err != nil {
@@ -21832,8 +21688,6 @@ func (ec *executionContext) unmarshalInputUpdateAccessRequest(ctx context.Contex
 		}
 		switch k {
 		case "id":
-			var err error
-
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("id"))
 			data, err := ec.unmarshalNID2githubᚗcomᚋgoogleᚋuuidᚐUUID(ctx, v)
 			if err != nil {
@@ -21841,8 +21695,6 @@ func (ec *executionContext) unmarshalInputUpdateAccessRequest(ctx context.Contex
 			}
 			it.ID = data
 		case "owner":
-			var err error
-
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("owner"))
 			data, err := ec.unmarshalNString2string(ctx, v)
 			if err != nil {
@@ -21850,8 +21702,6 @@ func (ec *executionContext) unmarshalInputUpdateAccessRequest(ctx context.Contex
 			}
 			it.Owner = data
 		case "expires":
-			var err error
-
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("expires"))
 			data, err := ec.unmarshalOTime2ᚖtimeᚐTime(ctx, v)
 			if err != nil {
@@ -21859,8 +21709,6 @@ func (ec *executionContext) unmarshalInputUpdateAccessRequest(ctx context.Contex
 			}
 			it.Expires = data
 		case "polly":
-			var err error
-
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("polly"))
 			data, err := ec.unmarshalOPollyInput2ᚖgithubᚗcomᚋnaviktᚋnadaᚑbackendᚋpkgᚋgraphᚋmodelsᚐPollyInput(ctx, v)
 			if err != nil {
@@ -21888,8 +21736,6 @@ func (ec *executionContext) unmarshalInputUpdateDataproduct(ctx context.Context,
 		}
 		switch k {
 		case "name":
-			var err error
-
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("name"))
 			data, err := ec.unmarshalNString2string(ctx, v)
 			if err != nil {
@@ -21897,8 +21743,6 @@ func (ec *executionContext) unmarshalInputUpdateDataproduct(ctx context.Context,
 			}
 			it.Name = data
 		case "description":
-			var err error
-
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("description"))
 			data, err := ec.unmarshalOString2ᚖstring(ctx, v)
 			if err != nil {
@@ -21906,8 +21750,6 @@ func (ec *executionContext) unmarshalInputUpdateDataproduct(ctx context.Context,
 			}
 			it.Description = data
 		case "teamkatalogenURL":
-			var err error
-
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("teamkatalogenURL"))
 			data, err := ec.unmarshalOString2ᚖstring(ctx, v)
 			if err != nil {
@@ -21915,8 +21757,6 @@ func (ec *executionContext) unmarshalInputUpdateDataproduct(ctx context.Context,
 			}
 			it.TeamkatalogenURL = data
 		case "teamContact":
-			var err error
-
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("teamContact"))
 			data, err := ec.unmarshalOString2ᚖstring(ctx, v)
 			if err != nil {
@@ -21924,8 +21764,6 @@ func (ec *executionContext) unmarshalInputUpdateDataproduct(ctx context.Context,
 			}
 			it.TeamContact = data
 		case "productAreaID":
-			var err error
-
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("productAreaID"))
 			data, err := ec.unmarshalOString2ᚖstring(ctx, v)
 			if err != nil {
@@ -21933,8 +21771,6 @@ func (ec *executionContext) unmarshalInputUpdateDataproduct(ctx context.Context,
 			}
 			it.ProductAreaID = data
 		case "teamID":
-			var err error
-
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("teamID"))
 			data, err := ec.unmarshalOString2ᚖstring(ctx, v)
 			if err != nil {
@@ -21962,8 +21798,6 @@ func (ec *executionContext) unmarshalInputUpdateDataset(ctx context.Context, obj
 		}
 		switch k {
 		case "name":
-			var err error
-
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("name"))
 			data, err := ec.unmarshalNString2string(ctx, v)
 			if err != nil {
@@ -21971,8 +21805,6 @@ func (ec *executionContext) unmarshalInputUpdateDataset(ctx context.Context, obj
 			}
 			it.Name = data
 		case "description":
-			var err error
-
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("description"))
 			data, err := ec.unmarshalOString2ᚖstring(ctx, v)
 			if err != nil {
@@ -21980,8 +21812,6 @@ func (ec *executionContext) unmarshalInputUpdateDataset(ctx context.Context, obj
 			}
 			it.Description = data
 		case "repo":
-			var err error
-
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("repo"))
 			data, err := ec.unmarshalOString2ᚖstring(ctx, v)
 			if err != nil {
@@ -21989,8 +21819,6 @@ func (ec *executionContext) unmarshalInputUpdateDataset(ctx context.Context, obj
 			}
 			it.Repo = data
 		case "pii":
-			var err error
-
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("pii"))
 			data, err := ec.unmarshalNPiiLevel2githubᚗcomᚋnaviktᚋnadaᚑbackendᚋpkgᚋgraphᚋmodelsᚐPiiLevel(ctx, v)
 			if err != nil {
@@ -21998,8 +21826,6 @@ func (ec *executionContext) unmarshalInputUpdateDataset(ctx context.Context, obj
 			}
 			it.Pii = data
 		case "keywords":
-			var err error
-
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("keywords"))
 			data, err := ec.unmarshalOString2ᚕstringᚄ(ctx, v)
 			if err != nil {
@@ -22007,8 +21833,6 @@ func (ec *executionContext) unmarshalInputUpdateDataset(ctx context.Context, obj
 			}
 			it.Keywords = data
 		case "dataproductID":
-			var err error
-
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("dataproductID"))
 			data, err := ec.unmarshalOID2ᚖgithubᚗcomᚋgoogleᚋuuidᚐUUID(ctx, v)
 			if err != nil {
@@ -22016,8 +21840,6 @@ func (ec *executionContext) unmarshalInputUpdateDataset(ctx context.Context, obj
 			}
 			it.DataproductID = data
 		case "anonymisation_description":
-			var err error
-
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("anonymisation_description"))
 			data, err := ec.unmarshalOString2ᚖstring(ctx, v)
 			if err != nil {
@@ -22025,8 +21847,6 @@ func (ec *executionContext) unmarshalInputUpdateDataset(ctx context.Context, obj
 			}
 			it.AnonymisationDescription = data
 		case "piiTags":
-			var err error
-
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("piiTags"))
 			data, err := ec.unmarshalOString2ᚖstring(ctx, v)
 			if err != nil {
@@ -22034,8 +21854,6 @@ func (ec *executionContext) unmarshalInputUpdateDataset(ctx context.Context, obj
 			}
 			it.PiiTags = data
 		case "targetUser":
-			var err error
-
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("targetUser"))
 			data, err := ec.unmarshalOString2ᚖstring(ctx, v)
 			if err != nil {
@@ -22043,8 +21861,6 @@ func (ec *executionContext) unmarshalInputUpdateDataset(ctx context.Context, obj
 			}
 			it.TargetUser = data
 		case "pseudoColumns":
-			var err error
-
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("pseudoColumns"))
 			data, err := ec.unmarshalOString2ᚕstringᚄ(ctx, v)
 			if err != nil {
@@ -22072,8 +21888,6 @@ func (ec *executionContext) unmarshalInputUpdateKeywords(ctx context.Context, ob
 		}
 		switch k {
 		case "obsoleteKeywords":
-			var err error
-
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("obsoleteKeywords"))
 			data, err := ec.unmarshalOString2ᚕstringᚄ(ctx, v)
 			if err != nil {
@@ -22081,8 +21895,6 @@ func (ec *executionContext) unmarshalInputUpdateKeywords(ctx context.Context, ob
 			}
 			it.ObsoleteKeywords = data
 		case "replacedKeywords":
-			var err error
-
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("replacedKeywords"))
 			data, err := ec.unmarshalOString2ᚕstringᚄ(ctx, v)
 			if err != nil {
@@ -22090,8 +21902,6 @@ func (ec *executionContext) unmarshalInputUpdateKeywords(ctx context.Context, ob
 			}
 			it.ReplacedKeywords = data
 		case "newText":
-			var err error
-
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("newText"))
 			data, err := ec.unmarshalOString2ᚕstringᚄ(ctx, v)
 			if err != nil {
@@ -22119,8 +21929,6 @@ func (ec *executionContext) unmarshalInputUploadFile(ctx context.Context, obj in
 		}
 		switch k {
 		case "path":
-			var err error
-
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("path"))
 			data, err := ec.unmarshalNString2string(ctx, v)
 			if err != nil {
@@ -22128,8 +21936,6 @@ func (ec *executionContext) unmarshalInputUploadFile(ctx context.Context, obj in
 			}
 			it.Path = data
 		case "file":
-			var err error
-
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("file"))
 			data, err := ec.unmarshalNUpload2githubᚗcomᚋ99designsᚋgqlgenᚋgraphqlᚐUpload(ctx, v)
 			if err != nil {
@@ -23351,53 +23157,84 @@ func (ec *executionContext) _InsightProduct(ctx context.Context, sel ast.Selecti
 		case "id":
 			out.Values[i] = ec._InsightProduct_id(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
-				out.Invalids++
+				atomic.AddUint32(&out.Invalids, 1)
 			}
 		case "name":
 			out.Values[i] = ec._InsightProduct_name(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
-				out.Invalids++
+				atomic.AddUint32(&out.Invalids, 1)
 			}
 		case "creator":
 			out.Values[i] = ec._InsightProduct_creator(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
-				out.Invalids++
+				atomic.AddUint32(&out.Invalids, 1)
 			}
 		case "description":
 			out.Values[i] = ec._InsightProduct_description(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
-				out.Invalids++
+				atomic.AddUint32(&out.Invalids, 1)
 			}
 		case "type":
 			out.Values[i] = ec._InsightProduct_type(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
-				out.Invalids++
+				atomic.AddUint32(&out.Invalids, 1)
 			}
 		case "link":
 			out.Values[i] = ec._InsightProduct_link(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
-				out.Invalids++
+				atomic.AddUint32(&out.Invalids, 1)
 			}
 		case "keywords":
 			out.Values[i] = ec._InsightProduct_keywords(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
-				out.Invalids++
+				atomic.AddUint32(&out.Invalids, 1)
 			}
 		case "group":
 			out.Values[i] = ec._InsightProduct_group(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
-				out.Invalids++
+				atomic.AddUint32(&out.Invalids, 1)
 			}
 		case "teamkatalogenURL":
 			out.Values[i] = ec._InsightProduct_teamkatalogenURL(ctx, field, obj)
 		case "productAreaID":
-			out.Values[i] = ec._InsightProduct_productAreaID(ctx, field, obj)
+			field := field
+
+			innerFunc := func(ctx context.Context, fs *graphql.FieldSet) (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._InsightProduct_productAreaID(ctx, field, obj)
+				return res
+			}
+
+			if field.Deferrable != nil {
+				dfs, ok := deferred[field.Deferrable.Label]
+				di := 0
+				if ok {
+					dfs.AddField(field)
+					di = len(dfs.Values) - 1
+				} else {
+					dfs = graphql.NewFieldSet([]graphql.CollectedField{field})
+					deferred[field.Deferrable.Label] = dfs
+				}
+				dfs.Concurrently(di, func(ctx context.Context) graphql.Marshaler {
+					return innerFunc(ctx, dfs)
+				})
+
+				// don't run the out.Concurrently() call below
+				out.Values[i] = graphql.Null
+				continue
+			}
+
+			out.Concurrently(i, func(ctx context.Context) graphql.Marshaler { return innerFunc(ctx, out) })
 		case "teamID":
 			out.Values[i] = ec._InsightProduct_teamID(ctx, field, obj)
 		case "created":
 			out.Values[i] = ec._InsightProduct_created(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
-				out.Invalids++
+				atomic.AddUint32(&out.Invalids, 1)
 			}
 		case "lastModified":
 			out.Values[i] = ec._InsightProduct_lastModified(ctx, field, obj)
@@ -23910,14 +23747,45 @@ func (ec *executionContext) _Owner(ctx context.Context, sel ast.SelectionSet, ob
 		case "group":
 			out.Values[i] = ec._Owner_group(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
-				out.Invalids++
+				atomic.AddUint32(&out.Invalids, 1)
 			}
 		case "teamkatalogenURL":
 			out.Values[i] = ec._Owner_teamkatalogenURL(ctx, field, obj)
 		case "teamContact":
 			out.Values[i] = ec._Owner_teamContact(ctx, field, obj)
 		case "productAreaID":
-			out.Values[i] = ec._Owner_productAreaID(ctx, field, obj)
+			field := field
+
+			innerFunc := func(ctx context.Context, fs *graphql.FieldSet) (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._Owner_productAreaID(ctx, field, obj)
+				return res
+			}
+
+			if field.Deferrable != nil {
+				dfs, ok := deferred[field.Deferrable.Label]
+				di := 0
+				if ok {
+					dfs.AddField(field)
+					di = len(dfs.Values) - 1
+				} else {
+					dfs = graphql.NewFieldSet([]graphql.CollectedField{field})
+					deferred[field.Deferrable.Label] = dfs
+				}
+				dfs.Concurrently(di, func(ctx context.Context) graphql.Marshaler {
+					return innerFunc(ctx, dfs)
+				})
+
+				// don't run the out.Concurrently() call below
+				out.Values[i] = graphql.Null
+				continue
+			}
+
+			out.Concurrently(i, func(ctx context.Context) graphql.Marshaler { return innerFunc(ctx, out) })
 		case "teamID":
 			out.Values[i] = ec._Owner_teamID(ctx, field, obj)
 		default:
@@ -24325,45 +24193,76 @@ func (ec *executionContext) _QuartoStory(ctx context.Context, sel ast.SelectionS
 		case "id":
 			out.Values[i] = ec._QuartoStory_id(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
-				out.Invalids++
+				atomic.AddUint32(&out.Invalids, 1)
 			}
 		case "name":
 			out.Values[i] = ec._QuartoStory_name(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
-				out.Invalids++
+				atomic.AddUint32(&out.Invalids, 1)
 			}
 		case "creator":
 			out.Values[i] = ec._QuartoStory_creator(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
-				out.Invalids++
+				atomic.AddUint32(&out.Invalids, 1)
 			}
 		case "description":
 			out.Values[i] = ec._QuartoStory_description(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
-				out.Invalids++
+				atomic.AddUint32(&out.Invalids, 1)
 			}
 		case "keywords":
 			out.Values[i] = ec._QuartoStory_keywords(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
-				out.Invalids++
+				atomic.AddUint32(&out.Invalids, 1)
 			}
 		case "teamkatalogenURL":
 			out.Values[i] = ec._QuartoStory_teamkatalogenURL(ctx, field, obj)
 		case "productAreaID":
-			out.Values[i] = ec._QuartoStory_productAreaID(ctx, field, obj)
+			field := field
+
+			innerFunc := func(ctx context.Context, fs *graphql.FieldSet) (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._QuartoStory_productAreaID(ctx, field, obj)
+				return res
+			}
+
+			if field.Deferrable != nil {
+				dfs, ok := deferred[field.Deferrable.Label]
+				di := 0
+				if ok {
+					dfs.AddField(field)
+					di = len(dfs.Values) - 1
+				} else {
+					dfs = graphql.NewFieldSet([]graphql.CollectedField{field})
+					deferred[field.Deferrable.Label] = dfs
+				}
+				dfs.Concurrently(di, func(ctx context.Context) graphql.Marshaler {
+					return innerFunc(ctx, dfs)
+				})
+
+				// don't run the out.Concurrently() call below
+				out.Values[i] = graphql.Null
+				continue
+			}
+
+			out.Concurrently(i, func(ctx context.Context) graphql.Marshaler { return innerFunc(ctx, out) })
 		case "teamID":
 			out.Values[i] = ec._QuartoStory_teamID(ctx, field, obj)
 		case "created":
 			out.Values[i] = ec._QuartoStory_created(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
-				out.Invalids++
+				atomic.AddUint32(&out.Invalids, 1)
 			}
 		case "lastModified":
 			out.Values[i] = ec._QuartoStory_lastModified(ctx, field, obj)
 		case "group":
 			out.Values[i] = ec._QuartoStory_group(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
-				out.Invalids++
+				atomic.AddUint32(&out.Invalids, 1)
 			}
 		default:
 			panic("unknown field " + strconv.Quote(field.Name))

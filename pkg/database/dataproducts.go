@@ -46,8 +46,8 @@ func (r *Repo) GetDataproductsByGroups(ctx context.Context, groups []string) ([]
 	return dps, nil
 }
 
-func (r *Repo) GetDataproductByProductArea(ctx context.Context, paID string) ([]*models.Dataproduct, error) {
-	dps, err := r.querier.GetDataproductsByProductArea(ctx, sql.NullString{String: paID, Valid: true})
+func (r *Repo) GetDataproductByProductArea(ctx context.Context, teamIDs []string) ([]*models.Dataproduct, error) {
+	dps, err := r.querier.GetDataproductsByProductArea(ctx, teamIDs)
 	if err != nil {
 		return nil, err
 	}
@@ -84,31 +84,16 @@ func (r *Repo) GetDataproduct(ctx context.Context, id uuid.UUID) (*models.Datapr
 }
 
 func (r *Repo) CreateDataproduct(ctx context.Context, dp models.NewDataproduct, user *auth.User) (*models.Dataproduct, error) {
-	tx, err := r.db.Begin()
-	if err != nil {
-		return nil, err
-	}
-
-	querier := r.querier.WithTx(tx)
-
-	dataproduct, err := querier.CreateDataproduct(ctx, gensql.CreateDataproductParams{
+	dataproduct, err := r.querier.CreateDataproduct(ctx, gensql.CreateDataproductParams{
 		Name:                  dp.Name,
 		Description:           ptrToNullString(dp.Description),
 		OwnerGroup:            dp.Group,
 		OwnerTeamkatalogenUrl: ptrToNullString(dp.TeamkatalogenURL),
 		Slug:                  slugify(dp.Slug, dp.Name),
 		TeamContact:           ptrToNullString(dp.TeamContact),
-		ProductAreaID:         ptrToNullString(dp.ProductAreaID),
 		TeamID:                ptrToNullString(dp.TeamID),
 	})
 	if err != nil {
-		if err := tx.Rollback(); err != nil {
-			r.log.WithError(err).Error("rolling back dataproduct creation")
-		}
-		return nil, err
-	}
-
-	if err := tx.Commit(); err != nil {
 		return nil, err
 	}
 
@@ -123,7 +108,6 @@ func (r *Repo) UpdateDataproduct(ctx context.Context, id uuid.UUID, new models.U
 		OwnerTeamkatalogenUrl: ptrToNullString(new.TeamkatalogenURL),
 		TeamContact:           ptrToNullString(new.TeamContact),
 		Slug:                  slugify(new.Slug, new.Name),
-		ProductAreaID:         ptrToNullString(new.ProductAreaID),
 		TeamID:                ptrToNullString(new.TeamID),
 	})
 	if err != nil {
@@ -192,7 +176,6 @@ func dataproductFromSQL(dp gensql.Dataproduct) *models.Dataproduct {
 			Group:            dp.Group,
 			TeamkatalogenURL: nullStringToPtr(dp.TeamkatalogenUrl),
 			TeamContact:      nullStringToPtr(dp.TeamContact),
-			ProductAreaID:    nullStringToPtr(dp.ProductAreaID),
 			TeamID:           nullStringToPtr(dp.TeamID),
 		},
 	}

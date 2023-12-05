@@ -20,8 +20,6 @@ type QuartoStory struct {
 	Keywords []string `json:"keywords"`
 	// teamkatalogenURL of the creator
 	TeamkatalogenURL *string `json:"teamkatalogenURL"`
-	// Id of the creator's product area.
-	ProductAreaID *string `json:"productAreaID"`
 	// Id of the creator's team.
 	TeamID *string `json:"teamID"`
 	// created is the timestamp for when the dataproduct was created

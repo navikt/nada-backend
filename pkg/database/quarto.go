@@ -21,7 +21,6 @@ func (r *Repo) CreateQuartoStory(ctx context.Context, creator string,
 			Description:      ptrToString(newQuartoStory.Description),
 			Keywords:         newQuartoStory.Keywords,
 			TeamkatalogenUrl: ptrToNullString(newQuartoStory.TeamkatalogenURL),
-			ProductAreaID:    ptrToNullString(newQuartoStory.ProductAreaID),
 			TeamID:           ptrToNullString(newQuartoStory.TeamID),
 			OwnerGroup:       newQuartoStory.Group,
 		})
@@ -33,10 +32,12 @@ func (r *Repo) CreateQuartoStory(ctx context.Context, creator string,
 			Description:      ptrToString(newQuartoStory.Description),
 			Keywords:         newQuartoStory.Keywords,
 			TeamkatalogenUrl: ptrToNullString(newQuartoStory.TeamkatalogenURL),
-			ProductAreaID:    ptrToNullString(newQuartoStory.ProductAreaID),
 			TeamID:           ptrToNullString(newQuartoStory.TeamID),
 			OwnerGroup:       newQuartoStory.Group,
 		})
+	}
+	if err != nil {
+		return nil, err
 	}
 
 	return quartoSQLToGraphql(&quartoSQL), err
@@ -62,9 +63,8 @@ func (r *Repo) GetQuartoStories(ctx context.Context) ([]*models.QuartoStory, err
 	return quartoGraphqls, err
 }
 
-func (r *Repo) GetQuartoStoriesByProductArea(ctx context.Context, paID string) ([]*models.QuartoStory, error) {
-	stories, err := r.querier.GetQuartoStoriesByProductArea(
-		ctx, sql.NullString{String: paID, Valid: true})
+func (r *Repo) GetQuartoStoriesByProductArea(ctx context.Context, teamsInPA []string) ([]*models.QuartoStory, error) {
+	stories, err := r.querier.GetQuartoStoriesByProductArea(ctx, teamsInPA)
 	if err != nil {
 		return nil, err
 	}
@@ -114,7 +114,6 @@ func (r *Repo) UpdateQuartoStoryMetadata(ctx context.Context, id uuid.UUID, name
 		Description:      description,
 		Keywords:         keywords,
 		TeamkatalogenUrl: ptrToNullString(teamkatalogenURL),
-		ProductAreaID:    ptrToNullString(productAreaID),
 		TeamID:           ptrToNullString(teamID),
 		OwnerGroup:       group,
 	})
@@ -137,7 +136,6 @@ func quartoSQLToGraphql(quarto *gensql.QuartoStory) *models.QuartoStory {
 		Created:          quarto.Created,
 		LastModified:     &quarto.LastModified,
 		Keywords:         quarto.Keywords,
-		ProductAreaID:    nullStringToPtr(quarto.ProductAreaID),
 		TeamID:           nullStringToPtr(quarto.TeamID),
 		TeamkatalogenURL: nullStringToPtr(quarto.TeamkatalogenUrl),
 		Description:      quarto.Description,

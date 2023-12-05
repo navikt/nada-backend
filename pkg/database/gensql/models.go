@@ -202,7 +202,6 @@ type Dataproduct struct {
 	Slug             string
 	TeamkatalogenUrl sql.NullString
 	TeamContact      sql.NullString
-	ProductAreaID    sql.NullString
 	TeamID           sql.NullString
 }
 
@@ -289,7 +288,6 @@ type InsightProduct struct {
 	Keywords         []string
 	Group            string
 	TeamkatalogenUrl sql.NullString
-	ProductAreaID    sql.NullString
 	TeamID           sql.NullString
 }
 
@@ -339,7 +337,6 @@ type QuartoStory struct {
 	Description      string
 	Keywords         []string
 	TeamkatalogenUrl sql.NullString
-	ProductAreaID    sql.NullString
 	TeamID           sql.NullString
 	Group            string
 }
@@ -375,7 +372,6 @@ type Story struct {
 	Description      sql.NullString
 	Keywords         []string
 	TeamkatalogenUrl sql.NullString
-	ProductAreaID    sql.NullString
 	TeamID           sql.NullString
 }
 
