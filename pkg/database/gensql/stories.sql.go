@@ -248,12 +248,12 @@ func (q *Queries) GetStoriesByIDs(ctx context.Context, ids []uuid.UUID) ([]Story
 const getStoriesByProductArea = `-- name: GetStoriesByProductArea :many
 SELECT id, name, created, last_modified, "group", description, keywords, teamkatalogen_url, team_id
 FROM stories
-WHERE team_id = ANY(SELECT team_id FROM team_productarea_mapping WHERE product_area_id = $1) 
+WHERE team_id = ANY($1::text[])
 ORDER BY created DESC
 `
 
-func (q *Queries) GetStoriesByProductArea(ctx context.Context, productAreaID sql.NullString) ([]Story, error) {
-	rows, err := q.db.QueryContext(ctx, getStoriesByProductArea, productAreaID)
+func (q *Queries) GetStoriesByProductArea(ctx context.Context, teamID []string) ([]Story, error) {
+	rows, err := q.db.QueryContext(ctx, getStoriesByProductArea, pq.Array(teamID))
 	if err != nil {
 		return nil, err
 	}

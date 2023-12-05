@@ -23,8 +23,8 @@ func (r *Repo) GetStories(ctx context.Context) ([]*models.DBStory, error) {
 	return ret, nil
 }
 
-func (r *Repo) GetStoriesByProductArea(ctx context.Context, paID string) ([]*models.DBStory, error) {
-	stories, err := r.querier.GetStoriesByProductArea(ctx, sql.NullString{String: paID, Valid: true})
+func (r *Repo) GetStoriesByProductArea(ctx context.Context, teamsInPA []string) ([]*models.DBStory, error) {
+	stories, err := r.querier.GetStoriesByProductArea(ctx, teamsInPA)
 	if err != nil {
 		return nil, err
 	}
@@ -190,10 +190,6 @@ func (r *Repo) UpdateStory(ctx context.Context, ds models.NewStory) (*models.DBS
 		if err := tx.Rollback(); err != nil {
 			r.log.WithError(err).Error("unable to roll back when updating")
 		}
-		return nil, err
-	}
-
-	if err := r.CreateTeamProductAreaMappingIfNotExists(ctx, tx, ds.TeamID, ds.ProductAreaID); err != nil {
 		return nil, err
 	}
 

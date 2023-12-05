@@ -74,8 +74,8 @@ func (r *Repo) UpdateInsightProductMetadata(ctx context.Context, id uuid.UUID, n
 	return InsightProductSQLToGraphql(&dbProduct), nil
 }
 
-func (r *Repo) GetInsightProductsByProductArea(ctx context.Context, productAreaID string) ([]*models.InsightProduct, error) {
-	dbProducts, err := r.querier.GetInsightProductsByProductArea(ctx, ptrToNullString(&productAreaID))
+func (r *Repo) GetInsightProductsByProductArea(ctx context.Context, teamsInPA []string) ([]*models.InsightProduct, error) {
+	dbProducts, err := r.querier.GetInsightProductsByProductArea(ctx, teamsInPA)
 	if err != nil {
 		return nil, err
 	}

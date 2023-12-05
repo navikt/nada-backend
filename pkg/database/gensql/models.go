@@ -408,11 +408,6 @@ type Tag struct {
 	Phrase string
 }
 
-type TeamProductareaMapping struct {
-	TeamID        string
-	ProductAreaID sql.NullString
-}
-
 type TeamProject struct {
 	Team    string
 	Project string

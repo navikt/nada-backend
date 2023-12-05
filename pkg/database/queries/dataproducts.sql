@@ -24,7 +24,7 @@ ORDER BY last_modified DESC;
 -- name: GetDataproductsByProductArea :many
 SELECT *
 FROM dataproducts
-WHERE team_id = ANY(SELECT team_id FROM team_productarea_mapping WHERE product_area_id = @product_area_id)
+WHERE team_id = ANY(@team_id::text[])
 ORDER BY created DESC;
 
 -- name: GetDataproductsByTeam :many

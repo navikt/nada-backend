@@ -14,7 +14,17 @@ import (
 
 // Dataproducts is the resolver for the dataproducts field.
 func (r *productAreaResolver) Dataproducts(ctx context.Context, obj *models.ProductArea) ([]*models.Dataproduct, error) {
-	return r.repo.GetDataproductByProductArea(ctx, obj.ID)
+	teamsInPA, err := r.teamkatalogen.GetTeamsInProductArea(ctx, obj.ID)
+	if err != nil {
+		return nil, err
+	}
+
+	teamIDsInPA := []string{}
+	for _, team := range teamsInPA {
+		teamIDsInPA = append(teamIDsInPA, team.ID)
+	}
+
+	return r.repo.GetDataproductByProductArea(ctx, teamIDsInPA)
 }
 
 // DashboardURL is the resolver for the dashboardURL field.
@@ -24,7 +34,17 @@ func (r *productAreaResolver) DashboardURL(ctx context.Context, obj *models.Prod
 
 // Stories is the resolver for the stories field.
 func (r *productAreaResolver) Stories(ctx context.Context, obj *models.ProductArea) ([]*models.GraphStory, error) {
-	dbStories, err := r.repo.GetStoriesByProductArea(ctx, obj.ID)
+	teamsInPA, err := r.teamkatalogen.GetTeamsInProductArea(ctx, obj.ID)
+	if err != nil {
+		return nil, err
+	}
+
+	teamIDsInPA := []string{}
+	for _, team := range teamsInPA {
+		teamIDsInPA = append(teamIDsInPA, team.ID)
+	}
+
+	dbStories, err := r.repo.GetStoriesByProductArea(ctx, teamIDsInPA)
 	if err != nil {
 		return nil, err
 	}
@@ -43,7 +63,17 @@ func (r *productAreaResolver) Stories(ctx context.Context, obj *models.ProductAr
 
 // QuartoStories is the resolver for the quartoStories field.
 func (r *productAreaResolver) QuartoStories(ctx context.Context, obj *models.ProductArea) ([]*models.QuartoStory, error) {
-	quartoStories, err := r.repo.GetQuartoStoriesByProductArea(ctx, obj.ID)
+	teamsInPA, err := r.teamkatalogen.GetTeamsInProductArea(ctx, obj.ID)
+	if err != nil {
+		return nil, err
+	}
+
+	teamIDsInPA := []string{}
+	for _, team := range teamsInPA {
+		teamIDsInPA = append(teamIDsInPA, team.ID)
+	}
+
+	quartoStories, err := r.repo.GetQuartoStoriesByProductArea(ctx, teamIDsInPA)
 	if err != nil {
 		return nil, err
 	}
@@ -53,11 +83,17 @@ func (r *productAreaResolver) QuartoStories(ctx context.Context, obj *models.Pro
 
 // InsightProducts is the resolver for the insightProducts field.
 func (r *productAreaResolver) InsightProducts(ctx context.Context, obj *models.ProductArea) ([]*models.InsightProduct, error) {
-	insightProducts, err := r.repo.GetInsightProductsByProductArea(ctx, obj.ID)
+	teamsInPA, err := r.teamkatalogen.GetTeamsInProductArea(ctx, obj.ID)
 	if err != nil {
 		return nil, err
 	}
-	return insightProducts, nil
+
+	teamIDsInPA := []string{}
+	for _, team := range teamsInPA {
+		teamIDsInPA = append(teamIDsInPA, team.ID)
+	}
+
+	return r.repo.GetInsightProductsByProductArea(ctx, teamIDsInPA)
 }
 
 // Teams is the resolver for the teams field.

@@ -266,12 +266,12 @@ func (q *Queries) GetQuartoStoriesByIDs(ctx context.Context, ids []uuid.UUID) ([
 const getQuartoStoriesByProductArea = `-- name: GetQuartoStoriesByProductArea :many
 SELECT id, name, creator, created, last_modified, description, keywords, teamkatalogen_url, team_id, "group"
 FROM quarto_stories
-WHERE team_id = ANY(SELECT team_id FROM team_productarea_mapping WHERE product_area_id = $1)
+WHERE team_id = ANY($1::text[])
 ORDER BY last_modified DESC
 `
 
-func (q *Queries) GetQuartoStoriesByProductArea(ctx context.Context, productAreaID sql.NullString) ([]QuartoStory, error) {
-	rows, err := q.db.QueryContext(ctx, getQuartoStoriesByProductArea, productAreaID)
+func (q *Queries) GetQuartoStoriesByProductArea(ctx context.Context, teamID []string) ([]QuartoStory, error) {
+	rows, err := q.db.QueryContext(ctx, getQuartoStoriesByProductArea, pq.Array(teamID))
 	if err != nil {
 		return nil, err
 	}

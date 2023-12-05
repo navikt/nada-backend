@@ -46,8 +46,8 @@ func (r *Repo) GetDataproductsByGroups(ctx context.Context, groups []string) ([]
 	return dps, nil
 }
 
-func (r *Repo) GetDataproductByProductArea(ctx context.Context, paID string) ([]*models.Dataproduct, error) {
-	dps, err := r.querier.GetDataproductsByProductArea(ctx, sql.NullString{String: paID, Valid: true})
+func (r *Repo) GetDataproductByProductArea(ctx context.Context, teamIDs []string) ([]*models.Dataproduct, error) {
+	dps, err := r.querier.GetDataproductsByProductArea(ctx, teamIDs)
 	if err != nil {
 		return nil, err
 	}

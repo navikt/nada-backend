@@ -273,13 +273,13 @@ SELECT
 FROM
     insight_product
 WHERE
-    team_id = ANY(SELECT team_id FROM team_productarea_mapping WHERE product_area_id = $1) 
+    team_id = ANY($1::text[])
 ORDER BY
     last_modified DESC
 `
 
-func (q *Queries) GetInsightProductsByProductArea(ctx context.Context, productAreaID sql.NullString) ([]InsightProduct, error) {
-	rows, err := q.db.QueryContext(ctx, getInsightProductsByProductArea, productAreaID)
+func (q *Queries) GetInsightProductsByProductArea(ctx context.Context, teamID []string) ([]InsightProduct, error) {
+	rows, err := q.db.QueryContext(ctx, getInsightProductsByProductArea, pq.Array(teamID))
 	if err != nil {
 		return nil, err
 	}

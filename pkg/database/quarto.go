@@ -63,9 +63,8 @@ func (r *Repo) GetQuartoStories(ctx context.Context) ([]*models.QuartoStory, err
 	return quartoGraphqls, err
 }
 
-func (r *Repo) GetQuartoStoriesByProductArea(ctx context.Context, paID string) ([]*models.QuartoStory, error) {
-	stories, err := r.querier.GetQuartoStoriesByProductArea(
-		ctx, sql.NullString{String: paID, Valid: true})
+func (r *Repo) GetQuartoStoriesByProductArea(ctx context.Context, teamsInPA []string) ([]*models.QuartoStory, error) {
+	stories, err := r.querier.GetQuartoStoriesByProductArea(ctx, teamsInPA)
 	if err != nil {
 		return nil, err
 	}
@@ -109,13 +108,7 @@ func (r *Repo) GetQuartoStoriesByGroups(ctx context.Context, groups []string) ([
 func (r *Repo) UpdateQuartoStoryMetadata(ctx context.Context, id uuid.UUID, name string, description string, keywords []string, teamkatalogenURL *string, productAreaID *string, teamID *string, group string) (
 	*models.QuartoStory, error,
 ) {
-	tx, err := r.db.Begin()
-	if err != nil {
-		return nil, err
-	}
-	querier := r.querier.WithTx(tx)
-
-	dbStory, err := querier.UpdateQuartoStory(ctx, gensql.UpdateQuartoStoryParams{
+	dbStory, err := r.querier.UpdateQuartoStory(ctx, gensql.UpdateQuartoStoryParams{
 		ID:               id,
 		Name:             name,
 		Description:      description,
@@ -125,20 +118,6 @@ func (r *Repo) UpdateQuartoStoryMetadata(ctx context.Context, id uuid.UUID, name
 		OwnerGroup:       group,
 	})
 	if err != nil {
-		if err := tx.Rollback(); err != nil {
-			r.log.WithError(err).Error("rolling back quarto metadata update")
-		}
-		return nil, err
-	}
-
-	if err := r.CreateTeamProductAreaMappingIfNotExists(ctx, tx, teamID, productAreaID); err != nil {
-		if err := tx.Rollback(); err != nil {
-			r.log.WithError(err).Error("rolling back quarto metadata update")
-		}
-		return nil, err
-	}
-
-	if err := tx.Commit(); err != nil {
 		return nil, err
 	}
 
