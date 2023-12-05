@@ -25,12 +25,12 @@ ALTER TABLE quarto_stories ADD COLUMN product_area_id TEXT;
 ALTER TABLE stories ADD COLUMN product_area_id TEXT;
 
 UPDATE dataproducts dp 
-SET "product_area_id" = (SELECT product_area_id FROM "team_productarea_mapping" WHERE id = dp.teamcatalog_mapping_id);
+SET "product_area_id" = (SELECT product_area_id FROM "team_productarea_mapping" WHERE team_id = dp.team_id);
 
 UPDATE quarto_stories qs 
-SET "product_area_id" = (SELECT product_area_id FROM "team_productarea_mapping" WHERE id = qs.teamcatalog_mapping_id);
+SET "product_area_id" = (SELECT product_area_id FROM "team_productarea_mapping" WHERE team_id = qs.team_id);
 
 UPDATE stories s
-SET "product_area_id" = (SELECT product_area_id FROM "team_productarea_mapping" WHERE id = s.teamcatalog_mapping_id);
+SET "product_area_id" = (SELECT product_area_id FROM "team_productarea_mapping" WHERE team_id = s.team_id);
 
 DROP TABLE "team_productarea_mapping";
