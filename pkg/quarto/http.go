@@ -26,7 +26,7 @@ import (
 const (
 	idURLPosUpdate         = 3
 	idURLPosGet            = 2
-	maxMemoryMultipartForm = 32 << 20 // 32 MB
+	maxMemoryMultipartForm = 32 << 30 // 32 MB
 )
 
 type Handler struct {
