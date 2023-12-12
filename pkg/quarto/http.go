@@ -136,6 +136,30 @@ func (h *Handler) Update(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+func (h *Handler) Append(w http.ResponseWriter, r *http.Request) {
+	qID, err := getIDFromPath(r, idURLPosUpdate)
+	if err != nil {
+		h.log.WithError(err).Errorf("getting quarto id from url path")
+		h.writeError(w, http.StatusBadRequest, fmt.Errorf("invalid quarto id %v", qID))
+		return
+	}
+
+	err = r.ParseMultipartForm(maxMemoryMultipartForm)
+	if err != nil {
+		h.log.WithError(err).Errorf("parsing multipart form")
+		h.writeError(w, http.StatusBadRequest, fmt.Errorf("invalid request form"))
+		return
+	}
+
+	for _, fileHeader := range r.MultipartForm.File {
+		if err := h.uploadFile(r.Context(), qID.String(), fileHeader); err != nil {
+			h.log.WithError(err).Errorf("uploading file")
+			h.writeError(w, http.StatusInternalServerError, fmt.Errorf("internal server error"))
+			return
+		}
+	}
+}
+
 func (h *Handler) Redirect(w http.ResponseWriter, r *http.Request) {
 	qID, err := getIDFromPath(r, idURLPosGet)
 	if err != nil {
@@ -160,6 +184,8 @@ func (h *Handler) QuartoMiddleware(next http.Handler) http.Handler {
 		case http.MethodPost:
 			h.createQuarto(w, r, next)
 		case http.MethodPut:
+			fallthrough
+		case http.MethodPatch:
 			h.updateQuarto(w, r, next)
 		}
 	})

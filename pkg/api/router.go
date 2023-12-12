@@ -59,7 +59,10 @@ func New(
 		r.Use(quartoHandler.QuartoMiddleware)
 		r.Get("/*", quartoHandler.GetObject)
 		r.Post("/create", quartoHandler.Create)
-		r.Put("/update/{id}", quartoHandler.Update)
+		r.Route("/update/{id}", func(r chi.Router) {
+			r.Put("/", quartoHandler.Update)
+			r.Patch("/", quartoHandler.Append)
+		})
 	})
 	router.Route("/internal", func(r chi.Router) {
 		r.Handle("/metrics", promhttp.HandlerFor(promReg, promhttp.HandlerOpts{}))
