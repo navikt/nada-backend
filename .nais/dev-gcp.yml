@@ -46,6 +46,7 @@ spec:
     - "https://nada.intern.dev.nav.no/api/story"
     - "https://datamarkedsplassen.intern.dev.nav.no/quarto/create"
     - "https://datamarkedsplassen.intern.dev.nav.no/quarto/update"
+    - "https://datamarkedsplassen.intern.dev.nav.no/quarto/append"
     - "https://datamarkedsplassen.intern.dev.nav.no/api/story"
     - "https://data.ekstern.dev.nav.no/quarto/create"
     - "https://data.ekstern.dev.nav.no/quarto/update"
