@@ -184,6 +184,8 @@ func (h *Handler) QuartoMiddleware(next http.Handler) http.Handler {
 		case http.MethodPost:
 			h.createQuarto(w, r, next)
 		case http.MethodPut:
+			fallthrough
+		case http.MethodPatch:
 			h.updateQuarto(w, r, next)
 		}
 	})
