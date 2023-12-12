@@ -60,6 +60,7 @@ func New(
 		r.Get("/*", quartoHandler.GetObject)
 		r.Post("/create", quartoHandler.Create)
 		r.Put("/update/{id}", quartoHandler.Update)
+		r.Put("/append/{id}", quartoHandler.Append)
 	})
 	router.Route("/internal", func(r chi.Router) {
 		r.Handle("/metrics", promhttp.HandlerFor(promReg, promhttp.HandlerOpts{}))

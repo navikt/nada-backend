@@ -121,11 +121,35 @@ func (h *Handler) Update(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Delete the root directory before uploading new files
-	// if err = h.gcsClient.DeleteObjectsWithPrefix(r.Context(), qID.String()); err != nil {
-	// 	h.log.WithError(err).Errorf("deleting objects with prefix")
-	// 	h.writeError(w, http.StatusInternalServerError, fmt.Errorf("internal server error"))
-	// 	return
-	// }
+	if err = h.gcsClient.DeleteObjectsWithPrefix(r.Context(), qID.String()); err != nil {
+		h.log.WithError(err).Errorf("deleting objects with prefix")
+		h.writeError(w, http.StatusInternalServerError, fmt.Errorf("internal server error"))
+		return
+	}
+
+	for _, fileHeader := range r.MultipartForm.File {
+		if err := h.uploadFile(r.Context(), qID.String(), fileHeader); err != nil {
+			h.log.WithError(err).Errorf("uploading file")
+			h.writeError(w, http.StatusInternalServerError, fmt.Errorf("internal server error"))
+			return
+		}
+	}
+}
+
+func (h *Handler) Append(w http.ResponseWriter, r *http.Request) {
+	qID, err := getIDFromPath(r, idURLPosUpdate)
+	if err != nil {
+		h.log.WithError(err).Errorf("getting quarto id from url path")
+		h.writeError(w, http.StatusBadRequest, fmt.Errorf("invalid quarto id %v", qID))
+		return
+	}
+
+	err = r.ParseMultipartForm(maxMemoryMultipartForm)
+	if err != nil {
+		h.log.WithError(err).Errorf("parsing multipart form")
+		h.writeError(w, http.StatusBadRequest, fmt.Errorf("invalid request form"))
+		return
+	}
 
 	for _, fileHeader := range r.MultipartForm.File {
 		if err := h.uploadFile(r.Context(), qID.String(), fileHeader); err != nil {
