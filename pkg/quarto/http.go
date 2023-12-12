@@ -26,7 +26,7 @@ import (
 const (
 	idURLPosUpdate         = 3
 	idURLPosGet            = 2
-	maxMemoryMultipartForm = 32 << 30 // 32 MB
+	maxMemoryMultipartForm = 32 << 20 // 32 MB
 )
 
 type Handler struct {
@@ -121,11 +121,11 @@ func (h *Handler) Update(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Delete the root directory before uploading new files
-	if err = h.gcsClient.DeleteObjectsWithPrefix(r.Context(), qID.String()); err != nil {
-		h.log.WithError(err).Errorf("deleting objects with prefix")
-		h.writeError(w, http.StatusInternalServerError, fmt.Errorf("internal server error"))
-		return
-	}
+	// if err = h.gcsClient.DeleteObjectsWithPrefix(r.Context(), qID.String()); err != nil {
+	// 	h.log.WithError(err).Errorf("deleting objects with prefix")
+	// 	h.writeError(w, http.StatusInternalServerError, fmt.Errorf("internal server error"))
+	// 	return
+	// }
 
 	for _, fileHeader := range r.MultipartForm.File {
 		if err := h.uploadFile(r.Context(), qID.String(), fileHeader); err != nil {
