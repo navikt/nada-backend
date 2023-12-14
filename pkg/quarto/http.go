@@ -55,7 +55,14 @@ func (h *Handler) GetObject(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
-	w.Header().Add("content-type", attr.ContentType)
+	if strings.HasSuffix(path, ".js") {
+		w.Header().Add("content-type", "text/javascript")
+	} else if strings.HasSuffix(path, ".css") {
+		w.Header().Add("content-type", "text/css")
+	} else {
+		w.Header().Add("content-type", attr.ContentType)
+	}
+
 	w.Header().Add("content-length", strconv.Itoa(int(attr.Size)))
 	w.Header().Add("content-encoding", attr.ContentEncoding)
 
