@@ -168,18 +168,13 @@ func (h *Handler) Append(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *Handler) Redirect(w http.ResponseWriter, r *http.Request) {
-	qID, err := getIDFromPath(r, idURLPosGet)
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
-	}
-	r.URL.Path = "/quarto/"
-
-	objPath, err := h.gcsClient.GetIndexHtmlPath(r.Context(), qID.String())
+	objPath, err := h.gcsClient.GetIndexHtmlPath(r.Context(), strings.TrimPrefix(r.URL.Path, "/quarto/"))
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusNotFound)
 		return
 	}
 
+	r.URL.Path = "/quarto/"
 	http.Redirect(w, r, objPath, http.StatusSeeOther)
 }
 

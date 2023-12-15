@@ -31,9 +31,13 @@ func New(ctx context.Context, bucketName string, log *logrus.Entry) (*Client, er
 	}, nil
 }
 
-func (c *Client) GetIndexHtmlPath(ctx context.Context, qID string) (string, error) {
-	objs := c.client.Bucket(c.bucketName).Objects(ctx, &storage.Query{Prefix: qID + "/"})
-	return c.findIndexPage(qID, objs)
+func (c *Client) GetIndexHtmlPath(ctx context.Context, prefix string) (string, error) {
+	_, err := c.client.Bucket(c.bucketName).Object(prefix + "/index.html").NewReader(ctx)
+	if err != nil {
+		objs := c.client.Bucket(c.bucketName).Objects(ctx, &storage.Query{Prefix: prefix + "/"})
+		return c.findIndexPage(prefix, objs)
+	}
+	return prefix + "/index.html", nil
 }
 
 func (c *Client) GetObject(ctx context.Context, path string) (*storage.ObjectAttrs, []byte, error) {
@@ -101,25 +105,24 @@ func (c *Client) findIndexPage(qID string, objs *storage.ObjectIterator) (string
 	}
 }
 
-
 func (c *Client) DeleteObjectsWithPrefix(ctx context.Context, prefix string) error {
-    bucket := c.client.Bucket(c.bucketName)
-    query := &storage.Query{Prefix: prefix}
-    it := bucket.Objects(ctx, query)
+	bucket := c.client.Bucket(c.bucketName)
+	query := &storage.Query{Prefix: prefix}
+	it := bucket.Objects(ctx, query)
 
 	for {
-        attrs, err := it.Next()
+		attrs, err := it.Next()
 		if err == iterator.Done {
-            break
-        }
+			break
+		}
 		if err != nil {
-            return fmt.Errorf("failed to list objects with prefix: %w", err)
-        }
+			return fmt.Errorf("failed to list objects with prefix: %w", err)
+		}
 
-        obj := bucket.Object(attrs.Name)
-        if err := obj.Delete(ctx); err != nil {
-            return fmt.Errorf("failed to delete object: %w", err)
-        }
-    }
-    return nil
+		obj := bucket.Object(attrs.Name)
+		if err := obj.Delete(ctx); err != nil {
+			return fmt.Errorf("failed to delete object: %w", err)
+		}
+	}
+	return nil
 }
