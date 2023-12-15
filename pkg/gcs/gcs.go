@@ -32,6 +32,7 @@ func New(ctx context.Context, bucketName string, log *logrus.Entry) (*Client, er
 }
 
 func (c *Client) GetIndexHtmlPath(ctx context.Context, prefix string) (string, error) {
+	prefix, _ = strings.CutSuffix(prefix, "/")
 	_, err := c.client.Bucket(c.bucketName).Object(prefix + "/index.html").NewReader(ctx)
 	if err != nil {
 		objs := c.client.Bucket(c.bucketName).Objects(ctx, &storage.Query{Prefix: prefix + "/"})
