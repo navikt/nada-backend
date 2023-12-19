@@ -54,7 +54,7 @@ func updateCache(client *http.Client, req *http.Request) ([]byte, error) {
 	_, err := cacheDB.Exec(`INSERT INTO http_cache (endpoint, response_body, created_at, last_tried_update_at) 
 	VALUES ($1, $2, $3, $3) ON CONFLICT (endpoint) DO UPDATE SET last_tried_update_at = $3`, endpoint, "", time.Now().UTC())
 	if err != nil {
-		log.WithError(err).Errorf("Failed to write to database for %v", req.URL.String())
+		log.WithError(err).Infof("Failed to write to database for %v", req.URL.String())
 		return nil, err
 	}
 
