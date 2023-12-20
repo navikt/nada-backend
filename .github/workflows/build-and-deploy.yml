@@ -16,6 +16,7 @@ on:
 permissions:
   contents: read
   packages: write
+  id-token: write
 
 jobs:
   integration-tests:
@@ -71,7 +72,6 @@ jobs:
       if: inputs.environment != 'prod'
       uses: nais/deploy/actions/deploy@v2
       env:
-        APIKEY: ${{ secrets.NAIS_DEPLOY_APIKEY }}
         CLUSTER: dev-gcp
         RESOURCE: .nais/dev-gcp.yml
 
@@ -79,6 +79,5 @@ jobs:
       if: github.ref == 'refs/heads/main' && inputs.environment != 'dev'|| inputs.environment == 'prod'
       uses: nais/deploy/actions/deploy@v2
       env:
-        APIKEY: ${{ secrets.NAIS_DEPLOY_APIKEY }}
         CLUSTER: prod-gcp
         RESOURCE: .nais/prod-gcp.yml
