@@ -21,7 +21,7 @@ require (
 	github.com/google/uuid v1.5.0
 	github.com/lib/pq v1.10.9
 	github.com/ory/dockertest/v3 v3.10.0
-	github.com/pressly/goose/v3 v3.16.0
+	github.com/pressly/goose/v3 v3.17.0
 	github.com/prometheus/client_golang v1.17.0
 	github.com/qustavo/sqlhooks/v2 v2.1.0
 	github.com/sirupsen/logrus v1.9.3
