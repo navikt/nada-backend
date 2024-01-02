@@ -7,7 +7,6 @@ package gensql
 import (
 	"database/sql"
 	"database/sql/driver"
-	"encoding/json"
 	"fmt"
 	"time"
 
@@ -140,50 +139,6 @@ func (ns NullPiiLevel) Value() (driver.Value, error) {
 		return nil, nil
 	}
 	return string(ns.PiiLevel), nil
-}
-
-type StoryViewType string
-
-const (
-	StoryViewTypeMarkdown StoryViewType = "markdown"
-	StoryViewTypeHeader   StoryViewType = "header"
-	StoryViewTypePlotly   StoryViewType = "plotly"
-	StoryViewTypeVega     StoryViewType = "vega"
-)
-
-func (e *StoryViewType) Scan(src interface{}) error {
-	switch s := src.(type) {
-	case []byte:
-		*e = StoryViewType(s)
-	case string:
-		*e = StoryViewType(s)
-	default:
-		return fmt.Errorf("unsupported scan type for StoryViewType: %T", src)
-	}
-	return nil
-}
-
-type NullStoryViewType struct {
-	StoryViewType StoryViewType
-	Valid         bool // Valid is true if StoryViewType is not NULL
-}
-
-// Scan implements the Scanner interface.
-func (ns *NullStoryViewType) Scan(value interface{}) error {
-	if value == nil {
-		ns.StoryViewType, ns.Valid = "", false
-		return nil
-	}
-	ns.Valid = true
-	return ns.StoryViewType.Scan(value)
-}
-
-// Value implements the driver Valuer interface.
-func (ns NullStoryViewType) Value() (driver.Value, error) {
-	if !ns.Valid {
-		return nil, nil
-	}
-	return string(ns.StoryViewType), nil
 }
 
 type Dashboard struct {
@@ -328,19 +283,6 @@ type PollyDocumentation struct {
 	Url        string
 }
 
-type QuartoStory struct {
-	ID               uuid.UUID
-	Name             string
-	Creator          string
-	Created          time.Time
-	LastModified     time.Time
-	Description      string
-	Keywords         []string
-	TeamkatalogenUrl sql.NullString
-	TeamID           sql.NullString
-	Group            string
-}
-
 type Search struct {
 	ElementID    uuid.UUID
 	ElementType  string
@@ -366,41 +308,14 @@ type Session struct {
 type Story struct {
 	ID               uuid.UUID
 	Name             string
+	Creator          string
 	Created          time.Time
 	LastModified     time.Time
-	Group            string
-	Description      sql.NullString
+	Description      string
 	Keywords         []string
 	TeamkatalogenUrl sql.NullString
 	TeamID           sql.NullString
-}
-
-type StoryDraft struct {
-	ID      uuid.UUID
-	Name    string
-	Created time.Time
-}
-
-type StoryToken struct {
-	ID      uuid.UUID
-	StoryID uuid.UUID
-	Token   uuid.UUID
-}
-
-type StoryView struct {
-	ID      uuid.UUID
-	StoryID uuid.UUID
-	Sort    int32
-	Type    StoryViewType
-	Spec    json.RawMessage
-}
-
-type StoryViewDraft struct {
-	ID      uuid.UUID
-	StoryID uuid.UUID
-	Sort    int32
-	Type    StoryViewType
-	Spec    json.RawMessage
+	Group            string
 }
 
 type Tag struct {

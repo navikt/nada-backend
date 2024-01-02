@@ -18,20 +18,20 @@ import (
 )
 
 const (
-	testTeam     = "team"
-	quartoBucket = "quarto"
-	defaultHtml  = "<html><h1>Quarto</h1></html>"
+	testTeam    = "team"
+	storyBucket = "stories"
+	defaultHtml = "<html><h1>Story</h1></html>"
 )
 
 func TestQuarto(t *testing.T) {
 	ctx := context.Background()
 
-	storyID, err := prepareQuartoTests(ctx)
+	storyID, err := prepareStoryTests(ctx)
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	t.Run("get quarto", func(t *testing.T) {
+	t.Run("get story", func(t *testing.T) {
 		resp, err := server.Client().Get(server.URL + "/quarto/" + storyID.String() + "/index.html")
 		if err != nil {
 			t.Fatal(err)
@@ -52,7 +52,7 @@ func TestQuarto(t *testing.T) {
 		}
 	})
 
-	t.Run("get quarto with redirect", func(t *testing.T) {
+	t.Run("get story with redirect", func(t *testing.T) {
 		resp, err := server.Client().Get(server.URL + "/quarto/" + storyID.String())
 		if err != nil {
 			t.Fatal(err)
@@ -231,14 +231,14 @@ func TestQuarto(t *testing.T) {
 	})
 }
 
-func prepareQuartoTests(ctx context.Context) (uuid.UUID, error) {
+func prepareStoryTests(ctx context.Context) (uuid.UUID, error) {
 	client, err := storage.NewClient(ctx)
 	if err != nil {
 		return uuid.UUID{}, err
 	}
 	defer client.Close()
 
-	if err := client.Bucket(quartoBucket).Create(ctx, "project", nil); err != nil {
+	if err := client.Bucket(storyBucket).Create(ctx, "project", nil); err != nil {
 		var e *googleapi.Error
 		if ok := xerrors.As(err, &e); ok {
 			if e.Code != 409 {
@@ -247,10 +247,10 @@ func prepareQuartoTests(ctx context.Context) (uuid.UUID, error) {
 		}
 	}
 
-	description := "this is my quarto"
+	description := "this is my story"
 
-	story, err := repo.CreateQuartoStory(ctx, "first.last@nav.no", models.NewQuartoStory{
-		Name:        "quarto",
+	story, err := repo.CreateStory(ctx, "first.last@nav.no", models.NewStory{
+		Name:        "story",
 		Description: &description,
 		Group:       testTeam + "@nav.no",
 		Keywords:    []string{},
@@ -260,7 +260,7 @@ func prepareQuartoTests(ctx context.Context) (uuid.UUID, error) {
 	}
 	htmlb := []byte(defaultHtml)
 
-	writer := client.Bucket(quartoBucket).Object(story.ID.String() + "/index.html").NewWriter(ctx)
+	writer := client.Bucket(storyBucket).Object(story.ID.String() + "/index.html").NewWriter(ctx)
 	_, err = writer.Write(htmlb)
 	if err != nil {
 		return uuid.UUID{}, err

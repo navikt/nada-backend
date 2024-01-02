@@ -89,7 +89,7 @@ extend type Mutation {
     	productAreaID: String
         "Id of the team."
     	teamID: String
-        "group is the owner group of the quarto"
+        "group is the owner group of the insight product"
         group: String!
 	): InsightProduct! @authenticated
 

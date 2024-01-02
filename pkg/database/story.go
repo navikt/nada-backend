@@ -9,335 +9,136 @@ import (
 	"github.com/navikt/nada-backend/pkg/graph/models"
 )
 
-func (r *Repo) GetStories(ctx context.Context) ([]*models.DBStory, error) {
-	stories, err := r.querier.GetStories(ctx)
+func (r *Repo) CreateStory(ctx context.Context, creator string,
+	newStory models.NewStory,
+) (*models.Story, error) {
+	var storySQL gensql.Story
+	var err error
+	if newStory.ID == nil {
+		storySQL, err = r.querier.CreateStory(ctx, gensql.CreateStoryParams{
+			Name:             newStory.Name,
+			Creator:          creator,
+			Description:      ptrToString(newStory.Description),
+			Keywords:         newStory.Keywords,
+			TeamkatalogenUrl: ptrToNullString(newStory.TeamkatalogenURL),
+			TeamID:           ptrToNullString(newStory.TeamID),
+			OwnerGroup:       newStory.Group,
+		})
+	} else {
+		storySQL, err = r.querier.CreateStoryWithID(ctx, gensql.CreateStoryWithIDParams{
+			ID:               *newStory.ID,
+			Name:             newStory.Name,
+			Creator:          creator,
+			Description:      ptrToString(newStory.Description),
+			Keywords:         newStory.Keywords,
+			TeamkatalogenUrl: ptrToNullString(newStory.TeamkatalogenURL),
+			TeamID:           ptrToNullString(newStory.TeamID),
+			OwnerGroup:       newStory.Group,
+		})
+	}
 	if err != nil {
 		return nil, err
 	}
 
-	ret := make([]*models.DBStory, len(stories))
-	for i, s := range stories {
-		ret[i] = storyFromSQL(s)
-	}
-
-	return ret, nil
+	return storySQLToGraphql(&storySQL), err
 }
 
-func (r *Repo) GetStoriesByProductArea(ctx context.Context, teamsInPA []string) ([]*models.DBStory, error) {
+func (r *Repo) GetStory(ctx context.Context, id uuid.UUID) (*models.Story, error) {
+	storySQL, err := r.querier.GetStory(ctx, id)
+
+	return storySQLToGraphql(&storySQL), err
+}
+
+func (r *Repo) GetStories(ctx context.Context) ([]*models.Story, error) {
+	storySQLs, err := r.querier.GetStories(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	storyGraphqls := make([]*models.Story, len(storySQLs))
+	for idx, story := range storySQLs {
+		storyGraphqls[idx] = storySQLToGraphql(&story)
+	}
+
+	return storyGraphqls, err
+}
+
+func (r *Repo) GetStoriesByProductArea(ctx context.Context, teamsInPA []string) ([]*models.Story, error) {
 	stories, err := r.querier.GetStoriesByProductArea(ctx, teamsInPA)
 	if err != nil {
 		return nil, err
 	}
 
-	dbStories := make([]*models.DBStory, len(stories))
+	dbStories := make([]*models.Story, len(stories))
 	for idx, s := range stories {
-		dbStories[idx] = storyFromSQL(s)
+		dbStories[idx] = storySQLToGraphql(&s)
 	}
 
 	return dbStories, nil
 }
 
-func (r *Repo) GetStoriesByTeam(ctx context.Context, teamID string) ([]*models.DBStory, error) {
+func (r *Repo) GetStoriesByTeam(ctx context.Context, teamID string) ([]*models.Story, error) {
 	stories, err := r.querier.GetStoriesByTeam(ctx, sql.NullString{String: teamID, Valid: true})
 	if err != nil {
 		return nil, err
 	}
 
-	dbStories := make([]*models.DBStory, len(stories))
+	dbStories := make([]*models.Story, len(stories))
 	for idx, s := range stories {
-		dbStories[idx] = storyFromSQL(s)
+		dbStories[idx] = storySQLToGraphql(&s)
 	}
 
 	return dbStories, nil
 }
 
-func (r *Repo) GetStoryView(ctx context.Context, id uuid.UUID) (*models.DBStoryView, error) {
-	storyView, err := r.querier.GetStoryView(ctx, id)
+func (r *Repo) GetStoriesByGroups(ctx context.Context, groups []string) ([]*models.Story, error) {
+	dbStories, err := r.querier.GetStoriesByGroups(ctx, groups)
 	if err != nil {
 		return nil, err
 	}
 
-	return storyViewFromSQL(storyView), nil
+	stories := make([]*models.Story, len(dbStories))
+	for idx, s := range dbStories {
+		stories[idx] = storySQLToGraphql(&s)
+	}
+
+	return stories, nil
 }
 
-func (r *Repo) GetStoryViews(ctx context.Context, storyID uuid.UUID) ([]*models.DBStoryView, error) {
-	storyViews, err := r.querier.GetStoryViews(ctx, storyID)
-	if err != nil {
-		return nil, err
-	}
-
-	ret := make([]*models.DBStoryView, len(storyViews))
-	for i, s := range storyViews {
-		ret[i] = storyViewFromSQL(s)
-	}
-
-	return ret, nil
-}
-
-func (r *Repo) PublishStory(ctx context.Context, ds models.NewStory) (*models.DBStory, error) {
-	draft, err := r.querier.GetStoryDraft(ctx, ds.ID)
-	if err != nil {
-		return nil, err
-	}
-
-	draftViews, err := r.querier.GetStoryViewDrafts(ctx, ds.ID)
-	if err != nil {
-		return nil, err
-	}
-
-	tx, err := r.db.Begin()
-	if err != nil {
-		return nil, err
-	}
-
-	querier := r.querier.WithTx(tx)
-	story, err := querier.CreateStory(ctx, gensql.CreateStoryParams{
-		Name:             draft.Name,
-		Grp:              ds.Group,
-		Description:      sql.NullString{String: "", Valid: false},
-		Keywords:         ds.Keywords,
-		TeamkatalogenUrl: ptrToNullString(ds.TeamkatalogenURL),
-		TeamID:           ptrToNullString(ds.TeamID),
-	})
-	if err != nil {
-		if err := tx.Rollback(); err != nil {
-			r.log.WithError(err).Error("unable to roll back when create story failed")
-		}
-		return nil, err
-	}
-
-	for _, view := range draftViews {
-		_, err := querier.CreateStoryView(ctx, gensql.CreateStoryViewParams{
-			StoryID: story.ID,
-			Sort:    view.Sort,
-			Type:    view.Type,
-			Spec:    view.Spec,
-		})
-		if err != nil {
-			if err := tx.Rollback(); err != nil {
-				r.log.WithError(err).Error("unable to roll back when create story view failed")
-			}
-			return nil, err
-		}
-	}
-
-	if err := tx.Commit(); err != nil {
-		return nil, err
-	}
-
-	for _, keyword := range story.Keywords {
-		err = r.querier.CreateTagIfNotExist(ctx, keyword)
-		if err != nil {
-			r.log.WithError(err).Warn("failed to create tag when creating story in database")
-		}
-	}
-
-	return storyFromSQL(story), nil
-}
-
-func (r *Repo) UpdateStory(ctx context.Context, ds models.NewStory) (*models.DBStory, error) {
-	draftViews, err := r.querier.GetStoryViewDrafts(ctx, ds.ID)
-	if err != nil {
-		return nil, err
-	}
-
-	tx, err := r.db.Begin()
-	if err != nil {
-		return nil, err
-	}
-
-	querier := r.querier.WithTx(tx)
-	if err := querier.DeleteStoryViews(ctx, *ds.Target); err != nil {
-		if err := tx.Rollback(); err != nil {
-			r.log.WithError(err).Error("unable to roll back when delete story views failed")
-		}
-		return nil, err
-	}
-
-	for _, view := range draftViews {
-		_, err := querier.CreateStoryView(ctx, gensql.CreateStoryViewParams{
-			StoryID: *ds.Target,
-			Sort:    view.Sort,
-			Type:    view.Type,
-			Spec:    view.Spec,
-		})
-		if err != nil {
-			if err := tx.Rollback(); err != nil {
-				r.log.WithError(err).Error("unable to roll back when create story view failed")
-			}
-			return nil, err
-		}
-	}
-
-	existing, err := querier.GetStory(ctx, *ds.Target)
-	if err != nil {
-		if err := tx.Rollback(); err != nil {
-			r.log.WithError(err).Error("unable to roll back when getting existing story")
-		}
-		return nil, err
-	}
-
-	updated, err := querier.UpdateStory(ctx, gensql.UpdateStoryParams{
-		Name:             ds.Name,
-		Grp:              existing.Group,
-		Description:      existing.Description,
-		Keywords:         ds.Keywords,
-		ID:               *ds.Target,
-		TeamkatalogenUrl: ptrToNullString(ds.TeamkatalogenURL),
-		TeamID:           ptrToNullString(ds.TeamID),
-	})
-	if err != nil {
-		if err := tx.Rollback(); err != nil {
-			r.log.WithError(err).Error("unable to roll back when updating")
-		}
-		return nil, err
-	}
-
-	if err := tx.Commit(); err != nil {
-		return nil, err
-	}
-
-	return storyFromSQL(updated), nil
-}
-
-func (r *Repo) UpdateStoryMetadata(ctx context.Context, id uuid.UUID, name string, keywords []string, teamkatalogenURL, productAreaID, teamID *string) (*models.DBStory, error) {
-	story, err := r.querier.GetStory(ctx, id)
-	if err != nil {
-		return nil, err
-	}
-
-	updated, err := r.querier.UpdateStory(ctx, gensql.UpdateStoryParams{
-		Name:             name,
-		Grp:              story.Group,
-		Description:      sql.NullString{String: "", Valid: false},
-		Keywords:         keywords,
+func (r *Repo) UpdateStoryMetadata(ctx context.Context, id uuid.UUID, name string, description string, keywords []string, teamkatalogenURL *string, productAreaID *string, teamID *string, group string) (
+	*models.Story, error,
+) {
+	dbStory, err := r.querier.UpdateStory(ctx, gensql.UpdateStoryParams{
 		ID:               id,
+		Name:             name,
+		Description:      description,
+		Keywords:         keywords,
 		TeamkatalogenUrl: ptrToNullString(teamkatalogenURL),
 		TeamID:           ptrToNullString(teamID),
+		OwnerGroup:       group,
 	})
 	if err != nil {
 		return nil, err
 	}
 
-	for _, keyword := range keywords {
-		err = r.querier.CreateTagIfNotExist(ctx, keyword)
-		if err != nil {
-			r.log.WithError(err).Warn("failed to create tag when updating story in database")
-		}
-	}
-
-	return storyFromSQL(updated), nil
-}
-
-func (r *Repo) GetStoryToken(ctx context.Context, storyID uuid.UUID) (*models.StoryToken, error) {
-	token, err := r.querier.GetStoryToken(ctx, storyID)
-	if err != nil {
-		return nil, err
-	}
-	return &models.StoryToken{
-		ID:    storyID,
-		Token: token.Token.String(),
-	}, nil
-}
-
-func (r *Repo) GetStoriesByGroups(ctx context.Context, groups []string) ([]*models.DBStory, error) {
-	stories, err := r.querier.GetStoriesByGroups(ctx, groups)
-	if err != nil {
-		return nil, err
-	}
-
-	dbStories := make([]*models.DBStory, len(stories))
-	for i, s := range stories {
-		dbStories[i] = storyFromSQL(s)
-	}
-	return dbStories, nil
-}
-
-func (r *Repo) GetStoryFromToken(ctx context.Context, token uuid.UUID) (*models.DBStory, error) {
-	story, err := r.querier.GetStoryFromToken(ctx, token)
-	if err != nil {
-		return nil, err
-	}
-
-	views, err := r.querier.GetStoryViews(ctx, story.ID)
-	if err != nil {
-		return nil, err
-	}
-
-	var vs []models.DBStoryView
-	for _, v := range views {
-		vs = append(vs, models.DBStoryView{
-			ID:   v.ID,
-			Type: string(v.Type),
-			Spec: v.Spec,
-		})
-	}
-
-	return &models.DBStory{
-		ID:   story.ID,
-		Name: story.Name,
-		Owner: models.Owner{
-			Group:            story.Group,
-			TeamkatalogenURL: nullStringToPtr(story.TeamkatalogenUrl),
-			TeamID:           nullStringToPtr(story.TeamID),
-		},
-		Description:  story.Description.String,
-		Keywords:     story.Keywords,
-		Created:      story.Created,
-		LastModified: story.LastModified,
-		Views:        vs,
-	}, err
+	return storySQLToGraphql(&dbStory), nil
 }
 
 func (r *Repo) DeleteStory(ctx context.Context, id uuid.UUID) error {
-	tx, err := r.db.Begin()
-	if err != nil {
-		return err
-	}
-
-	querier := r.querier.WithTx(tx)
-
-	if err := querier.DeleteStory(ctx, id); err != nil {
-		if err := tx.Rollback(); err != nil {
-			r.log.WithError(err).Error("unable to roll back when delete story failed")
-		}
-		return err
-	}
-
-	if err := querier.DeleteStoryViews(ctx, id); err != nil {
-		if err := tx.Rollback(); err != nil {
-			r.log.WithError(err).Error("unable to roll back when delete story views failed")
-		}
-		return err
-	}
-
-	if err := tx.Commit(); err != nil {
-		return err
-	}
-
-	return nil
+	return r.querier.DeleteStory(ctx, id)
 }
 
-func storyViewFromSQL(s gensql.StoryView) *models.DBStoryView {
-	return &models.DBStoryView{
-		ID:   s.ID,
-		Type: string(s.Type),
-		Spec: s.Spec,
-	}
-}
-
-func storyFromSQL(s gensql.Story) *models.DBStory {
-	return &models.DBStory{
-		ID:   s.ID,
-		Name: s.Name,
-		Owner: models.Owner{
-			Group:            s.Group,
-			TeamkatalogenURL: nullStringToPtr(s.TeamkatalogenUrl),
-			TeamID:           nullStringToPtr(s.TeamID),
-		},
-		Description:  s.Description.String,
-		Keywords:     s.Keywords,
-		Created:      s.Created,
-		LastModified: s.LastModified,
+func storySQLToGraphql(story *gensql.Story) *models.Story {
+	return &models.Story{
+		ID:               story.ID,
+		Name:             story.Name,
+		Creator:          story.Creator,
+		Created:          story.Created,
+		LastModified:     &story.LastModified,
+		Keywords:         story.Keywords,
+		TeamID:           nullStringToPtr(story.TeamID),
+		TeamkatalogenURL: nullStringToPtr(story.TeamkatalogenUrl),
+		Description:      story.Description,
+		Group:            story.Group,
 	}
 }

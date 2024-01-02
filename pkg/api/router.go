@@ -12,7 +12,6 @@ import (
 	"github.com/navikt/nada-backend/pkg/database"
 	"github.com/navikt/nada-backend/pkg/gcs"
 	"github.com/navikt/nada-backend/pkg/graph"
-	"github.com/navikt/nada-backend/pkg/quarto"
 	"github.com/navikt/nada-backend/pkg/story"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
@@ -42,8 +41,7 @@ func New(
 		AllowCredentials: true,
 	})
 
-	storyHandler := story.NewHandler(repo)
-	quartoHandler := quarto.NewHandler(repo, gcsClient, teamCatalog, amplitudeClient, log.WithField("subsystem", "quarto"))
+	storyHandler := story.NewHandler(repo, gcsClient, teamCatalog, amplitudeClient, log.WithField("subsystem", "story"))
 
 	router := chi.NewRouter()
 	router.Use(corsMW)
@@ -53,15 +51,14 @@ func New(
 		r.HandleFunc("/login", httpAPI.Login)
 		r.HandleFunc("/oauth2/callback", httpAPI.Callback)
 		r.HandleFunc("/logout", httpAPI.Logout)
-		r.Put("/story", storyHandler.Update)
 	})
-	router.Route("/quarto/", func(r chi.Router) {
-		r.Use(quartoHandler.QuartoMiddleware)
-		r.Get("/*", quartoHandler.GetObject)
-		r.Post("/create", quartoHandler.Create)
+	router.Route(`/{story|quarto}/`, func(r chi.Router) {
+		r.Use(storyHandler.StoryMiddleware)
+		r.Get("/*", storyHandler.GetObject)
+		r.Post("/create", storyHandler.Create)
 		r.Route("/update/{id}", func(r chi.Router) {
-			r.Put("/", quartoHandler.Update)
-			r.Patch("/", quartoHandler.Append)
+			r.Put("/", storyHandler.Update)
+			r.Patch("/", storyHandler.Append)
 		})
 	})
 	router.Route("/internal", func(r chi.Router) {

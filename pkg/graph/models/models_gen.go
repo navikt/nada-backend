@@ -15,6 +15,12 @@ type BigQuerySource struct {
 	Dataset string `json:"dataset"`
 }
 
+type Mutation struct {
+}
+
+type Query struct {
+}
+
 type AccessRequestStatus string
 
 const (

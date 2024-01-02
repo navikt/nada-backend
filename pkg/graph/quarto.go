@@ -6,6 +6,7 @@ import (
 	"io/ioutil"
 	"log"
 	"os"
+	"time"
 
 	"cloud.google.com/go/storage"
 	"github.com/99designs/gqlgen/graphql"
@@ -13,22 +14,22 @@ import (
 	"google.golang.org/api/iterator"
 )
 
-func WriteFilesToBucket(ctx context.Context, quartoStoryID string,
+func WriteFilesToBucket(ctx context.Context, storyID string,
 	files []*models.UploadFile,
 ) error {
 	var err error
 	for _, file := range files {
-		gcsPath := quartoStoryID + "/" + file.Path
+		gcsPath := storyID + "/" + file.Path
 		err = WriteFileToBucket(ctx, gcsPath, file.File)
 		if err != nil {
-			log.Fatalf("Error writing quarto file: " + gcsPath)
+			log.Fatalf("Error writing story file: " + gcsPath)
 			break
 		}
 	}
 	if err != nil {
-		ed := deleteQuartoStoryFolder(ctx, quartoStoryID)
+		ed := deleteStoryFolder(ctx, storyID)
 		if ed != nil {
-			log.Fatalf("Error delete quarto folder: " + quartoStoryID)
+			log.Fatalf("Error delete story folder: " + storyID)
 		}
 	}
 
@@ -83,9 +84,9 @@ func WriteFileToBucket(ctx context.Context, gcsPath string,
 	return nil
 }
 
-func deleteQuartoStoryFolder(ctx context.Context, quartoStoryID string) error {
-	if len(quartoStoryID) == 0 {
-		return fmt.Errorf("try to delete files in GCP with invalid quarto story id")
+func deleteStoryFolder(ctx context.Context, storyID string) error {
+	if len(storyID) == 0 {
+		return fmt.Errorf("try to delete files in GCP with invalid story id")
 	}
 	// Replace with your GCP bucket name.
 	bucketName := os.Getenv("GCP_QUARTO_STORAGE_BUCKET_NAME")
@@ -101,7 +102,7 @@ func deleteQuartoStoryFolder(ctx context.Context, quartoStoryID string) error {
 	bucket := client.Bucket(bucketName)
 
 	fit := bucket.Objects(ctx, &storage.Query{
-		Prefix: quartoStoryID + "/",
+		Prefix: storyID + "/",
 	})
 
 	var deletedFiles []string
@@ -112,7 +113,7 @@ func deleteQuartoStoryFolder(ctx context.Context, quartoStoryID string) error {
 		}
 		if err != nil {
 			log.Fatal(err)
-			return fmt.Errorf("failed to find objects %v: %v", quartoStoryID, err)
+			return fmt.Errorf("failed to find objects %v: %v", storyID, err)
 		}
 
 		err = bucket.Object(f.Name).Delete(ctx)
@@ -123,9 +124,23 @@ func deleteQuartoStoryFolder(ctx context.Context, quartoStoryID string) error {
 	}
 
 	if len(deletedFiles) == 0 {
-		return fmt.Errorf("object not found %v", quartoStoryID)
+		return fmt.Errorf("object not found %v", storyID)
 	} else {
-		log.Printf("Quarto files for %v deleted: %v\n", quartoStoryID, deletedFiles)
+		log.Printf("Story files for %v deleted: %v\n", storyID, deletedFiles)
 	}
 	return nil
+}
+
+func ptrTime(t time.Time) *time.Time {
+	if t.IsZero() {
+		return nil
+	}
+	return &t
+}
+
+func ptrToString(s *string) string {
+	if s != nil {
+		return *s
+	}
+	return ""
 }

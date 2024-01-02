@@ -24,7 +24,6 @@ import (
 	"github.com/navikt/nada-backend/pkg/metabase"
 	"github.com/navikt/nada-backend/pkg/polly"
 	"github.com/navikt/nada-backend/pkg/slack"
-	"github.com/navikt/nada-backend/pkg/story"
 	"github.com/navikt/nada-backend/pkg/teamkatalogen"
 	"github.com/navikt/nada-backend/pkg/teamprojectsupdater"
 	"github.com/prometheus/client_golang/prometheus"
@@ -47,7 +46,6 @@ const (
 	TeamProjectsUpdateFrequency = 60 * time.Minute
 	AccessEnsurerFrequency      = 5 * time.Minute
 	MetabaseUpdateFrequency     = 1 * time.Hour
-	StoryDraftCleanerFrequency  = 24 * time.Hour
 )
 
 func init() {
@@ -160,8 +158,6 @@ func main() {
 	}
 
 	go access.NewEnsurer(repo, accessMgr, gcp, googleGroups, cfg.CentralDataProject, promErrs, log.WithField("subsystem", "accessensurer")).Run(ctx, AccessEnsurerFrequency)
-
-	go story.NewDraftCleaner(repo, log.WithField("subsystem", "storydraftcleaner")).Run(ctx, StoryDraftCleanerFrequency)
 
 	log.Info("Listening on :8080")
 	gqlServer := graph.New(repo, gcp, teamProjectsUpdater.TeamProjectsMapping, accessMgr, teamcatalogue, slackClient, pollyAPI, cfg.CentralDataProject, log.WithField("subsystem", "graph"))

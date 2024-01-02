@@ -1,91 +1,53 @@
 package models
 
 import (
-	"encoding/json"
 	"time"
 
 	"github.com/google/uuid"
 )
 
-type DBStoryView struct {
-	ID   uuid.UUID       `json:"id"`
-	Type string          `json:"type"`
-	Spec json.RawMessage `json:"spec"`
+// Story contains the metadata and content of data stories.
+type Story struct {
+	// id of the data story.
+	ID uuid.UUID `json:"id"`
+	// name of the data story.
+	Name string `json:"name"`
+	// creator of the data story.
+	Creator string `json:"creator"`
+	// description of the data story.
+	Description string `json:"description"`
+	// keywords for the story used as tags.
+	Keywords []string `json:"keywords"`
+	// teamkatalogenURL of the creator.
+	TeamkatalogenURL *string `json:"teamkatalogenURL"`
+	// Id of the creator's team.
+	TeamID *string `json:"teamID"`
+	// created is the timestamp for when the data story was created.
+	Created time.Time `json:"created"`
+	// lastModified is the timestamp for when the dataproduct was last modified.
+	LastModified *time.Time `json:"lastModified"`
+	// group is the owner group of the data story.
+	Group string `json:"group"`
 }
 
-type DBStory struct {
-	ID           uuid.UUID     `json:"id"`
-	Name         string        `json:"name"`
-	Owner        Owner         `json:"owner"`
-	Description  string        `json:"description"`
-	Keywords     []string      `json:"keywords"`
-	Created      time.Time     `json:"created"`
-	LastModified time.Time     `json:"lastModified"`
-	Views        []DBStoryView `json:"views"`
-	Draft        bool
-}
-
-type GraphStory struct {
-	ID           uuid.UUID        `json:"id"`
-	Name         string           `json:"name"`
-	Owner        Owner            `json:"owner"`
-	Description  string           `json:"description"`
-	Keywords     []string         `json:"keywords"`
-	Created      time.Time        `json:"created"`
-	LastModified *time.Time       `json:"lastModified"`
-	Views        []GraphStoryView `json:"views"`
-}
-
+// NewStory contains the metadata and content of data stories.
 type NewStory struct {
-	ID               uuid.UUID  `json:"id"`
-	Name             string     `json:"name"`
-	Target           *uuid.UUID `json:"target"`
-	Group            string     `json:"group"`
-	Keywords         []string   `json:"keywords"`
-	TeamkatalogenURL *string    `json:"teamkatalogenURL"`
-	ProductAreaID    *string    `json:"productAreaID"`
-	TeamID           *string    `json:"teamID"`
+	// id of data story.
+	ID *uuid.UUID `json:"id"`
+	// name of the data story.
+	Name string `json:"name"`
+	// description of the data story.
+	Description *string `json:"description"`
+	// keywords for the story used as tags.
+	Keywords []string `json:"keywords"`
+	// teamkatalogenURL of the creator.
+	TeamkatalogenURL *string `json:"teamkatalogenURL"`
+	// Id of the creator's product area.
+	ProductAreaID *string `json:"productAreaID"`
+	// Id of the creator's team.
+	TeamID *string `json:"teamID"`
+	// group is the owner group of the data story.
+	Group string `json:"group"`
 }
 
-func (GraphStory) IsSearchResult() {}
-
-type GraphStoryView interface {
-	IsStoryView()
-}
-
-type StoryViewHeader struct {
-	ID      uuid.UUID `json:"id"`
-	Content string    `json:"content"`
-	Level   int       `json:"level"`
-}
-
-func (StoryViewHeader) IsStoryView() {}
-
-type StoryViewMarkdown struct {
-	ID      uuid.UUID `json:"id"`
-	Content string    `json:"content"`
-}
-
-func (StoryViewMarkdown) IsStoryView() {}
-
-type StoryViewPlotly struct {
-	ID     uuid.UUID                `json:"id"`
-	Data   []map[string]interface{} `json:"data"`
-	Layout map[string]interface{}   `json:"layout"`
-	Frames []map[string]interface{} `json:"frames"`
-}
-
-func (StoryViewPlotly) IsStoryView() {}
-
-type StoryViewVega struct {
-	ID   uuid.UUID              `json:"id"`
-	Spec map[string]interface{} `json:"spec"`
-}
-
-func (StoryViewVega) IsStoryView() {}
-
-type StoryToken struct {
-	ID      uuid.UUID `json:"id"`
-	StoryID uuid.UUID `json:"story_id"`
-	Token   string    `json:"token"`
-}
+func (Story) IsSearchResult() {}

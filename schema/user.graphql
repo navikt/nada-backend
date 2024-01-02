@@ -9,7 +9,7 @@ type Group @goModel(model: "github.com/navikt/nada-backend/pkg/graph/models.Grou
 }
 
 """
-NadaToken contains the team token of the corresponding team for updating quarto stories
+NadaToken contains the team token of the corresponding team for updating data stories
 """
 type NadaToken @goModel(model: "github.com/navikt/nada-backend/pkg/graph/models.NadaToken") {
     "name of team"
@@ -51,10 +51,8 @@ type UserInfo @goModel(model: "github.com/navikt/nada-backend/pkg/graph/models.U
 	dataproducts: [Dataproduct!]!
 	"accessable is a list of datasets which the user has either owns or has explicit access to."
 	accessable: AccessibleDatasets!
-	"stories is a list of stories with one of the users groups as owner."
-	stories: [Story!]!
-    "quarto stories is the stories owned by the user's group"
-    quartoStories: [QuartoStory!]!
+    "stories is the stories owned by the user's group"
+    stories: [Story!]!
     "insight products is the insight products owned by the user's group"
     insightProducts: [InsightProduct!]!
     "accessRequests is a list of access requests where either the user or one of the users groups is owner."

@@ -21,7 +21,7 @@ func (r *Repo) Search(ctx context.Context, query *models.SearchQuery) ([]*models
 	for _, s := range query.Types {
 		types = append(types, string(s))
 		if strings.ToLower(string(s)) == "story" {
-			types = append(types, "quarto_story")
+			types = append(types, "story")
 		}
 	}
 
@@ -43,7 +43,6 @@ func (r *Repo) Search(ctx context.Context, query *models.SearchQuery) ([]*models
 	var dataproducts []uuid.UUID
 	var stories []uuid.UUID
 	var datasets []uuid.UUID
-	var quartoStories []uuid.UUID
 	excerpts := map[uuid.UUID]string{}
 	for i, sr := range res {
 		switch sr.ElementType {
@@ -53,8 +52,6 @@ func (r *Repo) Search(ctx context.Context, query *models.SearchQuery) ([]*models
 			stories = append(stories, sr.ElementID)
 		case "dataset":
 			datasets = append(datasets, sr.ElementID)
-		case "quarto_story":
-			quartoStories = append(quartoStories, sr.ElementID)
 		default:
 			r.log.Error("unknown search result type", sr.ElementType)
 			continue
@@ -73,11 +70,6 @@ func (r *Repo) Search(ctx context.Context, query *models.SearchQuery) ([]*models
 		return nil, err
 	}
 
-	qss, err := r.querier.GetQuartoStoriesByIDs(ctx, quartoStories)
-	if err != nil {
-		return nil, err
-	}
-
 	ret := []*models.SearchResultRow{}
 	for _, d := range dps {
 		ret = append(ret, &models.SearchResultRow{
@@ -85,27 +77,11 @@ func (r *Repo) Search(ctx context.Context, query *models.SearchQuery) ([]*models
 			Result:  dataproductFromSQL(d),
 		})
 	}
+
 	for _, s := range ss {
 		ret = append(ret, &models.SearchResultRow{
 			Excerpt: excerpts[s.ID],
-			Result: &models.GraphStory{
-				ID:           s.ID,
-				Name:         s.Name,
-				Created:      s.Created,
-				LastModified: &s.LastModified,
-				Owner: models.Owner{
-					Group:            s.Group,
-					TeamkatalogenURL: nullStringToPtr(s.TeamkatalogenUrl),
-				},
-				Keywords: s.Keywords,
-			},
-		})
-	}
-
-	for _, qs := range qss {
-		ret = append(ret, &models.SearchResultRow{
-			Excerpt: excerpts[qs.ID],
-			Result:  quartoSQLToGraphql(&qs),
+			Result:  storySQLToGraphql(&s),
 		})
 	}
 
@@ -119,8 +95,6 @@ func sortSearch(ret []*models.SearchResultRow, order map[string]int) {
 		switch m := m.(type) {
 		case *models.Dataproduct:
 			return order["dataproduct"+m.ID.String()]
-		case *models.GraphStory:
-			return order["story"+m.ID.String()]
 		case *models.Dataset:
 			return order["dataset"+m.ID.String()]
 		default:
