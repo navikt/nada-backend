@@ -53,7 +53,7 @@ func New(
 		r.HandleFunc("/logout", httpAPI.Logout)
 	})
 	router.Route(`/{story|quarto}/`, func(r chi.Router) {
-		r.Use(storyHandler.StoryMiddleware)
+		r.Use(storyHandler.Middleware)
 		r.Get("/*", storyHandler.GetObject)
 		r.Post("/create", storyHandler.Create)
 		r.Route("/update/{id}", func(r chi.Router) {

@@ -125,9 +125,8 @@ func deleteStoryFolder(ctx context.Context, storyID string) error {
 
 	if len(deletedFiles) == 0 {
 		return fmt.Errorf("object not found %v", storyID)
-	} else {
-		log.Printf("Story files for %v deleted: %v\n", storyID, deletedFiles)
 	}
+
 	return nil
 }
 
