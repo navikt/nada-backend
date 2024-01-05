@@ -40,7 +40,7 @@ func (t *Teamkatalogen) Search(ctx context.Context, query string) ([]*models.Tea
 		return nil, err
 	}
 
-	req.Header.Set("Accept", "application/json")
+	setRequestHeaders(req)
 	res, err := httpwithcache.Do(t.client, req)
 	if err != nil {
 		return nil, err
@@ -83,8 +83,7 @@ func (t *Teamkatalogen) GetTeamsInProductArea(ctx context.Context, paID string) 
 		return nil, err
 	}
 
-	req.Header.Set("Accept", "application/json")
-	req.Header.Set("Nav-Consumer-Id", "nada-backend")
+	setRequestHeaders(req)
 	res, err := httpwithcache.Do(t.client, req)
 	if err != nil {
 		return nil, err
@@ -120,8 +119,7 @@ func (t *Teamkatalogen) GetProductArea(ctx context.Context, paID string) (*model
 		return nil, err
 	}
 
-	req.Header.Set("Accept", "application/json")
-	req.Header.Set("Nav-Consumer-Id", "nada-backend")
+	setRequestHeaders(req)
 	res, err := httpwithcache.Do(t.client, req)
 	if err != nil {
 		return nil, err
@@ -151,8 +149,7 @@ func (t *Teamkatalogen) GetProductAreas(ctx context.Context) ([]*models.ProductA
 		return nil, err
 	}
 
-	req.Header.Set("Accept", "application/json")
-	req.Header.Set("Nav-Consumer-Id", "nada-backend")
+	setRequestHeaders(req)
 	res, err := httpwithcache.Do(t.client, req)
 	if err != nil {
 		return nil, err
@@ -188,9 +185,7 @@ func (t *Teamkatalogen) GetTeam(ctx context.Context, teamID string) (*models.Tea
 		return nil, err
 	}
 
-	req.Header.Set("Accept", "application/json")
-	req.Header.Set("Nav-Consumer-Id", "nada-backend")
-
+	setRequestHeaders(req)
 	res, err := httpwithcache.Do(t.client, req)
 	if err != nil {
 		return nil, err
@@ -215,4 +210,9 @@ func (t *Teamkatalogen) GetTeam(ctx context.Context, teamID string) (*models.Tea
 
 func (t *Teamkatalogen) GetTeamCatalogURL(teamID string) string {
 	return t.url + "/team/" + teamID
+}
+
+func setRequestHeaders(req *http.Request) {
+	req.Header.Set("Accept", "application/json")
+	req.Header.Set("Nav-Consumer-Id", "nada-backend")
 }
