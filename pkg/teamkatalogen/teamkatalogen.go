@@ -84,6 +84,7 @@ func (t *Teamkatalogen) GetTeamsInProductArea(ctx context.Context, paID string) 
 	}
 
 	req.Header.Set("Accept", "application/json")
+	req.Header.Set("Nav-Consumer-Id", "nada-backend")
 	res, err := httpwithcache.Do(t.client, req)
 	if err != nil {
 		return nil, err
@@ -120,6 +121,7 @@ func (t *Teamkatalogen) GetProductArea(ctx context.Context, paID string) (*model
 	}
 
 	req.Header.Set("Accept", "application/json")
+	req.Header.Set("Nav-Consumer-Id", "nada-backend")
 	res, err := httpwithcache.Do(t.client, req)
 	if err != nil {
 		return nil, err
@@ -150,6 +152,7 @@ func (t *Teamkatalogen) GetProductAreas(ctx context.Context) ([]*models.ProductA
 	}
 
 	req.Header.Set("Accept", "application/json")
+	req.Header.Set("Nav-Consumer-Id", "nada-backend")
 	res, err := httpwithcache.Do(t.client, req)
 	if err != nil {
 		return nil, err
@@ -186,6 +189,7 @@ func (t *Teamkatalogen) GetTeam(ctx context.Context, teamID string) (*models.Tea
 	}
 
 	req.Header.Set("Accept", "application/json")
+	req.Header.Set("Nav-Consumer-Id", "nada-backend")
 
 	res, err := httpwithcache.Do(t.client, req)
 	if err != nil {
