@@ -33,7 +33,7 @@ require (
 	github.com/writeas/go-strip-markdown/v2 v2.1.1
 	golang.org/x/oauth2 v0.15.0
 	golang.org/x/xerrors v0.0.0-20231012003039-104605ab7028
-	google.golang.org/api v0.154.0
+	google.golang.org/api v0.155.0
 )
 
 require (
