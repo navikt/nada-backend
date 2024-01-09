@@ -34,7 +34,7 @@ test-sa:
 	$(shell kubectl get --context=dev-gcp --namespace=nada secret/google-credentials -o json | jq -r '.data."sa.json"' | base64 -d > test-sa.json)
 
 local-with-auth:
-	STORAGE_EMULATOR_HOST=http://localhost:8082/storage/v1/ GCP_QUARTO_STORAGE_BUCKET_NAME=nada-quarto-storage-dev DASHBOARD_PA_ID=6dbeedea-b23e-4bf7-a1cb-21d02d15e452 go run ./cmd/nada-backend \
+	STORAGE_EMULATOR_HOST=http://localhost:8082/storage/v1/ GCP_STORY_BUCKET_NAME=nada-quarto-storage-dev DASHBOARD_PA_ID=6dbeedea-b23e-4bf7-a1cb-21d02d15e452 go run ./cmd/nada-backend \
 	--oauth2-client-id=$(NADA_CLIENT_ID) \
 	--oauth2-client-secret=$(NADA_CLIENT_SECRET) \
 	--oauth2-tenant-id=$(NADA_CLIENT_TENANT) \
@@ -49,19 +49,19 @@ local-with-auth:
 	--teamkatalogen-url=https://teamkatalog-api.intern.nav.no \
 	--polly-url=https://polly.dev-fss-pub.nais.io/process \
 	--team-projects-url=https://raw.githubusercontent.com/nais/teams/master/gcp-projects/dev-output.json \
-	--quarto-bucket=nada-quarto-storage-dev \
+	--story-bucket=nada-quarto-storage-dev \
 	--console-api-key="$(CONSOLE_API_KEY)" \
 	--log-level=debug \
 	--central-data-project=nav-central-data-dev-e170 
 
 
 local:
-	STORAGE_EMULATOR_HOST=http://localhost:8082/storage/v1/ GCP_QUARTO_STORAGE_BUCKET_NAME=nada-quarto-storage-dev DASHBOARD_PA_ID=Mocked-001 go run ./cmd/nada-backend \
+	STORAGE_EMULATOR_HOST=http://localhost:8082/storage/v1/ GCP_STORY_BUCKET_NAME=nada-quarto-storage-dev DASHBOARD_PA_ID=Mocked-001 go run ./cmd/nada-backend \
 	--bind-address=127.0.0.1:8080 \
 	--hostname=localhost \
 	--mock-auth \
 	--skip-metadata-sync \
-	--quarto-bucket=nada-quarto-storage-dev \
+	--story-bucket=nada-quarto-storage-dev \
 	--log-level=debug \
 	--slack-token=$(SLACK_TOKEN)
 

@@ -23,7 +23,7 @@ const (
 	defaultHtml = "<html><h1>Story</h1></html>"
 )
 
-func TestQuarto(t *testing.T) {
+func TestStory(t *testing.T) {
 	ctx := context.Background()
 
 	storyID, err := prepareStoryTests(ctx)
@@ -80,7 +80,7 @@ func TestQuarto(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	t.Run("update quarto", func(t *testing.T) {
+	t.Run("update story", func(t *testing.T) {
 		body, contentType, err := createMultipartForm(newHtml)
 		if err != nil {
 			t.Fatal(err)
@@ -103,7 +103,7 @@ func TestQuarto(t *testing.T) {
 		}
 	})
 
-	t.Run("get quarto after update", func(t *testing.T) {
+	t.Run("get story after update", func(t *testing.T) {
 		resp, err := server.Client().Get(server.URL + "/quarto/" + storyID.String() + "/index.html")
 		if err != nil {
 			t.Fatal(err)
@@ -124,7 +124,7 @@ func TestQuarto(t *testing.T) {
 		}
 	})
 
-	t.Run("update quarto invalid id", func(t *testing.T) {
+	t.Run("update story invalid id", func(t *testing.T) {
 		body, contentType, err := createMultipartForm(newHtml)
 		if err != nil {
 			t.Fatal(err)
@@ -148,7 +148,7 @@ func TestQuarto(t *testing.T) {
 		}
 	})
 
-	t.Run("update quarto does not exist", func(t *testing.T) {
+	t.Run("update story does not exist", func(t *testing.T) {
 		nonExistingQuarto := "d7fae699-9852-4367-a136-e6b787e2a5bd"
 
 		body, contentType, err := createMultipartForm(newHtml)
@@ -174,7 +174,7 @@ func TestQuarto(t *testing.T) {
 		}
 	})
 
-	t.Run("update quarto unauthorized", func(t *testing.T) {
+	t.Run("update story unauthorized", func(t *testing.T) {
 		invalidToken := "d7fae699-9852-4367-a136-e6b787e2a5bd"
 
 		body, contentType, err := createMultipartForm(newHtml)
@@ -204,7 +204,7 @@ func TestQuarto(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	t.Run("update quarto team token not found", func(t *testing.T) {
+	t.Run("update story team token not found", func(t *testing.T) {
 		teamToken := "d7fae699-9852-4367-a136-e6b787e2a5bd"
 
 		body, contentType, err := createMultipartForm(newHtml)

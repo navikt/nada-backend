@@ -40,7 +40,7 @@ func WriteFileToBucket(ctx context.Context, gcsPath string,
 	file graphql.Upload,
 ) error {
 	// Replace with your project ID and GCP bucket name
-	bucketName := os.Getenv("GCP_QUARTO_STORAGE_BUCKET_NAME")
+	bucketName := os.Getenv("GCP_STORY_BUCKET_NAME")
 
 	// Create a new GCP storage client
 	client, err := storage.NewClient(ctx)
@@ -89,7 +89,7 @@ func deleteStoryFolder(ctx context.Context, storyID string) error {
 		return fmt.Errorf("try to delete files in GCP with invalid story id")
 	}
 	// Replace with your GCP bucket name.
-	bucketName := os.Getenv("GCP_QUARTO_STORAGE_BUCKET_NAME")
+	bucketName := os.Getenv("GCP_STORY_BUCKET_NAME")
 
 	// Create a client to interact with the GCP Storage API.
 	client, err := storage.NewClient(ctx)

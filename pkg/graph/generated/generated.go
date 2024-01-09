@@ -3211,7 +3211,7 @@ extend type Mutation {
     	productAreaID: String
         "Id of the team."
     	teamID: String
-        "group is the owner group of the quarto"
+        "group is the owner group of the insight product"
         group: String!
 	): InsightProduct! @authenticated
 
@@ -3612,7 +3612,7 @@ input UploadFile @goModel(model: "github.com/navikt/nada-backend/pkg/graph/model
 }
 
 """
-NewStory contains the metadata and content of quarto stories.
+NewStory contains the metadata and content of data stories.
 """
 input NewStory @goModel(model: "github.com/navikt/nada-backend/pkg/graph/models.NewStory"){
     "id of the data story."
@@ -3724,7 +3724,7 @@ type Group @goModel(model: "github.com/navikt/nada-backend/pkg/graph/models.Grou
 }
 
 """
-NadaToken contains the team token of the corresponding team for updating quarto stories
+NadaToken contains the team token of the corresponding team for updating data stories
 """
 type NadaToken @goModel(model: "github.com/navikt/nada-backend/pkg/graph/models.NadaToken") {
     "name of team"

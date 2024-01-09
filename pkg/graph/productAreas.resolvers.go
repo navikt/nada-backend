@@ -100,7 +100,5 @@ func (r *Resolver) ProductArea() generated.ProductAreaResolver { return &product
 // Team returns generated.TeamResolver implementation.
 func (r *Resolver) Team() generated.TeamResolver { return &teamResolver{r} }
 
-type (
-	productAreaResolver struct{ *Resolver }
-	teamResolver        struct{ *Resolver }
-)
+type productAreaResolver struct{ *Resolver }
+type teamResolver struct{ *Resolver }
