@@ -39,25 +39,12 @@ func (r *Repo) UpdateKeywords(ctx context.Context, updateInfo models.UpdateKeywo
 			if err != nil {
 				return err
 			}
-
-			err = querier.RemoveKeywordInStories(ctx, kw)
-			if err != nil {
-				return err
-			}
 		}
 	}
 
 	if updateInfo.ReplacedKeywords != nil {
 		for i, kw := range updateInfo.ReplacedKeywords {
 			err := querier.ReplaceKeywordInDatasets(ctx, gensql.ReplaceKeywordInDatasetsParams{
-				Keyword:           kw,
-				NewTextForKeyword: updateInfo.NewText[i],
-			})
-			if err != nil {
-				return err
-			}
-
-			err = querier.ReplaceKeywordInStories(ctx, gensql.ReplaceKeywordInStoriesParams{
 				Keyword:           kw,
 				NewTextForKeyword: updateInfo.NewText[i],
 			})

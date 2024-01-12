@@ -5,15 +5,9 @@
     dataproducts {
       name
     }
-    stories {
-      name
-    }
     teams {
       name
       dataproducts {
-        name
-      }
-      stories {
         name
       }
     }
@@ -32,16 +26,10 @@ RETURNS
           "name": "Updated Name"
         }
       ],
-      "stories": [
-        {
-          "name": "mystory"
-        }
-      ],
       "teams": [
         {
           "name": "team",
-          "dataproducts": [],
-          "stories": []
+          "dataproducts": []
         },
         {
           "name": "nada",
@@ -49,17 +37,11 @@ RETURNS
             {
               "name": "Updated Name"
             }
-          ],
-          "stories": []
+          ]
         },
         {
           "name": "aura",
-          "dataproducts": [],
-          "stories": [
-            {
-              "name": "mystory"
-            }
-          ]
+          "dataproducts": []
         }
       ]
     }

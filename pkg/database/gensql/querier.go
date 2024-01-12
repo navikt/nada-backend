@@ -14,7 +14,6 @@ import (
 type Querier interface {
 	AddTeamProject(ctx context.Context, arg AddTeamProjectParams) (TeamProject, error)
 	ApproveAccessRequest(ctx context.Context, arg ApproveAccessRequestParams) error
-	CleanupStoryDrafts(ctx context.Context) error
 	ClearTeamProjectsCache(ctx context.Context) error
 	CreateAccessRequestForDataset(ctx context.Context, arg CreateAccessRequestForDatasetParams) (DatasetAccessRequest, error)
 	CreateBigqueryDatasource(ctx context.Context, arg CreateBigqueryDatasourceParams) (DatasourceBigquery, error)
@@ -25,13 +24,9 @@ type Querier interface {
 	CreateJoinableViewsDatasource(ctx context.Context, arg CreateJoinableViewsDatasourceParams) (JoinableViewsDatasource, error)
 	CreateMetabaseMetadata(ctx context.Context, arg CreateMetabaseMetadataParams) error
 	CreatePollyDocumentation(ctx context.Context, arg CreatePollyDocumentationParams) (PollyDocumentation, error)
-	CreateQuartoStory(ctx context.Context, arg CreateQuartoStoryParams) (QuartoStory, error)
-	CreateQuartoStoryWithID(ctx context.Context, arg CreateQuartoStoryWithIDParams) (QuartoStory, error)
 	CreateSession(ctx context.Context, arg CreateSessionParams) error
 	CreateStory(ctx context.Context, arg CreateStoryParams) (Story, error)
-	CreateStoryDraft(ctx context.Context, name string) (StoryDraft, error)
-	CreateStoryView(ctx context.Context, arg CreateStoryViewParams) (StoryView, error)
-	CreateStoryViewDraft(ctx context.Context, arg CreateStoryViewDraftParams) (StoryViewDraft, error)
+	CreateStoryWithID(ctx context.Context, arg CreateStoryWithIDParams) (Story, error)
 	CreateTagIfNotExist(ctx context.Context, phrase string) error
 	DataproductGroupStats(ctx context.Context, arg DataproductGroupStatsParams) ([]DataproductGroupStatsRow, error)
 	DataproductKeywords(ctx context.Context, keyword string) ([]DataproductKeywordsRow, error)
@@ -42,12 +37,8 @@ type Querier interface {
 	DeleteInsightProduct(ctx context.Context, id uuid.UUID) error
 	DeleteMetabaseMetadata(ctx context.Context, datasetID uuid.UUID) error
 	DeleteNadaToken(ctx context.Context, team string) error
-	DeleteQuartoStory(ctx context.Context, id uuid.UUID) error
 	DeleteSession(ctx context.Context, token string) error
 	DeleteStory(ctx context.Context, id uuid.UUID) error
-	DeleteStoryDraft(ctx context.Context, id uuid.UUID) error
-	DeleteStoryViewDraft(ctx context.Context, storyID uuid.UUID) error
-	DeleteStoryViews(ctx context.Context, storyID uuid.UUID) error
 	DenyAccessRequest(ctx context.Context, arg DenyAccessRequestParams) error
 	GetAccessRequest(ctx context.Context, id uuid.UUID) (DatasetAccessRequest, error)
 	GetAccessToDataset(ctx context.Context, id uuid.UUID) (DatasetAccess, error)
@@ -91,12 +82,6 @@ type Querier interface {
 	GetOwnerGroupOfDataset(ctx context.Context, datasetID uuid.UUID) (string, error)
 	GetPollyDocumentation(ctx context.Context, id uuid.UUID) (PollyDocumentation, error)
 	GetPseudoDatasourcesToDelete(ctx context.Context) ([]DatasourceBigquery, error)
-	GetQuartoStories(ctx context.Context) ([]QuartoStory, error)
-	GetQuartoStoriesByGroups(ctx context.Context, groups []string) ([]QuartoStory, error)
-	GetQuartoStoriesByIDs(ctx context.Context, ids []uuid.UUID) ([]QuartoStory, error)
-	GetQuartoStoriesByProductArea(ctx context.Context, teamID []string) ([]QuartoStory, error)
-	GetQuartoStoriesByTeam(ctx context.Context, teamID sql.NullString) ([]QuartoStory, error)
-	GetQuartoStory(ctx context.Context, id uuid.UUID) (QuartoStory, error)
 	GetSession(ctx context.Context, token string) (Session, error)
 	GetStories(ctx context.Context) ([]Story, error)
 	GetStoriesByGroups(ctx context.Context, groups []string) ([]Story, error)
@@ -104,14 +89,6 @@ type Querier interface {
 	GetStoriesByProductArea(ctx context.Context, teamID []string) ([]Story, error)
 	GetStoriesByTeam(ctx context.Context, teamID sql.NullString) ([]Story, error)
 	GetStory(ctx context.Context, id uuid.UUID) (Story, error)
-	GetStoryDraft(ctx context.Context, id uuid.UUID) (StoryDraft, error)
-	GetStoryDrafts(ctx context.Context) ([]StoryDraft, error)
-	GetStoryFromToken(ctx context.Context, token uuid.UUID) (Story, error)
-	GetStoryToken(ctx context.Context, storyID uuid.UUID) (StoryToken, error)
-	GetStoryView(ctx context.Context, id uuid.UUID) (StoryView, error)
-	GetStoryViewDraft(ctx context.Context, id uuid.UUID) (StoryViewDraft, error)
-	GetStoryViewDrafts(ctx context.Context, storyID uuid.UUID) ([]StoryViewDraft, error)
-	GetStoryViews(ctx context.Context, storyID uuid.UUID) ([]StoryView, error)
 	GetTag(ctx context.Context) (Tag, error)
 	GetTagByPhrase(ctx context.Context) (Tag, error)
 	GetTags(ctx context.Context) ([]Tag, error)
@@ -125,11 +102,8 @@ type Querier interface {
 	ListUnrevokedExpiredAccessEntries(ctx context.Context) ([]DatasetAccess, error)
 	MapDataset(ctx context.Context, arg MapDatasetParams) error
 	RemoveKeywordInDatasets(ctx context.Context, keywordToRemove interface{}) error
-	RemoveKeywordInStories(ctx context.Context, keywordToRemove interface{}) error
 	ReplaceDatasetsTag(ctx context.Context, arg ReplaceDatasetsTagParams) error
 	ReplaceKeywordInDatasets(ctx context.Context, arg ReplaceKeywordInDatasetsParams) error
-	ReplaceKeywordInStories(ctx context.Context, arg ReplaceKeywordInStoriesParams) error
-	ReplaceQuartoStoriesTag(ctx context.Context, arg ReplaceQuartoStoriesTagParams) error
 	ReplaceStoriesTag(ctx context.Context, arg ReplaceStoriesTagParams) error
 	RestoreMetabaseMetadata(ctx context.Context, datasetID uuid.UUID) error
 	RevokeAccessToDataset(ctx context.Context, id uuid.UUID) error
@@ -145,7 +119,6 @@ type Querier interface {
 	UpdateDataproduct(ctx context.Context, arg UpdateDataproductParams) (Dataproduct, error)
 	UpdateDataset(ctx context.Context, arg UpdateDatasetParams) (Dataset, error)
 	UpdateInsightProduct(ctx context.Context, arg UpdateInsightProductParams) (InsightProduct, error)
-	UpdateQuartoStory(ctx context.Context, arg UpdateQuartoStoryParams) (QuartoStory, error)
 	UpdateStory(ctx context.Context, arg UpdateStoryParams) (Story, error)
 	UpdateTag(ctx context.Context, arg UpdateTagParams) error
 }

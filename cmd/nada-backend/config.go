@@ -23,7 +23,7 @@ type Config struct {
 	PollyURL                        string
 	DBMaxIdleConn                   int
 	DBMaxOpenConn                   int
-	QuartoStorageBucketName         string
+	StoryBucketName                 string
 	ConsoleAPIKey                   string
 	ConsoleURL                      string
 	AmplitudeAPIKey                 string

@@ -5,7 +5,6 @@ package e2etests
 import (
 	"context"
 	"database/sql"
-	"encoding/json"
 	"fmt"
 	"log"
 	"net"
@@ -16,7 +15,6 @@ import (
 	"testing"
 
 	graphProm "github.com/99designs/gqlgen-contrib/prometheus"
-	"github.com/google/uuid"
 	"github.com/navikt/nada-backend/pkg/access"
 	"github.com/navikt/nada-backend/pkg/amplitude"
 	"github.com/navikt/nada-backend/pkg/api"
@@ -27,7 +25,6 @@ import (
 	"github.com/navikt/nada-backend/pkg/event"
 	"github.com/navikt/nada-backend/pkg/gcs"
 	"github.com/navikt/nada-backend/pkg/graph"
-	"github.com/navikt/nada-backend/pkg/graph/models"
 	"github.com/navikt/nada-backend/pkg/polly"
 	"github.com/navikt/nada-backend/pkg/slack"
 	"github.com/navikt/nada-backend/pkg/teamkatalogen"
@@ -104,7 +101,7 @@ func TestMain(m *testing.M) {
 		log.Fatalf("Could not connect to docker: %s", err)
 	}
 
-	gcsClient, err := gcs.New(context.Background(), quartoBucket, logrus.NewEntry(logrus.StandardLogger()))
+	gcsClient, err := gcs.New(context.Background(), storyBucket, logrus.NewEntry(logrus.StandardLogger()))
 	if err != nil {
 		panic(err)
 	}
@@ -147,16 +144,7 @@ func TestMain(m *testing.M) {
 
 	server = httptest.NewServer(srv)
 
-	ctx := context.Background()
-	storyID, err := createStory(ctx, repo)
-	if err != nil {
-		log.Fatalf("Could not create story draft for e2e tests: %s", err)
-	}
 	code := m.Run()
-
-	if err := deleteStory(ctx, repo, storyID); err != nil {
-		log.Fatalf("Could not delete story draft after e2e tests: %s", err)
-	}
 
 	// You can't defer this because os.Exit doesn't care for defer
 	if err := pool.Purge(resource); err != nil {
@@ -168,54 +156,6 @@ func TestMain(m *testing.M) {
 	}
 
 	os.Exit(code)
-}
-
-func createStory(ctx context.Context, repo *database.Repo) (uuid.UUID, error) {
-	headerView := map[string]interface{}{
-		"content": "Header",
-		"level":   1,
-	}
-	headerBytes, err := json.Marshal(headerView)
-	if err != nil {
-		return uuid.UUID{}, err
-	}
-
-	mdView := map[string]interface{}{
-		"content": "Markdown description",
-	}
-	mdBytes, err := json.Marshal(mdView)
-	if err != nil {
-		return uuid.UUID{}, err
-	}
-
-	draftID, err := repo.CreateStoryDraft(ctx, &models.DBStory{
-		Name: "mystory",
-		Views: []models.DBStoryView{
-			{Type: "header", Spec: headerBytes},
-			{Type: "markdown", Spec: mdBytes},
-		},
-	})
-	if err != nil {
-		return uuid.UUID{}, err
-	}
-
-	story, err := repo.PublishStory(ctx, models.NewStory{
-		ID:            draftID,
-		Group:         "team@nav.no",
-		Name:          "mystory",
-		Keywords:      []string{},
-		ProductAreaID: stringToPtr("Mocked-001"),
-		TeamID:        stringToPtr("team"),
-	})
-	if err != nil {
-		return uuid.UUID{}, err
-	}
-
-	return story.ID, nil
-}
-
-func deleteStory(ctx context.Context, repo *database.Repo, storyID uuid.UUID) error {
-	return repo.DeleteStory(ctx, storyID)
 }
 
 func findAvailableHostPort() (int, error) {

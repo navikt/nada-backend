@@ -1,6 +1,6 @@
 union SearchResult @goModel(
     model: "github.com/navikt/nada-backend/pkg/graph/models.SearchResult"
-) = Dataproduct | Story | QuartoStory
+) = Dataproduct | Story
 
 
 enum SearchType @goModel(

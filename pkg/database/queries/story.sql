@@ -1,5 +1,5 @@
--- name: CreateQuartoStory :one
-INSERT INTO quarto_stories (
+-- name: CreateStory :one
+INSERT INTO stories (
 	"name",
     "creator",
 	"description",
@@ -18,8 +18,8 @@ INSERT INTO quarto_stories (
 )
 RETURNING *;
 
--- name: CreateQuartoStoryWithID :one
-INSERT INTO quarto_stories (
+-- name: CreateStoryWithID :one
+INSERT INTO stories (
     "id",
 	"name",
     "creator",
@@ -40,36 +40,36 @@ INSERT INTO quarto_stories (
 )
 RETURNING *;
 
--- name: GetQuartoStory :one
+-- name: GetStory :one
 SELECT *
-FROM quarto_stories
+FROM stories
 WHERE id = @id;
 
--- name: GetQuartoStories :many
+-- name: GetStories :many
 SELECT *
-FROM quarto_stories
+FROM stories
 ORDER BY last_modified DESC;
 
--- name: GetQuartoStoriesByIDs :many
+-- name: GetStoriesByIDs :many
 SELECT *
-FROM quarto_stories
+FROM stories
 WHERE id = ANY (@ids::uuid[])
 ORDER BY last_modified DESC;
 
--- name: GetQuartoStoriesByProductArea :many
+-- name: GetStoriesByProductArea :many
 SELECT *
-FROM quarto_stories
+FROM stories
 WHERE team_id = ANY(@team_id::text[])
 ORDER BY last_modified DESC;
 
--- name: GetQuartoStoriesByTeam :many
+-- name: GetStoriesByTeam :many
 SELECT *
-FROM quarto_stories
+FROM stories
 WHERE team_id = @team_id
 ORDER BY last_modified DESC;
 
--- name: UpdateQuartoStory :one
-UPDATE quarto_stories
+-- name: UpdateStory :one
+UPDATE stories
 SET
 	"name" = @name,
 	"description" = @description,
@@ -80,16 +80,16 @@ SET
 WHERE id = @id
 RETURNING *;
 
--- name: DeleteQuartoStory :exec
-DELETE FROM quarto_stories
+-- name: DeleteStory :exec
+DELETE FROM stories
 WHERE id = @id;
 
--- name: GetQuartoStoriesByGroups :many
+-- name: GetStoriesByGroups :many
 SELECT *
-FROM quarto_stories
+FROM stories
 WHERE "group" = ANY (@groups::text[])
 ORDER BY last_modified DESC;
 
--- name: ReplaceQuartoStoriesTag :exec
-UPDATE quarto_stories
+-- name: ReplaceStoriesTag :exec
+UPDATE stories
 SET "keywords" = array_replace(keywords, @tag_to_replace, @tag_updated);

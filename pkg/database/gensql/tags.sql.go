@@ -26,9 +26,6 @@ FROM (
          UNION ALL
          SELECT unnest(s.keywords) as keyword
             FROM stories s
-         UNION ALL
-         SELECT unnest(qs.keywords) as keyword
-            FROM quarto_stories qs
     ) keywords
 GROUP BY keyword
 ORDER BY keywords."count" DESC
@@ -120,15 +117,6 @@ func (q *Queries) RemoveKeywordInDatasets(ctx context.Context, keywordToRemove i
 	return err
 }
 
-const removeKeywordInStories = `-- name: RemoveKeywordInStories :exec
-UPDATE stories SET keywords= array_remove(keywords, $1)
-`
-
-func (q *Queries) RemoveKeywordInStories(ctx context.Context, keywordToRemove interface{}) error {
-	_, err := q.db.ExecContext(ctx, removeKeywordInStories, keywordToRemove)
-	return err
-}
-
 const replaceKeywordInDatasets = `-- name: ReplaceKeywordInDatasets :exec
 UPDATE datasets SET keywords= array_replace(keywords, $1, $2)
 `
@@ -140,20 +128,6 @@ type ReplaceKeywordInDatasetsParams struct {
 
 func (q *Queries) ReplaceKeywordInDatasets(ctx context.Context, arg ReplaceKeywordInDatasetsParams) error {
 	_, err := q.db.ExecContext(ctx, replaceKeywordInDatasets, arg.Keyword, arg.NewTextForKeyword)
-	return err
-}
-
-const replaceKeywordInStories = `-- name: ReplaceKeywordInStories :exec
-UPDATE stories SET keywords= array_replace(keywords, $1, $2)
-`
-
-type ReplaceKeywordInStoriesParams struct {
-	Keyword           interface{}
-	NewTextForKeyword interface{}
-}
-
-func (q *Queries) ReplaceKeywordInStories(ctx context.Context, arg ReplaceKeywordInStoriesParams) error {
-	_, err := q.db.ExecContext(ctx, replaceKeywordInStories, arg.Keyword, arg.NewTextForKeyword)
 	return err
 }
 

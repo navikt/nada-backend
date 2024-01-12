@@ -24,7 +24,6 @@ import (
 	"github.com/navikt/nada-backend/pkg/metabase"
 	"github.com/navikt/nada-backend/pkg/polly"
 	"github.com/navikt/nada-backend/pkg/slack"
-	"github.com/navikt/nada-backend/pkg/story"
 	"github.com/navikt/nada-backend/pkg/teamkatalogen"
 	"github.com/navikt/nada-backend/pkg/teamprojectsupdater"
 	"github.com/prometheus/client_golang/prometheus"
@@ -47,7 +46,6 @@ const (
 	TeamProjectsUpdateFrequency = 60 * time.Minute
 	AccessEnsurerFrequency      = 5 * time.Minute
 	MetabaseUpdateFrequency     = 1 * time.Hour
-	StoryDraftCleanerFrequency  = 24 * time.Hour
 )
 
 func init() {
@@ -75,7 +73,7 @@ func init() {
 	flag.StringVar(&cfg.PollyURL, "polly-url", cfg.PollyURL, "URL for polly")
 	flag.IntVar(&cfg.DBMaxIdleConn, "max-idle-conn", 3, "Maximum number of idle db connections")
 	flag.IntVar(&cfg.DBMaxOpenConn, "max-open-conn", 5, "Maximum number of open db connections")
-	flag.StringVar(&cfg.QuartoStorageBucketName, "quarto-bucket", os.Getenv("GCP_QUARTO_STORAGE_BUCKET_NAME"), "Name of the gcs bucket for quarto stories")
+	flag.StringVar(&cfg.StoryBucketName, "story-bucket", os.Getenv("GCP_STORY_BUCKET_NAME"), "Name of the gcs bucket for story content")
 	flag.StringVar(&cfg.ConsoleAPIKey, "console-api-key", os.Getenv("CONSOLE_API_KEY"), "API key for nais console")
 	flag.StringVar(&cfg.AmplitudeAPIKey, "amplitude-api-key", os.Getenv("AMPLITUDE_API_KEY"), "API key for Amplitude")
 	flag.StringVar(&cfg.CentralDataProject, "central-data-project", os.Getenv("CENTRAL_DATA_PROJECT"), "bigquery project for pseudo views")
@@ -100,7 +98,7 @@ func main() {
 
 	httpwithcache.SetDatabase(repo.GetDB())
 
-	gcsClient, err := gcs.New(ctx, cfg.QuartoStorageBucketName, log.WithField("subsystem", "gcs"))
+	gcsClient, err := gcs.New(ctx, cfg.StoryBucketName, log.WithField("subsystem", "gcs"))
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -160,8 +158,6 @@ func main() {
 	}
 
 	go access.NewEnsurer(repo, accessMgr, gcp, googleGroups, cfg.CentralDataProject, promErrs, log.WithField("subsystem", "accessensurer")).Run(ctx, AccessEnsurerFrequency)
-
-	go story.NewDraftCleaner(repo, log.WithField("subsystem", "storydraftcleaner")).Run(ctx, StoryDraftCleanerFrequency)
 
 	log.Info("Listening on :8080")
 	gqlServer := graph.New(repo, gcp, teamProjectsUpdater.TeamProjectsMapping, accessMgr, teamcatalogue, slackClient, pollyAPI, cfg.CentralDataProject, log.WithField("subsystem", "graph"))

@@ -31,6 +31,7 @@ spec:
     enabled: true
     path: /internal/metrics
   ingresses:
+    - "https://data.intern.nav.no/story"
     - "https://data.intern.nav.no/quarto"
     - "https://data.intern.nav.no/api"
     - "https://nada.intern.nav.no/quarto/update"
@@ -59,7 +60,7 @@ spec:
       value: /var/run/secrets/nada-credentials/meta_creds.json
     - name: DASHBOARD_PA_ID
       value: 6b149078-927b-4570-a1ce-97bbb9499fb6
-    - name: GCP_QUARTO_STORAGE_BUCKET_NAME
+    - name: GCP_STORY_BUCKET_NAME
       value: nada-quarto-storage-prod
     - name: CENTRAL_DATA_PROJECT
       value: datamarkedsplassen

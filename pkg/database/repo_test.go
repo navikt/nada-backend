@@ -5,7 +5,6 @@ package database
 import (
 	"context"
 	"database/sql"
-	"encoding/json"
 	"errors"
 	"fmt"
 	"log"
@@ -13,7 +12,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/google/uuid"
 	_ "github.com/lib/pq"
 	"github.com/navikt/nada-backend/pkg/auth"
 	"github.com/navikt/nada-backend/pkg/event"
@@ -195,8 +193,7 @@ func TestRepo(t *testing.T) {
 		}{
 			"empty":         {query: models.SearchQuery{Text: stringToPtr("nonexistent")}, numResults: 0},
 			"1 dataproduct": {query: models.SearchQuery{Text: stringToPtr("uniquedataproduct")}, numResults: 1},
-			"1 story":       {query: models.SearchQuery{Text: stringToPtr("uniquestory")}, numResults: 1},
-			"2 results":     {query: models.SearchQuery{Text: stringToPtr("uniquestring")}, numResults: 2},
+			"1 results":     {query: models.SearchQuery{Text: stringToPtr("uniquestring")}, numResults: 1},
 		}
 
 		dataproduct := models.NewDataproduct{
@@ -207,20 +204,6 @@ func TestRepo(t *testing.T) {
 		ctx := context.Background()
 
 		_, err := repo.CreateDataproduct(ctx, dataproduct, user)
-		if err != nil {
-			t.Fatal(err)
-		}
-
-		draftID, err := createStoryDraft(ctx, repo)
-		if err != nil {
-			t.Fatal(err)
-		}
-
-		_, err = repo.PublishStory(ctx, models.NewStory{
-			ID:       draftID,
-			Group:    "group@email.com",
-			Keywords: []string{},
-		})
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -238,35 +221,4 @@ func TestRepo(t *testing.T) {
 			})
 		}
 	})
-}
-
-func createStoryDraft(ctx context.Context, repo *Repo) (uuid.UUID, error) {
-	headerView := map[string]interface{}{
-		"content": "Header",
-		"level":   1,
-	}
-	headerBytes, err := json.Marshal(headerView)
-	if err != nil {
-		return uuid.UUID{}, err
-	}
-
-	mdView := map[string]interface{}{
-		"content": "uniquestring uniquestory",
-	}
-	mdBytes, err := json.Marshal(mdView)
-	if err != nil {
-		return uuid.UUID{}, err
-	}
-
-	draftID, err := repo.CreateStoryDraft(ctx, &models.DBStory{
-		Name: "new story",
-		Views: []models.DBStoryView{
-			{Type: "header", Spec: headerBytes},
-			{Type: "markdown", Spec: mdBytes},
-		},
-	})
-	if err != nil {
-		return uuid.UUID{}, err
-	}
-	return draftID, nil
 }

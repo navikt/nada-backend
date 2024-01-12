@@ -1,177 +1,121 @@
 """
 Story contains the metadata and content of data stories.
 """
-type Story @goModel(model: "github.com/navikt/nada-backend/pkg/graph/models.GraphStory") {
+type Story @goModel(model: "github.com/navikt/nada-backend/pkg/graph/models.Story"){
 	"id of the data story."
 	id: ID!
 	"name of the data story."
 	name: String!
-	"created is the timestamp for when the data story was created."
-	created: Time!
-	"lastModified is the timestamp for when the data story was last modified."
-	lastModified: Time
-	"owner of the data story. Changes to the data story can only be done by a member of the owner."
-	owner: Owner!
+	"creator of the data story."
+	creator: String!
+	"description of the data story."
+	description: String!
 	"keywords for the story used as tags."
 	keywords: [String!]!
-	"views contains a list of the different view data in the data story."
-	views: [StoryView!]! @goField(forceResolver: true)
+    "teamkatalogenURL of the creator"
+    teamkatalogenURL: String
+    "Id of the creator's product area."
+    productAreaID: String
+    "Id of the creator's team."
+    teamID: String
+    "created is the timestamp for when the data story was created"
+    created: Time!
+    "lastModified is the timestamp for when the data story was last modified"
+    lastModified: Time
+    "group is the owner group of the data story"
+    group: String!
 }
 
-interface StoryView @goModel(model: "github.com/navikt/nada-backend/pkg/graph/models.GraphStoryView") {
-	"id of the story view."
-	id: ID!
-}
+"The Upload scalar type represents a multipart file upload."
+scalar Upload
 
 """
-StoryViewHeader contains the metadata and content of a header story view.
+UploadFile contains path and data of a file
 """
-type StoryViewHeader implements StoryView @goModel(model: "github.com/navikt/nada-backend/pkg/graph/models.StoryViewHeader") {
-	"id of the header story view."
-	id: ID!
-	"content contains the header text."
-	content: String!
-	"level is the size of the header text."
-	level: Int!
-}
-
-"""
-StoryViewMarkdown contains the metadata and content of a markdown story view.
-"""
-type StoryViewMarkdown implements StoryView @goModel(model: "github.com/navikt/nada-backend/pkg/graph/models.StoryViewMarkdown") {
-	"id of the markdown story view."
-	id: ID!
-	"content contains the markdown text."
-	content: String!
+input UploadFile @goModel(model: "github.com/navikt/nada-backend/pkg/graph/models.UploadFile"){
+	"path of the file uploaded"
+	path: String!
+	"file data"
+	file: Upload!
 }
 
 """
-StoryViewPlotly contains the metadata and content of a plotly story view.
+NewStory contains the metadata and content of data stories.
 """
-type StoryViewPlotly implements StoryView @goModel(model: "github.com/navikt/nada-backend/pkg/graph/models.StoryViewPlotly") {
-	"id of the plotly story view."
-	id: ID!
-	"view data for the plotly graph."
-	data: [Map!]!
-	"layout contains metadata on the plotly graph layout."
-	layout: Map!
-	"frames contains view data when plotly figures has different views"
-	frames: [Map!]!
-}
-
-"""
-StoryViewVega contains the metadata and content of a vega story view.
-"""
-type StoryViewVega implements StoryView @goModel(model: "github.com/navikt/nada-backend/pkg/graph/models.StoryViewVega") {
-	"id of the vega story view."
-	id: ID!
-	"spec contains data and metadata on the vega graph."
-	spec: Map!
-}
-
-"""
-StoryToken contains the token used for updating a data story.
-"""
-type StoryToken @goModel(model: "github.com/navikt/nada-backend/pkg/graph/models.StoryToken") {
-	"id of the story token."
-	id: ID!
-	"token is the update token for the data story."
-	token: String!
-}
-
-extend type Query {
-	"""
-    stories returns all either draft or published stories depending on the draft boolean.
-    """
-	stories(
-		"draft is a boolean indicating whether to return drafts or published stories."
-		draft: Boolean
-	): [Story!]!
-
-	"""
-    story returns the given story.
-    """
-	story(
-		"id of the story."
-		id: ID!
-	): Story!
-
-	"""
-    storyView returns the given story view.
-    """
-	storyView(
-		"id of the story view."
-		id: ID!
-	): StoryView!
-
-	"""
-    storyToken returns the update token for the data story.
-
-    Requires authentication.
-    """
-	storyToken(
-		"id of story."
-		id: ID!
-	): StoryToken! @authenticated
-}
-
-input NewStory @goModel(model: "github.com/navikt/nada-backend/pkg/graph/models.NewStory") {
-		"id is the id for the draft story."
-		id: ID!
-		"name is the title of the story"
-		name: String!
-		"target is the id of the published story to overwrite. Keep empty to create new story."
-		target: ID
-		"group is the owner group for the story."
-		group: String!
-		"keywords for the datastory used as tags."
-		keywords: [String!]
-		"owner Teamkatalogen URL for the dataproduct."
-		teamkatalogenURL: String
-		"Id of the team's product area."
-		productAreaID: String
-        "Id of the team."
-		teamID: String
+input NewStory @goModel(model: "github.com/navikt/nada-backend/pkg/graph/models.NewStory"){
+    "id of the data story."
+    id: ID
+	"name of the data story."
+	name: String!
+	"description of the data story."
+	description: String
+	"keywords for the story used as tags."
+	keywords: [String!]!
+    "teamkatalogenURL of the creator."
+    teamkatalogenURL: String
+    "Id of the creator's product area."
+    productAreaID: String
+    "Id of the creator's team."
+    teamID: String
+    "group is the owner group of the data story."
+    group: String!
 }
 
 extend type Mutation {
 	"""
-    publishStory publishes a story draft.
+    createStory creates a data story.
 
     Requires authentication.
     """
-	publishStory(
-		"input contains information about the new story."
+	createStory(
+		"file is the data for story"
+		files : [UploadFile!]!
+		"input contains metadata about the new data story."
 		input: NewStory!
 	): Story! @authenticated
 
-	"""
-    updateStoryMetadata updates metadata on an existing story.
+ 	"""
+    updateStoryMetadata updates metadata on an existing data story.
 
     Requires authentication.
     """
 	updateStoryMetadata(
-		"target is the id for the published story you want to update."
+		"id is the id for the data story you want to update."
 		id: ID!
-		"name of the datastory"
+		"name of the data story"
 		name: String!
-		"keywords for the datastory used as tags."
-		keywords: [String!]!
+	  	"description of the data story."
+    	description: String!
+    	"keywords for the data story used as tags."
+   		keywords: [String!]!
 		"owner Teamkatalogen URL for the dataproduct."
 		teamkatalogenURL: String
 	    "Id of the team's product area."
     	productAreaID: String
         "Id of the team."
     	teamID: String
+        "group is the owner group of the data story"
+        group: String!
 	): Story! @authenticated
 
 	"""
-    deleteStory deletes an existing story.
+    deleteStory deletes an existing data story.
 
     Requires authentication.
     """
 	deleteStory(
-		"id is the id for the published story."
+		"id is the id for the data story."
 		id: ID!
 	): Boolean! @authenticated
+
+}
+
+extend type Query {
+	"""
+    dataStory returns the given story.
+    """
+	dataStory(
+		"id of the data story."
+		id: ID!
+	): Story!
 }
