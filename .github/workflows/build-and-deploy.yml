@@ -31,53 +31,36 @@ jobs:
       - name: Run tests
         run: make integration-test
 
-  set-version:
-    name: Set version
-    runs-on: ubuntu-latest
-    needs: integration-tests
-    outputs:
-      version: ${{ steps.set-version.outputs.version }}
-    steps:
-      - uses: actions/checkout@v4
-      - name: set version
-        id: set-version
-        run: echo "version="$(date '+%Y-%m-%d')-$(git --no-pager log -1 --pretty=%h) >> $GITHUB_OUTPUT
-
-  build-and-deploy:
+  build-and-push:
     name: Build and deploy
     runs-on: ubuntu-20.04
-    needs: set-version
+    needs: [integration-tests]
+    outputs:
+      image: ${{ steps.docker-build-push.outputs.image }}
     steps:
-    - uses: actions/checkout@v4
-    - name: Set up environment
-      run: |
-        version=${{ needs.set-version.outputs.version }}
-        prefix=ghcr.io/${{ github.repository }}
-        echo "IMAGE=$prefix:$version" >> $GITHUB_ENV
-    - name: Login to GitHub Container Registry
-      uses: docker/login-action@343f7c4344506bcbf9b4de18042ae17996df046d # Use commit-sha1 instead of tag for security concerns
-      with:
-        registry: ghcr.io
-        username: ${{ github.actor }}
-        password: ${{ secrets.GITHUB_TOKEN }}
-
-    - name: Build and push Dockerimage
-      uses: docker/build-push-action@v5
-      with:
-        context: .
-        push: true
-        tags: ${{ env.IMAGE }}
-
+      - uses: actions/checkout@v4
+      - name: Push docker image to GAR
+        uses: nais/docker-build-push@v0
+        id: docker-build-push
+        with:
+          team: nada
+          identity_provider: ${{ secrets.NAIS_WORKLOAD_IDENTITY_PROVIDER }}
+          project_id: ${{ vars.NAIS_MANAGEMENT_PROJECT_ID }}
+    
+  deploy-dev:
     - name: Deploy to dev-gcp
       if: inputs.environment != 'prod'
       uses: nais/deploy/actions/deploy@v2
       env:
         CLUSTER: dev-gcp
         RESOURCE: .nais/dev-gcp.yml
+        VAR: image=${{ needs.build-and-push.outputs.image }}
 
+  deploy-prod:
     - name: Deploy to prod-gcp
       if: github.ref == 'refs/heads/main' && inputs.environment != 'dev'|| inputs.environment == 'prod'
       uses: nais/deploy/actions/deploy@v2
       env:
         CLUSTER: prod-gcp
         RESOURCE: .nais/prod-gcp.yml
+        VAR: image=${{ needs.build-and-push.outputs.image }}
