@@ -32,7 +32,7 @@ jobs:
         run: make integration-test
 
   build-and-push:
-    name: Build and deploy
+    name: Build and push GAR
     runs-on: ubuntu-20.04
     needs: [integration-tests]
     outputs:
@@ -48,19 +48,27 @@ jobs:
           project_id: ${{ vars.NAIS_MANAGEMENT_PROJECT_ID }}
     
   deploy-dev:
-    - name: Deploy to dev-gcp
-      if: inputs.environment != 'prod'
-      uses: nais/deploy/actions/deploy@v2
-      env:
-        CLUSTER: dev-gcp
-        RESOURCE: .nais/dev-gcp.yml
-        VAR: image=${{ needs.build-and-push.outputs.image }}
+    name: Deploy dev gcp
+    runs-on: ubuntu-20.04
+    needs: [build-and-push]
+    steps:
+      - name: Deploy to dev-gcp
+        if: inputs.environment != 'prod'
+        uses: nais/deploy/actions/deploy@v2
+        env:
+          CLUSTER: dev-gcp
+          RESOURCE: .nais/dev-gcp.yml
+          VAR: image=${{ needs.build-and-push.outputs.image }}
 
   deploy-prod:
-    - name: Deploy to prod-gcp
-      if: github.ref == 'refs/heads/main' && inputs.environment != 'dev'|| inputs.environment == 'prod'
-      uses: nais/deploy/actions/deploy@v2
-      env:
-        CLUSTER: prod-gcp
-        RESOURCE: .nais/prod-gcp.yml
-        VAR: image=${{ needs.build-and-push.outputs.image }}
+    name: Deploy prod gcp
+    runs-on: ubuntu-20.04
+    needs: [build-and-push, deploy-dev]
+    steps:
+      - name: Deploy to prod-gcp
+        if: github.ref == 'refs/heads/main' && inputs.environment != 'dev'|| inputs.environment == 'prod'
+        uses: nais/deploy/actions/deploy@v2
+        env:
+          CLUSTER: prod-gcp
+          RESOURCE: .nais/prod-gcp.yml
+          VAR: image=${{ needs.build-and-push.outputs.image }}
