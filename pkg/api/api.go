@@ -19,6 +19,12 @@ import (
 	"golang.org/x/oauth2"
 )
 
+var querier database.Querier
+
+func Init(q database.Querier) {
+	querier = q
+}
+
 const (
 	RedirectURICookie               = "redirecturi"
 	OAuthStateCookie                = "oauthstate"

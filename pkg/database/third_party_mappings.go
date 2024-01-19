@@ -11,7 +11,7 @@ import (
 )
 
 func (r *Repo) GetDatasetMappings(ctx context.Context, datasetID uuid.UUID) ([]models.MappingService, error) {
-	tpm, err := r.querier.GetDatasetMappings(ctx, datasetID)
+	tpm, err := r.Querier.GetDatasetMappings(ctx, datasetID)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return []models.MappingService{}, nil
@@ -29,7 +29,7 @@ func (r *Repo) GetDatasetMappings(ctx context.Context, datasetID uuid.UUID) ([]m
 
 func (r *Repo) GetDatasetsByMapping(ctx context.Context, service models.MappingService, limit, offset int) ([]*models.Dataset, error) {
 	datasets := []*models.Dataset{}
-	dps, err := r.querier.GetDatasetsByMapping(ctx, gensql.GetDatasetsByMappingParams{
+	dps, err := r.Querier.GetDatasetsByMapping(ctx, gensql.GetDatasetsByMappingParams{
 		Service: string(service),
 		Lim:     int32(limit),
 		Offs:    int32(offset),
@@ -51,7 +51,7 @@ func (r *Repo) MapDataset(ctx context.Context, datasetID uuid.UUID, services []m
 		svcs = append(svcs, string(s))
 	}
 
-	err := r.querier.MapDataset(ctx, gensql.MapDatasetParams{
+	err := r.Querier.MapDataset(ctx, gensql.MapDatasetParams{
 		DatasetID: datasetID,
 		Services:  svcs,
 	})

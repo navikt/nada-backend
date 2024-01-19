@@ -8,7 +8,7 @@ import (
 )
 
 func (r *Repo) KeywordsSortedByPopularity(ctx context.Context) ([]*models.Keyword, error) {
-	ks, err := r.querier.GetKeywords(ctx)
+	ks, err := r.Querier.GetKeywords(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -31,7 +31,7 @@ func (r *Repo) UpdateKeywords(ctx context.Context, updateInfo models.UpdateKeywo
 	}
 	defer tx.Rollback()
 
-	querier := r.querier.WithTx(tx)
+	querier := r.Querier.WithTx(tx)
 
 	if updateInfo.ObsoleteKeywords != nil {
 		for _, kw := range updateInfo.ObsoleteKeywords {

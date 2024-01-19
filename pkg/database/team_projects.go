@@ -7,7 +7,7 @@ import (
 )
 
 func (r *Repo) GetTeamProjects(ctx context.Context) ([]gensql.TeamProject, error) {
-	teamProjects, err := r.querier.GetTeamProjects(ctx)
+	teamProjects, err := r.Querier.GetTeamProjects(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -20,7 +20,7 @@ func (r *Repo) UpdateTeamProjectsCache(ctx context.Context, teamProjects map[str
 		return err
 	}
 
-	querier := r.querier.WithTx(tx)
+	querier := r.Querier.WithTx(tx)
 
 	if err := querier.ClearTeamProjectsCache(ctx); err != nil {
 		if err := tx.Rollback(); err != nil {

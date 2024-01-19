@@ -25,7 +25,7 @@ func (r *Repo) Search(ctx context.Context, query *models.SearchQuery) ([]*models
 		}
 	}
 
-	res, err := r.querier.Search(ctx, gensql.SearchParams{
+	res, err := r.Querier.Search(ctx, gensql.SearchParams{
 		Query:   ptrToString(query.Text),
 		Keyword: query.Keywords,
 		Grp:     query.Groups,
@@ -60,12 +60,12 @@ func (r *Repo) Search(ctx context.Context, query *models.SearchQuery) ([]*models
 		excerpts[sr.ElementID] = sr.Excerpt
 	}
 
-	dps, err := r.querier.GetDataproductsByIDs(ctx, dataproducts)
+	dps, err := r.Querier.GetDataproductsByIDs(ctx, dataproducts)
 	if err != nil {
 		return nil, err
 	}
 
-	ss, err := r.querier.GetStoriesByIDs(ctx, stories)
+	ss, err := r.Querier.GetStoriesByIDs(ctx, stories)
 	if err != nil {
 		return nil, err
 	}

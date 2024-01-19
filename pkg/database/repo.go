@@ -25,7 +25,7 @@ import (
 var embedMigrations embed.FS
 
 type Repo struct {
-	querier Querier
+	Querier Querier
 	db      *sql.DB
 	log     *logrus.Entry
 
@@ -62,7 +62,7 @@ func New(dbConnDSN string, maxIdleConn, maxOpenConn int, eventMgr *event.Manager
 	}
 
 	return &Repo{
-		querier:            gensql.New(db),
+		Querier:            gensql.New(db),
 		db:                 db,
 		log:                log,
 		events:             eventMgr,

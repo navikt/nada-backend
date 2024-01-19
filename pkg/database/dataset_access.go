@@ -14,7 +14,7 @@ import (
 )
 
 func (r *Repo) ListAccessToDataset(ctx context.Context, datasetID uuid.UUID) ([]*models.Access, error) {
-	access, err := r.querier.ListAccessToDataset(ctx, datasetID)
+	access, err := r.Querier.ListAccessToDataset(ctx, datasetID)
 	if err != nil {
 		return nil, err
 	}
@@ -28,7 +28,7 @@ func (r *Repo) ListAccessToDataset(ctx context.Context, datasetID uuid.UUID) ([]
 }
 
 func (r *Repo) GrantAccessToDataset(ctx context.Context, datasetID uuid.UUID, expires *time.Time, subject, granter string) (*models.Access, error) {
-	a, err := r.querier.GetActiveAccessToDatasetForSubject(ctx, gensql.GetActiveAccessToDatasetForSubjectParams{
+	a, err := r.Querier.GetActiveAccessToDatasetForSubject(ctx, gensql.GetActiveAccessToDatasetForSubjectParams{
 		DatasetID: datasetID,
 		Subject:   subject,
 	})
@@ -41,7 +41,7 @@ func (r *Repo) GrantAccessToDataset(ctx context.Context, datasetID uuid.UUID, ex
 		return nil, err
 	}
 
-	querier := r.querier.WithTx(tx)
+	querier := r.Querier.WithTx(tx)
 
 	if len(a.Subject) > 0 {
 		if err := querier.RevokeAccessToDataset(ctx, a.ID); err != nil {
@@ -75,7 +75,7 @@ func (r *Repo) GrantAccessToDataset(ctx context.Context, datasetID uuid.UUID, ex
 }
 
 func (r *Repo) GetAccessToDataset(ctx context.Context, id uuid.UUID) (*models.Access, error) {
-	access, err := r.querier.GetAccessToDataset(ctx, id)
+	access, err := r.Querier.GetAccessToDataset(ctx, id)
 	if err != nil {
 		return nil, err
 	}
@@ -83,7 +83,7 @@ func (r *Repo) GetAccessToDataset(ctx context.Context, id uuid.UUID) (*models.Ac
 }
 
 func (r *Repo) ListActiveAccessToDataset(ctx context.Context, datasetID uuid.UUID) ([]*models.Access, error) {
-	access, err := r.querier.ListActiveAccessToDataset(ctx, datasetID)
+	access, err := r.Querier.ListActiveAccessToDataset(ctx, datasetID)
 	if err != nil {
 		return nil, err
 	}
@@ -97,7 +97,7 @@ func (r *Repo) ListActiveAccessToDataset(ctx context.Context, datasetID uuid.UUI
 }
 
 func (r *Repo) RevokeAccessToDataset(ctx context.Context, id uuid.UUID) error {
-	if err := r.querier.RevokeAccessToDataset(ctx, id); err != nil {
+	if err := r.Querier.RevokeAccessToDataset(ctx, id); err != nil {
 		return err
 	}
 
@@ -112,7 +112,7 @@ func (r *Repo) RevokeAccessToDataset(ctx context.Context, id uuid.UUID) error {
 }
 
 func (r *Repo) GetUnrevokedExpiredAccess(ctx context.Context) ([]*models.Access, error) {
-	expired, err := r.querier.ListUnrevokedExpiredAccessEntries(ctx)
+	expired, err := r.Querier.ListUnrevokedExpiredAccessEntries(ctx)
 	if err != nil {
 		return nil, err
 	}
