@@ -207,7 +207,7 @@ func (h *Handler) getStory(w http.ResponseWriter, r *http.Request, next http.Han
 
 	if strings.HasSuffix(r.URL.Path, ".html") {
 		if err := h.publishAmplitudeEvent(r.Context(), r.URL.Path); err != nil {
-			h.log.WithError(err).Warning("Failed to publish amplitude event")
+			h.log.WithError(err).Info("Failed to publish amplitude event")
 		}
 	}
 
