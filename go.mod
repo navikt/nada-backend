@@ -7,7 +7,7 @@ replace sourcegraph.com/sourcegraph/appdash => github.com/sourcegraph/appdash v0
 replace sourcegraph.com/sourcegraph/appdash-data => github.com/sourcegraph/appdash-data v0.0.0-20151005221446-73f23eafcf67
 
 require (
-	cloud.google.com/go/bigquery v1.57.1
+	cloud.google.com/go/bigquery v1.58.0
 	cloud.google.com/go/iam v1.1.5
 	cloud.google.com/go/storage v1.36.0
 	github.com/99designs/gqlgen v0.17.43
@@ -45,7 +45,7 @@ require (
 	github.com/Nvveen/Gotty v0.0.0-20120604004816-cd527374f1e5 // indirect
 	github.com/agnivade/levenshtein v1.1.1 // indirect
 	github.com/andybalholm/brotli v1.0.6 // indirect
-	github.com/apache/arrow/go/v12 v12.0.0 // indirect
+	github.com/apache/arrow/go/v12 v12.0.1 // indirect
 	github.com/apache/thrift v0.16.0 // indirect
 	github.com/beorn7/perks v1.0.1 // indirect
 	github.com/cenkalti/backoff/v4 v4.2.1 // indirect
