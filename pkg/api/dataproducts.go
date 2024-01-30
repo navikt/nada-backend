@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"net/http"
 	"os"
 	"time"
 
@@ -71,6 +72,17 @@ type DatasetDto struct {
 	MetabaseUrl              *string   `json:"metabaseUrl"`
 }
 
+type DatasetInDataproduct struct {
+	ID            uuid.UUID `json:"id"`
+	DataproductID uuid.UUID `json:"-"`
+	Name          string    `json:"name"`
+	Created       time.Time `json:"created"`
+	LastModified  time.Time `json:"lastModified"`
+	Description   *string   `json:"description"`
+	Slug          string    `json:"slug"`
+	Keywords      []string  `json:"keywords"`
+}
+
 type DataproductOwner struct {
 	Group            string  `json:"group"`
 	TeamkatalogenURL *string `json:"teamkatalogenURL"`
@@ -79,43 +91,54 @@ type DataproductOwner struct {
 }
 
 type DataproductDto struct {
-	ID           uuid.UUID         `json:"id"`
-	Name         string            `json:"name"`
-	Created      time.Time         `json:"created"`
-	LastModified time.Time         `json:"lastModified"`
-	Description  *string           `json:"description"`
-	Slug         string            `json:"slug"`
-	Owner        *DataproductOwner `json:"owner"`
-	Datasets     []*DatasetDto     `json:"datasets"`
-	Keywords     []string          `json:"keywords"`
+	ID           uuid.UUID               `json:"id"`
+	Name         string                  `json:"name"`
+	Created      time.Time               `json:"created"`
+	LastModified time.Time               `json:"lastModified"`
+	Description  *string                 `json:"description"`
+	Slug         string                  `json:"slug"`
+	Owner        *DataproductOwner       `json:"owner"`
+	Datasets     []*DatasetInDataproduct `json:"datasets"`
+	Keywords     []string                `json:"keywords"`
 }
 
-func GetDataproduct(ctx context.Context, id string) (*DataproductDto, error) {
+func GetDataproduct(ctx context.Context, id string) (*DataproductDto, *APIError) {
 	uuid, err := uuid.Parse(id)
 	if err != nil {
-		return nil, err
+		return nil, NewAPIError(http.StatusBadRequest, err)
 	}
 
-	sqldp, err := querier.GetDataproductComplete(ctx, uuid)
+	sqldp, err := querier.GetDataproductWithDatasets(ctx, uuid)
 	if err != nil {
-		return nil, err
+		return nil, DBErrorToAPIError(err)
 	}
 
-	dp, err := dataproductsFromSQL(sqldp)
-	if err != nil {
-		return nil, err
-	}
-	if len(dp) == 0 {
-		return nil, fmt.Errorf("GetDataproduct: no dataproduct with id %s", id)
-	}
-	return dp[0], nil
+	//it is safe to directly use the first element without checking the length
+	//because if the length was 0, the sql query should have returned no row
+	return dataproductsFromSQL(sqldp)[0], nil
 }
 
-func dataproductsFromSQL(dprows []gensql.DataproductCompleteView) ([]*DataproductDto, error) {
-	datasets, err := datasetsFromSQL(dprows)
+func GetDataset(ctx context.Context, id string) (*DatasetDto, *APIError) {
+	uuid, err := uuid.Parse(id)
 	if err != nil {
-		return nil, err
+		return nil, NewAPIError(http.StatusBadRequest, err)
 	}
+
+	sqlds, err := querier.GetDatasetComplete(ctx, uuid)
+	if err != nil {
+		return nil, DBErrorToAPIError(err)
+	}
+
+	ds, apiErr := datasetFromSQL(sqlds)
+	if err != nil {
+		return nil, apiErr
+	}
+
+	return ds, nil
+}
+
+func dataproductsFromSQL(dprows []gensql.DataproductView) []*DataproductDto {
+	datasets := datasetsFromSQL(dprows)
 
 	dataproducts := []*DataproductDto{}
 
@@ -123,14 +146,14 @@ func dataproductsFromSQL(dprows []gensql.DataproductCompleteView) ([]*Dataproduc
 		var dataproduct *DataproductDto
 
 		for _, dp := range dataproducts {
-			if dp.ID == dprow.DataproductID {
+			if dp.ID == dprow.DpID {
 				dataproduct = dp
 				break
 			}
 		}
 		if dataproduct == nil {
 			dataproduct = &DataproductDto{
-				ID:           dprow.DataproductID,
+				ID:           dprow.DpID,
 				Name:         dprow.DpName,
 				Created:      dprow.DpCreated,
 				LastModified: dprow.DpLastModified,
@@ -143,7 +166,7 @@ func dataproductsFromSQL(dprows []gensql.DataproductCompleteView) ([]*Dataproduc
 					TeamID:           nullStringToPtr(dprow.TeamID),
 				},
 			}
-			dpdatasets := []*DatasetDto{}
+			dpdatasets := []*DatasetInDataproduct{}
 			for _, ds := range datasets {
 				if ds.DataproductID == dataproduct.ID {
 					dpdatasets = append(dpdatasets, ds)
@@ -166,23 +189,18 @@ func dataproductsFromSQL(dprows []gensql.DataproductCompleteView) ([]*Dataproduc
 			dataproducts = append(dataproducts, dataproduct)
 		}
 	}
-	return dataproducts, nil
+	return dataproducts
 }
 
-func datasetsFromSQL(dsrows []gensql.DataproductCompleteView) ([]*DatasetDto, error) {
-	datasets := []*DatasetDto{}
+func datasetsFromSQL(dsrows []gensql.DataproductView) []*DatasetInDataproduct {
+	datasets := []*DatasetInDataproduct{}
 
 	for _, dsrow := range dsrows {
 		if !dsrow.DsID.Valid {
 			continue
 		}
 
-		piiTags := "{}"
-		if dsrow.PiiTags.RawMessage != nil {
-			piiTags = string(dsrow.PiiTags.RawMessage)
-		}
-
-		var ds *DatasetDto
+		var ds *DatasetInDataproduct
 
 		for _, dsIn := range datasets {
 			if dsIn.ID == dsrow.DsID.UUID {
@@ -191,7 +209,7 @@ func datasetsFromSQL(dsrows []gensql.DataproductCompleteView) ([]*DatasetDto, er
 			}
 		}
 		if ds == nil {
-			ds = &DatasetDto{
+			ds = &DatasetInDataproduct{
 				ID:            dsrow.DsID.UUID,
 				Name:          dsrow.DsName.String,
 				Created:       dsrow.DsCreated.Time,
@@ -199,25 +217,50 @@ func datasetsFromSQL(dsrows []gensql.DataproductCompleteView) ([]*DatasetDto, er
 				Description:   nullStringToPtr(dsrow.DsDescription),
 				Slug:          dsrow.DsSlug.String,
 				Keywords:      dsrow.DsKeywords,
-				DataproductID: dsrow.DataproductID,
+				DataproductID: dsrow.DpID,
+			}
+			datasets = append(datasets, ds)
+		}
+	}
+
+	return datasets
+}
+
+func datasetFromSQL(dsrows []gensql.DatasetView) (*DatasetDto, *APIError) {
+	var dataset *DatasetDto
+
+	for _, dsrow := range dsrows {
+		piiTags := "{}"
+		if dsrow.PiiTags.RawMessage != nil {
+			piiTags = string(dsrow.PiiTags.RawMessage)
+		}
+		if dataset == nil {
+			dataset = &DatasetDto{
+				ID:            dsrow.DsID,
+				Name:          dsrow.DsName,
+				Created:       dsrow.DsCreated,
+				LastModified:  dsrow.DsLastModified,
+				Description:   nullStringToPtr(dsrow.DsDescription),
+				Slug:          dsrow.DsSlug,
+				Keywords:      dsrow.DsKeywords,
+				DataproductID: dsrow.DsDpID,
 				Mappings:      []string{},
 				Access:        []*Access{},
 				Datasource:    nil,
 			}
-			datasets = append(datasets, ds)
 		}
 
 		if dsrow.BqID != uuid.Nil {
 			var schema []*TableColumn
 			if dsrow.BqSchema.Valid {
 				if err := json.Unmarshal(dsrow.BqSchema.RawMessage, &schema); err != nil {
-					return nil, fmt.Errorf("unmarshalling schema: %w", err)
+					return nil, NewAPIError(http.StatusInternalServerError, err)
 				}
 			}
 
 			dsrc := &BigQuery{
 				ID:            dsrow.BqID,
-				DatasetID:     dsrow.DsID.UUID,
+				DatasetID:     dsrow.DsID,
 				ProjectID:     dsrow.BqProject,
 				Dataset:       dsrow.BqDataset,
 				Table:         dsrow.BqTableName,
@@ -231,27 +274,27 @@ func datasetsFromSQL(dsrows []gensql.DataproductCompleteView) ([]*DatasetDto, er
 				PseudoColumns: dsrow.PseudoColumns,
 				Schema:        schema,
 			}
-			ds.Datasource = dsrc
+			dataset.Datasource = dsrc
 		}
 
 		if len(dsrow.MappingServices) > 0 {
 			for _, service := range dsrow.MappingServices {
 				exist := false
-				for _, mapping := range ds.Mappings {
+				for _, mapping := range dataset.Mappings {
 					if mapping == service {
 						exist = true
 						break
 					}
 				}
 				if !exist {
-					ds.Mappings = append(ds.Mappings, service)
+					dataset.Mappings = append(dataset.Mappings, service)
 				}
 			}
 		}
 
 		if dsrow.AccessID.Valid {
 			exist := false
-			for _, dsAccess := range ds.Access {
+			for _, dsAccess := range dataset.Access {
 				if dsAccess.ID == dsrow.AccessID.UUID {
 					exist = true
 					break
@@ -265,22 +308,22 @@ func datasetsFromSQL(dsrows []gensql.DataproductCompleteView) ([]*DatasetDto, er
 					Expires:         nullTimeToPtr(dsrow.AccessExpires),
 					Created:         dsrow.AccessCreated.Time,
 					Revoked:         nullTimeToPtr(dsrow.AccessRevoked),
-					DatasetID:       dsrow.DsID.UUID,
+					DatasetID:       dsrow.DsID,
 					AccessRequestID: nullUUIDToUUIDPtr(dsrow.AccessRequestID),
 				}
-				ds.Access = append(ds.Access, access)
+				dataset.Access = append(dataset.Access, access)
 			}
 		}
 
-		if ds.MetabaseUrl == nil && dsrow.MbDatabaseID.Valid {
+		if dataset.MetabaseUrl == nil && dsrow.MbDatabaseID.Valid {
 			base := "https://metabase.intern.dev.nav.no/browse/%v"
 			if os.Getenv("NAIS_CLUSTER_NAME") == "prod-gcp" {
 				base = "https://metabase.intern.nav.no/browse/%v"
 			}
 			url := fmt.Sprintf(base, dsrow.MbDatabaseID.Int32)
-			ds.MetabaseUrl = &url
+			dataset.MetabaseUrl = &url
 		}
 	}
 
-	return datasets, nil
+	return dataset, nil
 }

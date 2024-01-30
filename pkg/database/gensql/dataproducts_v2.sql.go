@@ -12,23 +12,23 @@ import (
 	"github.com/lib/pq"
 )
 
-const getDataproductComplete = `-- name: GetDataproductComplete :many
-SELECT dataproduct_id, dp_name, dp_description, dp_group, dp_created, dp_last_modified, dp_slug, teamkatalogen_url, team_contact, team_id, bq_id, bq_created, bq_last_modified, bq_expires, bq_description, bq_missing_since, pii_tags, bq_project, bq_dataset, bq_table_name, bq_table_type, pseudo_columns, bq_schema, ds_dp_id, ds_id, ds_name, ds_description, ds_created, ds_last_modified, ds_slug, ds_keywords, mapping_services, access_id, access_subject, access_granter, access_expires, access_created, access_revoked, access_request_id, mb_database_id
-FROM dataproduct_complete_view
-WHERE dataproduct_id = $1
+const getDataproductWithDatasets = `-- name: GetDataproductWithDatasets :many
+SELECT dp_id, dp_name, dp_description, dp_group, dp_created, dp_last_modified, dp_slug, teamkatalogen_url, team_contact, team_id, ds_dp_id, ds_id, ds_name, ds_description, ds_created, ds_last_modified, ds_slug, ds_keywords
+FROM dataproduct_view
+WHERE dp_id = $1
 `
 
-func (q *Queries) GetDataproductComplete(ctx context.Context, id uuid.UUID) ([]DataproductCompleteView, error) {
-	rows, err := q.db.QueryContext(ctx, getDataproductComplete, id)
+func (q *Queries) GetDataproductWithDatasets(ctx context.Context, id uuid.UUID) ([]DataproductView, error) {
+	rows, err := q.db.QueryContext(ctx, getDataproductWithDatasets, id)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
-	items := []DataproductCompleteView{}
+	items := []DataproductView{}
 	for rows.Next() {
-		var i DataproductCompleteView
+		var i DataproductView
 		if err := rows.Scan(
-			&i.DataproductID,
+			&i.DpID,
 			&i.DpName,
 			&i.DpDescription,
 			&i.DpGroup,
@@ -38,19 +38,6 @@ func (q *Queries) GetDataproductComplete(ctx context.Context, id uuid.UUID) ([]D
 			&i.TeamkatalogenUrl,
 			&i.TeamContact,
 			&i.TeamID,
-			&i.BqID,
-			&i.BqCreated,
-			&i.BqLastModified,
-			&i.BqExpires,
-			&i.BqDescription,
-			&i.BqMissingSince,
-			&i.PiiTags,
-			&i.BqProject,
-			&i.BqDataset,
-			&i.BqTableName,
-			&i.BqTableType,
-			pq.Array(&i.PseudoColumns),
-			&i.BqSchema,
 			&i.DsDpID,
 			&i.DsID,
 			&i.DsName,
@@ -59,15 +46,6 @@ func (q *Queries) GetDataproductComplete(ctx context.Context, id uuid.UUID) ([]D
 			&i.DsLastModified,
 			&i.DsSlug,
 			pq.Array(&i.DsKeywords),
-			pq.Array(&i.MappingServices),
-			&i.AccessID,
-			&i.AccessSubject,
-			&i.AccessGranter,
-			&i.AccessExpires,
-			&i.AccessCreated,
-			&i.AccessRevoked,
-			&i.AccessRequestID,
-			&i.MbDatabaseID,
 		); err != nil {
 			return nil, err
 		}

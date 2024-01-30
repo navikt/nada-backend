@@ -164,7 +164,11 @@ func (h HTTP) Callback(w http.ResponseWriter, r *http.Request) {
 	tokens, err := h.oauth2Config.Exchange(r.Context(), code)
 	if err != nil {
 		h.log.Errorf("Exchanging authorization code for tokens: %v", err)
-		http.Error(w, "uh oh", http.StatusForbidden)
+		message := "Internal error: oauth2"
+		if strings.HasPrefix(r.Host, "localhost") {
+			message = "oauth2 error, try:\n$gcloud auth login --update-adc\n$make env\nbefore running backend"
+		}
+		http.Error(w, message, http.StatusForbidden)
 		return
 	}
 

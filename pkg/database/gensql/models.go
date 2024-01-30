@@ -160,8 +160,8 @@ type Dataproduct struct {
 	TeamID           sql.NullString
 }
 
-type DataproductCompleteView struct {
-	DataproductID    uuid.UUID
+type DataproductView struct {
+	DpID             uuid.UUID
 	DpName           string
 	DpDescription    sql.NullString
 	DpGroup          string
@@ -171,19 +171,6 @@ type DataproductCompleteView struct {
 	TeamkatalogenUrl sql.NullString
 	TeamContact      sql.NullString
 	TeamID           sql.NullString
-	BqID             uuid.UUID
-	BqCreated        time.Time
-	BqLastModified   time.Time
-	BqExpires        sql.NullTime
-	BqDescription    sql.NullString
-	BqMissingSince   sql.NullTime
-	PiiTags          pqtype.NullRawMessage
-	BqProject        string
-	BqDataset        string
-	BqTableName      string
-	BqTableType      string
-	PseudoColumns    []string
-	BqSchema         pqtype.NullRawMessage
 	DsDpID           uuid.NullUUID
 	DsID             uuid.NullUUID
 	DsName           sql.NullString
@@ -192,15 +179,6 @@ type DataproductCompleteView struct {
 	DsLastModified   sql.NullTime
 	DsSlug           sql.NullString
 	DsKeywords       []string
-	MappingServices  []string
-	AccessID         uuid.NullUUID
-	AccessSubject    sql.NullString
-	AccessGranter    sql.NullString
-	AccessExpires    sql.NullTime
-	AccessCreated    sql.NullTime
-	AccessRevoked    sql.NullTime
-	AccessRequestID  uuid.NullUUID
-	MbDatabaseID     sql.NullInt32
 }
 
 type Dataset struct {
@@ -244,6 +222,39 @@ type DatasetAccessRequest struct {
 	Closed               sql.NullTime
 	Granter              sql.NullString
 	Reason               sql.NullString
+}
+
+type DatasetView struct {
+	DsID            uuid.UUID
+	DsName          string
+	DsDescription   sql.NullString
+	DsCreated       time.Time
+	DsLastModified  time.Time
+	DsSlug          string
+	DsKeywords      []string
+	BqID            uuid.UUID
+	BqCreated       time.Time
+	BqLastModified  time.Time
+	BqExpires       sql.NullTime
+	BqDescription   sql.NullString
+	BqMissingSince  sql.NullTime
+	PiiTags         pqtype.NullRawMessage
+	BqProject       string
+	BqDataset       string
+	BqTableName     string
+	BqTableType     string
+	PseudoColumns   []string
+	BqSchema        pqtype.NullRawMessage
+	DsDpID          uuid.UUID
+	MappingServices []string
+	AccessID        uuid.NullUUID
+	AccessSubject   sql.NullString
+	AccessGranter   sql.NullString
+	AccessExpires   sql.NullTime
+	AccessCreated   sql.NullTime
+	AccessRevoked   sql.NullTime
+	AccessRequestID uuid.NullUUID
+	MbDatabaseID    sql.NullInt32
 }
 
 type DatasourceBigquery struct {

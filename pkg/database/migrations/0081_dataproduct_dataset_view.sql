@@ -1,7 +1,7 @@
 -- +goose Up
-CREATE VIEW dataproduct_complete_view AS(
+CREATE VIEW dataproduct_view AS(
     SELECT
-        dp.id as dataproduct_id,
+        dp.id as dp_id,
         dp.name as dp_name,
         dp.description as dp_description,
         dp.group as dp_group,
@@ -11,6 +11,28 @@ CREATE VIEW dataproduct_complete_view AS(
         dp.teamkatalogen_url as teamkatalogen_url,
         dp.team_contact as team_contact,
         dp.team_id as team_id,
+        ds.dataproduct_id as ds_dp_id,
+        ds.id as ds_id,
+        ds.name as ds_name,
+        ds.description as ds_description,
+        ds.created as ds_created,
+        ds.last_modified as ds_last_modified,
+        ds.slug as ds_slug,
+        ds.keywords as ds_keywords
+    FROM
+        dataproducts dp
+        LEFT JOIN datasets ds ON dp.id = ds.dataproduct_id
+);
+
+CREATE VIEW dataset_view AS(
+    SELECT
+        ds.id as ds_id,
+        ds.name as ds_name,
+        ds.description as ds_description,
+        ds.created as ds_created,
+        ds.last_modified as ds_last_modified,
+        ds.slug as ds_slug,
+        ds.keywords as ds_keywords,
         dsrc.id AS bq_id,
         dsrc.created as bq_created,
         dsrc.last_modified as bq_last_modified,
@@ -25,13 +47,6 @@ CREATE VIEW dataproduct_complete_view AS(
         dsrc.pseudo_columns as pseudo_columns,
         dsrc.schema as bq_schema,
         ds.dataproduct_id as ds_dp_id,
-        ds.id as ds_id,
-        ds.name as ds_name,
-        ds.description as ds_description,
-        ds.created as ds_created,
-        ds.last_modified as ds_last_modified,
-        ds.slug as ds_slug,
-        ds.keywords as ds_keywords,
         dm.services as mapping_services,
         da.id as access_id,
         da.subject as access_subject,
@@ -42,8 +57,7 @@ CREATE VIEW dataproduct_complete_view AS(
         da.access_request_id as access_request_id,
         mm.database_id as mb_database_id
     FROM
-        dataproducts dp
-        LEFT JOIN datasets ds ON dp.id = ds.dataproduct_id
+        datasets ds
         LEFT JOIN (
             SELECT
                 *
@@ -59,4 +73,5 @@ CREATE VIEW dataproduct_complete_view AS(
 );
 
 -- +goose Down
-DROP VIEW dataproduct_complete_view;
+DROP VIEW dataset_view;
+DROP VIEW dataproduct_view;

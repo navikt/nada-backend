@@ -66,16 +66,31 @@ func New(
 		r.Handle("/metrics", promhttp.HandlerFor(promReg, promhttp.HandlerOpts{}))
 	})
 
-	router.Route("/api/dataproduct", func(r chi.Router) {
+	router.Route("/api/dataproducts", func(r chi.Router) {
 		r.Get("/{id}", func(w http.ResponseWriter, r *http.Request) {
-			dpdto, err := GetDataproduct(r.Context(), chi.URLParam(r, "id"))
-			if err != nil {
-				w.WriteHeader(http.StatusNotFound)
+			dpdto, apiErr := GetDataproduct(r.Context(), chi.URLParam(r, "id"))
+			if apiErr != nil {
+				http.Error(w, apiErr.Error(), apiErr.HttpStatus)
 				return
 			}
-			err = json.NewEncoder(w).Encode(dpdto)
+			err := json.NewEncoder(w).Encode(dpdto)
 			if err != nil {
-				w.WriteHeader(http.StatusInternalServerError)
+				http.Error(w, err.Error(), http.StatusInternalServerError)
+				return
+			}
+		})
+	})
+
+	router.Route("/api/datasets", func(r chi.Router) {
+		r.Get("/{id}", func(w http.ResponseWriter, r *http.Request) {
+			dsdto, apiErr := GetDataset(r.Context(), chi.URLParam(r, "id"))
+			if apiErr != nil {
+				http.Error(w, apiErr.Error(), apiErr.HttpStatus)
+				return
+			}
+			err := json.NewEncoder(w).Encode(dsdto)
+			if err != nil {
+				http.Error(w, err.Error(), http.StatusInternalServerError)
 				return
 			}
 		})

@@ -1,4 +1,4 @@
--- name: GetDataproductComplete :many
+-- name: GetDataproductWithDatasets :many
 SELECT *
-FROM dataproduct_complete_view
-WHERE dataproduct_id = @id;
+FROM dataproduct_view
+WHERE dp_id = @id;
