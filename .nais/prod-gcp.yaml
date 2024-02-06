@@ -14,43 +14,34 @@ spec:
     application:
       enabled: true
       replyURLs:
-        - https://data.intern.dev.nav.no/api/oauth2/callback
-        - http://localhost:8080/api/oauth2/callback
+        - https://data.intern.nav.no/api/oauth2/callback
       tenant: nav.no
       allowAllUsers: true
-  command:
-    - /app/nada-backend
-    - --teamkatalogen-url
-    - http://team-catalog-backend.org.svc.cluster.local
-    - --team-projects-url
-    - https://raw.githubusercontent.com/nais/teams/master/gcp-projects/dev-output.json
   replicas:
     min: 2
     max: 4
   leaderElection: true
   resources:
     requests:
-      cpu: 100m
-      memory: 128Mi
+      cpu: 20m
+      memory: 200Mi
     limits:
-      cpu: 200m
-      memory: 256Mi
+      memory: 300Mi
   prometheus:
     enabled: true
     path: /internal/metrics
   ingresses:
-    - "https://data.intern.dev.nav.no/api"
-    - "https://data.intern.dev.nav.no/story"
-    - "https://data.intern.dev.nav.no/quarto"
-    - "https://nada.intern.dev.nav.no/quarto/create"
-    - "https://nada.intern.dev.nav.no/quarto/update"
-    - "https://nada.intern.dev.nav.no/api/story"
-    - "https://datamarkedsplassen.intern.dev.nav.no/quarto/create"
-    - "https://datamarkedsplassen.intern.dev.nav.no/quarto/update"
-    - "https://datamarkedsplassen.intern.dev.nav.no/api/story"
-    - "https://data.ekstern.dev.nav.no/quarto/create"
-    - "https://data.ekstern.dev.nav.no/quarto/update"
-    - "https://data.ekstern.dev.nav.no/api/story"
+    - "https://data.intern.nav.no/story"
+    - "https://data.intern.nav.no/quarto"
+    - "https://data.intern.nav.no/api"
+    - "https://nada.intern.nav.no/quarto/update"
+    - "https://nada.intern.nav.no/api/story"
+    - "https://datamarkedsplassen.intern.nav.no/quarto/create"
+    - "https://datamarkedsplassen.intern.nav.no/quarto/update"
+    - "https://datamarkedsplassen.intern.nav.no/api/story"
+    - "https://data.nav.no/quarto/create"
+    - "https://data.nav.no/quarto/update"
+    - "https://data.nav.no/api/story"
   envFrom:
     - secret: nada-backend
   filesFrom:
@@ -62,21 +53,20 @@ spec:
     - name: GOOGLE_ADMIN_CREDENTIALS_PATH
       value: /var/run/secrets/google-credentials/sa.json
     - name: HOSTNAME
-      value: "data.intern.dev.nav.no"
+      value: "data.intern.nav.no"
     - name: METABASE_API
       value: "http://metabase/api"
     - name: METABASE_GOOGLE_CREDENTIALS_PATH
       value: /var/run/secrets/nada-credentials/meta_creds.json
     - name: DASHBOARD_PA_ID
-      value: deab2907-c8ac-4db9-b997-328cce77d797
+      value: 6b149078-927b-4570-a1ce-97bbb9499fb6
     - name: GCP_STORY_BUCKET_NAME
-      value: nada-quarto-storage-dev
+      value: nada-quarto-storage-prod
     - name: CENTRAL_DATA_PROJECT
-      value: datamarkedsplassen-dev
+      value: datamarkedsplassen
   gcp:
     sqlInstances:
       - type: POSTGRES_12
-        diskAutoresize: true
         databases:
           - name: nada
             users:
@@ -86,10 +76,12 @@ spec:
             value: "50"
           - name: cloudsql.logical_decoding
             value: "on"
+        diskAutoresize: true
     buckets:
-      - name: nada-quarto-storage-dev
+      - name: nada-quarto-storage-prod
         publicAccessPrevention: true
         uniformBucketLevelAccess: true
+
   accessPolicy:
     inbound:
       rules:
@@ -107,3 +99,39 @@ spec:
         - host: teams.nav.cloud.nais.io
         - host: amplitude.nav.no
         - host: slack.com
+
+---
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: nada-backend-alert
+  namespace: nada
+  labels:
+    team: nada
+spec:
+  groups:
+  - name: nada-backend-alert
+    rules:
+    - alert: InstanceDown
+      expr: kube_deployment_status_replicas_available{namespace="nada", deployment="nada-backend"} == 0
+      for: 2m
+      annotations:
+        consequence: Nada backend is unavailable
+        action: "`kubectl describe pod <podname>` -> `kubectl logs <podname>`"
+        summary: |-
+          No nada-backend pods are running in prod-gcp
+      labels:
+        namespace: nada
+        severity: critical
+    - alert: ErrorInLogs
+      expr: sum(increase(log_messages_errors{container="nada-backend"}[10m])) > 0
+      for: 5m
+      annotations:
+        consequence: Enten feil i kode, eller en state vi ikke kjenner til.
+        action: |-
+          Backend til Datamarkedsplassen logger error, sjekk loggene og finn feilen.
+          Logs: https://logs.adeo.no/app/r/s/7EIEB
+        summary: Vurder også om det er verdt å logge error ved denne type feil.
+      labels:
+        namespace: nada
+        severity: critical
