@@ -17,11 +17,11 @@ func (r *Repo) GetNadaTokens(ctx context.Context) (map[string]string, error) {
 		return nil, err
 	}
 
-	tokens := map[string]string{}
+	tokenTeamMap := map[string]string{}
 	for _, t := range tokensSQL {
-		tokens[t.Team] = t.Token.String()
+		tokenTeamMap[t.Token.String()] = t.Team
 	}
-	return tokens, nil
+	return tokenTeamMap, nil
 }
 
 func (r *Repo) GetNadaTokensForTeams(ctx context.Context, teams []string) ([]*models.NadaToken, error) {

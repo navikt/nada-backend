@@ -79,14 +79,14 @@ func New(
 				return
 			}
 
-			teamTokenMap, err := repo.GetNadaTokens(r.Context())
+			tokenTeamMap, err := repo.GetNadaTokens(r.Context())
 			if err != nil {
 				log.WithError(err).Error("getting nada tokens")
 				w.WriteHeader(http.StatusInternalServerError)
 				return
 			}
 
-			payloadBytes, err := json.Marshal(teamTokenMap)
+			payloadBytes, err := json.Marshal(tokenTeamMap)
 			if err != nil {
 				log.WithError(err).Error("marshalling nada token map reponse")
 				w.WriteHeader(http.StatusInternalServerError)
