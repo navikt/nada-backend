@@ -23,10 +23,10 @@ spec:
   leaderElection: true
   resources:
     requests:
-      cpu: 50m
+      cpu: 20m
       memory: 200Mi
     limits:
-      memory: 512Mi
+      memory: 300Mi
   prometheus:
     enabled: true
     path: /internal/metrics

@@ -30,10 +30,9 @@ spec:
   leaderElection: true
   resources:
     requests:
-      cpu: 100m
+      cpu: 10m
       memory: 128Mi
     limits:
-      cpu: 200m
       memory: 256Mi
   prometheus:
     enabled: true
