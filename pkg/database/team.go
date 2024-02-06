@@ -11,18 +11,15 @@ func (r *Repo) GetNadaToken(ctx context.Context, team string) (uuid.UUID, error)
 	return r.querier.GetNadaToken(ctx, team)
 }
 
-func (r *Repo) GetNadaTokens(ctx context.Context) ([]*models.NadaToken, error) {
+func (r *Repo) GetNadaTokens(ctx context.Context) (map[string]string, error) {
 	tokensSQL, err := r.querier.GetNadaTokens(ctx)
 	if err != nil {
 		return nil, err
 	}
 
-	tokens := make([]*models.NadaToken, len(tokensSQL))
-	for i, t := range tokensSQL {
-		tokens[i] = &models.NadaToken{
-			Team:  t.Team,
-			Token: t.Token,
-		}
+	tokens := map[string]string{}
+	for _, t := range tokensSQL {
+		tokens[t.Team] = t.Token.String()
 	}
 	return tokens, nil
 }
