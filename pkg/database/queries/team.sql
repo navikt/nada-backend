@@ -7,6 +7,12 @@ WHERE
     team = @team;
 
 -- name: GetNadaTokens :many
+SELECT 
+    *
+FROM 
+    nada_tokens;
+
+-- name: GetNadaTokensForTeams :many
 SELECT
     *
 FROM
@@ -15,8 +21,6 @@ WHERE
     team = ANY (@teams :: text [])
 ORDER BY
     team;
-
-;
 
 -- name: GetTeamFromNadaToken :one
 SELECT team

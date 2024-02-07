@@ -139,6 +139,7 @@ func TestMain(m *testing.M) {
 		gqlServer,
 		prometheus.NewRegistry(),
 		amplitude.NewMock(),
+		"",
 		logrus.StandardLogger(),
 	)
 

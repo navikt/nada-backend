@@ -41,7 +41,6 @@ spec:
     - "https://datamarkedsplassen.intern.nav.no/api/story"
     - "https://data.nav.no/quarto/create"
     - "https://data.nav.no/quarto/update"
-    - "https://data.nav.no/api/story"
   envFrom:
     - secret: nada-backend
   filesFrom:
@@ -88,6 +87,7 @@ spec:
         - application: nada-frontend
         - application: nada-datasetenricher
         - application: metrics-markedsplassen
+        - application: story-api
     outbound:
       rules:
         - application: metabase

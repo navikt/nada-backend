@@ -91,7 +91,7 @@ func (r *userInfoResolver) GCPProjects(ctx context.Context, obj *models.UserInfo
 // NadaTokens is the resolver for the nadaTokens field.
 func (r *userInfoResolver) NadaTokens(ctx context.Context, obj *models.UserInfo) ([]*models.NadaToken, error) {
 	teams := teamNamesFromGroups(obj.Groups)
-	return r.repo.GetNadaTokens(ctx, teams)
+	return r.repo.GetNadaTokensForTeams(ctx, teams)
 }
 
 // Dataproducts is the resolver for the dataproducts field.
