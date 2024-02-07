@@ -49,7 +49,6 @@ spec:
     - "https://datamarkedsplassen.intern.dev.nav.no/api/story"
     - "https://data.ekstern.dev.nav.no/quarto/create"
     - "https://data.ekstern.dev.nav.no/quarto/update"
-    - "https://data.ekstern.dev.nav.no/api/story"
   envFrom:
     - secret: nada-backend
   filesFrom:
