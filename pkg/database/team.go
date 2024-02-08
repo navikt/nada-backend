@@ -11,8 +11,21 @@ func (r *Repo) GetNadaToken(ctx context.Context, team string) (uuid.UUID, error)
 	return r.Querier.GetNadaToken(ctx, team)
 }
 
-func (r *Repo) GetNadaTokens(ctx context.Context, teams []string) ([]*models.NadaToken, error) {
-	tokensSQL, err := r.Querier.GetNadaTokens(ctx, teams)
+func (r *Repo) GetNadaTokens(ctx context.Context) (map[string]string, error) {
+	tokensSQL, err := r.Querier.GetNadaTokens(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	tokenTeamMap := map[string]string{}
+	for _, t := range tokensSQL {
+		tokenTeamMap[t.Token.String()] = t.Team
+	}
+	return tokenTeamMap, nil
+}
+
+func (r *Repo) GetNadaTokensForTeams(ctx context.Context, teams []string) ([]*models.NadaToken, error) {
+	tokensSQL, err := r.Querier.GetNadaTokensForTeams(ctx, teams)
 	if err != nil {
 		return nil, err
 	}

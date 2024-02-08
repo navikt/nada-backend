@@ -3,6 +3,7 @@ package api
 import (
 	"encoding/json"
 	"net/http"
+	"strings"
 
 	"github.com/99designs/gqlgen/graphql/handler"
 	"github.com/99designs/gqlgen/graphql/playground"
@@ -34,6 +35,7 @@ func New(
 	gqlServer *handler.Server,
 	promReg *prometheus.Registry,
 	amplitudeClient amplitude.Amplitude,
+	teamTokenCreds string,
 	log *logrus.Logger,
 ) *chi.Mux {
 	corsMW := cors.Handler(cors.Options{
@@ -64,6 +66,36 @@ func New(
 	})
 	router.Route("/internal", func(r chi.Router) {
 		r.Handle("/metrics", promhttp.HandlerFor(promReg, promhttp.HandlerOpts{}))
+		r.Get("/teamtokens", func(w http.ResponseWriter, r *http.Request) {
+			authHeader := r.Header.Get("Authorization")
+			authHeaderParts := strings.Split(authHeader, " ")
+			if len(authHeaderParts) != 2 {
+				w.WriteHeader(http.StatusUnauthorized)
+				return
+			}
+
+			if authHeaderParts[1] != teamTokenCreds {
+				w.WriteHeader(http.StatusUnauthorized)
+				return
+			}
+
+			tokenTeamMap, err := repo.GetNadaTokens(r.Context())
+			if err != nil {
+				log.WithError(err).Error("getting nada tokens")
+				w.WriteHeader(http.StatusInternalServerError)
+				return
+			}
+
+			payloadBytes, err := json.Marshal(tokenTeamMap)
+			if err != nil {
+				log.WithError(err).Error("marshalling nada token map reponse")
+				w.WriteHeader(http.StatusInternalServerError)
+				return
+			}
+
+			w.Header().Set("Content-Type", "application/json")
+			w.Write(payloadBytes)
+		})
 	})
 
 	router.Route("/api/dataproducts", func(r chi.Router) {

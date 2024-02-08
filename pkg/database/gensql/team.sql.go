@@ -41,6 +41,36 @@ func (q *Queries) GetNadaToken(ctx context.Context, team string) (uuid.UUID, err
 }
 
 const getNadaTokens = `-- name: GetNadaTokens :many
+SELECT 
+    team, token
+FROM 
+    nada_tokens
+`
+
+func (q *Queries) GetNadaTokens(ctx context.Context) ([]NadaToken, error) {
+	rows, err := q.db.QueryContext(ctx, getNadaTokens)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []NadaToken{}
+	for rows.Next() {
+		var i NadaToken
+		if err := rows.Scan(&i.Team, &i.Token); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const getNadaTokensForTeams = `-- name: GetNadaTokensForTeams :many
 SELECT
     team, token
 FROM
@@ -51,8 +81,8 @@ ORDER BY
     team
 `
 
-func (q *Queries) GetNadaTokens(ctx context.Context, teams []string) ([]NadaToken, error) {
-	rows, err := q.db.QueryContext(ctx, getNadaTokens, pq.Array(teams))
+func (q *Queries) GetNadaTokensForTeams(ctx context.Context, teams []string) ([]NadaToken, error) {
+	rows, err := q.db.QueryContext(ctx, getNadaTokensForTeams, pq.Array(teams))
 	if err != nil {
 		return nil, err
 	}
