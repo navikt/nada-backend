@@ -8,11 +8,11 @@ import (
 )
 
 func (r *Repo) GetNadaToken(ctx context.Context, team string) (uuid.UUID, error) {
-	return r.querier.GetNadaToken(ctx, team)
+	return r.Querier.GetNadaToken(ctx, team)
 }
 
 func (r *Repo) GetNadaTokens(ctx context.Context) (map[string]string, error) {
-	tokensSQL, err := r.querier.GetNadaTokens(ctx)
+	tokensSQL, err := r.Querier.GetNadaTokens(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -25,7 +25,7 @@ func (r *Repo) GetNadaTokens(ctx context.Context) (map[string]string, error) {
 }
 
 func (r *Repo) GetNadaTokensForTeams(ctx context.Context, teams []string) ([]*models.NadaToken, error) {
-	tokensSQL, err := r.querier.GetNadaTokensForTeams(ctx, teams)
+	tokensSQL, err := r.Querier.GetNadaTokensForTeams(ctx, teams)
 	if err != nil {
 		return nil, err
 	}
@@ -41,9 +41,9 @@ func (r *Repo) GetNadaTokensForTeams(ctx context.Context, teams []string) ([]*mo
 }
 
 func (r *Repo) DeleteNadaToken(ctx context.Context, team string) error {
-	return r.querier.DeleteNadaToken(ctx, team)
+	return r.Querier.DeleteNadaToken(ctx, team)
 }
 
 func (r *Repo) GetTeamFromToken(ctx context.Context, token uuid.UUID) (string, error) {
-	return r.querier.GetTeamFromNadaToken(ctx, token)
+	return r.Querier.GetTeamFromNadaToken(ctx, token)
 }

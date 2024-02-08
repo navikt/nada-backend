@@ -11,7 +11,7 @@ import (
 func (r *Repo) CreateInsightProduct(ctx context.Context, creator string,
 	newInsightProduct models.NewInsightProduct,
 ) (*models.InsightProduct, error) {
-	insightProductSQL, err := r.querier.CreateInsightProduct(ctx, gensql.CreateInsightProductParams{
+	insightProductSQL, err := r.Querier.CreateInsightProduct(ctx, gensql.CreateInsightProductParams{
 		Name:             newInsightProduct.Name,
 		Creator:          creator,
 		Description:      ptrToNullString(newInsightProduct.Description),
@@ -30,7 +30,7 @@ func (r *Repo) CreateInsightProduct(ctx context.Context, creator string,
 }
 
 func (r *Repo) GetInsightProduct(ctx context.Context, id uuid.UUID) (*models.InsightProduct, error) {
-	productSQL, err := r.querier.GetInsightProduct(ctx, id)
+	productSQL, err := r.Querier.GetInsightProduct(ctx, id)
 	if err != nil {
 		return nil, err
 	}
@@ -39,7 +39,7 @@ func (r *Repo) GetInsightProduct(ctx context.Context, id uuid.UUID) (*models.Ins
 }
 
 func (r *Repo) GetInsightProducts(ctx context.Context) ([]*models.InsightProduct, error) {
-	productSQLs, err := r.querier.GetInsightProducts(ctx)
+	productSQLs, err := r.Querier.GetInsightProducts(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -57,7 +57,7 @@ func (r *Repo) UpdateInsightProductMetadata(ctx context.Context, id uuid.UUID, n
 	insightProductType string, link string) (
 	*models.InsightProduct, error,
 ) {
-	dbProduct, err := r.querier.UpdateInsightProduct(ctx, gensql.UpdateInsightProductParams{
+	dbProduct, err := r.Querier.UpdateInsightProduct(ctx, gensql.UpdateInsightProductParams{
 		ID:               id,
 		Name:             name,
 		Description:      ptrToNullString(&description),
@@ -75,7 +75,7 @@ func (r *Repo) UpdateInsightProductMetadata(ctx context.Context, id uuid.UUID, n
 }
 
 func (r *Repo) GetInsightProductsByProductArea(ctx context.Context, teamsInPA []string) ([]*models.InsightProduct, error) {
-	dbProducts, err := r.querier.GetInsightProductsByProductArea(ctx, teamsInPA)
+	dbProducts, err := r.Querier.GetInsightProductsByProductArea(ctx, teamsInPA)
 	if err != nil {
 		return nil, err
 	}
@@ -89,7 +89,7 @@ func (r *Repo) GetInsightProductsByProductArea(ctx context.Context, teamsInPA []
 }
 
 func (r *Repo) GetInsightProductsByTeam(ctx context.Context, teamID string) ([]*models.InsightProduct, error) {
-	dbProducts, err := r.querier.GetInsightProductsByTeam(ctx, ptrToNullString(&teamID))
+	dbProducts, err := r.Querier.GetInsightProductsByTeam(ctx, ptrToNullString(&teamID))
 	if err != nil {
 		return nil, err
 	}
@@ -103,7 +103,7 @@ func (r *Repo) GetInsightProductsByTeam(ctx context.Context, teamID string) ([]*
 }
 
 func (r *Repo) GetInsightProductsByGroups(ctx context.Context, groups []string) ([]*models.InsightProduct, error) {
-	dbProducts, err := r.querier.GetInsightProductByGroups(ctx, groups)
+	dbProducts, err := r.Querier.GetInsightProductByGroups(ctx, groups)
 	if err != nil {
 		return nil, err
 	}
@@ -117,7 +117,7 @@ func (r *Repo) GetInsightProductsByGroups(ctx context.Context, groups []string) 
 }
 
 func (r *Repo) DeleteInsightProduct(ctx context.Context, id uuid.UUID) error {
-	return r.querier.DeleteInsightProduct(ctx, id)
+	return r.Querier.DeleteInsightProduct(ctx, id)
 }
 
 func InsightProductSQLToGraphql(insightProductSQL *gensql.InsightProduct) *models.InsightProduct {

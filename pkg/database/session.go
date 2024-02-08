@@ -8,7 +8,7 @@ import (
 )
 
 func (r *Repo) CreateSession(ctx context.Context, session *models.Session) error {
-	return r.querier.CreateSession(ctx, gensql.CreateSessionParams{
+	return r.Querier.CreateSession(ctx, gensql.CreateSessionParams{
 		Token:       session.Token,
 		AccessToken: session.AccessToken,
 		Email:       session.Email,
@@ -18,7 +18,7 @@ func (r *Repo) CreateSession(ctx context.Context, session *models.Session) error
 }
 
 func (r *Repo) GetSession(ctx context.Context, token string) (*models.Session, error) {
-	sess, err := r.querier.GetSession(ctx, token)
+	sess, err := r.Querier.GetSession(ctx, token)
 	if err != nil {
 		return nil, err
 	}
@@ -34,5 +34,5 @@ func (r *Repo) GetSession(ctx context.Context, token string) (*models.Session, e
 }
 
 func (r *Repo) DeleteSession(ctx context.Context, token string) error {
-	return r.querier.DeleteSession(ctx, token)
+	return r.Querier.DeleteSession(ctx, token)
 }

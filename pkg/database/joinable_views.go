@@ -31,7 +31,7 @@ type JoinableViewWithDatasource struct {
 }
 
 func (r *Repo) GetJoinableViewsForUser(ctx context.Context, user string) ([]*JoinableView, error) {
-	joinableViewsDB, err := r.querier.GetJoinableViewsForOwner(ctx, user)
+	joinableViewsDB, err := r.Querier.GetJoinableViewsForOwner(ctx, user)
 	if err != nil {
 		return nil, err
 	}
@@ -60,7 +60,7 @@ func (r *Repo) GetJoinableViewsForUser(ctx context.Context, user string) ([]*Joi
 }
 
 func (r *Repo) SetJoinableViewDeleted(ctx context.Context, id uuid.UUID) error {
-	return r.querier.SetJoinableViewDeleted(ctx, id)
+	return r.Querier.SetJoinableViewDeleted(ctx, id)
 }
 
 func (r *Repo) MakeBigQueryUrlForJoinableViewDataset(name string) string {
@@ -68,7 +68,7 @@ func (r *Repo) MakeBigQueryUrlForJoinableViewDataset(name string) string {
 }
 
 func (r *Repo) GetJoinableViewsForReferenceAndUser(ctx context.Context, user string, pseudoDatasetID uuid.UUID) ([]gensql.GetJoinableViewsForReferenceAndUserRow, error) {
-	joinableViews, err := r.querier.GetJoinableViewsForReferenceAndUser(ctx, gensql.GetJoinableViewsForReferenceAndUserParams{
+	joinableViews, err := r.Querier.GetJoinableViewsForReferenceAndUser(ctx, gensql.GetJoinableViewsForReferenceAndUserParams{
 		Owner:           user,
 		PseudoDatasetID: pseudoDatasetID,
 	})
@@ -80,15 +80,15 @@ func (r *Repo) GetJoinableViewsForReferenceAndUser(ctx context.Context, user str
 }
 
 func (r *Repo) GetJoinableViewsWithReference(ctx context.Context) ([]gensql.GetJoinableViewsWithReferenceRow, error) {
-	return r.querier.GetJoinableViewsWithReference(ctx)
+	return r.Querier.GetJoinableViewsWithReference(ctx)
 }
 
 func (r *Repo) GetJoinableViewsToBeDeletedWithRefDatasource(ctx context.Context) ([]gensql.GetJoinableViewsToBeDeletedWithRefDatasourceRow, error) {
-	return r.querier.GetJoinableViewsToBeDeletedWithRefDatasource(ctx)
+	return r.Querier.GetJoinableViewsToBeDeletedWithRefDatasource(ctx)
 }
 
 func (r *Repo) GetJoinableViewWithDatasource(ctx context.Context, joinableViewID uuid.UUID, user *auth.User) (*JoinableViewWithDatasource, error) {
-	joinableViewDatasets, err := r.querier.GetJoinableViewWithDataset(ctx, joinableViewID)
+	joinableViewDatasets, err := r.Querier.GetJoinableViewWithDataset(ctx, joinableViewID)
 	if err != nil {
 		return nil, err
 	}

@@ -15,7 +15,7 @@ func (r *Repo) CreateStory(ctx context.Context, creator string,
 	var storySQL gensql.Story
 	var err error
 	if newStory.ID == nil {
-		storySQL, err = r.querier.CreateStory(ctx, gensql.CreateStoryParams{
+		storySQL, err = r.Querier.CreateStory(ctx, gensql.CreateStoryParams{
 			Name:             newStory.Name,
 			Creator:          creator,
 			Description:      ptrToString(newStory.Description),
@@ -25,7 +25,7 @@ func (r *Repo) CreateStory(ctx context.Context, creator string,
 			OwnerGroup:       newStory.Group,
 		})
 	} else {
-		storySQL, err = r.querier.CreateStoryWithID(ctx, gensql.CreateStoryWithIDParams{
+		storySQL, err = r.Querier.CreateStoryWithID(ctx, gensql.CreateStoryWithIDParams{
 			ID:               *newStory.ID,
 			Name:             newStory.Name,
 			Creator:          creator,
@@ -44,13 +44,13 @@ func (r *Repo) CreateStory(ctx context.Context, creator string,
 }
 
 func (r *Repo) GetStory(ctx context.Context, id uuid.UUID) (*models.Story, error) {
-	storySQL, err := r.querier.GetStory(ctx, id)
+	storySQL, err := r.Querier.GetStory(ctx, id)
 
 	return storySQLToGraphql(&storySQL), err
 }
 
 func (r *Repo) GetStories(ctx context.Context) ([]*models.Story, error) {
-	storySQLs, err := r.querier.GetStories(ctx)
+	storySQLs, err := r.Querier.GetStories(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -64,7 +64,7 @@ func (r *Repo) GetStories(ctx context.Context) ([]*models.Story, error) {
 }
 
 func (r *Repo) GetStoriesByProductArea(ctx context.Context, teamsInPA []string) ([]*models.Story, error) {
-	stories, err := r.querier.GetStoriesByProductArea(ctx, teamsInPA)
+	stories, err := r.Querier.GetStoriesByProductArea(ctx, teamsInPA)
 	if err != nil {
 		return nil, err
 	}
@@ -78,7 +78,7 @@ func (r *Repo) GetStoriesByProductArea(ctx context.Context, teamsInPA []string) 
 }
 
 func (r *Repo) GetStoriesByTeam(ctx context.Context, teamID string) ([]*models.Story, error) {
-	stories, err := r.querier.GetStoriesByTeam(ctx, sql.NullString{String: teamID, Valid: true})
+	stories, err := r.Querier.GetStoriesByTeam(ctx, sql.NullString{String: teamID, Valid: true})
 	if err != nil {
 		return nil, err
 	}
@@ -92,7 +92,7 @@ func (r *Repo) GetStoriesByTeam(ctx context.Context, teamID string) ([]*models.S
 }
 
 func (r *Repo) GetStoriesByGroups(ctx context.Context, groups []string) ([]*models.Story, error) {
-	dbStories, err := r.querier.GetStoriesByGroups(ctx, groups)
+	dbStories, err := r.Querier.GetStoriesByGroups(ctx, groups)
 	if err != nil {
 		return nil, err
 	}
@@ -108,7 +108,7 @@ func (r *Repo) GetStoriesByGroups(ctx context.Context, groups []string) ([]*mode
 func (r *Repo) UpdateStoryMetadata(ctx context.Context, id uuid.UUID, name string, description string, keywords []string, teamkatalogenURL *string, productAreaID *string, teamID *string, group string) (
 	*models.Story, error,
 ) {
-	dbStory, err := r.querier.UpdateStory(ctx, gensql.UpdateStoryParams{
+	dbStory, err := r.Querier.UpdateStory(ctx, gensql.UpdateStoryParams{
 		ID:               id,
 		Name:             name,
 		Description:      description,
@@ -125,7 +125,7 @@ func (r *Repo) UpdateStoryMetadata(ctx context.Context, id uuid.UUID, name strin
 }
 
 func (r *Repo) DeleteStory(ctx context.Context, id uuid.UUID) error {
-	return r.querier.DeleteStory(ctx, id)
+	return r.Querier.DeleteStory(ctx, id)
 }
 
 func storySQLToGraphql(story *gensql.Story) *models.Story {

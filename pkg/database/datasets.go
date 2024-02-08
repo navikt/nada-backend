@@ -16,7 +16,7 @@ import (
 )
 
 func (r *Repo) GetDataset(ctx context.Context, id uuid.UUID) (*models.Dataset, error) {
-	res, err := r.querier.GetDataset(ctx, id)
+	res, err := r.Querier.GetDataset(ctx, id)
 	if err != nil {
 		return nil, fmt.Errorf("getting dataset from database: %w", err)
 	}
@@ -25,7 +25,7 @@ func (r *Repo) GetDataset(ctx context.Context, id uuid.UUID) (*models.Dataset, e
 }
 
 func (r *Repo) GetDatasetsInDataproduct(ctx context.Context, id uuid.UUID) ([]*models.Dataset, error) {
-	datasetsSQL, err := r.querier.GetDatasetsInDataproduct(ctx, id)
+	datasetsSQL, err := r.Querier.GetDatasetsInDataproduct(ctx, id)
 	if err != nil {
 		return nil, err
 	}
@@ -48,7 +48,7 @@ func (r *Repo) CreateDataset(ctx context.Context, ds models.NewDataset, referenc
 		ds.Keywords = []string{}
 	}
 
-	querier := r.querier.WithTx(tx)
+	querier := r.Querier.WithTx(tx)
 	created, err := querier.CreateDataset(ctx, gensql.CreateDatasetParams{
 		Name:                     ds.Name,
 		DataproductID:            ds.DataproductID,
@@ -161,7 +161,7 @@ func (r *Repo) CreateJoinableViews(ctx context.Context, name, owner string, expi
 		return "", err
 	}
 
-	jv, err := r.querier.CreateJoinableViews(ctx, gensql.CreateJoinableViewsParams{
+	jv, err := r.Querier.CreateJoinableViews(ctx, gensql.CreateJoinableViewsParams{
 		Name:    name,
 		Owner:   owner,
 		Created: time.Now(),
@@ -175,7 +175,7 @@ func (r *Repo) CreateJoinableViews(ctx context.Context, name, owner string, expi
 			return "", err
 		}
 
-		_, err = r.querier.CreateJoinableViewsDatasource(ctx, gensql.CreateJoinableViewsDatasourceParams{
+		_, err = r.Querier.CreateJoinableViewsDatasource(ctx, gensql.CreateJoinableViewsDatasourceParams{
 			JoinableViewID: jv.ID,
 			DatasourceID:   bqid,
 		})
@@ -197,7 +197,7 @@ func (r *Repo) UpdateDataset(ctx context.Context, id uuid.UUID, new models.Updat
 		new.Keywords = []string{}
 	}
 
-	res, err := r.querier.UpdateDataset(ctx, gensql.UpdateDatasetParams{
+	res, err := r.Querier.UpdateDataset(ctx, gensql.UpdateDatasetParams{
 		Name:                     new.Name,
 		Description:              ptrToNullString(new.Description),
 		ID:                       id,
@@ -214,7 +214,7 @@ func (r *Repo) UpdateDataset(ctx context.Context, id uuid.UUID, new models.Updat
 	}
 
 	for _, keyword := range new.Keywords {
-		err = r.querier.CreateTagIfNotExist(ctx, keyword)
+		err = r.Querier.CreateTagIfNotExist(ctx, keyword)
 		if err != nil {
 			r.log.WithError(err).Warn("failed to create tag when updating dataset in database")
 		}
@@ -224,7 +224,7 @@ func (r *Repo) UpdateDataset(ctx context.Context, id uuid.UUID, new models.Updat
 		return nil, fmt.Errorf("invalid pii tags, must be json map or null: %w", err)
 	}
 
-	err = r.querier.UpdateBigqueryDatasource(ctx, gensql.UpdateBigqueryDatasourceParams{
+	err = r.Querier.UpdateBigqueryDatasource(ctx, gensql.UpdateBigqueryDatasourceParams{
 		DatasetID: id,
 		PiiTags: pqtype.NullRawMessage{
 			RawMessage: json.RawMessage(ptrToString(new.PiiTags)),
@@ -240,7 +240,7 @@ func (r *Repo) UpdateDataset(ctx context.Context, id uuid.UUID, new models.Updat
 }
 
 func (r *Repo) GetBigqueryDatasource(ctx context.Context, datasetID uuid.UUID, isReference bool) (models.BigQuery, error) {
-	bq, err := r.querier.GetBigqueryDatasource(ctx, gensql.GetBigqueryDatasourceParams{
+	bq, err := r.Querier.GetBigqueryDatasource(ctx, gensql.GetBigqueryDatasourceParams{
 		DatasetID:   datasetID,
 		IsReference: isReference,
 	})
@@ -273,7 +273,7 @@ func (r *Repo) GetBigqueryDatasource(ctx context.Context, datasetID uuid.UUID, i
 func (r *Repo) UpdateBigqueryDatasource(ctx context.Context, id uuid.UUID, schema json.RawMessage,
 	lastModified, expires time.Time, description string, pseudoColumns []string,
 ) error {
-	err := r.querier.UpdateBigqueryDatasourceSchema(ctx, gensql.UpdateBigqueryDatasourceSchemaParams{
+	err := r.Querier.UpdateBigqueryDatasourceSchema(ctx, gensql.UpdateBigqueryDatasourceSchemaParams{
 		DatasetID: id,
 		Schema: pqtype.NullRawMessage{
 			RawMessage: schema,
@@ -292,11 +292,11 @@ func (r *Repo) UpdateBigqueryDatasource(ctx context.Context, id uuid.UUID, schem
 }
 
 func (r *Repo) UpdateBigqueryDatasourceMissing(ctx context.Context, datasetID uuid.UUID) error {
-	return r.querier.UpdateBigqueryDatasourceMissing(ctx, datasetID)
+	return r.Querier.UpdateBigqueryDatasourceMissing(ctx, datasetID)
 }
 
 func (r *Repo) GetDatasetMetadata(ctx context.Context, id uuid.UUID) ([]*models.TableColumn, error) {
-	ds, err := r.querier.GetBigqueryDatasource(ctx, gensql.GetBigqueryDatasourceParams{
+	ds, err := r.Querier.GetBigqueryDatasource(ctx, gensql.GetBigqueryDatasourceParams{
 		DatasetID:   id,
 		IsReference: false,
 	})
@@ -315,7 +315,7 @@ func (r *Repo) GetDatasetMetadata(ctx context.Context, id uuid.UUID) ([]*models.
 }
 
 func (r *Repo) GetDatasetPiiTags(ctx context.Context, id uuid.UUID) (map[string]string, error) {
-	ds, err := r.querier.GetBigqueryDatasource(ctx, gensql.GetBigqueryDatasourceParams{
+	ds, err := r.Querier.GetBigqueryDatasource(ctx, gensql.GetBigqueryDatasourceParams{
 		DatasetID:   id,
 		IsReference: false,
 	})
@@ -335,7 +335,7 @@ func (r *Repo) GetDatasetPiiTags(ctx context.Context, id uuid.UUID) (map[string]
 func (r *Repo) GetDatasetsByMetabase(ctx context.Context, limit, offset int) ([]*models.Dataset, error) {
 	dss := []*models.Dataset{}
 
-	res, err := r.querier.DatasetsByMetabase(ctx, gensql.DatasetsByMetabaseParams{
+	res, err := r.Querier.DatasetsByMetabase(ctx, gensql.DatasetsByMetabaseParams{
 		Lim:  int32(limit),
 		Offs: int32(offset),
 	})
@@ -351,7 +351,7 @@ func (r *Repo) GetDatasetsByMetabase(ctx context.Context, limit, offset int) ([]
 }
 
 func (r *Repo) GetDatasetsByUserAccess(ctx context.Context, user string) ([]*models.Dataset, error) {
-	res, err := r.querier.GetDatasetsByUserAccess(ctx, user)
+	res, err := r.Querier.GetDatasetsByUserAccess(ctx, user)
 	if err != nil {
 		return nil, err
 	}
@@ -364,7 +364,7 @@ func (r *Repo) GetDatasetsByUserAccess(ctx context.Context, user string) ([]*mod
 }
 
 func (r *Repo) GetDatasetsForOwner(ctx context.Context, userGroups []string) ([]*models.Dataset, error) {
-	datasetsSQL, err := r.querier.GetDatasetsForOwner(ctx, userGroups)
+	datasetsSQL, err := r.Querier.GetDatasetsForOwner(ctx, userGroups)
 	if err != nil {
 		return nil, err
 	}
@@ -379,7 +379,7 @@ func (r *Repo) GetDatasetsForOwner(ctx context.Context, userGroups []string) ([]
 func (r *Repo) DeleteDataset(ctx context.Context, id uuid.UUID) error {
 	r.events.TriggerDatasetDelete(ctx, id)
 
-	if err := r.querier.DeleteDataset(ctx, id); err != nil {
+	if err := r.Querier.DeleteDataset(ctx, id); err != nil {
 		return fmt.Errorf("deleting dataset from database: %w", err)
 	}
 
@@ -387,7 +387,7 @@ func (r *Repo) DeleteDataset(ctx context.Context, id uuid.UUID) error {
 }
 
 func (r *Repo) GetAccessiblePseudoDatasourcesByUser(ctx context.Context, subjectsAsOwner []string, subjectsAsAccesser []string) ([]*models.PseudoDataset, error) {
-	rows, err := r.querier.GetAccessiblePseudoDatasetsByUser(ctx, gensql.GetAccessiblePseudoDatasetsByUserParams{
+	rows, err := r.Querier.GetAccessiblePseudoDatasetsByUser(ctx, gensql.GetAccessiblePseudoDatasetsByUserParams{
 		OwnerSubjects:  subjectsAsOwner,
 		AccessSubjects: subjectsAsAccesser,
 	})
@@ -410,7 +410,7 @@ func (r *Repo) GetAccessiblePseudoDatasourcesByUser(ctx context.Context, subject
 }
 
 func (r *Repo) GetPseudoDatasourcesToDelete(ctx context.Context) ([]*models.BigQuery, error) {
-	rows, err := r.querier.GetPseudoDatasourcesToDelete(ctx)
+	rows, err := r.Querier.GetPseudoDatasourcesToDelete(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -429,11 +429,11 @@ func (r *Repo) GetPseudoDatasourcesToDelete(ctx context.Context) ([]*models.BigQ
 }
 
 func (r *Repo) SetDatasourceDeleted(ctx context.Context, id uuid.UUID) error {
-	return r.querier.SetDatasourceDeleted(ctx, id)
+	return r.Querier.SetDatasourceDeleted(ctx, id)
 }
 
 func (r *Repo) GetOwnerGroupOfDataset(ctx context.Context, datasetID uuid.UUID) (string, error) {
-	return r.querier.GetOwnerGroupOfDataset(ctx, datasetID)
+	return r.Querier.GetOwnerGroupOfDataset(ctx, datasetID)
 }
 
 func PseudoDatasetFromSQL(d *gensql.GetAccessiblePseudoDatasetsByUserRow) (*models.PseudoDataset, string) {

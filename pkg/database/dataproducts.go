@@ -14,7 +14,7 @@ import (
 func (r *Repo) GetDataproducts(ctx context.Context, limit, offset int) ([]*models.Dataproduct, error) {
 	dataproducts := []*models.Dataproduct{}
 
-	res, err := r.querier.GetDataproducts(ctx, gensql.GetDataproductsParams{Limit: int32(limit), Offset: int32(offset)})
+	res, err := r.Querier.GetDataproducts(ctx, gensql.GetDataproductsParams{Limit: int32(limit), Offset: int32(offset)})
 	if err != nil {
 		return nil, fmt.Errorf("getting dataproducts from database: %w", err)
 	}
@@ -34,7 +34,7 @@ func (r *Repo) GetDataproductsByUserAccess(ctx context.Context, user string) ([]
 func (r *Repo) GetDataproductsByGroups(ctx context.Context, groups []string) ([]*models.Dataproduct, error) {
 	dps := []*models.Dataproduct{}
 
-	res, err := r.querier.GetDataproductsByGroups(ctx, groups)
+	res, err := r.Querier.GetDataproductsByGroups(ctx, groups)
 	if err != nil {
 		return nil, fmt.Errorf("getting dataproducts by group from database: %w", err)
 	}
@@ -47,7 +47,7 @@ func (r *Repo) GetDataproductsByGroups(ctx context.Context, groups []string) ([]
 }
 
 func (r *Repo) GetDataproductByProductArea(ctx context.Context, teamIDs []string) ([]*models.Dataproduct, error) {
-	dps, err := r.querier.GetDataproductsByProductArea(ctx, teamIDs)
+	dps, err := r.Querier.GetDataproductsByProductArea(ctx, teamIDs)
 	if err != nil {
 		return nil, err
 	}
@@ -61,7 +61,7 @@ func (r *Repo) GetDataproductByProductArea(ctx context.Context, teamIDs []string
 }
 
 func (r *Repo) GetDataproductByTeam(ctx context.Context, teamID string) ([]*models.Dataproduct, error) {
-	dps, err := r.querier.GetDataproductsByTeam(ctx, sql.NullString{String: teamID, Valid: true})
+	dps, err := r.Querier.GetDataproductsByTeam(ctx, sql.NullString{String: teamID, Valid: true})
 	if err != nil {
 		return nil, err
 	}
@@ -75,7 +75,7 @@ func (r *Repo) GetDataproductByTeam(ctx context.Context, teamID string) ([]*mode
 }
 
 func (r *Repo) GetDataproduct(ctx context.Context, id uuid.UUID) (*models.Dataproduct, error) {
-	res, err := r.querier.GetDataproduct(ctx, id)
+	res, err := r.Querier.GetDataproduct(ctx, id)
 	if err != nil {
 		return nil, fmt.Errorf("getting dataproduct from database: %w", err)
 	}
@@ -84,7 +84,7 @@ func (r *Repo) GetDataproduct(ctx context.Context, id uuid.UUID) (*models.Datapr
 }
 
 func (r *Repo) CreateDataproduct(ctx context.Context, dp models.NewDataproduct, user *auth.User) (*models.Dataproduct, error) {
-	dataproduct, err := r.querier.CreateDataproduct(ctx, gensql.CreateDataproductParams{
+	dataproduct, err := r.Querier.CreateDataproduct(ctx, gensql.CreateDataproductParams{
 		Name:                  dp.Name,
 		Description:           ptrToNullString(dp.Description),
 		OwnerGroup:            dp.Group,
@@ -101,7 +101,7 @@ func (r *Repo) CreateDataproduct(ctx context.Context, dp models.NewDataproduct, 
 }
 
 func (r *Repo) UpdateDataproduct(ctx context.Context, id uuid.UUID, new models.UpdateDataproduct) (*models.Dataproduct, error) {
-	res, err := r.querier.UpdateDataproduct(ctx, gensql.UpdateDataproductParams{
+	res, err := r.Querier.UpdateDataproduct(ctx, gensql.UpdateDataproductParams{
 		Name:                  new.Name,
 		Description:           ptrToNullString(new.Description),
 		ID:                    id,
@@ -118,7 +118,7 @@ func (r *Repo) UpdateDataproduct(ctx context.Context, id uuid.UUID, new models.U
 }
 
 func (r *Repo) DeleteDataproduct(ctx context.Context, id uuid.UUID) error {
-	if err := r.querier.DeleteDataproduct(ctx, id); err != nil {
+	if err := r.Querier.DeleteDataproduct(ctx, id); err != nil {
 		return fmt.Errorf("deleting dataproduct from database: %w", err)
 	}
 
@@ -126,11 +126,11 @@ func (r *Repo) DeleteDataproduct(ctx context.Context, id uuid.UUID) error {
 }
 
 func (r *Repo) GetBigqueryDatasources(ctx context.Context) ([]gensql.DatasourceBigquery, error) {
-	return r.querier.GetBigqueryDatasources(ctx)
+	return r.Querier.GetBigqueryDatasources(ctx)
 }
 
 func (r *Repo) DataproductKeywords(ctx context.Context, prefix string) ([]*models.Keyword, error) {
-	kws, err := r.querier.DataproductKeywords(ctx, prefix)
+	kws, err := r.Querier.DataproductKeywords(ctx, prefix)
 	if err != nil {
 		return nil, err
 	}
@@ -146,7 +146,7 @@ func (r *Repo) DataproductKeywords(ctx context.Context, prefix string) ([]*model
 }
 
 func (r *Repo) DataproductGroupStats(ctx context.Context, limit, offset int) ([]*models.GroupStats, error) {
-	stats, err := r.querier.DataproductGroupStats(ctx, gensql.DataproductGroupStatsParams{
+	stats, err := r.Querier.DataproductGroupStats(ctx, gensql.DataproductGroupStatsParams{
 		Lim:  int32(limit),
 		Offs: int32(offset),
 	})

@@ -98,5 +98,35 @@ func New(
 		})
 	})
 
+	router.Route("/api/dataproducts", func(r chi.Router) {
+		r.Get("/{id}", func(w http.ResponseWriter, r *http.Request) {
+			dpdto, apiErr := GetDataproduct(r.Context(), chi.URLParam(r, "id"))
+			if apiErr != nil {
+				http.Error(w, apiErr.Error(), apiErr.HttpStatus)
+				return
+			}
+			err := json.NewEncoder(w).Encode(dpdto)
+			if err != nil {
+				http.Error(w, err.Error(), http.StatusInternalServerError)
+				return
+			}
+		})
+	})
+
+	router.Route("/api/datasets", func(r chi.Router) {
+		r.Get("/{id}", func(w http.ResponseWriter, r *http.Request) {
+			dsdto, apiErr := GetDataset(r.Context(), chi.URLParam(r, "id"))
+			if apiErr != nil {
+				http.Error(w, apiErr.Error(), apiErr.HttpStatus)
+				return
+			}
+			err := json.NewEncoder(w).Encode(dsdto)
+			if err != nil {
+				http.Error(w, err.Error(), http.StatusInternalServerError)
+				return
+			}
+		})
+	})
+
 	return router
 }

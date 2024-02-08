@@ -111,6 +111,8 @@ func main() {
 
 	mockHTTP := api.NewMockHTTP(repo, log.WithField("subsystem", "mockhttp"))
 	var httpAPI api.HTTPAPI = mockHTTP
+	api.Init(repo.Querier)
+
 	authenticatorMiddleware := mockHTTP.Middleware
 
 	var teamProjectsUpdater *teamprojectsupdater.TeamProjectsUpdater

@@ -7,7 +7,7 @@ import (
 )
 
 func (r *Repo) GetDashboard(ctx context.Context, id string) (string, error) {
-	dash, err := r.querier.GetDashboard(ctx, id)
+	dash, err := r.Querier.GetDashboard(ctx, id)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return "", nil

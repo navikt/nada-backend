@@ -14,7 +14,7 @@ import (
 )
 
 func (r *Repo) CreateAccessRequestForDataset(ctx context.Context, datasetID uuid.UUID, pollyDocumentationID uuid.NullUUID, subject, owner string, expires *time.Time) (*models.AccessRequest, error) {
-	accessRequestSQL, err := r.querier.CreateAccessRequestForDataset(ctx, gensql.CreateAccessRequestForDatasetParams{
+	accessRequestSQL, err := r.Querier.CreateAccessRequestForDataset(ctx, gensql.CreateAccessRequestForDatasetParams{
 		DatasetID:            datasetID,
 		Subject:              emailOfSubjectToLower(subject),
 		Owner:                owner,
@@ -29,7 +29,7 @@ func (r *Repo) CreateAccessRequestForDataset(ctx context.Context, datasetID uuid
 }
 
 func (r *Repo) ListAccessRequestsForOwner(ctx context.Context, owners []string) ([]*models.AccessRequest, error) {
-	accessRequestSQLs, err := r.querier.ListAccessRequestsForOwner(ctx, owners)
+	accessRequestSQLs, err := r.Querier.ListAccessRequestsForOwner(ctx, owners)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return nil, nil
@@ -41,7 +41,7 @@ func (r *Repo) ListAccessRequestsForOwner(ctx context.Context, owners []string) 
 }
 
 func (r *Repo) ListAccessRequestsForDataset(ctx context.Context, datasetID uuid.UUID) ([]*models.AccessRequest, error) {
-	accessRequestSQLs, err := r.querier.ListAccessRequestsForDataset(ctx, datasetID)
+	accessRequestSQLs, err := r.Querier.ListAccessRequestsForDataset(ctx, datasetID)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return nil, nil
@@ -53,7 +53,7 @@ func (r *Repo) ListAccessRequestsForDataset(ctx context.Context, datasetID uuid.
 }
 
 func (r *Repo) GetAccessRequest(ctx context.Context, id uuid.UUID) (*models.AccessRequest, error) {
-	dataproductAccessRequest, err := r.querier.GetAccessRequest(ctx, id)
+	dataproductAccessRequest, err := r.Querier.GetAccessRequest(ctx, id)
 	if err != nil {
 		return nil, err
 	}
@@ -62,7 +62,7 @@ func (r *Repo) GetAccessRequest(ctx context.Context, id uuid.UUID) (*models.Acce
 }
 
 func (r *Repo) DenyAccessRequest(ctx context.Context, id uuid.UUID, granter string, reason *string) error {
-	return r.querier.DenyAccessRequest(ctx, gensql.DenyAccessRequestParams{
+	return r.Querier.DenyAccessRequest(ctx, gensql.DenyAccessRequestParams{
 		ID:      id,
 		Granter: sql.NullString{String: granter, Valid: true},
 		Reason:  ptrToNullString(reason),
@@ -70,7 +70,7 @@ func (r *Repo) DenyAccessRequest(ctx context.Context, id uuid.UUID, granter stri
 }
 
 func (r *Repo) ApproveAccessRequest(ctx context.Context, id uuid.UUID, granter string) error {
-	ar, err := r.querier.GetAccessRequest(ctx, id)
+	ar, err := r.Querier.GetAccessRequest(ctx, id)
 	if err != nil {
 		return err
 	}
@@ -80,7 +80,7 @@ func (r *Repo) ApproveAccessRequest(ctx context.Context, id uuid.UUID, granter s
 		return err
 	}
 
-	querier := r.querier.WithTx(tx)
+	querier := r.Querier.WithTx(tx)
 
 	_, err = querier.GrantAccessToDataset(ctx, gensql.GrantAccessToDatasetParams{
 		DatasetID:       ar.DatasetID,
@@ -115,7 +115,7 @@ func (r *Repo) ApproveAccessRequest(ctx context.Context, id uuid.UUID, granter s
 }
 
 func (r *Repo) UpdateAccessRequest(ctx context.Context, id uuid.UUID, pollyID uuid.NullUUID, owner string, expires *time.Time) (*models.AccessRequest, error) {
-	accessRequestSQL, err := r.querier.UpdateAccessRequest(ctx, gensql.UpdateAccessRequestParams{
+	accessRequestSQL, err := r.Querier.UpdateAccessRequest(ctx, gensql.UpdateAccessRequestParams{
 		Owner:                owner,
 		Expires:              ptrToNullTime(expires),
 		PollyDocumentationID: pollyID,
@@ -129,7 +129,7 @@ func (r *Repo) UpdateAccessRequest(ctx context.Context, id uuid.UUID, pollyID uu
 }
 
 func (r *Repo) DeleteAccessRequest(ctx context.Context, id uuid.UUID) error {
-	return r.querier.DeleteAccessRequest(ctx, id)
+	return r.Querier.DeleteAccessRequest(ctx, id)
 }
 
 func (r *Repo) accessRequestSQLsToGraphql(ctx context.Context, accessRequestSQLs []gensql.DatasetAccessRequest) ([]*models.AccessRequest, error) {
@@ -184,7 +184,7 @@ func (r *Repo) pollySQLToGraphql(ctx context.Context, id uuid.NullUUID) (*models
 		return nil, nil
 	}
 
-	pollyDoc, err := r.querier.GetPollyDocumentation(ctx, id.UUID)
+	pollyDoc, err := r.Querier.GetPollyDocumentation(ctx, id.UUID)
 	if err != nil {
 		return nil, err
 	}

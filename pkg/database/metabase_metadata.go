@@ -10,7 +10,7 @@ import (
 )
 
 func (r *Repo) CreateMetabaseMetadata(ctx context.Context, metadata models.MetabaseMetadata) error {
-	return r.querier.CreateMetabaseMetadata(ctx, gensql.CreateMetabaseMetadataParams{
+	return r.Querier.CreateMetabaseMetadata(ctx, gensql.CreateMetabaseMetadataParams{
 		DatasetID:  metadata.DatasetID,
 		DatabaseID: int32(metadata.DatabaseID),
 		PermissionGroupID: sql.NullInt32{
@@ -29,9 +29,9 @@ func (r *Repo) GetMetabaseMetadata(ctx context.Context, datasetID uuid.UUID, inc
 	var meta gensql.MetabaseMetadatum
 	var err error
 	if includeDeleted {
-		meta, err = r.querier.GetMetabaseMetadataWithDeleted(ctx, datasetID)
+		meta, err = r.Querier.GetMetabaseMetadataWithDeleted(ctx, datasetID)
 	} else {
-		meta, err = r.querier.GetMetabaseMetadata(ctx, datasetID)
+		meta, err = r.Querier.GetMetabaseMetadata(ctx, datasetID)
 	}
 
 	if err != nil {
@@ -42,7 +42,7 @@ func (r *Repo) GetMetabaseMetadata(ctx context.Context, datasetID uuid.UUID, inc
 }
 
 func (r *Repo) GetAllMetabaseMetadata(ctx context.Context) ([]*models.MetabaseMetadata, error) {
-	mbs, err := r.querier.GetAllMetabaseMetadata(ctx)
+	mbs, err := r.Querier.GetAllMetabaseMetadata(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -56,26 +56,26 @@ func (r *Repo) GetAllMetabaseMetadata(ctx context.Context) ([]*models.MetabaseMe
 }
 
 func (r *Repo) SetPermissionGroupMetabaseMetadata(ctx context.Context, datasetID uuid.UUID, groupID int) error {
-	return r.querier.SetPermissionGroupMetabaseMetadata(ctx, gensql.SetPermissionGroupMetabaseMetadataParams{
+	return r.Querier.SetPermissionGroupMetabaseMetadata(ctx, gensql.SetPermissionGroupMetabaseMetadataParams{
 		ID:        sql.NullInt32{Valid: true, Int32: int32(groupID)},
 		DatasetID: datasetID,
 	})
 }
 
 func (r *Repo) SoftDeleteMetabaseMetadata(ctx context.Context, datasetID uuid.UUID) error {
-	return r.querier.SoftDeleteMetabaseMetadata(ctx, datasetID)
+	return r.Querier.SoftDeleteMetabaseMetadata(ctx, datasetID)
 }
 
 func (r *Repo) RestoreMetabaseMetadata(ctx context.Context, datasetID uuid.UUID) error {
-	return r.querier.RestoreMetabaseMetadata(ctx, datasetID)
+	return r.Querier.RestoreMetabaseMetadata(ctx, datasetID)
 }
 
 func (r *Repo) DeleteMetabaseMetadata(ctx context.Context, datasetID uuid.UUID) error {
-	return r.querier.DeleteMetabaseMetadata(ctx, datasetID)
+	return r.Querier.DeleteMetabaseMetadata(ctx, datasetID)
 }
 
 func (r *Repo) DeleteRestrictedMetabaseMetadata(ctx context.Context, datasetID uuid.UUID) error {
-	mapping, err := r.querier.GetDatasetMappings(ctx, datasetID)
+	mapping, err := r.Querier.GetDatasetMappings(ctx, datasetID)
 	if err != nil {
 		return err
 	}
@@ -86,7 +86,7 @@ func (r *Repo) DeleteRestrictedMetabaseMetadata(ctx context.Context, datasetID u
 	}
 	defer tx.Rollback()
 
-	querier := r.querier.WithTx(tx)
+	querier := r.Querier.WithTx(tx)
 	if err := querier.DeleteMetabaseMetadata(ctx, datasetID); err != nil {
 		return err
 	}
