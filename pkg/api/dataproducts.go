@@ -247,6 +247,7 @@ func datasetFromSQL(dsrows []gensql.DatasetView) (*DatasetDto, *APIError) {
 				Mappings:      []string{},
 				Access:        []*Access{},
 				Datasource:    nil,
+				Pii:           PiiLevel(dsrow.Pii),
 			}
 		}
 

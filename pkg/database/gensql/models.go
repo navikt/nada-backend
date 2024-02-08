@@ -231,6 +231,7 @@ type DatasetView struct {
 	DsCreated       time.Time
 	DsLastModified  time.Time
 	DsSlug          string
+	Pii             PiiLevel
 	DsKeywords      []string
 	BqID            uuid.UUID
 	BqCreated       time.Time

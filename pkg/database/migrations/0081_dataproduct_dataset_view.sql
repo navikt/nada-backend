@@ -32,6 +32,7 @@ CREATE VIEW dataset_view AS(
         ds.created as ds_created,
         ds.last_modified as ds_last_modified,
         ds.slug as ds_slug,
+	    ds.pii as pii,        
         ds.keywords as ds_keywords,
         dsrc.id AS bq_id,
         dsrc.created as bq_created,
