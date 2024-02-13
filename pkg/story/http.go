@@ -218,7 +218,11 @@ func (h *Handler) createStory(w http.ResponseWriter, r *http.Request, next http.
 
 	team, err := h.repo.GetTeamFromToken(r.Context(), token)
 	if err != nil {
-		h.writeError(w, http.StatusForbidden, err)
+		if errors.Is(err, sql.ErrNoRows) {
+			h.writeError(w, http.StatusForbidden, errors.New("no nada teams correspond to the team token provided with the request"))
+		} else {
+			h.writeError(w, http.StatusForbidden, err)
+		}
 		return
 	}
 
