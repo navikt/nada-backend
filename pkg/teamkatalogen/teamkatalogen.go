@@ -48,7 +48,7 @@ func (t *Teamkatalogen) Search(ctx context.Context, query string) ([]*models.Tea
 
 	var tkRes TeamkatalogenResponse
 	if err := json.NewDecoder(bytes.NewReader(res)).Decode(&tkRes); err != nil {
-		return nil, err
+		return nil, fmt.Errorf("unable to retrieve teams from team catalogue")
 	}
 
 	ret := []*models.TeamkatalogenResult{}
@@ -98,7 +98,7 @@ func (t *Teamkatalogen) GetTeamsInProductArea(ctx context.Context, paID string) 
 	}
 
 	if err := json.Unmarshal(res, &teams); err != nil {
-		return nil, err
+		return nil, fmt.Errorf("unable to retrieve teams in product area with id '%v' from team catalogue", paID)
 	}
 
 	teamsGraph := make([]*models.Team, len(teams.Content))
@@ -131,7 +131,7 @@ func (t *Teamkatalogen) GetProductArea(ctx context.Context, paID string) (*model
 	}
 
 	if err := json.Unmarshal(res, &pa); err != nil {
-		return nil, err
+		return nil, fmt.Errorf("unable to get product area '%v' from team catalogue", paID)
 	}
 	return &models.ProductArea{
 		ID:   pa.ID,
@@ -164,7 +164,7 @@ func (t *Teamkatalogen) GetProductAreas(ctx context.Context) ([]*models.ProductA
 	}
 
 	if err := json.Unmarshal(res, &pasdto); err != nil {
-		return nil, err
+		return nil, fmt.Errorf("unable to retrieve product areas from team catalogue")
 	}
 
 	pas := make([]*models.ProductArea, 0)
@@ -198,7 +198,7 @@ func (t *Teamkatalogen) GetTeam(ctx context.Context, teamID string) (*models.Tea
 	}
 
 	if err := json.Unmarshal(res, &team); err != nil {
-		return nil, err
+		return nil, fmt.Errorf("unable to retrieve team '%v' from team catalogue", teamID)
 	}
 
 	return &models.Team{
