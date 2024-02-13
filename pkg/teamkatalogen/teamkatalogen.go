@@ -43,7 +43,7 @@ func (t *Teamkatalogen) Search(ctx context.Context, query string) ([]*models.Tea
 	setRequestHeaders(req)
 	res, err := httpwithcache.Do(t.client, req)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("unable to retrieve teams from team catalogue")
 	}
 
 	var tkRes TeamkatalogenResponse
@@ -86,7 +86,7 @@ func (t *Teamkatalogen) GetTeamsInProductArea(ctx context.Context, paID string) 
 	setRequestHeaders(req)
 	res, err := httpwithcache.Do(t.client, req)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("unable to retrieve teams in product area with id '%v' from team catalogue", paID)
 	}
 
 	var teams struct {
@@ -122,7 +122,7 @@ func (t *Teamkatalogen) GetProductArea(ctx context.Context, paID string) (*model
 	setRequestHeaders(req)
 	res, err := httpwithcache.Do(t.client, req)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("unable to get product area '%v' from team catalogue", paID)
 	}
 
 	var pa struct {
@@ -152,7 +152,7 @@ func (t *Teamkatalogen) GetProductAreas(ctx context.Context) ([]*models.ProductA
 	setRequestHeaders(req)
 	res, err := httpwithcache.Do(t.client, req)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("unable to retrieve product areas from team catalogue")
 	}
 
 	var pasdto struct {
@@ -188,7 +188,7 @@ func (t *Teamkatalogen) GetTeam(ctx context.Context, teamID string) (*models.Tea
 	setRequestHeaders(req)
 	res, err := httpwithcache.Do(t.client, req)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("unable to retrieve team '%v' from team catalogue", teamID)
 	}
 
 	var team struct {
