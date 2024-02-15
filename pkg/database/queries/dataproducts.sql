@@ -33,6 +33,11 @@ FROM dataproducts
 WHERE team_id = @team_id
 ORDER BY created DESC;
 
+-- name: GetDataproductsNumberByTeam :one
+SELECT COUNT(*) as "count"
+FROM dataproducts
+WHERE team_id = @team_id;
+
 -- name: DeleteDataproduct :exec
 DELETE
 FROM dataproducts

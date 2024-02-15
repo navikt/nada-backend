@@ -13,8 +13,8 @@ import (
 	"github.com/navikt/nada-backend/pkg/auth"
 	"github.com/navikt/nada-backend/pkg/database"
 	"github.com/navikt/nada-backend/pkg/gcs"
-	"github.com/navikt/nada-backend/pkg/graph"
 	"github.com/navikt/nada-backend/pkg/story"
+	"github.com/navikt/nada-backend/pkg/teamkatalogen"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/sirupsen/logrus"
@@ -29,7 +29,7 @@ type HTTPAPI interface {
 func New(
 	repo *database.Repo,
 	gcsClient *gcs.Client,
-	teamCatalog graph.Teamkatalogen,
+	teamCatalog teamkatalogen.Teamkatalogen,
 	httpAPI HTTPAPI,
 	authMW auth.MiddlewareHandler,
 	gqlServer *handler.Server,
@@ -102,6 +102,7 @@ func New(
 		r.Get("/{id}", func(w http.ResponseWriter, r *http.Request) {
 			dpdto, apiErr := GetDataproduct(r.Context(), chi.URLParam(r, "id"))
 			if apiErr != nil {
+				apiErr.Log()
 				http.Error(w, apiErr.Error(), apiErr.HttpStatus)
 				return
 			}
@@ -117,10 +118,27 @@ func New(
 		r.Get("/{id}", func(w http.ResponseWriter, r *http.Request) {
 			dsdto, apiErr := GetDataset(r.Context(), chi.URLParam(r, "id"))
 			if apiErr != nil {
+				apiErr.Log()
 				http.Error(w, apiErr.Error(), apiErr.HttpStatus)
 				return
 			}
 			err := json.NewEncoder(w).Encode(dsdto)
+			if err != nil {
+				http.Error(w, err.Error(), http.StatusInternalServerError)
+				return
+			}
+		})
+	})
+
+	router.Route("/api/productareas", func(r chi.Router) {
+		r.Get("/", func(w http.ResponseWriter, r *http.Request) {
+			padto, apiErr := GetProductAreas(r.Context())
+			if apiErr != nil {
+				apiErr.Log()
+				http.Error(w, apiErr.Error(), apiErr.HttpStatus)
+				return
+			}
+			err := json.NewEncoder(w).Encode(padto)
 			if err != nil {
 				http.Error(w, err.Error(), http.StatusInternalServerError)
 				return

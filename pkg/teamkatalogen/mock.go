@@ -36,9 +36,9 @@ func (m *Mock) Search(ctx context.Context, query string) ([]*models.Teamkataloge
 	return ret, nil
 }
 
-func (m *Mock) GetTeamsInProductArea(ctx context.Context, paID string) ([]*models.Team, error) {
+func (m *Mock) GetTeamsInProductArea(ctx context.Context, paID string) ([]*Team, error) {
 	mockedTeams := CreateMockedTeams()
-	teams := make([]*models.Team, 0)
+	teams := make([]*Team, 0)
 	for _, t := range mockedTeams {
 		if t.ProductAreaID == paID {
 			teams = append(teams, t)
@@ -47,7 +47,7 @@ func (m *Mock) GetTeamsInProductArea(ctx context.Context, paID string) ([]*model
 	return teams, nil
 }
 
-func (m *Mock) GetProductArea(ctx context.Context, paID string) (*models.ProductArea, error) {
+func (m *Mock) GetProductArea(ctx context.Context, paID string) (*ProductArea, error) {
 	for _, pa := range mockedProductAreas {
 		if pa.ID == paID {
 			return pa, nil
@@ -56,12 +56,12 @@ func (m *Mock) GetProductArea(ctx context.Context, paID string) (*models.Product
 	return nil, nil
 }
 
-func (m *Mock) GetProductAreas(ctx context.Context) ([]*models.ProductArea, error) {
+func (m *Mock) GetProductAreas(ctx context.Context) ([]*ProductArea, error) {
 	return mockedProductAreas, nil
 }
 
-func (m *Mock) GetTeam(ctx context.Context, teamID string) (*models.Team, error) {
-	return &models.Team{
+func (m *Mock) GetTeam(ctx context.Context, teamID string) (*Team, error) {
+	return &Team{
 		ID:            "Team-Frifrokost-001",
 		Name:          "Team Frifrokost",
 		ProductAreaID: "Mocked-002",
@@ -72,7 +72,7 @@ func (m *Mock) GetTeamCatalogURL(teamID string) string {
 	return "https://teamkatalog.nav.no/team/" + teamID
 }
 
-var mockedProductAreas = []*models.ProductArea{
+var mockedProductAreas = []*ProductArea{
 	{
 		ID:       "Mocked-001",
 		Name:     "Mocked Produktområde",
@@ -90,23 +90,23 @@ var mockedProductAreas = []*models.ProductArea{
 	},
 }
 
-var mockedTeams []*models.Team
+var mockedTeams []*Team
 
-func CreateMockedTeams() []*models.Team {
+func CreateMockedTeams() []*Team {
 	if mockedTeams != nil {
 		return mockedTeams
 	}
 
-	mockedTeams = make([]*models.Team, 0)
+	mockedTeams = make([]*Team, 0)
 	for _, t := range auth.MockUser.GoogleGroups {
-		mockedTeams = append(mockedTeams, &models.Team{
+		mockedTeams = append(mockedTeams, &Team{
 			ID:            t.Name + "-001",
 			Name:          t.Name,
 			ProductAreaID: "Mocked-001",
 		})
 	}
 
-	staticMockedTeams := []*models.Team{
+	staticMockedTeams := []*Team{
 		{
 			ID:            "Team-Frifrokost-001",
 			Name:          "Team Frifrokost",

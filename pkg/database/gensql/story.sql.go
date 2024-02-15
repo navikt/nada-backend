@@ -345,6 +345,19 @@ func (q *Queries) GetStoriesByTeam(ctx context.Context, teamID sql.NullString) (
 	return items, nil
 }
 
+const getStoriesNumberByTeam = `-- name: GetStoriesNumberByTeam :one
+SELECT COUNT(*) as "count"
+FROM stories
+WHERE team_id = $1
+`
+
+func (q *Queries) GetStoriesNumberByTeam(ctx context.Context, teamID sql.NullString) (int64, error) {
+	row := q.db.QueryRowContext(ctx, getStoriesNumberByTeam, teamID)
+	var count int64
+	err := row.Scan(&count)
+	return count, err
+}
+
 const getStory = `-- name: GetStory :one
 SELECT id, name, creator, created, last_modified, description, keywords, teamkatalogen_url, team_id, "group"
 FROM stories

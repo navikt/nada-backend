@@ -105,12 +105,12 @@ type DataproductDto struct {
 func GetDataproduct(ctx context.Context, id string) (*DataproductDto, *APIError) {
 	uuid, err := uuid.Parse(id)
 	if err != nil {
-		return nil, NewAPIError(http.StatusBadRequest, err)
+		return nil, NewAPIError(http.StatusBadRequest, err, "GetDataproduct(): Invalid UUID")
 	}
 
 	sqldp, err := querier.GetDataproductWithDatasets(ctx, uuid)
 	if err != nil {
-		return nil, DBErrorToAPIError(err)
+		return nil, DBErrorToAPIError(err, "GetDataproduct(): Database error")
 	}
 
 	//it is safe to directly use the first element without checking the length
@@ -121,12 +121,12 @@ func GetDataproduct(ctx context.Context, id string) (*DataproductDto, *APIError)
 func GetDataset(ctx context.Context, id string) (*DatasetDto, *APIError) {
 	uuid, err := uuid.Parse(id)
 	if err != nil {
-		return nil, NewAPIError(http.StatusBadRequest, err)
+		return nil, NewAPIError(http.StatusBadRequest, err, "GetDataset(): Invalid UUID")
 	}
 
 	sqlds, err := querier.GetDatasetComplete(ctx, uuid)
 	if err != nil {
-		return nil, DBErrorToAPIError(err)
+		return nil, DBErrorToAPIError(err, "GetDataset(): Database error")
 	}
 
 	ds, apiErr := datasetFromSQL(sqlds)
@@ -255,7 +255,7 @@ func datasetFromSQL(dsrows []gensql.DatasetView) (*DatasetDto, *APIError) {
 			var schema []*TableColumn
 			if dsrow.BqSchema.Valid {
 				if err := json.Unmarshal(dsrow.BqSchema.RawMessage, &schema); err != nil {
-					return nil, NewAPIError(http.StatusInternalServerError, err)
+					return nil, NewAPIError(http.StatusInternalServerError, err, "datasetFromSQL(): Error in BigQuery schema")
 				}
 			}
 

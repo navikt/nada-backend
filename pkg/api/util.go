@@ -15,6 +15,14 @@ func nullStringToPtr(ns sql.NullString) *string {
 	return &ns.String
 }
 
+func ptrToNullString(s *string) sql.NullString {
+	if s == nil {
+		return sql.NullString{}
+	}
+
+	return sql.NullString{String: *s, Valid: true}
+}
+
 func nullTimeToPtr(nt sql.NullTime) *time.Time {
 	if !nt.Valid {
 		return nil

@@ -1,4 +1,4 @@
-type ProductArea @goModel(model: "github.com/navikt/nada-backend/pkg/graph/models.ProductArea") {
+type ProductArea @goModel(model: "github.com/navikt/nada-backend/pkg/teamkatalogen.ProductArea") {
     "id is the product area external id in teamkatalogen."
     id: String!
     "name is the name of the product area."
@@ -17,7 +17,7 @@ type ProductArea @goModel(model: "github.com/navikt/nada-backend/pkg/graph/model
     teams: [Team!]!
 }
 
-type Team @goModel(model: "github.com/navikt/nada-backend/pkg/graph/models.Team") {
+type Team @goModel(model: "github.com/navikt/nada-backend/pkg/teamkatalogen.Team") {
     "id is the team external id in teamkatalogen."
     id: String!
     "name is the name of the team."

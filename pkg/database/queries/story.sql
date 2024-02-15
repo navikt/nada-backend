@@ -68,6 +68,11 @@ FROM stories
 WHERE team_id = @team_id
 ORDER BY last_modified DESC;
 
+-- name: GetStoriesNumberByTeam :one
+SELECT COUNT(*) as "count"
+FROM stories
+WHERE team_id = @team_id;
+
 -- name: UpdateStory :one
 UPDATE stories
 SET
