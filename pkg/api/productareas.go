@@ -2,6 +2,7 @@ package api
 
 import (
 	"context"
+	"database/sql"
 
 	"github.com/navikt/nada-backend/pkg/teamkatalogen"
 )
@@ -15,7 +16,8 @@ type TeamDto struct {
 
 type ProductAreaDto struct {
 	teamkatalogen.ProductArea
-	Teams []*TeamDto `json:"teams"`
+	Teams        []*TeamDto `json:"teams"`
+	DashboardURL string     `json:"dashboardURL"`
 }
 
 func GetProductAreas(ctx context.Context) ([]*ProductAreaDto, *APIError) {
@@ -26,6 +28,11 @@ func GetProductAreas(ctx context.Context) ([]*ProductAreaDto, *APIError) {
 
 	productAreas := make([]*ProductAreaDto, 0)
 	for _, p := range pa {
+		dash, err := querier.GetDashboard(ctx, p.ID)
+		if err != nil && err != sql.ErrNoRows {
+			return nil, DBErrorToAPIError(err, "GetProductAreas(): failed to get dashboard url")
+		}
+
 		tkTeams, err := tkClient.GetTeamsInProductArea(ctx, p.ID)
 		if err != nil {
 			return nil, NewInternalError(err, "Failed to get teams in product area from Team Katalogen")
@@ -54,8 +61,9 @@ func GetProductAreas(ctx context.Context) ([]*ProductAreaDto, *APIError) {
 			})
 		}
 		productAreas = append(productAreas, &ProductAreaDto{
-			ProductArea: *p,
-			Teams:       teams,
+			ProductArea:  *p,
+			Teams:        teams,
+			DashboardURL: dash.Url,
 		})
 	}
 	return productAreas, nil
