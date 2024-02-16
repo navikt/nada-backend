@@ -99,66 +99,25 @@ func New(
 	})
 
 	router.Route("/api/dataproducts", func(r chi.Router) {
-		r.Get("/{id}", func(w http.ResponseWriter, r *http.Request) {
-			dpdto, apiErr := GetDataproduct(r.Context(), chi.URLParam(r, "id"))
-			if apiErr != nil {
-				apiErr.Log()
-				http.Error(w, apiErr.Error(), apiErr.HttpStatus)
-				return
-			}
-			err := json.NewEncoder(w).Encode(dpdto)
-			if err != nil {
-				http.Error(w, err.Error(), http.StatusInternalServerError)
-				return
-			}
-		})
+		r.Get("/{id}", apiGetWrapper(func(r *http.Request) (interface{}, *APIError) {
+			return GetDataproduct(r.Context(), chi.URLParam(r, "id"))
+		}))
 	})
 
 	router.Route("/api/datasets", func(r chi.Router) {
-		r.Get("/{id}", func(w http.ResponseWriter, r *http.Request) {
-			dsdto, apiErr := GetDataset(r.Context(), chi.URLParam(r, "id"))
-			if apiErr != nil {
-				apiErr.Log()
-				http.Error(w, apiErr.Error(), apiErr.HttpStatus)
-				return
-			}
-			err := json.NewEncoder(w).Encode(dsdto)
-			if err != nil {
-				http.Error(w, err.Error(), http.StatusInternalServerError)
-				return
-			}
-		})
+		r.Get("/{id}", apiGetWrapper(func(r *http.Request) (interface{}, *APIError) {
+			return GetDataset(r.Context(), chi.URLParam(r, "id"))
+		}))
 	})
 
 	router.Route("/api/productareas", func(r chi.Router) {
-		r.Get("/", func(w http.ResponseWriter, r *http.Request) {
-			padto, apiErr := GetProductAreas(r.Context())
-			if apiErr != nil {
-				apiErr.Log()
-				http.Error(w, apiErr.Error(), apiErr.HttpStatus)
-				return
-			}
-			err := json.NewEncoder(w).Encode(padto)
-			if err != nil {
-				http.Error(w, err.Error(), http.StatusInternalServerError)
-				return
-			}
-		})
+		r.Get("/", apiGetWrapper(func(r *http.Request) (interface{}, *APIError) {
+			return GetProductAreas(r.Context())
+		}))
 
-		r.Get("/{id}", func(w http.ResponseWriter, r *http.Request) {
-			padto, apiErr := GetProductAreaWithAssets(r.Context(), chi.URLParam(r, "id"))
-			if apiErr != nil {
-				apiErr.Log()
-				http.Error(w, apiErr.Error(), apiErr.HttpStatus)
-				return
-			}
-			err := json.NewEncoder(w).Encode(padto)
-			if err != nil {
-				http.Error(w, err.Error(), http.StatusInternalServerError)
-				return
-			}
-		})
-
+		r.Get("/{id}", apiGetWrapper(func(r *http.Request) (interface{}, *APIError) {
+			return GetProductAreaWithAssets(r.Context(), chi.URLParam(r, "id"))
+		}))
 	})
 
 	return router
