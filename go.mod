@@ -10,7 +10,7 @@ require (
 	cloud.google.com/go/bigquery v1.59.0
 	cloud.google.com/go/iam v1.1.6
 	cloud.google.com/go/storage v1.37.0
-	github.com/99designs/gqlgen v0.17.43
+	github.com/99designs/gqlgen v0.17.44
 	github.com/99designs/gqlgen-contrib v0.1.1-0.20200601100547-7a955d321bbd
 	github.com/btcsuite/btcutil v1.0.2
 	github.com/coreos/go-oidc/v3 v3.9.0
