@@ -70,12 +70,12 @@ func (t *teamkatalogen) Search(ctx context.Context, query string) ([]*models.Tea
 	setRequestHeaders(req)
 	res, err := httpwithcache.Do(t.client, req)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("unable to retrieve teams from team catalogue")
 	}
 
 	var tkRes TeamkatalogenResponse
 	if err := json.NewDecoder(bytes.NewReader(res)).Decode(&tkRes); err != nil {
-		return nil, err
+		return nil, fmt.Errorf("unable to retrieve teams from team catalogue")
 	}
 
 	ret := []*models.TeamkatalogenResult{}
@@ -113,7 +113,7 @@ func (t *teamkatalogen) GetTeamsInProductArea(ctx context.Context, paID string) 
 	setRequestHeaders(req)
 	res, err := httpwithcache.Do(t.client, req)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("unable to retrieve teams in product area with id '%v' from team catalogue", paID)
 	}
 
 	var teams struct {
@@ -125,7 +125,7 @@ func (t *teamkatalogen) GetTeamsInProductArea(ctx context.Context, paID string) 
 	}
 
 	if err := json.Unmarshal(res, &teams); err != nil {
-		return nil, err
+		return nil, fmt.Errorf("unable to retrieve teams in product area with id '%v' from team catalogue", paID)
 	}
 
 	teamsGraph := make([]*Team, len(teams.Content))
@@ -149,7 +149,7 @@ func (t *teamkatalogen) GetProductArea(ctx context.Context, paID string) (*Produ
 	setRequestHeaders(req)
 	res, err := httpwithcache.Do(t.client, req)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("unable to get product area '%v' from team catalogue", paID)
 	}
 
 	var pa struct {
@@ -158,7 +158,7 @@ func (t *teamkatalogen) GetProductArea(ctx context.Context, paID string) (*Produ
 	}
 
 	if err := json.Unmarshal(res, &pa); err != nil {
-		return nil, err
+		return nil, fmt.Errorf("unable to get product area '%v' from team catalogue", paID)
 	}
 	return &ProductArea{
 		ID:   pa.ID,
@@ -179,7 +179,7 @@ func (t *teamkatalogen) GetProductAreas(ctx context.Context) ([]*ProductArea, er
 	setRequestHeaders(req)
 	res, err := httpwithcache.Do(t.client, req)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("unable to retrieve product areas from team catalogue")
 	}
 
 	var pasdto struct {
@@ -191,7 +191,7 @@ func (t *teamkatalogen) GetProductAreas(ctx context.Context) ([]*ProductArea, er
 	}
 
 	if err := json.Unmarshal(res, &pasdto); err != nil {
-		return nil, err
+		return nil, fmt.Errorf("unable to retrieve product areas from team catalogue")
 	}
 
 	pas := make([]*ProductArea, 0)
@@ -215,7 +215,7 @@ func (t *teamkatalogen) GetTeam(ctx context.Context, teamID string) (*Team, erro
 	setRequestHeaders(req)
 	res, err := httpwithcache.Do(t.client, req)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("unable to retrieve team '%v' from team catalogue", teamID)
 	}
 
 	var team struct {
@@ -225,7 +225,7 @@ func (t *teamkatalogen) GetTeam(ctx context.Context, teamID string) (*Team, erro
 	}
 
 	if err := json.Unmarshal(res, &team); err != nil {
-		return nil, err
+		return nil, fmt.Errorf("unable to retrieve team '%v' from team catalogue", teamID)
 	}
 
 	return &Team{

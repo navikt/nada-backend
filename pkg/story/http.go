@@ -93,6 +93,8 @@ func (h *Handler) Create(w http.ResponseWriter, r *http.Request) {
 
 	if err := h.setProductAreaAndTeamCatalogURL(r.Context(), &newStory); err != nil {
 		h.log.WithError(err).Errorf("setting product area and team catalog URL")
+		h.writeError(w, http.StatusBadRequest, fmt.Errorf("error creating story, unable to get team from teamcatalogue corresponding to team id '%v'", *newStory.TeamID))
+		return
 	}
 
 	story, err := h.repo.CreateStory(r.Context(), team, newStory)
@@ -218,7 +220,11 @@ func (h *Handler) createStory(w http.ResponseWriter, r *http.Request, next http.
 
 	team, err := h.repo.GetTeamFromToken(r.Context(), token)
 	if err != nil {
-		h.writeError(w, http.StatusForbidden, err)
+		if errors.Is(err, sql.ErrNoRows) {
+			h.writeError(w, http.StatusForbidden, errors.New("no nada teams correspond to the team token provided with the request"))
+		} else {
+			h.writeError(w, http.StatusForbidden, err)
+		}
 		return
 	}
 
