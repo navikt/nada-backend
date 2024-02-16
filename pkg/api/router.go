@@ -144,6 +144,21 @@ func New(
 				return
 			}
 		})
+
+		r.Get("/{id}", func(w http.ResponseWriter, r *http.Request) {
+			padto, apiErr := GetProductAreaWithAssets(r.Context(), chi.URLParam(r, "id"))
+			if apiErr != nil {
+				apiErr.Log()
+				http.Error(w, apiErr.Error(), apiErr.HttpStatus)
+				return
+			}
+			err := json.NewEncoder(w).Encode(padto)
+			if err != nil {
+				http.Error(w, err.Error(), http.StatusInternalServerError)
+				return
+			}
+		})
+
 	})
 
 	return router

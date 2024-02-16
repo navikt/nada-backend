@@ -70,6 +70,7 @@ WHERE
 ORDER BY
     last_modified DESC;
 
+
 -- name: GetInsightProductsNumberByTeam :one
 SELECT
     COUNT(*) as "count"

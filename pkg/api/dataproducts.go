@@ -53,7 +53,7 @@ type BigQuery struct {
 	Schema        []*TableColumn `json:"schema"`
 }
 
-type DatasetDto struct {
+type Dataset struct {
 	ID                       uuid.UUID `json:"id"`
 	DataproductID            uuid.UUID `json:"dataproductID"`
 	Name                     string    `json:"name"`
@@ -90,19 +90,23 @@ type DataproductOwner struct {
 	TeamID           *string `json:"teamID"`
 }
 
-type DataproductDto struct {
-	ID           uuid.UUID               `json:"id"`
-	Name         string                  `json:"name"`
-	Created      time.Time               `json:"created"`
-	LastModified time.Time               `json:"lastModified"`
-	Description  *string                 `json:"description"`
-	Slug         string                  `json:"slug"`
-	Owner        *DataproductOwner       `json:"owner"`
-	Datasets     []*DatasetInDataproduct `json:"datasets"`
-	Keywords     []string                `json:"keywords"`
+type Dataproduct struct {
+	ID           uuid.UUID         `json:"id"`
+	Name         string            `json:"name"`
+	Created      time.Time         `json:"created"`
+	LastModified time.Time         `json:"lastModified"`
+	Description  *string           `json:"description"`
+	Slug         string            `json:"slug"`
+	Owner        *DataproductOwner `json:"owner"`
+	Keywords     []string          `json:"keywords"`
 }
 
-func GetDataproduct(ctx context.Context, id string) (*DataproductDto, *APIError) {
+type DataproductWithDataset struct {
+	Dataproduct
+	Datasets []*DatasetInDataproduct `json:"datasets"`
+}
+
+func GetDataproduct(ctx context.Context, id string) (*DataproductWithDataset, *APIError) {
 	uuid, err := uuid.Parse(id)
 	if err != nil {
 		return nil, NewAPIError(http.StatusBadRequest, err, "GetDataproduct(): Invalid UUID")
@@ -115,10 +119,10 @@ func GetDataproduct(ctx context.Context, id string) (*DataproductDto, *APIError)
 
 	//it is safe to directly use the first element without checking the length
 	//because if the length was 0, the sql query should have returned no row
-	return dataproductsFromSQL(sqldp)[0], nil
+	return &dataproductsWithDatasetFromSQL(sqldp)[0], nil
 }
 
-func GetDataset(ctx context.Context, id string) (*DatasetDto, *APIError) {
+func GetDataset(ctx context.Context, id string) (*Dataset, *APIError) {
 	uuid, err := uuid.Parse(id)
 	if err != nil {
 		return nil, NewAPIError(http.StatusBadRequest, err, "GetDataset(): Invalid UUID")
@@ -137,22 +141,29 @@ func GetDataset(ctx context.Context, id string) (*DatasetDto, *APIError) {
 	return ds, nil
 }
 
-func dataproductsFromSQL(dprows []gensql.DataproductView) []*DataproductDto {
+func dataproductsFromSQL(dprows []gensql.DataproductView) []Dataproduct {
+	dataproducts := []Dataproduct{}
+	dataproductsWithDataset := dataproductsWithDatasetFromSQL(dprows)
+	for _, dp := range dataproductsWithDataset {
+		dataproducts = append(dataproducts, dp.Dataproduct)
+	}
+	return dataproducts
+}
+
+func dataproductsWithDatasetFromSQL(dprows []gensql.DataproductView) []DataproductWithDataset {
 	datasets := datasetsFromSQL(dprows)
 
-	dataproducts := []*DataproductDto{}
+	dataproducts := []DataproductWithDataset{}
 
+__loop_rows:
 	for _, dprow := range dprows {
-		var dataproduct *DataproductDto
-
 		for _, dp := range dataproducts {
 			if dp.ID == dprow.DpID {
-				dataproduct = dp
-				break
+				continue __loop_rows
 			}
 		}
-		if dataproduct == nil {
-			dataproduct = &DataproductDto{
+		dataproduct := DataproductWithDataset{
+			Dataproduct: Dataproduct{
 				ID:           dprow.DpID,
 				Name:         dprow.DpName,
 				Created:      dprow.DpCreated,
@@ -165,29 +176,29 @@ func dataproductsFromSQL(dprows []gensql.DataproductView) []*DataproductDto {
 					TeamContact:      nullStringToPtr(dprow.TeamContact),
 					TeamID:           nullStringToPtr(dprow.TeamID),
 				},
-			}
-			dpdatasets := []*DatasetInDataproduct{}
-			for _, ds := range datasets {
-				if ds.DataproductID == dataproduct.ID {
-					dpdatasets = append(dpdatasets, ds)
-				}
-			}
-
-			keywordsMap := make(map[string]bool)
-			for _, ds := range dpdatasets {
-				for _, k := range ds.Keywords {
-					keywordsMap[k] = true
-				}
-			}
-			keywords := []string{}
-			for k := range keywordsMap {
-				keywords = append(keywords, k)
-			}
-
-			dataproduct.Datasets = dpdatasets
-			dataproduct.Keywords = keywords
-			dataproducts = append(dataproducts, dataproduct)
+			},
 		}
+		dpdatasets := []*DatasetInDataproduct{}
+		for _, ds := range datasets {
+			if ds.DataproductID == dataproduct.ID {
+				dpdatasets = append(dpdatasets, ds)
+			}
+		}
+
+		keywordsMap := make(map[string]bool)
+		for _, ds := range dpdatasets {
+			for _, k := range ds.Keywords {
+				keywordsMap[k] = true
+			}
+		}
+		keywords := []string{}
+		for k := range keywordsMap {
+			keywords = append(keywords, k)
+		}
+
+		dataproduct.Datasets = dpdatasets
+		dataproduct.Keywords = keywords
+		dataproducts = append(dataproducts, dataproduct)
 	}
 	return dataproducts
 }
@@ -226,8 +237,8 @@ func datasetsFromSQL(dsrows []gensql.DataproductView) []*DatasetInDataproduct {
 	return datasets
 }
 
-func datasetFromSQL(dsrows []gensql.DatasetView) (*DatasetDto, *APIError) {
-	var dataset *DatasetDto
+func datasetFromSQL(dsrows []gensql.DatasetView) (*Dataset, *APIError) {
+	var dataset *Dataset
 
 	for _, dsrow := range dsrows {
 		piiTags := "{}"
@@ -235,7 +246,7 @@ func datasetFromSQL(dsrows []gensql.DatasetView) (*DatasetDto, *APIError) {
 			piiTags = string(dsrow.PiiTags.RawMessage)
 		}
 		if dataset == nil {
-			dataset = &DatasetDto{
+			dataset = &Dataset{
 				ID:            dsrow.DsID,
 				Name:          dsrow.DsName,
 				Created:       dsrow.DsCreated,

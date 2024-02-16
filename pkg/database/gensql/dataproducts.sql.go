@@ -403,19 +403,6 @@ func (q *Queries) GetDataproductsByTeam(ctx context.Context, teamID sql.NullStri
 	return items, nil
 }
 
-const getDataproductsNumberByTeam = `-- name: GetDataproductsNumberByTeam :one
-SELECT COUNT(*) as "count"
-FROM dataproducts
-WHERE team_id = $1
-`
-
-func (q *Queries) GetDataproductsNumberByTeam(ctx context.Context, teamID sql.NullString) (int64, error) {
-	row := q.db.QueryRowContext(ctx, getDataproductsNumberByTeam, teamID)
-	var count int64
-	err := row.Scan(&count)
-	return count, err
-}
-
 const updateDataproduct = `-- name: UpdateDataproduct :one
 UPDATE dataproducts
 SET "name"              = $1,
