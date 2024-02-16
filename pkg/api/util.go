@@ -50,6 +50,7 @@ func apiGetWrapper(handlerDelegate func(r *http.Request) (interface{}, *APIError
 		}
 		err := json.NewEncoder(w).Encode(dto)
 		if err != nil {
+			log.WithError(err).Error("Failed to encode response")
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
 		}
