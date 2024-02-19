@@ -14,13 +14,14 @@ import (
 	"github.com/coreos/go-oidc/v3/oidc"
 	"github.com/google/uuid"
 	"github.com/navikt/nada-backend/pkg/database"
+	"github.com/navikt/nada-backend/pkg/database/gensql"
 	"github.com/navikt/nada-backend/pkg/graph/models"
 	"github.com/navikt/nada-backend/pkg/teamkatalogen"
 	"github.com/sirupsen/logrus"
 	"golang.org/x/oauth2"
 )
 
-var querier database.Querier
+var querier gensql.Querier
 var tkClient teamkatalogen.Teamkatalogen
 var log *logrus.Logger
 

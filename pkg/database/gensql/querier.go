@@ -45,6 +45,7 @@ type Querier interface {
 	GetAccessiblePseudoDatasetsByUser(ctx context.Context, arg GetAccessiblePseudoDatasetsByUserParams) ([]GetAccessiblePseudoDatasetsByUserRow, error)
 	GetActiveAccessToDatasetForSubject(ctx context.Context, arg GetActiveAccessToDatasetForSubjectParams) (DatasetAccess, error)
 	GetAllMetabaseMetadata(ctx context.Context) ([]MetabaseMetadatum, error)
+	GetAllTeams(ctx context.Context) ([]TkTeam, error)
 	GetBigqueryDatasource(ctx context.Context, arg GetBigqueryDatasourceParams) (DatasourceBigquery, error)
 	GetBigqueryDatasources(ctx context.Context) ([]DatasourceBigquery, error)
 	GetDashboard(ctx context.Context, id string) (Dashboard, error)
@@ -55,7 +56,7 @@ type Querier interface {
 	GetDataproducts(ctx context.Context, arg GetDataproductsParams) ([]Dataproduct, error)
 	GetDataproductsByGroups(ctx context.Context, groups []string) ([]Dataproduct, error)
 	GetDataproductsByIDs(ctx context.Context, ids []uuid.UUID) ([]Dataproduct, error)
-	GetDataproductsByProductArea(ctx context.Context, teamID []string) ([]Dataproduct, error)
+	GetDataproductsByProductArea(ctx context.Context, teamID []string) ([]DataproductWithTeamkatalogenView, error)
 	GetDataproductsByTeam(ctx context.Context, teamID sql.NullString) ([]Dataproduct, error)
 	GetDataproductsNumberByTeam(ctx context.Context, teamID sql.NullString) (int64, error)
 	GetDataset(ctx context.Context, id uuid.UUID) (Dataset, error)
@@ -72,7 +73,7 @@ type Querier interface {
 	GetInsightProductByGroups(ctx context.Context, groups []string) ([]InsightProduct, error)
 	GetInsightProducts(ctx context.Context) ([]InsightProduct, error)
 	GetInsightProductsByIDs(ctx context.Context, ids []uuid.UUID) ([]InsightProduct, error)
-	GetInsightProductsByProductArea(ctx context.Context, teamID []string) ([]InsightProduct, error)
+	GetInsightProductsByProductArea(ctx context.Context, teamID []string) ([]InsightProductWithTeamkatalogenView, error)
 	GetInsightProductsByTeam(ctx context.Context, teamID sql.NullString) ([]InsightProduct, error)
 	GetInsightProductsNumberByTeam(ctx context.Context, teamID sql.NullString) (int64, error)
 	GetJoinableViewWithDataset(ctx context.Context, id uuid.UUID) ([]GetJoinableViewWithDatasetRow, error)
@@ -88,12 +89,14 @@ type Querier interface {
 	GetNadaTokensForTeams(ctx context.Context, teams []string) ([]NadaToken, error)
 	GetOwnerGroupOfDataset(ctx context.Context, datasetID uuid.UUID) (string, error)
 	GetPollyDocumentation(ctx context.Context, id uuid.UUID) (PollyDocumentation, error)
+	GetProductArea(ctx context.Context, id uuid.UUID) (TkProductArea, error)
+	GetProductAreas(ctx context.Context) ([]TkProductArea, error)
 	GetPseudoDatasourcesToDelete(ctx context.Context) ([]DatasourceBigquery, error)
 	GetSession(ctx context.Context, token string) (Session, error)
 	GetStories(ctx context.Context) ([]Story, error)
 	GetStoriesByGroups(ctx context.Context, groups []string) ([]Story, error)
 	GetStoriesByIDs(ctx context.Context, ids []uuid.UUID) ([]Story, error)
-	GetStoriesByProductArea(ctx context.Context, teamID []string) ([]Story, error)
+	GetStoriesByProductArea(ctx context.Context, teamID []string) ([]StoryWithTeamkatalogenView, error)
 	GetStoriesByTeam(ctx context.Context, teamID sql.NullString) ([]Story, error)
 	GetStoriesNumberByTeam(ctx context.Context, teamID sql.NullString) (int64, error)
 	GetStory(ctx context.Context, id uuid.UUID) (Story, error)
@@ -102,6 +105,7 @@ type Querier interface {
 	GetTags(ctx context.Context) ([]Tag, error)
 	GetTeamFromNadaToken(ctx context.Context, token uuid.UUID) (string, error)
 	GetTeamProjects(ctx context.Context) ([]TeamProject, error)
+	GetTeamsInProductArea(ctx context.Context, productAreaID uuid.NullUUID) ([]TkTeam, error)
 	GrantAccessToDataset(ctx context.Context, arg GrantAccessToDatasetParams) (DatasetAccess, error)
 	ListAccessRequestsForDataset(ctx context.Context, datasetID uuid.UUID) ([]DatasetAccessRequest, error)
 	ListAccessRequestsForOwner(ctx context.Context, owner []string) ([]DatasetAccessRequest, error)
@@ -129,6 +133,8 @@ type Querier interface {
 	UpdateInsightProduct(ctx context.Context, arg UpdateInsightProductParams) (InsightProduct, error)
 	UpdateStory(ctx context.Context, arg UpdateStoryParams) (Story, error)
 	UpdateTag(ctx context.Context, arg UpdateTagParams) error
+	UpsertProductArea(ctx context.Context, arg UpsertProductAreaParams) error
+	UpsertTeam(ctx context.Context, arg UpsertTeamParams) error
 }
 
 var _ Querier = (*Queries)(nil)

@@ -3,13 +3,17 @@ package teamkatalogen
 import (
 	"bytes"
 	"context"
+	"database/sql"
 	"encoding/json"
 	"fmt"
 	"net/http"
 	"strings"
 
+	"github.com/google/uuid"
+	"github.com/navikt/nada-backend/pkg/database/gensql"
 	"github.com/navikt/nada-backend/pkg/graph/models"
 	"github.com/navikt/nada-backend/pkg/httpwithcache"
+	"github.com/sirupsen/logrus"
 )
 
 type ProductArea struct {
@@ -19,6 +23,7 @@ type ProductArea struct {
 	Name string `json:"name"`
 	//areaType is the type of the product area.
 	AreaType string `json:"areaType"`
+	Teams    []Team `json:"teams"`
 }
 
 type Team struct {
@@ -40,8 +45,11 @@ type Teamkatalogen interface {
 }
 
 type teamkatalogen struct {
-	client *http.Client
-	url    string
+	client  *http.Client
+	url     string
+	log     *logrus.Logger
+	querier gensql.Querier
+	db      *sql.DB
 }
 
 type TeamkatalogenResponse struct {
@@ -57,8 +65,10 @@ type TeamkatalogenResponse struct {
 	} `json:"content"`
 }
 
-func New(url string) Teamkatalogen {
-	return &teamkatalogen{client: http.DefaultClient, url: url}
+func New(url string, db *sql.DB, querier gensql.Querier, log *logrus.Logger) Teamkatalogen {
+	tk := &teamkatalogen{client: http.DefaultClient, url: url, log: log, db: db, querier: querier}
+	tk.RunSyncer()
+	return tk
 }
 
 func (t *teamkatalogen) Search(ctx context.Context, query string) ([]*models.TeamkatalogenResult, error) {
@@ -140,33 +150,7 @@ func (t *teamkatalogen) GetTeamsInProductArea(ctx context.Context, paID string) 
 	return teamsGraph, nil
 }
 
-func (t *teamkatalogen) GetProductArea(ctx context.Context, paID string) (*ProductArea, error) {
-	req, err := http.NewRequestWithContext(ctx, http.MethodGet, t.url+"/productarea/"+paID, nil)
-	if err != nil {
-		return nil, err
-	}
-
-	setRequestHeaders(req)
-	res, err := httpwithcache.Do(t.client, req)
-	if err != nil {
-		return nil, fmt.Errorf("unable to get product area '%v' from team catalogue", paID)
-	}
-
-	var pa struct {
-		ID   string `json:"id"`
-		Name string `json:"name"`
-	}
-
-	if err := json.Unmarshal(res, &pa); err != nil {
-		return nil, fmt.Errorf("unable to get product area '%v' from team catalogue", paID)
-	}
-	return &ProductArea{
-		ID:   pa.ID,
-		Name: pa.Name,
-	}, nil
-}
-
-func (t *teamkatalogen) GetProductAreas(ctx context.Context) ([]*ProductArea, error) {
+func (t *teamkatalogen) restGetProductAreas(ctx context.Context) ([]*ProductArea, error) {
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, t.url+"/productarea", nil)
 	q := req.URL.Query()
 	q.Add("status", "active")
@@ -242,4 +226,75 @@ func (t *teamkatalogen) GetTeamCatalogURL(teamID string) string {
 func setRequestHeaders(req *http.Request) {
 	req.Header.Set("Accept", "application/json")
 	req.Header.Set("Nav-Consumer-Id", "nada-backend")
+}
+
+func (t *teamkatalogen) GetProductAreas(ctx context.Context) ([]*ProductArea, error) {
+	pas, err := t.querier.GetProductAreas(ctx)
+	if err != nil {
+		return nil, err
+	}
+	teams, err := t.querier.GetAllTeams(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	productAreas := make([]*ProductArea, 0)
+	for _, pa := range pas {
+		paTeams := make([]Team, 0)
+		for _, team := range teams {
+			if team.ProductAreaID.Valid && team.ProductAreaID.UUID == pa.ID {
+				paTeams = append(paTeams, Team{
+					ID:            team.ID.String(),
+					Name:          team.Name,
+					ProductAreaID: team.ProductAreaID.UUID.String(),
+				})
+			}
+		}
+		areaType := ""
+		if pa.AreaType.Valid {
+			areaType = pa.AreaType.String
+		}
+		productAreas = append(productAreas, &ProductArea{
+			ID:       pa.ID.String(),
+			Name:     pa.Name,
+			AreaType: areaType,
+			Teams:    paTeams,
+		})
+	}
+
+	return productAreas, nil
+}
+
+func (t *teamkatalogen) GetProductArea(ctx context.Context, paID string) (*ProductArea, error) {
+	pa, err := t.querier.GetProductArea(ctx, uuid.MustParse(paID))
+	if err != nil {
+		return nil, err
+	}
+	teams, err := t.querier.GetTeamsInProductArea(ctx, uuid.NullUUID{
+		UUID:  pa.ID,
+		Valid: true,
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	paTeams := make([]Team, 0)
+	for _, team := range teams {
+		paTeams = append(paTeams, Team{
+			ID:            team.ID.String(),
+			Name:          team.Name,
+			ProductAreaID: team.ProductAreaID.UUID.String(),
+		})
+	}
+
+	areaType := ""
+	if pa.AreaType.Valid {
+		areaType = pa.AreaType.String
+	}
+	return &ProductArea{
+		ID:       pa.ID.String(),
+		Name:     pa.Name,
+		AreaType: areaType,
+		Teams:    paTeams,
+	}, nil
 }
