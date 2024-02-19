@@ -40,6 +40,10 @@ func (r *Repo) GetNadaTokensForTeams(ctx context.Context, teams []string) ([]*mo
 	return tokens, nil
 }
 
+func (r *Repo) RotateNadaToken(ctx context.Context, team string) error {
+	return r.Querier.RotateNadaToken(ctx, team)
+}
+
 func (r *Repo) DeleteNadaToken(ctx context.Context, team string) error {
 	return r.Querier.DeleteNadaToken(ctx, team)
 }
