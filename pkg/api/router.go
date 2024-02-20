@@ -1,7 +1,9 @@
 package api
 
 import (
+	"context"
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"strings"
 
@@ -25,6 +27,8 @@ type HTTPAPI interface {
 	Callback(w http.ResponseWriter, r *http.Request)
 	Logout(w http.ResponseWriter, r *http.Request)
 }
+
+var ErrUnauthorized = fmt.Errorf("unauthorized")
 
 func New(
 	repo *database.Repo,
@@ -128,5 +132,24 @@ func New(
 		})
 	})
 
+	router.Route("/api/user", func(r chi.Router) {
+		r.Use(authMW)
+		r.Put("/token", func(w http.ResponseWriter, r *http.Request) {
+			team := r.URL.Query().Get("team")
+			if apiErr := RotateNadaToken(r.Context(), team); apiErr != nil {
+				http.Error(w, apiErr.Error(), apiErr.HttpStatus)
+				return
+			}
+		})
+	})
+
 	return router
+}
+
+func ensureUserInGroup(ctx context.Context, group string) error {
+	user := auth.GetUser(ctx)
+	if user == nil || !user.GoogleGroups.Contains(group) {
+		return ErrUnauthorized
+	}
+	return nil
 }
