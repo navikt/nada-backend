@@ -11,10 +11,17 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/navikt/nada-backend/pkg/database/gensql"
-	"github.com/navikt/nada-backend/pkg/graph/models"
 	"github.com/navikt/nada-backend/pkg/httpwithcache"
 	"github.com/sirupsen/logrus"
 )
+
+type TeamkatalogenResult struct {
+	TeamID        string `json:"teamID"`
+	URL           string `json:"url"`
+	Name          string `json:"name"`
+	Description   string `json:"description"`
+	ProductAreaID string `json:"productAreaID"`
+}
 
 type ProductArea struct {
 	// id is the id of the product area.
@@ -36,7 +43,7 @@ type Team struct {
 }
 
 type Teamkatalogen interface {
-	Search(ctx context.Context, query string) ([]*models.TeamkatalogenResult, error)
+	Search(ctx context.Context, gcpGroups []string) ([]TeamkatalogenResult, error)
 	GetTeamsInProductArea(ctx context.Context, paID string) ([]*Team, error)
 	GetProductArea(ctx context.Context, paID string) (*ProductArea, error)
 	GetProductAreas(ctx context.Context) ([]*ProductArea, error)
@@ -71,7 +78,19 @@ func New(url string, db *sql.DB, querier gensql.Querier, log *logrus.Logger) Tea
 	return tk
 }
 
-func (t *teamkatalogen) Search(ctx context.Context, query string) ([]*models.TeamkatalogenResult, error) {
+func ContainsAnyCaseInsensitive(s string, patterns []string) bool {
+	if len(patterns) == 0 {
+		return true
+	}
+	for _, q := range patterns {
+		if strings.Contains(strings.ToLower(s), strings.ToLower(q)) {
+			return true
+		}
+	}
+	return false
+}
+
+func (t *teamkatalogen) Search(ctx context.Context, gcpGroups []string) ([]TeamkatalogenResult, error) {
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, fmt.Sprintf("%v/team?status=ACTIVE", t.url), nil)
 	if err != nil {
 		return nil, err
@@ -88,20 +107,21 @@ func (t *teamkatalogen) Search(ctx context.Context, query string) ([]*models.Tea
 		return nil, fmt.Errorf("unable to retrieve teams from team catalogue")
 	}
 
-	ret := []*models.TeamkatalogenResult{}
+	ret := []TeamkatalogenResult{}
 	for _, r := range tkRes.Content {
 		isMatch := false
-		if strings.Contains(strings.ToLower(r.Name), strings.ToLower(query)) {
+		if ContainsAnyCaseInsensitive(r.Name, gcpGroups) {
 			isMatch = true
 		}
 		for _, team := range r.NaisTeams {
-			if strings.Contains(strings.ToLower(team), strings.ToLower(query)) {
+			if ContainsAnyCaseInsensitive(team, gcpGroups) {
 				isMatch = true
 				break
 			}
 		}
+
 		if isMatch {
-			ret = append(ret, &models.TeamkatalogenResult{
+			ret = append(ret, TeamkatalogenResult{
 				URL:           r.Links.Ui,
 				Name:          r.Name,
 				Description:   r.Description,
@@ -245,7 +265,7 @@ func (t *teamkatalogen) GetProductAreas(ctx context.Context) ([]*ProductArea, er
 			if team.ProductAreaID.Valid && team.ProductAreaID.UUID == pa.ID {
 				paTeams = append(paTeams, Team{
 					ID:            team.ID.String(),
-					Name:          team.Name,
+					Name:          team.Name.String,
 					ProductAreaID: team.ProductAreaID.UUID.String(),
 				})
 			}
@@ -256,7 +276,7 @@ func (t *teamkatalogen) GetProductAreas(ctx context.Context) ([]*ProductArea, er
 		}
 		productAreas = append(productAreas, &ProductArea{
 			ID:       pa.ID.String(),
-			Name:     pa.Name,
+			Name:     pa.Name.String,
 			AreaType: areaType,
 			Teams:    paTeams,
 		})
@@ -282,7 +302,7 @@ func (t *teamkatalogen) GetProductArea(ctx context.Context, paID string) (*Produ
 	for _, team := range teams {
 		paTeams = append(paTeams, Team{
 			ID:            team.ID.String(),
-			Name:          team.Name,
+			Name:          team.Name.String,
 			ProductAreaID: team.ProductAreaID.UUID.String(),
 		})
 	}
@@ -293,7 +313,7 @@ func (t *teamkatalogen) GetProductArea(ctx context.Context, paID string) (*Produ
 	}
 	return &ProductArea{
 		ID:       pa.ID.String(),
-		Name:     pa.Name,
+		Name:     pa.Name.String,
 		AreaType: areaType,
 		Teams:    paTeams,
 	}, nil

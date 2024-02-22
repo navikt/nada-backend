@@ -171,7 +171,7 @@ type DataproductView struct {
 	TeamkatalogenUrl sql.NullString
 	TeamContact      sql.NullString
 	TeamID           sql.NullString
-	TeamName         string
+	TeamName         sql.NullString
 	PaName           sql.NullString
 	DsDpID           uuid.NullUUID
 	DsID             uuid.NullUUID
@@ -195,7 +195,7 @@ type DataproductWithTeamkatalogenView struct {
 	TeamkatalogenUrl sql.NullString
 	TeamContact      sql.NullString
 	TeamID           sql.NullString
-	TeamName         string
+	TeamName         sql.NullString
 	PaName           sql.NullString
 }
 
@@ -333,7 +333,7 @@ type InsightProductWithTeamkatalogenView struct {
 	Group            string
 	TeamkatalogenUrl sql.NullString
 	TeamID           sql.NullString
-	TeamName         string
+	TeamName         sql.NullString
 	PaName           sql.NullString
 }
 
@@ -420,7 +420,7 @@ type StoryWithTeamkatalogenView struct {
 	TeamkatalogenUrl sql.NullString
 	TeamID           sql.NullString
 	Group            string
-	TeamName         string
+	TeamName         sql.NullString
 	PaName           sql.NullString
 }
 
@@ -441,12 +441,12 @@ type ThirdPartyMapping struct {
 
 type TkProductArea struct {
 	ID       uuid.UUID
-	Name     string
+	Name     sql.NullString
 	AreaType sql.NullString
 }
 
 type TkTeam struct {
 	ID            uuid.UUID
 	ProductAreaID uuid.NullUUID
-	Name          string
+	Name          sql.NullString
 }

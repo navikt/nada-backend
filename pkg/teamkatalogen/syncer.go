@@ -2,6 +2,7 @@ package teamkatalogen
 
 import (
 	"context"
+	"database/sql"
 	"time"
 
 	"github.com/google/uuid"
@@ -57,8 +58,11 @@ func (t *teamkatalogen) syncTeamkatalogen() {
 		}
 
 		err = t.querier.UpsertProductArea(context.Background(), gensql.UpsertProductAreaParams{
-			ID:   paUUID,
-			Name: pa.Name,
+			ID: paUUID,
+			Name: sql.NullString{
+				String: pa.Name,
+				Valid:  true,
+			},
 		})
 		if err != nil {
 			t.log.WithError(err).Error("Failed to upsert product area")
@@ -76,7 +80,10 @@ func (t *teamkatalogen) syncTeamkatalogen() {
 		err = t.querier.UpsertTeam(context.Background(), gensql.UpsertTeamParams{
 			ID:            teamUUID,
 			ProductAreaID: uuid.NullUUID{UUID: uuid.MustParse(team.ProductAreaID), Valid: true},
-			Name:          team.Name,
+			Name: sql.NullString{
+				String: team.Name,
+				Valid:  true,
+			},
 		})
 		if err != nil {
 			t.log.WithError(err).Error("Failed to upsert team")

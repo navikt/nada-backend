@@ -7,6 +7,7 @@ package gensql
 
 import (
 	"context"
+	"database/sql"
 
 	"github.com/google/uuid"
 )
@@ -121,7 +122,7 @@ SET
 
 type UpsertProductAreaParams struct {
 	ID   uuid.UUID
-	Name string
+	Name sql.NullString
 }
 
 func (q *Queries) UpsertProductArea(ctx context.Context, arg UpsertProductAreaParams) error {
@@ -143,7 +144,7 @@ SET
 type UpsertTeamParams struct {
 	ID            uuid.UUID
 	ProductAreaID uuid.NullUUID
-	Name          string
+	Name          sql.NullString
 }
 
 func (q *Queries) UpsertTeam(ctx context.Context, arg UpsertTeamParams) error {

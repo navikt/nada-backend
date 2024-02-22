@@ -28,9 +28,9 @@ type Story struct {
 	// lastModified is the timestamp for when the dataproduct was last modified.
 	LastModified *time.Time `json:"lastModified"`
 	// group is the owner group of the data story.
-	Group           string `json:"group"`
-	TeamName        string `json:"teamName"`
-	ProductAreaName string `json:"productAreaName"`
+	Group           string  `json:"group"`
+	TeamName        *string `json:"teamName"`
+	ProductAreaName string  `json:"productAreaName"`
 }
 
 func storyFromSQL(story *gensql.StoryWithTeamkatalogenView) *Story {
@@ -45,7 +45,7 @@ func storyFromSQL(story *gensql.StoryWithTeamkatalogenView) *Story {
 		TeamkatalogenURL: nullStringToPtr(story.TeamkatalogenUrl),
 		Description:      story.Description,
 		Group:            story.Group,
-		TeamName:         story.TeamName,
+		TeamName:         nullStringToPtr(story.TeamName),
 		ProductAreaName:  nullStringToString(story.PaName),
 	}
 }

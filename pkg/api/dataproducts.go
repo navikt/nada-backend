@@ -99,7 +99,7 @@ type Dataproduct struct {
 	Slug            string            `json:"slug"`
 	Owner           *DataproductOwner `json:"owner"`
 	Keywords        []string          `json:"keywords"`
-	TeamName        string            `json:"teamName"`
+	TeamName        *string           `json:"teamName"`
 	ProductAreaName string            `json:"productAreaName"`
 }
 

@@ -33,7 +33,7 @@ type InsightProduct struct {
 	Created time.Time `json:"created"`
 	// lastModified is the timestamp for when the insight product was last modified
 	LastModified    *time.Time `json:"lastModified,omitempty"`
-	TeamName        string     `json:"teamName"`
+	TeamName        *string    `json:"teamName"`
 	ProductAreaName string     `json:"productAreaName"`
 }
 
@@ -50,7 +50,7 @@ func insightProductFromSQL(insightProductSQL *gensql.InsightProductWithTeamkatal
 		TeamID:           nullStringToPtr(insightProductSQL.TeamID),
 		Group:            insightProductSQL.Group,
 		Link:             insightProductSQL.Link,
-		TeamName:         insightProductSQL.TeamName,
+		TeamName:         nullStringToPtr(insightProductSQL.TeamName),
 		ProductAreaName:  nullStringToString(insightProductSQL.PaName),
 	}
 }

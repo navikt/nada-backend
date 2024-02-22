@@ -177,7 +177,7 @@ func dataproductFromSQL(dp *gensql.DataproductWithTeamkatalogenView) *Dataproduc
 		Created:         dp.Created,
 		LastModified:    dp.LastModified,
 		Slug:            dp.Slug,
-		TeamName:        dp.TeamName,
+		TeamName:        nullStringToPtr(dp.TeamName),
 		ProductAreaName: nullStringToString(dp.PaName),
 	}
 }

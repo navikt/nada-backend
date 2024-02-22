@@ -109,7 +109,7 @@ type GetDataproductWithDatasetsBasicRow struct {
 	TeamkatalogenUrl         sql.NullString
 	TeamContact              sql.NullString
 	TeamID                   sql.NullString
-	TeamName                 string
+	TeamName                 sql.NullString
 	PaName                   sql.NullString
 	ID_2                     uuid.NullUUID
 	Name_2                   sql.NullString

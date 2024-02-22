@@ -1,18 +1,19 @@
 -- +goose Up
 CREATE TABLE tk_product_areas (
     "id" uuid PRIMARY KEY,
-    "name" TEXT NOT NULL,
+    "name" TEXT,
 	"areaType" TEXT
 );
 
 CREATE TABLE tk_teams (
     "id" uuid PRIMARY KEY,
     "product_area_id" uuid,
-    "name" TEXT NOT NULL,
+    "name" TEXT,
     CONSTRAINT fk_teams_product_area
         FOREIGN KEY (product_area_id)
             REFERENCES tk_product_areas (id) ON DELETE SET NULL    
 );
+
 CREATE VIEW dataproduct_with_teamkatalogen_view AS(
 SELECT dp.*, tkt.name as team_name, tkpa.name as pa_name FROM dataproducts dp LEFT JOIN 
 	(tk_teams tkt LEFT JOIN tk_product_areas tkpa
