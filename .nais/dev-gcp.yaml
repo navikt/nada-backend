@@ -103,6 +103,6 @@ spec:
         - application: behandlingskatalog-backend
           namespace: teamdatajegerne
       external:
-        - host: teams.nav.cloud.nais.io
+        - host: console.nav.cloud.nais.io
         - host: amplitude.nav.no
         - host: slack.com
