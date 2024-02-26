@@ -5,10 +5,13 @@ import (
 
 	"github.com/navikt/nada-backend/pkg/database/gensql"
 	"github.com/navikt/nada-backend/pkg/graph/models"
+	"github.com/sirupsen/logrus"
 )
 
 func (r *Repo) KeywordsSortedByPopularity(ctx context.Context) ([]*models.Keyword, error) {
+	logrus.Info("Getting keywords sorted by popularity")
 	ks, err := r.Querier.GetKeywords(ctx)
+	logrus.Info("Getting keywords sorted by popularity done")
 	if err != nil {
 		return nil, err
 	}

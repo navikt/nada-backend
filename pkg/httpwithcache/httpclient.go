@@ -27,7 +27,7 @@ func Do(client *http.Client, req *http.Request) ([]byte, error) {
 	sqlerr := cacheDB.QueryRow(`SELECT response_body, created_at,
 	 last_tried_update_at FROM http_cache WHERE endpoint = $1`,
 		endpoint).Scan(&cachedResponse, &lastCached, &lastTried)
-	log.Info("httpwithcacahe: search database result", cachedResponse, sqlerr, lastCached, lastTried)
+	log.Info("httpwithcacahe: search database result", len(cachedResponse), sqlerr, lastCached, lastTried)
 	if sqlerr == nil && isValidResponse(cachedResponse) {
 		if time.Since(lastCached) > cacheExpire && time.Since(lastTried) > cacheExpire {
 			log.Info("httpwithcacahe: cache expired, updating cache", req.URL.String())
