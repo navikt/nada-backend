@@ -9,7 +9,6 @@ import (
 	"fmt"
 	"net/http"
 	"os"
-	"strings"
 	"time"
 
 	"github.com/navikt/nada-backend/pkg/auth"
@@ -27,8 +26,8 @@ type TeamProjectsUpdater struct {
 }
 
 type Team struct {
-	GoogleGroupsEmail string `json:"googleGroupEmail"`
-	Environments      []struct {
+	Slug         string `json:"slug"`
+	Environments []struct {
 		Name         string `json:"name"`
 		GcpProjectID string `json:"gcpProjectID"`
 	} `json:"environments"`
@@ -107,7 +106,7 @@ func (t *TeamProjectsUpdater) fetchTeamGoogleProjects(ctx context.Context, limit
 				Nodes    []Team `json:"nodes"`
 				PageInfo struct {
 					HasNextPage bool `json:"hasNextPage"`
-				}
+				} `json:"pageInfo"`
 			} `json:"teams"`
 		} `json:"data"`
 	}
@@ -116,7 +115,7 @@ func (t *TeamProjectsUpdater) fetchTeamGoogleProjects(ctx context.Context, limit
 		query GCPTeams($limit: Int, $offset: Int){
 			teams(limit: $limit, offset: $offset) {
 				nodes {
-					googleGroupEmail
+					slug
 					environments {
 						name
 						gcpProjectID
@@ -211,11 +210,7 @@ func (t *TeamProjectsUpdater) getTeamProjectsMappingForEnv(teams []Team) (map[st
 	for _, t := range teams {
 		for _, p := range t.Environments {
 			if p.Name == env {
-				parts := strings.Split(t.GoogleGroupsEmail, "@")
-				if len(parts) != 2 {
-					return nil, fmt.Errorf("incorrect email format for group %v", t.GoogleGroupsEmail)
-				}
-				out[parts[0]] = p.GcpProjectID
+				out[t.Slug] = p.GcpProjectID
 			}
 		}
 	}
