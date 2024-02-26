@@ -23,11 +23,14 @@ func Do(client *http.Client, req *http.Request) ([]byte, error) {
 
 	cacheExpire := 2 * time.Hour
 	endpoint := req.URL.String()
+	log.Info("httpwithcacahe: search database for", endpoint)
 	sqlerr := cacheDB.QueryRow(`SELECT response_body, created_at,
 	 last_tried_update_at FROM http_cache WHERE endpoint = $1`,
 		endpoint).Scan(&cachedResponse, &lastCached, &lastTried)
+	log.Info("httpwithcacahe: search database result", cachedResponse, sqlerr, lastCached, lastTried)
 	if sqlerr == nil && isValidResponse(cachedResponse) {
 		if time.Since(lastCached) > cacheExpire && time.Since(lastTried) > cacheExpire {
+			log.Info("httpwithcacahe: cache expired, updating cache", req.URL.String())
 			reqWithoutContext, err := http.NewRequest(req.Method, req.URL.String(), req.Body)
 			if err == nil {
 				go updateCache(client, reqWithoutContext)
@@ -51,6 +54,7 @@ func isValidResponse(response []byte) bool {
 
 func updateCache(client *http.Client, req *http.Request) ([]byte, error) {
 	endpoint := req.URL.String()
+	log.Info("httpwithcacahe: empty cache for", endpoint)
 	_, err := cacheDB.Exec(`INSERT INTO http_cache (endpoint, response_body, created_at, last_tried_update_at) 
 	VALUES ($1, $2, $3, $3) ON CONFLICT (endpoint) DO UPDATE SET last_tried_update_at = $3`, endpoint, "", time.Now().UTC())
 	if err != nil {
@@ -58,15 +62,19 @@ func updateCache(client *http.Client, req *http.Request) ([]byte, error) {
 		return nil, err
 	}
 
+	log.Info("httpwithcacahe: make request")
 	body, statusCode, err := doActualRequest(client, req)
+	log.Info("httpwithcacahe: request done", body, statusCode, err)
 	if err != nil || !isSuccessful(statusCode) {
 		log.WithError(err).Errorf("Failed to make request to %v, status code: %v", req.URL.String(), statusCode)
 		return nil, err
 	}
 
 	if isValidResponse(body) {
+		log.Info("httpwithcacahe: update cache for", endpoint)
 		_, err = cacheDB.Exec(`INSERT INTO http_cache (endpoint, response_body, created_at, last_tried_update_at) 
 		VALUES ($1, $2, $3, $3) ON CONFLICT (endpoint) DO UPDATE SET response_body = $2, created_at= $3, last_tried_update_at = $3`, endpoint, body, time.Now().UTC())
+		log.Info("httpwithcacahe: cache updated")
 		if err != nil {
 			log.WithError(err).Errorf("Failed to save response to database %v", req.URL.String())
 			return body, nil
