@@ -5,7 +5,6 @@ package teamprojectsupdater
 import (
 	"context"
 	"database/sql"
-	"encoding/json"
 	"fmt"
 	"log"
 	"net/http"
@@ -60,51 +59,47 @@ func TestTeamProjectsUpdater(t *testing.T) {
 	}
 
 	server := httptest.NewServer(http.HandlerFunc(func(writer http.ResponseWriter, request *http.Request) {
-		res := map[string]any{
-			"data": map[string]any{
-				"teams": []map[string]any{
-					{
-						"reconcilerState": map[string]any{
-							"googleWorkspaceGroupEmail": "team-a@nav.no",
-							"gcpProjects": []map[string]string{
-								{
-									"environment": "dev-gcp",
-									"projectId":   "a-dev",
-								},
-							},
-						},
-					},
-					{
-						"reconcilerState": map[string]any{
-							"googleWorkspaceGroupEmail": "team-b@nav.no",
-							"gcpProjects": []map[string]string{
-								{
-									"environment": "dev-gcp",
-									"projectId":   "b-dev",
-								},
-							},
-						},
-					},
-					{
-						"reconcilerState": map[string]any{
-							"googleWorkspaceGroupEmail": "team-c@nav.no",
-							"gcpProjects": []map[string]string{
-								{
-									"environment": "dev-gcp",
-									"projectId":   "c-dev",
-								},
-							},
-						},
-					},
-				},
-			},
-		}
-		resBytes, err := json.Marshal(res)
-		if err != nil {
-			panic(err)
-		}
+		teamsData := `
+{
+    "data": {
+        "teams": {
+            "nodes": [
+                {
+                    "slug": "team-a",
+                    "environments": [
+                        {
+                            "gcpProjectID": "a-dev",
+                            "name": "dev-gcp"
+                        }
+                    ]
+                },
+                {
+                    "slug": "team-b",
+                    "environments": [
+                        {
+                            "gcpProjectID": "b-dev",
+                            "name": "dev-gcp"
+                        }
+                    ]
+                },
+                {
+                    "slug": "team-c",
+                    "environments": [
+                        {
+                            "gcpProjectID": "c-dev",
+                            "name": "dev-gcp"
+                        }
+                    ]
+                }
+            ],
+            "pageInfo": {
+                "hasNextPage": false
+            }
+        }
+    }
+}`
 
-		fmt.Fprintln(writer, string(resBytes))
+		fmt.Fprintln(writer, string(teamsData))
 	}))
 
 	tup := NewTeamProjectsUpdater(context.TODO(), server.URL, "apiKey", server.Client(), repo)
