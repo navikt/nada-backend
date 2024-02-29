@@ -65,6 +65,7 @@ CREATE VIEW dataproduct_view AS(
 );
 
 -- +goose Down
+DROP VIEW dataproduct_view;
 DROP VIEW insight_product_with_teamkatalogen_view;
 DROP VIEW story_with_teamkatalogen_view;
 DROP VIEW dataproduct_with_teamkatalogen_view;
