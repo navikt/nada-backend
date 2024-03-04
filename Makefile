@@ -53,7 +53,7 @@ local-with-auth:
 	--console-api-key="$(CONSOLE_API_KEY)" \
 	--nada-token-creds=1234 \
 	--log-level=debug \
-	--central-data-project=nav-central-data-dev-e170 
+	--central-data-project=datamarkedsplassen-dev \ 
 
 
 local:
