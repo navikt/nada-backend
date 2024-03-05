@@ -74,7 +74,6 @@ spec:
   gcp:
     sqlInstances:
       - type: POSTGRES_12
-        name: nada-backend-v2
         databases:
           - name: nada
             users:
