@@ -84,6 +84,18 @@ spec:
             value: "50"
           - name: cloudsql.logical_decoding
             value: "on"
+      - type: POSTGRES_12
+        name: nada-backend-v2
+        databases:
+          - name: nada
+            users:
+              - name: datastream
+        flags:
+          - name: max_connections
+            value: "50"
+          - name: cloudsql.logical_decoding
+            value: "on"
+        diskAutoresize: true            
     buckets:
       - name: nada-quarto-storage-dev
         publicAccessPrevention: true
