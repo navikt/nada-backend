@@ -367,7 +367,7 @@ func (c *Client) AddPermissionGroupMember(ctx context.Context, groupID int, emai
 
 type permissions struct {
 	Native  string `json:"native,omitempty"`
-	Schemas string `json:"schemas,omitempty"`
+	Schemas any    `json:"schemas,omitempty"`
 }
 
 type dataModelPermission struct {

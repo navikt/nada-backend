@@ -74,7 +74,6 @@ spec:
   gcp:
     sqlInstances:
       - type: POSTGRES_12
-        diskAutoresize: true
         databases:
           - name: nada
             users:
@@ -84,6 +83,7 @@ spec:
             value: "50"
           - name: cloudsql.logical_decoding
             value: "on"
+        diskAutoresize: true            
     buckets:
       - name: nada-quarto-storage-dev
         publicAccessPrevention: true
@@ -103,6 +103,6 @@ spec:
         - application: behandlingskatalog-backend
           namespace: teamdatajegerne
       external:
-        - host: teams.nav.cloud.nais.io
+        - host: console.nav.cloud.nais.io
         - host: amplitude.nav.no
         - host: slack.com

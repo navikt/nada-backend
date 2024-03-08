@@ -288,8 +288,15 @@ func (c *Bigquery) CreateJoinableViewsForUser(ctx context.Context, name string, 
 	if err != nil {
 		return "", "", nil, err
 	}
-	c.createSecretTable(ctx, "secrets_vault", "secrets")
-	c.insertSecretIfNotExists(ctx, "secrets_vault", "secrets", joinableDatasetID)
+	err = c.createSecretTable(ctx, "secrets_vault", "secrets")
+	if err != nil {
+		return "", "", nil, err
+	}
+
+	err = c.insertSecretIfNotExists(ctx, "secrets_vault", "secrets", joinableDatasetID)
+	if err != nil {
+		return "", "", nil, err
+	}
 
 	viewsMap := map[uuid.UUID]string{}
 	for _, d := range datasources {

@@ -27,6 +27,11 @@ SELECT team
 FROM nada_tokens
 WHERE token = @token;
 
+-- name: RotateNadaToken :exec
+UPDATE nada_tokens
+SET token = gen_random_uuid()
+WHERE team = @team;
+
 -- name: DeleteNadaToken :exec
 DELETE FROM
     nada_tokens

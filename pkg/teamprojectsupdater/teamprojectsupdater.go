@@ -7,10 +7,8 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"io/ioutil"
 	"net/http"
 	"os"
-	"strings"
 	"time"
 
 	"github.com/navikt/nada-backend/pkg/auth"
@@ -28,13 +26,11 @@ type TeamProjectsUpdater struct {
 }
 
 type Team struct {
-	ReconcilerState struct {
-		GoogleWorkspaceGroupEmail string `json:"googleWorkspaceGroupEmail"`
-		GCPProjects               []struct {
-			Environment string `json:"environment"`
-			ProjectID   string `json:"projectId"`
-		} `json:"gcpProjects"`
-	} `json:"reconcilerState"`
+	Slug         string `json:"slug"`
+	Environments []struct {
+		Name         string `json:"name"`
+		GcpProjectID string `json:"gcpProjectID"`
+	} `json:"environments"`
 }
 
 func NewTeamProjectsUpdater(ctx context.Context, consoleURL, consoleAPIKey string, httpClient *http.Client, repo *database.Repo) *TeamProjectsUpdater {
@@ -103,63 +99,89 @@ func (t *TeamProjectsUpdater) Run(ctx context.Context, frequency time.Duration) 
 	}
 }
 
-func (t *TeamProjectsUpdater) FetchTeamGoogleProjectsMapping(ctx context.Context) error {
+func (t *TeamProjectsUpdater) fetchTeamGoogleProjects(ctx context.Context, limit, offset int) (teams []Team, hasMore bool, err error) {
 	type response struct {
 		Data struct {
-			Teams []Team `json:"teams"`
+			Teams struct {
+				Nodes    []Team `json:"nodes"`
+				PageInfo struct {
+					HasNextPage bool `json:"hasNextPage"`
+				} `json:"pageInfo"`
+			} `json:"teams"`
 		} `json:"data"`
 	}
 
 	gqlQuery := `
-	{
-		teams {
-		  reconcilerState {
-			  googleWorkspaceGroupEmail
-			  gcpProjects {
-				  environment
-				  projectId
-			  }
-		  }
+		query GCPTeams($limit: Int, $offset: Int){
+			teams(limit: $limit, offset: $offset) {
+				nodes {
+					slug
+					environments {
+						name
+						gcpProjectID
+					}
+				}
+				pageInfo {
+					hasNextPage
+				}
+			}
 		}
-	}
 	`
 
-	payload := map[string]string{"query": gqlQuery}
+	payload := map[string]any{"query": gqlQuery, "variables": map[string]any{"limit": limit, "offset": offset}}
 	payloadBytes, err := json.Marshal(payload)
 	if err != nil {
-		return err
+		return nil, false, err
 	}
 
-	r, err := http.NewRequest(http.MethodPost, fmt.Sprintf("%v/query", t.consoleURL), bytes.NewBuffer(payloadBytes))
+	r, err := http.NewRequest(http.MethodPost, fmt.Sprintf("%v/query", t.consoleURL), bytes.NewReader(payloadBytes))
 	if err != nil {
-		return err
+		return nil, false, err
 	}
 	r.Header.Add("authorization", fmt.Sprintf("Bearer %v", t.consoleAPIKey))
 	r.Header.Add("content-type", "application/json")
 
 	res, err := t.httpClient.Do(r)
 	if err != nil {
-		return err
+		return nil, false, err
 	}
 	defer res.Body.Close()
 
-	bodyBytes, err := ioutil.ReadAll(res.Body)
-	if err != nil {
-		return err
-	}
-
 	data := response{}
-	if err := json.Unmarshal(bodyBytes, &data); err != nil {
-		return err
+	if err := json.NewDecoder(res.Body).Decode(&data); err != nil {
+		return nil, false, err
 	}
 
-	projectMapping, err := t.getTeamProjectsMappingForEnv(data.Data.Teams)
+	return data.Data.Teams.Nodes, data.Data.Teams.PageInfo.HasNextPage, nil
+}
+
+func (t *TeamProjectsUpdater) FetchTeamGoogleProjectsMapping(ctx context.Context) error {
+	all := []Team{}
+
+	const limit = 100
+	offset := 0
+	for {
+		res, more, err := t.fetchTeamGoogleProjects(ctx, limit, offset)
+		if err != nil {
+			return err
+		}
+
+		all = append(all, res...)
+
+		if !more {
+			break
+		}
+
+		offset += limit
+	}
+
+	projectMapping, err := t.getTeamProjectsMappingForEnv(all)
 	if err != nil {
 		return err
 	}
 
 	if len(projectMapping) == 0 {
-		return fmt.Errorf("error parsing team projects from console, %v teams was mapped to %v team projects", len(data.Data.Teams), len(projectMapping))
+		return fmt.Errorf("error parsing team projects from console, %v teams was mapped to %v team projects", len(all), len(projectMapping))
 	}
 
 	t.TeamProjectsMapping.SetTeamProjects(projectMapping)
@@ -186,13 +208,9 @@ func (t *TeamProjectsUpdater) getTeamProjectsMappingForEnv(teams []Team) (map[st
 
 	out := map[string]string{}
 	for _, t := range teams {
-		for _, p := range t.ReconcilerState.GCPProjects {
-			if p.Environment == env {
-				parts := strings.Split(t.ReconcilerState.GoogleWorkspaceGroupEmail, "@")
-				if len(parts) != 2 {
-					return nil, fmt.Errorf("incorrect email format for group %v", t.ReconcilerState.GoogleWorkspaceGroupEmail)
-				}
-				out[parts[0]] = p.ProjectID
+		for _, p := range t.Environments {
+			if p.Name == env {
+				out[t.Slug] = p.GcpProjectID
 			}
 		}
 	}

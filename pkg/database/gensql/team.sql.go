@@ -116,3 +116,14 @@ func (q *Queries) GetTeamFromNadaToken(ctx context.Context, token uuid.UUID) (st
 	err := row.Scan(&team)
 	return team, err
 }
+
+const rotateNadaToken = `-- name: RotateNadaToken :exec
+UPDATE nada_tokens
+SET token = gen_random_uuid()
+WHERE team = $1
+`
+
+func (q *Queries) RotateNadaToken(ctx context.Context, team string) error {
+	_, err := q.db.ExecContext(ctx, rotateNadaToken, team)
+	return err
+}
