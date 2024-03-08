@@ -51,12 +51,8 @@ func GetProductAreas(ctx context.Context) (*ProductAreasDto, *APIError) {
 			return nil, DBErrorToAPIError(err, "GetProductAreas(): failed to get dashboard url")
 		}
 
-		tkTeams, err := tkClient.GetTeamsInProductArea(ctx, p.ID)
-		if err != nil {
-			return nil, NewInternalError(err, "Failed to get teams in product area from Team Katalogen")
-		}
 		teams := make([]Team, 0)
-		for _, tkTeam := range tkTeams {
+		for _, tkTeam := range p.Teams {
 			dataproductsNumber, err := querier.GetDataproductsNumberByTeam(ctx, ptrToNullString(&tkTeam.ID))
 			if err != nil {
 				return nil, DBErrorToAPIError(err, "GetProductAreas(): failed to get dataproducts number")
@@ -73,7 +69,7 @@ func GetProductAreas(ctx context.Context) (*ProductAreasDto, *APIError) {
 			}
 
 			teams = append(teams, Team{
-				Team:                  *tkTeam,
+				Team:                  tkTeam,
 				DataproductsNumber:    int(dataproductsNumber),
 				StoriesNumber:         int(storiesNumber),
 				InsightProductsNumber: int(insightProductsNumber),
@@ -93,7 +89,7 @@ func GetProductAreas(ctx context.Context) (*ProductAreasDto, *APIError) {
 func GetProductAreaWithAssets(ctx context.Context, id string) (*ProductAreaWithAssets, *APIError) {
 	tkProductArea, err := tkClient.GetProductArea(ctx, id)
 	if err != nil && err != sql.ErrNoRows {
-		return nil, DBErrorToAPIError(err, "GetProductAreaWithAssets(): failed to contact Team Katalogen")
+		return nil, DBErrorToAPIError(err, "GetProductAreaWithAssets(): failed to get product area")
 	}
 
 	dash, err := querier.GetDashboard(ctx, id)
@@ -108,15 +104,10 @@ func GetProductAreaWithAssets(ctx context.Context, id string) (*ProductAreaWithA
 		Teams: make([]TeamWithAssets, 0),
 	}
 
-	tkTeams, err := tkClient.GetTeamsInProductArea(ctx, id)
-	if err != nil && err != sql.ErrNoRows {
-		return nil, DBErrorToAPIError(err, "GetProductAreaWithAssets(): failed to get teams")
-	}
-
-	teamIDs := make([]string, len(tkTeams))
-	for idx, tkTeam := range tkTeams {
+	teamIDs := make([]string, len(tkProductArea.Teams))
+	for idx, tkTeam := range tkProductArea.Teams {
 		productArea.Teams = append(productArea.Teams, TeamWithAssets{
-			Team:            *tkTeam,
+			Team:            tkTeam,
 			Dataproducts:    []Dataproduct{},
 			Stories:         []Story{},
 			InsightProducts: []InsightProduct{},
@@ -131,7 +122,7 @@ func GetProductAreaWithAssets(ctx context.Context, id string) (*ProductAreaWithA
 	}
 
 	dataproducts, apiErr := getDataproductsByTeamID(ctx, teamIDs)
-	if err != nil {
+	if apiErr != nil {
 		return nil, apiErr
 	}
 
@@ -144,7 +135,7 @@ func GetProductAreaWithAssets(ctx context.Context, id string) (*ProductAreaWithA
 	}
 
 	stories, apiErr := getStoriesByTeamID(ctx, teamIDs)
-	if err != nil {
+	if apiErr != nil {
 		return nil, apiErr
 	}
 
@@ -157,7 +148,7 @@ func GetProductAreaWithAssets(ctx context.Context, id string) (*ProductAreaWithA
 	}
 
 	insightProducts, apiErr := getInsightProductsByTeamID(ctx, teamIDs)
-	if err != nil {
+	if apiErr != nil {
 		return nil, apiErr
 	}
 
@@ -172,7 +163,7 @@ func GetProductAreaWithAssets(ctx context.Context, id string) (*ProductAreaWithA
 	return productArea, nil
 }
 
-func dataproductFromSQL(dp *gensql.Dataproduct) *Dataproduct {
+func dataproductFromSQL(dp *gensql.DataproductWithTeamkatalogenView) *Dataproduct {
 	return &Dataproduct{
 		ID:          dp.ID,
 		Name:        dp.Name,
@@ -183,9 +174,11 @@ func dataproductFromSQL(dp *gensql.Dataproduct) *Dataproduct {
 			TeamContact:      nullStringToPtr(dp.TeamContact),
 			TeamID:           nullStringToPtr(dp.TeamID),
 		},
-		Created:      dp.Created,
-		LastModified: dp.LastModified,
-		Slug:         dp.Slug,
+		Created:         dp.Created,
+		LastModified:    dp.LastModified,
+		Slug:            dp.Slug,
+		TeamName:        nullStringToPtr(dp.TeamName),
+		ProductAreaName: nullStringToString(dp.PaName),
 	}
 }
 

@@ -124,6 +124,12 @@ func New(
 		}))
 	})
 
+	router.Route("/api/teamkatalogen", func(r chi.Router) {
+		r.Get("/", apiGetWrapper(func(r *http.Request) (interface{}, *APIError) {
+			return SearchTeamKatalogen(r.Context(), r.URL.Query()["gcpGroups"])
+		}))
+	})
+
 	router.Route("/api/user", func(r chi.Router) {
 		r.Use(authMW)
 		r.Put("/token", func(w http.ResponseWriter, r *http.Request) {

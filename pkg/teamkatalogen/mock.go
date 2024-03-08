@@ -2,20 +2,18 @@ package teamkatalogen
 
 import (
 	"context"
-	"strings"
 
 	"github.com/navikt/nada-backend/pkg/auth"
-	"github.com/navikt/nada-backend/pkg/graph/models"
 )
 
 type Mock struct {
-	Teams []*models.TeamkatalogenResult
+	Teams []TeamkatalogenResult
 }
 
 func NewMock() *Mock {
 	tk := &Mock{}
 	for _, t := range auth.MockUser.GoogleGroups {
-		tk.Teams = append(tk.Teams, &models.TeamkatalogenResult{
+		tk.Teams = append(tk.Teams, TeamkatalogenResult{
 			Name:          t.Name,
 			URL:           "https://some.url",
 			Description:   "This is a description of " + t.Name,
@@ -26,10 +24,10 @@ func NewMock() *Mock {
 	return tk
 }
 
-func (m *Mock) Search(ctx context.Context, query string) ([]*models.TeamkatalogenResult, error) {
-	ret := []*models.TeamkatalogenResult{}
+func (m *Mock) Search(ctx context.Context, gcpGroups []string) ([]TeamkatalogenResult, error) {
+	ret := []TeamkatalogenResult{}
 	for _, t := range m.Teams {
-		if strings.Contains(strings.ToLower(t.Name), strings.ToLower(query)) {
+		if ContainsAnyCaseInsensitive(t.Name, gcpGroups) {
 			ret = append(ret, t)
 		}
 	}

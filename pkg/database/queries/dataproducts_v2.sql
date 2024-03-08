@@ -5,7 +5,7 @@ WHERE dp_id = @id;
 
 -- name: GetDataproductWithDatasetsBasic :many
 SELECT *
-FROM dataproducts dp LEFT JOIN datasets ds ON ds.dataproduct_id = dp.id
+FROM dataproduct_with_teamkatalogen_view dp LEFT JOIN datasets ds ON ds.dataproduct_id = dp.id
 WHERE dp.id = @id;
 
 -- name: GetDataproductKeywords :many

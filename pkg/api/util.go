@@ -17,6 +17,14 @@ func nullStringToPtr(ns sql.NullString) *string {
 	return &ns.String
 }
 
+func nullStringToString(ns sql.NullString) string {
+	if !ns.Valid {
+		return ""
+	}
+
+	return ns.String
+}
+
 func ptrToNullString(s *string) sql.NullString {
 	if s == nil {
 		return sql.NullString{}

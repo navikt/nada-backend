@@ -320,21 +320,21 @@ func (q *Queries) GetDataproductsByIDs(ctx context.Context, ids []uuid.UUID) ([]
 }
 
 const getDataproductsByProductArea = `-- name: GetDataproductsByProductArea :many
-SELECT id, name, description, "group", created, last_modified, tsv_document, slug, teamkatalogen_url, team_contact, team_id
-FROM dataproducts
+SELECT id, name, description, "group", created, last_modified, tsv_document, slug, teamkatalogen_url, team_contact, team_id, team_name, pa_name
+FROM dataproduct_with_teamkatalogen_view
 WHERE team_id = ANY($1::text[])
 ORDER BY created DESC
 `
 
-func (q *Queries) GetDataproductsByProductArea(ctx context.Context, teamID []string) ([]Dataproduct, error) {
+func (q *Queries) GetDataproductsByProductArea(ctx context.Context, teamID []string) ([]DataproductWithTeamkatalogenView, error) {
 	rows, err := q.db.QueryContext(ctx, getDataproductsByProductArea, pq.Array(teamID))
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
-	items := []Dataproduct{}
+	items := []DataproductWithTeamkatalogenView{}
 	for rows.Next() {
-		var i Dataproduct
+		var i DataproductWithTeamkatalogenView
 		if err := rows.Scan(
 			&i.ID,
 			&i.Name,
@@ -347,6 +347,8 @@ func (q *Queries) GetDataproductsByProductArea(ctx context.Context, teamID []str
 			&i.TeamkatalogenUrl,
 			&i.TeamContact,
 			&i.TeamID,
+			&i.TeamName,
+			&i.PaName,
 		); err != nil {
 			return nil, err
 		}

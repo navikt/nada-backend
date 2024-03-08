@@ -37,7 +37,7 @@ func DBErrorToAPIError(err error, message string) *APIError {
 		return NewAPIError(http.StatusNotFound, err, message)
 	}
 
-	return NewAPIError(http.StatusInternalServerError, err, message)
+	return NewAPIError(http.StatusInternalServerError, err, message+":"+err.Error())
 }
 
 func (e *APIError) Log() {

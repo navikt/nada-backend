@@ -269,24 +269,24 @@ func (q *Queries) GetInsightProductsByIDs(ctx context.Context, ids []uuid.UUID) 
 
 const getInsightProductsByProductArea = `-- name: GetInsightProductsByProductArea :many
 SELECT
-    id, name, description, creator, created, last_modified, type, tsv_document, link, keywords, "group", teamkatalogen_url, team_id
+    id, name, description, creator, created, last_modified, type, tsv_document, link, keywords, "group", teamkatalogen_url, team_id, team_name, pa_name
 FROM
-    insight_product
+    insight_product_with_teamkatalogen_view
 WHERE
     team_id = ANY($1::text[])
 ORDER BY
     last_modified DESC
 `
 
-func (q *Queries) GetInsightProductsByProductArea(ctx context.Context, teamID []string) ([]InsightProduct, error) {
+func (q *Queries) GetInsightProductsByProductArea(ctx context.Context, teamID []string) ([]InsightProductWithTeamkatalogenView, error) {
 	rows, err := q.db.QueryContext(ctx, getInsightProductsByProductArea, pq.Array(teamID))
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
-	items := []InsightProduct{}
+	items := []InsightProductWithTeamkatalogenView{}
 	for rows.Next() {
-		var i InsightProduct
+		var i InsightProductWithTeamkatalogenView
 		if err := rows.Scan(
 			&i.ID,
 			&i.Name,
@@ -301,6 +301,8 @@ func (q *Queries) GetInsightProductsByProductArea(ctx context.Context, teamID []
 			&i.Group,
 			&i.TeamkatalogenUrl,
 			&i.TeamID,
+			&i.TeamName,
+			&i.PaName,
 		); err != nil {
 			return nil, err
 		}

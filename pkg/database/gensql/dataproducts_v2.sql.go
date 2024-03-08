@@ -42,7 +42,7 @@ func (q *Queries) GetDataproductKeywords(ctx context.Context, dpid uuid.UUID) ([
 }
 
 const getDataproductWithDatasets = `-- name: GetDataproductWithDatasets :many
-SELECT dp_id, dp_name, dp_description, dp_group, dp_created, dp_last_modified, dp_slug, teamkatalogen_url, team_contact, team_id, ds_dp_id, ds_id, ds_name, ds_description, ds_created, ds_last_modified, ds_slug, ds_keywords
+SELECT dp_id, dp_name, dp_description, dp_group, dp_created, dp_last_modified, dp_slug, teamkatalogen_url, team_contact, team_id, team_name, pa_name, ds_dp_id, ds_id, ds_name, ds_description, ds_created, ds_last_modified, ds_slug, ds_keywords
 FROM dataproduct_view
 WHERE dp_id = $1
 `
@@ -67,6 +67,8 @@ func (q *Queries) GetDataproductWithDatasets(ctx context.Context, id uuid.UUID) 
 			&i.TeamkatalogenUrl,
 			&i.TeamContact,
 			&i.TeamID,
+			&i.TeamName,
+			&i.PaName,
 			&i.DsDpID,
 			&i.DsID,
 			&i.DsName,
@@ -90,8 +92,8 @@ func (q *Queries) GetDataproductWithDatasets(ctx context.Context, id uuid.UUID) 
 }
 
 const getDataproductWithDatasetsBasic = `-- name: GetDataproductWithDatasetsBasic :many
-SELECT dp.id, dp.name, dp.description, "group", dp.created, dp.last_modified, dp.tsv_document, dp.slug, teamkatalogen_url, team_contact, team_id, ds.id, ds.name, ds.description, pii, ds.created, ds.last_modified, type, ds.tsv_document, ds.slug, repo, keywords, dataproduct_id, anonymisation_description, target_user
-FROM dataproducts dp LEFT JOIN datasets ds ON ds.dataproduct_id = dp.id
+SELECT dp.id, dp.name, dp.description, "group", dp.created, dp.last_modified, dp.tsv_document, dp.slug, teamkatalogen_url, team_contact, team_id, team_name, pa_name, ds.id, ds.name, ds.description, pii, ds.created, ds.last_modified, type, ds.tsv_document, ds.slug, repo, keywords, dataproduct_id, anonymisation_description, target_user
+FROM dataproduct_with_teamkatalogen_view dp LEFT JOIN datasets ds ON ds.dataproduct_id = dp.id
 WHERE dp.id = $1
 `
 
@@ -107,6 +109,8 @@ type GetDataproductWithDatasetsBasicRow struct {
 	TeamkatalogenUrl         sql.NullString
 	TeamContact              sql.NullString
 	TeamID                   sql.NullString
+	TeamName                 sql.NullString
+	PaName                   sql.NullString
 	ID_2                     uuid.NullUUID
 	Name_2                   sql.NullString
 	Description_2            sql.NullString
@@ -144,6 +148,8 @@ func (q *Queries) GetDataproductWithDatasetsBasic(ctx context.Context, id uuid.U
 			&i.TeamkatalogenUrl,
 			&i.TeamContact,
 			&i.TeamID,
+			&i.TeamName,
+			&i.PaName,
 			&i.ID_2,
 			&i.Name_2,
 			&i.Description_2,

@@ -91,14 +91,16 @@ type DataproductOwner struct {
 }
 
 type Dataproduct struct {
-	ID           uuid.UUID         `json:"id"`
-	Name         string            `json:"name"`
-	Created      time.Time         `json:"created"`
-	LastModified time.Time         `json:"lastModified"`
-	Description  *string           `json:"description"`
-	Slug         string            `json:"slug"`
-	Owner        *DataproductOwner `json:"owner"`
-	Keywords     []string          `json:"keywords"`
+	ID              uuid.UUID         `json:"id"`
+	Name            string            `json:"name"`
+	Created         time.Time         `json:"created"`
+	LastModified    time.Time         `json:"lastModified"`
+	Description     *string           `json:"description"`
+	Slug            string            `json:"slug"`
+	Owner           *DataproductOwner `json:"owner"`
+	Keywords        []string          `json:"keywords"`
+	TeamName        *string           `json:"teamName"`
+	ProductAreaName string            `json:"productAreaName"`
 }
 
 type DataproductWithDataset struct {

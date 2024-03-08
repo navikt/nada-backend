@@ -32,10 +32,12 @@ type InsightProduct struct {
 	// created is the timestamp for when the insight product was created
 	Created time.Time `json:"created"`
 	// lastModified is the timestamp for when the insight product was last modified
-	LastModified *time.Time `json:"lastModified,omitempty"`
+	LastModified    *time.Time `json:"lastModified,omitempty"`
+	TeamName        *string    `json:"teamName"`
+	ProductAreaName string     `json:"productAreaName"`
 }
 
-func insightProductFromSQL(insightProductSQL *gensql.InsightProduct) *InsightProduct {
+func insightProductFromSQL(insightProductSQL *gensql.InsightProductWithTeamkatalogenView) *InsightProduct {
 	return &InsightProduct{
 		ID:               insightProductSQL.ID,
 		Name:             insightProductSQL.Name,
@@ -48,5 +50,7 @@ func insightProductFromSQL(insightProductSQL *gensql.InsightProduct) *InsightPro
 		TeamID:           nullStringToPtr(insightProductSQL.TeamID),
 		Group:            insightProductSQL.Group,
 		Link:             insightProductSQL.Link,
+		TeamName:         nullStringToPtr(insightProductSQL.TeamName),
+		ProductAreaName:  nullStringToString(insightProductSQL.PaName),
 	}
 }
