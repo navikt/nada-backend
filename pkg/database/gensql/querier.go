@@ -115,6 +115,7 @@ type Querier interface {
 	ReplaceStoriesTag(ctx context.Context, arg ReplaceStoriesTagParams) error
 	RestoreMetabaseMetadata(ctx context.Context, datasetID uuid.UUID) error
 	RevokeAccessToDataset(ctx context.Context, id uuid.UUID) error
+	RotateNadaToken(ctx context.Context, team string) error
 	Search(ctx context.Context, arg SearchParams) ([]SearchRow, error)
 	SetDatasourceDeleted(ctx context.Context, id uuid.UUID) error
 	SetJoinableViewDeleted(ctx context.Context, id uuid.UUID) error

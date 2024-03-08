@@ -132,15 +132,19 @@ func authenticate(ctx context.Context, obj interface{}, next graphql.Resolver, o
 	return next(ctx)
 }
 
-func (r *Resolver) prepareBigQuery(ctx context.Context, bq models.NewBigQuery, group string) (models.BigqueryMetadata, error) {
+func (r *Resolver) prepareBigQuery(ctx context.Context, bq models.NewBigQuery, viewBQ *models.NewBigQuery, group string) (models.BigqueryMetadata, error) {
 	if err := r.ensureGroupOwnsGCPProject(ctx, group, bq.ProjectID); err != nil {
 		return models.BigqueryMetadata{}, err
 	}
 
-	metadata, err := r.bigquery.TableMetadata(ctx, bq.ProjectID, bq.Dataset, bq.Table)
+	if viewBQ == nil {
+		viewBQ = &bq
+	}
+
+	metadata, err := r.bigquery.TableMetadata(ctx, viewBQ.ProjectID, viewBQ.Dataset, viewBQ.Table)
 	if err != nil {
 		return models.BigqueryMetadata{}, fmt.Errorf("trying to fetch metadata on table %v, but it does not exist in %v.%v",
-			bq.Table, bq.ProjectID, bq.Dataset)
+			viewBQ.Table, viewBQ.ProjectID, viewBQ.Dataset)
 	}
 
 	switch metadata.TableType {
@@ -148,7 +152,7 @@ func (r *Resolver) prepareBigQuery(ctx context.Context, bq models.NewBigQuery, g
 	case bigquery.ViewTable:
 		fallthrough
 	case bigquery.MaterializedView:
-		if err := r.accessMgr.AddToAuthorizedViews(ctx, bq.ProjectID, bq.Dataset, bq.ProjectID, bq.Dataset, bq.Table); err != nil {
+		if err := r.accessMgr.AddToAuthorizedViews(ctx, bq.ProjectID, bq.Dataset, viewBQ.ProjectID, viewBQ.Dataset, viewBQ.Table); err != nil {
 			return models.BigqueryMetadata{}, err
 		}
 	default:

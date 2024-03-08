@@ -6,7 +6,6 @@ import (
 	"context"
 	"database/sql"
 	"errors"
-	"fmt"
 	"log"
 	"os"
 	"testing"
@@ -161,7 +160,6 @@ func TestRepo(t *testing.T) {
 				t.Fatal(err)
 			}
 
-			fmt.Println(dp)
 			_, err = repo.GrantAccessToDataset(context.Background(), dp.ID, &ti, subj, "")
 			if err != nil {
 				t.Fatal(err)
