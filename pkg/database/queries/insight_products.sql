@@ -70,6 +70,15 @@ WHERE
 ORDER BY
     last_modified DESC;
 
+
+-- name: GetInsightProductsNumberByTeam :one
+SELECT
+    COUNT(*) as "count"
+FROM
+    insight_product
+WHERE
+    team_id = @team_id;
+
 -- name: UpdateInsightProduct :one
 UPDATE
     insight_product

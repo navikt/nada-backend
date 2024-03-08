@@ -17,6 +17,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/navikt/nada-backend/pkg/graph/models"
 	graph "github.com/navikt/nada-backend/pkg/graph/scalars"
+	"github.com/navikt/nada-backend/pkg/teamkatalogen"
 	gqlparser "github.com/vektah/gqlparser/v2"
 	"github.com/vektah/gqlparser/v2/ast"
 )
@@ -432,12 +433,12 @@ type OwnerResolver interface {
 	ProductAreaID(ctx context.Context, obj *models.Owner) (*string, error)
 }
 type ProductAreaResolver interface {
-	Dataproducts(ctx context.Context, obj *models.ProductArea) ([]*models.Dataproduct, error)
-	DashboardURL(ctx context.Context, obj *models.ProductArea) (string, error)
+	Dataproducts(ctx context.Context, obj *teamkatalogen.ProductArea) ([]*models.Dataproduct, error)
+	DashboardURL(ctx context.Context, obj *teamkatalogen.ProductArea) (string, error)
 
-	Stories(ctx context.Context, obj *models.ProductArea) ([]*models.Story, error)
-	InsightProducts(ctx context.Context, obj *models.ProductArea) ([]*models.InsightProduct, error)
-	Teams(ctx context.Context, obj *models.ProductArea) ([]*models.Team, error)
+	Stories(ctx context.Context, obj *teamkatalogen.ProductArea) ([]*models.Story, error)
+	InsightProducts(ctx context.Context, obj *teamkatalogen.ProductArea) ([]*models.InsightProduct, error)
+	Teams(ctx context.Context, obj *teamkatalogen.ProductArea) ([]*teamkatalogen.Team, error)
 }
 type QueryResolver interface {
 	Version(ctx context.Context) (string, error)
@@ -456,9 +457,9 @@ type QueryResolver interface {
 	InsightProduct(ctx context.Context, id uuid.UUID) (*models.InsightProduct, error)
 	Keywords(ctx context.Context) ([]*models.Keyword, error)
 	Polly(ctx context.Context, q string) ([]*models.QueryPolly, error)
-	ProductArea(ctx context.Context, id string) (*models.ProductArea, error)
-	ProductAreas(ctx context.Context) ([]*models.ProductArea, error)
-	Team(ctx context.Context, id string) (*models.Team, error)
+	ProductArea(ctx context.Context, id string) (*teamkatalogen.ProductArea, error)
+	ProductAreas(ctx context.Context) ([]*teamkatalogen.ProductArea, error)
+	Team(ctx context.Context, id string) (*teamkatalogen.Team, error)
 	JoinableViews(ctx context.Context) ([]*models.JoinableView, error)
 	JoinableView(ctx context.Context, id uuid.UUID) (*models.JoinableViewWithDatasource, error)
 	Search(ctx context.Context, q *models.SearchQueryOld, options *models.SearchQuery) ([]*models.SearchResultRow, error)
@@ -474,10 +475,10 @@ type StoryResolver interface {
 	ProductAreaID(ctx context.Context, obj *models.Story) (*string, error)
 }
 type TeamResolver interface {
-	DashboardURL(ctx context.Context, obj *models.Team) (string, error)
-	Dataproducts(ctx context.Context, obj *models.Team) ([]*models.Dataproduct, error)
-	Stories(ctx context.Context, obj *models.Team) ([]*models.Story, error)
-	InsightProducts(ctx context.Context, obj *models.Team) ([]*models.InsightProduct, error)
+	DashboardURL(ctx context.Context, obj *teamkatalogen.Team) (string, error)
+	Dataproducts(ctx context.Context, obj *teamkatalogen.Team) ([]*models.Dataproduct, error)
+	Stories(ctx context.Context, obj *teamkatalogen.Team) ([]*models.Story, error)
+	InsightProducts(ctx context.Context, obj *teamkatalogen.Team) ([]*models.InsightProduct, error)
 }
 type UserInfoResolver interface {
 	GoogleGroups(ctx context.Context, obj *models.UserInfo) ([]*models.Group, error)
@@ -3355,7 +3356,7 @@ extend type Query {
     ): [QueryPolly!]!
 }
 `, BuiltIn: false},
-	{Name: "../../../schema/productAreas.graphql", Input: `type ProductArea @goModel(model: "github.com/navikt/nada-backend/pkg/graph/models.ProductArea") {
+	{Name: "../../../schema/productAreas.graphql", Input: `type ProductArea @goModel(model: "github.com/navikt/nada-backend/pkg/teamkatalogen.ProductArea") {
     "id is the product area external id in teamkatalogen."
     id: String!
     "name is the name of the product area."
@@ -3374,7 +3375,7 @@ extend type Query {
     teams: [Team!]!
 }
 
-type Team @goModel(model: "github.com/navikt/nada-backend/pkg/graph/models.Team") {
+type Team @goModel(model: "github.com/navikt/nada-backend/pkg/teamkatalogen.Team") {
     "id is the team external id in teamkatalogen."
     id: String!
     "name is the name of the team."
@@ -11982,7 +11983,7 @@ func (ec *executionContext) fieldContext_Polly_url(ctx context.Context, field gr
 	return fc, nil
 }
 
-func (ec *executionContext) _ProductArea_id(ctx context.Context, field graphql.CollectedField, obj *models.ProductArea) (ret graphql.Marshaler) {
+func (ec *executionContext) _ProductArea_id(ctx context.Context, field graphql.CollectedField, obj *teamkatalogen.ProductArea) (ret graphql.Marshaler) {
 	fc, err := ec.fieldContext_ProductArea_id(ctx, field)
 	if err != nil {
 		return graphql.Null
@@ -12026,7 +12027,7 @@ func (ec *executionContext) fieldContext_ProductArea_id(ctx context.Context, fie
 	return fc, nil
 }
 
-func (ec *executionContext) _ProductArea_name(ctx context.Context, field graphql.CollectedField, obj *models.ProductArea) (ret graphql.Marshaler) {
+func (ec *executionContext) _ProductArea_name(ctx context.Context, field graphql.CollectedField, obj *teamkatalogen.ProductArea) (ret graphql.Marshaler) {
 	fc, err := ec.fieldContext_ProductArea_name(ctx, field)
 	if err != nil {
 		return graphql.Null
@@ -12070,7 +12071,7 @@ func (ec *executionContext) fieldContext_ProductArea_name(ctx context.Context, f
 	return fc, nil
 }
 
-func (ec *executionContext) _ProductArea_dataproducts(ctx context.Context, field graphql.CollectedField, obj *models.ProductArea) (ret graphql.Marshaler) {
+func (ec *executionContext) _ProductArea_dataproducts(ctx context.Context, field graphql.CollectedField, obj *teamkatalogen.ProductArea) (ret graphql.Marshaler) {
 	fc, err := ec.fieldContext_ProductArea_dataproducts(ctx, field)
 	if err != nil {
 		return graphql.Null
@@ -12134,7 +12135,7 @@ func (ec *executionContext) fieldContext_ProductArea_dataproducts(ctx context.Co
 	return fc, nil
 }
 
-func (ec *executionContext) _ProductArea_dashboardURL(ctx context.Context, field graphql.CollectedField, obj *models.ProductArea) (ret graphql.Marshaler) {
+func (ec *executionContext) _ProductArea_dashboardURL(ctx context.Context, field graphql.CollectedField, obj *teamkatalogen.ProductArea) (ret graphql.Marshaler) {
 	fc, err := ec.fieldContext_ProductArea_dashboardURL(ctx, field)
 	if err != nil {
 		return graphql.Null
@@ -12178,7 +12179,7 @@ func (ec *executionContext) fieldContext_ProductArea_dashboardURL(ctx context.Co
 	return fc, nil
 }
 
-func (ec *executionContext) _ProductArea_areaType(ctx context.Context, field graphql.CollectedField, obj *models.ProductArea) (ret graphql.Marshaler) {
+func (ec *executionContext) _ProductArea_areaType(ctx context.Context, field graphql.CollectedField, obj *teamkatalogen.ProductArea) (ret graphql.Marshaler) {
 	fc, err := ec.fieldContext_ProductArea_areaType(ctx, field)
 	if err != nil {
 		return graphql.Null
@@ -12222,7 +12223,7 @@ func (ec *executionContext) fieldContext_ProductArea_areaType(ctx context.Contex
 	return fc, nil
 }
 
-func (ec *executionContext) _ProductArea_stories(ctx context.Context, field graphql.CollectedField, obj *models.ProductArea) (ret graphql.Marshaler) {
+func (ec *executionContext) _ProductArea_stories(ctx context.Context, field graphql.CollectedField, obj *teamkatalogen.ProductArea) (ret graphql.Marshaler) {
 	fc, err := ec.fieldContext_ProductArea_stories(ctx, field)
 	if err != nil {
 		return graphql.Null
@@ -12290,7 +12291,7 @@ func (ec *executionContext) fieldContext_ProductArea_stories(ctx context.Context
 	return fc, nil
 }
 
-func (ec *executionContext) _ProductArea_insightProducts(ctx context.Context, field graphql.CollectedField, obj *models.ProductArea) (ret graphql.Marshaler) {
+func (ec *executionContext) _ProductArea_insightProducts(ctx context.Context, field graphql.CollectedField, obj *teamkatalogen.ProductArea) (ret graphql.Marshaler) {
 	fc, err := ec.fieldContext_ProductArea_insightProducts(ctx, field)
 	if err != nil {
 		return graphql.Null
@@ -12362,7 +12363,7 @@ func (ec *executionContext) fieldContext_ProductArea_insightProducts(ctx context
 	return fc, nil
 }
 
-func (ec *executionContext) _ProductArea_teams(ctx context.Context, field graphql.CollectedField, obj *models.ProductArea) (ret graphql.Marshaler) {
+func (ec *executionContext) _ProductArea_teams(ctx context.Context, field graphql.CollectedField, obj *teamkatalogen.ProductArea) (ret graphql.Marshaler) {
 	fc, err := ec.fieldContext_ProductArea_teams(ctx, field)
 	if err != nil {
 		return graphql.Null
@@ -12388,9 +12389,9 @@ func (ec *executionContext) _ProductArea_teams(ctx context.Context, field graphq
 		}
 		return graphql.Null
 	}
-	res := resTmp.([]*models.Team)
+	res := resTmp.([]*teamkatalogen.Team)
 	fc.Result = res
-	return ec.marshalNTeam2ᚕᚖgithubᚗcomᚋnaviktᚋnadaᚑbackendᚋpkgᚋgraphᚋmodelsᚐTeamᚄ(ctx, field.Selections, res)
+	return ec.marshalNTeam2ᚕᚖgithubᚗcomᚋnaviktᚋnadaᚑbackendᚋpkgᚋteamkatalogenᚐTeamᚄ(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) fieldContext_ProductArea_teams(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
@@ -13817,9 +13818,9 @@ func (ec *executionContext) _Query_productArea(ctx context.Context, field graphq
 		}
 		return graphql.Null
 	}
-	res := resTmp.(*models.ProductArea)
+	res := resTmp.(*teamkatalogen.ProductArea)
 	fc.Result = res
-	return ec.marshalNProductArea2ᚖgithubᚗcomᚋnaviktᚋnadaᚑbackendᚋpkgᚋgraphᚋmodelsᚐProductArea(ctx, field.Selections, res)
+	return ec.marshalNProductArea2ᚖgithubᚗcomᚋnaviktᚋnadaᚑbackendᚋpkgᚋteamkatalogenᚐProductArea(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) fieldContext_Query_productArea(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
@@ -13890,9 +13891,9 @@ func (ec *executionContext) _Query_productAreas(ctx context.Context, field graph
 		}
 		return graphql.Null
 	}
-	res := resTmp.([]*models.ProductArea)
+	res := resTmp.([]*teamkatalogen.ProductArea)
 	fc.Result = res
-	return ec.marshalNProductArea2ᚕᚖgithubᚗcomᚋnaviktᚋnadaᚑbackendᚋpkgᚋgraphᚋmodelsᚐProductAreaᚄ(ctx, field.Selections, res)
+	return ec.marshalNProductArea2ᚕᚖgithubᚗcomᚋnaviktᚋnadaᚑbackendᚋpkgᚋteamkatalogenᚐProductAreaᚄ(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) fieldContext_Query_productAreas(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
@@ -13952,9 +13953,9 @@ func (ec *executionContext) _Query_team(ctx context.Context, field graphql.Colle
 		}
 		return graphql.Null
 	}
-	res := resTmp.(*models.Team)
+	res := resTmp.(*teamkatalogen.Team)
 	fc.Result = res
-	return ec.marshalNTeam2ᚖgithubᚗcomᚋnaviktᚋnadaᚑbackendᚋpkgᚋgraphᚋmodelsᚐTeam(ctx, field.Selections, res)
+	return ec.marshalNTeam2ᚖgithubᚗcomᚋnaviktᚋnadaᚑbackendᚋpkgᚋteamkatalogenᚐTeam(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) fieldContext_Query_team(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
@@ -15491,7 +15492,7 @@ func (ec *executionContext) fieldContext_TableColumn_type(ctx context.Context, f
 	return fc, nil
 }
 
-func (ec *executionContext) _Team_id(ctx context.Context, field graphql.CollectedField, obj *models.Team) (ret graphql.Marshaler) {
+func (ec *executionContext) _Team_id(ctx context.Context, field graphql.CollectedField, obj *teamkatalogen.Team) (ret graphql.Marshaler) {
 	fc, err := ec.fieldContext_Team_id(ctx, field)
 	if err != nil {
 		return graphql.Null
@@ -15535,7 +15536,7 @@ func (ec *executionContext) fieldContext_Team_id(ctx context.Context, field grap
 	return fc, nil
 }
 
-func (ec *executionContext) _Team_name(ctx context.Context, field graphql.CollectedField, obj *models.Team) (ret graphql.Marshaler) {
+func (ec *executionContext) _Team_name(ctx context.Context, field graphql.CollectedField, obj *teamkatalogen.Team) (ret graphql.Marshaler) {
 	fc, err := ec.fieldContext_Team_name(ctx, field)
 	if err != nil {
 		return graphql.Null
@@ -15579,7 +15580,7 @@ func (ec *executionContext) fieldContext_Team_name(ctx context.Context, field gr
 	return fc, nil
 }
 
-func (ec *executionContext) _Team_productAreaID(ctx context.Context, field graphql.CollectedField, obj *models.Team) (ret graphql.Marshaler) {
+func (ec *executionContext) _Team_productAreaID(ctx context.Context, field graphql.CollectedField, obj *teamkatalogen.Team) (ret graphql.Marshaler) {
 	fc, err := ec.fieldContext_Team_productAreaID(ctx, field)
 	if err != nil {
 		return graphql.Null
@@ -15623,7 +15624,7 @@ func (ec *executionContext) fieldContext_Team_productAreaID(ctx context.Context,
 	return fc, nil
 }
 
-func (ec *executionContext) _Team_dashboardURL(ctx context.Context, field graphql.CollectedField, obj *models.Team) (ret graphql.Marshaler) {
+func (ec *executionContext) _Team_dashboardURL(ctx context.Context, field graphql.CollectedField, obj *teamkatalogen.Team) (ret graphql.Marshaler) {
 	fc, err := ec.fieldContext_Team_dashboardURL(ctx, field)
 	if err != nil {
 		return graphql.Null
@@ -15667,7 +15668,7 @@ func (ec *executionContext) fieldContext_Team_dashboardURL(ctx context.Context, 
 	return fc, nil
 }
 
-func (ec *executionContext) _Team_dataproducts(ctx context.Context, field graphql.CollectedField, obj *models.Team) (ret graphql.Marshaler) {
+func (ec *executionContext) _Team_dataproducts(ctx context.Context, field graphql.CollectedField, obj *teamkatalogen.Team) (ret graphql.Marshaler) {
 	fc, err := ec.fieldContext_Team_dataproducts(ctx, field)
 	if err != nil {
 		return graphql.Null
@@ -15731,7 +15732,7 @@ func (ec *executionContext) fieldContext_Team_dataproducts(ctx context.Context, 
 	return fc, nil
 }
 
-func (ec *executionContext) _Team_stories(ctx context.Context, field graphql.CollectedField, obj *models.Team) (ret graphql.Marshaler) {
+func (ec *executionContext) _Team_stories(ctx context.Context, field graphql.CollectedField, obj *teamkatalogen.Team) (ret graphql.Marshaler) {
 	fc, err := ec.fieldContext_Team_stories(ctx, field)
 	if err != nil {
 		return graphql.Null
@@ -15799,7 +15800,7 @@ func (ec *executionContext) fieldContext_Team_stories(ctx context.Context, field
 	return fc, nil
 }
 
-func (ec *executionContext) _Team_insightProducts(ctx context.Context, field graphql.CollectedField, obj *models.Team) (ret graphql.Marshaler) {
+func (ec *executionContext) _Team_insightProducts(ctx context.Context, field graphql.CollectedField, obj *teamkatalogen.Team) (ret graphql.Marshaler) {
 	fc, err := ec.fieldContext_Team_insightProducts(ctx, field)
 	if err != nil {
 		return graphql.Null
@@ -21470,7 +21471,7 @@ func (ec *executionContext) _Polly(ctx context.Context, sel ast.SelectionSet, ob
 
 var productAreaImplementors = []string{"ProductArea"}
 
-func (ec *executionContext) _ProductArea(ctx context.Context, sel ast.SelectionSet, obj *models.ProductArea) graphql.Marshaler {
+func (ec *executionContext) _ProductArea(ctx context.Context, sel ast.SelectionSet, obj *teamkatalogen.ProductArea) graphql.Marshaler {
 	fields := graphql.CollectFields(ec.OperationContext, sel, productAreaImplementors)
 
 	out := graphql.NewFieldSet(fields)
@@ -22656,7 +22657,7 @@ func (ec *executionContext) _TableColumn(ctx context.Context, sel ast.SelectionS
 
 var teamImplementors = []string{"Team"}
 
-func (ec *executionContext) _Team(ctx context.Context, sel ast.SelectionSet, obj *models.Team) graphql.Marshaler {
+func (ec *executionContext) _Team(ctx context.Context, sel ast.SelectionSet, obj *teamkatalogen.Team) graphql.Marshaler {
 	fields := graphql.CollectFields(ec.OperationContext, sel, teamImplementors)
 
 	out := graphql.NewFieldSet(fields)
@@ -24659,11 +24660,11 @@ func (ec *executionContext) marshalNPiiLevel2githubᚗcomᚋnaviktᚋnadaᚑback
 	return v
 }
 
-func (ec *executionContext) marshalNProductArea2githubᚗcomᚋnaviktᚋnadaᚑbackendᚋpkgᚋgraphᚋmodelsᚐProductArea(ctx context.Context, sel ast.SelectionSet, v models.ProductArea) graphql.Marshaler {
+func (ec *executionContext) marshalNProductArea2githubᚗcomᚋnaviktᚋnadaᚑbackendᚋpkgᚋteamkatalogenᚐProductArea(ctx context.Context, sel ast.SelectionSet, v teamkatalogen.ProductArea) graphql.Marshaler {
 	return ec._ProductArea(ctx, sel, &v)
 }
 
-func (ec *executionContext) marshalNProductArea2ᚕᚖgithubᚗcomᚋnaviktᚋnadaᚑbackendᚋpkgᚋgraphᚋmodelsᚐProductAreaᚄ(ctx context.Context, sel ast.SelectionSet, v []*models.ProductArea) graphql.Marshaler {
+func (ec *executionContext) marshalNProductArea2ᚕᚖgithubᚗcomᚋnaviktᚋnadaᚑbackendᚋpkgᚋteamkatalogenᚐProductAreaᚄ(ctx context.Context, sel ast.SelectionSet, v []*teamkatalogen.ProductArea) graphql.Marshaler {
 	ret := make(graphql.Array, len(v))
 	var wg sync.WaitGroup
 	isLen1 := len(v) == 1
@@ -24687,7 +24688,7 @@ func (ec *executionContext) marshalNProductArea2ᚕᚖgithubᚗcomᚋnaviktᚋna
 			if !isLen1 {
 				defer wg.Done()
 			}
-			ret[i] = ec.marshalNProductArea2ᚖgithubᚗcomᚋnaviktᚋnadaᚑbackendᚋpkgᚋgraphᚋmodelsᚐProductArea(ctx, sel, v[i])
+			ret[i] = ec.marshalNProductArea2ᚖgithubᚗcomᚋnaviktᚋnadaᚑbackendᚋpkgᚋteamkatalogenᚐProductArea(ctx, sel, v[i])
 		}
 		if isLen1 {
 			f(i)
@@ -24707,7 +24708,7 @@ func (ec *executionContext) marshalNProductArea2ᚕᚖgithubᚗcomᚋnaviktᚋna
 	return ret
 }
 
-func (ec *executionContext) marshalNProductArea2ᚖgithubᚗcomᚋnaviktᚋnadaᚑbackendᚋpkgᚋgraphᚋmodelsᚐProductArea(ctx context.Context, sel ast.SelectionSet, v *models.ProductArea) graphql.Marshaler {
+func (ec *executionContext) marshalNProductArea2ᚖgithubᚗcomᚋnaviktᚋnadaᚑbackendᚋpkgᚋteamkatalogenᚐProductArea(ctx context.Context, sel ast.SelectionSet, v *teamkatalogen.ProductArea) graphql.Marshaler {
 	if v == nil {
 		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
 			ec.Errorf(ctx, "the requested element is null which the schema does not allow")
@@ -25068,11 +25069,11 @@ func (ec *executionContext) marshalNTableColumn2ᚖgithubᚗcomᚋnaviktᚋnada�
 	return ec._TableColumn(ctx, sel, v)
 }
 
-func (ec *executionContext) marshalNTeam2githubᚗcomᚋnaviktᚋnadaᚑbackendᚋpkgᚋgraphᚋmodelsᚐTeam(ctx context.Context, sel ast.SelectionSet, v models.Team) graphql.Marshaler {
+func (ec *executionContext) marshalNTeam2githubᚗcomᚋnaviktᚋnadaᚑbackendᚋpkgᚋteamkatalogenᚐTeam(ctx context.Context, sel ast.SelectionSet, v teamkatalogen.Team) graphql.Marshaler {
 	return ec._Team(ctx, sel, &v)
 }
 
-func (ec *executionContext) marshalNTeam2ᚕᚖgithubᚗcomᚋnaviktᚋnadaᚑbackendᚋpkgᚋgraphᚋmodelsᚐTeamᚄ(ctx context.Context, sel ast.SelectionSet, v []*models.Team) graphql.Marshaler {
+func (ec *executionContext) marshalNTeam2ᚕᚖgithubᚗcomᚋnaviktᚋnadaᚑbackendᚋpkgᚋteamkatalogenᚐTeamᚄ(ctx context.Context, sel ast.SelectionSet, v []*teamkatalogen.Team) graphql.Marshaler {
 	ret := make(graphql.Array, len(v))
 	var wg sync.WaitGroup
 	isLen1 := len(v) == 1
@@ -25096,7 +25097,7 @@ func (ec *executionContext) marshalNTeam2ᚕᚖgithubᚗcomᚋnaviktᚋnadaᚑba
 			if !isLen1 {
 				defer wg.Done()
 			}
-			ret[i] = ec.marshalNTeam2ᚖgithubᚗcomᚋnaviktᚋnadaᚑbackendᚋpkgᚋgraphᚋmodelsᚐTeam(ctx, sel, v[i])
+			ret[i] = ec.marshalNTeam2ᚖgithubᚗcomᚋnaviktᚋnadaᚑbackendᚋpkgᚋteamkatalogenᚐTeam(ctx, sel, v[i])
 		}
 		if isLen1 {
 			f(i)
@@ -25116,7 +25117,7 @@ func (ec *executionContext) marshalNTeam2ᚕᚖgithubᚗcomᚋnaviktᚋnadaᚑba
 	return ret
 }
 
-func (ec *executionContext) marshalNTeam2ᚖgithubᚗcomᚋnaviktᚋnadaᚑbackendᚋpkgᚋgraphᚋmodelsᚐTeam(ctx context.Context, sel ast.SelectionSet, v *models.Team) graphql.Marshaler {
+func (ec *executionContext) marshalNTeam2ᚖgithubᚗcomᚋnaviktᚋnadaᚑbackendᚋpkgᚋteamkatalogenᚐTeam(ctx context.Context, sel ast.SelectionSet, v *teamkatalogen.Team) graphql.Marshaler {
 	if v == nil {
 		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
 			ec.Errorf(ctx, "the requested element is null which the schema does not allow")

@@ -15,8 +15,8 @@ import (
 	"github.com/navikt/nada-backend/pkg/auth"
 	"github.com/navikt/nada-backend/pkg/database"
 	"github.com/navikt/nada-backend/pkg/gcs"
-	"github.com/navikt/nada-backend/pkg/graph"
 	"github.com/navikt/nada-backend/pkg/story"
+	"github.com/navikt/nada-backend/pkg/teamkatalogen"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/sirupsen/logrus"
@@ -33,7 +33,7 @@ var ErrUnauthorized = fmt.Errorf("unauthorized")
 func New(
 	repo *database.Repo,
 	gcsClient *gcs.Client,
-	teamCatalog graph.Teamkatalogen,
+	teamCatalog teamkatalogen.Teamkatalogen,
 	httpAPI HTTPAPI,
 	authMW auth.MiddlewareHandler,
 	gqlServer *handler.Server,
@@ -103,33 +103,25 @@ func New(
 	})
 
 	router.Route("/api/dataproducts", func(r chi.Router) {
-		r.Get("/{id}", func(w http.ResponseWriter, r *http.Request) {
-			dpdto, apiErr := GetDataproduct(r.Context(), chi.URLParam(r, "id"))
-			if apiErr != nil {
-				http.Error(w, apiErr.Error(), apiErr.HttpStatus)
-				return
-			}
-			err := json.NewEncoder(w).Encode(dpdto)
-			if err != nil {
-				http.Error(w, err.Error(), http.StatusInternalServerError)
-				return
-			}
-		})
+		r.Get("/{id}", apiGetWrapper(func(r *http.Request) (interface{}, *APIError) {
+			return GetDataproduct(r.Context(), chi.URLParam(r, "id"))
+		}))
 	})
 
 	router.Route("/api/datasets", func(r chi.Router) {
-		r.Get("/{id}", func(w http.ResponseWriter, r *http.Request) {
-			dsdto, apiErr := GetDataset(r.Context(), chi.URLParam(r, "id"))
-			if apiErr != nil {
-				http.Error(w, apiErr.Error(), apiErr.HttpStatus)
-				return
-			}
-			err := json.NewEncoder(w).Encode(dsdto)
-			if err != nil {
-				http.Error(w, err.Error(), http.StatusInternalServerError)
-				return
-			}
-		})
+		r.Get("/{id}", apiGetWrapper(func(r *http.Request) (interface{}, *APIError) {
+			return GetDataset(r.Context(), chi.URLParam(r, "id"))
+		}))
+	})
+
+	router.Route("/api/productareas", func(r chi.Router) {
+		r.Get("/", apiGetWrapper(func(r *http.Request) (interface{}, *APIError) {
+			return GetProductAreas(r.Context())
+		}))
+
+		r.Get("/{id}", apiGetWrapper(func(r *http.Request) (interface{}, *APIError) {
+			return GetProductAreaWithAssets(r.Context(), chi.URLParam(r, "id"))
+		}))
 	})
 
 	router.Route("/api/user", func(r chi.Router) {

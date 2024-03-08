@@ -14,6 +14,7 @@ import (
 	"github.com/navikt/nada-backend/pkg/database"
 	"github.com/navikt/nada-backend/pkg/graph/generated"
 	"github.com/navikt/nada-backend/pkg/graph/models"
+	"github.com/navikt/nada-backend/pkg/teamkatalogen"
 	"github.com/sirupsen/logrus"
 )
 
@@ -41,15 +42,6 @@ type Polly interface {
 	SearchPolly(ctx context.Context, q string) ([]*models.QueryPolly, error)
 }
 
-type Teamkatalogen interface {
-	Search(ctx context.Context, query string) ([]*models.TeamkatalogenResult, error)
-	GetTeamsInProductArea(ctx context.Context, paID string) ([]*models.Team, error)
-	GetProductArea(ctx context.Context, paID string) (*models.ProductArea, error)
-	GetProductAreas(ctx context.Context) ([]*models.ProductArea, error)
-	GetTeam(ctx context.Context, teamID string) (*models.Team, error)
-	GetTeamCatalogURL(teamID string) string
-}
-
 type Slack interface {
 	NewAccessRequest(contact string, dp *models.Dataproduct, ds *models.Dataset, ar *models.AccessRequest) error
 	IsValidSlackChannel(name string) (bool, error)
@@ -60,14 +52,14 @@ type Resolver struct {
 	bigquery           Bigquery
 	gcpProjects        *auth.TeamProjectsMapping
 	accessMgr          AccessManager
-	teamkatalogen      Teamkatalogen
+	teamkatalogen      teamkatalogen.Teamkatalogen
 	slack              Slack
 	pollyAPI           Polly
 	centralDataProject string
 	log                *logrus.Entry
 }
 
-func New(repo *database.Repo, gcp Bigquery, gcpProjects *auth.TeamProjectsMapping, accessMgr AccessManager, tk Teamkatalogen, slack Slack, pollyAPI Polly, centralDataProject string, log *logrus.Entry) *handler.Server {
+func New(repo *database.Repo, gcp Bigquery, gcpProjects *auth.TeamProjectsMapping, accessMgr AccessManager, tk teamkatalogen.Teamkatalogen, slack Slack, pollyAPI Polly, centralDataProject string, log *logrus.Entry) *handler.Server {
 	resolver := &Resolver{
 		repo:               repo,
 		bigquery:           gcp,

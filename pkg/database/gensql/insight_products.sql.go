@@ -363,6 +363,22 @@ func (q *Queries) GetInsightProductsByTeam(ctx context.Context, teamID sql.NullS
 	return items, nil
 }
 
+const getInsightProductsNumberByTeam = `-- name: GetInsightProductsNumberByTeam :one
+SELECT
+    COUNT(*) as "count"
+FROM
+    insight_product
+WHERE
+    team_id = $1
+`
+
+func (q *Queries) GetInsightProductsNumberByTeam(ctx context.Context, teamID sql.NullString) (int64, error) {
+	row := q.db.QueryRowContext(ctx, getInsightProductsNumberByTeam, teamID)
+	var count int64
+	err := row.Scan(&count)
+	return count, err
+}
+
 const updateInsightProduct = `-- name: UpdateInsightProduct :one
 UPDATE
     insight_product
