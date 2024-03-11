@@ -929,7 +929,7 @@ SET
   "description" = $4,
   "missing_since" = null,
   "pseudo_columns" = CASE
-    WHEN $5 IS NOT NULL THEN $5
+    WHEN $5::text[] IS NOT NULL THEN $5::text[]
     ELSE "pseudo_columns"
   END
 WHERE

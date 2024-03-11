@@ -100,6 +100,11 @@ func (e *Ensurer) run(ctx context.Context) {
 		}
 	}
 
+	//TODO: enable pseudo feature
+	if true {
+		return
+	}
+
 	if err := e.ensureDeleteJoinableViewBQForDeletedDataset(ctx); err != nil {
 		e.log.WithError(err).Error("ensuring delete bq datasource for deleted dataset")
 	}

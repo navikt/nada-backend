@@ -18,8 +18,8 @@ import (
 	"github.com/navikt/nada-backend/pkg/amplitude"
 	"github.com/navikt/nada-backend/pkg/database"
 	"github.com/navikt/nada-backend/pkg/gcs"
-	"github.com/navikt/nada-backend/pkg/graph"
 	"github.com/navikt/nada-backend/pkg/graph/models"
+	"github.com/navikt/nada-backend/pkg/teamkatalogen"
 	"github.com/sirupsen/logrus"
 )
 
@@ -32,12 +32,12 @@ const (
 type Handler struct {
 	repo            *database.Repo
 	gcsClient       *gcs.Client
-	teamCatalog     graph.Teamkatalogen
+	teamCatalog     teamkatalogen.Teamkatalogen
 	amplitudeClient amplitude.Amplitude
 	log             *logrus.Entry
 }
 
-func NewHandler(repo *database.Repo, gcsClient *gcs.Client, teamCatalog graph.Teamkatalogen, amplitudeClient amplitude.Amplitude, logger *logrus.Entry) *Handler {
+func NewHandler(repo *database.Repo, gcsClient *gcs.Client, teamCatalog teamkatalogen.Teamkatalogen, amplitudeClient amplitude.Amplitude, logger *logrus.Entry) *Handler {
 	return &Handler{
 		repo:            repo,
 		gcsClient:       gcsClient,

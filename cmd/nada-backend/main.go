@@ -111,7 +111,6 @@ func main() {
 
 	mockHTTP := api.NewMockHTTP(repo, log.WithField("subsystem", "mockhttp"))
 	var httpAPI api.HTTPAPI = mockHTTP
-	api.Init(repo.Querier)
 
 	authenticatorMiddleware := mockHTTP.Middleware
 
@@ -119,12 +118,12 @@ func main() {
 	var oauth2Config api.OAuth2
 	var accessMgr graph.AccessManager
 	accessMgr = access.NewNoop()
-	var teamcatalogue graph.Teamkatalogen = teamkatalogen.NewMock()
+	var teamcatalogue teamkatalogen.Teamkatalogen = teamkatalogen.NewMock()
 	var pollyAPI graph.Polly = polly.NewMock(cfg.PollyURL)
 	var amplitudeClient amplitude.Amplitude
 	amplitudeClient = amplitude.NewMock()
 	if !cfg.MockAuth {
-		teamcatalogue = teamkatalogen.New(cfg.TeamkatalogenURL)
+		teamcatalogue = teamkatalogen.New(cfg.TeamkatalogenURL, repo.GetDB(), repo.Querier, log)
 
 		teamProjectsUpdater = teamprojectsupdater.NewTeamProjectsUpdater(ctx, cfg.ConsoleURL, cfg.ConsoleAPIKey, http.DefaultClient, repo)
 		go teamProjectsUpdater.Run(ctx, TeamProjectsUpdateFrequency)
@@ -145,6 +144,7 @@ func main() {
 			log.Fatal(err)
 		}
 	}
+	api.Init(repo.Querier, teamcatalogue, log)
 
 	if err := runMetabase(ctx, log.WithField("subsystem", "metabase"), cfg, repo, accessMgr, eventMgr); err != nil {
 		log.WithError(err).Fatal("running metabase")

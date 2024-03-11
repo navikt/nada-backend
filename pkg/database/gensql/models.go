@@ -171,6 +171,8 @@ type DataproductView struct {
 	TeamkatalogenUrl sql.NullString
 	TeamContact      sql.NullString
 	TeamID           sql.NullString
+	TeamName         sql.NullString
+	PaName           sql.NullString
 	DsDpID           uuid.NullUUID
 	DsID             uuid.NullUUID
 	DsName           sql.NullString
@@ -179,6 +181,22 @@ type DataproductView struct {
 	DsLastModified   sql.NullTime
 	DsSlug           sql.NullString
 	DsKeywords       []string
+}
+
+type DataproductWithTeamkatalogenView struct {
+	ID               uuid.UUID
+	Name             string
+	Description      sql.NullString
+	Group            string
+	Created          time.Time
+	LastModified     time.Time
+	TsvDocument      interface{}
+	Slug             string
+	TeamkatalogenUrl sql.NullString
+	TeamContact      sql.NullString
+	TeamID           sql.NullString
+	TeamName         sql.NullString
+	PaName           sql.NullString
 }
 
 type Dataset struct {
@@ -301,6 +319,24 @@ type InsightProduct struct {
 	TeamID           sql.NullString
 }
 
+type InsightProductWithTeamkatalogenView struct {
+	ID               uuid.UUID
+	Name             string
+	Description      sql.NullString
+	Creator          string
+	Created          time.Time
+	LastModified     time.Time
+	Type             string
+	TsvDocument      interface{}
+	Link             string
+	Keywords         []string
+	Group            string
+	TeamkatalogenUrl sql.NullString
+	TeamID           sql.NullString
+	TeamName         sql.NullString
+	PaName           sql.NullString
+}
+
 type JoinableView struct {
 	ID      uuid.UUID
 	Owner   string
@@ -373,6 +409,21 @@ type Story struct {
 	Group            string
 }
 
+type StoryWithTeamkatalogenView struct {
+	ID               uuid.UUID
+	Name             string
+	Creator          string
+	Created          time.Time
+	LastModified     time.Time
+	Description      string
+	Keywords         []string
+	TeamkatalogenUrl sql.NullString
+	TeamID           sql.NullString
+	Group            string
+	TeamName         sql.NullString
+	PaName           sql.NullString
+}
+
 type Tag struct {
 	ID     uuid.UUID
 	Phrase string
@@ -386,4 +437,16 @@ type TeamProject struct {
 type ThirdPartyMapping struct {
 	Services  []string
 	DatasetID uuid.UUID
+}
+
+type TkProductArea struct {
+	ID       uuid.UUID
+	Name     sql.NullString
+	AreaType sql.NullString
+}
+
+type TkTeam struct {
+	ID            uuid.UUID
+	ProductAreaID uuid.NullUUID
+	Name          sql.NullString
 }

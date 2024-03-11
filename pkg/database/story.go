@@ -63,20 +63,6 @@ func (r *Repo) GetStories(ctx context.Context) ([]*models.Story, error) {
 	return storyGraphqls, err
 }
 
-func (r *Repo) GetStoriesByProductArea(ctx context.Context, teamsInPA []string) ([]*models.Story, error) {
-	stories, err := r.Querier.GetStoriesByProductArea(ctx, teamsInPA)
-	if err != nil {
-		return nil, err
-	}
-
-	dbStories := make([]*models.Story, len(stories))
-	for idx, s := range stories {
-		dbStories[idx] = storySQLToGraphql(&s)
-	}
-
-	return dbStories, nil
-}
-
 func (r *Repo) GetStoriesByTeam(ctx context.Context, teamID string) ([]*models.Story, error) {
 	stories, err := r.Querier.GetStoriesByTeam(ctx, sql.NullString{String: teamID, Valid: true})
 	if err != nil {
