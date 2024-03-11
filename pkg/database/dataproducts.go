@@ -46,20 +46,6 @@ func (r *Repo) GetDataproductsByGroups(ctx context.Context, groups []string) ([]
 	return dps, nil
 }
 
-func (r *Repo) GetDataproductByProductArea(ctx context.Context, teamIDs []string) ([]*models.Dataproduct, error) {
-	dps, err := r.Querier.GetDataproductsByProductArea(ctx, teamIDs)
-	if err != nil {
-		return nil, err
-	}
-
-	dpsGraph := make([]*models.Dataproduct, len(dps))
-	for idx, dp := range dps {
-		dpsGraph[idx] = dataproductFromSQL(dp)
-	}
-
-	return dpsGraph, nil
-}
-
 func (r *Repo) GetDataproductByTeam(ctx context.Context, teamID string) ([]*models.Dataproduct, error) {
 	dps, err := r.Querier.GetDataproductsByTeam(ctx, sql.NullString{String: teamID, Valid: true})
 	if err != nil {

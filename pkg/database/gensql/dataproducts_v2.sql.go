@@ -7,13 +7,42 @@ package gensql
 
 import (
 	"context"
+	"database/sql"
+	"time"
 
 	"github.com/google/uuid"
 	"github.com/lib/pq"
 )
 
+const getDataproductKeywords = `-- name: GetDataproductKeywords :many
+SELECT DISTINCT unnest(keywords)::text FROM datasets ds WHERE ds.dataproduct_id = $1
+`
+
+func (q *Queries) GetDataproductKeywords(ctx context.Context, dpid uuid.UUID) ([]string, error) {
+	rows, err := q.db.QueryContext(ctx, getDataproductKeywords, dpid)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []string{}
+	for rows.Next() {
+		var column_1 string
+		if err := rows.Scan(&column_1); err != nil {
+			return nil, err
+		}
+		items = append(items, column_1)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const getDataproductWithDatasets = `-- name: GetDataproductWithDatasets :many
-SELECT dp_id, dp_name, dp_description, dp_group, dp_created, dp_last_modified, dp_slug, teamkatalogen_url, team_contact, team_id, ds_dp_id, ds_id, ds_name, ds_description, ds_created, ds_last_modified, ds_slug, ds_keywords
+SELECT dp_id, dp_name, dp_description, dp_group, dp_created, dp_last_modified, dp_slug, teamkatalogen_url, team_contact, team_id, team_name, pa_name, ds_dp_id, ds_id, ds_name, ds_description, ds_created, ds_last_modified, ds_slug, ds_keywords
 FROM dataproduct_view
 WHERE dp_id = $1
 `
@@ -38,6 +67,8 @@ func (q *Queries) GetDataproductWithDatasets(ctx context.Context, id uuid.UUID) 
 			&i.TeamkatalogenUrl,
 			&i.TeamContact,
 			&i.TeamID,
+			&i.TeamName,
+			&i.PaName,
 			&i.DsDpID,
 			&i.DsID,
 			&i.DsName,
@@ -58,4 +89,104 @@ func (q *Queries) GetDataproductWithDatasets(ctx context.Context, id uuid.UUID) 
 		return nil, err
 	}
 	return items, nil
+}
+
+const getDataproductWithDatasetsBasic = `-- name: GetDataproductWithDatasetsBasic :many
+SELECT dp.id, dp.name, dp.description, "group", dp.created, dp.last_modified, dp.tsv_document, dp.slug, teamkatalogen_url, team_contact, team_id, team_name, pa_name, ds.id, ds.name, ds.description, pii, ds.created, ds.last_modified, type, ds.tsv_document, ds.slug, repo, keywords, dataproduct_id, anonymisation_description, target_user
+FROM dataproduct_with_teamkatalogen_view dp LEFT JOIN datasets ds ON ds.dataproduct_id = dp.id
+WHERE dp.id = $1
+`
+
+type GetDataproductWithDatasetsBasicRow struct {
+	ID                       uuid.UUID
+	Name                     string
+	Description              sql.NullString
+	Group                    string
+	Created                  time.Time
+	LastModified             time.Time
+	TsvDocument              interface{}
+	Slug                     string
+	TeamkatalogenUrl         sql.NullString
+	TeamContact              sql.NullString
+	TeamID                   sql.NullString
+	TeamName                 sql.NullString
+	PaName                   sql.NullString
+	ID_2                     uuid.NullUUID
+	Name_2                   sql.NullString
+	Description_2            sql.NullString
+	Pii                      NullPiiLevel
+	Created_2                sql.NullTime
+	LastModified_2           sql.NullTime
+	Type                     NullDatasourceType
+	TsvDocument_2            interface{}
+	Slug_2                   sql.NullString
+	Repo                     sql.NullString
+	Keywords                 []string
+	DataproductID            uuid.NullUUID
+	AnonymisationDescription sql.NullString
+	TargetUser               sql.NullString
+}
+
+func (q *Queries) GetDataproductWithDatasetsBasic(ctx context.Context, id uuid.UUID) ([]GetDataproductWithDatasetsBasicRow, error) {
+	rows, err := q.db.QueryContext(ctx, getDataproductWithDatasetsBasic, id)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []GetDataproductWithDatasetsBasicRow{}
+	for rows.Next() {
+		var i GetDataproductWithDatasetsBasicRow
+		if err := rows.Scan(
+			&i.ID,
+			&i.Name,
+			&i.Description,
+			&i.Group,
+			&i.Created,
+			&i.LastModified,
+			&i.TsvDocument,
+			&i.Slug,
+			&i.TeamkatalogenUrl,
+			&i.TeamContact,
+			&i.TeamID,
+			&i.TeamName,
+			&i.PaName,
+			&i.ID_2,
+			&i.Name_2,
+			&i.Description_2,
+			&i.Pii,
+			&i.Created_2,
+			&i.LastModified_2,
+			&i.Type,
+			&i.TsvDocument_2,
+			&i.Slug_2,
+			&i.Repo,
+			pq.Array(&i.Keywords),
+			&i.DataproductID,
+			&i.AnonymisationDescription,
+			&i.TargetUser,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const getDataproductsNumberByTeam = `-- name: GetDataproductsNumberByTeam :one
+SELECT COUNT(*) as "count"
+FROM dataproducts
+WHERE team_id = $1
+`
+
+func (q *Queries) GetDataproductsNumberByTeam(ctx context.Context, teamID sql.NullString) (int64, error) {
+	row := q.db.QueryRowContext(ctx, getDataproductsNumberByTeam, teamID)
+	var count int64
+	err := row.Scan(&count)
+	return count, err
 }

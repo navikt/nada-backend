@@ -58,7 +58,7 @@ ORDER BY last_modified DESC;
 
 -- name: GetStoriesByProductArea :many
 SELECT *
-FROM stories
+FROM story_with_teamkatalogen_view
 WHERE team_id = ANY(@team_id::text[])
 ORDER BY last_modified DESC;
 
@@ -67,6 +67,11 @@ SELECT *
 FROM stories
 WHERE team_id = @team_id
 ORDER BY last_modified DESC;
+
+-- name: GetStoriesNumberByTeam :one
+SELECT COUNT(*) as "count"
+FROM stories
+WHERE team_id = @team_id;
 
 -- name: UpdateStory :one
 UPDATE stories

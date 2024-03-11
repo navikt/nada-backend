@@ -54,7 +54,7 @@ ORDER BY
 SELECT
     *
 FROM
-    insight_product
+    insight_product_with_teamkatalogen_view
 WHERE
     team_id = ANY(@team_id::text[])
 ORDER BY
@@ -69,6 +69,15 @@ WHERE
     team_id = @team_id
 ORDER BY
     last_modified DESC;
+
+
+-- name: GetInsightProductsNumberByTeam :one
+SELECT
+    COUNT(*) as "count"
+FROM
+    insight_product
+WHERE
+    team_id = @team_id;
 
 -- name: UpdateInsightProduct :one
 UPDATE

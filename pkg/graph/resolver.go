@@ -14,6 +14,7 @@ import (
 	"github.com/navikt/nada-backend/pkg/database"
 	"github.com/navikt/nada-backend/pkg/graph/generated"
 	"github.com/navikt/nada-backend/pkg/graph/models"
+	"github.com/navikt/nada-backend/pkg/teamkatalogen"
 	"github.com/sirupsen/logrus"
 )
 
@@ -41,15 +42,6 @@ type Polly interface {
 	SearchPolly(ctx context.Context, q string) ([]*models.QueryPolly, error)
 }
 
-type Teamkatalogen interface {
-	Search(ctx context.Context, query string) ([]*models.TeamkatalogenResult, error)
-	GetTeamsInProductArea(ctx context.Context, paID string) ([]*models.Team, error)
-	GetProductArea(ctx context.Context, paID string) (*models.ProductArea, error)
-	GetProductAreas(ctx context.Context) ([]*models.ProductArea, error)
-	GetTeam(ctx context.Context, teamID string) (*models.Team, error)
-	GetTeamCatalogURL(teamID string) string
-}
-
 type Slack interface {
 	NewAccessRequest(contact string, dp *models.Dataproduct, ds *models.Dataset, ar *models.AccessRequest) error
 	IsValidSlackChannel(name string) (bool, error)
@@ -60,14 +52,14 @@ type Resolver struct {
 	bigquery           Bigquery
 	gcpProjects        *auth.TeamProjectsMapping
 	accessMgr          AccessManager
-	teamkatalogen      Teamkatalogen
+	teamkatalogen      teamkatalogen.Teamkatalogen
 	slack              Slack
 	pollyAPI           Polly
 	centralDataProject string
 	log                *logrus.Entry
 }
 
-func New(repo *database.Repo, gcp Bigquery, gcpProjects *auth.TeamProjectsMapping, accessMgr AccessManager, tk Teamkatalogen, slack Slack, pollyAPI Polly, centralDataProject string, log *logrus.Entry) *handler.Server {
+func New(repo *database.Repo, gcp Bigquery, gcpProjects *auth.TeamProjectsMapping, accessMgr AccessManager, tk teamkatalogen.Teamkatalogen, slack Slack, pollyAPI Polly, centralDataProject string, log *logrus.Entry) *handler.Server {
 	resolver := &Resolver{
 		repo:               repo,
 		bigquery:           gcp,
@@ -140,15 +132,19 @@ func authenticate(ctx context.Context, obj interface{}, next graphql.Resolver, o
 	return next(ctx)
 }
 
-func (r *Resolver) prepareBigQuery(ctx context.Context, bq models.NewBigQuery, group string) (models.BigqueryMetadata, error) {
+func (r *Resolver) prepareBigQuery(ctx context.Context, bq models.NewBigQuery, viewBQ *models.NewBigQuery, group string) (models.BigqueryMetadata, error) {
 	if err := r.ensureGroupOwnsGCPProject(ctx, group, bq.ProjectID); err != nil {
 		return models.BigqueryMetadata{}, err
 	}
 
-	metadata, err := r.bigquery.TableMetadata(ctx, bq.ProjectID, bq.Dataset, bq.Table)
+	if viewBQ == nil {
+		viewBQ = &bq
+	}
+
+	metadata, err := r.bigquery.TableMetadata(ctx, viewBQ.ProjectID, viewBQ.Dataset, viewBQ.Table)
 	if err != nil {
 		return models.BigqueryMetadata{}, fmt.Errorf("trying to fetch metadata on table %v, but it does not exist in %v.%v",
-			bq.Table, bq.ProjectID, bq.Dataset)
+			viewBQ.Table, viewBQ.ProjectID, viewBQ.Dataset)
 	}
 
 	switch metadata.TableType {
@@ -156,7 +152,7 @@ func (r *Resolver) prepareBigQuery(ctx context.Context, bq models.NewBigQuery, g
 	case bigquery.ViewTable:
 		fallthrough
 	case bigquery.MaterializedView:
-		if err := r.accessMgr.AddToAuthorizedViews(ctx, bq.ProjectID, bq.Dataset, bq.ProjectID, bq.Dataset, bq.Table); err != nil {
+		if err := r.accessMgr.AddToAuthorizedViews(ctx, bq.ProjectID, bq.Dataset, viewBQ.ProjectID, viewBQ.Dataset, viewBQ.Table); err != nil {
 			return models.BigqueryMetadata{}, err
 		}
 	default:

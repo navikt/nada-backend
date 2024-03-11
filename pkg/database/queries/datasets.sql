@@ -173,7 +173,7 @@ SET
   "description" = @description,
   "missing_since" = null,
   "pseudo_columns" = CASE
-    WHEN @pseudo_columns IS NOT NULL THEN @pseudo_columns
+    WHEN @pseudo_columns::text[] IS NOT NULL THEN @pseudo_columns::text[]
     ELSE "pseudo_columns"
   END
 WHERE

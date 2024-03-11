@@ -264,21 +264,21 @@ func (q *Queries) GetStoriesByIDs(ctx context.Context, ids []uuid.UUID) ([]Story
 }
 
 const getStoriesByProductArea = `-- name: GetStoriesByProductArea :many
-SELECT id, name, creator, created, last_modified, description, keywords, teamkatalogen_url, team_id, "group"
-FROM stories
+SELECT id, name, creator, created, last_modified, description, keywords, teamkatalogen_url, team_id, "group", team_name, pa_name
+FROM story_with_teamkatalogen_view
 WHERE team_id = ANY($1::text[])
 ORDER BY last_modified DESC
 `
 
-func (q *Queries) GetStoriesByProductArea(ctx context.Context, teamID []string) ([]Story, error) {
+func (q *Queries) GetStoriesByProductArea(ctx context.Context, teamID []string) ([]StoryWithTeamkatalogenView, error) {
 	rows, err := q.db.QueryContext(ctx, getStoriesByProductArea, pq.Array(teamID))
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
-	items := []Story{}
+	items := []StoryWithTeamkatalogenView{}
 	for rows.Next() {
-		var i Story
+		var i StoryWithTeamkatalogenView
 		if err := rows.Scan(
 			&i.ID,
 			&i.Name,
@@ -290,6 +290,8 @@ func (q *Queries) GetStoriesByProductArea(ctx context.Context, teamID []string) 
 			&i.TeamkatalogenUrl,
 			&i.TeamID,
 			&i.Group,
+			&i.TeamName,
+			&i.PaName,
 		); err != nil {
 			return nil, err
 		}
@@ -343,6 +345,19 @@ func (q *Queries) GetStoriesByTeam(ctx context.Context, teamID sql.NullString) (
 		return nil, err
 	}
 	return items, nil
+}
+
+const getStoriesNumberByTeam = `-- name: GetStoriesNumberByTeam :one
+SELECT COUNT(*) as "count"
+FROM stories
+WHERE team_id = $1
+`
+
+func (q *Queries) GetStoriesNumberByTeam(ctx context.Context, teamID sql.NullString) (int64, error) {
+	row := q.db.QueryRowContext(ctx, getStoriesNumberByTeam, teamID)
+	var count int64
+	err := row.Scan(&count)
+	return count, err
 }
 
 const getStory = `-- name: GetStory :one

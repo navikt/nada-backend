@@ -2,20 +2,18 @@ package teamkatalogen
 
 import (
 	"context"
-	"strings"
 
 	"github.com/navikt/nada-backend/pkg/auth"
-	"github.com/navikt/nada-backend/pkg/graph/models"
 )
 
 type Mock struct {
-	Teams []*models.TeamkatalogenResult
+	Teams []TeamkatalogenResult
 }
 
 func NewMock() *Mock {
 	tk := &Mock{}
 	for _, t := range auth.MockUser.GoogleGroups {
-		tk.Teams = append(tk.Teams, &models.TeamkatalogenResult{
+		tk.Teams = append(tk.Teams, TeamkatalogenResult{
 			Name:          t.Name,
 			URL:           "https://some.url",
 			Description:   "This is a description of " + t.Name,
@@ -26,19 +24,19 @@ func NewMock() *Mock {
 	return tk
 }
 
-func (m *Mock) Search(ctx context.Context, query string) ([]*models.TeamkatalogenResult, error) {
-	ret := []*models.TeamkatalogenResult{}
+func (m *Mock) Search(ctx context.Context, gcpGroups []string) ([]TeamkatalogenResult, error) {
+	ret := []TeamkatalogenResult{}
 	for _, t := range m.Teams {
-		if strings.Contains(strings.ToLower(t.Name), strings.ToLower(query)) {
+		if ContainsAnyCaseInsensitive(t.Name, gcpGroups) {
 			ret = append(ret, t)
 		}
 	}
 	return ret, nil
 }
 
-func (m *Mock) GetTeamsInProductArea(ctx context.Context, paID string) ([]*models.Team, error) {
+func (m *Mock) GetTeamsInProductArea(ctx context.Context, paID string) ([]*Team, error) {
 	mockedTeams := CreateMockedTeams()
-	teams := make([]*models.Team, 0)
+	teams := make([]*Team, 0)
 	for _, t := range mockedTeams {
 		if t.ProductAreaID == paID {
 			teams = append(teams, t)
@@ -47,7 +45,7 @@ func (m *Mock) GetTeamsInProductArea(ctx context.Context, paID string) ([]*model
 	return teams, nil
 }
 
-func (m *Mock) GetProductArea(ctx context.Context, paID string) (*models.ProductArea, error) {
+func (m *Mock) GetProductArea(ctx context.Context, paID string) (*ProductArea, error) {
 	for _, pa := range mockedProductAreas {
 		if pa.ID == paID {
 			return pa, nil
@@ -56,12 +54,12 @@ func (m *Mock) GetProductArea(ctx context.Context, paID string) (*models.Product
 	return nil, nil
 }
 
-func (m *Mock) GetProductAreas(ctx context.Context) ([]*models.ProductArea, error) {
+func (m *Mock) GetProductAreas(ctx context.Context) ([]*ProductArea, error) {
 	return mockedProductAreas, nil
 }
 
-func (m *Mock) GetTeam(ctx context.Context, teamID string) (*models.Team, error) {
-	return &models.Team{
+func (m *Mock) GetTeam(ctx context.Context, teamID string) (*Team, error) {
+	return &Team{
 		ID:            "Team-Frifrokost-001",
 		Name:          "Team Frifrokost",
 		ProductAreaID: "Mocked-002",
@@ -72,7 +70,7 @@ func (m *Mock) GetTeamCatalogURL(teamID string) string {
 	return "https://teamkatalog.nav.no/team/" + teamID
 }
 
-var mockedProductAreas = []*models.ProductArea{
+var mockedProductAreas = []*ProductArea{
 	{
 		ID:       "Mocked-001",
 		Name:     "Mocked Produktområde",
@@ -90,23 +88,23 @@ var mockedProductAreas = []*models.ProductArea{
 	},
 }
 
-var mockedTeams []*models.Team
+var mockedTeams []*Team
 
-func CreateMockedTeams() []*models.Team {
+func CreateMockedTeams() []*Team {
 	if mockedTeams != nil {
 		return mockedTeams
 	}
 
-	mockedTeams = make([]*models.Team, 0)
+	mockedTeams = make([]*Team, 0)
 	for _, t := range auth.MockUser.GoogleGroups {
-		mockedTeams = append(mockedTeams, &models.Team{
+		mockedTeams = append(mockedTeams, &Team{
 			ID:            t.Name + "-001",
 			Name:          t.Name,
 			ProductAreaID: "Mocked-001",
 		})
 	}
 
-	staticMockedTeams := []*models.Team{
+	staticMockedTeams := []*Team{
 		{
 			ID:            "Team-Frifrokost-001",
 			Name:          "Team Frifrokost",
