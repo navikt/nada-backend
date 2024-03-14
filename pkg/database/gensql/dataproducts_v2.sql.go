@@ -41,56 +41,6 @@ func (q *Queries) GetDataproductKeywords(ctx context.Context, dpid uuid.UUID) ([
 	return items, nil
 }
 
-const getDataproductWithDatasets = `-- name: GetDataproductWithDatasets :many
-SELECT dp_id, dp_name, dp_description, dp_group, dp_created, dp_last_modified, dp_slug, teamkatalogen_url, team_contact, team_id, team_name, pa_name, ds_dp_id, ds_id, ds_name, ds_description, ds_created, ds_last_modified, ds_slug, ds_keywords
-FROM dataproduct_view
-WHERE dp_id = $1
-`
-
-func (q *Queries) GetDataproductWithDatasets(ctx context.Context, id uuid.UUID) ([]DataproductView, error) {
-	rows, err := q.db.QueryContext(ctx, getDataproductWithDatasets, id)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-	items := []DataproductView{}
-	for rows.Next() {
-		var i DataproductView
-		if err := rows.Scan(
-			&i.DpID,
-			&i.DpName,
-			&i.DpDescription,
-			&i.DpGroup,
-			&i.DpCreated,
-			&i.DpLastModified,
-			&i.DpSlug,
-			&i.TeamkatalogenUrl,
-			&i.TeamContact,
-			&i.TeamID,
-			&i.TeamName,
-			&i.PaName,
-			&i.DsDpID,
-			&i.DsID,
-			&i.DsName,
-			&i.DsDescription,
-			&i.DsCreated,
-			&i.DsLastModified,
-			&i.DsSlug,
-			pq.Array(&i.DsKeywords),
-		); err != nil {
-			return nil, err
-		}
-		items = append(items, i)
-	}
-	if err := rows.Close(); err != nil {
-		return nil, err
-	}
-	if err := rows.Err(); err != nil {
-		return nil, err
-	}
-	return items, nil
-}
-
 const getDataproductWithDatasetsBasic = `-- name: GetDataproductWithDatasetsBasic :many
 SELECT dp.id, dp.name, dp.description, "group", dp.created, dp.last_modified, dp.tsv_document, dp.slug, teamkatalogen_url, team_contact, team_id, team_name, pa_name, ds.id, ds.name, ds.description, pii, ds.created, ds.last_modified, type, ds.tsv_document, ds.slug, repo, keywords, dataproduct_id, anonymisation_description, target_user
 FROM dataproduct_with_teamkatalogen_view dp LEFT JOIN datasets ds ON ds.dataproduct_id = dp.id
@@ -189,4 +139,80 @@ func (q *Queries) GetDataproductsNumberByTeam(ctx context.Context, teamID sql.Nu
 	var count int64
 	err := row.Scan(&count)
 	return count, err
+}
+
+const getDataproductsWithDatasets = `-- name: GetDataproductsWithDatasets :many
+SELECT dp.dp_id, dp.dp_name, dp.dp_description, dp.dp_group, dp.dp_created, dp.dp_last_modified, dp.dp_slug, dp.teamkatalogen_url, dp.team_contact, dp.team_id, dp.team_name, dp.pa_name, dp.ds_dp_id, dp.ds_id, dp.ds_name, dp.ds_description, dp.ds_created, dp.ds_last_modified, dp.ds_slug, dp.ds_keywords, dsrc.last_modified as "dsrc_last_modified"
+FROM dataproduct_view dp
+LEFT JOIN datasource_bigquery dsrc ON dsrc.dataset_id = dp.ds_id
+WHERE dp_id = ANY ($1::uuid[])
+`
+
+type GetDataproductsWithDatasetsRow struct {
+	DpID             uuid.UUID
+	DpName           string
+	DpDescription    sql.NullString
+	DpGroup          string
+	DpCreated        time.Time
+	DpLastModified   time.Time
+	DpSlug           string
+	TeamkatalogenUrl sql.NullString
+	TeamContact      sql.NullString
+	TeamID           sql.NullString
+	TeamName         sql.NullString
+	PaName           sql.NullString
+	DsDpID           uuid.NullUUID
+	DsID             uuid.NullUUID
+	DsName           sql.NullString
+	DsDescription    sql.NullString
+	DsCreated        sql.NullTime
+	DsLastModified   sql.NullTime
+	DsSlug           sql.NullString
+	DsKeywords       []string
+	DsrcLastModified sql.NullTime
+}
+
+func (q *Queries) GetDataproductsWithDatasets(ctx context.Context, ids []uuid.UUID) ([]GetDataproductsWithDatasetsRow, error) {
+	rows, err := q.db.QueryContext(ctx, getDataproductsWithDatasets, pq.Array(ids))
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []GetDataproductsWithDatasetsRow{}
+	for rows.Next() {
+		var i GetDataproductsWithDatasetsRow
+		if err := rows.Scan(
+			&i.DpID,
+			&i.DpName,
+			&i.DpDescription,
+			&i.DpGroup,
+			&i.DpCreated,
+			&i.DpLastModified,
+			&i.DpSlug,
+			&i.TeamkatalogenUrl,
+			&i.TeamContact,
+			&i.TeamID,
+			&i.TeamName,
+			&i.PaName,
+			&i.DsDpID,
+			&i.DsID,
+			&i.DsName,
+			&i.DsDescription,
+			&i.DsCreated,
+			&i.DsLastModified,
+			&i.DsSlug,
+			pq.Array(&i.DsKeywords),
+			&i.DsrcLastModified,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
 }

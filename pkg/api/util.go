@@ -64,3 +64,17 @@ func apiGetWrapper(handlerDelegate func(r *http.Request) (interface{}, *APIError
 		}
 	}
 }
+
+func ptrToString(s *string) string {
+	if s != nil {
+		return *s
+	}
+	return ""
+}
+
+func ptrToIntDefault(v *int, def int) int {
+	if v == nil {
+		return def
+	}
+	return *v
+}

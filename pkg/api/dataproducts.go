@@ -73,14 +73,15 @@ type Dataset struct {
 }
 
 type DatasetInDataproduct struct {
-	ID            uuid.UUID `json:"id"`
-	DataproductID uuid.UUID `json:"-"`
-	Name          string    `json:"name"`
-	Created       time.Time `json:"created"`
-	LastModified  time.Time `json:"lastModified"`
-	Description   *string   `json:"description"`
-	Slug          string    `json:"slug"`
-	Keywords      []string  `json:"keywords"`
+	ID                     uuid.UUID `json:"id"`
+	DataproductID          uuid.UUID `json:"-"`
+	Name                   string    `json:"name"`
+	Created                time.Time `json:"created"`
+	LastModified           time.Time `json:"lastModified"`
+	Description            *string   `json:"description"`
+	Slug                   string    `json:"slug"`
+	Keywords               []string  `json:"keywords"`
+	DataSourceLastModified time.Time `json:"dataSourceLastModified"`
 }
 
 type DataproductOwner struct {
@@ -108,20 +109,27 @@ type DataproductWithDataset struct {
 	Datasets []*DatasetInDataproduct `json:"datasets"`
 }
 
+func GetDataproducts(ctx context.Context, ids []uuid.UUID) ([]DataproductWithDataset, *APIError) {
+	sqldp, err := querier.GetDataproductsWithDatasets(ctx, ids)
+	if err != nil {
+		return nil, DBErrorToAPIError(err, "GetDataproducts(): Database error")
+	}
+
+	return dataproductsWithDatasetFromSQL(sqldp), nil
+}
+
 func GetDataproduct(ctx context.Context, id string) (*DataproductWithDataset, *APIError) {
-	uuid, err := uuid.Parse(id)
+	dpuuid, err := uuid.Parse(id)
 	if err != nil {
 		return nil, NewAPIError(http.StatusBadRequest, err, "GetDataproduct(): Invalid UUID")
 	}
-
-	sqldp, err := querier.GetDataproductWithDatasets(ctx, uuid)
-	if err != nil {
-		return nil, DBErrorToAPIError(err, "GetDataproduct(): Database error")
+	dps, apierr := GetDataproducts(ctx, []uuid.UUID{dpuuid})
+	if apierr != nil {
+		return nil, apierr
 	}
-
 	//it is safe to directly use the first element without checking the length
-	//because if the length was 0, the sql query should have returned no row
-	return &dataproductsWithDatasetFromSQL(sqldp)[0], nil
+	//because if the length was 0, the sql query in GetDataproducts should have returned no row
+	return &dps[0], nil
 }
 
 func GetDataset(ctx context.Context, id string) (*Dataset, *APIError) {
@@ -143,17 +151,8 @@ func GetDataset(ctx context.Context, id string) (*Dataset, *APIError) {
 	return ds, nil
 }
 
-func dataproductsFromSQL(dprows []gensql.DataproductView) []Dataproduct {
-	dataproducts := []Dataproduct{}
-	dataproductsWithDataset := dataproductsWithDatasetFromSQL(dprows)
-	for _, dp := range dataproductsWithDataset {
-		dataproducts = append(dataproducts, dp.Dataproduct)
-	}
-	return dataproducts
-}
-
-func dataproductsWithDatasetFromSQL(dprows []gensql.DataproductView) []DataproductWithDataset {
-	datasets := datasetsFromSQL(dprows)
+func dataproductsWithDatasetFromSQL(dprows []gensql.GetDataproductsWithDatasetsRow) []DataproductWithDataset {
+	datasets := datasetsInDataProductFromSQL(dprows)
 
 	dataproducts := []DataproductWithDataset{}
 
@@ -205,7 +204,7 @@ __loop_rows:
 	return dataproducts
 }
 
-func datasetsFromSQL(dsrows []gensql.DataproductView) []*DatasetInDataproduct {
+func datasetsInDataProductFromSQL(dsrows []gensql.GetDataproductsWithDatasetsRow) []*DatasetInDataproduct {
 	datasets := []*DatasetInDataproduct{}
 
 	for _, dsrow := range dsrows {
@@ -223,14 +222,15 @@ func datasetsFromSQL(dsrows []gensql.DataproductView) []*DatasetInDataproduct {
 		}
 		if ds == nil {
 			ds = &DatasetInDataproduct{
-				ID:            dsrow.DsID.UUID,
-				Name:          dsrow.DsName.String,
-				Created:       dsrow.DsCreated.Time,
-				LastModified:  dsrow.DsLastModified.Time,
-				Description:   nullStringToPtr(dsrow.DsDescription),
-				Slug:          dsrow.DsSlug.String,
-				Keywords:      dsrow.DsKeywords,
-				DataproductID: dsrow.DpID,
+				ID:                     dsrow.DsID.UUID,
+				Name:                   dsrow.DsName.String,
+				Created:                dsrow.DsCreated.Time,
+				LastModified:           dsrow.DsLastModified.Time,
+				Description:            nullStringToPtr(dsrow.DsDescription),
+				Slug:                   dsrow.DsSlug.String,
+				Keywords:               dsrow.DsKeywords,
+				DataproductID:          dsrow.DpID,
+				DataSourceLastModified: dsrow.DsrcLastModified.Time,
 			}
 			datasets = append(datasets, ds)
 		}

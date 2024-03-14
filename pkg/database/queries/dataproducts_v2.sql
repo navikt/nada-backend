@@ -1,7 +1,9 @@
--- name: GetDataproductWithDatasets :many
-SELECT *
-FROM dataproduct_view
-WHERE dp_id = @id;
+-- name: GetDataproductsWithDatasets :many
+SELECT dp.*, dsrc.last_modified as "dsrc_last_modified"
+FROM dataproduct_view dp
+LEFT JOIN datasource_bigquery dsrc ON dsrc.dataset_id = dp.ds_id
+WHERE dp_id = ANY (@ids::uuid[]);
+
 
 -- name: GetDataproductWithDatasetsBasic :many
 SELECT *
