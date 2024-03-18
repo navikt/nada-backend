@@ -31,7 +31,7 @@ require (
 	github.com/sqlc-dev/sqlc v1.25.0
 	github.com/vektah/gqlparser/v2 v2.5.11
 	github.com/writeas/go-strip-markdown/v2 v2.1.1
-	golang.org/x/oauth2 v0.17.0
+	golang.org/x/oauth2 v0.18.0
 	golang.org/x/xerrors v0.0.0-20231012003039-104605ab7028
 	google.golang.org/api v0.169.0
 )
