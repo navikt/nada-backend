@@ -9,7 +9,7 @@ replace sourcegraph.com/sourcegraph/appdash-data => github.com/sourcegraph/appda
 require (
 	cloud.google.com/go/bigquery v1.59.1
 	cloud.google.com/go/iam v1.1.7
-	cloud.google.com/go/storage v1.39.0
+	cloud.google.com/go/storage v1.39.1
 	github.com/99designs/gqlgen v0.17.45
 	github.com/99designs/gqlgen-contrib v0.1.1-0.20200601100547-7a955d321bbd
 	github.com/btcsuite/btcutil v1.0.2
