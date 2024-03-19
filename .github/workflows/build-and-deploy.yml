@@ -33,6 +33,7 @@ jobs:
     name: Build and push GAR
     runs-on: ubuntu-20.04
     needs: [integration-tests]
+    if: github.actor != 'dependabot[bot]'
     outputs:
       image: ${{ steps.docker-build-push.outputs.image }}
     steps:
@@ -49,6 +50,7 @@ jobs:
     name: Deploy dev gcp
     runs-on: ubuntu-20.04
     needs: [build-and-push]
+    if: github.actor != 'dependabot[bot]'
     steps:
       - uses: actions/checkout@v4
       - name: Deploy to dev-gcp
@@ -63,10 +65,10 @@ jobs:
     name: Deploy prod gcp
     runs-on: ubuntu-20.04
     needs: [build-and-push, deploy-dev]
+    if: github.ref == 'refs/heads/main' && inputs.environment != 'dev'|| inputs.environment == 'prod'
     steps:
       - uses: actions/checkout@v4
       - name: Deploy to prod-gcp
-        if: github.ref == 'refs/heads/main' && inputs.environment != 'dev'|| inputs.environment == 'prod'
         uses: nais/deploy/actions/deploy@v2
         env:
           CLUSTER: prod-gcp
