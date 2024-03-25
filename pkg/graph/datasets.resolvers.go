@@ -165,7 +165,7 @@ func (r *mutationResolver) CreateDataset(ctx context.Context, input models.NewDa
 	}
 
 	if pseudoBigQuery == nil && input.GrantAllUsers != nil {
-		if err := r.grantAllUsersOnCreation(ctx, referenceDatasource, *input.GrantAllUsers); err != nil {
+		if err := r.grantAllUsersOnCreation(ctx, input.BigQuery, *input.GrantAllUsers); err != nil {
 			return nil, err
 		}
 	}
