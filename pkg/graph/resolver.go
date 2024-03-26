@@ -132,19 +132,35 @@ func authenticate(ctx context.Context, obj interface{}, next graphql.Resolver, o
 	return next(ctx)
 }
 
-func (r *Resolver) prepareBigQuery(ctx context.Context, bq models.NewBigQuery, viewBQ *models.NewBigQuery, group string) (models.BigqueryMetadata, error) {
-	if err := r.ensureGroupOwnsGCPProject(ctx, group, bq.ProjectID); err != nil {
-		return models.BigqueryMetadata{}, err
+func (r *Resolver) prepareBigQueryHandlePseudoView(ctx context.Context, ds models.NewDataset, viewBQ *models.NewBigQuery, group string) (models.NewDataset, error) {
+	if err := r.ensureGroupOwnsGCPProject(ctx, group, ds.BigQuery.ProjectID); err != nil {
+		return models.NewDataset{}, err
 	}
 
-	if viewBQ == nil {
-		viewBQ = &bq
+	if viewBQ != nil {
+		metadata, err := r.prepareBigQuery(ctx, ds.BigQuery.ProjectID, ds.BigQuery.Dataset, viewBQ.ProjectID, viewBQ.Dataset, viewBQ.Table)
+		if err != nil {
+			return models.NewDataset{}, err
+		}
+		ds.BigQuery = *viewBQ
+		ds.Metadata = metadata
+		return ds, nil
 	}
 
-	metadata, err := r.bigquery.TableMetadata(ctx, viewBQ.ProjectID, viewBQ.Dataset, viewBQ.Table)
+	metadata, err := r.prepareBigQuery(ctx, ds.BigQuery.ProjectID, ds.BigQuery.Dataset, ds.BigQuery.ProjectID, ds.BigQuery.Dataset, ds.BigQuery.Table)
+	if err != nil {
+		return models.NewDataset{}, err
+	}
+	ds.Metadata = metadata
+
+	return ds, nil
+}
+
+func (r *Resolver) prepareBigQuery(ctx context.Context, srcProject, srcDataset, sinkProject, sinkDataset, sinkTable string) (models.BigqueryMetadata, error) {
+	metadata, err := r.bigquery.TableMetadata(ctx, sinkProject, sinkDataset, sinkTable)
 	if err != nil {
 		return models.BigqueryMetadata{}, fmt.Errorf("trying to fetch metadata on table %v, but it does not exist in %v.%v",
-			viewBQ.Table, viewBQ.ProjectID, viewBQ.Dataset)
+			sinkProject, sinkDataset, sinkTable)
 	}
 
 	switch metadata.TableType {
@@ -152,7 +168,7 @@ func (r *Resolver) prepareBigQuery(ctx context.Context, bq models.NewBigQuery, v
 	case bigquery.ViewTable:
 		fallthrough
 	case bigquery.MaterializedView:
-		if err := r.accessMgr.AddToAuthorizedViews(ctx, bq.ProjectID, bq.Dataset, viewBQ.ProjectID, viewBQ.Dataset, viewBQ.Table); err != nil {
+		if err := r.accessMgr.AddToAuthorizedViews(ctx, srcProject, srcDataset, sinkProject, sinkDataset, sinkTable); err != nil {
 			return models.BigqueryMetadata{}, err
 		}
 	default:

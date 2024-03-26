@@ -149,12 +149,11 @@ func (r *mutationResolver) CreateDataset(ctx context.Context, input models.NewDa
 		}
 	}
 
-	metadata, err := r.prepareBigQuery(ctx, input.BigQuery, pseudoBigQuery, dp.Owner.Group)
+	input, err = r.prepareBigQueryHandlePseudoView(ctx, input, pseudoBigQuery, dp.Owner.Group)
 	if err != nil {
 		return nil, err
 	}
 
-	input.Metadata = metadata
 	if input.Description != nil && *input.Description != "" {
 		*input.Description = html.EscapeString(*input.Description)
 	}
