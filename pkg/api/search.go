@@ -59,6 +59,7 @@ func Search(ctx context.Context, query *SearchOptions) (*SearchResult, *APIError
 		Lim:     int32(ptrToIntDefault(query.Limit, 24)),
 		Offs:    int32(ptrToIntDefault(query.Offset, 0)),
 	})
+
 	if err != nil {
 		return nil, DBErrorToAPIError(err, "Failed to search")
 	}
@@ -83,7 +84,7 @@ func Search(ctx context.Context, query *SearchOptions) (*SearchResult, *APIError
 
 	dps, apierr := GetDataproducts(ctx, dataproducts)
 	if apierr != nil {
-		return nil, DBErrorToAPIError(err, "Failed to get dataproducts by IDs")
+		return nil, apierr
 	}
 
 	ss, err := querier.GetStoriesWithTeamkatalogenByIDs(ctx, stories)

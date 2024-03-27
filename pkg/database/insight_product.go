@@ -89,7 +89,7 @@ func (r *Repo) GetInsightProductsByTeam(ctx context.Context, teamID string) ([]*
 }
 
 func (r *Repo) GetInsightProductsByGroups(ctx context.Context, groups []string) ([]*models.InsightProduct, error) {
-	dbProducts, err := r.Querier.GetInsightProductByGroups(ctx, groups)
+	dbProducts, err := r.Querier.GetInsightProductByGroups_(ctx, groups)
 	if err != nil {
 		return nil, err
 	}

@@ -153,6 +153,13 @@ func New(
 		})
 	})
 
+	router.Route("/api/userData", func(r chi.Router) {
+		r.Use(authMW)
+		r.Get("/", apiGetWrapper(func(r *http.Request) (interface{}, *APIError) {
+			return getUserData(r.Context())
+		}))
+	})
+
 	return router
 }
 

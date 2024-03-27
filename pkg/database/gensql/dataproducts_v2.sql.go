@@ -145,8 +145,14 @@ const getDataproductsWithDatasets = `-- name: GetDataproductsWithDatasets :many
 SELECT dp.dp_id, dp.dp_name, dp.dp_description, dp.dp_group, dp.dp_created, dp.dp_last_modified, dp.dp_slug, dp.teamkatalogen_url, dp.team_contact, dp.team_id, dp.team_name, dp.pa_name, dp.ds_dp_id, dp.ds_id, dp.ds_name, dp.ds_description, dp.ds_created, dp.ds_last_modified, dp.ds_slug, dp.ds_keywords, dsrc.last_modified as "dsrc_last_modified"
 FROM dataproduct_view dp
 LEFT JOIN datasource_bigquery dsrc ON dsrc.dataset_id = dp.ds_id
-WHERE dp_id = ANY ($1::uuid[])
+WHERE (array_length($1::uuid[], 1) IS NULL OR dp_id = ANY ($1))
+ AND (array_length($2::TEXT[], 1) IS NULL OR dp_group = ANY ($2))
 `
+
+type GetDataproductsWithDatasetsParams struct {
+	Ids    []uuid.UUID
+	Groups []string
+}
 
 type GetDataproductsWithDatasetsRow struct {
 	DpID             uuid.UUID
@@ -172,8 +178,8 @@ type GetDataproductsWithDatasetsRow struct {
 	DsrcLastModified sql.NullTime
 }
 
-func (q *Queries) GetDataproductsWithDatasets(ctx context.Context, ids []uuid.UUID) ([]GetDataproductsWithDatasetsRow, error) {
-	rows, err := q.db.QueryContext(ctx, getDataproductsWithDatasets, pq.Array(ids))
+func (q *Queries) GetDataproductsWithDatasets(ctx context.Context, arg GetDataproductsWithDatasetsParams) ([]GetDataproductsWithDatasetsRow, error) {
+	rows, err := q.db.QueryContext(ctx, getDataproductsWithDatasets, pq.Array(arg.Ids), pq.Array(arg.Groups))
 	if err != nil {
 		return nil, err
 	}
