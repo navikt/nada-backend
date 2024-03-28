@@ -3,6 +3,7 @@ package api
 import (
 	"context"
 	"database/sql"
+	"net/http"
 
 	"github.com/navikt/nada-backend/pkg/database/gensql"
 	"github.com/navikt/nada-backend/pkg/teamkatalogen"
@@ -90,6 +91,8 @@ func GetProductAreaWithAssets(ctx context.Context, id string) (*ProductAreaWithA
 	tkProductArea, err := tkClient.GetProductArea(ctx, id)
 	if err != nil && err != sql.ErrNoRows {
 		return nil, DBErrorToAPIError(err, "GetProductAreaWithAssets(): failed to get product area")
+	} else if err == sql.ErrNoRows {
+		return nil, NewAPIError(http.StatusNotFound, err, "GetProductAreaWithAssets(): product area not found")
 	}
 
 	dash, err := querier.GetDashboard(ctx, id)
