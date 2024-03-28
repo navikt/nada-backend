@@ -129,6 +129,7 @@ func (h HTTP) Login(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h HTTP) Callback(w http.ResponseWriter, r *http.Request) {
+
 	host, _, err := net.SplitHostPort(r.Host)
 	if err != nil {
 		host = r.Host

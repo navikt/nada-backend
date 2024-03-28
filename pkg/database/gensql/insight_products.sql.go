@@ -125,7 +125,7 @@ func (q *Queries) GetInsightProduct(ctx context.Context, id uuid.UUID) (InsightP
 	return i, err
 }
 
-const getInsightProductByGroups = `-- name: GetInsightProductByGroups :many
+const getInsightProductByGroups_ = `-- name: GetInsightProductByGroups_ :many
 SELECT
     id, name, description, creator, created, last_modified, type, tsv_document, link, keywords, "group", teamkatalogen_url, team_id
 FROM
@@ -136,8 +136,8 @@ ORDER BY
     last_modified DESC
 `
 
-func (q *Queries) GetInsightProductByGroups(ctx context.Context, groups []string) ([]InsightProduct, error) {
-	rows, err := q.db.QueryContext(ctx, getInsightProductByGroups, pq.Array(groups))
+func (q *Queries) GetInsightProductByGroups_(ctx context.Context, groups []string) ([]InsightProduct, error) {
+	rows, err := q.db.QueryContext(ctx, getInsightProductByGroups_, pq.Array(groups))
 	if err != nil {
 		return nil, err
 	}
@@ -253,56 +253,6 @@ func (q *Queries) GetInsightProductsByIDs(ctx context.Context, ids []uuid.UUID) 
 			&i.Group,
 			&i.TeamkatalogenUrl,
 			&i.TeamID,
-		); err != nil {
-			return nil, err
-		}
-		items = append(items, i)
-	}
-	if err := rows.Close(); err != nil {
-		return nil, err
-	}
-	if err := rows.Err(); err != nil {
-		return nil, err
-	}
-	return items, nil
-}
-
-const getInsightProductsByProductArea = `-- name: GetInsightProductsByProductArea :many
-SELECT
-    id, name, description, creator, created, last_modified, type, tsv_document, link, keywords, "group", teamkatalogen_url, team_id, team_name, pa_name
-FROM
-    insight_product_with_teamkatalogen_view
-WHERE
-    team_id = ANY($1::text[])
-ORDER BY
-    last_modified DESC
-`
-
-func (q *Queries) GetInsightProductsByProductArea(ctx context.Context, teamID []string) ([]InsightProductWithTeamkatalogenView, error) {
-	rows, err := q.db.QueryContext(ctx, getInsightProductsByProductArea, pq.Array(teamID))
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-	items := []InsightProductWithTeamkatalogenView{}
-	for rows.Next() {
-		var i InsightProductWithTeamkatalogenView
-		if err := rows.Scan(
-			&i.ID,
-			&i.Name,
-			&i.Description,
-			&i.Creator,
-			&i.Created,
-			&i.LastModified,
-			&i.Type,
-			&i.TsvDocument,
-			&i.Link,
-			pq.Array(&i.Keywords),
-			&i.Group,
-			&i.TeamkatalogenUrl,
-			&i.TeamID,
-			&i.TeamName,
-			&i.PaName,
 		); err != nil {
 			return nil, err
 		}

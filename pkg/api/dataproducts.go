@@ -18,17 +18,6 @@ type DatasourceType string
 
 type BigQueryType string
 
-type Access struct {
-	ID              uuid.UUID  `json:"id"`
-	Subject         string     `json:"subject"`
-	Granter         string     `json:"granter"`
-	Expires         *time.Time `json:"expires"`
-	Created         time.Time  `json:"created"`
-	Revoked         *time.Time `json:"revoked"`
-	DatasetID       uuid.UUID  `json:"datasetID"`
-	AccessRequestID *uuid.UUID `json:"accessRequestID"`
-}
-
 type TableColumn struct {
 	Name        string `json:"name"`
 	Description string `json:"description"`
@@ -110,7 +99,10 @@ type DataproductWithDataset struct {
 }
 
 func GetDataproducts(ctx context.Context, ids []uuid.UUID) ([]DataproductWithDataset, *APIError) {
-	sqldp, err := querier.GetDataproductsWithDatasets(ctx, ids)
+	sqldp, err := querier.GetDataproductsWithDatasets(ctx, gensql.GetDataproductsWithDatasetsParams{
+		Ids:    ids,
+		Groups: []string{},
+	})
 	if err != nil {
 		return nil, DBErrorToAPIError(err, "GetDataproducts(): Database error")
 	}
@@ -152,6 +144,10 @@ func GetDataset(ctx context.Context, id string) (*Dataset, *APIError) {
 }
 
 func dataproductsWithDatasetFromSQL(dprows []gensql.GetDataproductsWithDatasetsRow) []DataproductWithDataset {
+	if dprows == nil {
+		return []DataproductWithDataset{}
+	}
+
 	datasets := datasetsInDataProductFromSQL(dprows)
 
 	dataproducts := []DataproductWithDataset{}

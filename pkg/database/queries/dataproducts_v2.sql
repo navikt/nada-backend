@@ -2,7 +2,8 @@
 SELECT dp.*, dsrc.last_modified as "dsrc_last_modified"
 FROM dataproduct_view dp
 LEFT JOIN datasource_bigquery dsrc ON dsrc.dataset_id = dp.ds_id
-WHERE dp_id = ANY (@ids::uuid[]);
+WHERE (array_length(@ids::uuid[], 1) IS NULL OR dp_id = ANY (@ids))
+ AND (array_length(@groups::TEXT[], 1) IS NULL OR dp_group = ANY (@groups));
 
 
 -- name: GetDataproductWithDatasetsBasic :many
