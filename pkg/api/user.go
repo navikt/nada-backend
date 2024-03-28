@@ -4,7 +4,6 @@ import (
 	"context"
 	"database/sql"
 	"errors"
-	"fmt"
 	"net/http"
 	"strings"
 	"time"
@@ -245,18 +244,6 @@ func getUserData(ctx context.Context) (*UserInfo, *APIError) {
 	return userData, nil
 }
 
-func accessRequestsFromSQL(ctx context.Context, accessRequestSQLs []gensql.DatasetAccessRequest) ([]AccessRequest, error) {
-	var accessRequests []AccessRequest
-	for _, ar := range accessRequestSQLs {
-		accessRequestGraphql, err := accessRequestFromSQL(ctx, ar)
-		if err != nil {
-			return nil, err
-		}
-		accessRequests = append(accessRequests, *accessRequestGraphql)
-	}
-	return accessRequests, nil
-}
-
 func pollySQLToGraphql(ctx context.Context, id uuid.NullUUID) (*Polly, error) {
 	if !id.Valid {
 		return nil, nil
@@ -276,60 +263,4 @@ func pollySQLToGraphql(ctx context.Context, id uuid.NullUUID) (*Polly, error) {
 			URL:        pollyDoc.Url,
 		},
 	}, nil
-}
-
-func accessRequestFromSQL(ctx context.Context, dataproductAccessRequest gensql.DatasetAccessRequest) (*AccessRequest, error) {
-	splits := strings.Split(dataproductAccessRequest.Subject, ":")
-	if len(splits) != 2 {
-		return nil, fmt.Errorf("%v is not a valid subject (can't split on :)", dataproductAccessRequest.Subject)
-	}
-	subject := splits[1]
-
-	subjectType := splits[0]
-
-	polly, err := pollySQLToGraphql(ctx, dataproductAccessRequest.PollyDocumentationID)
-	if err != nil {
-		return nil, err
-	}
-
-	status, err := accessRequestStatusToGraphql(dataproductAccessRequest.Status)
-	if err != nil {
-		return nil, err
-	}
-
-	return &AccessRequest{
-		ID:          dataproductAccessRequest.ID,
-		DatasetID:   dataproductAccessRequest.DatasetID,
-		Subject:     subject,
-		SubjectType: subjectType,
-		Created:     dataproductAccessRequest.Created,
-		Status:      status,
-		Closed:      nullTimeToPtr(dataproductAccessRequest.Closed),
-		Expires:     nullTimeToPtr(dataproductAccessRequest.Expires),
-		Granter:     nullStringToPtr(dataproductAccessRequest.Granter),
-		Owner:       dataproductAccessRequest.Owner,
-		Polly:       polly,
-		Reason:      nullStringToPtr(dataproductAccessRequest.Reason),
-	}, nil
-}
-
-type AccessRequestStatus string
-
-const (
-	AccessRequestStatusPending  AccessRequestStatus = "pending"
-	AccessRequestStatusApproved AccessRequestStatus = "approved"
-	AccessRequestStatusDenied   AccessRequestStatus = "denied"
-)
-
-func accessRequestStatusToGraphql(sqlStatus gensql.AccessRequestStatusType) (AccessRequestStatus, error) {
-	switch sqlStatus {
-	case gensql.AccessRequestStatusTypePending:
-		return AccessRequestStatusPending, nil
-	case gensql.AccessRequestStatusTypeApproved:
-		return AccessRequestStatusApproved, nil
-	case gensql.AccessRequestStatusTypeDenied:
-		return AccessRequestStatusDenied, nil
-	default:
-		return "", fmt.Errorf("unknown access request status %q", sqlStatus)
-	}
 }
