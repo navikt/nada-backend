@@ -13,6 +13,7 @@ import (
 
 	"github.com/coreos/go-oidc/v3/oidc"
 	"github.com/google/uuid"
+	"github.com/navikt/nada-backend/pkg/auth"
 	"github.com/navikt/nada-backend/pkg/database"
 	"github.com/navikt/nada-backend/pkg/database/gensql"
 	"github.com/navikt/nada-backend/pkg/graph/models"
@@ -24,11 +25,13 @@ import (
 var querier gensql.Querier
 var tkClient teamkatalogen.Teamkatalogen
 var log *logrus.Logger
+var teamProjectsMapping *auth.TeamProjectsMapping
 
-func Init(q database.Querier, tk teamkatalogen.Teamkatalogen, l *logrus.Logger) {
+func Init(q database.Querier, tk teamkatalogen.Teamkatalogen, l *logrus.Logger, projects *auth.TeamProjectsMapping) {
 	querier = q
 	tkClient = tk
 	log = l
+	teamProjectsMapping = projects
 }
 
 const (
