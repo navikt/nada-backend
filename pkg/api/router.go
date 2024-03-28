@@ -131,6 +131,12 @@ func New(
 		}))
 	})
 
+	router.Route("/api/keywords", func(r chi.Router) {
+		r.Get("/", apiGetWrapper(func(r *http.Request) (interface{}, *APIError) {
+			return getKeywordsListSortedByPopularity(r.Context())
+		}))
+	})
+
 	router.Route("/api/search", func(r chi.Router) {
 		r.Get("/", apiGetWrapper(func(r *http.Request) (interface{}, *APIError) {
 			searchOptions, err := parseSearchOptionsFromRequest(r)

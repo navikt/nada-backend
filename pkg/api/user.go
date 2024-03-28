@@ -181,6 +181,21 @@ func getUserData(ctx context.Context) (*UserInfo, *APIError) {
 		return nil, NewAPIError(http.StatusInternalServerError, err, "getUserInfo(): getting nada tokens for teams")
 	}
 
+	for _, grp := range user.GoogleGroups {
+		proj, ok := teamProjectsMapping.Get(grp.Email)
+		if !ok {
+			continue
+		}
+
+		userData.GcpProjects = append(userData.GcpProjects, GCPProject{
+			ID: proj,
+			Group: &Group{
+				Name:  grp.Name,
+				Email: grp.Email,
+			},
+		})
+	}
+
 	userData.NadaTokens = tokens
 
 	dpres, err := querier.GetDataproductsWithDatasets(ctx, gensql.GetDataproductsWithDatasetsParams{

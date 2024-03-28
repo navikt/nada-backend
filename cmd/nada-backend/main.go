@@ -144,7 +144,7 @@ func main() {
 			log.Fatal(err)
 		}
 	}
-	api.Init(repo.Querier, teamcatalogue, log)
+	api.Init(repo.Querier, teamcatalogue, log, teamProjectsUpdater.TeamProjectsMapping)
 
 	if err := runMetabase(ctx, log.WithField("subsystem", "metabase"), cfg, repo, accessMgr, eventMgr); err != nil {
 		log.WithError(err).Fatal("running metabase")
