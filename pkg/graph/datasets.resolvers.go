@@ -164,6 +164,12 @@ func (r *mutationResolver) CreateDataset(ctx context.Context, input models.NewDa
 		return nil, err
 	}
 
+	if pseudoBigQuery == nil && input.GrantAllUsers != nil {
+		if err := r.grantAllUsersOnCreation(ctx, input.BigQuery, *input.GrantAllUsers); err != nil {
+			return nil, err
+		}
+	}
+
 	return ds, nil
 }
 
@@ -303,5 +309,7 @@ func (r *Resolver) BigQuery() generated.BigQueryResolver { return &bigQueryResol
 // Dataset returns generated.DatasetResolver implementation.
 func (r *Resolver) Dataset() generated.DatasetResolver { return &datasetResolver{r} }
 
-type bigQueryResolver struct{ *Resolver }
-type datasetResolver struct{ *Resolver }
+type (
+	bigQueryResolver struct{ *Resolver }
+	datasetResolver  struct{ *Resolver }
+)
