@@ -28,7 +28,7 @@ require (
 	github.com/slack-go/slack v0.12.5
 	github.com/spf13/pflag v1.0.5
 	github.com/sqlc-dev/pqtype v0.3.0
-	github.com/sqlc-dev/sqlc v1.25.0
+	github.com/sqlc-dev/sqlc v1.26.0
 	github.com/vektah/gqlparser/v2 v2.5.11
 	github.com/writeas/go-strip-markdown/v2 v2.1.1
 	golang.org/x/oauth2 v0.18.0
