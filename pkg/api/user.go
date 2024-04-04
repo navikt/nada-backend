@@ -36,8 +36,8 @@ type GCPProject struct {
 }
 
 type NadaToken struct {
-	Team  string
-	Token uuid.UUID
+	Team  string    `json:"team"`
+	Token uuid.UUID `json:"token"`
 }
 
 type AccessibleDataset struct {
