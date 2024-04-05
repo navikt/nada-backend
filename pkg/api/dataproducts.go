@@ -119,8 +119,8 @@ func GetDataproduct(ctx context.Context, id string) (*DataproductWithDataset, *A
 	if apierr != nil {
 		return nil, apierr
 	}
-	//it is safe to directly use the first element without checking the length
-	//because if the length was 0, the sql query in GetDataproducts should have returned no row
+	// it is safe to directly use the first element without checking the length
+	// because if the length was 0, the sql query in GetDataproducts should have returned no row
 	return &dps[0], nil
 }
 
@@ -326,9 +326,9 @@ func datasetFromSQL(dsrows []gensql.DatasetView) (*Dataset, *APIError) {
 		}
 
 		if dataset.MetabaseUrl == nil && dsrow.MbDatabaseID.Valid {
-			base := "https://metabase.intern.dev.nav.no/browse/%v"
+			base := "https://metabase.intern.dev.nav.no/browse/databases/%v"
 			if os.Getenv("NAIS_CLUSTER_NAME") == "prod-gcp" {
-				base = "https://metabase.intern.nav.no/browse/%v"
+				base = "https://metabase.intern.nav.no/browse/databases/%v"
 			}
 			url := fmt.Sprintf(base, dsrow.MbDatabaseID.Int32)
 			dataset.MetabaseUrl = &url
