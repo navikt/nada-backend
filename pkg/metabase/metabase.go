@@ -7,7 +7,6 @@ import (
 	"io"
 	"net/http"
 	"strings"
-	"time"
 
 	"github.com/btcsuite/btcutil/base58"
 	"github.com/google/uuid"
@@ -43,7 +42,7 @@ type dsWrapper struct {
 }
 
 func New(repo *database.Repo, client *Client, accessMgr graph.AccessManager, eventMgr *event.Manager, serviceAccount, serviceAccountEmail string, errs *prometheus.CounterVec, iamService *iam.Service, crmService *cloudresourcemanager.Service, log *logrus.Entry) *Metabase {
-	return &Metabase{
+	m := &Metabase{
 		repo:       repo,
 		client:     client,
 		accessMgr:  accessMgr,
@@ -55,45 +54,12 @@ func New(repo *database.Repo, client *Client, accessMgr graph.AccessManager, eve
 		crmService: crmService,
 		log:        log,
 	}
-}
-
-func (m *Metabase) Run(ctx context.Context, frequency time.Duration) {
 	m.events.ListenForDatasetGrant(m.grantMetabaseAccess)
 	m.events.ListenForDatasetRevoke(m.revokeMetabaseAccess)
 	m.events.ListenForDatasetAddMetabaseMapping(m.addDatasetMapping)
 	m.events.ListenForDatasetRemoveMetabaseMapping(m.deleteDatabase)
 	m.events.ListenForDatasetDelete(m.deleteDatabase)
-
-	ticker := time.NewTicker(frequency)
-	defer ticker.Stop()
-	for {
-		m.run(ctx)
-		select {
-		case <-ctx.Done():
-			return
-		case <-ticker.C:
-		}
-	}
-}
-
-func (m *Metabase) run(ctx context.Context) {
-	log := m.log.WithField("subsystem", "metabase synchronizer")
-
-	mbMetas, err := m.repo.GetAllMetabaseMetadata(ctx)
-	if err != nil {
-		log.WithError(err).Error("reading metabase metadata")
-	}
-
-	for _, db := range mbMetas {
-		bq, err := m.repo.GetBigqueryDatasource(ctx, db.DatasetID, false)
-		if err != nil {
-			log.WithError(err).Error("getting bigquery datasource for dataset")
-		}
-
-		if err := m.HideOtherTables(ctx, db.DatabaseID, bq.Table); err != nil {
-			log.WithError(err).Warning("hiding other tables")
-		}
-	}
+	return m
 }
 
 func (m *Metabase) HideOtherTables(ctx context.Context, dbID int, table string) error {
