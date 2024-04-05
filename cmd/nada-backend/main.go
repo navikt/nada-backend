@@ -146,7 +146,8 @@ func main() {
 	}
 	api.Init(repo.Querier, teamcatalogue, log, teamProjectsUpdater.TeamProjectsMapping)
 
-	if err := runMetabase(ctx, log.WithField("subsystem", "metabase"), cfg, repo, accessMgr, eventMgr); err != nil {
+	_, err = createMetabaseSyncer(ctx, log.WithField("subsystem", "metabase"), cfg, repo, accessMgr, eventMgr)
+	if err != nil {
 		log.WithError(err).Fatal("running metabase")
 	}
 
@@ -217,10 +218,10 @@ func getEnv(key, fallback string) string {
 	return fallback
 }
 
-func runMetabase(ctx context.Context, log *logrus.Entry, cfg Config, repo *database.Repo, accessMgr graph.AccessManager, eventMgr *event.Manager) error {
+func createMetabaseSyncer(ctx context.Context, log *logrus.Entry, cfg Config, repo *database.Repo, accessMgr graph.AccessManager, eventMgr *event.Manager) (*metabase.Metabase, error) {
 	if cfg.MetabaseServiceAccountFile == "" {
 		log.Info("metabase sync disabled")
-		return nil
+		return nil, nil
 	}
 
 	log.Info("metabase sync enabled")
@@ -228,12 +229,12 @@ func runMetabase(ctx context.Context, log *logrus.Entry, cfg Config, repo *datab
 	client := metabase.NewClient(cfg.MetabaseAPI, cfg.MetabaseUsername, cfg.MetabasePassword, cfg.OAuth2.ClientID, cfg.OAuth2.ClientSecret, cfg.OAuth2.TenantID)
 	crmService, err := cloudresourcemanager.NewService(ctx)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	sa, err := os.ReadFile(cfg.MetabaseServiceAccountFile)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	metabaseSA := struct {
@@ -242,15 +243,14 @@ func runMetabase(ctx context.Context, log *logrus.Entry, cfg Config, repo *datab
 
 	err = json.Unmarshal(sa, &metabaseSA)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	iamService, err := iam.NewService(ctx)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	metabase := metabase.New(repo, client, accessMgr, eventMgr, string(sa), metabaseSA.ClientEmail, promErrs, iamService, crmService, log.WithField("subsystem", "metabase"))
-	go metabase.Run(ctx, MetabaseUpdateFrequency)
-	return nil
+	return metabase, nil
 }

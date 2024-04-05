@@ -101,9 +101,9 @@ func (r *datasetResolver) Services(ctx context.Context, obj *models.Dataset) (*m
 
 	svc := &models.DatasetServices{}
 	if meta.DatabaseID > 0 {
-		base := "https://metabase.intern.dev.nav.no/browse/%v"
+		base := "https://metabase.intern.dev.nav.no/browse/databases/%v"
 		if os.Getenv("NAIS_CLUSTER_NAME") == "prod-gcp" {
-			base = "https://metabase.intern.nav.no/browse/%v"
+			base = "https://metabase.intern.nav.no/browse/databases/%v"
 		}
 		url := fmt.Sprintf(base, meta.DatabaseID)
 		svc.Metabase = &url

@@ -1,8 +1,8 @@
 package auth
 
 type Group struct {
-	Name  string
-	Email string
+	Name  string `json:"name"`
+	Email string `json:"email"`
 }
 
 type Groups []Group
