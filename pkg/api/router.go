@@ -115,6 +115,13 @@ func New(
 		}))
 	})
 
+	router.Route("/api/accessRequests", func(r chi.Router) {
+		r.Get("/", apiGetWrapper(func(r *http.Request) (interface{}, *APIError) {
+			datasetID := r.URL.Query().Get("datasetID")
+			return getAccessRequests(r.Context(), chi.URLParam(r, datasetID))
+		}))
+	})
+
 	router.Route("/api/productareas", func(r chi.Router) {
 		r.Get("/", apiGetWrapper(func(r *http.Request) (interface{}, *APIError) {
 			return GetProductAreas(r.Context())
