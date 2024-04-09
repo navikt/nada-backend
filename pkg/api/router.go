@@ -117,8 +117,8 @@ func New(
 
 	router.Route("/api/accessRequests", func(r chi.Router) {
 		r.Get("/", apiGetWrapper(func(r *http.Request) (interface{}, *APIError) {
-			datasetID := r.URL.Query().Get("datasetID")
-			return getAccessRequests(r.Context(), chi.URLParam(r, datasetID))
+			datasetID := r.URL.Query().Get("datasetId")
+			return getAccessRequests(r.Context(), datasetID)
 		}))
 	})
 
