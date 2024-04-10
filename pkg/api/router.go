@@ -146,17 +146,17 @@ func New(
 
 	router.Route("/api/bigquery/columns", func(r chi.Router) {
 		r.Get("/", apiGetWrapper(func(r *http.Request) (interface{}, *APIError) {
-			projectID := r.URL.Query().Get("projectID")
-			datasetID := r.URL.Query().Get("datasetID")
-			tableID := r.URL.Query().Get("tableID")
+			projectID := r.URL.Query().Get("projectId")
+			datasetID := r.URL.Query().Get("datasetId")
+			tableID := r.URL.Query().Get("tableId")
 			return getBQColumns(r.Context(), projectID, datasetID, tableID)
 		}))
 	})
 
 	router.Route("/api/bigquery/tables", func(r chi.Router) {
 		r.Get("/", apiGetWrapper(func(r *http.Request) (interface{}, *APIError) {
-			projectID := r.URL.Query().Get("projectID")
-			datasetID := r.URL.Query().Get("datasetID")
+			projectID := r.URL.Query().Get("projectId")
+			datasetID := r.URL.Query().Get("datasetId")
 			return getBQTables(r.Context(), projectID, datasetID)
 		}))
 	})
