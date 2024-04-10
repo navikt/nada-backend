@@ -56,7 +56,7 @@ func getBQTables(ctx context.Context, projectID string, datasetID string) (*BQTa
 func getBQDatasets(ctx context.Context, projectID string) (*BQDatasets, *APIError) {
 	datasets, err := bqclient.GetDatasets(ctx, projectID)
 	if err != nil {
-		return nil, NewAPIError(http.StatusInternalServerError, err, "Failed to retrive bigquery datasets")
+		return nil, NewAPIError(http.StatusInternalServerError, err, "Failed to retrieve bigquery datasets")
 	}
 	return &BQDatasets{
 		BQDatasets: datasets,

@@ -163,7 +163,7 @@ func New(
 
 	router.Route("/api/bigquery/datasets", func(r chi.Router) {
 		r.Get("/", apiGetWrapper(func(r *http.Request) (interface{}, *APIError) {
-			projectID := r.URL.Query().Get("projectID")
+			projectID := r.URL.Query().Get("projectId")
 			return getBQDatasets(r.Context(), projectID)
 		}))
 	})
