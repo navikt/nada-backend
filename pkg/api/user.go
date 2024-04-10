@@ -24,12 +24,6 @@ func RotateNadaToken(ctx context.Context, team string) *APIError {
 	return DBErrorToAPIError(querier.RotateNadaToken(ctx, team), "RotateNadaToken(): Database error")
 }
 
-type GCPProject struct {
-	ID    string      `json:"id"`
-	Name  string      `json:"name"`
-	Group *auth.Group `json:"group"`
-}
-
 type NadaToken struct {
 	Team  string    `json:"team"`
 	Token uuid.UUID `json:"token"`
