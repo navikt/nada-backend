@@ -144,6 +144,30 @@ func New(
 		}))
 	})
 
+	router.Route("/api/bigquery/columns", func(r chi.Router) {
+		r.Get("/", apiGetWrapper(func(r *http.Request) (interface{}, *APIError) {
+			projectID := r.URL.Query().Get("projectID")
+			datasetID := r.URL.Query().Get("datasetID")
+			tableID := r.URL.Query().Get("tableID")
+			return getBQColumns(r.Context(), projectID, datasetID, tableID)
+		}))
+	})
+
+	router.Route("/api/bigquery/tables", func(r chi.Router) {
+		r.Get("/", apiGetWrapper(func(r *http.Request) (interface{}, *APIError) {
+			projectID := r.URL.Query().Get("projectID")
+			datasetID := r.URL.Query().Get("datasetID")
+			return getBQTables(r.Context(), projectID, datasetID)
+		}))
+	})
+
+	router.Route("/api/bigquery/datasets", func(r chi.Router) {
+		r.Get("/", apiGetWrapper(func(r *http.Request) (interface{}, *APIError) {
+			projectID := r.URL.Query().Get("projectID")
+			return getBQDatasets(r.Context(), projectID)
+		}))
+	})
+
 	router.Route("/api/search", func(r chi.Router) {
 		r.Get("/", apiGetWrapper(func(r *http.Request) (interface{}, *APIError) {
 			searchOptions, err := parseSearchOptionsFromRequest(r)
