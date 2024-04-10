@@ -37,7 +37,6 @@ func (m *Metabase) deleteDatabase(ctx context.Context, dsID uuid.UUID) {
 	mbMeta, err := m.repo.GetMetabaseMetadata(ctx, dsID, true)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
-			m.log.Infof("dataset %v does not exist in metabase", dsID)
 			return
 		}
 		m.log.WithError(err).Error("getting metabase metadata")
