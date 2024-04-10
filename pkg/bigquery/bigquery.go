@@ -1,5 +1,6 @@
 package bigquery
 
+//TODO: delete after refactor
 import (
 	"context"
 	"fmt"

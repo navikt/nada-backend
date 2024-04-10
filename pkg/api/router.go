@@ -115,6 +115,13 @@ func New(
 		}))
 	})
 
+	router.Route("/api/accessRequests", func(r chi.Router) {
+		r.Get("/", apiGetWrapper(func(r *http.Request) (interface{}, *APIError) {
+			datasetID := r.URL.Query().Get("datasetId")
+			return getAccessRequests(r.Context(), datasetID)
+		}))
+	})
+
 	router.Route("/api/productareas", func(r chi.Router) {
 		r.Get("/", apiGetWrapper(func(r *http.Request) (interface{}, *APIError) {
 			return GetProductAreas(r.Context())
@@ -134,6 +141,30 @@ func New(
 	router.Route("/api/keywords", func(r chi.Router) {
 		r.Get("/", apiGetWrapper(func(r *http.Request) (interface{}, *APIError) {
 			return getKeywordsListSortedByPopularity(r.Context())
+		}))
+	})
+
+	router.Route("/api/bigquery/columns", func(r chi.Router) {
+		r.Get("/", apiGetWrapper(func(r *http.Request) (interface{}, *APIError) {
+			projectID := r.URL.Query().Get("projectId")
+			datasetID := r.URL.Query().Get("datasetId")
+			tableID := r.URL.Query().Get("tableId")
+			return getBQColumns(r.Context(), projectID, datasetID, tableID)
+		}))
+	})
+
+	router.Route("/api/bigquery/tables", func(r chi.Router) {
+		r.Get("/", apiGetWrapper(func(r *http.Request) (interface{}, *APIError) {
+			projectID := r.URL.Query().Get("projectId")
+			datasetID := r.URL.Query().Get("datasetId")
+			return getBQTables(r.Context(), projectID, datasetID)
+		}))
+	})
+
+	router.Route("/api/bigquery/datasets", func(r chi.Router) {
+		r.Get("/", apiGetWrapper(func(r *http.Request) (interface{}, *APIError) {
+			projectID := r.URL.Query().Get("projectId")
+			return getBQDatasets(r.Context(), projectID)
 		}))
 	})
 

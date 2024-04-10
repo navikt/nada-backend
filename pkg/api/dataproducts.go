@@ -9,38 +9,13 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+	"github.com/navikt/nada-backend/pkg/bqclient"
 	"github.com/navikt/nada-backend/pkg/database/gensql"
 )
 
 type PiiLevel string
 
 type DatasourceType string
-
-type BigQueryType string
-
-type TableColumn struct {
-	Name        string `json:"name"`
-	Description string `json:"description"`
-	Mode        string `json:"mode"`
-	Type        string `json:"type"`
-}
-
-type BigQuery struct {
-	ID            uuid.UUID
-	DatasetID     uuid.UUID
-	ProjectID     string         `json:"projectID"`
-	Dataset       string         `json:"dataset"`
-	Table         string         `json:"table"`
-	TableType     BigQueryType   `json:"tableType"`
-	LastModified  time.Time      `json:"lastModified"`
-	Created       time.Time      `json:"created"`
-	Expires       *time.Time     `json:"expired"`
-	Description   string         `json:"description"`
-	PiiTags       *string        `json:"piiTags"`
-	MissingSince  *time.Time     `json:"missingSince"`
-	PseudoColumns []string       `json:"pseudoColumns"`
-	Schema        []*TableColumn `json:"schema"`
-}
 
 type Dataset struct {
 	ID                       uuid.UUID `json:"id"`
@@ -261,7 +236,7 @@ func datasetFromSQL(dsrows []gensql.DatasetView) (*Dataset, *APIError) {
 		}
 
 		if dsrow.BqID != uuid.Nil {
-			var schema []*TableColumn
+			var schema []*bqclient.BigqueryColumn
 			if dsrow.BqSchema.Valid {
 				if err := json.Unmarshal(dsrow.BqSchema.RawMessage, &schema); err != nil {
 					return nil, NewAPIError(http.StatusInternalServerError, err, "datasetFromSQL(): Error in BigQuery schema")
@@ -274,7 +249,7 @@ func datasetFromSQL(dsrows []gensql.DatasetView) (*Dataset, *APIError) {
 				ProjectID:     dsrow.BqProject,
 				Dataset:       dsrow.BqDataset,
 				Table:         dsrow.BqTableName,
-				TableType:     BigQueryType(dsrow.BqTableType),
+				TableType:     bqclient.BigQueryType(dsrow.BqTableType),
 				Created:       dsrow.BqCreated,
 				LastModified:  dsrow.BqLastModified,
 				Expires:       nullTimeToPtr(dsrow.BqExpires),

@@ -2,7 +2,9 @@ package api
 
 import (
 	"context"
+	"database/sql"
 	"fmt"
+	"net/http"
 	"strings"
 	"time"
 
@@ -50,6 +52,10 @@ type AccessRequest struct {
 	Owner       string              `json:"owner"`
 	Polly       *Polly              `json:"polly"`
 	Reason      *string             `json:"reason"`
+}
+
+type AccessRequestsWrapper struct {
+	AccessRequests []AccessRequest `json:"accessRequests"`
 }
 
 func accessRequestsFromSQL(ctx context.Context, accessRequestSQLs []gensql.DatasetAccessRequest) ([]AccessRequest, error) {
@@ -118,4 +124,24 @@ func accessRequestStatusFromDB(sqlStatus gensql.AccessRequestStatusType) (Access
 	default:
 		return "", fmt.Errorf("unknown access request status %q", sqlStatus)
 	}
+}
+
+func getAccessRequests(ctx context.Context, datasetID string) (*AccessRequestsWrapper, *APIError) {
+	datasetUUID, err := uuid.Parse(datasetID)
+	if err != nil {
+		return nil, NewAPIError(http.StatusBadRequest, err, "invalid datasetID")
+	}
+
+	accessRequestsSQL, err := querier.ListAccessRequestsForDataset(ctx, datasetUUID)
+	if err != nil && err != sql.ErrNoRows {
+		return nil, DBErrorToAPIError(err, "getAccessRequests(): failed to get access requests")
+	}
+
+	accessRequests, err := accessRequestsFromSQL(ctx, accessRequestsSQL)
+	if err != nil {
+		return nil, NewAPIError(http.StatusInternalServerError, err, "getAccessRequests(): converting access requests from database")
+	}
+	return &AccessRequestsWrapper{
+		AccessRequests: accessRequests,
+	}, nil
 }
