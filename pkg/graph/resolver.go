@@ -3,6 +3,7 @@ package graph
 import (
 	"context"
 	"fmt"
+	"strings"
 
 	"cloud.google.com/go/bigquery"
 	"github.com/99designs/gqlgen-contrib/prometheus"
@@ -80,7 +81,7 @@ func New(repo *database.Repo, gcp Bigquery, gcpProjects *auth.TeamProjectsMappin
 }
 
 func (r *Resolver) ensureGroupOwnsGCPProject(ctx context.Context, group, projectID string) error {
-	groupProject, ok := r.gcpProjects.Get(group)
+	groupProject, ok := r.gcpProjects.Get(strings.TrimPrefix(group, "nais-team-"))
 	if !ok {
 		return ErrUnauthorized
 	}
