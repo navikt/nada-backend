@@ -60,6 +60,7 @@ type Querier interface {
 	GetDataproductsByTeam(ctx context.Context, teamID sql.NullString) ([]Dataproduct, error)
 	GetDataproductsNumberByTeam(ctx context.Context, teamID sql.NullString) (int64, error)
 	GetDataproductsWithDatasets(ctx context.Context, arg GetDataproductsWithDatasetsParams) ([]GetDataproductsWithDatasetsRow, error)
+	GetDataproductsWithDatasetsAndAccessRequests(ctx context.Context, arg GetDataproductsWithDatasetsAndAccessRequestsParams) ([]GetDataproductsWithDatasetsAndAccessRequestsRow, error)
 	GetDataset(ctx context.Context, id uuid.UUID) (Dataset, error)
 	GetDatasetComplete(ctx context.Context, id uuid.UUID) ([]DatasetView, error)
 	GetDatasetMappings(ctx context.Context, datasetID uuid.UUID) (ThirdPartyMapping, error)

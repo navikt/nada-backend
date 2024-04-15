@@ -175,6 +175,54 @@ __loop_rows:
 	return dataproducts
 }
 
+func dataproductsWithDatasetAndAccessRequestsFromSQL(dprrows []gensql.GetDataproductsWithDatasetsAndAccessRequestsRow) ([]DataproductWithDataset, []AccessRequest, *APIError) {
+	if dprrows == nil {
+		return nil, nil, nil
+	}
+
+	dprows := make([]gensql.GetDataproductsWithDatasetsRow, len(dprrows))
+
+	for i, dprrow := range dprrows {
+		dprows[i] = gensql.GetDataproductsWithDatasetsRow{
+			DpID:             dprrow.DpID,
+			DpName:           dprrow.DpName,
+			DpCreated:        dprrow.DpCreated,
+			DpLastModified:   dprrow.DpLastModified,
+			DpDescription:    dprrow.DpDescription,
+			DpSlug:           dprrow.DpSlug,
+			DpGroup:          dprrow.DpGroup,
+			TeamkatalogenUrl: dprrow.TeamkatalogenUrl,
+			TeamContact:      dprrow.TeamContact,
+			TeamID:           dprrow.TeamID,
+		}
+	}
+	dp := dataproductsWithDatasetFromSQL(dprows)
+
+	arrows := make([]gensql.DatasetAccessRequest, len(dprrows))
+
+	for i, dprrow := range dprrows {
+		arrows[i] = gensql.DatasetAccessRequest{
+			ID:                   dprrow.DarID.UUID,
+			DatasetID:            dprrow.DarDatasetID.UUID,
+			Subject:              dprrow.DarSubject.String,
+			Created:              dprrow.DarCreated.Time,
+			Status:               dprrow.DarStatus.AccessRequestStatusType,
+			Closed:               dprrow.DarClosed,
+			Expires:              dprrow.DarExpires,
+			Granter:              dprrow.DarGranter,
+			Owner:                dprrow.DarOwner.String,
+			PollyDocumentationID: dprrow.DarPollyDocumentationID,
+			Reason:               dprrow.DarReason,
+		}
+	}
+	ar, err := accessRequestsFromSQL(context.Background(), arrows)
+	if err != nil {
+		return nil, nil, NewAPIError(http.StatusInternalServerError, err, "dataproductsWithDatasetAndAccessRequestsFromSQL(): Error in accessRequestsFromSQL")
+	}
+
+	return dp, ar, nil
+}
+
 func datasetsInDataProductFromSQL(dsrows []gensql.GetDataproductsWithDatasetsRow) []*DatasetInDataproduct {
 	datasets := []*DatasetInDataproduct{}
 
