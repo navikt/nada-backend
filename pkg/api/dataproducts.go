@@ -181,7 +181,6 @@ func dataproductsWithDatasetAndAccessRequestsFromSQL(dprrows []gensql.GetDatapro
 	}
 
 	dprows := make([]gensql.GetDataproductsWithDatasetsRow, len(dprrows))
-
 	for i, dprrow := range dprrows {
 		dprows[i] = gensql.GetDataproductsWithDatasetsRow{
 			DpID:             dprrow.DpID,
@@ -198,21 +197,24 @@ func dataproductsWithDatasetAndAccessRequestsFromSQL(dprrows []gensql.GetDatapro
 	}
 	dp := dataproductsWithDatasetFromSQL(dprows)
 
-	arrows := make([]gensql.DatasetAccessRequest, len(dprrows))
+	arrows := make([]gensql.DatasetAccessRequest, 0)
 
-	for i, dprrow := range dprrows {
-		arrows[i] = gensql.DatasetAccessRequest{
-			ID:                   dprrow.DarID.UUID,
-			DatasetID:            dprrow.DarDatasetID.UUID,
-			Subject:              dprrow.DarSubject.String,
-			Created:              dprrow.DarCreated.Time,
-			Status:               dprrow.DarStatus.AccessRequestStatusType,
-			Closed:               dprrow.DarClosed,
-			Expires:              dprrow.DarExpires,
-			Granter:              dprrow.DarGranter,
-			Owner:                dprrow.DarOwner.String,
-			PollyDocumentationID: dprrow.DarPollyDocumentationID,
-			Reason:               dprrow.DarReason,
+	for _, dprrow := range dprrows {
+		if dprrow.DarID.Valid {
+
+			arrows = append(arrows, gensql.DatasetAccessRequest{
+				ID:                   dprrow.DarID.UUID,
+				DatasetID:            dprrow.DarDatasetID.UUID,
+				Subject:              dprrow.DarSubject.String,
+				Created:              dprrow.DarCreated.Time,
+				Status:               dprrow.DarStatus.AccessRequestStatusType,
+				Closed:               dprrow.DarClosed,
+				Expires:              dprrow.DarExpires,
+				Granter:              dprrow.DarGranter,
+				Owner:                dprrow.DarOwner.String,
+				PollyDocumentationID: dprrow.DarPollyDocumentationID,
+				Reason:               dprrow.DarReason,
+			})
 		}
 	}
 	ar, err := accessRequestsFromSQL(context.Background(), arrows)
