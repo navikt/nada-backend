@@ -83,6 +83,9 @@ type UserInfo struct {
 
 	//accessRequests is a list of access requests where either the user or one of the users groups is owner.
 	AccessRequests []AccessRequest `json:"accessRequests"`
+
+	//accessRequestsAsGranter is a list of access requests where one of the users groups is obliged to handle.
+	AccessRequestsAsGranter []AccessRequest `json:"accessRequestsAsGranter"`
 }
 
 func teamNamesFromGroups(groups auth.Groups) []string {
@@ -202,7 +205,7 @@ func getUserData(ctx context.Context) (*UserInfo, *APIError) {
 		for _, dpds := range dpwithds {
 			userData.Dataproducts = append(userData.Dataproducts, dpds.Dataproduct)
 		}
-		userData.AccessRequests = dar
+		userData.AccessRequestsAsGranter = dar
 	}
 
 	owned, granted, apiErr := getAccessibleDatasets(ctx, teams, user.Email)
@@ -237,6 +240,16 @@ func getUserData(ctx context.Context) (*UserInfo, *APIError) {
 	groups := []string{"user:" + strings.ToLower(user.Email)}
 	for _, g := range user.GoogleGroups {
 		groups = append(groups, "group:"+strings.ToLower(g.Email))
+	}
+
+	accessRequestSQLs, err := querier.ListAccessRequestsForOwner(ctx, groups)
+	if err != nil && !errors.Is(err, sql.ErrNoRows) {
+		return nil, DBErrorToAPIError(err, "getUserInfo(): getting access requests by owner from database")
+	} else if err == nil {
+		userData.AccessRequests, err = accessRequestsFromSQL(ctx, accessRequestSQLs)
+		if err != nil {
+			return nil, NewAPIError(http.StatusInternalServerError, err, "getUserInfo(): converting access requests from database")
+		}
 	}
 
 	return userData, nil
