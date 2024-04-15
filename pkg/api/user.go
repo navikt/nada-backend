@@ -85,7 +85,7 @@ type UserInfo struct {
 	AccessRequests []AccessRequest `json:"accessRequests"`
 
 	//accessRequestsAsGranter is a list of access requests where one of the users groups is obliged to handle.
-	AccessRequestsAsGranter []AccessRequest `json:"accessRequestsAsGranter"`
+	AccessRequestsAsGranter []AccessRequestForGranter `json:"accessRequestsAsGranter"`
 }
 
 func teamNamesFromGroups(groups auth.Groups) []string {
@@ -197,7 +197,7 @@ func getUserData(ctx context.Context) (*UserInfo, *APIError) {
 	if err != nil && err != sql.ErrNoRows {
 		return nil, DBErrorToAPIError(err, "getting dataproducts by group from database")
 	} else {
-		dpwithds, dar, e := dataproductsWithDatasetAndAccessRequestsFromSQL(dpres)
+		dpwithds, dar, e := dataproductsWithDatasetAndAccessRequestsForGranterFromSQL(dpres)
 
 		if e != nil {
 			return nil, NewAPIError(http.StatusInternalServerError, e, "getUserInfo(): converting access requests from database")

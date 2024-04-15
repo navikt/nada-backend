@@ -175,7 +175,7 @@ __loop_rows:
 	return dataproducts
 }
 
-func dataproductsWithDatasetAndAccessRequestsFromSQL(dprrows []gensql.GetDataproductsWithDatasetsAndAccessRequestsRow) ([]DataproductWithDataset, []AccessRequest, *APIError) {
+func dataproductsWithDatasetAndAccessRequestsForGranterFromSQL(dprrows []gensql.GetDataproductsWithDatasetsAndAccessRequestsRow) ([]DataproductWithDataset, []AccessRequestForGranter, *APIError) {
 	if dprrows == nil {
 		return nil, nil, nil
 	}
@@ -201,7 +201,6 @@ func dataproductsWithDatasetAndAccessRequestsFromSQL(dprrows []gensql.GetDatapro
 
 	for _, dprrow := range dprrows {
 		if dprrow.DarID.Valid {
-
 			arrows = append(arrows, gensql.DatasetAccessRequest{
 				ID:                   dprrow.DarID.UUID,
 				DatasetID:            dprrow.DarDatasetID.UUID,
@@ -217,12 +216,34 @@ func dataproductsWithDatasetAndAccessRequestsFromSQL(dprrows []gensql.GetDatapro
 			})
 		}
 	}
-	ar, err := accessRequestsFromSQL(context.Background(), arrows)
+	ars, err := accessRequestsFromSQL(context.Background(), arrows)
+
+	arfg := make([]AccessRequestForGranter, len(ars))
+	for i, ar := range ars {
+		dataproductID := uuid.Nil
+		datasetName := ""
+		dataproductName := ""
+		for _, dprrow := range dprrows {
+			if dprrow.DarDatasetID.UUID == ar.DatasetID {
+				dataproductID = dprrow.DpID
+				datasetName = dprrow.DsName.String
+				dataproductName = dprrow.DpName
+				break
+			}
+		}
+
+		arfg[i] = AccessRequestForGranter{
+			AccessRequest:   ar,
+			DatasetName:     datasetName,
+			DataproductName: dataproductName,
+			DataproductID:   dataproductID,
+		}
+	}
 	if err != nil {
 		return nil, nil, NewAPIError(http.StatusInternalServerError, err, "dataproductsWithDatasetAndAccessRequestsFromSQL(): Error in accessRequestsFromSQL")
 	}
 
-	return dp, ar, nil
+	return dp, arfg, nil
 }
 
 func datasetsInDataProductFromSQL(dsrows []gensql.GetDataproductsWithDatasetsRow) []*DatasetInDataproduct {

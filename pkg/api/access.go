@@ -54,6 +54,13 @@ type AccessRequest struct {
 	Reason      *string             `json:"reason"`
 }
 
+type AccessRequestForGranter struct {
+	AccessRequest
+	DataproductID   uuid.UUID `json:"dataproductID"`
+	DatasetName     string    `json:"datasetName"`
+	DataproductName string    `json:"dataproductName"`
+}
+
 type AccessRequestsWrapper struct {
 	AccessRequests []AccessRequest `json:"accessRequests"`
 }
