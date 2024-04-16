@@ -88,7 +88,7 @@ type UserInfo struct {
 func teamNamesFromGroups(groups auth.Groups) []string {
 	teams := []string{}
 	for _, g := range groups {
-		teams = append(teams, stripNaisTeamPrefix(strings.Split(g.Email, "@")[0]))
+		teams = append(teams, TrimNaisTeamPrefix(strings.Split(g.Email, "@")[0]))
 	}
 
 	return teams
@@ -171,7 +171,7 @@ func getUserData(ctx context.Context) (*UserInfo, *APIError) {
 	}
 
 	for _, grp := range user.GoogleGroups {
-		proj, ok := teamProjectsMapping.Get(stripNaisTeamPrefix(grp.Email))
+		proj, ok := teamProjectsMapping.Get(TrimNaisTeamPrefix(grp.Email))
 		if !ok {
 			continue
 		}
@@ -268,6 +268,6 @@ func pollySQLToGraphql(ctx context.Context, id uuid.NullUUID) (*Polly, error) {
 	}, nil
 }
 
-func stripNaisTeamPrefix(team string) string {
+func TrimNaisTeamPrefix(team string) string {
 	return strings.TrimPrefix(team, "nais-team-")
 }

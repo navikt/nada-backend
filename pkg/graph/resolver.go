@@ -3,13 +3,13 @@ package graph
 import (
 	"context"
 	"fmt"
-	"strings"
 
 	"cloud.google.com/go/bigquery"
 	"github.com/99designs/gqlgen-contrib/prometheus"
 	"github.com/99designs/gqlgen/graphql"
 	"github.com/99designs/gqlgen/graphql/handler"
 	"github.com/google/uuid"
+	"github.com/navikt/nada-backend/pkg/api"
 	"github.com/navikt/nada-backend/pkg/auth"
 	bq "github.com/navikt/nada-backend/pkg/bigquery"
 	"github.com/navikt/nada-backend/pkg/database"
@@ -81,7 +81,7 @@ func New(repo *database.Repo, gcp Bigquery, gcpProjects *auth.TeamProjectsMappin
 }
 
 func (r *Resolver) ensureGroupOwnsGCPProject(ctx context.Context, group, projectID string) error {
-	groupProject, ok := r.gcpProjects.Get(strings.TrimPrefix(group, "nais-team-"))
+	groupProject, ok := r.gcpProjects.Get(api.TrimNaisTeamPrefix(group))
 	if !ok {
 		return ErrUnauthorized
 	}
