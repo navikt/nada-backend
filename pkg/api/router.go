@@ -104,48 +104,48 @@ func New(
 	})
 
 	router.Route("/api/dataproducts", func(r chi.Router) {
-		r.Get("/{id}", apiGetWrapper(func(r *http.Request) (interface{}, *APIError) {
+		r.Get("/{id}", apiWrapper(func(r *http.Request) (interface{}, *APIError) {
 			return GetDataproduct(r.Context(), chi.URLParam(r, "id"))
 		}))
 	})
 
 	router.Route("/api/datasets", func(r chi.Router) {
-		r.Get("/{id}", apiGetWrapper(func(r *http.Request) (interface{}, *APIError) {
+		r.Get("/{id}", apiWrapper(func(r *http.Request) (interface{}, *APIError) {
 			return GetDataset(r.Context(), chi.URLParam(r, "id"))
 		}))
 	})
 
 	router.Route("/api/accessRequests", func(r chi.Router) {
-		r.Get("/", apiGetWrapper(func(r *http.Request) (interface{}, *APIError) {
+		r.Get("/", apiWrapper(func(r *http.Request) (interface{}, *APIError) {
 			datasetID := r.URL.Query().Get("datasetId")
 			return getAccessRequests(r.Context(), datasetID)
 		}))
 	})
 
 	router.Route("/api/productareas", func(r chi.Router) {
-		r.Get("/", apiGetWrapper(func(r *http.Request) (interface{}, *APIError) {
+		r.Get("/", apiWrapper(func(r *http.Request) (interface{}, *APIError) {
 			return GetProductAreas(r.Context())
 		}))
 
-		r.Get("/{id}", apiGetWrapper(func(r *http.Request) (interface{}, *APIError) {
+		r.Get("/{id}", apiWrapper(func(r *http.Request) (interface{}, *APIError) {
 			return GetProductAreaWithAssets(r.Context(), chi.URLParam(r, "id"))
 		}))
 	})
 
 	router.Route("/api/teamkatalogen", func(r chi.Router) {
-		r.Get("/", apiGetWrapper(func(r *http.Request) (interface{}, *APIError) {
+		r.Get("/", apiWrapper(func(r *http.Request) (interface{}, *APIError) {
 			return SearchTeamKatalogen(r.Context(), r.URL.Query()["gcpGroups"])
 		}))
 	})
 
 	router.Route("/api/keywords", func(r chi.Router) {
-		r.Get("/", apiGetWrapper(func(r *http.Request) (interface{}, *APIError) {
+		r.Get("/", apiWrapper(func(r *http.Request) (interface{}, *APIError) {
 			return getKeywordsListSortedByPopularity(r.Context())
 		}))
 	})
 
 	router.Route("/api/bigquery/columns", func(r chi.Router) {
-		r.Get("/", apiGetWrapper(func(r *http.Request) (interface{}, *APIError) {
+		r.Get("/", apiWrapper(func(r *http.Request) (interface{}, *APIError) {
 			projectID := r.URL.Query().Get("projectId")
 			datasetID := r.URL.Query().Get("datasetId")
 			tableID := r.URL.Query().Get("tableId")
@@ -154,7 +154,7 @@ func New(
 	})
 
 	router.Route("/api/bigquery/tables", func(r chi.Router) {
-		r.Get("/", apiGetWrapper(func(r *http.Request) (interface{}, *APIError) {
+		r.Get("/", apiWrapper(func(r *http.Request) (interface{}, *APIError) {
 			projectID := r.URL.Query().Get("projectId")
 			datasetID := r.URL.Query().Get("datasetId")
 			return getBQTables(r.Context(), projectID, datasetID)
@@ -162,14 +162,34 @@ func New(
 	})
 
 	router.Route("/api/bigquery/datasets", func(r chi.Router) {
-		r.Get("/", apiGetWrapper(func(r *http.Request) (interface{}, *APIError) {
+		r.Get("/", apiWrapper(func(r *http.Request) (interface{}, *APIError) {
 			projectID := r.URL.Query().Get("projectId")
 			return getBQDatasets(r.Context(), projectID)
 		}))
 	})
 
+	router.Route("/api/access", func(r chi.Router) {
+		r.Post("/", apiWrapper(func(r *http.Request) (interface{}, *APIError) {
+			accessRequestID := r.URL.Query().Get("accessRequestId")
+			granter := r.URL.Query().Get("granter")
+			accessID := r.URL.Query().Get("accessId")
+			reason := r.URL.Query().Get("reason")
+			action := r.URL.Query().Get("action")
+			switch action {
+			case "approve":
+				return "", approveAccessRequest(r.Context(), accessRequestID, granter)
+			case "deny":
+				return "", denyAccessRequest(r.Context(), accessRequestID, &reason)
+			case "revoke":
+				return "", revokeAccessToDataset(r.Context(), accessID)
+			default:
+				return nil, NewAPIError(http.StatusBadRequest, fmt.Errorf("invalid action: %s", action), "Invalid action")
+			}
+		}))
+	})
+
 	router.Route("/api/search", func(r chi.Router) {
-		r.Get("/", apiGetWrapper(func(r *http.Request) (interface{}, *APIError) {
+		r.Get("/", apiWrapper(func(r *http.Request) (interface{}, *APIError) {
 			searchOptions, err := parseSearchOptionsFromRequest(r)
 			if err != nil {
 				return nil, NewAPIError(http.StatusBadRequest, err, "Failed to parse search options")
@@ -192,7 +212,7 @@ func New(
 
 	router.Route("/api/userData", func(r chi.Router) {
 		r.Use(authMW)
-		r.Get("/", apiGetWrapper(func(r *http.Request) (interface{}, *APIError) {
+		r.Get("/", apiWrapper(func(r *http.Request) (interface{}, *APIError) {
 			return getUserData(r.Context())
 		}))
 	})

@@ -74,7 +74,7 @@ type DataproductWithDataset struct {
 }
 
 func GetDataproducts(ctx context.Context, ids []uuid.UUID) ([]DataproductWithDataset, *APIError) {
-	sqldp, err := querier.GetDataproductsWithDatasets(ctx, gensql.GetDataproductsWithDatasetsParams{
+	sqldp, err := queries.GetDataproductsWithDatasets(ctx, gensql.GetDataproductsWithDatasetsParams{
 		Ids:    ids,
 		Groups: []string{},
 	})
@@ -105,7 +105,7 @@ func GetDataset(ctx context.Context, id string) (*Dataset, *APIError) {
 		return nil, NewAPIError(http.StatusBadRequest, err, "GetDataset(): Invalid UUID")
 	}
 
-	sqlds, err := querier.GetDatasetComplete(ctx, uuid)
+	sqlds, err := queries.GetDatasetComplete(ctx, uuid)
 	if err != nil {
 		return nil, DBErrorToAPIError(err, "GetDataset(): Database error")
 	}
@@ -223,11 +223,13 @@ func dataproductsWithDatasetAndAccessRequestsForGranterFromSQL(dprrows []gensql.
 		dataproductID := uuid.Nil
 		datasetName := ""
 		dataproductName := ""
+		dataproductSlug := ""
 		for _, dprrow := range dprrows {
 			if dprrow.DarDatasetID.UUID == ar.DatasetID {
 				dataproductID = dprrow.DpID
 				datasetName = dprrow.DsName.String
 				dataproductName = dprrow.DpName
+				dataproductSlug = dprrow.DpSlug
 				break
 			}
 		}
@@ -237,6 +239,7 @@ func dataproductsWithDatasetAndAccessRequestsForGranterFromSQL(dprrows []gensql.
 			DatasetName:     datasetName,
 			DataproductName: dataproductName,
 			DataproductID:   dataproductID,
+			DataproductSlug: dataproductSlug,
 		}
 	}
 	if err != nil {

@@ -47,24 +47,24 @@ func GetProductAreas(ctx context.Context) (*ProductAreasDto, *APIError) {
 
 	productAreas := make([]ProductArea, 0)
 	for _, p := range pa {
-		dash, err := querier.GetDashboard(ctx, p.ID)
+		dash, err := queries.GetDashboard(ctx, p.ID)
 		if err != nil && err != sql.ErrNoRows {
 			return nil, DBErrorToAPIError(err, "GetProductAreas(): failed to get dashboard url")
 		}
 
 		teams := make([]Team, 0)
 		for _, tkTeam := range p.Teams {
-			dataproductsNumber, err := querier.GetDataproductsNumberByTeam(ctx, ptrToNullString(&tkTeam.ID))
+			dataproductsNumber, err := queries.GetDataproductsNumberByTeam(ctx, ptrToNullString(&tkTeam.ID))
 			if err != nil {
 				return nil, DBErrorToAPIError(err, "GetProductAreas(): failed to get dataproducts number")
 			}
 
-			storiesNumber, err := querier.GetStoriesNumberByTeam(ctx, ptrToNullString(&tkTeam.ID))
+			storiesNumber, err := queries.GetStoriesNumberByTeam(ctx, ptrToNullString(&tkTeam.ID))
 			if err != nil {
 				return nil, DBErrorToAPIError(err, "GetProductAreas(): failed to get stories number")
 			}
 
-			insightProductsNumber, err := querier.GetInsightProductsNumberByTeam(ctx, ptrToNullString(&tkTeam.ID))
+			insightProductsNumber, err := queries.GetInsightProductsNumberByTeam(ctx, ptrToNullString(&tkTeam.ID))
 			if err != nil {
 				return nil, DBErrorToAPIError(err, "GetProductAreas(): failed to get insight products number")
 			}
@@ -95,7 +95,7 @@ func GetProductAreaWithAssets(ctx context.Context, id string) (*ProductAreaWithA
 		return nil, NewAPIError(http.StatusNotFound, err, "GetProductAreaWithAssets(): product area not found")
 	}
 
-	dash, err := querier.GetDashboard(ctx, id)
+	dash, err := queries.GetDashboard(ctx, id)
 	if err != nil && err != sql.ErrNoRows {
 		return nil, DBErrorToAPIError(err, "GetProductAreaWithAssets(): failed to get dashboard url")
 	}
@@ -117,7 +117,7 @@ func GetProductAreaWithAssets(ctx context.Context, id string) (*ProductAreaWithA
 		})
 		teamIDs[idx] = tkTeam.ID
 
-		teamDash, err := querier.GetDashboard(ctx, teamIDs[idx])
+		teamDash, err := queries.GetDashboard(ctx, teamIDs[idx])
 		if err != nil && err != sql.ErrNoRows {
 			return nil, DBErrorToAPIError(err, "GetProductAreaWithAssets(): failed to get team dashboard url")
 		}
@@ -186,7 +186,7 @@ func dataproductFromSQL(dp *gensql.DataproductWithTeamkatalogenView) *Dataproduc
 }
 
 func getDataproductsByTeamID(ctx context.Context, teamIDs []string) ([]*Dataproduct, *APIError) {
-	sqlDP, err := querier.GetDataproductsByProductArea(ctx, teamIDs)
+	sqlDP, err := queries.GetDataproductsByProductArea(ctx, teamIDs)
 	if err == sql.ErrNoRows {
 		return []*Dataproduct{}, nil
 	}
@@ -197,7 +197,7 @@ func getDataproductsByTeamID(ctx context.Context, teamIDs []string) ([]*Dataprod
 	dps := make([]*Dataproduct, len(sqlDP))
 	for idx, dp := range sqlDP {
 		dps[idx] = dataproductFromSQL(&dp)
-		keywords, err := querier.GetDataproductKeywords(ctx, dps[idx].ID)
+		keywords, err := queries.GetDataproductKeywords(ctx, dps[idx].ID)
 		if err != nil && err != sql.ErrNoRows {
 			return nil, DBErrorToAPIError(err, "getDataproductsByTeamID(): failed to get keywords")
 		}
@@ -211,7 +211,7 @@ func getDataproductsByTeamID(ctx context.Context, teamIDs []string) ([]*Dataprod
 }
 
 func getStoriesByTeamID(ctx context.Context, teamIDs []string) ([]*Story, *APIError) {
-	sqlStories, err := querier.GetStoriesByProductArea(ctx, teamIDs)
+	sqlStories, err := queries.GetStoriesByProductArea(ctx, teamIDs)
 	if err == sql.ErrNoRows {
 		return []*Story{}, nil
 	}
@@ -228,7 +228,7 @@ func getStoriesByTeamID(ctx context.Context, teamIDs []string) ([]*Story, *APIEr
 }
 
 func getInsightProductsByTeamID(ctx context.Context, teamIDs []string) ([]*InsightProduct, *APIError) {
-	sqlInsightProducts, err := querier.GetInsightProductsByProductArea(ctx, teamIDs)
+	sqlInsightProducts, err := queries.GetInsightProductsByProductArea(ctx, teamIDs)
 	if err == sql.ErrNoRows {
 		return []*InsightProduct{}, nil
 	}

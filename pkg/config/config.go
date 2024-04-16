@@ -1,4 +1,6 @@
-package main
+package config
+
+var Conf = DefaultConfig()
 
 type Config struct {
 	BindAddress                     string

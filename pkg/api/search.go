@@ -49,7 +49,7 @@ type SearchOptions struct {
 }
 
 func Search(ctx context.Context, query *SearchOptions) (*SearchResult, *APIError) {
-	res, err := querier.Search(ctx, gensql.SearchParams{
+	res, err := queries.Search(ctx, gensql.SearchParams{
 		Query:   query.Text,
 		Keyword: query.Keywords,
 		Grp:     query.Groups,
@@ -87,7 +87,7 @@ func Search(ctx context.Context, query *SearchOptions) (*SearchResult, *APIError
 		return nil, apierr
 	}
 
-	ss, err := querier.GetStoriesWithTeamkatalogenByIDs(ctx, stories)
+	ss, err := queries.GetStoriesWithTeamkatalogenByIDs(ctx, stories)
 	if err != nil {
 		return nil, DBErrorToAPIError(err, "Failed to get stories by IDs")
 	}
