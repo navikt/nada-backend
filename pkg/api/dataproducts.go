@@ -36,6 +36,15 @@ type Dataset struct {
 	MetabaseUrl              *string   `json:"metabaseUrl"`
 }
 
+type DatasetMinimal struct {
+	ID              uuid.UUID `json:"id"`
+	Name            string    `json:"name"`
+	Created         time.Time `json:"created"`
+	BigQueryProject string    `json:"project"`
+	BigQueryDataset string    `json:"dataset"`
+	BigQueryTable   string    `json:"table"`
+}
+
 type DatasetInDataproduct struct {
 	ID                     uuid.UUID `json:"id"`
 	DataproductID          uuid.UUID `json:"-"`
@@ -99,18 +108,21 @@ func GetDataproduct(ctx context.Context, id string) (*DataproductWithDataset, *A
 	return &dps[0], nil
 }
 
-func GetDatasets(ctx context.Context) ([]*Dataset, *APIError) {
-	sqldss, err := querier.GetAllDatasets(ctx)
+func GetDatasetsMinimal(ctx context.Context) ([]*DatasetMinimal, *APIError) {
+	sqldss, err := querier.GetAllDatasetsMinimal(ctx)
 	if err != nil {
-		return nil, DBErrorToAPIError(err, "GetDataset(): Database error")
+		return nil, DBErrorToAPIError(err, "GetDatasetsMinimal(): Database error")
 	}
 
-	var apiErr *APIError
-	dss := make([]*Dataset, len(sqldss))
+	dss := make([]*DatasetMinimal, len(sqldss))
 	for i, ds := range sqldss {
-		dss[i], apiErr = datasetFromSQL([]gensql.DatasetView{ds})
-		if err != nil {
-			return nil, apiErr
+		dss[i] = &DatasetMinimal{
+			ID:              ds.ID,
+			Name:            ds.Name,
+			Created:         ds.Created,
+			BigQueryProject: ds.ProjectID,
+			BigQueryDataset: ds.Dataset,
+			BigQueryTable:   ds.TableName,
 		}
 	}
 

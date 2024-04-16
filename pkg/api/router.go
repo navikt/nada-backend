@@ -111,7 +111,7 @@ func New(
 
 	router.Route("/api/datasets", func(r chi.Router) {
 		r.Get("/", apiGetWrapper(func(r *http.Request) (interface{}, *APIError) {
-			return GetDatasets(r.Context())
+			return GetDatasetsMinimal(r.Context())
 		}))
 		r.Get("/{id}", apiGetWrapper(func(r *http.Request) (interface{}, *APIError) {
 			return GetDataset(r.Context(), chi.URLParam(r, "id"))

@@ -1,8 +1,8 @@
--- name: GetAllDatasets :many
-SELECT
-  *
-FROM 
-  dataset_view;
+-- name: GetAllDatasetsMinimal :many
+SELECT ds.id, ds.created, name, project_id, dataset, table_name 
+FROM datasets ds 
+JOIN datasource_bigquery dsb 
+ON ds.id = dsb.dataset_id;
 
 -- name: GetDatasetComplete :many
 SELECT
