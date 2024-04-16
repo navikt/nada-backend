@@ -62,17 +62,19 @@ func NewMockTeamProjectsUpdater(ctx context.Context, repo *database.Repo) (*Team
 	tpu := &TeamProjectsUpdater{
 		TeamProjectsMapping: &auth.TeamProjectsMapping{
 			TeamProjects: map[string]string{
-				"team@nav.no": "team-dev-1337",
-				"nada@nav.no": "dataplattform-dev-9da3",
-				"aura@nav.no": "aura-dev-d9f5",
+				"team@nav.no":   "team-dev-1337",
+				"nada@nav.no":   "dataplattform-dev-9da3",
+				"aura@nav.no":   "aura-dev-d9f5",
+				"nyteam@nav.no": "nyteam-dev-1234",
 			},
 		},
 	}
 
 	if err := repo.UpdateTeamProjectsCache(ctx, map[string]string{
-		"team": "team-dev-1337",
-		"nada": "dataplattform-dev-9da3",
-		"aura": "aura-dev-d9f5",
+		"team":   "team-dev-1337",
+		"nada":   "dataplattform-dev-9da3",
+		"aura":   "aura-dev-d9f5",
+		"nyteam": "nyteam-dev-1234",
 	}); err != nil {
 		return nil, err
 	}
