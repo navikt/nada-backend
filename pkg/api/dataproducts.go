@@ -99,6 +99,24 @@ func GetDataproduct(ctx context.Context, id string) (*DataproductWithDataset, *A
 	return &dps[0], nil
 }
 
+func GetDatasets(ctx context.Context) ([]*Dataset, *APIError) {
+	sqldss, err := querier.GetAllDatasets(ctx)
+	if err != nil {
+		return nil, DBErrorToAPIError(err, "GetDataset(): Database error")
+	}
+
+	var apiErr *APIError
+	dss := make([]*Dataset, len(sqldss))
+	for i, ds := range sqldss {
+		dss[i], apiErr = datasetFromSQL([]gensql.DatasetView{ds})
+		if err != nil {
+			return nil, apiErr
+		}
+	}
+
+	return dss, nil
+}
+
 func GetDataset(ctx context.Context, id string) (*Dataset, *APIError) {
 	uuid, err := uuid.Parse(id)
 	if err != nil {

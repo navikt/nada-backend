@@ -1,3 +1,9 @@
+-- name: GetAllDatasets :many
+SELECT
+  *
+FROM 
+  dataset_view;
+
 -- name: GetDatasetComplete :many
 SELECT
   *
