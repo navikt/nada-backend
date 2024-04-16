@@ -105,9 +105,13 @@ func GetDatasets(ctx context.Context) ([]*Dataset, *APIError) {
 		return nil, DBErrorToAPIError(err, "GetDataset(): Database error")
 	}
 
+	var apiErr *APIError
 	dss := make([]*Dataset, len(sqldss))
 	for i, ds := range sqldss {
-		dss[i], err = datasetFromSQL([]gensql.DatasetView{ds})
+		dss[i], apiErr = datasetFromSQL([]gensql.DatasetView{ds})
+		if err != nil {
+			return nil, apiErr
+		}
 	}
 
 	return dss, nil
