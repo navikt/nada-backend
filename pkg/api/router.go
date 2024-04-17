@@ -168,7 +168,7 @@ func New(
 		}))
 	})
 
-	router.Route("/api/access", func(r chi.Router) {
+	router.Route("/api/accesses", func(r chi.Router) {
 		r.Post("/", apiWrapper(func(r *http.Request) (interface{}, *APIError) {
 			accessRequestID := r.URL.Query().Get("accessRequestId")
 			granter := r.URL.Query().Get("granter")

@@ -230,7 +230,7 @@ SELECT dp.dp_id, dp.dp_name, dp.dp_description, dp.dp_group, dp.dp_created, dp.d
   dar.closed as "dar_closed", dar.polly_documentation_id as "dar_polly_documentation_id", dar.created as "dar_created"
 FROM dataproduct_view dp
 LEFT JOIN datasource_bigquery dsrc ON dsrc.dataset_id = dp.ds_id
-LEFT JOIN dataset_access_requests dar ON dar.dataset_id = dp.ds_id
+LEFT JOIN dataset_access_requests dar ON dar.dataset_id = dp.ds_id AND dar.status = 'pending'
 WHERE (array_length($1::uuid[], 1) IS NULL OR dp_id = ANY ($1))
  AND (array_length($2::TEXT[], 1) IS NULL OR dp_group = ANY ($2))
 `
