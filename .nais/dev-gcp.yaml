@@ -38,6 +38,9 @@ spec:
     enabled: true
     path: /internal/metrics
   ingresses:
+    - "https://data.ansatt.dev.nav.no/api"
+    - "https://data.ansatt.dev.nav.no/story"
+    - "https://data.ansatt.dev.nav.no/quarto"
     - "https://data.intern.dev.nav.no/api"
     - "https://data.intern.dev.nav.no/story"
     - "https://data.intern.dev.nav.no/quarto"
