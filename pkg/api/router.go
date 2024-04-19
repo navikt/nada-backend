@@ -116,9 +116,28 @@ func New(
 	})
 
 	router.Route("/api/accessRequests", func(r chi.Router) {
+		r.Use(authMW)
+
 		r.Get("/", apiWrapper(func(r *http.Request) (interface{}, *APIError) {
 			datasetID := r.URL.Query().Get("datasetId")
 			return getAccessRequests(r.Context(), datasetID)
+		}))
+
+		r.Post("/{id}", apiWrapper(func(r *http.Request) (interface{}, *APIError) {
+			accessRequestID := chi.URLParam(r, "id")
+			accessID := r.URL.Query().Get("accessId")
+			reason := r.URL.Query().Get("reason")
+			action := r.URL.Query().Get("action")
+			switch action {
+			case "approve":
+				return "", approveAccessRequest(r.Context(), accessRequestID)
+			case "deny":
+				return "", denyAccessRequest(r.Context(), accessRequestID, &reason)
+			case "revoke":
+				return "", revokeAccessToDataset(r.Context(), accessID)
+			default:
+				return nil, NewAPIError(http.StatusBadRequest, fmt.Errorf("invalid action: %s", action), "Invalid action")
+			}
 		}))
 	})
 
@@ -168,26 +187,6 @@ func New(
 		}))
 	})
 
-	router.Route("/api/accesses", func(r chi.Router) {
-		r.Post("/", apiWrapper(func(r *http.Request) (interface{}, *APIError) {
-			accessRequestID := r.URL.Query().Get("accessRequestId")
-			granter := r.URL.Query().Get("granter")
-			accessID := r.URL.Query().Get("accessId")
-			reason := r.URL.Query().Get("reason")
-			action := r.URL.Query().Get("action")
-			switch action {
-			case "approve":
-				return "", approveAccessRequest(r.Context(), accessRequestID, granter)
-			case "deny":
-				return "", denyAccessRequest(r.Context(), accessRequestID, &reason)
-			case "revoke":
-				return "", revokeAccessToDataset(r.Context(), accessID)
-			default:
-				return nil, NewAPIError(http.StatusBadRequest, fmt.Errorf("invalid action: %s", action), "Invalid action")
-			}
-		}))
-	})
-
 	router.Route("/api/search", func(r chi.Router) {
 		r.Get("/", apiWrapper(func(r *http.Request) (interface{}, *APIError) {
 			searchOptions, err := parseSearchOptionsFromRequest(r)
@@ -222,6 +221,8 @@ func New(
 
 func ensureUserInGroup(ctx context.Context, group string) error {
 	user := auth.GetUser(ctx)
+	fmt.Println(user)
+	fmt.Println(group)
 	if user == nil || !user.GoogleGroups.Contains(group) {
 		return ErrUnauthorized
 	}

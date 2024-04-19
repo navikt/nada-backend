@@ -177,7 +177,7 @@ func getAccessRequest(ctx context.Context, accessRequestID string) (*AccessReque
 	return accessRequest, nil
 }
 
-func approveAccessRequest(ctx context.Context, accessRequestID string, granter string) *APIError {
+func approveAccessRequest(ctx context.Context, accessRequestID string) *APIError {
 	ar, apierr := getAccessRequest(ctx, accessRequestID)
 	if apierr != nil {
 		return apierr
@@ -203,7 +203,9 @@ func approveAccessRequest(ctx context.Context, accessRequestID string, granter s
 	}
 
 	if ds.Pii == "sensitive" && ar.Subject == "all-users@nav.no" {
-		return NewAPIError(http.StatusForbidden, fmt.Errorf("Datasett som inneholder personopplysninger kan ikke gjøres tilgjengelig for alle interne brukere (all-users@nav.no)."), "approveAccessRequest() illegal action")
+		return NewAPIError(http.StatusForbidden,
+			fmt.Errorf("datasett som inneholder personopplysninger kan ikke gjøres tilgjengelig for alle interne brukere (all-users@nav.no)"),
+			"approveAccessRequest() illegal action")
 	}
 
 	subjWithType := ar.SubjectType + ":" + ar.Subject
@@ -216,17 +218,19 @@ func approveAccessRequest(ctx context.Context, accessRequestID string, granter s
 		return NewAPIError(http.StatusInternalServerError, err, "approveAccessRequest(): failed to start transaction")
 	}
 	defer func() {
-		if err := tx.Rollback(); err != nil {
+		if err := tx.Rollback(); err != nil && err != sql.ErrTxDone {
 			log.WithError(err).Error("Rolling back grant access request transaction")
 		}
 	}()
 
+	user := auth.GetUser(ctx)
+	fmt.Println(ar.Subject)
 	q := queries.WithTx(tx)
 
 	_, err = q.GrantAccessToDataset(ctx, gensql.GrantAccessToDatasetParams{
 		DatasetID:       ar.DatasetID,
-		Subject:         emailOfSubjectToLower(ar.Subject),
-		Granter:         granter,
+		Subject:         subjWithType,
+		Granter:         user.Email,
 		Expires:         ptrToNullTime(ar.Expires),
 		AccessRequestID: uuid.NullUUID{UUID: ar.ID, Valid: true},
 	})
@@ -236,7 +240,7 @@ func approveAccessRequest(ctx context.Context, accessRequestID string, granter s
 
 	err = q.ApproveAccessRequest(ctx, gensql.ApproveAccessRequestParams{
 		ID:      ar.ID,
-		Granter: sql.NullString{String: granter, Valid: true},
+		Granter: sql.NullString{String: user.Email, Valid: true},
 	})
 	if err != nil {
 		return NewAPIError(http.StatusInternalServerError, err, "approveAccessRequest(): failed to approve access request")
