@@ -109,7 +109,7 @@ func GetDataproduct(ctx context.Context, id string) (*DataproductWithDataset, *A
 }
 
 func GetDatasetsMinimal(ctx context.Context) ([]*DatasetMinimal, *APIError) {
-	sqldss, err := querier.GetAllDatasetsMinimal(ctx)
+	sqldss, err := queries.GetAllDatasetsMinimal(ctx)
 	if err != nil {
 		return nil, DBErrorToAPIError(err, "GetDatasetsMinimal(): Database error")
 	}
