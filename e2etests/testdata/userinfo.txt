@@ -39,6 +39,10 @@ RETURNS
 				{
 					"name": "aura",
 					"email": "aura@nav.no"
+				},
+                {
+					"name": "nais-team-nyteam",
+					"email": "nais-team-nyteam@nav.no"
 				}
 			],
 			"gcpProjects": [

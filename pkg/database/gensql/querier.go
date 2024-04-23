@@ -45,6 +45,7 @@ type Querier interface {
 	GetAccessibleDatasets(ctx context.Context, arg GetAccessibleDatasetsParams) ([]GetAccessibleDatasetsRow, error)
 	GetAccessiblePseudoDatasetsByUser(ctx context.Context, arg GetAccessiblePseudoDatasetsByUserParams) ([]GetAccessiblePseudoDatasetsByUserRow, error)
 	GetActiveAccessToDatasetForSubject(ctx context.Context, arg GetActiveAccessToDatasetForSubjectParams) (DatasetAccess, error)
+	GetAllDatasetsMinimal(ctx context.Context) ([]GetAllDatasetsMinimalRow, error)
 	GetAllMetabaseMetadata(ctx context.Context) ([]MetabaseMetadatum, error)
 	GetAllTeams(ctx context.Context) ([]TkTeam, error)
 	GetBigqueryDatasource(ctx context.Context, arg GetBigqueryDatasourceParams) (DatasourceBigquery, error)

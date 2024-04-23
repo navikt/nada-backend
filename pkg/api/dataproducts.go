@@ -36,6 +36,15 @@ type Dataset struct {
 	MetabaseUrl              *string   `json:"metabaseUrl"`
 }
 
+type DatasetMinimal struct {
+	ID              uuid.UUID `json:"id"`
+	Name            string    `json:"name"`
+	Created         time.Time `json:"created"`
+	BigQueryProject string    `json:"project"`
+	BigQueryDataset string    `json:"dataset"`
+	BigQueryTable   string    `json:"table"`
+}
+
 type DatasetInDataproduct struct {
 	ID                     uuid.UUID `json:"id"`
 	DataproductID          uuid.UUID `json:"-"`
@@ -97,6 +106,27 @@ func GetDataproduct(ctx context.Context, id string) (*DataproductWithDataset, *A
 	// it is safe to directly use the first element without checking the length
 	// because if the length was 0, the sql query in GetDataproducts should have returned no row
 	return &dps[0], nil
+}
+
+func GetDatasetsMinimal(ctx context.Context) ([]*DatasetMinimal, *APIError) {
+	sqldss, err := querier.GetAllDatasetsMinimal(ctx)
+	if err != nil {
+		return nil, DBErrorToAPIError(err, "GetDatasetsMinimal(): Database error")
+	}
+
+	dss := make([]*DatasetMinimal, len(sqldss))
+	for i, ds := range sqldss {
+		dss[i] = &DatasetMinimal{
+			ID:              ds.ID,
+			Name:            ds.Name,
+			Created:         ds.Created,
+			BigQueryProject: ds.ProjectID,
+			BigQueryDataset: ds.Dataset,
+			BigQueryTable:   ds.TableName,
+		}
+	}
+
+	return dss, nil
 }
 
 func GetDataset(ctx context.Context, id string) (*Dataset, *APIError) {

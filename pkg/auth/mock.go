@@ -22,6 +22,10 @@ var MockUser = User{
 			Name:  "aura",
 			Email: "aura@nav.no",
 		},
+		{
+			Name:  "nais-team-nyteam",
+			Email: "nais-team-nyteam@nav.no",
+		},
 	},
 	AzureGroups: Groups{
 		{

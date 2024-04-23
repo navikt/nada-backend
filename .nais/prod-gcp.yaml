@@ -14,7 +14,7 @@ spec:
     application:
       enabled: true
       replyURLs:
-        - https://data.intern.nav.no/api/oauth2/callback
+        - https://data.ansatt.nav.no/api/oauth2/callback
       tenant: nav.no
       allowAllUsers: true
   replicas:
@@ -31,9 +31,9 @@ spec:
     enabled: true
     path: /internal/metrics
   ingresses:
-    - "https://data.intern.nav.no/story"
-    - "https://data.intern.nav.no/quarto"
-    - "https://data.intern.nav.no/api"
+    - "https://data.ansatt.nav.no/api"
+    - "https://data.ansatt.nav.no/story"
+    - "https://data.ansatt.nav.no/quarto"
     - "https://nada.intern.nav.no/quarto/update"
     - "https://nada.intern.nav.no/api/story"
     - "https://datamarkedsplassen.intern.nav.no/quarto/create"
@@ -52,7 +52,7 @@ spec:
     - name: GOOGLE_ADMIN_CREDENTIALS_PATH
       value: /var/run/secrets/google-credentials/sa.json
     - name: HOSTNAME
-      value: "data.intern.nav.no"
+      value: "data.ansatt.nav.no"
     - name: METABASE_API
       value: "http://metabase/api"
     - name: METABASE_GOOGLE_CREDENTIALS_PATH

@@ -45,43 +45,43 @@ type AccessibleDatasets struct {
 }
 
 type UserInfo struct {
-	//name of user
+	// name of user
 	Name string `json:"name"`
 
-	//email of user.
+	// email of user.
 	Email string `json:"email"`
 
-	//googleGroups is the google groups the user is member of.
+	// googleGroups is the google groups the user is member of.
 	GoogleGroups auth.Groups `json:"googleGroups"`
 
-	//allGoogleGroups is the all the known google groups of the user domains.
+	// allGoogleGroups is the all the known google groups of the user domains.
 	AllGoogleGroups auth.Groups `json:"allGoogleGroups"`
 
-	//azureGroups is the azure groups the user is member of.
+	// azureGroups is the azure groups the user is member of.
 	AzureGroups auth.Groups `json:"azureGroups"`
 
-	//gcpProjects is GCP projects the user is a member of.
+	// gcpProjects is GCP projects the user is a member of.
 	GcpProjects []GCPProject `json:"gcpProjects"`
 
-	//nadaTokens is a list of the nada tokens for each team the logged in user is a part of.
+	// nadaTokens is a list of the nada tokens for each team the logged in user is a part of.
 	NadaTokens []NadaToken `json:"nadaTokens"`
 
-	//loginExpiration is when the token expires.
+	// loginExpiration is when the token expires.
 	LoginExpiration time.Time `json:"loginExpiration"`
 
-	//dataproducts is a list of dataproducts with one of the users groups as owner.
+	// dataproducts is a list of dataproducts with one of the users groups as owner.
 	Dataproducts []Dataproduct `json:"dataproducts"`
 
-	//accessable is a list of datasets which the user has either owns or has explicit access to.
+	// accessable is a list of datasets which the user has either owns or has explicit access to.
 	Accessable AccessibleDatasets `json:"accessable"`
 
-	//stories is the stories owned by the user's group
+	// stories is the stories owned by the user's group
 	Stories []Story `json:"stories"`
 
-	//insight products is the insight products owned by the user's group
+	// insight products is the insight products owned by the user's group
 	InsightProducts []InsightProduct `json:"insightProducts"`
 
-	//accessRequests is a list of access requests where either the user or one of the users groups is owner.
+	// accessRequests is a list of access requests where either the user or one of the users groups is owner.
 	AccessRequests []AccessRequest `json:"accessRequests"`
 
 	//accessRequestsAsGranter is a list of access requests where one of the users groups is obliged to handle.
@@ -91,7 +91,7 @@ type UserInfo struct {
 func teamNamesFromGroups(groups auth.Groups) []string {
 	teams := []string{}
 	for _, g := range groups {
-		teams = append(teams, strings.Split(g.Email, "@")[0])
+		teams = append(teams, TrimNaisTeamPrefix(strings.Split(g.Email, "@")[0]))
 	}
 
 	return teams
@@ -132,8 +132,8 @@ func accessibleDatasetFromSql(d *gensql.GetAccessibleDatasetsRow) *AccessibleDat
 }
 
 func getAccessibleDatasets(ctx context.Context, userGroups []string, requester string) (owned []*AccessibleDataset,
-	granted []*AccessibleDataset, apiErr *APIError) {
-
+	granted []*AccessibleDataset, apiErr *APIError,
+) {
 	datasetsSQL, err := queries.GetAccessibleDatasets(ctx, gensql.GetAccessibleDatasetsParams{
 		Groups:    userGroups,
 		Requester: requester,
@@ -174,7 +174,7 @@ func getUserData(ctx context.Context) (*UserInfo, *APIError) {
 	}
 
 	for _, grp := range user.GoogleGroups {
-		proj, ok := teamProjectsMapping.Get(grp.Email)
+		proj, ok := teamProjectsMapping.Get(TrimNaisTeamPrefix(grp.Email))
 		if !ok {
 			continue
 		}
@@ -219,7 +219,6 @@ func getUserData(ctx context.Context) (*UserInfo, *APIError) {
 	}
 
 	dbStories, err := queries.GetStoriesWithTeamkatalogenByGroups(ctx, user.GoogleGroups.Emails())
-
 	if err != nil {
 		return nil, DBErrorToAPIError(err, "getUserInfo(): getting stories by group from database")
 	}
@@ -260,7 +259,7 @@ func pollySQLToGraphql(ctx context.Context, id uuid.NullUUID) (*Polly, error) {
 		return nil, nil
 	}
 
-	//TODO: either remove this or do it on database level for performance reasons
+	// TODO: either remove this or do it on database level for performance reasons
 	pollyDoc, err := queries.GetPollyDocumentation(ctx, id.UUID)
 	if err != nil {
 		return nil, err
@@ -274,4 +273,8 @@ func pollySQLToGraphql(ctx context.Context, id uuid.NullUUID) (*Polly, error) {
 			URL:        pollyDoc.Url,
 		},
 	}, nil
+}
+
+func TrimNaisTeamPrefix(team string) string {
+	return strings.TrimPrefix(team, "nais-team-")
 }

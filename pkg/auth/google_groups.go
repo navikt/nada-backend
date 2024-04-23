@@ -57,6 +57,7 @@ func (g *GoogleGroupClient) Groups(ctx context.Context, email *string) (groups G
 			Group{Name: "All users", Email: "all-users@nav.no"},
 			Group{Name: "Dataplattform", Email: "nada@nav.no"},
 			Group{Name: "nada", Email: "nada@nav.no"},
+			Group{Name: "nais-team-nyteam", Email: "nais-team-nyteam@nav.no"},
 		}, nil
 	}
 
