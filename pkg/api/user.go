@@ -21,7 +21,7 @@ func RotateNadaToken(ctx context.Context, team string) *APIError {
 		return NewAPIError(http.StatusUnauthorized, err, "RotateNadaToken(): user not in gcp group")
 	}
 
-	return DBErrorToAPIError(querier.RotateNadaToken(ctx, team), "RotateNadaToken(): Database error")
+	return DBErrorToAPIError(queries.RotateNadaToken(ctx, team), "RotateNadaToken(): Database error")
 }
 
 type NadaToken struct {
@@ -83,6 +83,9 @@ type UserInfo struct {
 
 	// accessRequests is a list of access requests where either the user or one of the users groups is owner.
 	AccessRequests []AccessRequest `json:"accessRequests"`
+
+	//accessRequestsAsGranter is a list of access requests where one of the users groups is obliged to handle.
+	AccessRequestsAsGranter []AccessRequestForGranter `json:"accessRequestsAsGranter"`
 }
 
 func teamNamesFromGroups(groups auth.Groups) []string {
@@ -95,7 +98,7 @@ func teamNamesFromGroups(groups auth.Groups) []string {
 }
 
 func getNadaTokensForTeams(ctx context.Context, teams []string) ([]NadaToken, error) {
-	tokensSQL, err := querier.GetNadaTokensForTeams(ctx, teams)
+	tokensSQL, err := queries.GetNadaTokensForTeams(ctx, teams)
 	if err != nil {
 		return nil, err
 	}
@@ -131,7 +134,7 @@ func accessibleDatasetFromSql(d *gensql.GetAccessibleDatasetsRow) *AccessibleDat
 func getAccessibleDatasets(ctx context.Context, userGroups []string, requester string) (owned []*AccessibleDataset,
 	granted []*AccessibleDataset, apiErr *APIError,
 ) {
-	datasetsSQL, err := querier.GetAccessibleDatasets(ctx, gensql.GetAccessibleDatasetsParams{
+	datasetsSQL, err := queries.GetAccessibleDatasets(ctx, gensql.GetAccessibleDatasetsParams{
 		Groups:    userGroups,
 		Requester: requester,
 	})
@@ -187,18 +190,22 @@ func getUserData(ctx context.Context) (*UserInfo, *APIError) {
 
 	userData.NadaTokens = tokens
 
-	dpres, err := querier.GetDataproductsWithDatasets(ctx, gensql.GetDataproductsWithDatasetsParams{
+	dpres, err := queries.GetDataproductsWithDatasetsAndAccessRequests(ctx, gensql.GetDataproductsWithDatasetsAndAccessRequestsParams{
 		Ids:    []uuid.UUID{},
 		Groups: userData.GoogleGroups.Emails(),
 	})
 	if err != nil && err != sql.ErrNoRows {
 		return nil, DBErrorToAPIError(err, "getting dataproducts by group from database")
 	} else {
-		dpwithds := dataproductsWithDatasetFromSQL(dpres)
+		dpwithds, dar, e := dataproductsWithDatasetAndAccessRequestsForGranterFromSQL(dpres)
 
+		if e != nil {
+			return nil, NewAPIError(http.StatusInternalServerError, e, "getUserInfo(): converting access requests from database")
+		}
 		for _, dpds := range dpwithds {
 			userData.Dataproducts = append(userData.Dataproducts, dpds.Dataproduct)
 		}
+		userData.AccessRequestsAsGranter = dar
 	}
 
 	owned, granted, apiErr := getAccessibleDatasets(ctx, teams, user.Email)
@@ -211,7 +218,7 @@ func getUserData(ctx context.Context) (*UserInfo, *APIError) {
 		Granted: granted,
 	}
 
-	dbStories, err := querier.GetStoriesWithTeamkatalogenByGroups(ctx, user.GoogleGroups.Emails())
+	dbStories, err := queries.GetStoriesWithTeamkatalogenByGroups(ctx, user.GoogleGroups.Emails())
 	if err != nil {
 		return nil, DBErrorToAPIError(err, "getUserInfo(): getting stories by group from database")
 	}
@@ -220,7 +227,7 @@ func getUserData(ctx context.Context) (*UserInfo, *APIError) {
 		userData.Stories = append(userData.Stories, *storyFromSQL(&s))
 	}
 
-	dbProducts, err := querier.GetInsightProductsByGroups(ctx, user.GoogleGroups.Emails())
+	dbProducts, err := queries.GetInsightProductsByGroups(ctx, user.GoogleGroups.Emails())
 	if err != nil {
 		return nil, DBErrorToAPIError(err, "getUserInfo(): getting insight products by group from database")
 	}
@@ -234,7 +241,7 @@ func getUserData(ctx context.Context) (*UserInfo, *APIError) {
 		groups = append(groups, "group:"+strings.ToLower(g.Email))
 	}
 
-	accessRequestSQLs, err := querier.ListAccessRequestsForOwner(ctx, groups)
+	accessRequestSQLs, err := queries.ListAccessRequestsForOwner(ctx, groups)
 	if err != nil && !errors.Is(err, sql.ErrNoRows) {
 		return nil, DBErrorToAPIError(err, "getUserInfo(): getting access requests by owner from database")
 	} else if err == nil {
@@ -253,7 +260,7 @@ func pollySQLToGraphql(ctx context.Context, id uuid.NullUUID) (*Polly, error) {
 	}
 
 	// TODO: either remove this or do it on database level for performance reasons
-	pollyDoc, err := querier.GetPollyDocumentation(ctx, id.UUID)
+	pollyDoc, err := queries.GetPollyDocumentation(ctx, id.UUID)
 	if err != nil {
 		return nil, err
 	}

@@ -2,12 +2,15 @@ package api
 
 import (
 	"context"
+	"database/sql"
 	"net/http"
+	"strings"
 	"time"
 
 	"github.com/google/uuid"
 	"github.com/navikt/nada-backend/pkg/auth"
 	"github.com/navikt/nada-backend/pkg/bqclient"
+	"github.com/navikt/nada-backend/pkg/database/gensql"
 )
 
 type GCPProject struct {
@@ -80,5 +83,38 @@ func getBQColumns(ctx context.Context, projectID string, datasetID string, table
 	}
 	return &BQColumns{
 		BQColumns: columns,
+	}, nil
+}
+
+func getBigqueryDatasource(ctx context.Context, datasetID uuid.UUID, isReference bool) (*BigQuery, *APIError) {
+	bq, err := queries.GetBigqueryDatasource(ctx, gensql.GetBigqueryDatasourceParams{
+		DatasetID:   datasetID,
+		IsReference: isReference,
+	})
+	if err == sql.ErrNoRows {
+		return nil, NewAPIError(http.StatusNotFound, err, "getBigqueryDatasource(): bigquery datasource not found")
+	} else if err != nil {
+		return nil, DBErrorToAPIError(err, "getBigqueryDatasource(): failed to get bigquery datasource")
+	}
+
+	piiTags := "{}"
+	if bq.PiiTags.RawMessage != nil {
+		piiTags = string(bq.PiiTags.RawMessage)
+	}
+
+	return &BigQuery{
+		ID:            bq.ID,
+		DatasetID:     bq.DatasetID,
+		ProjectID:     bq.ProjectID,
+		Dataset:       bq.Dataset,
+		Table:         bq.TableName,
+		TableType:     bqclient.BigQueryType(strings.ToLower(bq.TableType)),
+		LastModified:  bq.LastModified,
+		Created:       bq.Created,
+		Expires:       nullTimeToPtr(bq.Expires),
+		Description:   bq.Description.String,
+		PiiTags:       &piiTags,
+		MissingSince:  &bq.MissingSince.Time,
+		PseudoColumns: bq.PseudoColumns,
 	}, nil
 }

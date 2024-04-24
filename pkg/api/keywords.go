@@ -14,7 +14,7 @@ type KeywordItem struct {
 }
 
 func getKeywordsListSortedByPopularity(ctx context.Context) (*KeywordsList, *APIError) {
-	ks, err := querier.GetKeywords(ctx)
+	ks, err := queries.GetKeywords(ctx)
 	if err != nil {
 		return nil, DBErrorToAPIError(err, "Failed to get keywords")
 	}

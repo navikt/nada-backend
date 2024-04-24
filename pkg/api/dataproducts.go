@@ -83,7 +83,7 @@ type DataproductWithDataset struct {
 }
 
 func GetDataproducts(ctx context.Context, ids []uuid.UUID) ([]DataproductWithDataset, *APIError) {
-	sqldp, err := querier.GetDataproductsWithDatasets(ctx, gensql.GetDataproductsWithDatasetsParams{
+	sqldp, err := queries.GetDataproductsWithDatasets(ctx, gensql.GetDataproductsWithDatasetsParams{
 		Ids:    ids,
 		Groups: []string{},
 	})
@@ -109,7 +109,7 @@ func GetDataproduct(ctx context.Context, id string) (*DataproductWithDataset, *A
 }
 
 func GetDatasetsMinimal(ctx context.Context) ([]*DatasetMinimal, *APIError) {
-	sqldss, err := querier.GetAllDatasetsMinimal(ctx)
+	sqldss, err := queries.GetAllDatasetsMinimal(ctx)
 	if err != nil {
 		return nil, DBErrorToAPIError(err, "GetDatasetsMinimal(): Database error")
 	}
@@ -135,7 +135,7 @@ func GetDataset(ctx context.Context, id string) (*Dataset, *APIError) {
 		return nil, NewAPIError(http.StatusBadRequest, err, "GetDataset(): Invalid UUID")
 	}
 
-	sqlds, err := querier.GetDatasetComplete(ctx, uuid)
+	sqlds, err := queries.GetDatasetComplete(ctx, uuid)
 	if err != nil {
 		return nil, DBErrorToAPIError(err, "GetDataset(): Database error")
 	}
@@ -203,6 +203,80 @@ __loop_rows:
 		dataproducts = append(dataproducts, dataproduct)
 	}
 	return dataproducts
+}
+
+func dataproductsWithDatasetAndAccessRequestsForGranterFromSQL(dprrows []gensql.GetDataproductsWithDatasetsAndAccessRequestsRow) ([]DataproductWithDataset, []AccessRequestForGranter, *APIError) {
+	if dprrows == nil {
+		return nil, nil, nil
+	}
+
+	dprows := make([]gensql.GetDataproductsWithDatasetsRow, len(dprrows))
+	for i, dprrow := range dprrows {
+		dprows[i] = gensql.GetDataproductsWithDatasetsRow{
+			DpID:             dprrow.DpID,
+			DpName:           dprrow.DpName,
+			DpCreated:        dprrow.DpCreated,
+			DpLastModified:   dprrow.DpLastModified,
+			DpDescription:    dprrow.DpDescription,
+			DpSlug:           dprrow.DpSlug,
+			DpGroup:          dprrow.DpGroup,
+			TeamkatalogenUrl: dprrow.TeamkatalogenUrl,
+			TeamContact:      dprrow.TeamContact,
+			TeamID:           dprrow.TeamID,
+		}
+	}
+	dp := dataproductsWithDatasetFromSQL(dprows)
+
+	arrows := make([]gensql.DatasetAccessRequest, 0)
+
+	for _, dprrow := range dprrows {
+		if dprrow.DarID.Valid {
+			arrows = append(arrows, gensql.DatasetAccessRequest{
+				ID:                   dprrow.DarID.UUID,
+				DatasetID:            dprrow.DarDatasetID.UUID,
+				Subject:              dprrow.DarSubject.String,
+				Created:              dprrow.DarCreated.Time,
+				Status:               dprrow.DarStatus.AccessRequestStatusType,
+				Closed:               dprrow.DarClosed,
+				Expires:              dprrow.DarExpires,
+				Granter:              dprrow.DarGranter,
+				Owner:                dprrow.DarOwner.String,
+				PollyDocumentationID: dprrow.DarPollyDocumentationID,
+				Reason:               dprrow.DarReason,
+			})
+		}
+	}
+	ars, err := accessRequestsFromSQL(context.Background(), arrows)
+
+	arfg := make([]AccessRequestForGranter, len(ars))
+	for i, ar := range ars {
+		dataproductID := uuid.Nil
+		datasetName := ""
+		dataproductName := ""
+		dataproductSlug := ""
+		for _, dprrow := range dprrows {
+			if dprrow.DarDatasetID.UUID == ar.DatasetID {
+				dataproductID = dprrow.DpID
+				datasetName = dprrow.DsName.String
+				dataproductName = dprrow.DpName
+				dataproductSlug = dprrow.DpSlug
+				break
+			}
+		}
+
+		arfg[i] = AccessRequestForGranter{
+			AccessRequest:   ar,
+			DatasetName:     datasetName,
+			DataproductName: dataproductName,
+			DataproductID:   dataproductID,
+			DataproductSlug: dataproductSlug,
+		}
+	}
+	if err != nil {
+		return nil, nil, NewAPIError(http.StatusInternalServerError, err, "dataproductsWithDatasetAndAccessRequestsFromSQL(): Error in accessRequestsFromSQL")
+	}
+
+	return dp, arfg, nil
 }
 
 func datasetsInDataProductFromSQL(dsrows []gensql.GetDataproductsWithDatasetsRow) []*DatasetInDataproduct {

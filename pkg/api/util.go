@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"encoding/json"
 	"net/http"
+	"strings"
 	"time"
 
 	"github.com/google/uuid"
@@ -41,6 +42,14 @@ func nullTimeToPtr(nt sql.NullTime) *time.Time {
 	return &nt.Time
 }
 
+func ptrToNullTime(t *time.Time) sql.NullTime {
+	if t == nil {
+		return sql.NullTime{}
+	}
+
+	return sql.NullTime{Time: *t, Valid: true}
+}
+
 func nullUUIDToUUIDPtr(nu uuid.NullUUID) *uuid.UUID {
 	if !nu.Valid {
 		return nil
@@ -48,7 +57,7 @@ func nullUUIDToUUIDPtr(nu uuid.NullUUID) *uuid.UUID {
 	return &nu.UUID
 }
 
-func apiGetWrapper(handlerDelegate func(r *http.Request) (interface{}, *APIError)) http.HandlerFunc {
+func apiWrapper(handlerDelegate func(r *http.Request) (interface{}, *APIError)) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		dto, apiErr := handlerDelegate(r)
 		if apiErr != nil {
@@ -86,4 +95,11 @@ func matchAny(s string, targetSet []string) bool {
 		}
 	}
 	return false
+}
+
+func emailOfSubjectToLower(subectWithType string) string {
+	parts := strings.Split(subectWithType, ":")
+	parts[1] = strings.ToLower(parts[1])
+
+	return strings.Join(parts, ":")
 }

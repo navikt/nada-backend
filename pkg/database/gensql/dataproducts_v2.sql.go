@@ -222,3 +222,111 @@ func (q *Queries) GetDataproductsWithDatasets(ctx context.Context, arg GetDatapr
 	}
 	return items, nil
 }
+
+const getDataproductsWithDatasetsAndAccessRequests = `-- name: GetDataproductsWithDatasetsAndAccessRequests :many
+SELECT dp.dp_id, dp.dp_name, dp.dp_description, dp.dp_group, dp.dp_created, dp.dp_last_modified, dp.dp_slug, dp.teamkatalogen_url, dp.team_contact, dp.team_id, dp.team_name, dp.pa_name, dp.ds_dp_id, dp.ds_id, dp.ds_name, dp.ds_description, dp.ds_created, dp.ds_last_modified, dp.ds_slug, dp.ds_keywords, dsrc.last_modified as "dsrc_last_modified",
+ dar.id as "dar_id", dar.dataset_id as "dar_dataset_id", dar.subject as "dar_subject", dar.owner as "dar_owner",
+  dar.expires as "dar_expires", dar.status as "dar_status", dar.granter as "dar_granter", dar.reason as "dar_reason", 
+  dar.closed as "dar_closed", dar.polly_documentation_id as "dar_polly_documentation_id", dar.created as "dar_created"
+FROM dataproduct_view dp
+LEFT JOIN datasource_bigquery dsrc ON dsrc.dataset_id = dp.ds_id
+LEFT JOIN dataset_access_requests dar ON dar.dataset_id = dp.ds_id AND dar.status = 'pending'
+WHERE (array_length($1::uuid[], 1) IS NULL OR dp_id = ANY ($1))
+ AND (array_length($2::TEXT[], 1) IS NULL OR dp_group = ANY ($2))
+`
+
+type GetDataproductsWithDatasetsAndAccessRequestsParams struct {
+	Ids    []uuid.UUID
+	Groups []string
+}
+
+type GetDataproductsWithDatasetsAndAccessRequestsRow struct {
+	DpID                    uuid.UUID
+	DpName                  string
+	DpDescription           sql.NullString
+	DpGroup                 string
+	DpCreated               time.Time
+	DpLastModified          time.Time
+	DpSlug                  string
+	TeamkatalogenUrl        sql.NullString
+	TeamContact             sql.NullString
+	TeamID                  sql.NullString
+	TeamName                sql.NullString
+	PaName                  sql.NullString
+	DsDpID                  uuid.NullUUID
+	DsID                    uuid.NullUUID
+	DsName                  sql.NullString
+	DsDescription           sql.NullString
+	DsCreated               sql.NullTime
+	DsLastModified          sql.NullTime
+	DsSlug                  sql.NullString
+	DsKeywords              []string
+	DsrcLastModified        sql.NullTime
+	DarID                   uuid.NullUUID
+	DarDatasetID            uuid.NullUUID
+	DarSubject              sql.NullString
+	DarOwner                sql.NullString
+	DarExpires              sql.NullTime
+	DarStatus               NullAccessRequestStatusType
+	DarGranter              sql.NullString
+	DarReason               sql.NullString
+	DarClosed               sql.NullTime
+	DarPollyDocumentationID uuid.NullUUID
+	DarCreated              sql.NullTime
+}
+
+func (q *Queries) GetDataproductsWithDatasetsAndAccessRequests(ctx context.Context, arg GetDataproductsWithDatasetsAndAccessRequestsParams) ([]GetDataproductsWithDatasetsAndAccessRequestsRow, error) {
+	rows, err := q.db.QueryContext(ctx, getDataproductsWithDatasetsAndAccessRequests, pq.Array(arg.Ids), pq.Array(arg.Groups))
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []GetDataproductsWithDatasetsAndAccessRequestsRow{}
+	for rows.Next() {
+		var i GetDataproductsWithDatasetsAndAccessRequestsRow
+		if err := rows.Scan(
+			&i.DpID,
+			&i.DpName,
+			&i.DpDescription,
+			&i.DpGroup,
+			&i.DpCreated,
+			&i.DpLastModified,
+			&i.DpSlug,
+			&i.TeamkatalogenUrl,
+			&i.TeamContact,
+			&i.TeamID,
+			&i.TeamName,
+			&i.PaName,
+			&i.DsDpID,
+			&i.DsID,
+			&i.DsName,
+			&i.DsDescription,
+			&i.DsCreated,
+			&i.DsLastModified,
+			&i.DsSlug,
+			pq.Array(&i.DsKeywords),
+			&i.DsrcLastModified,
+			&i.DarID,
+			&i.DarDatasetID,
+			&i.DarSubject,
+			&i.DarOwner,
+			&i.DarExpires,
+			&i.DarStatus,
+			&i.DarGranter,
+			&i.DarReason,
+			&i.DarClosed,
+			&i.DarPollyDocumentationID,
+			&i.DarCreated,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}

@@ -3,6 +3,7 @@ package api
 import (
 	"context"
 	"crypto/rand"
+	"database/sql"
 	"encoding/base64"
 	"encoding/hex"
 	"encoding/json"
@@ -13,25 +14,32 @@ import (
 
 	"github.com/coreos/go-oidc/v3/oidc"
 	"github.com/google/uuid"
+	"github.com/navikt/nada-backend/pkg/access"
 	"github.com/navikt/nada-backend/pkg/auth"
 	"github.com/navikt/nada-backend/pkg/database"
 	"github.com/navikt/nada-backend/pkg/database/gensql"
+	"github.com/navikt/nada-backend/pkg/event"
 	"github.com/navikt/nada-backend/pkg/graph/models"
 	"github.com/navikt/nada-backend/pkg/teamkatalogen"
 	"github.com/sirupsen/logrus"
 	"golang.org/x/oauth2"
 )
 
-var querier gensql.Querier
+var sqldb *sql.DB
+var queries *gensql.Queries
 var tkClient teamkatalogen.Teamkatalogen
 var log *logrus.Logger
 var teamProjectsMapping *auth.TeamProjectsMapping
+var accessManager access.Bigquery
+var eventManager *event.Manager
 
-func Init(q database.Querier, tk teamkatalogen.Teamkatalogen, l *logrus.Logger, projects *auth.TeamProjectsMapping) {
-	querier = q
+func Init(db *sql.DB, tk teamkatalogen.Teamkatalogen, l *logrus.Logger, projects *auth.TeamProjectsMapping, e *event.Manager) {
 	tkClient = tk
 	log = l
 	teamProjectsMapping = projects
+	sqldb = db
+	queries = gensql.New(sqldb)
+	eventManager = e
 }
 
 const (
