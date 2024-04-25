@@ -111,6 +111,6 @@ metadata:
   name: dmp-redirect
   namespace: nada
 spec:
-  ingressClassName: nais-ingress
+  ingressClassName: nais-ingress-external
   rules:
   - host: data.intern.nav.no
