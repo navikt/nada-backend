@@ -65,11 +65,13 @@ func apiWrapper(handlerDelegate func(r *http.Request) (interface{}, *APIError)) 
 			http.Error(w, apiErr.Error(), apiErr.HttpStatus)
 			return
 		}
-		err := json.NewEncoder(w).Encode(dto)
-		if err != nil {
-			log.WithError(err).Error("Failed to encode response")
-			http.Error(w, err.Error(), http.StatusInternalServerError)
-			return
+		if dto != nil {
+			err := json.NewEncoder(w).Encode(dto)
+			if err != nil {
+				log.WithError(err).Error("Failed to encode response")
+				http.Error(w, err.Error(), http.StatusInternalServerError)
+				return
+			}
 		}
 	}
 }

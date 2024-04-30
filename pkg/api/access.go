@@ -3,6 +3,7 @@ package api
 import (
 	"context"
 	"database/sql"
+	"errors"
 	"fmt"
 	"net/http"
 	"strings"
@@ -67,6 +68,19 @@ type AccessRequestForGranter struct {
 
 type AccessRequestsWrapper struct {
 	AccessRequests []AccessRequest `json:"accessRequests"`
+}
+
+const (
+	SubjectTypeUser           string = "user"
+	SubjectTypeGroup          string = "group"
+	SubjectTypeServiceAccount string = "serviceAccount"
+)
+
+type GrantAccessData struct {
+	DatasetID   uuid.UUID  `json:"datasetID"`
+	Expires     *time.Time `json:"expires"`
+	Subject     *string    `json:"subject"`
+	SubjectType *string    `json:"subjectType"`
 }
 
 func accessRequestsFromSQL(ctx context.Context, accessRequestSQLs []gensql.DatasetAccessRequest) ([]AccessRequest, error) {
@@ -368,4 +382,114 @@ func getAccessToDataset(ctx context.Context, id uuid.UUID) (*Access, error) {
 		DatasetID:       access.DatasetID,
 		AccessRequestID: nullUUIDToUUIDPtr(access.AccessRequestID),
 	}, nil
+}
+
+func grantAccessToDataset(ctx context.Context, input GrantAccessData) *APIError {
+	if input.Expires != nil && input.Expires.Before(time.Now()) {
+		return NewAPIError(http.StatusBadRequest,
+			fmt.Errorf("datoen tilgangen skal utløpe må være fram i tid"), "grantAccessToDataset(): invalid expires date")
+	}
+
+	user := auth.GetUser(ctx)
+	subj := user.Email
+	if input.Subject != nil {
+		subj = *input.Subject
+	}
+	ds, apierr := GetDataset(ctx, input.DatasetID.String())
+	if apierr != nil {
+		return NewAPIError(apierr.HttpStatus, apierr.Err, "grantAccessToDataset(): failed to get dataset")
+	}
+
+	dp, apierr := GetDataproduct(ctx, ds.DataproductID.String())
+	if apierr != nil {
+		return NewAPIError(apierr.HttpStatus, apierr.Err, "grantAccessToDataset(): failed to get dataproduct")
+	}
+
+	if err := ensureUserInGroup(ctx, dp.Owner.Group); err != nil {
+		return NewAPIError(http.StatusForbidden, err, "grantAccessToDataset(): user is not member of owner group")
+	}
+
+	if ds.Pii == "sensitive" && subj == "all-users@nav.no" {
+		return NewAPIError(http.StatusBadRequest,
+			fmt.Errorf("datasett som inneholder personopplysninger kan ikke gjøres tilgjengelig for alle interne brukere (all-users@nav.no)"), "grantAccessToDataset(): illegal action")
+	}
+
+	bq, apierr := getBigqueryDatasource(ctx, ds.ID, false)
+	if apierr != nil {
+		return NewAPIError(http.StatusInternalServerError, apierr.Err, "grantAccessToDataset(): failed to get bigquery datasource")
+	}
+
+	subjType := SubjectTypeUser
+	if input.SubjectType != nil {
+		subjType = *input.SubjectType
+	}
+
+	subjWithType := subjType + ":" + subj
+
+	if len(bq.PseudoColumns) > 0 {
+		joinableViews, err := getJoinableViewsForReferenceAndUser(ctx, subj, ds.ID)
+		if err != nil {
+			return NewAPIError(http.StatusInternalServerError, err, "grantAccessToDataset(): failed to get joinable views")
+		}
+		for _, jv := range joinableViews {
+			joinableViewName := bigquery.MakeJoinableViewName(bq.ProjectID, bq.Dataset, bq.Table)
+			if err := accessManager.Grant(ctx, config.Conf.CentralDataProject, jv.Dataset, joinableViewName, subjWithType); err != nil {
+				return NewAPIError(http.StatusInternalServerError, err, "grantAccessToDataset(): failed to grant access to joinable views")
+			}
+		}
+	}
+
+	if err := accessManager.Grant(ctx, bq.ProjectID, bq.Dataset, bq.Table, subjWithType); err != nil {
+		return NewAPIError(http.StatusInternalServerError, err, "grantAccessToDataset(): failed to grant access")
+	}
+
+	err := dbGrantAccessToDataset(ctx, input.DatasetID, input.Expires, subjWithType, user.Email)
+	if err != nil {
+		return NewAPIError(http.StatusInternalServerError, err, "grantAccessToDataset(): failed to grant access")
+	}
+	eventManager.TriggerDatasetGrant(ctx, input.DatasetID, *input.Subject)
+	return nil
+}
+
+func dbGrantAccessToDataset(ctx context.Context, datasetID uuid.UUID, expires *time.Time, subject, granter string) error {
+	a, err := queries.GetActiveAccessToDatasetForSubject(ctx, gensql.GetActiveAccessToDatasetForSubjectParams{
+		DatasetID: datasetID,
+		Subject:   subject,
+	})
+	if err != nil && !errors.Is(err, sql.ErrNoRows) {
+		return err
+	}
+
+	tx, err := sqldb.Begin()
+	defer func() {
+		if err := tx.Rollback(); err != nil && err != sql.ErrTxDone {
+			log.WithError(err).Error("Rolling back grant access request transaction")
+		}
+	}()
+	if err != nil {
+		return err
+	}
+
+	querier := queries.WithTx(tx)
+
+	if len(a.Subject) > 0 {
+		if err := querier.RevokeAccessToDataset(ctx, a.ID); err != nil {
+			return err
+		}
+	}
+
+	_, err = querier.GrantAccessToDataset(ctx, gensql.GrantAccessToDatasetParams{
+		DatasetID: datasetID,
+		Subject:   emailOfSubjectToLower(subject),
+		Expires:   ptrToNullTime(expires),
+		Granter:   granter,
+	})
+	if err != nil {
+		return err
+	}
+
+	if err = tx.Commit(); err != nil {
+		return err
+	}
+	return nil
 }

@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"io"
 	"net/http"
 	"strconv"
 	"strings"
@@ -128,7 +129,6 @@ func New(
 
 		r.Post("/{id}", apiWrapper(func(r *http.Request) (interface{}, *APIError) {
 			accessRequestID := chi.URLParam(r, "id")
-			accessID := r.URL.Query().Get("accessId")
 			reason := r.URL.Query().Get("reason")
 			action := r.URL.Query().Get("action")
 			switch action {
@@ -136,8 +136,6 @@ func New(
 				return "", approveAccessRequest(r.Context(), accessRequestID)
 			case "deny":
 				return "", denyAccessRequest(r.Context(), accessRequestID, &reason)
-			case "revoke":
-				return "", revokeAccessToDataset(r.Context(), accessID)
 			default:
 				return nil, NewAPIError(http.StatusBadRequest, fmt.Errorf("invalid action: %s", action), "Invalid action")
 			}
@@ -219,6 +217,27 @@ func New(
 		}))
 	})
 
+	router.Route("/api/accesses", func(r chi.Router) {
+		r.Use(authMW)
+		r.Post("/grant", apiWrapper(func(r *http.Request) (interface{}, *APIError) {
+			bodyBytes, err := io.ReadAll(r.Body)
+			if err != nil {
+				return nil, NewAPIError(http.StatusBadRequest, fmt.Errorf("error reading body"), "Error reading request body")
+			}
+
+			grantAccessData := GrantAccessData{}
+			if err = json.Unmarshal(bodyBytes, &grantAccessData); err != nil {
+				return nil, NewAPIError(http.StatusBadRequest, fmt.Errorf("error unmarshalling request body"), "Error unmarshalling request body")
+			}
+			return nil, grantAccessToDataset(r.Context(), grantAccessData)
+		}))
+
+		r.Post("/revoke", apiWrapper(func(r *http.Request) (interface{}, *APIError) {
+			accessID := r.URL.Query().Get("id")
+			return nil, revokeAccessToDataset(r.Context(), accessID)
+		}))
+
+	})
 	return router
 }
 

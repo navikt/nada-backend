@@ -143,8 +143,6 @@ func main() {
 			log.Fatal(err)
 		}
 	}
-	api.Init(repo.GetDB(), teamcatalogue, log, teamProjectsUpdater.TeamProjectsMapping, eventMgr)
-
 	_, err = createMetabaseSyncer(ctx, log.WithField("subsystem", "metabase"), config.Conf, repo, accessMgr, eventMgr)
 	if err != nil {
 		log.WithError(err).Fatal("running metabase")
@@ -165,6 +163,7 @@ func main() {
 	log.Info("Listening on :8080")
 	gqlServer := graph.New(repo, gcp, teamProjectsUpdater.TeamProjectsMapping, accessMgr, teamcatalogue, slackClient, pollyAPI, config.Conf.CentralDataProject, log.WithField("subsystem", "graph"))
 	srv := api.New(repo, gcsClient, teamcatalogue, httpAPI, authenticatorMiddleware, gqlServer, prom(repo.Metrics()...), amplitudeClient, config.Conf.NadaTokenCreds, log)
+	api.Init(repo.GetDB(), teamcatalogue, log, teamProjectsUpdater.TeamProjectsMapping, eventMgr)
 
 	server := http.Server{
 		Addr:    config.Conf.BindAddress,
