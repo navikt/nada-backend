@@ -84,14 +84,14 @@ type UserInfo struct {
 	// accessRequests is a list of access requests where either the user or one of the users groups is owner.
 	AccessRequests []AccessRequest `json:"accessRequests"`
 
-	//accessRequestsAsGranter is a list of access requests where one of the users groups is obliged to handle.
+	// accessRequestsAsGranter is a list of access requests where one of the users groups is obliged to handle.
 	AccessRequestsAsGranter []AccessRequestForGranter `json:"accessRequestsAsGranter"`
 }
 
 func teamNamesFromGroups(groups auth.Groups) []string {
 	teams := []string{}
 	for _, g := range groups {
-		teams = append(teams, TrimNaisTeamPrefix(strings.Split(g.Email, "@")[0]))
+		teams = append(teams, auth.TrimNaisTeamPrefix(strings.Split(g.Email, "@")[0]))
 	}
 
 	return teams
@@ -174,7 +174,7 @@ func getUserData(ctx context.Context) (*UserInfo, *APIError) {
 	}
 
 	for _, grp := range user.GoogleGroups {
-		proj, ok := teamProjectsMapping.Get(TrimNaisTeamPrefix(grp.Email))
+		proj, ok := teamProjectsMapping.Get(auth.TrimNaisTeamPrefix(grp.Email))
 		if !ok {
 			continue
 		}
@@ -273,8 +273,4 @@ func pollySQLToGraphql(ctx context.Context, id uuid.NullUUID) (*Polly, error) {
 			URL:        pollyDoc.Url,
 		},
 	}, nil
-}
-
-func TrimNaisTeamPrefix(team string) string {
-	return strings.TrimPrefix(team, "nais-team-")
 }
