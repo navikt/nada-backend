@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"io/ioutil"
+	"strings"
 
 	"github.com/sirupsen/logrus"
 	"golang.org/x/oauth2/google"
@@ -76,4 +77,8 @@ func (g *GoogleGroupClient) Groups(ctx context.Context, email *string) (groups G
 	})
 
 	return groups, err
+}
+
+func TrimNaisTeamPrefix(team string) string {
+	return strings.TrimPrefix(team, "nais-team-")
 }

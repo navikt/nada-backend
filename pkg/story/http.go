@@ -16,6 +16,7 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/navikt/nada-backend/pkg/amplitude"
+	"github.com/navikt/nada-backend/pkg/auth"
 	"github.com/navikt/nada-backend/pkg/database"
 	"github.com/navikt/nada-backend/pkg/gcs"
 	"github.com/navikt/nada-backend/pkg/graph/models"
@@ -265,7 +266,7 @@ func (h *Handler) updateStory(w http.ResponseWriter, r *http.Request, next http.
 	}
 
 	group := strings.Split(story.Group, "@")[0]
-	dbToken, err := h.repo.GetNadaToken(r.Context(), group)
+	dbToken, err := h.repo.GetNadaToken(r.Context(), auth.TrimNaisTeamPrefix(group))
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			h.log.Errorf("no nada token found for team %v, story id %v", story.Group, qID)
