@@ -21,7 +21,7 @@ require (
 	github.com/google/uuid v1.6.0
 	github.com/lib/pq v1.10.9
 	github.com/ory/dockertest/v3 v3.10.0
-	github.com/pressly/goose/v3 v3.19.2
+	github.com/pressly/goose/v3 v3.20.0
 	github.com/prometheus/client_golang v1.19.0
 	github.com/qustavo/sqlhooks/v2 v2.1.0
 	github.com/sirupsen/logrus v1.9.3
@@ -97,7 +97,7 @@ require (
 	go.opentelemetry.io/otel/trace v1.24.0 // indirect
 	go.uber.org/multierr v1.11.0 // indirect
 	golang.org/x/crypto v0.22.0 // indirect
-	golang.org/x/exp v0.0.0-20231108232855-2478ac86f678 // indirect
+	golang.org/x/exp v0.0.0-20240325151524-a685a6edb6d8 // indirect
 	golang.org/x/mod v0.17.0 // indirect
 	golang.org/x/net v0.24.0 // indirect
 	golang.org/x/sync v0.7.0 // indirect
