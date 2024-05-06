@@ -58,10 +58,11 @@ type DatasetInDataproduct struct {
 }
 
 type DataproductOwner struct {
-	Group            string  `json:"group"`
-	TeamkatalogenURL *string `json:"teamkatalogenURL"`
-	TeamContact      *string `json:"teamContact"`
-	TeamID           *string `json:"teamID"`
+	Group            string     `json:"group"`
+	TeamkatalogenURL *string    `json:"teamkatalogenURL"`
+	TeamContact      *string    `json:"teamContact"`
+	TeamID           *string    `json:"teamID"`
+	ProductAreaID    *uuid.UUID `json:"productAreaID"`
 }
 
 type Dataproduct struct {
@@ -177,6 +178,7 @@ __loop_rows:
 					TeamkatalogenURL: nullStringToPtr(dprow.TeamkatalogenUrl),
 					TeamContact:      nullStringToPtr(dprow.TeamContact),
 					TeamID:           nullStringToPtr(dprow.TeamID),
+					ProductAreaID:    nullUUIDToUUIDPtr(dprow.PaID),
 				},
 			},
 		}

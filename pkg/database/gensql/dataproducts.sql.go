@@ -320,7 +320,7 @@ func (q *Queries) GetDataproductsByIDs(ctx context.Context, ids []uuid.UUID) ([]
 }
 
 const getDataproductsByProductArea = `-- name: GetDataproductsByProductArea :many
-SELECT id, name, description, "group", created, last_modified, tsv_document, slug, teamkatalogen_url, team_contact, team_id, team_name, pa_name
+SELECT id, name, description, "group", created, last_modified, tsv_document, slug, teamkatalogen_url, team_contact, team_id, team_name, pa_name, pa_id
 FROM dataproduct_with_teamkatalogen_view
 WHERE team_id = ANY($1::text[])
 ORDER BY created DESC
@@ -349,6 +349,7 @@ func (q *Queries) GetDataproductsByProductArea(ctx context.Context, teamID []str
 			&i.TeamID,
 			&i.TeamName,
 			&i.PaName,
+			&i.PaID,
 		); err != nil {
 			return nil, err
 		}
