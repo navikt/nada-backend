@@ -173,6 +173,7 @@ type DataproductView struct {
 	TeamID           sql.NullString
 	TeamName         sql.NullString
 	PaName           sql.NullString
+	PaID             uuid.NullUUID
 	DsDpID           uuid.NullUUID
 	DsID             uuid.NullUUID
 	DsName           sql.NullString
@@ -197,6 +198,7 @@ type DataproductWithTeamkatalogenView struct {
 	TeamID           sql.NullString
 	TeamName         sql.NullString
 	PaName           sql.NullString
+	PaID             uuid.NullUUID
 }
 
 type Dataset struct {
