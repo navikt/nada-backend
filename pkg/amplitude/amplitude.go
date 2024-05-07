@@ -49,6 +49,9 @@ func New(apiKey string, log *logrus.Entry) *AmplitudeClient {
 }
 
 func (a *AmplitudeClient) PublishEvent(ctx context.Context, title string) error {
+	ctxWithTimeout, cancel := context.WithTimeout(ctx, 1*time.Second)
+	defer cancel()
+
 	e := &amplitudeBody{
 		APIKey: a.apiKey,
 		Events: []event{
@@ -69,7 +72,7 @@ func (a *AmplitudeClient) PublishEvent(ctx context.Context, title string) error 
 	if err := json.NewEncoder(buf).Encode(e); err != nil {
 		return err
 	}
-	request, err := http.NewRequest(http.MethodPost, "https://amplitude.nav.no/collect", buf)
+	request, err := http.NewRequestWithContext(ctxWithTimeout, http.MethodPost, "https://amplitude.nav.no/collect", buf)
 	if err != nil {
 		return err
 	}
