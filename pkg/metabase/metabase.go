@@ -89,13 +89,13 @@ func (m *Metabase) run(ctx context.Context) {
 		if err != nil {
 			log.WithError(err).Error("getting bigquery datasource for dataset")
 		}
-		if err := m.HideOtherTables(ctx, db, bq); err != nil {
+		if err := m.SyncTableVisibility(ctx, db, bq); err != nil {
 			log.WithError(err).Warning("hiding other tables")
 		}
 	}
 }
 
-func (m *Metabase) HideOtherTables(ctx context.Context, mbMeta *models.MetabaseMetadata, bq models.BigQuery) error {
+func (m *Metabase) SyncTableVisibility(ctx context.Context, mbMeta *models.MetabaseMetadata, bq models.BigQuery) error {
 	if err := m.client.ensureValidSession(ctx); err != nil {
 		return err
 	}
@@ -112,11 +112,7 @@ func (m *Metabase) HideOtherTables(ctx context.Context, mbMeta *models.MetabaseM
 	defer res.Body.Close()
 
 	var v struct {
-		Tables  []Table `json:"tables"`
-		Details struct {
-			ProjectID string `json:"project-id"`
-			Dataset   string `json:"dataset-filters-patterns"`
-		} `json:"details"`
+		Tables []Table `json:"tables"`
 	}
 	if err := json.NewDecoder(res.Body).Decode(&v); err != nil {
 		return err
@@ -130,17 +126,23 @@ func (m *Metabase) HideOtherTables(ctx context.Context, mbMeta *models.MetabaseM
 		}
 	}
 
-	other := []int{}
+	includedIDs := []int{}
+	excludedIDs := []int{}
 	for _, t := range v.Tables {
-		if !contains(includedTables, t.Name) {
-			other = append(other, t.ID)
+		if contains(includedTables, t.Name) {
+			includedIDs = append(includedIDs, t.ID)
+		} else {
+			excludedIDs = append(excludedIDs, t.ID)
 		}
 	}
 
-	if len(other) == 0 {
-		return nil
+	if len(excludedIDs) != 0 {
+		if err := m.client.HideTables(ctx, excludedIDs); err != nil {
+			return err
+		}
 	}
-	return m.client.HideTables(ctx, other)
+
+	return m.client.ShowTables(ctx, includedIDs)
 }
 
 func MarshalUUID(id uuid.UUID) string {

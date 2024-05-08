@@ -280,7 +280,7 @@ func (m *Metabase) create(ctx context.Context, ds dsWrapper) error {
 		}
 	}
 
-	if err := m.HideOtherTables(ctx, &mbMeta, datasource); err != nil {
+	if err := m.SyncTableVisibility(ctx, &mbMeta, datasource); err != nil {
 		return err
 	}
 
