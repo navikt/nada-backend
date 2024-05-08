@@ -91,6 +91,7 @@ type Querier interface {
 	GetNadaToken(ctx context.Context, team string) (uuid.UUID, error)
 	GetNadaTokens(ctx context.Context) ([]NadaToken, error)
 	GetNadaTokensForTeams(ctx context.Context, teams []string) ([]NadaToken, error)
+	GetOpenMetabaseTablesInSameBigQueryDataset(ctx context.Context, arg GetOpenMetabaseTablesInSameBigQueryDatasetParams) ([]string, error)
 	GetOwnerGroupOfDataset(ctx context.Context, datasetID uuid.UUID) (string, error)
 	GetPollyDocumentation(ctx context.Context, id uuid.UUID) (PollyDocumentation, error)
 	GetProductArea(ctx context.Context, id uuid.UUID) (TkProductArea, error)

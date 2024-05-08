@@ -89,21 +89,19 @@ func (m *Metabase) run(ctx context.Context) {
 		if err != nil {
 			log.WithError(err).Error("getting bigquery datasource for dataset")
 		}
-		if isRestrictedDatabase(db) {
-			if err := m.HideOtherTables(ctx, db.DatabaseID, bq.Table); err != nil {
-				log.WithError(err).Warning("hiding other tables")
-			}
+		if err := m.HideOtherTables(ctx, db, bq); err != nil {
+			log.WithError(err).Warning("hiding other tables")
 		}
 	}
 }
 
-func (m *Metabase) HideOtherTables(ctx context.Context, dbID int, table string) error {
+func (m *Metabase) HideOtherTables(ctx context.Context, mbMeta *models.MetabaseMetadata, bq models.BigQuery) error {
 	if err := m.client.ensureValidSession(ctx); err != nil {
 		return err
 	}
 
 	var buf io.ReadWriter
-	res, err := m.client.performRequest(ctx, http.MethodGet, fmt.Sprintf("/database/%v/metadata", dbID), buf)
+	res, err := m.client.performRequest(ctx, http.MethodGet, fmt.Sprintf("/database/%v/metadata?include_hidden=true", mbMeta.DatabaseID), buf)
 	if res.StatusCode == 404 {
 		// suppress error when database does not exist
 		return nil
@@ -114,15 +112,27 @@ func (m *Metabase) HideOtherTables(ctx context.Context, dbID int, table string) 
 	defer res.Body.Close()
 
 	var v struct {
-		Tables []Table `json:"tables"`
+		Tables  []Table `json:"tables"`
+		Details struct {
+			ProjectID string `json:"project-id"`
+			Dataset   string `json:"dataset-filters-patterns"`
+		} `json:"details"`
 	}
 	if err := json.NewDecoder(res.Body).Decode(&v); err != nil {
 		return err
 	}
 
+	includedTables := []string{bq.Table}
+	if !isRestrictedDatabase(mbMeta) {
+		includedTables, err = m.repo.GetOpenMetabaseTablesInSameBigQueryDataset(ctx, bq.ProjectID, bq.Dataset)
+		if err != nil {
+			return err
+		}
+	}
+
 	other := []int{}
 	for _, t := range v.Tables {
-		if t.Name != table {
+		if !contains(includedTables, t.Name) {
 			other = append(other, t.ID)
 		}
 	}
@@ -153,4 +163,14 @@ func parseSubject(subject string) (string, string, error) {
 	}
 
 	return s[1], s[0], nil
+}
+
+func contains(elems []string, elem string) bool {
+	for _, e := range elems {
+		if e == elem {
+			return true
+		}
+	}
+
+	return false
 }

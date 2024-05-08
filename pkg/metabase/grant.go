@@ -256,13 +256,14 @@ func (m *Metabase) create(ctx context.Context, ds dsWrapper) error {
 		return err
 	}
 
-	err = m.repo.CreateMetabaseMetadata(ctx, models.MetabaseMetadata{
+	mbMeta := models.MetabaseMetadata{
 		DatasetID:         ds.Dataset.ID,
 		DatabaseID:        dbID,
 		PermissionGroupID: ds.MetabaseGroupID,
 		CollectionID:      ds.CollectionID,
 		SAEmail:           ds.Email,
-	})
+	}
+	err = m.repo.CreateMetabaseMetadata(ctx, mbMeta)
 	if err != nil {
 		return err
 	}
@@ -279,7 +280,7 @@ func (m *Metabase) create(ctx context.Context, ds dsWrapper) error {
 		}
 	}
 
-	if err := m.HideOtherTables(ctx, dbID, datasource.Table); err != nil {
+	if err := m.HideOtherTables(ctx, &mbMeta, datasource); err != nil {
 		return err
 	}
 
