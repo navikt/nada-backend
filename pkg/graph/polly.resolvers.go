@@ -12,5 +12,5 @@ import (
 
 // Polly is the resolver for the polly field.
 func (r *queryResolver) Polly(ctx context.Context, q string) ([]*models.QueryPolly, error) {
-	return r.pollyAPI.SearchPolly(ctx, q)
+	return r.pollyAPI.SearchPolly_(ctx, q)
 }

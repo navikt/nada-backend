@@ -16,22 +16,6 @@ import (
 	"github.com/navikt/nada-backend/pkg/database/gensql"
 )
 
-type Polly struct {
-	ID uuid.UUID `json:"id"`
-	QueryPolly
-}
-
-type PollyInput struct {
-	ID *uuid.UUID `json:"id"`
-	QueryPolly
-}
-
-type QueryPolly struct {
-	ExternalID string `json:"external_id"`
-	Name       string `json:"name"`
-	URL        string `json:"url"`
-}
-
 type Access struct {
 	ID              uuid.UUID  `json:"id"`
 	Subject         string     `json:"subject"`
@@ -41,6 +25,22 @@ type Access struct {
 	Revoked         *time.Time `json:"revoked"`
 	DatasetID       uuid.UUID  `json:"datasetID"`
 	AccessRequestID *uuid.UUID `json:"accessRequestID"`
+}
+
+type NewAccessRequestDTO struct {
+	DatasetID   uuid.UUID   `json:"datasetID"`
+	Subject     *string     `json:"subject"`
+	SubjectType *string     `json:"subjectType"`
+	Owner       *string     `json:"owner"`
+	Expires     *time.Time  `json:"expires"`
+	Polly       *PollyInput `json:"polly"`
+}
+
+type UpdateAccessRequestDTO struct {
+	ID      uuid.UUID   `json:"id"`
+	Owner   string      `json:"owner"`
+	Expires *time.Time  `json:"expires"`
+	Polly   *PollyInput `json:"polly"`
 }
 
 type AccessRequest struct {
@@ -189,6 +189,99 @@ func getAccessRequest(ctx context.Context, accessRequestID string) (*AccessReque
 		return nil, NewAPIError(http.StatusInternalServerError, err, "getAccessRequest(): converting access request from database")
 	}
 	return accessRequest, nil
+}
+
+func createAccessRequest(ctx context.Context, input NewAccessRequestDTO) *APIError {
+	user := auth.GetUser(ctx)
+	subj := user.Email
+	if input.Subject != nil {
+		subj = *input.Subject
+	}
+
+	owner := "user:" + user.Email
+	if input.Owner != nil {
+		owner = "group:" + *input.Owner
+	}
+
+	subjType := SubjectTypeUser
+	if input.SubjectType != nil {
+		subjType = *input.SubjectType
+	}
+
+	subjWithType := subjType + ":" + subj
+
+	var pollyID uuid.NullUUID
+	if input.Polly != nil {
+		dbPolly, err := createPollyDocumentation(ctx, *input.Polly)
+		if err != nil {
+			return NewAPIError(http.StatusInternalServerError, err, "createAccessRequest(): failed to create polly documentation")
+		}
+
+		pollyID = uuid.NullUUID{UUID: dbPolly.ID, Valid: true}
+	}
+
+	accessRequest, err := dbCreateAccessRequestForDataset(ctx, input.DatasetID, pollyID, subjWithType, owner, input.Expires)
+	if err != nil {
+		return DBErrorToAPIError(err, "createAccessRequest(): failed to create access request")
+	}
+	sendNewAccessRequestSlackNotification(ctx, accessRequest)
+	return nil
+}
+
+func deleteAccessRequest(ctx context.Context, accessRequestID string) *APIError {
+	accessRequestUUID, err := uuid.Parse(accessRequestID)
+	if err != nil {
+		return NewAPIError(http.StatusBadRequest, err, "deleteAccessRequest(): invalid accessRequestID")
+	}
+
+	accessRequest, apierr := getAccessRequest(ctx, accessRequestID)
+	if apierr != nil {
+		return apierr
+	}
+
+	splits := strings.Split(accessRequest.Owner, ":")
+	if len(splits) != 2 {
+		return NewAPIError(http.StatusInternalServerError, fmt.Errorf("%v is not a valid owner format (cannot split on :)", accessRequest.Owner),
+			"deleteAccessRequest(): invalid owner format")
+	}
+	owner := splits[1]
+
+	if err := ensureOwner(ctx, owner); err != nil {
+		return NewAPIError(http.StatusForbidden, err, "deleteAccessRequest(): user is not owner")
+	}
+
+	if err := queries.DeleteAccessRequest(ctx, accessRequestUUID); err != nil {
+		return NewAPIError(http.StatusInternalServerError, err, "deleteAccessRequest(): failed to delete access request")
+	}
+
+	return nil
+}
+
+func updateAccessRequest(ctx context.Context, input UpdateAccessRequestDTO) *APIError {
+	var pollyID uuid.NullUUID
+	if input.Polly != nil {
+		if input.Polly.ID != nil {
+			// Keep existing polly
+			pollyID = uuid.NullUUID{UUID: *input.Polly.ID, Valid: true}
+		} else {
+			dbPolly, err := createPollyDocumentation(ctx, *input.Polly)
+			if err != nil {
+				return NewAPIError(http.StatusInternalServerError, err, "updateAccessRequest(): failed to create polly documentation")
+			}
+			pollyID = uuid.NullUUID{UUID: dbPolly.ID, Valid: true}
+		}
+	}
+
+	_, err := queries.UpdateAccessRequest(ctx, gensql.UpdateAccessRequestParams{
+		Owner:                input.Owner,
+		Expires:              ptrToNullTime(input.Expires),
+		PollyDocumentationID: pollyID,
+		ID:                   input.ID,
+	})
+	if err != nil {
+		return DBErrorToAPIError(err, "updateAccessRequest(): failed to update access request")
+	}
+	return nil
 }
 
 func approveAccessRequest(ctx context.Context, accessRequestID string) *APIError {
@@ -492,4 +585,42 @@ func dbGrantAccessToDataset(ctx context.Context, datasetID uuid.UUID, expires *t
 		return err
 	}
 	return nil
+}
+
+func dbCreateAccessRequestForDataset(ctx context.Context, datasetID uuid.UUID, pollyDocumentationID uuid.NullUUID, subject, owner string, expires *time.Time) (*AccessRequest, error) {
+	requestSQL, err := queries.CreateAccessRequestForDataset(ctx, gensql.CreateAccessRequestForDatasetParams{
+		DatasetID:            datasetID,
+		Subject:              emailOfSubjectToLower(subject),
+		Owner:                owner,
+		Expires:              ptrToNullTime(expires),
+		PollyDocumentationID: pollyDocumentationID,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return accessRequestFromSQL(ctx, requestSQL)
+}
+
+func sendNewAccessRequestSlackNotification(ctx context.Context, ar *AccessRequest) {
+	ds, apierr := GetDataset(ctx, ar.DatasetID.String())
+	if apierr != nil {
+		log.Warn("Access request created but failed to fetch dataset during sending slack notification", apierr)
+		return
+	}
+
+	dp, apierr := GetDataproduct(ctx, ds.DataproductID.String())
+	if apierr != nil {
+		log.Warn("Access request created but failed to fetch dataproduct during sending slack notification", apierr)
+		return
+	}
+
+	if dp.Owner.TeamContact == nil || *dp.Owner.TeamContact == "" {
+		log.Info("Access request created but skip slack message because teamcontact is empty")
+		return
+	}
+
+	err := slackClient.InformNewAccessRequest(*dp.Owner.TeamContact, dp.ID.String(), dp.Name, ds.ID.String(), ds.Name, ar.Subject)
+	if err != nil {
+		log.Warn("Access request created, failed to send slack message", err)
+	}
 }
