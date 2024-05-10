@@ -18,22 +18,23 @@ type PiiLevel string
 type DatasourceType string
 
 type Dataset struct {
-	ID                       uuid.UUID `json:"id"`
-	DataproductID            uuid.UUID `json:"dataproductID"`
-	Name                     string    `json:"name"`
-	Created                  time.Time `json:"created"`
-	LastModified             time.Time `json:"lastModified"`
-	Description              *string   `json:"description"`
-	Slug                     string    `json:"slug"`
-	Repo                     *string   `json:"repo"`
-	Pii                      PiiLevel  `json:"pii"`
-	Keywords                 []string  `json:"keywords"`
-	AnonymisationDescription *string   `json:"anonymisationDescription"`
-	TargetUser               *string   `json:"targetUser"`
-	Access                   []*Access `json:"access"`
-	Mappings                 []string  `json:"mappings"`
-	Datasource               *BigQuery `json:"datasource"`
-	MetabaseUrl              *string   `json:"metabaseUrl"`
+	ID                       uuid.UUID  `json:"id"`
+	DataproductID            uuid.UUID  `json:"dataproductID"`
+	Name                     string     `json:"name"`
+	Created                  time.Time  `json:"created"`
+	LastModified             time.Time  `json:"lastModified"`
+	Description              *string    `json:"description"`
+	Slug                     string     `json:"slug"`
+	Repo                     *string    `json:"repo"`
+	Pii                      PiiLevel   `json:"pii"`
+	Keywords                 []string   `json:"keywords"`
+	AnonymisationDescription *string    `json:"anonymisationDescription"`
+	TargetUser               *string    `json:"targetUser"`
+	Access                   []*Access  `json:"access"`
+	Mappings                 []string   `json:"mappings"`
+	Datasource               *BigQuery  `json:"datasource"`
+	MetabaseUrl              *string    `json:"metabaseUrl"`
+	MetabaseDeletedAt        *time.Time `json:"metabaseDeletedAt"`
 }
 
 type DatasetMinimal struct {
@@ -326,18 +327,19 @@ func datasetFromSQL(dsrows []gensql.DatasetView) (*Dataset, *APIError) {
 		}
 		if dataset == nil {
 			dataset = &Dataset{
-				ID:            dsrow.DsID,
-				Name:          dsrow.DsName,
-				Created:       dsrow.DsCreated,
-				LastModified:  dsrow.DsLastModified,
-				Description:   nullStringToPtr(dsrow.DsDescription),
-				Slug:          dsrow.DsSlug,
-				Keywords:      dsrow.DsKeywords,
-				DataproductID: dsrow.DsDpID,
-				Mappings:      []string{},
-				Access:        []*Access{},
-				Datasource:    nil,
-				Pii:           PiiLevel(dsrow.Pii),
+				ID:                dsrow.DsID,
+				Name:              dsrow.DsName,
+				Created:           dsrow.DsCreated,
+				LastModified:      dsrow.DsLastModified,
+				Description:       nullStringToPtr(dsrow.DsDescription),
+				Slug:              dsrow.DsSlug,
+				Keywords:          dsrow.DsKeywords,
+				DataproductID:     dsrow.DsDpID,
+				Mappings:          []string{},
+				Access:            []*Access{},
+				Datasource:        nil,
+				Pii:               PiiLevel(dsrow.Pii),
+				MetabaseDeletedAt: nullTimeToPtr(dsrow.MbDeletedAt),
 			}
 		}
 

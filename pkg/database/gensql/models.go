@@ -276,6 +276,7 @@ type DatasetView struct {
 	AccessRevoked   sql.NullTime
 	AccessRequestID uuid.NullUUID
 	MbDatabaseID    sql.NullInt32
+	MbDeletedAt     sql.NullTime
 }
 
 type DatasourceBigquery struct {
