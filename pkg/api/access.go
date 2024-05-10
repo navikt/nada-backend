@@ -224,7 +224,6 @@ func approveAccessRequest(ctx context.Context, accessRequestID string) *APIError
 	}()
 
 	user := auth.GetUser(ctx)
-	fmt.Println(ar.Subject)
 	q := queries.WithTx(tx)
 
 	_, err = q.GrantAccessToDataset(ctx, gensql.GrantAccessToDatasetParams{

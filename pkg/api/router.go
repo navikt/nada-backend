@@ -231,8 +231,6 @@ func New(
 
 func ensureUserInGroup(ctx context.Context, group string) error {
 	user := auth.GetUser(ctx)
-	fmt.Println(user)
-	fmt.Println(group)
 	if user == nil || !user.GoogleGroups.Contains(group) {
 		return ErrUnauthorized
 	}
