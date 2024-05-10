@@ -43,11 +43,11 @@ func (m *Metabase) deleteDatabase(ctx context.Context, dsID uuid.UUID) {
 	}
 
 	if isRestrictedDatabase(mbMeta) {
-		m.deleteRestrictedDatabase(ctx, dsID)
+		m.deleteRestrictedDatabase(ctx, dsID, mbMeta)
 		return
 	}
 
-	m.deleteAllUsersDatabase(ctx, dsID)
+	m.deleteAllUsersDatabase(ctx, dsID, mbMeta)
 }
 
 func (m *Metabase) removeMetabaseGroupMember(ctx context.Context, dsID uuid.UUID, email string) {
@@ -103,14 +103,8 @@ func (m *Metabase) softDeleteDatabase(ctx context.Context, datasetID uuid.UUID) 
 	return nil
 }
 
-func (m *Metabase) deleteAllUsersDatabase(ctx context.Context, datasetID uuid.UUID) {
+func (m *Metabase) deleteAllUsersDatabase(ctx context.Context, datasetID uuid.UUID, mbMeta *models.MetabaseMetadata) {
 	log := m.log.WithField("datasetID", datasetID)
-
-	mbMeta, err := m.repo.GetMetabaseMetadata(ctx, datasetID, false)
-	if err != nil {
-		log.Error("Get metabase metadata")
-		return
-	}
 
 	if err := m.client.deleteDatabase(ctx, mbMeta.DatabaseID); err != nil {
 		log.Errorf("Unable to delete all-users database %v", mbMeta.DatabaseID)
@@ -124,14 +118,8 @@ func (m *Metabase) deleteAllUsersDatabase(ctx context.Context, datasetID uuid.UU
 	log.Info("Deleted all-users database")
 }
 
-func (m *Metabase) deleteRestrictedDatabase(ctx context.Context, datasetID uuid.UUID) {
+func (m *Metabase) deleteRestrictedDatabase(ctx context.Context, datasetID uuid.UUID, mbMeta *models.MetabaseMetadata) {
 	log := m.log.WithField("datasetID", datasetID)
-	mbMeta, err := m.repo.GetMetabaseMetadata(ctx, datasetID, false)
-	if err != nil {
-		log.Error("Get metabase metadata")
-		return
-	}
-
 	ds, err := m.repo.GetBigqueryDatasource(ctx, datasetID, false)
 	if err != nil {
 		log.Error("Get bigquery datasource")

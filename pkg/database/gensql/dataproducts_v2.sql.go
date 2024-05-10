@@ -42,7 +42,7 @@ func (q *Queries) GetDataproductKeywords(ctx context.Context, dpid uuid.UUID) ([
 }
 
 const getDataproductWithDatasetsBasic = `-- name: GetDataproductWithDatasetsBasic :many
-SELECT dp.id, dp.name, dp.description, "group", dp.created, dp.last_modified, dp.tsv_document, dp.slug, teamkatalogen_url, team_contact, team_id, team_name, pa_name, ds.id, ds.name, ds.description, pii, ds.created, ds.last_modified, type, ds.tsv_document, ds.slug, repo, keywords, dataproduct_id, anonymisation_description, target_user
+SELECT dp.id, dp.name, dp.description, "group", dp.created, dp.last_modified, dp.tsv_document, dp.slug, teamkatalogen_url, team_contact, team_id, team_name, pa_name, pa_id, ds.id, ds.name, ds.description, pii, ds.created, ds.last_modified, type, ds.tsv_document, ds.slug, repo, keywords, dataproduct_id, anonymisation_description, target_user
 FROM dataproduct_with_teamkatalogen_view dp LEFT JOIN datasets ds ON ds.dataproduct_id = dp.id
 WHERE dp.id = $1
 `
@@ -61,6 +61,7 @@ type GetDataproductWithDatasetsBasicRow struct {
 	TeamID                   sql.NullString
 	TeamName                 sql.NullString
 	PaName                   sql.NullString
+	PaID                     uuid.NullUUID
 	ID_2                     uuid.NullUUID
 	Name_2                   sql.NullString
 	Description_2            sql.NullString
@@ -100,6 +101,7 @@ func (q *Queries) GetDataproductWithDatasetsBasic(ctx context.Context, id uuid.U
 			&i.TeamID,
 			&i.TeamName,
 			&i.PaName,
+			&i.PaID,
 			&i.ID_2,
 			&i.Name_2,
 			&i.Description_2,
@@ -142,7 +144,7 @@ func (q *Queries) GetDataproductsNumberByTeam(ctx context.Context, teamID sql.Nu
 }
 
 const getDataproductsWithDatasets = `-- name: GetDataproductsWithDatasets :many
-SELECT dp.dp_id, dp.dp_name, dp.dp_description, dp.dp_group, dp.dp_created, dp.dp_last_modified, dp.dp_slug, dp.teamkatalogen_url, dp.team_contact, dp.team_id, dp.team_name, dp.pa_name, dp.ds_dp_id, dp.ds_id, dp.ds_name, dp.ds_description, dp.ds_created, dp.ds_last_modified, dp.ds_slug, dp.ds_keywords, dsrc.last_modified as "dsrc_last_modified"
+SELECT dp.dp_id, dp.dp_name, dp.dp_description, dp.dp_group, dp.dp_created, dp.dp_last_modified, dp.dp_slug, dp.teamkatalogen_url, dp.team_contact, dp.team_id, dp.team_name, dp.pa_name, dp.pa_id, dp.ds_dp_id, dp.ds_id, dp.ds_name, dp.ds_description, dp.ds_created, dp.ds_last_modified, dp.ds_slug, dp.ds_keywords, dsrc.last_modified as "dsrc_last_modified"
 FROM dataproduct_view dp
 LEFT JOIN datasource_bigquery dsrc ON dsrc.dataset_id = dp.ds_id
 WHERE (array_length($1::uuid[], 1) IS NULL OR dp_id = ANY ($1))
@@ -167,6 +169,7 @@ type GetDataproductsWithDatasetsRow struct {
 	TeamID           sql.NullString
 	TeamName         sql.NullString
 	PaName           sql.NullString
+	PaID             uuid.NullUUID
 	DsDpID           uuid.NullUUID
 	DsID             uuid.NullUUID
 	DsName           sql.NullString
@@ -200,6 +203,7 @@ func (q *Queries) GetDataproductsWithDatasets(ctx context.Context, arg GetDatapr
 			&i.TeamID,
 			&i.TeamName,
 			&i.PaName,
+			&i.PaID,
 			&i.DsDpID,
 			&i.DsID,
 			&i.DsName,
@@ -224,7 +228,7 @@ func (q *Queries) GetDataproductsWithDatasets(ctx context.Context, arg GetDatapr
 }
 
 const getDataproductsWithDatasetsAndAccessRequests = `-- name: GetDataproductsWithDatasetsAndAccessRequests :many
-SELECT dp.dp_id, dp.dp_name, dp.dp_description, dp.dp_group, dp.dp_created, dp.dp_last_modified, dp.dp_slug, dp.teamkatalogen_url, dp.team_contact, dp.team_id, dp.team_name, dp.pa_name, dp.ds_dp_id, dp.ds_id, dp.ds_name, dp.ds_description, dp.ds_created, dp.ds_last_modified, dp.ds_slug, dp.ds_keywords, dsrc.last_modified as "dsrc_last_modified",
+SELECT dp.dp_id, dp.dp_name, dp.dp_description, dp.dp_group, dp.dp_created, dp.dp_last_modified, dp.dp_slug, dp.teamkatalogen_url, dp.team_contact, dp.team_id, dp.team_name, dp.pa_name, dp.pa_id, dp.ds_dp_id, dp.ds_id, dp.ds_name, dp.ds_description, dp.ds_created, dp.ds_last_modified, dp.ds_slug, dp.ds_keywords, dsrc.last_modified as "dsrc_last_modified",
  dar.id as "dar_id", dar.dataset_id as "dar_dataset_id", dar.subject as "dar_subject", dar.owner as "dar_owner",
   dar.expires as "dar_expires", dar.status as "dar_status", dar.granter as "dar_granter", dar.reason as "dar_reason", 
   dar.closed as "dar_closed", dar.polly_documentation_id as "dar_polly_documentation_id", dar.created as "dar_created"
@@ -253,6 +257,7 @@ type GetDataproductsWithDatasetsAndAccessRequestsRow struct {
 	TeamID                  sql.NullString
 	TeamName                sql.NullString
 	PaName                  sql.NullString
+	PaID                    uuid.NullUUID
 	DsDpID                  uuid.NullUUID
 	DsID                    uuid.NullUUID
 	DsName                  sql.NullString
@@ -297,6 +302,7 @@ func (q *Queries) GetDataproductsWithDatasetsAndAccessRequests(ctx context.Conte
 			&i.TeamID,
 			&i.TeamName,
 			&i.PaName,
+			&i.PaID,
 			&i.DsDpID,
 			&i.DsID,
 			&i.DsName,

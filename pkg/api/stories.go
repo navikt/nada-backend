@@ -1,6 +1,8 @@
 package api
 
 import (
+	"context"
+	"net/http"
 	"time"
 
 	"github.com/google/uuid"
@@ -31,6 +33,20 @@ type Story struct {
 	Group           string  `json:"group"`
 	TeamName        *string `json:"teamName"`
 	ProductAreaName string  `json:"productAreaName"`
+}
+
+func getStoryMetadata(ctx context.Context, id string) (*Story, *APIError) {
+	storyID := uuid.MustParse(id)
+	storySQLs, err := queries.GetStoriesWithTeamkatalogenByIDs(ctx, []uuid.UUID{storyID})
+	if err != nil {
+		return nil, &APIError{
+			HttpStatus: http.StatusInternalServerError,
+			Err:        err,
+			Message:    "fetching existing story metadata",
+		}
+	}
+
+	return storyFromSQL(&storySQLs[0]), nil
 }
 
 func storyFromSQL(story *gensql.StoryWithTeamkatalogenView) *Story {

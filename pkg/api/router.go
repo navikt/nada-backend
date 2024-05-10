@@ -255,6 +255,13 @@ func New(
 		}))
 	})
 
+	router.Route("/api/stories", func(r chi.Router) {
+		r.Use(authMW)
+		r.Get("/{id}", apiWrapper(func(r *http.Request) (interface{}, *APIError) {
+			return getStoryMetadata(r.Context(), chi.URLParam(r, "id"))
+		}))
+	})
+
 	router.Route("/api/accesses", func(r chi.Router) {
 		r.Use(authMW)
 		r.Post("/grant", apiWrapper(func(r *http.Request) (interface{}, *APIError) {

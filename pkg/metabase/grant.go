@@ -248,6 +248,14 @@ func (m *Metabase) create(ctx context.Context, ds dsWrapper) error {
 		return err
 	}
 
+	if err := m.waitForDatabase(ctx, dbID, datasource.Table); err != nil {
+		if err := m.cleanupOnCreateDatabaseError(ctx, dbID, ds); err != nil {
+			m.log.WithError(err).Error("cleaning up on metabase database creation timeout")
+			return err
+		}
+		return err
+	}
+
 	err = m.repo.CreateMetabaseMetadata(ctx, models.MetabaseMetadata{
 		DatasetID:         ds.Dataset.ID,
 		DatabaseID:        dbID,
@@ -256,10 +264,6 @@ func (m *Metabase) create(ctx context.Context, ds dsWrapper) error {
 		SAEmail:           ds.Email,
 	})
 	if err != nil {
-		return err
-	}
-
-	if err := m.waitForDatabase(ctx, dbID, datasource.Table); err != nil {
 		return err
 	}
 
@@ -358,7 +362,7 @@ func (m *Metabase) restore(ctx context.Context, datasetID uuid.UUID, mbMetadata 
 }
 
 func (m *Metabase) waitForDatabase(ctx context.Context, dbID int, tableName string) error {
-	for i := 0; i < 100; i++ {
+	for i := 0; i < 200; i++ {
 		time.Sleep(100 * time.Millisecond)
 		tables, err := m.client.Tables(ctx, dbID)
 		if err != nil || len(tables) == 0 {
@@ -372,6 +376,39 @@ func (m *Metabase) waitForDatabase(ctx context.Context, dbID int, tableName stri
 	}
 
 	return fmt.Errorf("unable to create database %v", tableName)
+}
+
+func (m *Metabase) cleanupOnCreateDatabaseError(ctx context.Context, dbID int, ds dsWrapper) error {
+	services, err := m.repo.GetDatasetMappings(ctx, ds.Dataset.ID)
+	if err != nil {
+		return err
+	}
+
+	for idx, msvc := range services {
+		if msvc == models.MappingServiceMetabase {
+			services = append(services[:idx], services[idx+1:]...)
+		}
+	}
+
+	if err := m.client.deleteDatabase(ctx, dbID); err != nil {
+		return err
+	}
+
+	if ds.CollectionID != 0 {
+		if err := m.client.DeletePermissionGroup(ctx, ds.MetabaseGroupID); err != nil {
+			return err
+		}
+
+		if err := m.client.ArchiveCollection(ctx, ds.CollectionID); err != nil {
+			return err
+		}
+
+		if err := m.deleteServiceAccount(ds.Email); err != nil {
+			return err
+		}
+	}
+
+	return m.repo.MapDataset(ctx, ds.Dataset.ID, services)
 }
 
 func containsAllUsers(accesses []*models.Access) bool {
