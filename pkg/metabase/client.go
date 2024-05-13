@@ -227,6 +227,17 @@ func (c *Client) HideTables(ctx context.Context, ids []int) error {
 	return c.request(ctx, http.MethodPut, "/table", t, nil)
 }
 
+func (c *Client) ShowTables(ctx context.Context, ids []int) error {
+	t := struct {
+		IDs            []int   `json:"ids"`
+		VisibilityType *string `json:"visibility_type"`
+	}{
+		IDs:            ids,
+		VisibilityType: nil,
+	}
+	return c.request(ctx, http.MethodPut, "/table", t, nil)
+}
+
 type Field struct{}
 
 type Table struct {

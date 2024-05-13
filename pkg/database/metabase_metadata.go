@@ -55,6 +55,13 @@ func (r *Repo) GetAllMetabaseMetadata(ctx context.Context) ([]*models.MetabaseMe
 	return mbMetas, nil
 }
 
+func (r *Repo) GetOpenMetabaseTablesInSameBigQueryDataset(ctx context.Context, projectID, dataset string) ([]string, error) {
+	return r.Querier.GetOpenMetabaseTablesInSameBigQueryDataset(ctx, gensql.GetOpenMetabaseTablesInSameBigQueryDatasetParams{
+		ProjectID: projectID,
+		Dataset:   dataset,
+	})
+}
+
 func (r *Repo) SetPermissionGroupMetabaseMetadata(ctx context.Context, datasetID uuid.UUID, groupID int) error {
 	return r.Querier.SetPermissionGroupMetabaseMetadata(ctx, gensql.SetPermissionGroupMetabaseMetadataParams{
 		ID:        sql.NullInt32{Valid: true, Int32: int32(groupID)},
