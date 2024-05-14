@@ -39,7 +39,7 @@ type AccessManager interface {
 }
 
 type Polly interface {
-	SearchPolly(ctx context.Context, q string) ([]*models.QueryPolly, error)
+	SearchPolly_(ctx context.Context, q string) ([]*models.QueryPolly, error)
 }
 
 type Slack interface {

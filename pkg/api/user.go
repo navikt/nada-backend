@@ -11,6 +11,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/navikt/nada-backend/pkg/auth"
 	"github.com/navikt/nada-backend/pkg/database/gensql"
+	"github.com/navikt/nada-backend/pkg/polly"
 )
 
 func RotateNadaToken(ctx context.Context, team string) *APIError {
@@ -141,7 +142,6 @@ func getAccessibleDatasets(ctx context.Context, userGroups []string, requester s
 	if err != nil {
 		return nil, nil, DBErrorToAPIError(err, "getting accessible datasets from database")
 	}
-
 	for _, d := range datasetsSQL {
 		if matchAny(nullStringToString(d.Group), userGroups) {
 			owned = append(owned, accessibleDatasetFromSql(&d))
@@ -208,7 +208,7 @@ func getUserData(ctx context.Context) (*UserInfo, *APIError) {
 		userData.AccessRequestsAsGranter = dar
 	}
 
-	owned, granted, apiErr := getAccessibleDatasets(ctx, teams, user.Email)
+	owned, granted, apiErr := getAccessibleDatasets(ctx, userData.GoogleGroups.Emails(), "user:"+strings.ToLower(user.Email))
 	if apiErr != nil {
 		return nil, apiErr
 	}
@@ -267,7 +267,7 @@ func pollySQLToGraphql(ctx context.Context, id uuid.NullUUID) (*Polly, error) {
 
 	return &Polly{
 		ID: pollyDoc.ID,
-		QueryPolly: QueryPolly{
+		QueryPolly: polly.QueryPolly{
 			ExternalID: pollyDoc.ExternalID,
 			Name:       pollyDoc.Name,
 			URL:        pollyDoc.Url,

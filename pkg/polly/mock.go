@@ -20,7 +20,7 @@ func NewMock(apiURL string) *PollyMock {
 	}
 }
 
-func (m *PollyMock) SearchPolly(ctx context.Context, q string) ([]*models.QueryPolly, error) {
+func (m *PollyMock) SearchPolly_(ctx context.Context, q string) ([]*models.QueryPolly, error) {
 	var ret []*models.QueryPolly
 
 	ret = append(ret, &models.QueryPolly{

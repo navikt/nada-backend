@@ -20,6 +20,8 @@ import (
 	"github.com/navikt/nada-backend/pkg/database/gensql"
 	"github.com/navikt/nada-backend/pkg/event"
 	"github.com/navikt/nada-backend/pkg/graph/models"
+	"github.com/navikt/nada-backend/pkg/polly"
+	"github.com/navikt/nada-backend/pkg/slack"
 	"github.com/navikt/nada-backend/pkg/teamkatalogen"
 	"github.com/sirupsen/logrus"
 	"golang.org/x/oauth2"
@@ -32,14 +34,18 @@ var log *logrus.Logger
 var teamProjectsMapping *auth.TeamProjectsMapping
 var accessManager access.Bigquery
 var eventManager *event.Manager
+var slackClient *slack.SlackClient
+var pollyClient *polly.Polly
 
-func Init(db *sql.DB, tk teamkatalogen.Teamkatalogen, l *logrus.Logger, projects *auth.TeamProjectsMapping, e *event.Manager) {
+func Init(db *sql.DB, tk teamkatalogen.Teamkatalogen, l *logrus.Logger, projects *auth.TeamProjectsMapping, e *event.Manager, sc *slack.SlackClient, polly *polly.Polly) {
 	tkClient = tk
 	log = l
 	teamProjectsMapping = projects
 	sqldb = db
 	queries = gensql.New(sqldb)
 	eventManager = e
+	slackClient = sc
+	pollyClient = polly
 }
 
 const (

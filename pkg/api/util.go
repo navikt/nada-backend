@@ -1,6 +1,7 @@
 package api
 
 import (
+	"context"
 	"database/sql"
 	"encoding/json"
 	"net/http"
@@ -8,6 +9,7 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+	"github.com/navikt/nada-backend/pkg/auth"
 )
 
 func nullStringToPtr(ns sql.NullString) *string {
@@ -65,11 +67,13 @@ func apiWrapper(handlerDelegate func(r *http.Request) (interface{}, *APIError)) 
 			http.Error(w, apiErr.Error(), apiErr.HttpStatus)
 			return
 		}
-		err := json.NewEncoder(w).Encode(dto)
-		if err != nil {
-			log.WithError(err).Error("Failed to encode response")
-			http.Error(w, err.Error(), http.StatusInternalServerError)
-			return
+		if dto != nil {
+			err := json.NewEncoder(w).Encode(dto)
+			if err != nil {
+				log.WithError(err).Error("Failed to encode response")
+				http.Error(w, err.Error(), http.StatusInternalServerError)
+				return
+			}
 		}
 	}
 }
@@ -102,4 +106,14 @@ func emailOfSubjectToLower(subectWithType string) string {
 	parts[1] = strings.ToLower(parts[1])
 
 	return strings.Join(parts, ":")
+}
+
+func ensureOwner(ctx context.Context, owner string) error {
+	user := auth.GetUser(ctx)
+
+	if user != nil && (user.GoogleGroups.Contains(owner) || owner == user.Email) {
+		return nil
+	}
+
+	return ErrUnauthorized
 }

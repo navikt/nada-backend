@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"io"
 	"net/http"
 	"strconv"
 	"strings"
@@ -126,9 +127,8 @@ func New(
 			return getAccessRequests(r.Context(), datasetID)
 		}))
 
-		r.Post("/{id}", apiWrapper(func(r *http.Request) (interface{}, *APIError) {
+		r.Post("/process/{id}", apiWrapper(func(r *http.Request) (interface{}, *APIError) {
 			accessRequestID := chi.URLParam(r, "id")
-			accessID := r.URL.Query().Get("accessId")
 			reason := r.URL.Query().Get("reason")
 			action := r.URL.Query().Get("action")
 			switch action {
@@ -136,11 +136,47 @@ func New(
 				return "", approveAccessRequest(r.Context(), accessRequestID)
 			case "deny":
 				return "", denyAccessRequest(r.Context(), accessRequestID, &reason)
-			case "revoke":
-				return "", revokeAccessToDataset(r.Context(), accessID)
 			default:
 				return nil, NewAPIError(http.StatusBadRequest, fmt.Errorf("invalid action: %s", action), "Invalid action")
 			}
+		}))
+
+		r.Post("/new", apiWrapper(func(r *http.Request) (interface{}, *APIError) {
+			bodyBytes, err := io.ReadAll(r.Body)
+			if err != nil {
+				return nil, NewAPIError(http.StatusBadRequest, fmt.Errorf("error reading body"), "Error reading request body")
+			}
+
+			newAccessRequest := NewAccessRequestDTO{}
+			if err = json.Unmarshal(bodyBytes, &newAccessRequest); err != nil {
+				return nil, NewAPIError(http.StatusBadRequest, fmt.Errorf("error unmarshalling request body"), "Error unmarshalling request body")
+			}
+			return nil, createAccessRequest(r.Context(), newAccessRequest)
+		}))
+
+		r.Delete("/{id}", apiWrapper(func(r *http.Request) (interface{}, *APIError) {
+			accessRequestID := chi.URLParam(r, "id")
+			return nil, deleteAccessRequest(r.Context(), accessRequestID)
+		}))
+
+		r.Put("/{id}", apiWrapper(func(r *http.Request) (interface{}, *APIError) {
+			bodyBytes, err := io.ReadAll(r.Body)
+			if err != nil {
+				return nil, NewAPIError(http.StatusBadRequest, fmt.Errorf("error reading body"), "Error reading request body")
+			}
+
+			updateAccessRequestDTO := UpdateAccessRequestDTO{}
+			if err = json.Unmarshal(bodyBytes, &updateAccessRequestDTO); err != nil {
+				return nil, NewAPIError(http.StatusBadRequest, fmt.Errorf("error unmarshalling request body"), "Error unmarshalling request body")
+			}
+			return nil, updateAccessRequest(r.Context(), updateAccessRequestDTO)
+		}))
+	})
+
+	router.Route("/api/polly", func(r chi.Router) {
+		r.Get("/", apiWrapper(func(r *http.Request) (interface{}, *APIError) {
+			q := r.URL.Query().Get("query")
+			return searchPolly(r.Context(), q)
 		}))
 	})
 
@@ -226,13 +262,32 @@ func New(
 		}))
 	})
 
+	router.Route("/api/accesses", func(r chi.Router) {
+		r.Use(authMW)
+		r.Post("/grant", apiWrapper(func(r *http.Request) (interface{}, *APIError) {
+			bodyBytes, err := io.ReadAll(r.Body)
+			if err != nil {
+				return nil, NewAPIError(http.StatusBadRequest, fmt.Errorf("error reading body"), "Error reading request body")
+			}
+
+			grantAccessData := GrantAccessData{}
+			if err = json.Unmarshal(bodyBytes, &grantAccessData); err != nil {
+				return nil, NewAPIError(http.StatusBadRequest, fmt.Errorf("error unmarshalling request body"), "Error unmarshalling request body")
+			}
+			return nil, grantAccessToDataset(r.Context(), grantAccessData)
+		}))
+
+		r.Post("/revoke", apiWrapper(func(r *http.Request) (interface{}, *APIError) {
+			accessID := r.URL.Query().Get("id")
+			return nil, revokeAccessToDataset(r.Context(), accessID)
+		}))
+
+	})
 	return router
 }
 
 func ensureUserInGroup(ctx context.Context, group string) error {
 	user := auth.GetUser(ctx)
-	fmt.Println(user)
-	fmt.Println(group)
 	if user == nil || !user.GoogleGroups.Contains(group) {
 		return ErrUnauthorized
 	}
