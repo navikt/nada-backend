@@ -141,8 +141,6 @@ func main() {
 			log.Fatal(err)
 		}
 	}
-	api.Init(repo.GetDB(), teamcatalogue, log, teamProjectsUpdater.TeamProjectsMapping, eventMgr, slackClient, pollyAPI.(*polly.Polly))
-
 	err = createMetabaseSyncer(ctx, log.WithField("subsystem", "metabase"), repo, accessMgr, eventMgr)
 	if err != nil {
 		log.WithError(err).Fatal("running metabase")
