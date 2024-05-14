@@ -387,7 +387,6 @@ func denyAccessRequest(ctx context.Context, accessRequestID string, reason *stri
 		Granter: sql.NullString{String: user.Email, Valid: true},
 		Reason:  ptrToNullString(reason),
 	})
-
 	if err != nil {
 		return DBErrorToAPIError(err, "denyAccessRequest(): failed to deny access request")
 	}
@@ -539,7 +538,7 @@ func grantAccessToDataset(ctx context.Context, input GrantAccessData) *APIError 
 	if err != nil {
 		return NewAPIError(http.StatusInternalServerError, err, "grantAccessToDataset(): failed to grant access")
 	}
-	eventManager.TriggerDatasetGrant(ctx, input.DatasetID, *input.Subject)
+	eventManager.TriggerDatasetGrant(ctx, input.DatasetID, subjWithType)
 	return nil
 }
 
