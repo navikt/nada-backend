@@ -137,6 +137,46 @@ func (q *Queries) GetMetabaseMetadataWithDeleted(ctx context.Context, datasetID 
 	return i, err
 }
 
+const getOpenMetabaseTablesInSameBigQueryDataset = `-- name: GetOpenMetabaseTablesInSameBigQueryDataset :many
+WITH sources_in_same_dataset AS (
+  SELECT dataset_id, project_id, dataset, table_name, schema, last_modified, created, expires, table_type, description, pii_tags, missing_since, id, is_reference, pseudo_columns, deleted FROM datasource_bigquery 
+  WHERE project_id = $1 AND dataset = $2
+)
+
+SELECT table_name FROM sources_in_same_dataset sds
+JOIN metabase_metadata mbm
+ON mbm.dataset_id = sds.dataset_id
+WHERE mbm.collection_id IS null
+`
+
+type GetOpenMetabaseTablesInSameBigQueryDatasetParams struct {
+	ProjectID string
+	Dataset   string
+}
+
+func (q *Queries) GetOpenMetabaseTablesInSameBigQueryDataset(ctx context.Context, arg GetOpenMetabaseTablesInSameBigQueryDatasetParams) ([]string, error) {
+	rows, err := q.db.QueryContext(ctx, getOpenMetabaseTablesInSameBigQueryDataset, arg.ProjectID, arg.Dataset)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []string{}
+	for rows.Next() {
+		var table_name string
+		if err := rows.Scan(&table_name); err != nil {
+			return nil, err
+		}
+		items = append(items, table_name)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const restoreMetabaseMetadata = `-- name: RestoreMetabaseMetadata :exec
 UPDATE metabase_metadata
 SET "deleted_at" = null
