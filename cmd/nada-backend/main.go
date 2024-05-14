@@ -34,12 +34,10 @@ import (
 	"google.golang.org/api/iam/v1"
 )
 
-var (
-	promErrs = prometheus.NewCounterVec(prometheus.CounterOpts{
-		Namespace: "nada_backend",
-		Name:      "errors",
-	}, []string{"location"})
-)
+var promErrs = prometheus.NewCounterVec(prometheus.CounterOpts{
+	Namespace: "nada_backend",
+	Name:      "errors",
+}, []string{"location"})
 
 const (
 	TeamProjectsUpdateFrequency = 60 * time.Minute
@@ -143,7 +141,9 @@ func main() {
 			log.Fatal(err)
 		}
 	}
-	_, err = createMetabaseSyncer(ctx, log.WithField("subsystem", "metabase"), config.Conf, repo, accessMgr, eventMgr)
+	api.Init(repo.GetDB(), teamcatalogue, log, teamProjectsUpdater.TeamProjectsMapping, eventMgr, slackClient, pollyAPI.(*polly.Polly))
+
+	err = createMetabaseSyncer(ctx, log.WithField("subsystem", "metabase"), repo, accessMgr, eventMgr)
 	if err != nil {
 		log.WithError(err).Fatal("running metabase")
 	}
@@ -216,10 +216,10 @@ func getEnv(key, fallback string) string {
 	return fallback
 }
 
-func createMetabaseSyncer(ctx context.Context, log *logrus.Entry, cfg config.Config, repo *database.Repo, accessMgr graph.AccessManager, eventMgr *event.Manager) (*metabase.Metabase, error) {
+func createMetabaseSyncer(ctx context.Context, log *logrus.Entry, repo *database.Repo, accessMgr graph.AccessManager, eventMgr *event.Manager) error {
 	if config.Conf.MetabaseServiceAccountFile == "" {
 		log.Info("metabase sync disabled")
-		return nil, nil
+		return nil
 	}
 
 	log.Info("metabase sync enabled")
@@ -227,12 +227,12 @@ func createMetabaseSyncer(ctx context.Context, log *logrus.Entry, cfg config.Con
 	client := metabase.NewClient(config.Conf.MetabaseAPI, config.Conf.MetabaseUsername, config.Conf.MetabasePassword, config.Conf.OAuth2.ClientID, config.Conf.OAuth2.ClientSecret, config.Conf.OAuth2.TenantID)
 	crmService, err := cloudresourcemanager.NewService(ctx)
 	if err != nil {
-		return nil, err
+		return err
 	}
 
 	sa, err := os.ReadFile(config.Conf.MetabaseServiceAccountFile)
 	if err != nil {
-		return nil, err
+		return err
 	}
 
 	metabaseSA := struct {
@@ -241,14 +241,15 @@ func createMetabaseSyncer(ctx context.Context, log *logrus.Entry, cfg config.Con
 
 	err = json.Unmarshal(sa, &metabaseSA)
 	if err != nil {
-		return nil, err
+		return err
 	}
 
 	iamService, err := iam.NewService(ctx)
 	if err != nil {
-		return nil, err
+		return err
 	}
 
 	metabase := metabase.New(repo, client, accessMgr, eventMgr, string(sa), metabaseSA.ClientEmail, promErrs, iamService, crmService, log.WithField("subsystem", "metabase"))
-	return metabase, nil
+	go metabase.Run(ctx, MetabaseUpdateFrequency)
+	return nil
 }
