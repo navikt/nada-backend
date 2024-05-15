@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"html"
 	"net/http"
 	"os"
 	"time"
@@ -79,12 +80,56 @@ type Dataproduct struct {
 	ProductAreaName string            `json:"productAreaName"`
 }
 
+type DataproductMinimal struct {
+	ID           uuid.UUID         `json:"id"`
+	Name         string            `json:"name"`
+	Created      time.Time         `json:"created"`
+	LastModified time.Time         `json:"lastModified"`
+	Description  *string           `json:"description"`
+	Slug         string            `json:"slug"`
+	Owner        *DataproductOwner `json:"owner"`
+}
+
 type DataproductWithDataset struct {
 	Dataproduct
 	Datasets []*DatasetInDataproduct `json:"datasets"`
 }
 
-func GetDataproducts(ctx context.Context, ids []uuid.UUID) ([]DataproductWithDataset, *APIError) {
+type DatasetMap struct {
+	Services []string `json:"services"`
+}
+
+// NewDataproduct contains metadata for creating a new dataproduct
+type NewDataproduct struct {
+	// name of dataproduct
+	Name string `json:"name"`
+	// description of the dataproduct
+	Description *string `json:"description,omitempty"`
+	// owner group email for the dataproduct.
+	Group string `json:"group"`
+	// owner Teamkatalogen URL for the dataproduct.
+	TeamkatalogenURL *string `json:"teamkatalogenURL,omitempty"`
+	// The contact information of the team who owns the dataproduct, which can be slack channel, slack account, email, and so on.
+	TeamContact *string `json:"teamContact,omitempty"`
+	// Id of the team's product area.
+	ProductAreaID *string `json:"productAreaID,omitempty"`
+	// Id of the team.
+	TeamID *string `json:"teamID,omitempty"`
+	Slug   *string
+}
+
+type UpdateDataproduct struct {
+	Name             string   `json:"name"`
+	Description      *string  `json:"description"`
+	Slug             *string  `json:"slug"`
+	Pii              PiiLevel `json:"pii"`
+	TeamkatalogenURL *string  `json:"teamkatalogenURL"`
+	TeamContact      *string  `json:"teamContact"`
+	ProductAreaID    *string  `json:"productAreaID"`
+	TeamID           *string  `json:"teamID"`
+}
+
+func getDataproducts(ctx context.Context, ids []uuid.UUID) ([]DataproductWithDataset, *APIError) {
 	sqldp, err := queries.GetDataproductsWithDatasets(ctx, gensql.GetDataproductsWithDatasetsParams{
 		Ids:    ids,
 		Groups: []string{},
@@ -96,12 +141,12 @@ func GetDataproducts(ctx context.Context, ids []uuid.UUID) ([]DataproductWithDat
 	return dataproductsWithDatasetFromSQL(sqldp), nil
 }
 
-func GetDataproduct(ctx context.Context, id string) (*DataproductWithDataset, *APIError) {
+func getDataproduct(ctx context.Context, id string) (*DataproductWithDataset, *APIError) {
 	dpuuid, err := uuid.Parse(id)
 	if err != nil {
 		return nil, NewAPIError(http.StatusBadRequest, err, "GetDataproduct(): Invalid UUID")
 	}
-	dps, apierr := GetDataproducts(ctx, []uuid.UUID{dpuuid})
+	dps, apierr := getDataproducts(ctx, []uuid.UUID{dpuuid})
 	if apierr != nil {
 		return nil, apierr
 	}
@@ -110,7 +155,7 @@ func GetDataproduct(ctx context.Context, id string) (*DataproductWithDataset, *A
 	return &dps[0], nil
 }
 
-func GetDatasetsMinimal(ctx context.Context) ([]*DatasetMinimal, *APIError) {
+func getDatasetsMinimal(ctx context.Context) ([]*DatasetMinimal, *APIError) {
 	sqldss, err := queries.GetAllDatasetsMinimal(ctx)
 	if err != nil {
 		return nil, DBErrorToAPIError(err, "GetDatasetsMinimal(): Database error")
@@ -131,7 +176,7 @@ func GetDatasetsMinimal(ctx context.Context) ([]*DatasetMinimal, *APIError) {
 	return dss, nil
 }
 
-func GetDataset(ctx context.Context, id string) (*Dataset, *APIError) {
+func getDataset(ctx context.Context, id string) (*Dataset, *APIError) {
 	uuid, err := uuid.Parse(id)
 	if err != nil {
 		return nil, NewAPIError(http.StatusBadRequest, err, "GetDataset(): Invalid UUID")
@@ -419,4 +464,114 @@ func datasetFromSQL(dsrows []gensql.DatasetView) (*Dataset, *APIError) {
 	}
 
 	return dataset, nil
+}
+
+func createDataproduct(ctx context.Context, input NewDataproduct) (*DataproductMinimal, *APIError) {
+	if err := ensureUserInGroup(ctx, input.Group); err != nil {
+		return nil, NewAPIError(http.StatusForbidden, err, "createDataproduct(): User not in group of dataproduct")
+	}
+
+	if input.Description != nil && *input.Description != "" {
+		*input.Description = html.EscapeString(*input.Description)
+	}
+
+	dataproduct, err := queries.CreateDataproduct(ctx, gensql.CreateDataproductParams{
+		Name:                  input.Name,
+		Description:           ptrToNullString(input.Description),
+		OwnerGroup:            input.Group,
+		OwnerTeamkatalogenUrl: ptrToNullString(input.TeamkatalogenURL),
+		Slug:                  slugify(input.Slug, input.Name),
+		TeamContact:           ptrToNullString(input.TeamContact),
+		TeamID:                ptrToNullString(input.TeamID),
+	})
+	if err != nil {
+		return nil, DBErrorToAPIError(err, "createDataproduct(): failed to save dataproduct")
+	}
+
+	return dataproductMinimalFromSQL(&dataproduct), nil
+}
+
+func updateDataproduct(ctx context.Context, id string, input UpdateDataproduct) (*DataproductMinimal, *APIError) {
+	dp, apierr := getDataproduct(ctx, id)
+	if apierr != nil {
+		return nil, apierr
+	}
+	if err := ensureUserInGroup(ctx, dp.Owner.Group); err != nil {
+		return nil, NewAPIError(http.StatusForbidden, err, "updateDataproduct(): User not in group of dataproduct")
+	}
+	if input.Description != nil && *input.Description != "" {
+		*input.Description = html.EscapeString(*input.Description)
+	}
+	res, err := queries.UpdateDataproduct(ctx, gensql.UpdateDataproductParams{
+		Name:                  input.Name,
+		Description:           ptrToNullString(input.Description),
+		ID:                    uuid.MustParse(id),
+		OwnerTeamkatalogenUrl: ptrToNullString(input.TeamkatalogenURL),
+		TeamContact:           ptrToNullString(input.TeamContact),
+		Slug:                  slugify(input.Slug, input.Name),
+		TeamID:                ptrToNullString(input.TeamID),
+	})
+	if err != nil {
+		return nil, DBErrorToAPIError(err, "updateDataproduct(): failed to update dataproduct")
+	}
+
+	return dataproductMinimalFromSQL(&res), nil
+}
+
+func deleteDataproduct(ctx context.Context, id string) (*DataproductWithDataset, *APIError) {
+	dp, apierr := getDataproduct(ctx, id)
+	if apierr != nil {
+		return nil, apierr
+	}
+	if err := ensureUserInGroup(ctx, dp.Owner.Group); err != nil {
+		return nil, NewAPIError(http.StatusForbidden, err, "deleteDataproduct(): User not in group of dataproduct")
+	}
+
+	if err := queries.DeleteDataproduct(ctx, uuid.MustParse(id)); err != nil {
+		return nil, DBErrorToAPIError(err, "deleteDataproduct(): failed to delete dataproduct")
+	}
+
+	return dp, nil
+}
+
+func dataproductMinimalFromSQL(dp *gensql.Dataproduct) *DataproductMinimal {
+	return &DataproductMinimal{
+		ID:           dp.ID,
+		Name:         dp.Name,
+		Created:      dp.Created,
+		LastModified: dp.LastModified,
+		Description:  &dp.Description.String,
+		Slug:         dp.Slug,
+		Owner: &DataproductOwner{
+			Group:            dp.Group,
+			TeamkatalogenURL: &dp.TeamkatalogenUrl.String,
+			TeamContact:      &dp.TeamContact.String,
+			TeamID:           &dp.TeamID.String,
+		},
+	}
+}
+
+func mapDataset(ctx context.Context, datasetID string, services []string) (*Dataset, *APIError) {
+	ds, apierr := getDataset(ctx, datasetID)
+	if apierr != nil {
+		return nil, apierr
+	}
+
+	dp, apierr := getDataproduct(ctx, ds.DataproductID.String())
+	if apierr != nil {
+		return nil, apierr
+	}
+	if err := ensureUserInGroup(ctx, dp.Owner.Group); err != nil {
+		return nil, NewAPIError(http.StatusForbidden, err, "mapDataset(): User not in group of dataproduct")
+	}
+
+	err := queries.MapDataset(ctx, gensql.MapDatasetParams{
+		DatasetID: uuid.MustParse(datasetID),
+		Services:  services,
+	})
+	if err != nil {
+		return nil, DBErrorToAPIError(err, "mapDataset(): failed to map dataset")
+	}
+
+	return ds, nil
 }

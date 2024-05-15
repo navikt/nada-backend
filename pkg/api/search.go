@@ -82,7 +82,7 @@ func Search(ctx context.Context, query *SearchOptions) (*SearchResult, *APIError
 		excerpts[sr.ElementID] = sr.Excerpt
 	}
 
-	dps, apierr := GetDataproducts(ctx, dataproducts)
+	dps, apierr := getDataproducts(ctx, dataproducts)
 	if apierr != nil {
 		return nil, apierr
 	}

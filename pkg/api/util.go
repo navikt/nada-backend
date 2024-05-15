@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"encoding/json"
 	"net/http"
+	"net/url"
 	"strings"
 	"time"
 
@@ -116,4 +117,12 @@ func ensureOwner(ctx context.Context, owner string) error {
 	}
 
 	return ErrUnauthorized
+}
+
+func slugify(maybeslug *string, fallback string) string {
+	if maybeslug != nil {
+		return *maybeslug
+	}
+	// TODO(thokra): Smartify this?
+	return url.PathEscape(fallback)
 }
