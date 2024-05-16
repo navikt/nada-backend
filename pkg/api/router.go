@@ -105,10 +105,10 @@ func New(
 	})
 
 	router.Route("/api/dataproducts", func(r chi.Router) {
+		r.Use(authMW)
 		r.Get("/{id}", apiWrapper(func(r *http.Request) (interface{}, *APIError) {
 			return getDataproduct(r.Context(), chi.URLParam(r, "id"))
 		}))
-
 		r.Post("/new", apiWrapper(func(r *http.Request) (interface{}, *APIError) {
 			bodyBytes, err := io.ReadAll(r.Body)
 			if err != nil {
@@ -127,7 +127,7 @@ func New(
 			return deleteDataproduct(r.Context(), chi.URLParam(r, "id"))
 		}))
 
-		r.Put("/{id}}", apiWrapper(func(r *http.Request) (interface{}, *APIError) {
+		r.Put("/{id}", apiWrapper(func(r *http.Request) (interface{}, *APIError) {
 			bodyBytes, err := io.ReadAll(r.Body)
 			if err != nil {
 				return nil, NewAPIError(http.StatusBadRequest, fmt.Errorf("error reading body"), "Error reading request body")
@@ -144,6 +144,7 @@ func New(
 	})
 
 	router.Route("/api/datasets", func(r chi.Router) {
+		r.Use(authMW)
 		r.Get("/", apiWrapper(func(r *http.Request) (interface{}, *APIError) {
 			return getDatasetsMinimal(r.Context())
 		}))

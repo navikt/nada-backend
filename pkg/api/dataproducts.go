@@ -129,6 +129,10 @@ type UpdateDataproduct struct {
 	TeamID           *string  `json:"teamID"`
 }
 
+const (
+	MappingServiceMetabase string = "metabase"
+)
+
 func getDataproducts(ctx context.Context, ids []uuid.UUID) ([]DataproductWithDataset, *APIError) {
 	sqldp, err := queries.GetDataproductsWithDatasets(ctx, gensql.GetDataproductsWithDatasetsParams{
 		Ids:    ids,
@@ -573,5 +577,16 @@ func mapDataset(ctx context.Context, datasetID string, services []string) (*Data
 		return nil, DBErrorToAPIError(err, "mapDataset(): failed to map dataset")
 	}
 
+	mapMetabase := false
+	for _, svc := range services {
+		if svc == MappingServiceMetabase {
+			mapMetabase = true
+			eventManager.TriggerDatasetAddMetabaseMapping(ctx, uuid.MustParse(datasetID))
+			break
+		}
+	}
+	if !mapMetabase {
+		eventManager.TriggerDatasetRemoveMetabaseMapping(ctx, uuid.MustParse(datasetID))
+	}
 	return ds, nil
 }
