@@ -121,8 +121,10 @@ type Querier interface {
 	ListUnrevokedExpiredAccessEntries(ctx context.Context) ([]DatasetAccess, error)
 	MapDataset(ctx context.Context, arg MapDatasetParams) error
 	RemoveKeywordInDatasets(ctx context.Context, keywordToRemove interface{}) error
+	RemoveKeywordInStories(ctx context.Context, keywordToRemove interface{}) error
 	ReplaceDatasetsTag(ctx context.Context, arg ReplaceDatasetsTagParams) error
 	ReplaceKeywordInDatasets(ctx context.Context, arg ReplaceKeywordInDatasetsParams) error
+	ReplaceKeywordInStories(ctx context.Context, arg ReplaceKeywordInStoriesParams) error
 	ReplaceStoriesTag(ctx context.Context, arg ReplaceStoriesTagParams) error
 	RestoreMetabaseMetadata(ctx context.Context, datasetID uuid.UUID) error
 	RevokeAccessToDataset(ctx context.Context, id uuid.UUID) error

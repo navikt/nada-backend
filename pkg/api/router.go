@@ -1,7 +1,6 @@
 package api
 
 import (
-	"context"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -243,8 +242,23 @@ func New(
 	})
 
 	router.Route("/api/keywords", func(r chi.Router) {
+		r.Use(authMW)
 		r.Get("/", apiWrapper(func(r *http.Request) (interface{}, *APIError) {
 			return getKeywordsListSortedByPopularity(r.Context())
+		}))
+
+		r.Post("/", apiWrapper(func(r *http.Request) (interface{}, *APIError) {
+			bodyBytes, err := io.ReadAll(r.Body)
+			if err != nil {
+				return nil, NewAPIError(http.StatusBadRequest, fmt.Errorf("error reading body"), "Error reading request body")
+			}
+
+			updateKeywordsDto := UpdateKeywordsDto{}
+			if err = json.Unmarshal(bodyBytes, &updateKeywordsDto); err != nil {
+				return nil, NewAPIError(http.StatusBadRequest, fmt.Errorf("error unmarshalling request body"), "Error unmarshalling request body")
+			}
+
+			return nil, UpdateKeywords(r.Context(), updateKeywordsDto)
 		}))
 	})
 
@@ -330,14 +344,6 @@ func New(
 
 	})
 	return router
-}
-
-func ensureUserInGroup(ctx context.Context, group string) error {
-	user := auth.GetUser(ctx)
-	if user == nil || !user.GoogleGroups.Contains(group) {
-		return ErrUnauthorized
-	}
-	return nil
 }
 
 func parseSearchOptionsFromRequest(r *http.Request) (*SearchOptions, error) {
