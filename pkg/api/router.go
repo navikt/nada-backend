@@ -105,17 +105,63 @@ func New(
 	})
 
 	router.Route("/api/dataproducts", func(r chi.Router) {
+		r.Use(authMW)
 		r.Get("/{id}", apiWrapper(func(r *http.Request) (interface{}, *APIError) {
-			return GetDataproduct(r.Context(), chi.URLParam(r, "id"))
+			return getDataproduct(r.Context(), chi.URLParam(r, "id"))
 		}))
+		r.Post("/new", apiWrapper(func(r *http.Request) (interface{}, *APIError) {
+			bodyBytes, err := io.ReadAll(r.Body)
+			if err != nil {
+				return nil, NewAPIError(http.StatusBadRequest, fmt.Errorf("error reading body"), "Error reading request body")
+			}
+
+			newDataproduct := NewDataproduct{}
+			if err = json.Unmarshal(bodyBytes, &newDataproduct); err != nil {
+				return nil, NewAPIError(http.StatusBadRequest, fmt.Errorf("error unmarshalling request body"), "Error unmarshalling request body")
+			}
+
+			return createDataproduct(r.Context(), newDataproduct)
+		}))
+
+		r.Delete("/{id}", apiWrapper(func(r *http.Request) (interface{}, *APIError) {
+			return deleteDataproduct(r.Context(), chi.URLParam(r, "id"))
+		}))
+
+		r.Put("/{id}", apiWrapper(func(r *http.Request) (interface{}, *APIError) {
+			bodyBytes, err := io.ReadAll(r.Body)
+			if err != nil {
+				return nil, NewAPIError(http.StatusBadRequest, fmt.Errorf("error reading body"), "Error reading request body")
+			}
+
+			dp := UpdateDataproduct{}
+			if err = json.Unmarshal(bodyBytes, &dp); err != nil {
+				return nil, NewAPIError(http.StatusBadRequest, fmt.Errorf("error unmarshalling request body"), "Error unmarshalling request body")
+			}
+
+			return updateDataproduct(r.Context(), chi.URLParam(r, "id"), dp)
+		}))
+
 	})
 
 	router.Route("/api/datasets", func(r chi.Router) {
+		r.Use(authMW)
 		r.Get("/", apiWrapper(func(r *http.Request) (interface{}, *APIError) {
-			return GetDatasetsMinimal(r.Context())
+			return getDatasetsMinimal(r.Context())
 		}))
 		r.Get("/{id}", apiWrapper(func(r *http.Request) (interface{}, *APIError) {
-			return GetDataset(r.Context(), chi.URLParam(r, "id"))
+			return getDataset(r.Context(), chi.URLParam(r, "id"))
+		}))
+		r.Post("/{id}/map", apiWrapper(func(r *http.Request) (interface{}, *APIError) {
+			bodyBytes, err := io.ReadAll(r.Body)
+			if err != nil {
+				return nil, NewAPIError(http.StatusBadRequest, fmt.Errorf("error reading body"), "Error reading request body")
+			}
+
+			services := DatasetMap{}
+			if err = json.Unmarshal(bodyBytes, &services); err != nil {
+				return nil, NewAPIError(http.StatusBadRequest, fmt.Errorf("error unmarshalling request body"), "Error unmarshalling request body")
+			}
+			return mapDataset(r.Context(), chi.URLParam(r, "id"), services.Services)
 		}))
 	})
 

@@ -290,7 +290,7 @@ func approveAccessRequest(ctx context.Context, accessRequestID string) *APIError
 		return apierr
 	}
 
-	ds, apierr := GetDataset(ctx, ar.DatasetID.String())
+	ds, apierr := getDataset(ctx, ar.DatasetID.String())
 	if apierr != nil {
 		return apierr
 	}
@@ -300,7 +300,7 @@ func approveAccessRequest(ctx context.Context, accessRequestID string) *APIError
 		return apiError
 	}
 
-	dp, apiError := GetDataproduct(ctx, ds.DataproductID.String())
+	dp, apiError := getDataproduct(ctx, ds.DataproductID.String())
 	if apiError != nil {
 		return apiError
 	}
@@ -365,12 +365,12 @@ func denyAccessRequest(ctx context.Context, accessRequestID string, reason *stri
 		return apierr
 	}
 
-	ds, apierr := GetDataset(ctx, ar.DatasetID.String())
+	ds, apierr := getDataset(ctx, ar.DatasetID.String())
 	if apierr != nil {
 		return apierr
 	}
 
-	dp, apierr := GetDataproduct(ctx, ds.DataproductID.String())
+	dp, apierr := getDataproduct(ctx, ds.DataproductID.String())
 	if apierr != nil {
 		return apierr
 	}
@@ -405,12 +405,12 @@ func revokeAccessToDataset(ctx context.Context, id string) *APIError {
 		return DBErrorToAPIError(err, "revokeAccessToDataset(): failed to get dataset access")
 	}
 
-	ds, apierr := GetDataset(ctx, access.DatasetID.String())
+	ds, apierr := getDataset(ctx, access.DatasetID.String())
 	if apierr != nil {
 		return apierr
 	}
 
-	dp, apierr := GetDataproduct(ctx, ds.DataproductID.String())
+	dp, apierr := getDataproduct(ctx, ds.DataproductID.String())
 	if apierr != nil {
 		return apierr
 	}
@@ -486,12 +486,12 @@ func grantAccessToDataset(ctx context.Context, input GrantAccessData) *APIError 
 	if input.Subject != nil {
 		subj = *input.Subject
 	}
-	ds, apierr := GetDataset(ctx, input.DatasetID.String())
+	ds, apierr := getDataset(ctx, input.DatasetID.String())
 	if apierr != nil {
 		return NewAPIError(apierr.HttpStatus, apierr.Err, "grantAccessToDataset(): failed to get dataset")
 	}
 
-	dp, apierr := GetDataproduct(ctx, ds.DataproductID.String())
+	dp, apierr := getDataproduct(ctx, ds.DataproductID.String())
 	if apierr != nil {
 		return NewAPIError(apierr.HttpStatus, apierr.Err, "grantAccessToDataset(): failed to get dataproduct")
 	}
@@ -600,13 +600,13 @@ func dbCreateAccessRequestForDataset(ctx context.Context, datasetID uuid.UUID, p
 }
 
 func sendNewAccessRequestSlackNotification(ctx context.Context, ar *AccessRequest) {
-	ds, apierr := GetDataset(ctx, ar.DatasetID.String())
+	ds, apierr := getDataset(ctx, ar.DatasetID.String())
 	if apierr != nil {
 		log.Warn("Access request created but failed to fetch dataset during sending slack notification", apierr)
 		return
 	}
 
-	dp, apierr := GetDataproduct(ctx, ds.DataproductID.String())
+	dp, apierr := getDataproduct(ctx, ds.DataproductID.String())
 	if apierr != nil {
 		log.Warn("Access request created but failed to fetch dataproduct during sending slack notification", apierr)
 		return
