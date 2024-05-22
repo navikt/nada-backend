@@ -126,3 +126,11 @@ func slugify(maybeslug *string, fallback string) string {
 	// TODO(thokra): Smartify this?
 	return url.PathEscape(fallback)
 }
+
+func ensureUserInGroup(ctx context.Context, group string) error {
+	user := auth.GetUser(ctx)
+	if user == nil || !user.GoogleGroups.Contains(group) {
+		return ErrUnauthorized
+	}
+	return nil
+}

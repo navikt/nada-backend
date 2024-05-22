@@ -30,3 +30,9 @@ UPDATE datasets SET keywords= array_remove(keywords, @keyword_to_remove);
 
 -- name: ReplaceKeywordInDatasets :exec
 UPDATE datasets SET keywords= array_replace(keywords, @keyword, @new_text_for_keyword);
+
+-- name: RemoveKeywordInStories :exec
+UPDATE stories SET keywords = array_remove(keywords, @keyword_to_remove);
+
+-- name: ReplaceKeywordInStories :exec
+UPDATE stories SET keywords = array_replace(keywords, @keyword, @new_text_for_keyword);
