@@ -14,12 +14,14 @@ RETURNING *;
 -- name: ListAccessRequestsForDataset :many
 SELECT *
 FROM dataset_access_requests
-WHERE dataset_id = @dataset_id AND status = 'pending';
+WHERE dataset_id = @dataset_id AND status = 'pending'
+ORDER BY created DESC;
 
 -- name: ListAccessRequestsForOwner :many
 SELECT *
 FROM dataset_access_requests
-WHERE "owner" = ANY (@owner::text[]);
+WHERE "owner" = ANY (@owner::text[])
+ORDER BY created DESC;
 
 -- name: GetAccessRequest :one
 SELECT *

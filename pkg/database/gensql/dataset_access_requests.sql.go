@@ -139,6 +139,7 @@ const listAccessRequestsForDataset = `-- name: ListAccessRequestsForDataset :man
 SELECT id, dataset_id, subject, owner, polly_documentation_id, last_modified, created, expires, status, closed, granter, reason
 FROM dataset_access_requests
 WHERE dataset_id = $1 AND status = 'pending'
+ORDER BY created DESC
 `
 
 func (q *Queries) ListAccessRequestsForDataset(ctx context.Context, datasetID uuid.UUID) ([]DatasetAccessRequest, error) {
@@ -181,6 +182,7 @@ const listAccessRequestsForOwner = `-- name: ListAccessRequestsForOwner :many
 SELECT id, dataset_id, subject, owner, polly_documentation_id, last_modified, created, expires, status, closed, granter, reason
 FROM dataset_access_requests
 WHERE "owner" = ANY ($1::text[])
+ORDER BY created DESC
 `
 
 func (q *Queries) ListAccessRequestsForOwner(ctx context.Context, owner []string) ([]DatasetAccessRequest, error) {
