@@ -134,3 +134,16 @@ func ensureUserInGroup(ctx context.Context, group string) error {
 	}
 	return nil
 }
+
+func ensureGroupOwnsGCPProject(group, projectID string) error {
+	groupProject, ok := gcpProjects.Get(auth.TrimNaisTeamPrefix(group))
+	if !ok {
+		return ErrUnauthorized
+	}
+
+	if groupProject == projectID {
+		return nil
+	}
+
+	return ErrUnauthorized
+}
