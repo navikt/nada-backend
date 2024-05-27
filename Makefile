@@ -47,7 +47,7 @@ local-with-auth:
 	--metabase-password=$(METABASE_PASSWORD) \
 	--amplitude-api-key=$(AMPLITUDE_API_KEY) \
 	--teamkatalogen-url=https://teamkatalog-api.intern.nav.no \
-	--polly-url=https://polly.dev-fss-pub.nais.io/process \
+	--polly-url=https://polly.intern.dev.nav.no/process \
 	--team-projects-url=https://raw.githubusercontent.com/nais/teams/master/gcp-projects/dev-output.json \
 	--story-bucket=nada-quarto-storage-dev \
 	--console-api-key="$(CONSOLE_API_KEY)" \
