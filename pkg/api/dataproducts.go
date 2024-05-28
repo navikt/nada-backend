@@ -8,6 +8,7 @@ import (
 	"html"
 	"net/http"
 	"os"
+	"strings"
 	"time"
 
 	"cloud.google.com/go/bigquery"
@@ -90,6 +91,20 @@ type NewDataset struct {
 	PseudoColumns            []string `json:"pseudoColumns"`
 }
 
+type UpdateDataset struct {
+	Name                     string    `json:"name"`
+	Description              *string   `json:"description"`
+	Slug                     *string   `json:"slug"`
+	Repo                     *string   `json:"repo"`
+	Pii                      PiiLevel  `json:"pii"`
+	Keywords                 []string  `json:"keywords"`
+	DataproductID            uuid.UUID `json:"dataproductID"`
+	AnonymisationDescription *string   `json:"anonymisationDescription"`
+	PiiTags                  *string   `json:"piiTags"`
+	TargetUser               *string   `json:"targetUser"`
+	PseudoColumns            []string  `json:"pseudoColumns"`
+}
+
 type DataproductOwner struct {
 	Group            string     `json:"group"`
 	TeamkatalogenURL *string    `json:"teamkatalogenURL"`
@@ -128,6 +143,16 @@ type DataproductWithDataset struct {
 
 type DatasetMap struct {
 	Services []string `json:"services"`
+}
+
+// PseudoDataset contains information about a pseudo dataset
+type PseudoDataset struct {
+	// name is the name of the dataset
+	Name string `json:"name"`
+	// datasetID is the id of the dataset
+	DatasetID uuid.UUID `json:"datasetID"`
+	// datasourceID is the id of the bigquery datasource
+	DatasourceID uuid.UUID `json:"datasourceID"`
 }
 
 // NewDataproduct contains metadata for creating a new dataproduct
@@ -837,4 +862,212 @@ func dbCreateDataset(ctx context.Context, ds NewDataset, referenceDatasource *Ne
 	}
 
 	return &created.Slug, nil
+}
+
+func deleteDataset(ctx context.Context, id string) (string, *APIError) {
+	ds, apierr := getDataset(ctx, id)
+	if apierr != nil {
+		return "", apierr
+	}
+
+	dp, apierr := getDataproduct(ctx, ds.DataproductID.String())
+	if apierr != nil {
+		return "", apierr
+	}
+
+	if err := ensureUserInGroup(ctx, dp.Owner.Group); err != nil {
+		return "", NewAPIError(http.StatusForbidden, err, "deleteDataset(): User not in group of dataproduct")
+	}
+
+	if err := queries.DeleteDataset(ctx, uuid.MustParse(id)); err != nil {
+		return "", DBErrorToAPIError(err, "deleteDataset(): failed to delete dataset")
+	}
+
+	return id, nil
+}
+
+func updateDataset(ctx context.Context, id string, input UpdateDataset) (string, *APIError) {
+	ds, apierr := getDataset(ctx, id)
+	if apierr != nil {
+		return "", apierr
+	}
+
+	dp, apierr := getDataproduct(ctx, ds.DataproductID.String())
+	if apierr != nil {
+		return "", apierr
+	}
+
+	if err := ensureUserInGroup(ctx, dp.Owner.Group); err != nil {
+		return "", NewAPIError(http.StatusForbidden, err, "updateDataset(): User not in group of dataproduct")
+	}
+
+	if input.Description != nil && *input.Description != "" {
+		*input.Description = html.EscapeString(*input.Description)
+	}
+
+	if input.Keywords == nil {
+		input.Keywords = []string{}
+	}
+
+	if input.DataproductID != ds.DataproductID {
+		dp2, err := getDataproduct(ctx, input.DataproductID.String())
+		if err != nil {
+			return "", err
+		}
+		if err := ensureUserInGroup(ctx, dp2.Owner.Group); err != nil {
+			return "", NewAPIError(http.StatusForbidden, err, "updateDataset(): User not in group of updated dataproduct")
+		}
+		if dp.Owner.Group != dp2.Owner.Group {
+			return "", NewAPIError(http.StatusForbidden, fmt.Errorf("move dataset from dataproduct %v to %v is forbidden", dp.Name, dp2.Name),
+				"cannot move dataset to a dataproduct that is not owned by the same team")
+		}
+	}
+
+	if len(input.PseudoColumns) > 0 {
+		referenceDatasource, err := dbGetBigqueryDatasource(ctx, id, true)
+		if err != nil {
+			return "", DBErrorToAPIError(err, "updateDataset(): failed to get reference datasource")
+		}
+		_, _, _, err = bq.CreatePseudonymisedView(ctx, referenceDatasource.ProjectID,
+			referenceDatasource.Dataset, referenceDatasource.Table, input.PseudoColumns)
+		if err != nil {
+			return "", NewAPIError(http.StatusInternalServerError, err, "updateDataset(): failed to create pseudonymised view")
+		}
+	}
+
+	if input.Description != nil && *input.Description != "" {
+		*input.Description = html.EscapeString(*input.Description)
+	}
+
+	updatedID, err := dbUpdateDataset(ctx, id, input)
+	if err != nil {
+		return "", DBErrorToAPIError(err, "updateDataset(): failed to update dataset")
+	}
+	return updatedID, nil
+}
+
+func dbGetBigqueryDatasource(ctx context.Context, datasetID string, isReference bool) (BigQuery, error) {
+	bq, err := queries.GetBigqueryDatasource(ctx, gensql.GetBigqueryDatasourceParams{
+		DatasetID:   uuid.MustParse(datasetID),
+		IsReference: isReference,
+	})
+	if err != nil {
+		return BigQuery{}, err
+	}
+
+	piiTags := "{}"
+	if bq.PiiTags.RawMessage != nil {
+		piiTags = string(bq.PiiTags.RawMessage)
+	}
+
+	return BigQuery{
+		ID:            bq.ID,
+		DatasetID:     bq.DatasetID,
+		ProjectID:     bq.ProjectID,
+		Dataset:       bq.Dataset,
+		Table:         bq.TableName,
+		TableType:     bqclient.BigQueryType(strings.ToLower(bq.TableType)),
+		LastModified:  bq.LastModified,
+		Created:       bq.Created,
+		Expires:       nullTimeToPtr(bq.Expires),
+		Description:   bq.Description.String,
+		PiiTags:       &piiTags,
+		MissingSince:  &bq.MissingSince.Time,
+		PseudoColumns: bq.PseudoColumns,
+	}, nil
+}
+
+func dbUpdateDataset(ctx context.Context, id string, input UpdateDataset) (string, error) {
+	if input.Keywords == nil {
+		input.Keywords = []string{}
+	}
+
+	res, err := queries.UpdateDataset(ctx, gensql.UpdateDatasetParams{
+		Name:                     input.Name,
+		Description:              ptrToNullString(input.Description),
+		ID:                       uuid.MustParse(id),
+		Pii:                      gensql.PiiLevel(input.Pii),
+		Slug:                     slugify(input.Slug, input.Name),
+		Repo:                     ptrToNullString(input.Repo),
+		Keywords:                 input.Keywords,
+		DataproductID:            input.DataproductID,
+		AnonymisationDescription: ptrToNullString(input.AnonymisationDescription),
+		TargetUser:               ptrToNullString(input.TargetUser),
+	})
+	if err != nil {
+		return "", fmt.Errorf("updating dataset in database: %w", err)
+	}
+
+	//TODO: tags table should be removed
+	for _, keyword := range input.Keywords {
+		err = queries.CreateTagIfNotExist(ctx, keyword)
+		if err != nil {
+			log.WithError(err).Warn("failed to create tag when updating dataset in database")
+		}
+	}
+
+	if !json.Valid([]byte(*input.PiiTags)) {
+		return "", fmt.Errorf("invalid pii tags, must be json map or null: %w", err)
+	}
+
+	err = queries.UpdateBigqueryDatasource(ctx, gensql.UpdateBigqueryDatasourceParams{
+		DatasetID: uuid.MustParse(id),
+		PiiTags: pqtype.NullRawMessage{
+			RawMessage: json.RawMessage(ptrToString(input.PiiTags)),
+			Valid:      len(ptrToString(input.PiiTags)) > 4,
+		},
+		PseudoColumns: input.PseudoColumns,
+	})
+	if err != nil {
+		return "", err
+	}
+
+	return res.ID.String(), nil
+}
+
+func getAccessiblePseudoDatasetsForUser(ctx context.Context) ([]*PseudoDataset, *APIError) {
+	user := auth.GetUser(ctx)
+	subjectsAsOwner := []string{user.Email}
+	subjectsAsOwner = append(subjectsAsOwner, user.GoogleGroups.Emails()...)
+	subjectsAsAccesser := []string{"user:" + user.Email}
+	for _, geml := range user.GoogleGroups.Emails() {
+		subjectsAsAccesser = append(subjectsAsAccesser, "group:"+geml)
+	}
+	pseudoDatasets, err := dbGetAccessiblePseudoDatasourcesByUser(ctx, subjectsAsOwner, subjectsAsAccesser)
+	if err != nil {
+		return nil, DBErrorToAPIError(err, "getAccessiblePseudoDatasetsForUser(): failed to get accessible pseudo datasets")
+	}
+	return pseudoDatasets, nil
+}
+
+func dbGetAccessiblePseudoDatasourcesByUser(ctx context.Context, subjectsAsOwner []string, subjectsAsAccesser []string) ([]*PseudoDataset, error) {
+	rows, err := queries.GetAccessiblePseudoDatasetsByUser(ctx, gensql.GetAccessiblePseudoDatasetsByUserParams{
+		OwnerSubjects:  subjectsAsOwner,
+		AccessSubjects: subjectsAsAccesser,
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	pseudoDatasets := []*PseudoDataset{}
+	bqIDMap := make(map[string]int)
+	for _, d := range rows {
+		pseudoDataset := &PseudoDataset{
+			// name is the name of the dataset
+			Name: d.Name,
+			// datasetID is the id of the dataset
+			DatasetID: d.DatasetID,
+			// datasourceID is the id of the bigquery datasource
+			DatasourceID: d.BqDatasourceID,
+		}
+		bqID := fmt.Sprintf("%v.%v.%v", d.BqProjectID, d.BqDatasetID, d.BqTableID)
+
+		_, exist := bqIDMap[bqID]
+		if exist {
+			continue
+		}
+		bqIDMap[bqID] = 1
+		pseudoDatasets = append(pseudoDatasets, pseudoDataset)
+	}
+	return pseudoDatasets, nil
 }
