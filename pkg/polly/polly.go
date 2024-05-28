@@ -40,7 +40,7 @@ func New(apiURL string) *Polly {
 }
 
 type QueryPolly struct {
-	ExternalID string `json:"external_id"`
+	ExternalID string `json:"externalID"`
 	Name       string `json:"name"`
 	URL        string `json:"url"`
 }
