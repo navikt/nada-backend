@@ -16,6 +16,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/navikt/nada-backend/pkg/access"
 	"github.com/navikt/nada-backend/pkg/auth"
+	"github.com/navikt/nada-backend/pkg/bqclient"
 	"github.com/navikt/nada-backend/pkg/database"
 	"github.com/navikt/nada-backend/pkg/database/gensql"
 	"github.com/navikt/nada-backend/pkg/event"
@@ -36,16 +37,21 @@ var accessManager access.Bigquery
 var eventManager *event.Manager
 var slackClient *slack.SlackClient
 var pollyClient *polly.Polly
+var bq *bqclient.BigqueryClient
+var gcpProjects *auth.TeamProjectsMapping
 
-func Init(db *sql.DB, tk teamkatalogen.Teamkatalogen, l *logrus.Logger, projects *auth.TeamProjectsMapping, e *event.Manager, sc *slack.SlackClient, polly *polly.Polly) {
+func Init(db *sql.DB, tk teamkatalogen.Teamkatalogen, l *logrus.Logger, projects *auth.TeamProjectsMapping, e *event.Manager,
+	sc *slack.SlackClient, b *bqclient.BigqueryClient, polly *polly.Polly, gcpproj *auth.TeamProjectsMapping) {
 	tkClient = tk
 	log = l
 	teamProjectsMapping = projects
 	sqldb = db
 	queries = gensql.New(sqldb)
 	eventManager = e
+	bq = b
 	slackClient = sc
 	pollyClient = polly
+	gcpProjects = gcpproj
 }
 
 const (

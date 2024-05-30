@@ -49,7 +49,7 @@ type BQColumns struct {
 }
 
 func getBQTables(ctx context.Context, projectID string, datasetID string) (*BQTables, *APIError) {
-	tables, err := bqclient.GetTables(ctx, projectID, datasetID)
+	tables, err := bq.GetTables(ctx, projectID, datasetID)
 	if err != nil {
 		return nil, NewAPIError(http.StatusInternalServerError, err, "Failed to retrive bigquery tables")
 	}
@@ -57,7 +57,7 @@ func getBQTables(ctx context.Context, projectID string, datasetID string) (*BQTa
 }
 
 func getBQDatasets(ctx context.Context, projectID string) (*BQDatasets, *APIError) {
-	datasets, err := bqclient.GetDatasets(ctx, projectID)
+	datasets, err := bq.GetDatasets(ctx, projectID)
 	if err != nil {
 		return nil, NewAPIError(http.StatusInternalServerError, err, "Failed to retrieve bigquery datasets")
 	}
@@ -67,7 +67,7 @@ func getBQDatasets(ctx context.Context, projectID string) (*BQDatasets, *APIErro
 }
 
 func getBQColumns(ctx context.Context, projectID string, datasetID string, tableID string) (*BQColumns, *APIError) {
-	metadata, err := bqclient.TableMetadata(ctx, projectID, datasetID, tableID)
+	metadata, err := bq.TableMetadata(ctx, projectID, datasetID, tableID)
 	if err != nil {
 		return nil, NewAPIError(http.StatusInternalServerError, err, "Failed to retrive bigquery table metadata")
 	}

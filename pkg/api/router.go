@@ -162,6 +162,36 @@ func New(
 			}
 			return mapDataset(r.Context(), chi.URLParam(r, "id"), services.Services)
 		}))
+		r.Post("/new", apiWrapper(func(r *http.Request) (interface{}, *APIError) {
+			bodyBytes, err := io.ReadAll(r.Body)
+			if err != nil {
+				return nil, NewAPIError(http.StatusBadRequest, fmt.Errorf("error reading body"), "Error reading request body")
+			}
+
+			datasetInput := NewDataset{}
+			if err = json.Unmarshal(bodyBytes, &datasetInput); err != nil {
+				return nil, NewAPIError(http.StatusBadRequest, fmt.Errorf("error unmarshalling request body"), "Error unmarshalling request body")
+			}
+			return createDataset(r.Context(), datasetInput)
+		}))
+		r.Put("/{id}", apiWrapper(func(r *http.Request) (interface{}, *APIError) {
+			bodyBytes, err := io.ReadAll(r.Body)
+			if err != nil {
+				return nil, NewAPIError(http.StatusBadRequest, fmt.Errorf("error reading body"), "Error reading request body")
+			}
+
+			datasetInput := UpdateDataset{}
+			if err = json.Unmarshal(bodyBytes, &datasetInput); err != nil {
+				return nil, NewAPIError(http.StatusBadRequest, fmt.Errorf("error unmarshalling request body"), "Error unmarshalling request body")
+			}
+			return updateDataset(r.Context(), chi.URLParam(r, "id"), datasetInput)
+		}))
+		r.Delete("/{id}", apiWrapper(func(r *http.Request) (interface{}, *APIError) {
+			return deleteDataset(r.Context(), chi.URLParam(r, "id"))
+		}))
+		r.Get("/pseudo/accessible", apiWrapper(func(r *http.Request) (interface{}, *APIError) {
+			return getAccessiblePseudoDatasetsForUser(r.Context())
+		}))
 	})
 
 	router.Route("/api/accessRequests", func(r chi.Router) {

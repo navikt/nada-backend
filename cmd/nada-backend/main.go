@@ -16,6 +16,7 @@ import (
 	"github.com/navikt/nada-backend/pkg/api"
 	"github.com/navikt/nada-backend/pkg/auth"
 	"github.com/navikt/nada-backend/pkg/bigquery"
+	"github.com/navikt/nada-backend/pkg/bqclient"
 	"github.com/navikt/nada-backend/pkg/config"
 	"github.com/navikt/nada-backend/pkg/database"
 	"github.com/navikt/nada-backend/pkg/event"
@@ -147,6 +148,8 @@ func main() {
 	}
 
 	var gcp graph.Bigquery = bigquery.NewMock()
+	//TODO: mock
+	var bqClient *bqclient.BigqueryClient
 	if !config.Conf.SkipMetadataSync {
 		datacatalogClient, err := bigquery.New(ctx, config.Conf.CentralDataProject, config.Conf.PseudoDataset)
 		if err != nil {
@@ -154,6 +157,11 @@ func main() {
 		}
 
 		gcp = datacatalogClient
+
+		bqClient, err = bqclient.New(ctx, config.Conf.CentralDataProject, config.Conf.PseudoDataset)
+		if err != nil {
+			log.WithError(err).Fatal("Creating bqclient")
+		}
 	}
 
 	go access.NewEnsurer(repo, accessMgr, gcp, googleGroups, config.Conf.CentralDataProject, promErrs, log.WithField("subsystem", "accessensurer")).Run(ctx, AccessEnsurerFrequency)
@@ -161,7 +169,7 @@ func main() {
 	log.Info("Listening on :8080")
 	gqlServer := graph.New(repo, gcp, teamProjectsUpdater.TeamProjectsMapping, accessMgr, teamcatalogue, slackClient, pollyAPI, config.Conf.CentralDataProject, log.WithField("subsystem", "graph"))
 	srv := api.New(repo, gcsClient, teamcatalogue, httpAPI, authenticatorMiddleware, gqlServer, prom(repo.Metrics()...), amplitudeClient, config.Conf.NadaTokenCreds, log)
-	api.Init(repo.GetDB(), teamcatalogue, log, teamProjectsUpdater.TeamProjectsMapping, eventMgr, slackClient, pollyAPI.(*polly.Polly))
+	api.Init(repo.GetDB(), teamcatalogue, log, teamProjectsUpdater.TeamProjectsMapping, eventMgr, slackClient, bqClient, pollyAPI.(*polly.Polly), teamProjectsUpdater.TeamProjectsMapping)
 
 	server := http.Server{
 		Addr:    config.Conf.BindAddress,
