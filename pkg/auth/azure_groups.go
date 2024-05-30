@@ -108,7 +108,7 @@ func (a *AzureGroupClient) getBearerTokenOnBehalfOfUser(ctx context.Context, tok
 		return "", err
 	}
 
-	log.Debugf("Successfully retrieved on-behalf-of token: %v...", tokenResponse.AccessToken[:5])
+	log.Debug("Successfully retrieved on-behalf-of token")
 	return tokenResponse.AccessToken, nil
 }
 

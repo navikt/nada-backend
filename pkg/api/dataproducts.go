@@ -92,17 +92,17 @@ type NewDataset struct {
 }
 
 type UpdateDataset struct {
-	Name                     string    `json:"name"`
-	Description              *string   `json:"description"`
-	Slug                     *string   `json:"slug"`
-	Repo                     *string   `json:"repo"`
-	Pii                      PiiLevel  `json:"pii"`
-	Keywords                 []string  `json:"keywords"`
-	DataproductID            uuid.UUID `json:"dataproductID"`
-	AnonymisationDescription *string   `json:"anonymisationDescription"`
-	PiiTags                  *string   `json:"piiTags"`
-	TargetUser               *string   `json:"targetUser"`
-	PseudoColumns            []string  `json:"pseudoColumns"`
+	Name                     string     `json:"name"`
+	Description              *string    `json:"description"`
+	Slug                     *string    `json:"slug"`
+	Repo                     *string    `json:"repo"`
+	Pii                      PiiLevel   `json:"pii"`
+	Keywords                 []string   `json:"keywords"`
+	DataproductID            *uuid.UUID `json:"dataproductID"`
+	AnonymisationDescription *string    `json:"anonymisationDescription"`
+	PiiTags                  *string    `json:"piiTags"`
+	TargetUser               *string    `json:"targetUser"`
+	PseudoColumns            []string   `json:"pseudoColumns"`
 }
 
 type DataproductOwner struct {
@@ -194,6 +194,8 @@ func getDataproducts(ctx context.Context, ids []uuid.UUID) ([]DataproductWithDat
 		Ids:    ids,
 		Groups: []string{},
 	})
+	fmt.Println("getdataproducts: ", sqldp)
+	fmt.Println("db: ", err)
 	if err != nil {
 		return nil, DBErrorToAPIError(err, "GetDataproducts(): Database error")
 	}
@@ -661,12 +663,15 @@ func createDataset(ctx context.Context, input NewDataset) (*string, *APIError) {
 
 	var referenceDatasource *NewBigQuery
 	var pseudoBigQuery *NewBigQuery
+	fmt.Println("input.PseudoColumns: ", input.PseudoColumns)
 	if len(input.PseudoColumns) > 0 {
 		projectID, datasetID, tableID, err := bq.CreatePseudonymisedView(ctx, input.BigQuery.ProjectID,
 			input.BigQuery.Dataset, input.BigQuery.Table, input.PseudoColumns)
-		if apierr != nil {
+		if err != nil {
 			return nil, NewAPIError(http.StatusInternalServerError, err, "createDataset(): failed to create pseudonymised view")
 		}
+
+		fmt.Println("projectID: ", projectID, " datasetID: ", datasetID, " tableID: ", tableID)
 
 		referenceDatasource = &input.BigQuery
 
@@ -892,6 +897,10 @@ func updateDataset(ctx context.Context, id string, input UpdateDataset) (string,
 		return "", apierr
 	}
 
+	if input.DataproductID == nil {
+		input.DataproductID = &ds.DataproductID
+	}
+
 	dp, apierr := getDataproduct(ctx, ds.DataproductID.String())
 	if apierr != nil {
 		return "", apierr
@@ -909,7 +918,9 @@ func updateDataset(ctx context.Context, id string, input UpdateDataset) (string,
 		input.Keywords = []string{}
 	}
 
-	if input.DataproductID != ds.DataproductID {
+	fmt.Println("input: ", input.DataproductID)
+	fmt.Println("ds: ", ds.DataproductID)
+	if *input.DataproductID != ds.DataproductID {
 		dp2, err := getDataproduct(ctx, input.DataproductID.String())
 		if err != nil {
 			return "", err
@@ -990,7 +1001,7 @@ func dbUpdateDataset(ctx context.Context, id string, input UpdateDataset) (strin
 		Slug:                     slugify(input.Slug, input.Name),
 		Repo:                     ptrToNullString(input.Repo),
 		Keywords:                 input.Keywords,
-		DataproductID:            input.DataproductID,
+		DataproductID:            *input.DataproductID,
 		AnonymisationDescription: ptrToNullString(input.AnonymisationDescription),
 		TargetUser:               ptrToNullString(input.TargetUser),
 	})
@@ -1037,6 +1048,7 @@ func getAccessiblePseudoDatasetsForUser(ctx context.Context) ([]*PseudoDataset, 
 	if err != nil {
 		return nil, DBErrorToAPIError(err, "getAccessiblePseudoDatasetsForUser(): failed to get accessible pseudo datasets")
 	}
+	fmt.Println("pseudoDatasets: ", pseudoDatasets)
 	return pseudoDatasets, nil
 }
 
@@ -1048,6 +1060,8 @@ func dbGetAccessiblePseudoDatasourcesByUser(ctx context.Context, subjectsAsOwner
 	if err != nil {
 		return nil, err
 	}
+
+	fmt.Println("rows: ", rows)
 
 	pseudoDatasets := []*PseudoDataset{}
 	bqIDMap := make(map[string]int)
