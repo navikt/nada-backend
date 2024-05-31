@@ -194,8 +194,6 @@ func getDataproducts(ctx context.Context, ids []uuid.UUID) ([]DataproductWithDat
 		Ids:    ids,
 		Groups: []string{},
 	})
-	fmt.Println("getdataproducts: ", sqldp)
-	fmt.Println("db: ", err)
 	if err != nil {
 		return nil, DBErrorToAPIError(err, "GetDataproducts(): Database error")
 	}
@@ -663,15 +661,12 @@ func createDataset(ctx context.Context, input NewDataset) (*string, *APIError) {
 
 	var referenceDatasource *NewBigQuery
 	var pseudoBigQuery *NewBigQuery
-	fmt.Println("input.PseudoColumns: ", input.PseudoColumns)
 	if len(input.PseudoColumns) > 0 {
 		projectID, datasetID, tableID, err := bq.CreatePseudonymisedView(ctx, input.BigQuery.ProjectID,
 			input.BigQuery.Dataset, input.BigQuery.Table, input.PseudoColumns)
 		if err != nil {
 			return nil, NewAPIError(http.StatusInternalServerError, err, "createDataset(): failed to create pseudonymised view")
 		}
-
-		fmt.Println("projectID: ", projectID, " datasetID: ", datasetID, " tableID: ", tableID)
 
 		referenceDatasource = &input.BigQuery
 
@@ -918,8 +913,6 @@ func updateDataset(ctx context.Context, id string, input UpdateDataset) (string,
 		input.Keywords = []string{}
 	}
 
-	fmt.Println("input: ", input.DataproductID)
-	fmt.Println("ds: ", ds.DataproductID)
 	if *input.DataproductID != ds.DataproductID {
 		dp2, err := getDataproduct(ctx, input.DataproductID.String())
 		if err != nil {
@@ -1048,7 +1041,6 @@ func getAccessiblePseudoDatasetsForUser(ctx context.Context) ([]*PseudoDataset, 
 	if err != nil {
 		return nil, DBErrorToAPIError(err, "getAccessiblePseudoDatasetsForUser(): failed to get accessible pseudo datasets")
 	}
-	fmt.Println("pseudoDatasets: ", pseudoDatasets)
 	return pseudoDatasets, nil
 }
 
@@ -1060,8 +1052,6 @@ func dbGetAccessiblePseudoDatasourcesByUser(ctx context.Context, subjectsAsOwner
 	if err != nil {
 		return nil, err
 	}
-
-	fmt.Println("rows: ", rows)
 
 	pseudoDatasets := []*PseudoDataset{}
 	bqIDMap := make(map[string]int)

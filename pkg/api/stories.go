@@ -78,7 +78,6 @@ func getStoryMetadata(ctx context.Context, id string) (*Story, *APIError) {
 			Message:    "fetching existing story metadata",
 		}
 	}
-
 	return storyFromSQL(&storySQLs[0]), nil
 }
 
