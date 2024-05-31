@@ -373,6 +373,42 @@ func New(
 		}))
 
 	})
+
+	router.Route("/api/insightProducts", func(r chi.Router) {
+		r.Use(authMW)
+		r.Get("/{id}", apiWrapper(func(r *http.Request) (interface{}, *APIError) {
+			return getInsightProduct(r.Context(), chi.URLParam(r, "id"))
+		}))
+
+		r.Post("/new", apiWrapper(func(r *http.Request) (interface{}, *APIError) {
+			bodyBytes, err := io.ReadAll(r.Body)
+			if err != nil {
+				return nil, NewAPIError(http.StatusBadRequest, fmt.Errorf("error reading body"), "Error reading request body")
+			}
+
+			input := NewInsightProduct{}
+			if err = json.Unmarshal(bodyBytes, &input); err != nil {
+				return nil, NewAPIError(http.StatusBadRequest, fmt.Errorf("error unmarshalling request body"), "Error unmarshalling request body")
+			}
+
+			return createInsightProduct(r.Context(), input)
+		}))
+
+		r.Put("/{id}", apiWrapper(func(r *http.Request) (interface{}, *APIError) {
+			bodyBytes, err := io.ReadAll(r.Body)
+			if err != nil {
+				return nil, NewAPIError(http.StatusBadRequest, fmt.Errorf("error reading body"), "Error reading request body")
+			}
+
+			input := UpdateInsightProductDto{}
+			if err = json.Unmarshal(bodyBytes, &input); err != nil {
+				return nil, NewAPIError(http.StatusBadRequest, fmt.Errorf("error unmarshalling request body"), "Error unmarshalling request body")
+			}
+
+			return updateInsightProduct(r.Context(), chi.URLParam(r, "id"), input)
+		}))
+	})
+
 	return router
 }
 

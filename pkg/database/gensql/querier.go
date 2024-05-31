@@ -74,6 +74,7 @@ type Querier interface {
 	GetDatasetsInDataproduct(ctx context.Context, dataproductID uuid.UUID) ([]Dataset, error)
 	GetInsightProduct(ctx context.Context, id uuid.UUID) (InsightProduct, error)
 	GetInsightProductByGroups_(ctx context.Context, groups []string) ([]InsightProduct, error)
+	GetInsightProductWithTeamkatalogen(ctx context.Context, id uuid.UUID) (InsightProductWithTeamkatalogenView, error)
 	GetInsightProducts(ctx context.Context) ([]InsightProduct, error)
 	GetInsightProductsByGroups(ctx context.Context, groups []string) ([]InsightProductWithTeamkatalogenView, error)
 	GetInsightProductsByIDs(ctx context.Context, ids []uuid.UUID) ([]InsightProduct, error)
