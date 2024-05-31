@@ -350,6 +350,40 @@ func New(
 		r.Get("/{id}", apiWrapper(func(r *http.Request) (interface{}, *APIError) {
 			return getStoryMetadata(r.Context(), chi.URLParam(r, "id"))
 		}))
+		r.Post("/new", apiWrapper(func(r *http.Request) (interface{}, *APIError) {
+			files, apiErr := parseFiles(r.Context(), r)
+			if apiErr != nil {
+				return nil, apiErr
+			}
+
+			bodyBytes, err := io.ReadAll(r.Body)
+			if err != nil {
+				return nil, NewAPIError(http.StatusBadRequest, err, "Error reading request body")
+			}
+
+			newStory := NewStory{}
+			if err = json.Unmarshal(bodyBytes, &newStory); err != nil {
+				return nil, NewAPIError(http.StatusBadRequest, err, "Error unmarshalling request body")
+			}
+
+			return createStory(r.Context(), &newStory, files)
+		}))
+		r.Put("/{id}", apiWrapper(func(r *http.Request) (interface{}, *APIError) {
+			bodyBytes, err := io.ReadAll(r.Body)
+			if err != nil {
+				return nil, NewAPIError(http.StatusBadRequest, err, "Error reading request body")
+			}
+
+			input := UpdateStoryDto{}
+			if err = json.Unmarshal(bodyBytes, &input); err != nil {
+				return nil, NewAPIError(http.StatusBadRequest, err, "Error unmarshalling request body")
+			}
+
+			return updateStory(r.Context(), chi.URLParam(r, "id"), input)
+		}))
+		r.Delete("/{id}", apiWrapper(func(r *http.Request) (interface{}, *APIError) {
+			return deleteStory(r.Context(), chi.URLParam(r, "id"))
+		}))
 	})
 
 	router.Route("/api/accesses", func(r chi.Router) {
