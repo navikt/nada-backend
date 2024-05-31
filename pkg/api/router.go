@@ -351,22 +351,12 @@ func New(
 			return getStoryMetadata(r.Context(), chi.URLParam(r, "id"))
 		}))
 		r.Post("/new", apiWrapper(func(r *http.Request) (interface{}, *APIError) {
-			files, apiErr := parseFiles(r.Context(), r)
+			newStory, files, apiErr := parseStoryFilesForm(r.Context(), r)
 			if apiErr != nil {
 				return nil, apiErr
 			}
 
-			bodyBytes, err := io.ReadAll(r.Body)
-			if err != nil {
-				return nil, NewAPIError(http.StatusBadRequest, err, "Error reading request body")
-			}
-
-			newStory := NewStory{}
-			if err = json.Unmarshal(bodyBytes, &newStory); err != nil {
-				return nil, NewAPIError(http.StatusBadRequest, err, "Error unmarshalling request body")
-			}
-
-			return createStory(r.Context(), &newStory, files)
+			return createStory(r.Context(), newStory, files)
 		}))
 		r.Put("/{id}", apiWrapper(func(r *http.Request) (interface{}, *APIError) {
 			bodyBytes, err := io.ReadAll(r.Body)
@@ -440,6 +430,10 @@ func New(
 			}
 
 			return updateInsightProduct(r.Context(), chi.URLParam(r, "id"), input)
+		}))
+
+		r.Delete("/{id}", apiWrapper(func(r *http.Request) (interface{}, *APIError) {
+			return deleteInsightProduct(r.Context(), chi.URLParam(r, "id"))
 		}))
 	})
 

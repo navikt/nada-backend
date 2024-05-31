@@ -2,6 +2,7 @@ package api
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"net/http"
 	"time"
@@ -98,10 +99,16 @@ func storyFromSQL(story *gensql.StoryWithTeamkatalogenView) *Story {
 	}
 }
 
-func parseFiles(ctx context.Context, r *http.Request) ([]*UploadFile, *APIError) {
+func parseStoryFilesForm(ctx context.Context, r *http.Request) (*NewStory, []*UploadFile, *APIError) {
 	err := r.ParseMultipartForm(50 << 20) // Limit your max input length!
 	if err != nil {
-		return nil, NewAPIError(http.StatusBadRequest, err, "Error parsing form")
+		return nil, nil, NewAPIError(http.StatusBadRequest, err, "Error parsing form")
+	}
+
+	newStory := &NewStory{}
+	err = json.Unmarshal([]byte(r.FormValue("story")), newStory)
+	if err != nil {
+		return nil, nil, NewAPIError(http.StatusBadRequest, err, "Error parsing story")
 	}
 
 	files := make([]*UploadFile, 0)
@@ -115,7 +122,7 @@ func parseFiles(ctx context.Context, r *http.Request) ([]*UploadFile, *APIError)
 
 		file, _, err := r.FormFile(fileKey)
 		if err != nil {
-			return nil, NewAPIError(http.StatusBadRequest, err, "Error retrieving file")
+			return nil, nil, NewAPIError(http.StatusBadRequest, err, "Error retrieving file")
 		}
 		defer file.Close()
 
@@ -124,7 +131,7 @@ func parseFiles(ctx context.Context, r *http.Request) ([]*UploadFile, *APIError)
 			File: file,
 		})
 	}
-	return files, nil
+	return newStory, files, nil
 }
 
 func createStory(ctx context.Context, newStory *NewStory, files []*UploadFile) (*Story, *APIError) {

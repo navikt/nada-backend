@@ -158,3 +158,26 @@ func createInsightProduct(ctx context.Context, input NewInsightProduct) (*Insigh
 
 	return getInsightProduct(ctx, insightProductSQL.ID.String())
 }
+
+func deleteInsightProduct(ctx context.Context, id string) (*InsightProduct, *APIError) {
+	productUUID, err := uuid.Parse(id)
+	if err != nil {
+		return nil, NewAPIError(http.StatusBadRequest, err, "Invalid UUID")
+	}
+	product, apiErr := getInsightProduct(ctx, id)
+	if apiErr != nil {
+		return nil, apiErr
+	}
+
+	user := auth.GetUser(ctx)
+	if !user.GoogleGroups.Contains(product.Group) {
+		return nil, NewAPIError(http.StatusUnauthorized, nil, "Unauthorized")
+	}
+
+	err = queries.DeleteInsightProduct(ctx, productUUID)
+	if err != nil {
+		return nil, DBErrorToAPIError(err, "Failed to delete insight product")
+	}
+
+	return product, nil
+}
