@@ -50,20 +50,21 @@ func (s SlackClient) IsValidSlackChannel(name string) (bool, error) {
 
 func (s SlackClient) GetPublicChannel(name string) (*slack.Channel, error) {
 
+	//TODO: the implementation is fragile, but donno how to deal with it
 	c := ""
 	for i := 0; i < 10; i++ {
 		chn, nc, e := s.api.GetConversations(&slack.GetConversationsParameters{
 			Cursor:          c,
 			ExcludeArchived: true,
 			Types:           []string{"public_channel"},
-			Limit:           500,
+			Limit:           1000,
 		})
 		if e != nil {
 			return nil, e
 		}
 
 		for _, cn := range chn {
-			if strings.ToLower(cn.Name) == strings.ToLower(name) {
+			if strings.EqualFold(cn.Name, name) {
 				return &cn, nil
 			}
 		}
@@ -73,5 +74,5 @@ func (s SlackClient) GetPublicChannel(name string) (*slack.Channel, error) {
 		}
 		c = nc
 	}
-	return nil, fmt.Errorf("Too many channels in workspace")
+	return nil, fmt.Errorf("too many channels in workspace")
 }
