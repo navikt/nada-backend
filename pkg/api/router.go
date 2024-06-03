@@ -345,6 +345,12 @@ func New(
 		}))
 	})
 
+	router.Route("/api/slack", func(r chi.Router) {
+		r.Get("/isValid", apiWrapper(func(r *http.Request) (interface{}, *APIError) {
+			return isValidSlackChannel(chi.URLParam(r, "channel"))
+		}))
+	})
+
 	router.Route("/api/stories", func(r chi.Router) {
 		r.Use(authMW)
 		r.Get("/{id}", apiWrapper(func(r *http.Request) (interface{}, *APIError) {
