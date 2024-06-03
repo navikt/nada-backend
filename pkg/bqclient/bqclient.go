@@ -383,6 +383,7 @@ func (b *BigqueryClient) ComposeJoinableViewQuery(plainTable DatasourceForJoinab
 func (b *BigqueryClient) CreateJoinableView(ctx context.Context, joinableDatasetID string, datasource JoinableViewDatasource) (string, error) {
 	query := b.ComposeJoinableViewQuery(*datasource.RefDatasource, joinableDatasetID)
 
+	fmt.Println(query)
 	centralProjectclient, err := bigquery.NewClient(ctx, b.centralDataProject)
 	if err != nil {
 		return "", fmt.Errorf("bigquery.NewClient: %v", err)

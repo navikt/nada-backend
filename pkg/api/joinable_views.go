@@ -108,16 +108,12 @@ func getJoinableView(ctx context.Context, id string) (*JoinableViewWithDatasourc
 			BigQueryUrl: bq.MakeBigQueryUrlForJoinableViews(jv.Name, ds.BqTable, ds.BqProject, ds.BqDataset),
 			Deleted:     ds.Deleted.Valid,
 		}
-		jv.PseudoDatasources = append(jv.PseudoDatasources, *jvbq)
-
-		if jvbq.Deleted {
-			continue
-		}
 
 		if user.GoogleGroups.Contains(ds.Group.String) {
 			jvbq.Accessible = true
 		} else {
 			activeAccessList, apierr := listActiveAccessToDataset(ctx, ds.DatasetID.UUID)
+
 			if apierr != nil {
 				return nil, apierr
 			}
@@ -131,6 +127,7 @@ func getJoinableView(ctx context.Context, id string) (*JoinableViewWithDatasourc
 			}
 		}
 
+		jv.PseudoDatasources = append(jv.PseudoDatasources, *jvbq)
 	}
 
 	return &jv, nil
@@ -184,14 +181,16 @@ func createJoinableViews(ctx context.Context, input NewJoinableViews) (string, *
 		}
 		datasources = append(datasources, bqclient.JoinableViewDatasource{
 			RefDatasource: &bqclient.DatasourceForJoinableView{
-				Project: refDatasource.ProjectID,
-				Dataset: refDatasource.Dataset,
-				Table:   refDatasource.Table,
+				Project:       refDatasource.ProjectID,
+				Dataset:       refDatasource.Dataset,
+				Table:         refDatasource.Table,
+				PseudoColumns: refDatasource.PseudoColumns,
 			},
 			PseudoDatasource: &bqclient.DatasourceForJoinableView{
-				Project: pseudoDatasource.ProjectID,
-				Dataset: pseudoDatasource.Dataset,
-				Table:   pseudoDatasource.Table,
+				Project:       pseudoDatasource.ProjectID,
+				Dataset:       pseudoDatasource.Dataset,
+				Table:         pseudoDatasource.Table,
+				PseudoColumns: pseudoDatasource.PseudoColumns,
 			},
 		})
 		pseudoDatasourceIDs = append(pseudoDatasourceIDs, pseudoDatasource.ID)
