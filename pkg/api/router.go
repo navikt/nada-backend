@@ -347,7 +347,12 @@ func New(
 
 	router.Route("/api/slack", func(r chi.Router) {
 		r.Get("/isValid", apiWrapper(func(r *http.Request) (interface{}, *APIError) {
-			return isValidSlackChannel(chi.URLParam(r, "channel"))
+			query := r.URL.Query()
+
+			if channel, ok := query["channel"]; ok && len(channel) > 0 {
+				return isValidSlackChannel(channel[0])
+			}
+			return nil, NewAPIError(http.StatusBadRequest, fmt.Errorf("missing channel parameter"), "Missing channel parameter")
 		}))
 	})
 
