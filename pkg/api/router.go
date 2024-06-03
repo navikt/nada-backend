@@ -398,6 +398,28 @@ func New(
 
 	})
 
+	router.Route("/api/pseudo/joinable", func(r chi.Router) {
+		r.Use(authMW)
+		r.Post("/new", apiWrapper(func(r *http.Request) (interface{}, *APIError) {
+			bodyBytes, err := io.ReadAll(r.Body)
+			if err != nil {
+				return nil, NewAPIError(http.StatusBadRequest, fmt.Errorf("error reading body"), "Error reading request body")
+			}
+
+			newJoinableView := NewJoinableViews{}
+			if err = json.Unmarshal(bodyBytes, &newJoinableView); err != nil {
+				return nil, NewAPIError(http.StatusBadRequest, fmt.Errorf("error unmarshalling request body"), "Error unmarshalling request body")
+			}
+			return createJoinableViews(r.Context(), newJoinableView)
+		}))
+		r.Get("/", apiWrapper(func(r *http.Request) (interface{}, *APIError) {
+			return getJoinableViewsForUser(r.Context())
+		}))
+		r.Get("/{id}", apiWrapper(func(r *http.Request) (interface{}, *APIError) {
+			return getJoinableView(r.Context(), chi.URLParam(r, "id"))
+		}))
+
+	})
 	router.Route("/api/insightProducts", func(r chi.Router) {
 		r.Use(authMW)
 		r.Get("/{id}", apiWrapper(func(r *http.Request) (interface{}, *APIError) {
