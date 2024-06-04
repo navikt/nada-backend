@@ -3,6 +3,7 @@ package api
 import (
 	"context"
 	"database/sql"
+	"fmt"
 	"net/http"
 	"strings"
 	"time"
@@ -92,9 +93,9 @@ func getBigqueryDatasource(ctx context.Context, datasetID uuid.UUID, isReference
 		IsReference: isReference,
 	})
 	if err == sql.ErrNoRows {
-		return nil, NewAPIError(http.StatusNotFound, err, "getBigqueryDatasource(): bigquery datasource not found")
+		return nil, NewAPIError(http.StatusNotFound, err, fmt.Sprintf("getBigqueryDatasource(): bigquery datasource not found for %v", datasetID))
 	} else if err != nil {
-		return nil, DBErrorToAPIError(err, "getBigqueryDatasource(): failed to get bigquery datasource")
+		return nil, DBErrorToAPIError(err, fmt.Sprintf("getBigqueryDatasource(): failed to get bigquery datasource for %v", datasetID))
 	}
 
 	piiTags := "{}"

@@ -622,3 +622,26 @@ func sendNewAccessRequestSlackNotification(ctx context.Context, ar *AccessReques
 		log.Warn("Access request created, failed to send slack message", err)
 	}
 }
+
+func listActiveAccessToDataset(ctx context.Context, datasetID uuid.UUID) ([]*Access, *APIError) {
+	access, err := queries.ListActiveAccessToDataset(ctx, datasetID)
+	if err != nil {
+		return nil, DBErrorToAPIError(err, "listActiveAccessToDataset(): failed to list active access to dataset")
+	}
+
+	var ret []*Access
+	for _, e := range access {
+		ret = append(ret, &Access{
+			ID:              e.ID,
+			Subject:         e.Subject,
+			Granter:         e.Granter,
+			Expires:         nullTimeToPtr(e.Expires),
+			Created:         e.Created,
+			Revoked:         nullTimeToPtr(e.Revoked),
+			DatasetID:       e.DatasetID,
+			AccessRequestID: nullUUIDToUUIDPtr(e.AccessRequestID),
+		})
+	}
+
+	return ret, nil
+}
