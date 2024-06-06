@@ -20,7 +20,6 @@ jobs:
   build-and-push:
     name: Build and push GAR
     runs-on: ubuntu-20.04
-    needs: [integration-tests]
     if: github.actor != 'dependabot[bot]'
     outputs:
       image: ${{ steps.docker-build-push.outputs.image }}
