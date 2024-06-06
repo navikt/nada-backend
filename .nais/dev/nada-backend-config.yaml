@@ -3,7 +3,7 @@ apiVersion: v1
 metadata:
   name: nada-backend-config
 data:
-  config-dev.yaml: |
+  config.yaml: |
     oauth:
       client_id: # Loaded from env var AZURE_CLIENT_ID
       client_secret: # Loaded from env var AZURE_CLIENT_SECRET
@@ -55,7 +55,7 @@ data:
         secure: true
         http_only: false
       oauth_state:
-        name: oauth_state
+        name: oauthstate
         max_age: 3600
         path: /
         domain: data.ansatt.dev.nav.no
@@ -63,7 +63,7 @@ data:
         secure: true
         http_only: false
       session:
-        name: knorten_session
+        name: nada_session
         max_age: 86400
         path: /
         domain: data.ansatt.dev.nav.no
@@ -75,6 +75,7 @@ data:
       api_url: https://console.nav.cloud.nais.io
     api:
       auth_token: # Loaded from env var NADA_API_AUTH_TOKEN
+    login_page: https://data.ansatt.dev.nav.no/
     amplitude_api_key: # Loaded from env var NADA_AMPLITUDE_API_KEY
     skip_metadata_sync: false
     mock_auth: false

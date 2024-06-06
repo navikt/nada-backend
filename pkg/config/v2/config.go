@@ -43,6 +43,7 @@ type Config struct {
 	NaisConsole        NaisConsole        `yaml:"nais_console"`
 	API                API                `yaml:"api"`
 
+	LoginPage        string `yaml:"login_page"`
 	AmplitudeAPIKey  string `yaml:"amplitude_api_key"`
 	LogLevel         string `yaml:"log_level"`
 	MockAuth         bool   `yaml:"mock_auth"`
@@ -64,6 +65,7 @@ func (c Config) Validate() error {
 		validation.Field(&c.Cookies, validation.Required),
 		validation.Field(&c.NaisConsole, validation.Required),
 		validation.Field(&c.API, validation.Required),
+		validation.Field(&c.LoginPage, validation.Required),
 		validation.Field(&c.AmplitudeAPIKey, validation.Required),
 		validation.Field(&c.LogLevel, validation.Required),
 		validation.Field(&c.MockAuth, validation.Required),

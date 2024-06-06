@@ -72,32 +72,32 @@ func newFakeConfig() config.Config {
 		Cookies: config.Cookies{
 			Redirect: config.CookieSettings{
 				Name:     "redirect",
-				MaxAge:   0,
+				MaxAge:   3600,
 				Path:     "some/path",
 				Domain:   "localhost",
 				SameSite: "lax",
 				Secure:   false,
-				HttpOnly: false,
+				HttpOnly: true,
 			},
 			OauthState: config.CookieSettings{
 
 				Name:     "auth",
-				MaxAge:   0,
+				MaxAge:   3600,
 				Path:     "some/path",
 				Domain:   "localhost",
 				SameSite: "lax",
 				Secure:   false,
-				HttpOnly: false,
+				HttpOnly: true,
 			},
 			Session: config.CookieSettings{
 
 				Name:     "session",
-				MaxAge:   0,
+				MaxAge:   3600,
 				Path:     "some/path",
 				Domain:   "localhost",
 				SameSite: "lax",
 				Secure:   false,
-				HttpOnly: false,
+				HttpOnly: true,
 			},
 		},
 		NaisConsole: config.NaisConsole{
@@ -107,6 +107,7 @@ func newFakeConfig() config.Config {
 		API: config.API{
 			AuthToken: "fake_token",
 		},
+		LoginPage:        "http://localhost:8080/",
 		AmplitudeAPIKey:  "fake_key",
 		LogLevel:         "info",
 		MockAuth:         false,
