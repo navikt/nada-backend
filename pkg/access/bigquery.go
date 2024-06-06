@@ -10,6 +10,13 @@ import (
 	"cloud.google.com/go/iam"
 )
 
+type AccessManager interface {
+	Grant(ctx context.Context, projectID, datasetID, tableID, member string) error
+	Revoke(ctx context.Context, projectID, datasetID, tableID, member string) error
+	HasAccess(ctx context.Context, projectID, datasetID, tableID, member string) (bool, error)
+	AddToAuthorizedViews(ctx context.Context, srcProjectID, srcDataset, sinkProjectID, sinkDataset, sinkTable string) error
+}
+
 type Bigquery struct{}
 
 func NewBigquery() *Bigquery {

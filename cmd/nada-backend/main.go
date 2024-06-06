@@ -12,19 +12,19 @@ import (
 
 	graphProm "github.com/99designs/gqlgen-contrib/prometheus"
 	"github.com/navikt/nada-backend/pkg/access"
+	"github.com/navikt/nada-backend/pkg/access_ensurer"
 	"github.com/navikt/nada-backend/pkg/amplitude"
 	"github.com/navikt/nada-backend/pkg/api"
 	"github.com/navikt/nada-backend/pkg/auth"
-	"github.com/navikt/nada-backend/pkg/bigquery"
 	"github.com/navikt/nada-backend/pkg/bqclient"
 	"github.com/navikt/nada-backend/pkg/config"
 	"github.com/navikt/nada-backend/pkg/database"
 	"github.com/navikt/nada-backend/pkg/event"
 	"github.com/navikt/nada-backend/pkg/gcs"
-	"github.com/navikt/nada-backend/pkg/graph"
 	"github.com/navikt/nada-backend/pkg/httpwithcache"
 	"github.com/navikt/nada-backend/pkg/metabase"
 	"github.com/navikt/nada-backend/pkg/polly"
+	"github.com/navikt/nada-backend/pkg/service"
 	"github.com/navikt/nada-backend/pkg/slack"
 	"github.com/navikt/nada-backend/pkg/teamkatalogen"
 	"github.com/navikt/nada-backend/pkg/teamprojectsupdater"
@@ -107,19 +107,18 @@ func main() {
 		log.Fatal(err)
 	}
 
-	mockHTTP := api.NewMockHTTP(repo, log.WithField("subsystem", "mockhttp"))
+	mockHTTP := service.NewMockHTTP(repo, log.WithField("subsystem", "mockhttp"))
 	var httpAPI api.HTTPAPI = mockHTTP
 
 	authenticatorMiddleware := mockHTTP.Middleware
 
 	var teamProjectsUpdater *teamprojectsupdater.TeamProjectsUpdater
 	var oauth2Config api.OAuth2
-	var accessMgr graph.AccessManager
-	accessMgr = access.NewNoop()
 	var teamcatalogue teamkatalogen.Teamkatalogen = teamkatalogen.NewMock()
-	var pollyAPI graph.Polly = polly.NewMock(config.Conf.PollyURL)
 	var amplitudeClient amplitude.Amplitude
 	amplitudeClient = amplitude.NewMock()
+	var accessMgr access.AccessManager = access.Noop{}
+	var pollyAPI polly.Polly = polly.NewMock(config.Conf.PollyURL)
 	if !config.Conf.MockAuth {
 		teamcatalogue = teamkatalogen.New(config.Conf.TeamkatalogenURL, repo.GetDB(), repo.Querier, log)
 
@@ -131,8 +130,8 @@ func main() {
 		aauth := auth.NewAzure(config.Conf.OAuth2.ClientID, config.Conf.OAuth2.ClientSecret, config.Conf.OAuth2.TenantID, config.Conf.Hostname)
 		oauth2Config = aauth
 
-		httpAPI = api.NewHTTP(oauth2Config, aauth.RedirectURL, repo, log.WithField("subsystem", "api"))
-		authenticatorMiddleware = aauth.Middleware(aauth.KeyDiscoveryURL(), azureGroups, googleGroups, repo)
+		httpAPI = api.NewHTTP(oauth2Config, aauth.RedirectURL, log.WithField("subsystem", "api"))
+		authenticatorMiddleware = aauth.Middleware(aauth.KeyDiscoveryURL(), azureGroups, googleGroups, repo.GetDB())
 		accessMgr = access.NewBigquery()
 		pollyAPI = polly.New(config.Conf.PollyURL)
 		amplitudeClient = amplitude.New(config.Conf.AmplitudeAPIKey, log.WithField("subsystem", "amplitude"))
@@ -147,16 +146,14 @@ func main() {
 		log.WithError(err).Fatal("running metabase")
 	}
 
-	var gcp graph.Bigquery = bigquery.NewMock()
-	//TODO: mock
-	var bqClient *bqclient.BigqueryClient
+	var bqClient bqclient.BQClient = bqclient.NewMock()
 	if !config.Conf.SkipMetadataSync {
-		datacatalogClient, err := bigquery.New(ctx, config.Conf.CentralDataProject, config.Conf.PseudoDataset)
+		datacatalogClient, err := bqclient.New(ctx, config.Conf.CentralDataProject, config.Conf.PseudoDataset)
 		if err != nil {
 			log.WithError(err).Fatal("Creating datacatalog client")
 		}
 
-		gcp = datacatalogClient
+		bqClient = datacatalogClient
 
 		bqClient, err = bqclient.New(ctx, config.Conf.CentralDataProject, config.Conf.PseudoDataset)
 		if err != nil {
@@ -164,17 +161,16 @@ func main() {
 		}
 	}
 
-	go access.NewEnsurer(repo, accessMgr, gcp, googleGroups, config.Conf.CentralDataProject, promErrs, log.WithField("subsystem", "accessensurer")).Run(ctx, AccessEnsurerFrequency)
-
 	log.Info("Listening on :8080")
-	gqlServer := graph.New(repo, gcp, teamProjectsUpdater.TeamProjectsMapping, accessMgr, teamcatalogue, slackClient, pollyAPI, config.Conf.CentralDataProject, log.WithField("subsystem", "graph"))
-	srv := api.New(repo, gcsClient, teamcatalogue, httpAPI, authenticatorMiddleware, gqlServer, prom(repo.Metrics()...), amplitudeClient, config.Conf.NadaTokenCreds, log)
-	api.Init(repo.GetDB(), teamcatalogue, log, teamProjectsUpdater.TeamProjectsMapping, eventMgr, slackClient, bqClient, pollyAPI.(*polly.Polly), teamProjectsUpdater.TeamProjectsMapping)
+	srv := api.New(repo, gcsClient, teamcatalogue, httpAPI, authenticatorMiddleware, prom(repo.Metrics()...), amplitudeClient, config.Conf.NadaTokenCreds, log)
+	service.Init(repo.GetDB(), teamcatalogue, log, teamProjectsUpdater.TeamProjectsMapping, eventMgr, slackClient, bqClient, pollyAPI, teamProjectsUpdater.TeamProjectsMapping, gcsClient, amplitudeClient)
 
 	server := http.Server{
 		Addr:    config.Conf.BindAddress,
 		Handler: srv,
 	}
+	go access_ensurer.NewEnsurer(nil, accessMgr, bqClient, googleGroups, config.Conf.CentralDataProject, promErrs, log.WithField("subsystem", "accessensurer")).Run(ctx, AccessEnsurerFrequency)
+
 	go func() {
 		if err := server.ListenAndServe(); err != nil {
 			log.Fatal(err)
@@ -222,7 +218,7 @@ func getEnv(key, fallback string) string {
 	return fallback
 }
 
-func createMetabaseSyncer(ctx context.Context, log *logrus.Entry, repo *database.Repo, accessMgr graph.AccessManager, eventMgr *event.Manager) error {
+func createMetabaseSyncer(ctx context.Context, log *logrus.Entry, repo *database.Repo, accessMgr access.AccessManager, eventMgr *event.Manager) error {
 	if config.Conf.MetabaseServiceAccountFile == "" {
 		log.Info("metabase sync disabled")
 		return nil
@@ -255,7 +251,7 @@ func createMetabaseSyncer(ctx context.Context, log *logrus.Entry, repo *database
 		return err
 	}
 
-	metabase := metabase.New(repo, client, accessMgr, eventMgr, string(sa), metabaseSA.ClientEmail, promErrs, iamService, crmService, log.WithField("subsystem", "metabase"))
+	metabase := metabase.New(repo, client, eventMgr, accessMgr, string(sa), metabaseSA.ClientEmail, promErrs, iamService, crmService, log.WithField("subsystem", "metabase"))
 	go metabase.Run(ctx, MetabaseUpdateFrequency)
 	return nil
 }

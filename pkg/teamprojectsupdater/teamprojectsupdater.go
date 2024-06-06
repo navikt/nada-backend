@@ -13,9 +13,53 @@ import (
 
 	"github.com/navikt/nada-backend/pkg/auth"
 	"github.com/navikt/nada-backend/pkg/database"
+	"github.com/navikt/nada-backend/pkg/database/gensql"
 	"github.com/navikt/nada-backend/pkg/leaderelection"
 	log "github.com/sirupsen/logrus"
 )
+
+func GetTeamProjects(ctx context.Context, repo *database.Repo) ([]gensql.TeamProject, error) {
+	teamProjects, err := repo.Querier.GetTeamProjects(ctx)
+	if err != nil {
+		return nil, err
+	}
+	return teamProjects, nil
+}
+
+func UpdateTeamProjectsCache(ctx context.Context, repo *database.Repo, teamProjects map[string]string) error {
+	tx, err := repo.GetDB().Begin()
+	if err != nil {
+		return err
+	}
+
+	querier := repo.Querier.WithTx(tx)
+
+	if err := querier.ClearTeamProjectsCache(ctx); err != nil {
+		if err := tx.Rollback(); err != nil {
+			log.WithError(err).Error("Rolling back clear projects cache transaction")
+		}
+		return err
+	}
+
+	for team, projectID := range teamProjects {
+		_, err := querier.AddTeamProject(ctx, gensql.AddTeamProjectParams{
+			Team:    team,
+			Project: projectID,
+		})
+		if err != nil {
+			if err := tx.Rollback(); err != nil {
+				log.WithError(err).Error("Rolling back update projects cache transaction")
+			}
+			return err
+		}
+	}
+
+	if err := tx.Commit(); err != nil {
+		return err
+	}
+
+	return nil
+}
 
 type TeamProjectsUpdater struct {
 	TeamProjectsMapping *auth.TeamProjectsMapping
@@ -34,7 +78,7 @@ type Team struct {
 }
 
 func NewTeamProjectsUpdater(ctx context.Context, consoleURL, consoleAPIKey string, httpClient *http.Client, repo *database.Repo) *TeamProjectsUpdater {
-	teamProjectsSQL, err := repo.GetTeamProjects(ctx)
+	teamProjectsSQL, err := GetTeamProjects(ctx, repo)
 	if err != nil {
 		if !errors.Is(err, sql.ErrNoRows) {
 			log.WithError(err).Errorf("Fetching teams from database")
@@ -70,7 +114,7 @@ func NewMockTeamProjectsUpdater(ctx context.Context, repo *database.Repo) (*Team
 		},
 	}
 
-	if err := repo.UpdateTeamProjectsCache(ctx, map[string]string{
+	if err := UpdateTeamProjectsCache(ctx, repo, map[string]string{
 		"team":   "team-dev-1337",
 		"nada":   "dataplattform-dev-9da3",
 		"aura":   "aura-dev-d9f5",
@@ -194,7 +238,7 @@ func (t *TeamProjectsUpdater) FetchTeamGoogleProjectsMapping(ctx context.Context
 	}
 
 	if isLeader {
-		if err := t.repo.UpdateTeamProjectsCache(ctx, projectMapping); err != nil {
+		if err := UpdateTeamProjectsCache(ctx, t.repo, projectMapping); err != nil {
 			return err
 		}
 	}

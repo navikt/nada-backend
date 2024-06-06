@@ -7,7 +7,7 @@ import (
 	"os"
 
 	"github.com/google/uuid"
-	"github.com/navikt/nada-backend/pkg/graph/models"
+	"github.com/navikt/nada-backend/pkg/service"
 	"google.golang.org/api/googleapi"
 )
 
@@ -34,7 +34,7 @@ func (m *Metabase) revokeMetabaseAccess(ctx context.Context, dsID uuid.UUID, sub
 }
 
 func (m *Metabase) deleteDatabase(ctx context.Context, dsID uuid.UUID) {
-	mbMeta, err := m.repo.GetMetabaseMetadata(ctx, dsID, true)
+	mbMeta, err := service.GetMetabaseMetadata(ctx, dsID, true)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return
@@ -52,7 +52,7 @@ func (m *Metabase) deleteDatabase(ctx context.Context, dsID uuid.UUID) {
 
 func (m *Metabase) removeMetabaseGroupMember(ctx context.Context, dsID uuid.UUID, email string) {
 	log := m.log.WithField("datasetID", dsID)
-	mbMetadata, err := m.repo.GetMetabaseMetadata(ctx, dsID, false)
+	mbMetadata, err := service.GetMetabaseMetadata(ctx, dsID, false)
 	if err != nil {
 		log.WithError(err).Error("getting metabase metadata")
 		return
@@ -78,23 +78,23 @@ func (m *Metabase) removeMetabaseGroupMember(ctx context.Context, dsID uuid.UUID
 
 func (m *Metabase) softDeleteDatabase(ctx context.Context, datasetID uuid.UUID) error {
 	log := m.log.WithField("datasetID", datasetID)
-	mbMeta, er := m.repo.GetMetabaseMetadata(ctx, datasetID, false)
+	mbMeta, er := service.GetMetabaseMetadata(ctx, datasetID, false)
 	if er != nil {
 		return er
 	}
 
-	ds, err := m.repo.GetBigqueryDatasource(ctx, datasetID, false)
-	if err != nil {
-		return err
+	ds, apierr := service.GetBigqueryDatasource(ctx, datasetID, false)
+	if apierr != nil {
+		return apierr
 	}
 
-	err = m.accessMgr.Revoke(ctx, ds.ProjectID, ds.Dataset, ds.Table, "serviceAccount:"+mbMeta.SAEmail)
+	err := m.accessMgr.Revoke(ctx, ds.ProjectID, ds.Dataset, ds.Table, "serviceAccount:"+mbMeta.SAEmail)
 	if err != nil {
 		log.Error("Unable to revoke access")
 		return err
 	}
 
-	if err := m.repo.SoftDeleteMetabaseMetadata(ctx, datasetID); err != nil {
+	if err := service.SoftDeleteMetabaseMetadata(ctx, datasetID); err != nil {
 		log.Error("Unable to soft delete metabase metadata")
 		return err
 	}
@@ -103,7 +103,7 @@ func (m *Metabase) softDeleteDatabase(ctx context.Context, datasetID uuid.UUID) 
 	return nil
 }
 
-func (m *Metabase) deleteAllUsersDatabase(ctx context.Context, datasetID uuid.UUID, mbMeta *models.MetabaseMetadata) {
+func (m *Metabase) deleteAllUsersDatabase(ctx context.Context, datasetID uuid.UUID, mbMeta *service.MetabaseMetadata) {
 	log := m.log.WithField("datasetID", datasetID)
 
 	if err := m.client.deleteDatabase(ctx, mbMeta.DatabaseID); err != nil {
@@ -111,22 +111,22 @@ func (m *Metabase) deleteAllUsersDatabase(ctx context.Context, datasetID uuid.UU
 		return
 	}
 
-	if err := m.repo.DeleteMetabaseMetadata(ctx, mbMeta.DatasetID); err != nil {
+	if err := service.DeleteMetabaseMetadata(ctx, mbMeta.DatasetID); err != nil {
 		log.Errorf("Unable to delete all-users metabase metadata for database %v", mbMeta.DatabaseID)
 	}
 
 	log.Info("Deleted all-users database")
 }
 
-func (m *Metabase) deleteRestrictedDatabase(ctx context.Context, datasetID uuid.UUID, mbMeta *models.MetabaseMetadata) {
+func (m *Metabase) deleteRestrictedDatabase(ctx context.Context, datasetID uuid.UUID, mbMeta *service.MetabaseMetadata) {
 	log := m.log.WithField("datasetID", datasetID)
-	ds, err := m.repo.GetBigqueryDatasource(ctx, datasetID, false)
-	if err != nil {
+	ds, apierr := service.GetBigqueryDatasource(ctx, datasetID, false)
+	if apierr != nil {
 		log.Error("Get bigquery datasource")
 		return
 	}
 
-	err = m.accessMgr.Revoke(ctx, ds.ProjectID, ds.Dataset, ds.Table, "serviceAccount:"+mbMeta.SAEmail)
+	err := m.accessMgr.Revoke(ctx, ds.ProjectID, ds.Dataset, ds.Table, "serviceAccount:"+mbMeta.SAEmail)
 	if err != nil {
 		log.Error("Unable to revoke access")
 		return
@@ -152,7 +152,7 @@ func (m *Metabase) deleteRestrictedDatabase(ctx context.Context, datasetID uuid.
 		return
 	}
 
-	if err := m.repo.DeleteRestrictedMetabaseMetadata(ctx, datasetID); err != nil {
+	if err := service.DeleteRestrictedMetabaseMetadata(ctx, datasetID); err != nil {
 		log.Error("Unable to delete metabase metadata")
 		return
 	}
@@ -177,6 +177,6 @@ func (m *Metabase) deleteServiceAccount(saEmail string) error {
 	return nil
 }
 
-func isRestrictedDatabase(mbMeta *models.MetabaseMetadata) bool {
+func isRestrictedDatabase(mbMeta *service.MetabaseMetadata) bool {
 	return mbMeta.CollectionID != 0
 }

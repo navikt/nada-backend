@@ -13,7 +13,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/navikt/nada-backend/pkg/graph/models"
+	"github.com/navikt/nada-backend/pkg/service"
 )
 
 type Client struct {
@@ -182,7 +182,7 @@ type Details struct {
 	SAEmail            string `json:"sa-email"`
 }
 
-func (c *Client) CreateDatabase(ctx context.Context, team, name, saJSON, saEmail string, ds *models.BigQuery) (int, error) {
+func (c *Client) CreateDatabase(ctx context.Context, team, name, saJSON, saEmail string, ds *service.BigQuery) (int, error) {
 	dbs, err := c.Databases(ctx)
 	if err != nil {
 		return 0, err

@@ -70,13 +70,10 @@ local:
 migrate:
 	go run github.com/pressly/goose/v3/cmd/goose -dir ./pkg/database/migrations postgres "user=postgres dbname=nada sslmode=disable password=postgres" up
 
-generate-graphql:
-	go get -d github.com/99designs/gqlgen@latest && go run github.com/99designs/gqlgen generate
-
 generate-sql:
 	cd pkg && $(GOBIN)/sqlc generate
 
-generate: generate-sql generate-graphql
+generate: generate-sql
 
 linux-build:
 	go build -a -installsuffix cgo -o $(APP) -ldflags "-s $(LDFLAGS)" ./cmd/nada-backend

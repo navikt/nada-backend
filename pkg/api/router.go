@@ -8,7 +8,6 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/99designs/gqlgen/graphql/handler"
 	"github.com/99designs/gqlgen/graphql/playground"
 	"github.com/go-chi/chi"
 	"github.com/go-chi/cors"
@@ -16,7 +15,8 @@ import (
 	"github.com/navikt/nada-backend/pkg/auth"
 	"github.com/navikt/nada-backend/pkg/database"
 	"github.com/navikt/nada-backend/pkg/gcs"
-	"github.com/navikt/nada-backend/pkg/story"
+	"github.com/navikt/nada-backend/pkg/service"
+	. "github.com/navikt/nada-backend/pkg/service"
 	"github.com/navikt/nada-backend/pkg/teamkatalogen"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
@@ -29,44 +29,39 @@ type HTTPAPI interface {
 	Logout(w http.ResponseWriter, r *http.Request)
 }
 
-var ErrUnauthorized = fmt.Errorf("unauthorized")
-
 func New(
 	repo *database.Repo,
 	gcsClient *gcs.Client,
 	teamCatalog teamkatalogen.Teamkatalogen,
 	httpAPI HTTPAPI,
 	authMW auth.MiddlewareHandler,
-	gqlServer *handler.Server,
 	promReg *prometheus.Registry,
 	amplitudeClient amplitude.Amplitude,
 	teamTokenCreds string,
-	log *logrus.Logger,
+	l *logrus.Logger,
 ) *chi.Mux {
+	log = l
 	corsMW := cors.Handler(cors.Options{
 		AllowedOrigins:   []string{"https://*", "http://*"},
 		AllowedMethods:   []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
 		AllowCredentials: true,
 	})
 
-	storyHandler := story.NewHandler(repo, gcsClient, teamCatalog, amplitudeClient, log.WithField("subsystem", "story"))
-
 	router := chi.NewRouter()
 	router.Use(corsMW)
 	router.Route("/api", func(r chi.Router) {
 		r.Handle("/", playground.Handler("GraphQL playground", "/api/query"))
-		r.Handle("/query", authMW(gqlServer))
 		r.HandleFunc("/login", httpAPI.Login)
 		r.HandleFunc("/oauth2/callback", httpAPI.Callback)
 		r.HandleFunc("/logout", httpAPI.Logout)
 	})
 	router.Route(`/{story|quarto}/`, func(r chi.Router) {
-		r.Use(storyHandler.Middleware)
-		r.Get("/*", storyHandler.GetObject)
-		r.Post("/create", storyHandler.Create)
+		r.Use(StoryHTTPMiddleware)
+		r.Get("/*", GetGCSObject)
+		r.Post("/create", CreateStoryHTTP)
 		r.Route("/update/{id}", func(r chi.Router) {
-			r.Put("/", storyHandler.Update)
-			r.Patch("/", storyHandler.Append)
+			r.Put("/", UpdateStoryHTTP)
+			r.Patch("/", AppendFileHTTP)
 		})
 	})
 	router.Route("/internal", func(r chi.Router) {
@@ -84,7 +79,7 @@ func New(
 				return
 			}
 
-			tokenTeamMap, err := repo.GetNadaTokens(r.Context())
+			tokenTeamMap, err := service.GetNadaTokens(r.Context())
 			if err != nil {
 				log.WithError(err).Error("getting nada tokens")
 				w.WriteHeader(http.StatusInternalServerError)
@@ -105,101 +100,101 @@ func New(
 
 	router.Route("/api/dataproducts", func(r chi.Router) {
 		r.Use(authMW)
-		r.Get("/{id}", apiWrapper(func(r *http.Request) (interface{}, *APIError) {
-			return getDataproduct(r.Context(), chi.URLParam(r, "id"))
+		r.Get("/{id}", apiWrapper(func(r *http.Request) (interface{}, *service.APIError) {
+			return service.GetDataproduct(r.Context(), chi.URLParam(r, "id"))
 		}))
-		r.Post("/new", apiWrapper(func(r *http.Request) (interface{}, *APIError) {
+		r.Post("/new", apiWrapper(func(r *http.Request) (interface{}, *service.APIError) {
 			bodyBytes, err := io.ReadAll(r.Body)
 			if err != nil {
-				return nil, NewAPIError(http.StatusBadRequest, fmt.Errorf("error reading body"), "Error reading request body")
+				return nil, service.NewAPIError(http.StatusBadRequest, fmt.Errorf("error reading body"), "Error reading request body")
 			}
 
-			newDataproduct := NewDataproduct{}
+			newDataproduct := service.NewDataproduct{}
 			if err = json.Unmarshal(bodyBytes, &newDataproduct); err != nil {
-				return nil, NewAPIError(http.StatusBadRequest, fmt.Errorf("error unmarshalling request body"), "Error unmarshalling request body")
+				return nil, service.NewAPIError(http.StatusBadRequest, fmt.Errorf("error unmarshalling request body"), "Error unmarshalling request body")
 			}
 
-			return createDataproduct(r.Context(), newDataproduct)
+			return service.CreateDataproduct(r.Context(), newDataproduct)
 		}))
 
-		r.Delete("/{id}", apiWrapper(func(r *http.Request) (interface{}, *APIError) {
-			return deleteDataproduct(r.Context(), chi.URLParam(r, "id"))
+		r.Delete("/{id}", apiWrapper(func(r *http.Request) (interface{}, *service.APIError) {
+			return service.DeleteDataproduct(r.Context(), chi.URLParam(r, "id"))
 		}))
 
-		r.Put("/{id}", apiWrapper(func(r *http.Request) (interface{}, *APIError) {
+		r.Put("/{id}", apiWrapper(func(r *http.Request) (interface{}, *service.APIError) {
 			bodyBytes, err := io.ReadAll(r.Body)
 			if err != nil {
-				return nil, NewAPIError(http.StatusBadRequest, fmt.Errorf("error reading body"), "Error reading request body")
+				return nil, service.NewAPIError(http.StatusBadRequest, fmt.Errorf("error reading body"), "Error reading request body")
 			}
 
-			dp := UpdateDataproduct{}
+			dp := service.UpdateDataproductDto{}
 			if err = json.Unmarshal(bodyBytes, &dp); err != nil {
-				return nil, NewAPIError(http.StatusBadRequest, fmt.Errorf("error unmarshalling request body"), "Error unmarshalling request body")
+				return nil, service.NewAPIError(http.StatusBadRequest, fmt.Errorf("error unmarshalling request body"), "Error unmarshalling request body")
 			}
 
-			return updateDataproduct(r.Context(), chi.URLParam(r, "id"), dp)
+			return service.UpdateDataproduct(r.Context(), chi.URLParam(r, "id"), dp)
 		}))
 
 	})
 
 	router.Route("/api/datasets", func(r chi.Router) {
 		r.Use(authMW)
-		r.Get("/", apiWrapper(func(r *http.Request) (interface{}, *APIError) {
-			return getDatasetsMinimal(r.Context())
+		r.Get("/", apiWrapper(func(r *http.Request) (interface{}, *service.APIError) {
+			return service.GetDatasetsMinimal(r.Context())
 		}))
-		r.Get("/{id}", apiWrapper(func(r *http.Request) (interface{}, *APIError) {
-			return getDataset(r.Context(), chi.URLParam(r, "id"))
+		r.Get("/{id}", apiWrapper(func(r *http.Request) (interface{}, *service.APIError) {
+			return service.GetDataset(r.Context(), chi.URLParam(r, "id"))
 		}))
-		r.Post("/{id}/map", apiWrapper(func(r *http.Request) (interface{}, *APIError) {
+		r.Post("/{id}/map", apiWrapper(func(r *http.Request) (interface{}, *service.APIError) {
 			bodyBytes, err := io.ReadAll(r.Body)
 			if err != nil {
-				return nil, NewAPIError(http.StatusBadRequest, fmt.Errorf("error reading body"), "Error reading request body")
+				return nil, service.NewAPIError(http.StatusBadRequest, fmt.Errorf("error reading body"), "Error reading request body")
 			}
 
-			services := DatasetMap{}
+			services := service.DatasetMap{}
 			if err = json.Unmarshal(bodyBytes, &services); err != nil {
-				return nil, NewAPIError(http.StatusBadRequest, fmt.Errorf("error unmarshalling request body"), "Error unmarshalling request body")
+				return nil, service.NewAPIError(http.StatusBadRequest, fmt.Errorf("error unmarshalling request body"), "Error unmarshalling request body")
 			}
-			return mapDataset(r.Context(), chi.URLParam(r, "id"), services.Services)
+			return service.MapDataset(r.Context(), chi.URLParam(r, "id"), services.Services)
 		}))
-		r.Post("/new", apiWrapper(func(r *http.Request) (interface{}, *APIError) {
+		r.Post("/new", apiWrapper(func(r *http.Request) (interface{}, *service.APIError) {
 			bodyBytes, err := io.ReadAll(r.Body)
 			if err != nil {
-				return nil, NewAPIError(http.StatusBadRequest, fmt.Errorf("error reading body"), "Error reading request body")
+				return nil, service.NewAPIError(http.StatusBadRequest, fmt.Errorf("error reading body"), "Error reading request body")
 			}
 
-			datasetInput := NewDataset{}
+			datasetInput := service.NewDataset{}
 			if err = json.Unmarshal(bodyBytes, &datasetInput); err != nil {
-				return nil, NewAPIError(http.StatusBadRequest, fmt.Errorf("error unmarshalling request body"), "Error unmarshalling request body")
+				return nil, service.NewAPIError(http.StatusBadRequest, fmt.Errorf("error unmarshalling request body"), "Error unmarshalling request body")
 			}
-			return createDataset(r.Context(), datasetInput)
+			return service.CreateDataset(r.Context(), datasetInput)
 		}))
-		r.Put("/{id}", apiWrapper(func(r *http.Request) (interface{}, *APIError) {
+		r.Put("/{id}", apiWrapper(func(r *http.Request) (interface{}, *service.APIError) {
 			bodyBytes, err := io.ReadAll(r.Body)
 			if err != nil {
-				return nil, NewAPIError(http.StatusBadRequest, fmt.Errorf("error reading body"), "Error reading request body")
+				return nil, service.NewAPIError(http.StatusBadRequest, fmt.Errorf("error reading body"), "Error reading request body")
 			}
 
-			datasetInput := UpdateDataset{}
+			datasetInput := service.UpdateDatasetDto{}
 			if err = json.Unmarshal(bodyBytes, &datasetInput); err != nil {
-				return nil, NewAPIError(http.StatusBadRequest, fmt.Errorf("error unmarshalling request body"), "Error unmarshalling request body")
+				return nil, service.NewAPIError(http.StatusBadRequest, fmt.Errorf("error unmarshalling request body"), "Error unmarshalling request body")
 			}
-			return updateDataset(r.Context(), chi.URLParam(r, "id"), datasetInput)
+			return service.UpdateDataset(r.Context(), chi.URLParam(r, "id"), datasetInput)
 		}))
-		r.Delete("/{id}", apiWrapper(func(r *http.Request) (interface{}, *APIError) {
-			return deleteDataset(r.Context(), chi.URLParam(r, "id"))
+		r.Delete("/{id}", apiWrapper(func(r *http.Request) (interface{}, *service.APIError) {
+			return service.DeleteDataset(r.Context(), chi.URLParam(r, "id"))
 		}))
-		r.Get("/pseudo/accessible", apiWrapper(func(r *http.Request) (interface{}, *APIError) {
-			return getAccessiblePseudoDatasetsForUser(r.Context())
+		r.Get("/pseudo/accessible", apiWrapper(func(r *http.Request) (interface{}, *service.APIError) {
+			return service.GetAccessiblePseudoDatasetsForUser(r.Context())
 		}))
 	})
 
 	router.Route("/api/accessRequests", func(r chi.Router) {
 		r.Use(authMW)
 
-		r.Get("/", apiWrapper(func(r *http.Request) (interface{}, *APIError) {
+		r.Get("/", apiWrapper(func(r *http.Request) (interface{}, *service.APIError) {
 			datasetID := r.URL.Query().Get("datasetId")
-			return getAccessRequests(r.Context(), datasetID)
+			return service.GetAccessRequests(r.Context(), datasetID)
 		}))
 
 		r.Post("/process/{id}", apiWrapper(func(r *http.Request) (interface{}, *APIError) {
@@ -208,11 +203,11 @@ func New(
 			action := r.URL.Query().Get("action")
 			switch action {
 			case "approve":
-				return "", approveAccessRequest(r.Context(), accessRequestID)
+				return "", service.ApproveAccessRequest(r.Context(), accessRequestID)
 			case "deny":
-				return "", denyAccessRequest(r.Context(), accessRequestID, &reason)
+				return "", service.DenyAccessRequest(r.Context(), accessRequestID, &reason)
 			default:
-				return nil, NewAPIError(http.StatusBadRequest, fmt.Errorf("invalid action: %s", action), "Invalid action")
+				return nil, service.NewAPIError(http.StatusBadRequest, fmt.Errorf("invalid action: %s", action), "Invalid action")
 			}
 		}))
 
@@ -226,12 +221,12 @@ func New(
 			if err = json.Unmarshal(bodyBytes, &newAccessRequest); err != nil {
 				return nil, NewAPIError(http.StatusBadRequest, fmt.Errorf("error unmarshalling request body"), "Error unmarshalling request body")
 			}
-			return nil, createAccessRequest(r.Context(), newAccessRequest)
+			return nil, CreateAccessRequest(r.Context(), newAccessRequest)
 		}))
 
 		r.Delete("/{id}", apiWrapper(func(r *http.Request) (interface{}, *APIError) {
 			accessRequestID := chi.URLParam(r, "id")
-			return nil, deleteAccessRequest(r.Context(), accessRequestID)
+			return nil, DeleteAccessRequest(r.Context(), accessRequestID)
 		}))
 
 		r.Put("/{id}", apiWrapper(func(r *http.Request) (interface{}, *APIError) {
@@ -244,14 +239,14 @@ func New(
 			if err = json.Unmarshal(bodyBytes, &updateAccessRequestDTO); err != nil {
 				return nil, NewAPIError(http.StatusBadRequest, fmt.Errorf("error unmarshalling request body"), "Error unmarshalling request body")
 			}
-			return nil, updateAccessRequest(r.Context(), updateAccessRequestDTO)
+			return nil, UpdateAccessRequest(r.Context(), updateAccessRequestDTO)
 		}))
 	})
 
 	router.Route("/api/polly", func(r chi.Router) {
 		r.Get("/", apiWrapper(func(r *http.Request) (interface{}, *APIError) {
 			q := r.URL.Query().Get("query")
-			return searchPolly(r.Context(), q)
+			return SearchPolly(r.Context(), q)
 		}))
 	})
 
@@ -274,7 +269,7 @@ func New(
 	router.Route("/api/keywords", func(r chi.Router) {
 		r.Use(authMW)
 		r.Get("/", apiWrapper(func(r *http.Request) (interface{}, *APIError) {
-			return getKeywordsListSortedByPopularity(r.Context())
+			return GetKeywordsListSortedByPopularity(r.Context())
 		}))
 
 		r.Post("/", apiWrapper(func(r *http.Request) (interface{}, *APIError) {
@@ -297,7 +292,7 @@ func New(
 			projectID := r.URL.Query().Get("projectId")
 			datasetID := r.URL.Query().Get("datasetId")
 			tableID := r.URL.Query().Get("tableId")
-			return getBQColumns(r.Context(), projectID, datasetID, tableID)
+			return GetBQColumns(r.Context(), projectID, datasetID, tableID)
 		}))
 	})
 
@@ -305,14 +300,14 @@ func New(
 		r.Get("/", apiWrapper(func(r *http.Request) (interface{}, *APIError) {
 			projectID := r.URL.Query().Get("projectId")
 			datasetID := r.URL.Query().Get("datasetId")
-			return getBQTables(r.Context(), projectID, datasetID)
+			return GetBQTables(r.Context(), projectID, datasetID)
 		}))
 	})
 
 	router.Route("/api/bigquery/datasets", func(r chi.Router) {
 		r.Get("/", apiWrapper(func(r *http.Request) (interface{}, *APIError) {
 			projectID := r.URL.Query().Get("projectId")
-			return getBQDatasets(r.Context(), projectID)
+			return GetBQDatasets(r.Context(), projectID)
 		}))
 	})
 
@@ -341,7 +336,7 @@ func New(
 	router.Route("/api/userData", func(r chi.Router) {
 		r.Use(authMW)
 		r.Get("/", apiWrapper(func(r *http.Request) (interface{}, *APIError) {
-			return getUserData(r.Context())
+			return GetUserData(r.Context())
 		}))
 	})
 
@@ -350,7 +345,7 @@ func New(
 			query := r.URL.Query()
 
 			if channel, ok := query["channel"]; ok && len(channel) > 0 {
-				return isValidSlackChannel(channel[0])
+				return IsValidSlackChannel(channel[0])
 			}
 			return nil, NewAPIError(http.StatusBadRequest, fmt.Errorf("missing channel parameter"), "Missing channel parameter")
 		}))
@@ -359,15 +354,15 @@ func New(
 	router.Route("/api/stories", func(r chi.Router) {
 		r.Use(authMW)
 		r.Get("/{id}", apiWrapper(func(r *http.Request) (interface{}, *APIError) {
-			return getStoryMetadata(r.Context(), chi.URLParam(r, "id"))
+			return GetStoryMetadata(r.Context(), chi.URLParam(r, "id"))
 		}))
 		r.Post("/new", apiWrapper(func(r *http.Request) (interface{}, *APIError) {
-			newStory, files, apiErr := parseStoryFilesForm(r.Context(), r)
+			newStory, files, apiErr := ParseStoryFilesForm(r.Context(), r)
 			if apiErr != nil {
 				return nil, apiErr
 			}
 
-			return createStory(r.Context(), newStory, files)
+			return CreateStory(r.Context(), newStory, files)
 		}))
 		r.Put("/{id}", apiWrapper(func(r *http.Request) (interface{}, *APIError) {
 			bodyBytes, err := io.ReadAll(r.Body)
@@ -380,10 +375,10 @@ func New(
 				return nil, NewAPIError(http.StatusBadRequest, err, "Error unmarshalling request body")
 			}
 
-			return updateStory(r.Context(), chi.URLParam(r, "id"), input)
+			return UpdateStory(r.Context(), chi.URLParam(r, "id"), input)
 		}))
 		r.Delete("/{id}", apiWrapper(func(r *http.Request) (interface{}, *APIError) {
-			return deleteStory(r.Context(), chi.URLParam(r, "id"))
+			return DeleteStory(r.Context(), chi.URLParam(r, "id"))
 		}))
 	})
 
@@ -399,12 +394,12 @@ func New(
 			if err = json.Unmarshal(bodyBytes, &grantAccessData); err != nil {
 				return nil, NewAPIError(http.StatusBadRequest, fmt.Errorf("error unmarshalling request body"), "Error unmarshalling request body")
 			}
-			return nil, grantAccessToDataset(r.Context(), grantAccessData)
+			return nil, GrantAccessToDataset(r.Context(), grantAccessData)
 		}))
 
 		r.Post("/revoke", apiWrapper(func(r *http.Request) (interface{}, *APIError) {
 			accessID := r.URL.Query().Get("id")
-			return nil, revokeAccessToDataset(r.Context(), accessID)
+			return nil, RevokeAccessToDataset(r.Context(), accessID)
 		}))
 
 	})
@@ -421,20 +416,20 @@ func New(
 			if err = json.Unmarshal(bodyBytes, &newJoinableView); err != nil {
 				return nil, NewAPIError(http.StatusBadRequest, fmt.Errorf("error unmarshalling request body"), "Error unmarshalling request body")
 			}
-			return createJoinableViews(r.Context(), newJoinableView)
+			return CreateJoinableViews(r.Context(), newJoinableView)
 		}))
 		r.Get("/", apiWrapper(func(r *http.Request) (interface{}, *APIError) {
-			return getJoinableViewsForUser(r.Context())
+			return GetJoinableViewsForUser(r.Context())
 		}))
 		r.Get("/{id}", apiWrapper(func(r *http.Request) (interface{}, *APIError) {
-			return getJoinableView(r.Context(), chi.URLParam(r, "id"))
+			return GetJoinableView(r.Context(), chi.URLParam(r, "id"))
 		}))
 
 	})
 	router.Route("/api/insightProducts", func(r chi.Router) {
 		r.Use(authMW)
 		r.Get("/{id}", apiWrapper(func(r *http.Request) (interface{}, *APIError) {
-			return getInsightProduct(r.Context(), chi.URLParam(r, "id"))
+			return GetInsightProduct(r.Context(), chi.URLParam(r, "id"))
 		}))
 
 		r.Post("/new", apiWrapper(func(r *http.Request) (interface{}, *APIError) {
@@ -448,7 +443,7 @@ func New(
 				return nil, NewAPIError(http.StatusBadRequest, fmt.Errorf("error unmarshalling request body"), "Error unmarshalling request body")
 			}
 
-			return createInsightProduct(r.Context(), input)
+			return CreateInsightProduct(r.Context(), input)
 		}))
 
 		r.Put("/{id}", apiWrapper(func(r *http.Request) (interface{}, *APIError) {
@@ -462,11 +457,11 @@ func New(
 				return nil, NewAPIError(http.StatusBadRequest, fmt.Errorf("error unmarshalling request body"), "Error unmarshalling request body")
 			}
 
-			return updateInsightProduct(r.Context(), chi.URLParam(r, "id"), input)
+			return UpdateInsightProduct(r.Context(), chi.URLParam(r, "id"), input)
 		}))
 
 		r.Delete("/{id}", apiWrapper(func(r *http.Request) (interface{}, *APIError) {
-			return deleteInsightProduct(r.Context(), chi.URLParam(r, "id"))
+			return DeleteInsightProduct(r.Context(), chi.URLParam(r, "id"))
 		}))
 	})
 
