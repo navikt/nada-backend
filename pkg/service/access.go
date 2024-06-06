@@ -12,7 +12,6 @@ import (
 	"github.com/google/uuid"
 	"github.com/navikt/nada-backend/pkg/auth"
 	"github.com/navikt/nada-backend/pkg/bqclient"
-	"github.com/navikt/nada-backend/pkg/config"
 	"github.com/navikt/nada-backend/pkg/database/gensql"
 )
 
@@ -395,7 +394,7 @@ func DenyAccessRequest(ctx context.Context, accessRequestID string, reason *stri
 }
 
 // id is the id of dataset_access table
-func RevokeAccessToDataset(ctx context.Context, id string) *APIError {
+func RevokeAccessToDataset(ctx context.Context, id, gcpProjectID string) *APIError {
 	accessID, err := uuid.Parse(id)
 	if err != nil {
 		return NewAPIError(http.StatusBadRequest, err, "revokeAccessToDataset(): invalid accessID")
@@ -440,7 +439,7 @@ func RevokeAccessToDataset(ctx context.Context, id string) *APIError {
 		}
 		for _, jv := range joinableViews {
 			joinableViewName := bqclient.MakeJoinableViewName(bqds.ProjectID, bqds.Dataset, bqds.Table)
-			if err := accessManager.Revoke(ctx, config.Conf.CentralDataProject, jv.Dataset, joinableViewName, access.Subject); err != nil {
+			if err := accessManager.Revoke(ctx, gcpProjectID, jv.Dataset, joinableViewName, access.Subject); err != nil {
 				return NewAPIError(http.StatusInternalServerError, err, "revokeAccessToDataset(): failed to revoke access")
 			}
 		}
@@ -475,7 +474,7 @@ func getAccessToDataset(ctx context.Context, id uuid.UUID) (*Access, error) {
 	}, nil
 }
 
-func GrantAccessToDataset(ctx context.Context, input GrantAccessData) *APIError {
+func GrantAccessToDataset(ctx context.Context, input GrantAccessData, gcpProjectID string) *APIError {
 	if input.Expires != nil && input.Expires.Before(time.Now()) {
 		return NewAPIError(http.StatusBadRequest,
 			fmt.Errorf("datoen tilgangen skal utløpe må være fram i tid"), "grantAccessToDataset(): invalid expires date")
@@ -524,7 +523,7 @@ func GrantAccessToDataset(ctx context.Context, input GrantAccessData) *APIError 
 		}
 		for _, jv := range joinableViews {
 			joinableViewName := bqclient.MakeJoinableViewName(bqds.ProjectID, bqds.Dataset, bqds.Table)
-			if err := accessManager.Grant(ctx, config.Conf.CentralDataProject, jv.Dataset, joinableViewName, subjWithType); err != nil {
+			if err := accessManager.Grant(ctx, gcpProjectID, jv.Dataset, joinableViewName, subjWithType); err != nil {
 				return NewAPIError(http.StatusInternalServerError, err, "grantAccessToDataset(): failed to grant access to joinable views")
 			}
 		}

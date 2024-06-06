@@ -16,12 +16,12 @@ type Azure struct {
 	clientID     string
 	clientSecret string
 	clientTenant string
-	hostname     string
+	redirectURL  string
 
 	provider *oidc.Provider
 }
 
-func NewAzure(clientID, clientSecret, clientTenant, hostname string) *Azure {
+func NewAzure(clientID, clientSecret, clientTenant, redirectURL string) *Azure {
 	provider, err := oidc.NewProvider(context.Background(), fmt.Sprintf("https://login.microsoftonline.com/%v/v2.0", clientTenant))
 	if err != nil {
 		panic(err)
@@ -31,7 +31,7 @@ func NewAzure(clientID, clientSecret, clientTenant, hostname string) *Azure {
 		clientID:     clientID,
 		clientSecret: clientSecret,
 		clientTenant: clientTenant,
-		hostname:     hostname,
+		redirectURL:  redirectURL,
 		provider:     provider,
 	}
 	a.setupOAuth2()
@@ -39,18 +39,11 @@ func NewAzure(clientID, clientSecret, clientTenant, hostname string) *Azure {
 }
 
 func (a *Azure) setupOAuth2() {
-	var callbackURL string
-	if a.hostname == "localhost" {
-		callbackURL = "http://localhost:8080/api/oauth2/callback"
-	} else {
-		callbackURL = fmt.Sprintf("https://%v/api/oauth2/callback", a.hostname)
-	}
-
 	a.Config = oauth2.Config{
 		ClientID:     a.clientID,
 		ClientSecret: a.clientSecret,
 		Endpoint:     a.provider.Endpoint(),
-		RedirectURL:  callbackURL,
+		RedirectURL:  a.redirectURL,
 		Scopes:       []string{"openid", fmt.Sprintf("%s/.default", a.clientID)},
 	}
 }

@@ -38,9 +38,9 @@ func New(
 	promReg *prometheus.Registry,
 	amplitudeClient amplitude.Amplitude,
 	teamTokenCreds string,
-	l *logrus.Logger,
+	gcpProjectID string,
+	log *logrus.Logger,
 ) *chi.Mux {
-	log = l
 	corsMW := cors.Handler(cors.Options{
 		AllowedOrigins:   []string{"https://*", "http://*"},
 		AllowedMethods:   []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
@@ -417,12 +417,12 @@ func New(
 			if err = json.Unmarshal(bodyBytes, &grantAccessData); err != nil {
 				return nil, NewAPIError(http.StatusBadRequest, fmt.Errorf("error unmarshalling request body"), "Error unmarshalling request body")
 			}
-			return nil, GrantAccessToDataset(r.Context(), grantAccessData)
+			return nil, GrantAccessToDataset(r.Context(), grantAccessData, gcpProjectID)
 		}))
 
 		r.Post("/revoke", apiWrapper(func(r *http.Request) (interface{}, *APIError) {
 			accessID := r.URL.Query().Get("id")
-			return nil, RevokeAccessToDataset(r.Context(), accessID)
+			return nil, RevokeAccessToDataset(r.Context(), accessID, gcpProjectID)
 		}))
 
 	})
