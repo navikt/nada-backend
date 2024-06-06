@@ -141,11 +141,6 @@ func main() {
 			log.Fatal(err)
 		}
 	}
-	err = createMetabaseSyncer(ctx, log.WithField("subsystem", "metabase"), repo, accessMgr, eventMgr)
-	if err != nil {
-		log.WithError(err).Fatal("running metabase")
-	}
-
 	var bqClient bqclient.BQClient = bqclient.NewMock()
 	if !config.Conf.SkipMetadataSync {
 		datacatalogClient, err := bqclient.New(ctx, config.Conf.CentralDataProject, config.Conf.PseudoDataset)
@@ -169,6 +164,12 @@ func main() {
 		Addr:    config.Conf.BindAddress,
 		Handler: srv,
 	}
+
+	err = createMetabaseSyncer(ctx, log.WithField("subsystem", "metabase"), repo, accessMgr, eventMgr)
+	if err != nil {
+		log.WithError(err).Fatal("running metabase")
+	}
+
 	go access_ensurer.NewEnsurer(nil, accessMgr, bqClient, googleGroups, config.Conf.CentralDataProject, promErrs, log.WithField("subsystem", "accessensurer")).Run(ctx, AccessEnsurerFrequency)
 
 	go func() {
