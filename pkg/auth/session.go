@@ -2,6 +2,7 @@ package auth
 
 import (
 	"context"
+	"database/sql"
 	"time"
 
 	"github.com/navikt/nada-backend/pkg/database/gensql"
@@ -16,6 +17,10 @@ type Session struct {
 	Name        string `json:"name"`
 	Created     time.Time
 	Expires     time.Time
+}
+
+func Init(db *sql.DB) {
+	queries = gensql.New(db)
 }
 
 func CreateSession(ctx context.Context, session *Session) error {

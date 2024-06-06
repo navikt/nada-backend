@@ -157,6 +157,7 @@ func main() {
 	}
 
 	log.Info("Listening on :8080")
+	auth.Init(repo.GetDB())
 	srv := api.New(repo, gcsClient, teamcatalogue, httpAPI, authenticatorMiddleware, prom(repo.Metrics()...), amplitudeClient, config.Conf.NadaTokenCreds, log)
 	service.Init(repo.GetDB(), teamcatalogue, log, teamProjectsUpdater.TeamProjectsMapping, eventMgr, slackClient, bqClient, pollyAPI, teamProjectsUpdater.TeamProjectsMapping, gcsClient, amplitudeClient)
 
