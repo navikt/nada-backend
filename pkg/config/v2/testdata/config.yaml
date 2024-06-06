@@ -31,7 +31,7 @@ treatment_catalogue:
     api_url: http://localhost:8080/api
 google_groups:
     impersonation_subject: something@example.com
-    credential_file: /some/secret/path
+    credentials_file: /some/secret/path
 gcp:
     project: fake_project
     region: europe-north1

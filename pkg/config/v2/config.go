@@ -68,9 +68,6 @@ func (c Config) Validate() error {
 		validation.Field(&c.LoginPage, validation.Required),
 		validation.Field(&c.AmplitudeAPIKey, validation.Required),
 		validation.Field(&c.LogLevel, validation.Required),
-		validation.Field(&c.MockAuth, validation.Required),
-		validation.Field(&c.SkipMetadataSync, validation.Required),
-		validation.Field(&c.Debug, validation.Required),
 	)
 }
 
@@ -108,13 +105,13 @@ func (c NaisConsole) Validate() error {
 
 type GoogleGroups struct {
 	ImpersonationSubject string `yaml:"impersonation_subject"`
-	CredentialFile       string `yaml:"credential_file"`
+	CredentialsFile      string `yaml:"credentials_file"`
 }
 
 func (g GoogleGroups) Validate() error {
 	return validation.ValidateStruct(&g,
 		validation.Field(&g.ImpersonationSubject, validation.Required),
-		validation.Field(&g.CredentialFile, validation.Required),
+		validation.Field(&g.CredentialsFile, validation.Required),
 	)
 }
 

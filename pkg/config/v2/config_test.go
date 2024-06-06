@@ -57,7 +57,7 @@ func newFakeConfig() config.Config {
 		},
 		GoogleGroups: config.GoogleGroups{
 			ImpersonationSubject: "something@example.com",
-			CredentialFile:       "/some/secret/path",
+			CredentialsFile:      "/some/secret/path",
 		},
 		GCP: config.GCP{
 			Project: "fake_project",
