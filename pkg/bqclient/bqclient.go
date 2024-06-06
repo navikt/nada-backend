@@ -3,6 +3,7 @@ package bqclient
 import (
 	"context"
 	"fmt"
+	"google.golang.org/api/option"
 	"io"
 	"strconv"
 	"strings"
@@ -40,6 +41,7 @@ type JoinableViewDatasource struct {
 }
 
 type BigqueryClient struct {
+	endpoint           string
 	centralDataProject string
 	pseudoDataset      string
 }
@@ -114,10 +116,11 @@ type BigQueryTable struct {
 	Type         BigQueryType `json:"type"`
 }
 
-func New(ctx context.Context, centralDataProject, pseudoDataset string) (*BigqueryClient, error) {
+func New(centralDataProject, pseudoDataset, endpoint string) (*BigqueryClient, error) {
 	return &BigqueryClient{
 		centralDataProject: centralDataProject,
 		pseudoDataset:      pseudoDataset,
+		endpoint:           endpoint,
 	}, nil
 }
 
@@ -138,8 +141,23 @@ func isSupportedTableType(tableType bigquery.TableType) bool {
 	return false
 }
 
+func (b *BigqueryClient) clientFromProjectID(ctx context.Context, projectID string) (*bigquery.Client, error) {
+	var options []option.ClientOption
+
+	if b.endpoint != "" {
+		options = append(options, option.WithEndpoint(b.endpoint))
+	}
+
+	client, err := bigquery.NewClient(ctx, projectID, options...)
+	if err != nil {
+		return nil, fmt.Errorf("creating bigquery client: %w", err)
+	}
+
+	return client, nil
+}
+
 func (b *BigqueryClient) GetTables(ctx context.Context, projectID, datasetID string) ([]*BigQueryTable, error) {
-	client, err := bigquery.NewClient(ctx, projectID)
+	client, err := b.clientFromProjectID(ctx, projectID)
 	if err != nil {
 		return nil, err
 	}
@@ -176,7 +194,7 @@ func (b *BigqueryClient) GetTables(ctx context.Context, projectID, datasetID str
 }
 
 func (b *BigqueryClient) GetDatasets(ctx context.Context, projectID string) ([]string, error) {
-	client, err := bigquery.NewClient(ctx, projectID)
+	client, err := b.clientFromProjectID(ctx, projectID)
 	if err != nil {
 		return nil, err
 	}
@@ -197,7 +215,7 @@ func (b *BigqueryClient) GetDatasets(ctx context.Context, projectID string) ([]s
 }
 
 func (b *BigqueryClient) TableMetadata(ctx context.Context, projectID string, datasetID string, tableID string) (BigqueryMetadata, error) {
-	client, err := bigquery.NewClient(ctx, projectID)
+	client, err := b.clientFromProjectID(ctx, projectID)
 	if err != nil {
 		return BigqueryMetadata{}, err
 	}
@@ -263,10 +281,10 @@ func composePseudoViewQuery(projectID, datasetID, tableID string, targetColumns 
 	return qGenSalt + " " + qSelect + " " + qFrom
 }
 
-func createDataset(ctx context.Context, projectID, datasetID string) error {
-	client, err := bigquery.NewClient(ctx, projectID)
+func (b *BigqueryClient) createDataset(ctx context.Context, projectID, datasetID string) error {
+	client, err := b.clientFromProjectID(ctx, projectID)
 	if err != nil {
-		return fmt.Errorf("bigquery.NewClient: %v", err)
+		return err
 	}
 	defer client.Close()
 
@@ -286,13 +304,13 @@ func createDataset(ctx context.Context, projectID, datasetID string) error {
 }
 
 func (b *BigqueryClient) CreatePseudonymisedView(ctx context.Context, projectID, datasetID, tableID string, piiColumns []string) (string, string, string, error) {
-	client, err := bigquery.NewClient(ctx, projectID)
+	client, err := b.clientFromProjectID(ctx, projectID)
 	if err != nil {
-		return "", "", "", fmt.Errorf("bigquery.NewClient: %v", err)
+		return "", "", "", err
 	}
 	defer client.Close()
 
-	if err := createDataset(ctx, projectID, b.pseudoDataset); err != nil {
+	if err := b.createDataset(ctx, projectID, b.pseudoDataset); err != nil {
 		return "", "", "", fmt.Errorf("create pseudo dataset: %v", err)
 	}
 
@@ -320,7 +338,7 @@ func (b *BigqueryClient) CreatePseudonymisedView(ctx context.Context, projectID,
 }
 
 func (b *BigqueryClient) GetTableMetadata(ctx context.Context, projectID string, datasetID string, tableID string) (BigqueryMetadata, error) {
-	client, err := bigquery.NewClient(ctx, projectID)
+	client, err := b.clientFromProjectID(ctx, projectID)
 	if err != nil {
 		return BigqueryMetadata{}, err
 	}
@@ -397,9 +415,9 @@ func (b *BigqueryClient) CreateJoinableView(ctx context.Context, joinableDataset
 	query := b.ComposeJoinableViewQuery(*datasource.RefDatasource, joinableDatasetID)
 
 	fmt.Println(query)
-	centralProjectclient, err := bigquery.NewClient(ctx, b.centralDataProject)
+	centralProjectclient, err := b.clientFromProjectID(ctx, b.centralDataProject)
 	if err != nil {
-		return "", fmt.Errorf("bigquery.NewClient: %v", err)
+		return "", err
 	}
 	defer centralProjectclient.Close()
 
@@ -417,9 +435,9 @@ func (b *BigqueryClient) CreateJoinableView(ctx context.Context, joinableDataset
 }
 
 func (b *BigqueryClient) CreateJoinableViewsForUser(ctx context.Context, name string, datasources []JoinableViewDatasource) (string, string, map[string]string, error) {
-	client, err := bigquery.NewClient(ctx, b.centralDataProject)
+	client, err := b.clientFromProjectID(ctx, b.centralDataProject)
 	if err != nil {
-		return "", "", nil, fmt.Errorf("bigquery.NewClient: %v", err)
+		return "", "", nil, err
 	}
 	defer client.Close()
 
@@ -450,9 +468,9 @@ func (b *BigqueryClient) CreateJoinableViewsForUser(ctx context.Context, name st
 }
 
 func (b *BigqueryClient) createDatasetInCentralProject(ctx context.Context, datasetID string) (string, error) {
-	client, err := bigquery.NewClient(ctx, b.centralDataProject)
+	client, err := b.clientFromProjectID(ctx, b.centralDataProject)
 	if err != nil {
-		return "", fmt.Errorf("bigquery.NewClient: %v", err)
+		return "", err
 	}
 	defer client.Close()
 
@@ -478,9 +496,9 @@ func (b *BigqueryClient) createDatasetInCentralProject(ctx context.Context, data
 }
 
 func (b *BigqueryClient) createSecretTable(ctx context.Context, datasetID, tableID string) error {
-	client, err := bigquery.NewClient(ctx, b.centralDataProject)
+	client, err := b.clientFromProjectID(ctx, b.centralDataProject)
 	if err != nil {
-		return fmt.Errorf("bigquery.NewClient: %v", err)
+		return err
 	}
 	defer client.Close()
 
@@ -513,9 +531,9 @@ func (b *BigqueryClient) createSecretTable(ctx context.Context, datasetID, table
 }
 
 func (b *BigqueryClient) insertSecretIfNotExists(ctx context.Context, secretDatasetID, secretTableID, key string) error {
-	client, err := bigquery.NewClient(ctx, b.centralDataProject)
+	client, err := b.clientFromProjectID(ctx, b.centralDataProject)
 	if err != nil {
-		return fmt.Errorf("bigquery.NewClient: %v", err)
+		return err
 	}
 	defer client.Close()
 
@@ -557,9 +575,9 @@ func (b *BigqueryClient) DeletePseudoView(ctx context.Context, pseudoProjectID, 
 }
 
 func (b *BigqueryClient) deleteBigqueryTable(ctx context.Context, projectID, datasetID, tableID string) error {
-	client, err := bigquery.NewClient(ctx, projectID)
+	client, err := b.clientFromProjectID(ctx, projectID)
 	if err != nil {
-		return fmt.Errorf("bigquery.NewClient: %v", err)
+		return err
 	}
 	defer client.Close()
 

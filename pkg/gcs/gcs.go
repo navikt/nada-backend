@@ -3,6 +3,7 @@ package gcs
 import (
 	"context"
 	"fmt"
+	"google.golang.org/api/option"
 	"io/ioutil"
 	"mime/multipart"
 	"strings"
@@ -18,8 +19,14 @@ type Client struct {
 	log        *logrus.Entry
 }
 
-func New(ctx context.Context, bucketName string, log *logrus.Entry) (*Client, error) {
-	client, err := storage.NewClient(ctx)
+func New(ctx context.Context, bucketName, endpoint string, log *logrus.Entry) (*Client, error) {
+	var options []option.ClientOption
+
+	if endpoint != "" {
+		options = append(options, option.WithEndpoint(endpoint))
+	}
+
+	client, err := storage.NewClient(ctx, options...)
 	if err != nil {
 		return nil, err
 	}

@@ -255,6 +255,7 @@ func (g GCP) Validate() error {
 }
 
 type GCS struct {
+	Endpoint        string `yaml:"endpoint"`
 	StoryBucketName string `yaml:"story_bucket_name"`
 }
 
@@ -265,6 +266,7 @@ func (g GCS) Validate() error {
 }
 
 type BigQuery struct {
+	Endpoint               string `yaml:"endpoint"`
 	PseudoViewsDatasetName string `yaml:"pseudo_views_dataset_name"`
 }
 

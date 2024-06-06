@@ -3,6 +3,7 @@ package access
 import (
 	"context"
 	"fmt"
+	"google.golang.org/api/option"
 	"strings"
 	"time"
 
@@ -17,16 +18,35 @@ type AccessManager interface {
 	AddToAuthorizedViews(ctx context.Context, srcProjectID, srcDataset, sinkProjectID, sinkDataset, sinkTable string) error
 }
 
-type Bigquery struct{}
+type Bigquery struct {
+	endpoint string
+}
 
-func NewBigquery() *Bigquery {
-	return &Bigquery{}
+func NewBigquery(endpoint string) *Bigquery {
+	return &Bigquery{
+		endpoint: endpoint,
+	}
+}
+
+func (b Bigquery) clientFromProjectID(ctx context.Context, projectID string) (*bigquery.Client, error) {
+	var options []option.ClientOption
+
+	if b.endpoint != "" {
+		options = append(options, option.WithEndpoint(b.endpoint))
+	}
+
+	client, err := bigquery.NewClient(ctx, projectID, options...)
+	if err != nil {
+		return nil, fmt.Errorf("creating bigquery client: %w", err)
+	}
+
+	return client, nil
 }
 
 func (b Bigquery) Grant(ctx context.Context, projectID, datasetID, tableID, member string) error {
-	bqClient, err := bigquery.NewClient(ctx, projectID)
+	bqClient, err := b.clientFromProjectID(ctx, projectID)
 	if err != nil {
-		return fmt.Errorf("bigquery.NewClient: %v", err)
+		return err
 	}
 	defer bqClient.Close()
 
@@ -70,9 +90,9 @@ func (b Bigquery) Grant(ctx context.Context, projectID, datasetID, tableID, memb
 }
 
 func (b Bigquery) Revoke(ctx context.Context, projectID, datasetID, tableID, member string) error {
-	bqClient, err := bigquery.NewClient(ctx, projectID)
+	bqClient, err := b.clientFromProjectID(ctx, projectID)
 	if err != nil {
-		return fmt.Errorf("bigquery.NewClient: %v", err)
+		return err
 	}
 	defer bqClient.Close()
 
@@ -90,9 +110,9 @@ func (b Bigquery) Revoke(ctx context.Context, projectID, datasetID, tableID, mem
 }
 
 func (b Bigquery) AddToAuthorizedViews(ctx context.Context, srcProjectID, srcDataset, sinkProjectID, sinkDataset, sinkTable string) error {
-	bqClient, err := bigquery.NewClient(ctx, srcProjectID)
+	bqClient, err := b.clientFromProjectID(ctx, srcProjectID)
 	if err != nil {
-		return fmt.Errorf("bigquery.NewClient: %v", err)
+		return err
 	}
 	defer bqClient.Close()
 	ds := bqClient.Dataset(srcDataset)
@@ -143,9 +163,9 @@ func getPolicy(ctx context.Context, bqclient *bigquery.Client, datasetID, tableI
 }
 
 func (b Bigquery) HasAccess(ctx context.Context, projectID, datasetID, tableID, member string) (bool, error) {
-	bqClient, err := bigquery.NewClient(ctx, projectID)
+	bqClient, err := b.clientFromProjectID(ctx, projectID)
 	if err != nil {
-		return false, fmt.Errorf("bigquery.NewClient: %v", err)
+		return false, err
 	}
 	defer bqClient.Close()
 

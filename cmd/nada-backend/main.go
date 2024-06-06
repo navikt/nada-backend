@@ -99,6 +99,7 @@ func main() {
 	gcsClient, err := gcs.New(
 		ctx,
 		cfg.GCP.GCS.StoryBucketName,
+		cfg.GCP.GCS.Endpoint,
 		log.WithField("subsystem", "gcs"),
 	)
 	if err != nil {
@@ -107,7 +108,7 @@ func main() {
 
 	googleGroups, err := auth.NewGoogleGroups(
 		ctx,
-		cfg.GoogleGroups.CredentialFile,
+		cfg.GoogleGroups.CredentialsFile,
 		cfg.GoogleGroups.ImpersonationSubject,
 		log.WithField("subsystem", "googlegroups"),
 	)
@@ -155,7 +156,7 @@ func main() {
 
 		httpAPI = api.NewHTTP(oauth2Config, aauth.RedirectURL, cfg.LoginPage, cfg.Cookies, log.WithField("subsystem", "api"))
 		authenticatorMiddleware = aauth.Middleware(aauth.KeyDiscoveryURL(), azureGroups, googleGroups, repo.GetDB())
-		accessMgr = access.NewBigquery()
+		accessMgr = access.NewBigquery(cfg.GCP.BigQuery.Endpoint)
 		pollyAPI = polly.New(cfg.TreatmentCatalogue.APIURL)
 		amplitudeClient = amplitude.New(cfg.AmplitudeAPIKey, log.WithField("subsystem", "amplitude"))
 	} else {
@@ -166,15 +167,15 @@ func main() {
 	}
 
 	var bqClient bqclient.BQClient = bqclient.NewMock()
-	if !config.Conf.SkipMetadataSync {
-		datacatalogClient, err := bqclient.New(ctx, cfg.GCP.Project, cfg.GCP.BigQuery.PseudoViewsDatasetName)
+	if !cfg.SkipMetadataSync {
+		datacatalogClient, err := bqclient.New(cfg.GCP.Project, cfg.GCP.BigQuery.PseudoViewsDatasetName, cfg.GCP.BigQuery.Endpoint)
 		if err != nil {
-			log.WithError(err).Fatal("Creating datacatalog client")
+			log.WithError(err).Fatal("creating datacatalog client")
 		}
 
 		bqClient = datacatalogClient
 
-		bqClient, err = bqclient.New(ctx, cfg.GCP.Project, cfg.GCP.BigQuery.PseudoViewsDatasetName)
+		bqClient, err = bqclient.New(cfg.GCP.Project, cfg.GCP.BigQuery.PseudoViewsDatasetName, cfg.GCP.BigQuery.Endpoint)
 		if err != nil {
 			log.WithError(err).Fatal("Creating bqclient")
 		}
@@ -191,6 +192,7 @@ func main() {
 		prom(repo.Metrics()...),
 		amplitudeClient,
 		cfg.API.AuthToken,
+		cfg.GCP.Project,
 		log,
 	)
 	service.Init(repo.GetDB(), teamcatalogue, log, teamProjectsUpdater.TeamProjectsMapping, eventMgr, slackClient, bqClient, pollyAPI, teamProjectsUpdater.TeamProjectsMapping, gcsClient, amplitudeClient)

@@ -34,8 +34,9 @@ import (
 )
 
 var (
-	repo   *database.Repo
-	server *httptest.Server
+	repo            *database.Repo
+	server          *httptest.Server
+	storageEndpoint string
 )
 
 func TestMain(m *testing.M) {
@@ -82,7 +83,8 @@ func TestMain(m *testing.M) {
 		log.Fatalf("could not start gcs resource %v", err)
 	}
 
-	os.Setenv("STORAGE_EMULATOR_HOST", fmt.Sprintf("http://localhost:%v/storage/v1/", gcsResource.GetPort("4443/tcp")))
+	storageEndpoint = fmt.Sprintf("http://localhost:%v/storage/v1/", gcsResource.GetPort("4443/tcp"))
+	os.Setenv("STORAGE_EMULATOR_HOST", storageEndpoint)
 	defer os.Unsetenv("STORAGE_EMULATOR_HOST")
 
 	var dbString string
@@ -99,7 +101,7 @@ func TestMain(m *testing.M) {
 		log.Fatalf("Could not connect to docker: %s", err)
 	}
 
-	gcsClient, err := gcs.New(context.Background(), storyBucket, logrus.NewEntry(logrus.StandardLogger()))
+	gcsClient, err := gcs.New(context.Background(), storyBucket, storageEndpoint, logrus.NewEntry(logrus.StandardLogger()))
 	if err != nil {
 		panic(err)
 	}
@@ -138,6 +140,7 @@ func TestMain(m *testing.M) {
 		prometheus.NewRegistry(),
 		amplitude.NewMock(),
 		"",
+		"datamarkedsplassen-dev",
 		logrus.StandardLogger(),
 	)
 
