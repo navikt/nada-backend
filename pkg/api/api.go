@@ -6,7 +6,7 @@ import (
 	"encoding/base64"
 	"encoding/hex"
 	"encoding/json"
-	"net"
+	"github.com/navikt/nada-backend/pkg/config/v2"
 	"net/http"
 	"strings"
 	"time"
@@ -22,10 +22,8 @@ import (
 var log *logrus.Logger
 
 const (
-	RedirectURICookie               = "redirecturi"
-	OAuthStateCookie                = "oauthstate"
-	tokenLength                     = 32
-	sessionLength     time.Duration = 7 * time.Hour
+	tokenLength   = 32
+	sessionLength = 7 * time.Hour
 )
 
 type OAuth2 interface {
@@ -37,44 +35,37 @@ type OAuth2 interface {
 type HTTP struct {
 	oauth2Config OAuth2
 	callbackURL  string
+	loginPage    string
+	cookies      config.Cookies
 	log          *logrus.Entry
 }
 
-func NewHTTP(oauth2Config OAuth2, callbackURL string, log *logrus.Entry) HTTP {
+func NewHTTP(oauth2Config OAuth2, callbackURL string, loginPage string, cookies config.Cookies, log *logrus.Entry) HTTP {
 	return HTTP{
 		oauth2Config: oauth2Config,
 		callbackURL:  callbackURL,
+		loginPage:    loginPage,
+		cookies:      cookies,
 		log:          log,
 	}
 }
 
-func deleteCookie(w http.ResponseWriter, name, domain string) {
+func (h HTTP) deleteCookie(w http.ResponseWriter, name, path, domain string) {
 	http.SetCookie(w, &http.Cookie{
 		Name:     name,
 		Value:    "",
-		Path:     "/",
+		Path:     path,
 		Domain:   domain,
-		Expires:  time.Unix(0, 0),
-		Secure:   true,
+		MaxAge:   -1,
+		SameSite: http.SameSiteLaxMode,
+		Secure:   false,
 		HttpOnly: true,
 	})
 }
 
 func (h HTTP) Logout(w http.ResponseWriter, r *http.Request) {
-	host, _, err := net.SplitHostPort(r.Host)
-	if err != nil {
-		host = r.Host
-	}
-	deleteCookie(w, "nada_session", host)
-
-	var loginPage string
-	if strings.HasPrefix(r.Host, "localhost") {
-		loginPage = "http://localhost:3000/"
-	} else {
-		loginPage = "/"
-	}
-
-	http.Redirect(w, r, loginPage, http.StatusFound)
+	h.deleteCookie(w, h.cookies.Session.Name, h.cookies.Session.Path, h.cookies.Session.Domain)
+	http.Redirect(w, r, h.loginPage, http.StatusFound)
 }
 
 func generateSecureToken(length int) string {
@@ -86,30 +77,27 @@ func generateSecureToken(length int) string {
 }
 
 func (h HTTP) Login(w http.ResponseWriter, r *http.Request) {
-	host, _, err := net.SplitHostPort(r.Host)
-	if err != nil {
-		host = r.Host
-	}
-	redirectURI := r.URL.Query().Get("redirect_uri")
 	http.SetCookie(w, &http.Cookie{
-		Name:     RedirectURICookie,
-		Value:    redirectURI,
-		Path:     "/",
-		Domain:   host,
-		Expires:  time.Now().Add(30 * time.Minute),
-		Secure:   true,
-		HttpOnly: true,
+		Name:     h.cookies.Redirect.Name,
+		Value:    r.URL.Query().Get("redirect_uri"),
+		Path:     h.cookies.Redirect.Path,
+		Domain:   h.cookies.Redirect.Domain,
+		MaxAge:   h.cookies.Redirect.MaxAge,
+		SameSite: h.cookies.Redirect.GetSameSite(),
+		Secure:   h.cookies.Redirect.Secure,
+		HttpOnly: h.cookies.Redirect.HttpOnly,
 	})
 
 	oauthState := uuid.New().String()
 	http.SetCookie(w, &http.Cookie{
-		Name:     OAuthStateCookie,
+		Name:     h.cookies.OauthState.Name,
 		Value:    oauthState,
-		Path:     "/",
-		Domain:   host,
-		Expires:  time.Now().Add(30 * time.Minute),
-		Secure:   true,
-		HttpOnly: true,
+		Path:     h.cookies.OauthState.Path,
+		Domain:   h.cookies.OauthState.Domain,
+		MaxAge:   h.cookies.OauthState.MaxAge,
+		SameSite: h.cookies.OauthState.GetSameSite(),
+		Secure:   h.cookies.OauthState.Secure,
+		HttpOnly: h.cookies.OauthState.HttpOnly,
 	})
 
 	consentUrl := h.oauth2Config.AuthCodeURL(oauthState)
@@ -117,42 +105,27 @@ func (h HTTP) Login(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h HTTP) Callback(w http.ResponseWriter, r *http.Request) {
+	h.deleteCookie(w, h.cookies.Redirect.Name, h.cookies.Redirect.Path, h.cookies.Redirect.Domain)
 
-	host, _, err := net.SplitHostPort(r.Host)
-	if err != nil {
-		host = r.Host
-	}
-	loginPage := "/"
-
-	redirectURI, err := r.Cookie(RedirectURICookie)
-	if err == nil {
-		loginPage = loginPage + strings.TrimPrefix(redirectURI.Value, "/")
-	}
-
-	if strings.HasPrefix(r.Host, "localhost") {
-		loginPage = "http://localhost:3000" + loginPage
-	}
-
-	deleteCookie(w, RedirectURICookie, host)
 	code := r.URL.Query().Get("code")
 	if len(code) == 0 {
-		http.Redirect(w, r, loginPage+"?error=unauthenticated", http.StatusFound)
+		http.Redirect(w, r, h.loginPage+"?error=unauthenticated", http.StatusFound)
 		return
 	}
 
-	oauthCookie, err := r.Cookie(OAuthStateCookie)
+	oauthCookie, err := r.Cookie(h.cookies.OauthState.Name)
 	if err != nil {
 		h.log.Errorf("Missing oauth state cookie: %v", err)
-		http.Redirect(w, r, loginPage+"?error=invalid-state", http.StatusFound)
+		http.Redirect(w, r, h.loginPage+"?error=invalid-state", http.StatusFound)
 		return
 	}
 
-	deleteCookie(w, OAuthStateCookie, host)
+	h.deleteCookie(w, h.cookies.OauthState.Name, h.cookies.OauthState.Path, h.cookies.OauthState.Domain)
 
 	state := r.URL.Query().Get("state")
 	if state != oauthCookie.Value {
 		h.log.Info("Incoming state does not match local state")
-		http.Redirect(w, r, loginPage+"?error=invalid-state", http.StatusFound)
+		http.Redirect(w, r, h.loginPage+"?error=invalid-state", http.StatusFound)
 		return
 	}
 
@@ -170,7 +143,7 @@ func (h HTTP) Callback(w http.ResponseWriter, r *http.Request) {
 	rawIDToken, ok := tokens.Extra("id_token").(string)
 	if !ok {
 		h.log.Info("Missing id_token")
-		http.Redirect(w, r, loginPage+"?error=unauthenticated", http.StatusFound)
+		http.Redirect(w, r, h.loginPage+"?error=unauthenticated", http.StatusFound)
 		return
 	}
 
@@ -178,7 +151,7 @@ func (h HTTP) Callback(w http.ResponseWriter, r *http.Request) {
 	_, err = h.oauth2Config.Verify(r.Context(), rawIDToken)
 	if err != nil {
 		h.log.Info("Invalid id_token")
-		http.Redirect(w, r, loginPage+"?error=unauthenticated", http.StatusFound)
+		http.Redirect(w, r, h.loginPage+"?error=unauthenticated", http.StatusFound)
 		return
 	}
 
@@ -191,33 +164,34 @@ func (h HTTP) Callback(w http.ResponseWriter, r *http.Request) {
 	b, err := base64.RawStdEncoding.DecodeString(strings.Split(tokens.AccessToken, ".")[1])
 	if err != nil {
 		h.log.WithError(err).Error("Unable decode access token")
-		http.Redirect(w, r, loginPage+"?error=unauthenticated", http.StatusFound)
+		http.Redirect(w, r, h.loginPage+"?error=unauthenticated", http.StatusFound)
 		return
 	}
 
 	if err := json.Unmarshal(b, session); err != nil {
 		h.log.WithError(err).Error("Unable unmarshalling token")
-		http.Redirect(w, r, loginPage+"?error=unauthenticated", http.StatusFound)
+		http.Redirect(w, r, h.loginPage+"?error=unauthenticated", http.StatusFound)
 		return
 	}
 
 	if err := auth.CreateSession(r.Context(), session); err != nil {
 		h.log.WithError(err).Error("Unable to store session")
-		http.Redirect(w, r, loginPage+"?error=unauthenticated", http.StatusFound)
+		http.Redirect(w, r, h.loginPage+"?error=unauthenticated", http.StatusFound)
 		return
 	}
 
 	http.SetCookie(w, &http.Cookie{
-		Name:     "nada_session",
+		Name:     h.cookies.Session.Name,
 		Value:    session.Token,
-		Path:     "/",
-		Domain:   host,
-		MaxAge:   86400,
-		Secure:   true,
-		HttpOnly: true,
+		Path:     h.cookies.Session.Path,
+		Domain:   h.cookies.Session.Domain,
+		MaxAge:   h.cookies.Session.MaxAge,
+		SameSite: h.cookies.Session.GetSameSite(),
+		Secure:   h.cookies.Session.Secure,
+		HttpOnly: h.cookies.Session.HttpOnly,
 	})
 
-	http.Redirect(w, r, loginPage, http.StatusFound)
+	http.Redirect(w, r, h.loginPage, http.StatusFound)
 }
 
 func apiWrapper(handlerDelegate func(r *http.Request) (interface{}, *service.APIError)) http.HandlerFunc {
