@@ -17,6 +17,10 @@ spec:
         - https://data.ansatt.nav.no/api/oauth2/callback
       tenant: nav.no
       allowAllUsers: true
+  command:
+    - /app/nada-backend
+    - --config
+    - /app/config.yaml
   replicas:
     min: 2
     max: 4
@@ -42,27 +46,14 @@ spec:
     - "https://data.nav.no/quarto/create"
     - "https://data.nav.no/quarto/update"
   envFrom:
-    - secret: nada-backend
+    - secret: nada-backend-secret
   filesFrom:
+    - configMap: nada-backend-config
+      mountPath: /app/config.yaml
     - secret: nada-backend-google-credentials
       mountPath: /var/run/secrets/google-credentials
     - secret: nada-backend-metabase-sa
-      mountPath: /var/run/secrets/nada-credentials
-  env:
-    - name: GOOGLE_ADMIN_CREDENTIALS_PATH
-      value: /var/run/secrets/google-credentials/sa.json
-    - name: HOSTNAME
-      value: "data.ansatt.nav.no"
-    - name: METABASE_API
-      value: "http://metabase/api"
-    - name: METABASE_GOOGLE_CREDENTIALS_PATH
-      value: /var/run/secrets/nada-credentials/meta_creds.json
-    - name: DASHBOARD_PA_ID
-      value: 6b149078-927b-4570-a1ce-97bbb9499fb6
-    - name: GCP_STORY_BUCKET_NAME
-      value: nada-quarto-storage-prod
-    - name: CENTRAL_DATA_PROJECT
-      value: datamarkedsplassen
+      mountPath: /var/run/secrets/metabase
   gcp:
     sqlInstances:
       - type: POSTGRES_12

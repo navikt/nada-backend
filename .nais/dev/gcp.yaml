@@ -20,10 +20,8 @@ spec:
       allowAllUsers: true
   command:
     - /app/nada-backend
-    - --teamkatalogen-url
-    - http://team-catalog-backend.org.svc.cluster.local
-    - --team-projects-url
-    - https://raw.githubusercontent.com/nais/teams/master/gcp-projects/dev-output.json
+    - --config
+    - /app/config.yaml
   replicas:
     min: 2
     max: 4
@@ -50,27 +48,14 @@ spec:
     - "https://data.ekstern.dev.nav.no/quarto/create"
     - "https://data.ekstern.dev.nav.no/quarto/update"
   envFrom:
-    - secret: nada-backend
+    - secret: nada-backend-secret
   filesFrom:
+    - configMap: nada-backend-config
+      mountPath: /app/config.yaml
     - secret: nada-backend-google-credentials
-      mountPath: /var/run/secrets/google-credentials
+      mountPath: /var/run/secrets/google-groups
     - secret: nada-backend-metabase-sa
-      mountPath: /var/run/secrets/nada-credentials
-  env:
-    - name: GOOGLE_ADMIN_CREDENTIALS_PATH
-      value: /var/run/secrets/google-credentials/sa.json
-    - name: HOSTNAME
-      value: "data.ansatt.dev.nav.no"
-    - name: METABASE_API
-      value: "http://metabase/api"
-    - name: METABASE_GOOGLE_CREDENTIALS_PATH
-      value: /var/run/secrets/nada-credentials/meta_creds.json
-    - name: DASHBOARD_PA_ID
-      value: deab2907-c8ac-4db9-b997-328cce77d797
-    - name: GCP_STORY_BUCKET_NAME
-      value: nada-quarto-storage-dev
-    - name: CENTRAL_DATA_PROJECT
-      value: datamarkedsplassen-dev
+      mountPath: /var/run/secrets/metabase
   gcp:
     sqlInstances:
       - type: POSTGRES_12

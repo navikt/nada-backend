@@ -1,0 +1,82 @@
+kind: ConfigMap
+apiVersion: v1
+metadata:
+  name: nada-backend-config
+data:
+  config-dev.yaml: |
+    oauth:
+      client_id: # Loaded from env var AZURE_CLIENT_ID
+      client_secret: # Loaded from env var AZURE_CLIENT_SECRET
+      tenant_id: # Loaded from env var AZURE_TENANT_ID
+      redirect_url: https://data.ansatt.dev.nav.no/api/oauth2/callback
+    metabase:
+      username: nada-backend@nav.no
+      password: # Loaded from env var NADA_METABASE_PASSWORD
+      api_url: http://metabase/api
+      credentials_path: /var/run/secrets/metabase/meta_creds.json
+    slack:
+      webhook_url: # Loaded from env var NADA_SLACK_WEBHOOK_URL
+      token: # Loaded from env var NADA_SLACK_TOKEN
+    server:
+      hostname: data.ansatt.dev.nav.no
+      address: 0.0.0.0
+      port: 8080
+    postgres:
+      host: 127.0.0.1 # Routed through cloud-sql-proxy
+      port: 5432
+      user_name: nada-backend
+      password: # Set through env var NAIS_DATABASE_NADA_BACKEND_NADA_PASSWORD
+      database_name: nada
+      ssl_mode: prefer
+      configuration:
+        max_open_connections: 5
+        max_idle_connections: 3
+    teams_catalogue:
+      api_url: http://team-catalog-backend.org.svc.cluster.local
+    treatment_catalogue:
+      api_url: http://behandlingskatalog-backend.teamdatajegerne.svc.cluster.local
+    google_groups:
+      impersonation_subject: johnny.horvi@nav.no
+      credentials_file: /var/run/secrets/google-groups/sa.json
+    gcp:
+      project: datamarkedsplassen-dev
+      region: europe-north1
+      gcs:
+        story_bucket_name: nada-quarto-storage-dev
+      big_query:
+        pseudo_views_dataset_name: markedsplassen_pseudo
+    cookies:
+      redirect:
+        name: redirecturi
+        max_age: 3600
+        path: /
+        domain: data.ansatt.dev.nav.no
+        same_site: Lax
+        secure: true
+        http_only: false
+      oauth_state:
+        name: oauth_state
+        max_age: 3600
+        path: /
+        domain: data.ansatt.dev.nav.no
+        same_site: Lax
+        secure: true
+        http_only: false
+      session:
+        name: knorten_session
+        max_age: 86400
+        path: /
+        domain: data.ansatt.dev.nav.no
+        same_site: Lax
+        secure: true
+        http_only: false
+    nais_console:
+      api_key: # Loaded from env var NADA_NAIS_CONSOLE_API_KEY
+      api_url: https://console.nav.cloud.nais.io
+    api:
+      auth_token: # Loaded from env var NADA_API_AUTH_TOKEN
+    amplitude_api_key: # Loaded from env var NADA_AMPLITUDE_API_KEY
+    skip_metadata_sync: false
+    mock_auth: false
+    debug: false
+    log_level: info
