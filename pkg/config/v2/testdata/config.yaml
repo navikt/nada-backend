@@ -1,0 +1,76 @@
+oauth:
+    client_id: fake_client_id
+    client_secret: fake_client_secret
+    tenant_id: fake_tenant_id
+    redirect_url: http://localhost:8080/auth/callback
+metabase:
+    username: fake_username
+    password: fake_password
+    api_url: http://localhost:3000/api
+    credentials_path: /some/path
+slack:
+    token: fake_token
+    webhook_url: http://localhost:8080/webhook
+server:
+    hostname: localhost
+    address: 127.0.0.1
+    port: "8080"
+postgres:
+    user_name: fake_username
+    password: fake_password
+    host: http://localhost
+    port: "5432"
+    database_name: something
+    ssl_mode: disabled
+    configuration:
+        max_idle_connections: 10
+        max_open_connections: 5
+teams_catalogue:
+    api_url: http://localhost:8080/api
+treatment_catalogue:
+    api_url: http://localhost:8080/api
+google_groups:
+    impersonation_subject: something@example.com
+    credential_file: /some/secret/path
+gcp:
+    project: fake_project
+    region: europe-north1
+    gcs:
+        story_bucket_name: fake_bucket
+    big_query:
+        pseudo_views_dataset_name: fake_dataset
+cookies:
+    redirect:
+        name: redirect
+        max_age: 0
+        path: some/path
+        domain: localhost
+        same_site: lax
+        secure: false
+        http_only: false
+    oauth_state:
+        name: auth
+        max_age: 0
+        path: some/path
+        domain: localhost
+        same_site: lax
+        secure: false
+        http_only: false
+    session:
+        name: session
+        max_age: 0
+        path: some/path
+        domain: localhost
+        same_site: lax
+        secure: false
+        http_only: false
+nais_console:
+    api_key: fake_api_key
+    api_url: http://localhost:8080/api
+api:
+    auth_token: fake_token
+amplitude_api_key: fake_key
+log_level: info
+mock_auth: false
+skip_metadata_sync: false
+debug: false
