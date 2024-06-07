@@ -16,7 +16,7 @@ import (
 
 	"github.com/coreos/go-oidc/v3/oidc"
 	"github.com/golang-jwt/jwt/v4"
-	"github.com/navikt/nada-backend/pkg/graph/models"
+	"github.com/navikt/nada-backend/pkg/database/gensql"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -125,7 +125,7 @@ func GetUser(ctx context.Context) *User {
 }
 
 type SessionRetriever interface {
-	GetSession(ctx context.Context, token string) (*models.Session, error)
+	GetSession(ctx context.Context, token string) (*Session, error)
 }
 
 type Middleware struct {
@@ -134,19 +134,19 @@ type Middleware struct {
 	groupsCache     *groupsCacher
 	azureGroups     *AzureGroupClient
 	googleGroups    *GoogleGroupClient
-	sessionStore    SessionRetriever
+	queries         *gensql.Queries
 }
 
-func newMiddleware(keyDiscoveryURL string, tokenVerifier *oidc.IDTokenVerifier, azureGroups *AzureGroupClient, googleGroups *GoogleGroupClient, sessionStore SessionRetriever) *Middleware {
+func newMiddleware(keyDiscoveryURL string, tokenVerifier *oidc.IDTokenVerifier, azureGroups *AzureGroupClient, googleGroups *GoogleGroupClient, querier *gensql.Queries) *Middleware {
 	return &Middleware{
 		keyDiscoveryURL: keyDiscoveryURL,
 		tokenVerifier:   tokenVerifier,
 		azureGroups:     azureGroups,
 		googleGroups:    googleGroups,
-		sessionStore:    sessionStore,
 		groupsCache: &groupsCacher{
 			cache: map[string]groupsCacheValue{},
 		},
+		queries: querier,
 	}
 }
 
@@ -168,7 +168,7 @@ func (m *Middleware) handle(next http.Handler) http.Handler {
 			return
 		}
 
-		sess, err := m.sessionStore.GetSession(ctx, token.Value)
+		sess, err := GetSession(ctx, token.Value)
 		if err != nil && !errors.Is(err, sql.ErrNoRows) {
 			http.Error(w, `{"error": "Unable to retrieve session."}`, http.StatusInternalServerError)
 			return

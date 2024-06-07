@@ -10,7 +10,7 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	"github.com/navikt/nada-backend/pkg/graph/models"
+	"github.com/navikt/nada-backend/pkg/service"
 	"google.golang.org/api/cloudresourcemanager/v1"
 	iam "google.golang.org/api/iam/v1"
 )
@@ -40,10 +40,10 @@ func (m *Metabase) grantMetabaseAccess(ctx context.Context, dsID uuid.UUID, subj
 func (m *Metabase) addAllUsersDataset(ctx context.Context, dsID uuid.UUID) {
 	log := m.log.WithField("datasetID", dsID)
 
-	mbMetadata, err := m.repo.GetMetabaseMetadata(ctx, dsID, true)
+	mbMetadata, err := service.GetMetabaseMetadata(ctx, dsID, true)
 	if errors.Is(err, sql.ErrNoRows) {
-		ds, err := m.repo.GetDataset(ctx, dsID)
-		if err != nil {
+		ds, apierr := service.GetDataset(ctx, dsID.String())
+		if apierr != nil {
 			log.WithError(err).Error("getting dataset")
 			return
 		}
@@ -84,7 +84,7 @@ func (m *Metabase) addAllUsersDataset(ctx context.Context, dsID uuid.UUID) {
 			log.WithError(err).Errorf("removing old permission group %v when opening database", mbMetadata.PermissionGroupID)
 		}
 
-		if err := m.repo.SetPermissionGroupMetabaseMetadata(ctx, mbMetadata.DatasetID, 0); err != nil {
+		if err := service.SetPermissionGroupMetabaseMetadata(ctx, mbMetadata.DatasetID, 0); err != nil {
 			log.WithError(err).Error("setting permission group to all users")
 			return
 		}
@@ -92,7 +92,7 @@ func (m *Metabase) addAllUsersDataset(ctx context.Context, dsID uuid.UUID) {
 }
 
 func (m *Metabase) addDatasetMapping(ctx context.Context, dsID uuid.UUID) {
-	accesses, err := m.repo.ListActiveAccessToDataset(ctx, dsID)
+	accesses, err := service.ListActiveAccessToDataset(ctx, dsID)
 	if err != nil {
 		return
 	}
@@ -108,9 +108,9 @@ func (m *Metabase) addDatasetMapping(ctx context.Context, dsID uuid.UUID) {
 func (m *Metabase) addRestrictedDatasetMapping(ctx context.Context, dsID uuid.UUID) {
 	log := m.log.WithField("datasetID", dsID)
 
-	mbMeta, err := m.repo.GetMetabaseMetadata(ctx, dsID, true)
+	mbMeta, err := service.GetMetabaseMetadata(ctx, dsID, true)
 	if errors.Is(err, sql.ErrNoRows) {
-		ds, err := m.repo.GetDataset(ctx, dsID)
+		ds, err := service.GetDataset(ctx, dsID.String())
 		if err != nil {
 			log.WithError(err).Error("getting dataset")
 			return
@@ -144,7 +144,7 @@ func (m *Metabase) addRestrictedDatasetMapping(ctx context.Context, dsID uuid.UU
 }
 
 func (m *Metabase) grantAccessesOnCreation(ctx context.Context, dsID uuid.UUID) error {
-	accesses, err := m.repo.ListActiveAccessToDataset(ctx, dsID)
+	accesses, err := service.ListActiveAccessToDataset(ctx, dsID)
 	if err != nil {
 		return err
 	}
@@ -169,7 +169,7 @@ func (m *Metabase) grantAccessesOnCreation(ctx context.Context, dsID uuid.UUID) 
 
 func (m *Metabase) addMetabaseGroupMember(ctx context.Context, dsID uuid.UUID, email string) {
 	log := m.log.WithField("datasetID", dsID)
-	mbMetadata, err := m.repo.GetMetabaseMetadata(ctx, dsID, false)
+	mbMetadata, err := service.GetMetabaseMetadata(ctx, dsID, false)
 	if err != nil {
 		log.WithError(err).Error("getting metabase metadata")
 		return
@@ -194,7 +194,7 @@ func (m *Metabase) addMetabaseGroupMember(ctx context.Context, dsID uuid.UUID, e
 	}
 }
 
-func (m *Metabase) createRestricted(ctx context.Context, ds *models.Dataset) error {
+func (m *Metabase) createRestricted(ctx context.Context, ds *service.Dataset) error {
 	groupID, err := m.client.CreatePermissionGroup(ctx, ds.Name)
 	if err != nil {
 		return err
@@ -228,22 +228,22 @@ func (m *Metabase) create(ctx context.Context, ds dsWrapper) error {
 	log := m.log.WithField("Dataset", ds.Dataset.Name)
 	log.Printf("Create metabase database for dataset %v", ds.Dataset.Name)
 
-	datasource, err := m.repo.GetBigqueryDatasource(ctx, ds.Dataset.ID, false)
+	datasource, apierr := service.GetBigqueryDatasource(ctx, ds.Dataset.ID, false)
+	if apierr != nil {
+		return apierr
+	}
+
+	err := m.accessMgr.Grant(ctx, datasource.ProjectID, datasource.Dataset, datasource.Table, "serviceAccount:"+ds.Email)
 	if err != nil {
 		return err
 	}
 
-	err = m.accessMgr.Grant(ctx, datasource.ProjectID, datasource.Dataset, datasource.Table, "serviceAccount:"+ds.Email)
-	if err != nil {
-		return err
+	dp, apierr := service.GetDataproduct(ctx, ds.Dataset.DataproductID.String())
+	if apierr != nil {
+		return apierr
 	}
 
-	dp, err := m.repo.GetDataproduct(ctx, ds.Dataset.DataproductID)
-	if err != nil {
-		return err
-	}
-
-	dbID, err := m.client.CreateDatabase(ctx, dp.Owner.Group, ds.Dataset.Name, ds.Key, ds.Email, &datasource)
+	dbID, err := m.client.CreateDatabase(ctx, dp.Owner.Group, ds.Dataset.Name, ds.Key, ds.Email, datasource)
 	if err != nil {
 		return err
 	}
@@ -256,14 +256,14 @@ func (m *Metabase) create(ctx context.Context, ds dsWrapper) error {
 		return err
 	}
 
-	mbMeta := models.MetabaseMetadata{
+	mbMeta := service.MetabaseMetadata{
 		DatasetID:         ds.Dataset.ID,
 		DatabaseID:        dbID,
 		PermissionGroupID: ds.MetabaseGroupID,
 		CollectionID:      ds.CollectionID,
 		SAEmail:           ds.Email,
 	}
-	err = m.repo.CreateMetabaseMetadata(ctx, mbMeta)
+	err = service.CreateMetabaseMetadata(ctx, mbMeta)
 	if err != nil {
 		return err
 	}
@@ -280,7 +280,7 @@ func (m *Metabase) create(ctx context.Context, ds dsWrapper) error {
 		}
 	}
 
-	if err := m.SyncTableVisibility(ctx, &mbMeta, datasource); err != nil {
+	if err := m.SyncTableVisibility(ctx, &mbMeta, *datasource); err != nil {
 		return err
 	}
 
@@ -292,7 +292,7 @@ func (m *Metabase) create(ctx context.Context, ds dsWrapper) error {
 	return nil
 }
 
-func (m *Metabase) createServiceAccount(ds *models.Dataset) ([]byte, string, error) {
+func (m *Metabase) createServiceAccount(ds *service.Dataset) ([]byte, string, error) {
 	projectResource := os.Getenv("GCP_TEAM_PROJECT_ID")
 	request := &iam.CreateServiceAccountRequest{
 		AccountId: "nada-" + MarshalUUID(ds.ID),
@@ -342,19 +342,19 @@ func (m *Metabase) createServiceAccount(ds *models.Dataset) ([]byte, string, err
 	return saJson, account.Email, err
 }
 
-func (m *Metabase) restore(ctx context.Context, datasetID uuid.UUID, mbMetadata *models.MetabaseMetadata) error {
-	ds, err := m.repo.GetBigqueryDatasource(ctx, datasetID, false)
-	if err != nil {
-		return err
+func (m *Metabase) restore(ctx context.Context, datasetID uuid.UUID, mbMetadata *service.MetabaseMetadata) error {
+	ds, apierr := service.GetBigqueryDatasource(ctx, datasetID, false)
+	if apierr != nil {
+		return apierr
 	}
 
-	err = m.accessMgr.Grant(ctx, ds.ProjectID, ds.Dataset, ds.Table, "serviceAccount:"+mbMetadata.SAEmail)
+	err := m.accessMgr.Grant(ctx, ds.ProjectID, ds.Dataset, ds.Table, "serviceAccount:"+mbMetadata.SAEmail)
 	if err != nil {
 		m.log.Error("Unable to restore access")
 		return err
 	}
 
-	if err := m.repo.RestoreMetabaseMetadata(ctx, datasetID); err != nil {
+	if err := service.RestoreMetabaseMetadata(ctx, datasetID); err != nil {
 		m.log.Error("Unable to soft create metabase metadata")
 		return err
 	}
@@ -380,13 +380,14 @@ func (m *Metabase) waitForDatabase(ctx context.Context, dbID int, tableName stri
 }
 
 func (m *Metabase) cleanupOnCreateDatabaseError(ctx context.Context, dbID int, ds dsWrapper) error {
-	services, err := m.repo.GetDatasetMappings(ctx, ds.Dataset.ID)
+	dataset, err := service.GetDataset(ctx, ds.Dataset.ID.String())
 	if err != nil {
 		return err
 	}
+	services := dataset.Mappings
 
 	for idx, msvc := range services {
-		if msvc == models.MappingServiceMetabase {
+		if msvc == service.MappingServiceMetabase {
 			services = append(services[:idx], services[idx+1:]...)
 		}
 	}
@@ -409,10 +410,11 @@ func (m *Metabase) cleanupOnCreateDatabaseError(ctx context.Context, dbID int, d
 		}
 	}
 
-	return m.repo.MapDataset(ctx, ds.Dataset.ID, services)
+	_, apierr := service.MapDataset(ctx, ds.Dataset.ID.String(), services)
+	return apierr
 }
 
-func containsAllUsers(accesses []*models.Access) bool {
+func containsAllUsers(accesses []*service.Access) bool {
 	for _, a := range accesses {
 		if a.Subject == "group:all-users@nav.no" {
 			return true

@@ -12,7 +12,6 @@ import (
 
 	"cloud.google.com/go/storage"
 	"github.com/google/uuid"
-	"github.com/navikt/nada-backend/pkg/graph/models"
 	"golang.org/x/xerrors"
 	"google.golang.org/api/googleapi"
 )

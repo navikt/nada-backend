@@ -14,6 +14,19 @@ import (
 	"google.golang.org/api/iterator"
 )
 
+type BQClient interface {
+	GetTables(ctx context.Context, projectID, datasetID string) ([]*BigQueryTable, error)
+	GetDatasets(ctx context.Context, projectID string) ([]string, error)
+	TableMetadata(ctx context.Context, projectID string, datasetID string, tableID string) (BigqueryMetadata, error)
+	CreatePseudonymisedView(ctx context.Context, projectID, datasetID, tableID string, piiColumns []string) (string, string, string, error)
+	MakeBigQueryUrlForJoinableViews(name, projectID, datasetID, tableID string) string
+	CreateJoinableViewsForUser(ctx context.Context, name string, datasources []JoinableViewDatasource) (string, string, map[string]string, error)
+	DeleteJoinableView(ctx context.Context, joinableViewName, refProjectID, refDatasetID, refTableID string) error
+	DeletePseudoView(ctx context.Context, pseudoProjectID, pseudoDatasetID, pseudoTableID string) error
+	DeleteJoinableDataset(ctx context.Context, datasetID string) error
+	GetTableMetadata(ctx context.Context, projectID string, datasetID string, tableID string) (BigqueryMetadata, error)
+}
+
 type DatasourceForJoinableView struct {
 	Project       string
 	Dataset       string
@@ -551,6 +564,27 @@ func (b *BigqueryClient) deleteBigqueryTable(ctx context.Context, projectID, dat
 	defer client.Close()
 
 	if err := client.Dataset(datasetID).Table(tableID).Delete(ctx); err != nil {
+		if gerr, ok := err.(*googleapi.Error); ok && gerr.Code == 404 {
+			return nil
+		}
+		return err
+	}
+
+	return nil
+}
+
+func MakeJoinableViewName(projectID, datasetID, tableID string) string {
+	// datasetID will always be same markedsplassen dataset id
+	return fmt.Sprintf("%v_%v", projectID, tableID)
+}
+
+func (b *BigqueryClient) DeleteJoinableDataset(ctx context.Context, datasetID string) error {
+	client, err := bigquery.NewClient(ctx, b.centralDataProject)
+	if err != nil {
+		return err
+	}
+
+	if err := client.Dataset(datasetID).DeleteWithContents(ctx); err != nil {
 		if gerr, ok := err.(*googleapi.Error); ok && gerr.Code == 404 {
 			return nil
 		}

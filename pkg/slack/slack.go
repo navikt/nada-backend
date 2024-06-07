@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/navikt/nada-backend/pkg/graph/models"
 	"github.com/sirupsen/logrus"
 	"github.com/slack-go/slack"
 )
@@ -31,14 +30,6 @@ func (s SlackClient) InformNewAccessRequest(contact string, dpID, dpName, dsID, 
 	link := "\nLink: " + s.datakatalogurl + "/dataproduct/" + dpID + "/" + strings.ReplaceAll(dpName, " ", "%20") + "/" + dsID
 	dsp := "\nDatasett: " + dsName + " " + "\nDataprodukt: " + dpName
 	message := subject + " har sendt en søknad om tilgang for: " + dsp + link
-	_, _, _, e := s.api.SendMessage(contact, slack.MsgOptionText(message, false))
-	return e
-}
-
-func (s SlackClient) NewAccessRequest(contact string, dp *models.Dataproduct, ds *models.Dataset, ar *models.AccessRequest) error {
-	link := "\nLink: " + s.datakatalogurl + "/dataproduct/" + dp.ID.String() + "/" + strings.ReplaceAll(dp.Name, " ", "%20") + "/" + ds.ID.String()
-	dsp := "\nDatasett: " + ds.Name + " " + "\nDataprodukt: " + dp.Name
-	message := ar.Subject + " har sendt en søknad om tilgang for: " + dsp + link
 	_, _, _, e := s.api.SendMessage(contact, slack.MsgOptionText(message, false))
 	return e
 }

@@ -11,10 +11,10 @@ import (
 
 	"github.com/btcsuite/btcutil/base58"
 	"github.com/google/uuid"
+	"github.com/navikt/nada-backend/pkg/access"
 	"github.com/navikt/nada-backend/pkg/database"
 	"github.com/navikt/nada-backend/pkg/event"
-	"github.com/navikt/nada-backend/pkg/graph"
-	"github.com/navikt/nada-backend/pkg/graph/models"
+	"github.com/navikt/nada-backend/pkg/service"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/sirupsen/logrus"
 	"google.golang.org/api/cloudresourcemanager/v1"
@@ -24,7 +24,6 @@ import (
 type Metabase struct {
 	repo       *database.Repo
 	client     *Client
-	accessMgr  graph.AccessManager
 	events     *event.Manager
 	sa         string
 	saEmail    string
@@ -32,21 +31,21 @@ type Metabase struct {
 	iamService *iam.Service
 	crmService *cloudresourcemanager.Service
 	log        *logrus.Entry
+	accessMgr  access.AccessManager
 }
 
 type dsWrapper struct {
-	Dataset         *models.Dataset
+	Dataset         *service.Dataset
 	Key             string
 	Email           string
 	MetabaseGroupID int
 	CollectionID    int
 }
 
-func New(repo *database.Repo, client *Client, accessMgr graph.AccessManager, eventMgr *event.Manager, serviceAccount, serviceAccountEmail string, errs *prometheus.CounterVec, iamService *iam.Service, crmService *cloudresourcemanager.Service, log *logrus.Entry) *Metabase {
+func New(repo *database.Repo, client *Client, eventMgr *event.Manager, accessMgr access.AccessManager, serviceAccount, serviceAccountEmail string, errs *prometheus.CounterVec, iamService *iam.Service, crmService *cloudresourcemanager.Service, log *logrus.Entry) *Metabase {
 	m := &Metabase{
 		repo:       repo,
 		client:     client,
-		accessMgr:  accessMgr,
 		events:     eventMgr,
 		sa:         serviceAccount,
 		saEmail:    serviceAccountEmail,
@@ -54,6 +53,7 @@ func New(repo *database.Repo, client *Client, accessMgr graph.AccessManager, eve
 		iamService: iamService,
 		crmService: crmService,
 		log:        log,
+		accessMgr:  accessMgr,
 	}
 	m.events.ListenForDatasetGrant(m.grantMetabaseAccess)
 	m.events.ListenForDatasetRevoke(m.revokeMetabaseAccess)
@@ -79,23 +79,23 @@ func (m *Metabase) Run(ctx context.Context, frequency time.Duration) {
 func (m *Metabase) run(ctx context.Context) {
 	log := m.log.WithField("subsystem", "metabase synchronizer")
 
-	mbMetas, err := m.repo.GetAllMetabaseMetadata(ctx)
+	mbMetas, err := service.GetAllMetabaseMetadata(ctx)
 	if err != nil {
 		log.WithError(err).Error("reading metabase metadata")
 	}
 
 	for _, db := range mbMetas {
-		bq, err := m.repo.GetBigqueryDatasource(ctx, db.DatasetID, false)
+		bq, err := service.GetBigqueryDatasource(ctx, db.DatasetID, false)
 		if err != nil {
 			log.WithError(err).Error("getting bigquery datasource for dataset")
 		}
-		if err := m.SyncTableVisibility(ctx, db, bq); err != nil {
+		if err := m.SyncTableVisibility(ctx, db, *bq); err != nil {
 			log.WithError(err).Warning("hiding other tables")
 		}
 	}
 }
 
-func (m *Metabase) SyncTableVisibility(ctx context.Context, mbMeta *models.MetabaseMetadata, bq models.BigQuery) error {
+func (m *Metabase) SyncTableVisibility(ctx context.Context, mbMeta *service.MetabaseMetadata, bq service.BigQuery) error {
 	if err := m.client.ensureValidSession(ctx); err != nil {
 		return err
 	}
@@ -120,7 +120,7 @@ func (m *Metabase) SyncTableVisibility(ctx context.Context, mbMeta *models.Metab
 
 	includedTables := []string{bq.Table}
 	if !isRestrictedDatabase(mbMeta) {
-		includedTables, err = m.repo.GetOpenMetabaseTablesInSameBigQueryDataset(ctx, bq.ProjectID, bq.Dataset)
+		includedTables, err = service.GetOpenMetabaseTablesInSameBigQueryDataset(ctx, bq.ProjectID, bq.Dataset)
 		if err != nil {
 			return err
 		}

@@ -3,7 +3,6 @@ package api
 import (
 	"context"
 	"crypto/rand"
-	"database/sql"
 	"encoding/base64"
 	"encoding/hex"
 	"encoding/json"
@@ -14,45 +13,13 @@ import (
 
 	"github.com/coreos/go-oidc/v3/oidc"
 	"github.com/google/uuid"
-	"github.com/navikt/nada-backend/pkg/access"
 	"github.com/navikt/nada-backend/pkg/auth"
-	"github.com/navikt/nada-backend/pkg/bqclient"
-	"github.com/navikt/nada-backend/pkg/database"
-	"github.com/navikt/nada-backend/pkg/database/gensql"
-	"github.com/navikt/nada-backend/pkg/event"
-	"github.com/navikt/nada-backend/pkg/graph/models"
-	"github.com/navikt/nada-backend/pkg/polly"
-	"github.com/navikt/nada-backend/pkg/slack"
-	"github.com/navikt/nada-backend/pkg/teamkatalogen"
+	"github.com/navikt/nada-backend/pkg/service"
 	"github.com/sirupsen/logrus"
 	"golang.org/x/oauth2"
 )
 
-var sqldb *sql.DB
-var queries *gensql.Queries
-var tkClient teamkatalogen.Teamkatalogen
 var log *logrus.Logger
-var teamProjectsMapping *auth.TeamProjectsMapping
-var accessManager access.Bigquery
-var eventManager *event.Manager
-var slackClient *slack.SlackClient
-var pollyClient *polly.Polly
-var bq *bqclient.BigqueryClient
-var gcpProjects *auth.TeamProjectsMapping
-
-func Init(db *sql.DB, tk teamkatalogen.Teamkatalogen, l *logrus.Logger, projects *auth.TeamProjectsMapping, e *event.Manager,
-	sc *slack.SlackClient, b *bqclient.BigqueryClient, polly *polly.Polly, gcpproj *auth.TeamProjectsMapping) {
-	tkClient = tk
-	log = l
-	teamProjectsMapping = projects
-	sqldb = db
-	queries = gensql.New(sqldb)
-	eventManager = e
-	bq = b
-	slackClient = sc
-	pollyClient = polly
-	gcpProjects = gcpproj
-}
 
 const (
 	RedirectURICookie               = "redirecturi"
@@ -71,15 +38,13 @@ type HTTP struct {
 	oauth2Config OAuth2
 	callbackURL  string
 	log          *logrus.Entry
-	repo         *database.Repo
 }
 
-func NewHTTP(oauth2Config OAuth2, callbackURL string, repo *database.Repo, log *logrus.Entry) HTTP {
+func NewHTTP(oauth2Config OAuth2, callbackURL string, log *logrus.Entry) HTTP {
 	return HTTP{
 		oauth2Config: oauth2Config,
 		callbackURL:  callbackURL,
 		log:          log,
-		repo:         repo,
 	}
 }
 
@@ -217,7 +182,7 @@ func (h HTTP) Callback(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	session := &models.Session{
+	session := &auth.Session{
 		Token:       generateSecureToken(tokenLength),
 		Expires:     time.Now().Add(sessionLength),
 		AccessToken: tokens.AccessToken,
@@ -236,7 +201,7 @@ func (h HTTP) Callback(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err := h.repo.CreateSession(r.Context(), session); err != nil {
+	if err := auth.CreateSession(r.Context(), session); err != nil {
 		h.log.WithError(err).Error("Unable to store session")
 		http.Redirect(w, r, loginPage+"?error=unauthenticated", http.StatusFound)
 		return
@@ -253,4 +218,23 @@ func (h HTTP) Callback(w http.ResponseWriter, r *http.Request) {
 	})
 
 	http.Redirect(w, r, loginPage, http.StatusFound)
+}
+
+func apiWrapper(handlerDelegate func(r *http.Request) (interface{}, *service.APIError)) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		dto, apiErr := handlerDelegate(r)
+		if apiErr != nil {
+			apiErr.Log()
+			http.Error(w, apiErr.Error(), apiErr.HttpStatus)
+			return
+		}
+		if dto != nil {
+			err := json.NewEncoder(w).Encode(dto)
+			if err != nil {
+				log.WithError(err).Error("Failed to encode response")
+				http.Error(w, err.Error(), http.StatusInternalServerError)
+				return
+			}
+		}
+	}
 }
