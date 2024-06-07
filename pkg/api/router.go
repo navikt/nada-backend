@@ -311,6 +311,29 @@ func New(
 		}))
 	})
 
+	router.Route("/api/bigquery/tables/sync", func(r chi.Router) {
+		r.Post("/", apiWrapper(func(r *http.Request) (interface{}, *APIError) {
+			bqs, err := GetBigqueryDatasources(r.Context())
+			if err != nil {
+				return false, err
+			}
+
+			var errs ErrorList
+
+			for _, bq := range bqs {
+				err := UpdateMetadata(r.Context(), bq)
+				if err != nil {
+					errs = HandleSyncError(r.Context(), errs, err, bq)
+				}
+			}
+			if len(errs) != 0 {
+				return false, NewAPIError(http.StatusInternalServerError, errs, "Failed to sync bigquery tables")
+			}
+
+			return true, nil
+		}))
+	})
+
 	router.Route("/api/search", func(r chi.Router) {
 		r.Get("/", apiWrapper(func(r *http.Request) (interface{}, *APIError) {
 			searchOptions, err := parseSearchOptionsFromRequest(r)
