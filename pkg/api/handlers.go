@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"io"
 	"net/http"
-	"reflect"
 	. "reflect"
 	"runtime"
 	"strings"
@@ -79,6 +78,100 @@ var routerMap = map[string]Handler{
 	"PUT /api/accessRequests/{id}": {
 		typeDTOIn: TypeOf(service.UpdateAccessRequestDTO{}),
 		fptr:      service.UpdateAccessRequest,
+	},
+
+	"GET /api/polly?{query}": {
+		fptr: service.SearchPolly,
+	},
+
+	"GET /api/productAreas": {
+		fptr: service.GetProductAreas,
+	},
+	"GET /api/productAreas/{id}": {
+		fptr: service.GetProductAreaWithAssets,
+	},
+
+	"GET /api/teamkatalogen?{gcpGroups}": {
+		fptr: service.SearchTeamKatalogen,
+	},
+
+	"GET /api/keywords": {
+		fptr: service.GetKeywordsListSortedByPopularity,
+	},
+	"POST /api/keywords": {
+		typeDTOIn: TypeOf(service.UpdateKeywordsDto{}),
+		fptr:      service.UpdateKeywords,
+	},
+
+	"GET /api/bigquery/columns?{projectId}&{datasetId}&{tableId}": {
+		fptr: service.GetBQColumns,
+	},
+	"GET /api/bigquery/tables?{projectId}&{datasetId}": {
+		fptr: service.GetBQTables,
+	},
+	"GET /api/bigquery/datasets?{projectId}": {
+		fptr: service.GetBQDatasets,
+	},
+
+	"PUT /api/user/token?{team}": {
+		fptr: service.RotateNadaToken,
+	},
+
+	"GET /api/userData": {
+		fptr: service.GetUserData,
+	},
+
+	"GET /api/slack/isValid?{channel}": {
+		fptr: service.IsValidSlackChannel,
+	},
+
+	"GET /api/stories/{id}": {
+		fptr: service.GetStoryMetadata,
+	},
+	"POST /api/stories/new": {
+		typeDTOIn: TypeOf(service.NewStory{}),
+		fptr:      service.CreateStory,
+	},
+	"PUT /api/stories/{id}": {
+		typeDTOIn: TypeOf(service.UpdateStoryDto{}),
+		fptr:      service.UpdateStory,
+	},
+	"DELETE /api/stories/{id}": {
+		fptr: service.DeleteStory,
+	},
+
+	"POST /api/accesses/grant": {
+		typeDTOIn: TypeOf(service.GrantAccessData{}),
+		fptr:      service.GrantAccessToDataset,
+	},
+	"POST /api/accesses/revoke?{id}": {
+		fptr: service.RevokeAccessToDataset,
+	},
+
+	"POST /api/pseudo/joinable/new": {
+		typeDTOIn: TypeOf(service.NewJoinableViews{}),
+		fptr:      service.CreateJoinableViews,
+	},
+	"GET /api/pseudo/joinable": {
+		fptr: service.GetJoinableViewsForUser,
+	},
+	"GET /api/pseudo/joinable/{id}": {
+		fptr: service.GetJoinableView,
+	},
+
+	"GET /api/insightProducts/{id}": {
+		fptr: service.GetInsightProduct,
+	},
+	"POST /api/insightProducts/new": {
+		typeDTOIn: TypeOf(service.NewInsightProduct{}),
+		fptr:      service.CreateInsightProduct,
+	},
+	"PUT /api/insightProducts/{id}": {
+		typeDTOIn: TypeOf(service.UpdateInsightProductDto{}),
+		fptr:      service.UpdateInsightProduct,
+	},
+	"DELETE /api/insightProducts/{id}": {
+		fptr: service.DeleteInsightProduct,
 	},
 }
 
@@ -190,7 +283,7 @@ func buildParamsForFunction(handler Handler, pathVars []string, queryParams []st
 			return nil, service.NewAPIError(http.StatusBadRequest, fmt.Errorf("error reading body"), "Error reading request body")
 		}
 
-		dto := reflect.New(handler.typeDTOIn).Interface()
+		dto := New(handler.typeDTOIn).Interface()
 		if err = json.Unmarshal(bodyBytes, dto); err != nil {
 			return nil, service.NewAPIError(http.StatusBadRequest, fmt.Errorf("error unmarshalling request body"), "Error unmarshalling request body")
 		}
@@ -219,5 +312,24 @@ func handlerDelegate(handler Handler, pathvars []string, queryparams []string, r
 }
 
 func handlerFuncName(handler Handler) string {
-	return runtime.FuncForPC(reflect.ValueOf(handler.fptr).Pointer()).Name()
+	return runtime.FuncForPC(ValueOf(handler.fptr).Pointer()).Name()
+}
+
+func apiWrapper(handlerDelegate func(r *http.Request) (interface{}, *service.APIError)) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		dto, apiErr := handlerDelegate(r)
+		if apiErr != nil {
+			apiErr.Log()
+			http.Error(w, apiErr.Error(), apiErr.HttpStatus)
+			return
+		}
+		if dto != nil {
+			err := json.NewEncoder(w).Encode(dto)
+			if err != nil {
+				log.WithError(err).Error("Failed to encode response")
+				http.Error(w, err.Error(), http.StatusInternalServerError)
+				return
+			}
+		}
+	}
 }
