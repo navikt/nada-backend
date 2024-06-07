@@ -284,6 +284,20 @@ func UpdateAccessRequest(ctx context.Context, input UpdateAccessRequestDTO) *API
 	return nil
 }
 
+func ProcessAccessRequest(ctx context.Context, accessRequestID string, action string, reason *string) *APIError {
+	if action != "approve" && action != "deny" {
+		return NewAPIError(http.StatusBadRequest, fmt.Errorf("invalid action %q", action), "processAccessRequest(): invalid action")
+	}
+
+	if action == "approve" {
+		return ApproveAccessRequest(ctx, accessRequestID)
+	} else if action == "deny" {
+		return DenyAccessRequest(ctx, accessRequestID, reason)
+	}
+
+	return nil
+}
+
 func ApproveAccessRequest(ctx context.Context, accessRequestID string) *APIError {
 	ar, apierr := getAccessRequest(ctx, accessRequestID)
 	if apierr != nil {

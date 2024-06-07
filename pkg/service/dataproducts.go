@@ -648,6 +648,7 @@ func MapDataset(ctx context.Context, datasetID string, services []string) (*Data
 }
 
 func CreateDataset(ctx context.Context, input NewDataset) (*string, *APIError) {
+	fmt.Println("CreateDataset", input)
 	user := auth.GetUser(ctx)
 
 	dp, apierr := GetDataproduct(ctx, input.DataproductID.String())
