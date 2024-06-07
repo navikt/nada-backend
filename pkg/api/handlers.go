@@ -21,7 +21,16 @@ type Handler struct {
 	fptr any
 }
 
+//Map of all the handlers
+//the keys of the map are the endpoints, which follow the format:
+//	<METHOD> /<PATH>/<PATH_VAR1>/<PATH_VAR2>?<QUERY_PARAM1>1&<QUERY_PARAM2>
+//	METHOD is the HTTP method
+//	PATH is the path of the endpoint
+//	PATH_VAR1, PATH_VAR2 are path variable names, which will be used as as parameters following "context" that is the first parameter of the handler function
+//	QUERY_PARAM1, QUERY_PARAM2 are query parameters names, which will be used as as parameters following the path variables
+
 var routerMap = map[string]Handler{
+	//dataproducts
 	"GET /api/dataproducts/{id}": {
 		fptr: service.GetDataproduct,
 	},
@@ -37,6 +46,7 @@ var routerMap = map[string]Handler{
 		fptr:      service.UpdateDataproduct,
 	},
 
+	//datasets
 	"POST /api/datasets/new": {
 		typeDTOIn: TypeOf(service.NewDataset{}),
 		fptr:      service.CreateDataset,
@@ -62,6 +72,7 @@ var routerMap = map[string]Handler{
 		fptr: service.GetAccessiblePseudoDatasetsForUser,
 	},
 
+	//accessRequests
 	"GET /api/accessRequests?{datasetID}": {
 		fptr: service.GetAccessRequests,
 	},
@@ -80,10 +91,12 @@ var routerMap = map[string]Handler{
 		fptr:      service.UpdateAccessRequest,
 	},
 
+	//polly
 	"GET /api/polly?{query}": {
 		fptr: service.SearchPolly,
 	},
 
+	//productAreas
 	"GET /api/productAreas": {
 		fptr: service.GetProductAreas,
 	},
@@ -91,10 +104,12 @@ var routerMap = map[string]Handler{
 		fptr: service.GetProductAreaWithAssets,
 	},
 
+	//teamkatalogen
 	"GET /api/teamkatalogen?{gcpGroups}": {
 		fptr: service.SearchTeamKatalogen,
 	},
 
+	//keywords
 	"GET /api/keywords": {
 		fptr: service.GetKeywordsListSortedByPopularity,
 	},
@@ -103,6 +118,7 @@ var routerMap = map[string]Handler{
 		fptr:      service.UpdateKeywords,
 	},
 
+	//bigquery
 	"GET /api/bigquery/columns?{projectId}&{datasetId}&{tableId}": {
 		fptr: service.GetBQColumns,
 	},
@@ -113,18 +129,20 @@ var routerMap = map[string]Handler{
 		fptr: service.GetBQDatasets,
 	},
 
+	//user
 	"PUT /api/user/token?{team}": {
 		fptr: service.RotateNadaToken,
 	},
-
 	"GET /api/userData": {
 		fptr: service.GetUserData,
 	},
 
+	//slack
 	"GET /api/slack/isValid?{channel}": {
 		fptr: service.IsValidSlackChannel,
 	},
 
+	//stories
 	"GET /api/stories/{id}": {
 		fptr: service.GetStoryMetadata,
 	},
@@ -140,6 +158,7 @@ var routerMap = map[string]Handler{
 		fptr: service.DeleteStory,
 	},
 
+	//accesses
 	"POST /api/accesses/grant": {
 		typeDTOIn: TypeOf(service.GrantAccessData{}),
 		fptr:      service.GrantAccessToDataset,
@@ -148,6 +167,7 @@ var routerMap = map[string]Handler{
 		fptr: service.RevokeAccessToDataset,
 	},
 
+	//pseudo
 	"POST /api/pseudo/joinable/new": {
 		typeDTOIn: TypeOf(service.NewJoinableViews{}),
 		fptr:      service.CreateJoinableViews,
@@ -159,6 +179,7 @@ var routerMap = map[string]Handler{
 		fptr: service.GetJoinableView,
 	},
 
+	//insightProducts
 	"GET /api/insightProducts/{id}": {
 		fptr: service.GetInsightProduct,
 	},
