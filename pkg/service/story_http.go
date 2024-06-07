@@ -231,12 +231,12 @@ func updateStoryHTTP(w http.ResponseWriter, r *http.Request, next http.Handler) 
 
 	story, apiErr := GetStoryMetadata(r.Context(), qID.String())
 	if apiErr != nil {
-		if errors.Is(err, sql.ErrNoRows) {
+		if errors.Is(apiErr.Err, sql.ErrNoRows) {
 			writeError(w, http.StatusNotFound, fmt.Errorf("story id %v does not exist", qID))
 			return
 		}
 
-		log.WithError(apiErr).Errorf("reading story id %v", qID)
+		log.WithError(apiErr.Err).Errorf("reading story id %v", qID)
 		writeError(w, http.StatusInternalServerError, fmt.Errorf("internal server error"))
 		return
 	}
