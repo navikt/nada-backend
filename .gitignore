@@ -1,6 +1,7 @@
 .idea/
 public/
 test-sa.json
+test-metabase-sa.json
 hack/.ipynb_checkpoints/
 .DS_Store
 .env

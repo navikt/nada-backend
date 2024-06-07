@@ -273,7 +273,7 @@ func createMetabaseSyncer(ctx context.Context, log *logrus.Entry, repo *database
 		return err
 	}
 
-	metabase := metabase.New(repo, client, eventMgr, accessMgr, string(sa), metabaseSA.ClientEmail, promErrs, iamService, crmService, log.WithField("subsystem", "metabase"))
+	metabase := metabase.New(repo, client, eventMgr, accessMgr, string(sa), metabaseSA.ClientEmail, promErrs, iamService, crmService, cfg.Metabase.GCPProject, log.WithField("subsystem", "metabase"))
 	go metabase.Run(ctx, MetabaseUpdateFrequency)
 	return nil
 }

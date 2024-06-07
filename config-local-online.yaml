@@ -1,0 +1,79 @@
+oauth:
+  client_id: # Loaded from env var AZURE_CLIENT_ID
+  client_secret: # Loaded from env var AZURE_CLIENT_SECRET
+  tenant_id: # Loaded from env var AZURE_TENANT_ID
+  redirect_url: http://localhost:8080/api/oauth2/callback
+metabase:
+  username: paul.bernhard.beskow@nav.no
+  password: supersecret1
+  api_url: http://localhost:8083/api
+  credentials_path: ./test-metabase-sa.json
+  gcp_project: nada-dev-db2e
+slack:
+  webhook_url: # Loaded from env var NADA_SLACK_WEBHOOK_URL
+  token: # Loaded from env var NADA_SLACK_TOKEN
+server:
+  hostname: localhost
+  address: 127.0.0.1
+  port: 8080
+postgres:
+  host: localhost
+  port: 5432
+  user_name: nada-backend
+  password: postgres
+  database_name: nada
+  ssl_mode: disable
+  configuration:
+    max_open_connections: 5
+    max_idle_connections: 3
+teams_catalogue:
+  api_url: https://teamkatalog-api.intern.nav.no
+treatment_catalogue:
+  api_url: https://polly.intern.dev.nav.no/process
+google_groups:
+  impersonation_subject: johnny.horvi@nav.no
+  credentials_file: ./test-sa.json
+gcp:
+  project: nada-local
+  region: europe-north1
+  gcs:
+    endpoint: http://localhost:8082
+    story_bucket_name: nada-quarto-storage-dev
+  big_query:
+    pseudo_views_dataset_name: markedsplassen_pseudo_local
+cookies:
+  redirect:
+    name: redirecturi
+    max_age: 3600
+    path: /
+    domain: localhost
+    same_site: Lax
+    secure: false
+    http_only: true
+  oauth_state:
+    name: oauthstate
+    max_age: 3600
+    path: /
+    domain: localhost
+    same_site: Lax
+    secure: false
+    http_only: true
+  session:
+    name: nada_session
+    max_age: 86400
+    path: /
+    domain: localhost
+    same_site: Lax
+    secure: false
+    http_only: true
+nais_console:
+  api_key: # Loaded from env var NADA_NAIS_CONSOLE_API_KEY
+  api_url: https://console.nav.cloud.nais.io
+api:
+  auth_token: 1234
+login_page: http://localhost:3000/
+amplitude_api_key: # Loaded from env var NADA_AMPLITUDE_API_KEY
+skip_metadata_sync: false
+mock_auth: false
+debug: false
+log_level: debug

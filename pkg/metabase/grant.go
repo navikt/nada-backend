@@ -6,7 +6,6 @@ import (
 	"encoding/base64"
 	"errors"
 	"fmt"
-	"os"
 	"time"
 
 	"github.com/google/uuid"
@@ -293,7 +292,6 @@ func (m *Metabase) create(ctx context.Context, ds dsWrapper) error {
 }
 
 func (m *Metabase) createServiceAccount(ds *service.Dataset) ([]byte, string, error) {
-	projectResource := os.Getenv("GCP_TEAM_PROJECT_ID")
 	request := &iam.CreateServiceAccountRequest{
 		AccountId: "nada-" + MarshalUUID(ds.ID),
 		ServiceAccount: &iam.ServiceAccount{
@@ -302,12 +300,12 @@ func (m *Metabase) createServiceAccount(ds *service.Dataset) ([]byte, string, er
 		},
 	}
 
-	account, err := m.iamService.Projects.ServiceAccounts.Create("projects/"+projectResource, request).Do()
+	account, err := m.iamService.Projects.ServiceAccounts.Create("projects/"+m.gcpProject, request).Do()
 	if err != nil {
 		return nil, "", err
 	}
 
-	iamPolicyCall := m.crmService.Projects.GetIamPolicy(projectResource, &cloudresourcemanager.GetIamPolicyRequest{})
+	iamPolicyCall := m.crmService.Projects.GetIamPolicy(m.gcpProject, &cloudresourcemanager.GetIamPolicyRequest{})
 	iamPolicies, err := iamPolicyCall.Do()
 	if err != nil {
 		return nil, "", err
@@ -315,10 +313,10 @@ func (m *Metabase) createServiceAccount(ds *service.Dataset) ([]byte, string, er
 
 	iamPolicies.Bindings = append(iamPolicies.Bindings, &cloudresourcemanager.Binding{
 		Members: []string{"serviceAccount:" + account.Email},
-		Role:    "projects/" + projectResource + "/roles/nada.metabase",
+		Role:    "projects/" + m.gcpProject + "/roles/nada.metabase",
 	})
 
-	iamSetPolicyCall := m.crmService.Projects.SetIamPolicy(projectResource, &cloudresourcemanager.SetIamPolicyRequest{
+	iamSetPolicyCall := m.crmService.Projects.SetIamPolicy(m.gcpProject, &cloudresourcemanager.SetIamPolicyRequest{
 		Policy: iamPolicies,
 	})
 

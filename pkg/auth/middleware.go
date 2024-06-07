@@ -245,11 +245,14 @@ func JWTValidator(certificates map[string]CertificateList, audience string) jwt.
 }
 
 func (m *Middleware) addGroupsToUser(ctx context.Context, token string, u *User) error {
-	if err := m.addAzureGroups(ctx, token, u); err != nil {
-		return err
+	err := m.addAzureGroups(ctx, token, u)
+	if err != nil {
+		return fmt.Errorf("unable to add azure groups: %w", err)
 	}
-	if err := m.addGoogleGroups(ctx, u); err != nil {
-		return err
+
+	err = m.addGoogleGroups(ctx, u)
+	if err != nil {
+		return fmt.Errorf("unable to add google groups: %w", err)
 	}
 
 	return nil
@@ -264,7 +267,7 @@ func (m *Middleware) addAzureGroups(ctx context.Context, token string, u *User) 
 
 	groups, err := m.azureGroups.GroupsForUser(ctx, token, u.Email)
 	if err != nil {
-		return err
+		return fmt.Errorf("getting groups for user: %w", err)
 	}
 
 	m.groupsCache.SetAzureGroups(u.Email, groups)
@@ -278,8 +281,9 @@ func (m *Middleware) addGoogleGroups(ctx context.Context, u *User) error {
 		var err error
 		groups, err = m.googleGroups.Groups(ctx, &u.Email)
 		if err != nil {
-			return err
+			return fmt.Errorf("getting groups for user: %w", err)
 		}
+
 		m.groupsCache.SetGoogleGroups(u.Email, groups)
 	}
 	u.GoogleGroups = groups
@@ -289,8 +293,9 @@ func (m *Middleware) addGoogleGroups(ctx context.Context, u *User) error {
 		var err error
 		allGroups, err = m.googleGroups.Groups(ctx, nil)
 		if err != nil {
-			return err
+			return fmt.Errorf("getting all groups: %w", err)
 		}
+
 		m.groupsCache.SetGoogleGroups("all", allGroups)
 	}
 	u.AllGoogleGroups = allGroups

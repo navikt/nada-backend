@@ -141,6 +141,7 @@ type Metabase struct {
 	Username        string `yaml:"username"`
 	Password        string `yaml:"password"`
 	APIURL          string `yaml:"api_url"`
+	GCPProject      string `yaml:"gcp_project"`
 	CredentialsPath string `yaml:"credentials_path"`
 }
 
@@ -148,6 +149,7 @@ func (m Metabase) Validate() error {
 	return validation.ValidateStruct(&m,
 		validation.Field(&m.Username, validation.Required),
 		validation.Field(&m.Password, validation.Required),
+		validation.Field(&m.GCPProject, validation.Required),
 		validation.Field(&m.APIURL, validation.Required, is.URL),
 	)
 }
@@ -420,5 +422,6 @@ func NewDefaultEnvBinder() *EnvBinder {
 		"AZURE_APP_CLIENT_SECRET":                  "oauth.client_secret",
 		"AZURE_APP_TENANT_ID":                      "oauth.tenant_id",
 		"NAIS_DATABASE_NADA_BACKEND_NADA_PASSWORD": "postgres.password",
+		"GCP_TEAM_PROJECT_ID":                      "metabase.gcp_project",
 	})
 }

@@ -51,17 +51,18 @@ func NewAzureGroups(client *http.Client, clientID, clientSecret, tenantID string
 func (a *AzureGroupClient) GroupsForUser(ctx context.Context, token, email string) (Groups, error) {
 	bearerToken, err := a.getBearerTokenOnBehalfOfUser(ctx, token)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("getting bearer token: %w", err)
 	}
 
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, AzureGraphMemberOfEndpoint, nil)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("creating request: %w", err)
 	}
+
 	req.Header.Add("Authorization", fmt.Sprintf("Bearer %v", bearerToken))
 	response, err := a.Client.Do(req)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("performing request: %w", err)
 	}
 
 	var memberOfResponse MemberOfResponse
@@ -95,17 +96,17 @@ func (a *AzureGroupClient) getBearerTokenOnBehalfOfUser(ctx context.Context, tok
 
 	req, err := http.NewRequestWithContext(ctx, http.MethodPost, endpoints.AzureAD(a.OAuthTenantID).TokenURL, strings.NewReader(form.Encode()))
 	if err != nil {
-		return "", err
+		return "", fmt.Errorf("creating request: %w", err)
 	}
 
 	response, err := a.Client.Do(req)
 	if err != nil {
-		return "", err
+		return "", fmt.Errorf("performing request: %w", err)
 	}
 
 	var tokenResponse TokenResponse
 	if err := json.NewDecoder(response.Body).Decode(&tokenResponse); err != nil {
-		return "", err
+		return "", fmt.Errorf("decoding response: %w", err)
 	}
 
 	log.Debug("Successfully retrieved on-behalf-of token")

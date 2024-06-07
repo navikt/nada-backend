@@ -52,7 +52,7 @@ func NewGoogleGroups(ctx context.Context, credentailFile, subject string, log *l
 	}, nil
 }
 
-func (g *GoogleGroupClient) Groups(ctx context.Context, email *string) (groups Groups, err error) {
+func (g *GoogleGroupClient) Groups(ctx context.Context, email *string) (Groups, error) {
 	if g.mock {
 		return Groups{
 			Group{Name: "All users", Email: "all-users@nav.no"},
@@ -66,17 +66,24 @@ func (g *GoogleGroupClient) Groups(ctx context.Context, email *string) (groups G
 	if email != nil {
 		groupListCall = g.service.Groups.List().UserKey(*email)
 	}
-	err = groupListCall.Pages(ctx, func(g *admin.Groups) error {
+
+	var groups Groups
+
+	err := groupListCall.Pages(ctx, func(g *admin.Groups) error {
 		for _, grp := range g.Groups {
 			groups = append(groups, Group{
 				Name:  grp.Name,
 				Email: grp.Email,
 			})
 		}
+
 		return nil
 	})
+	if err != nil {
+		return nil, fmt.Errorf("unable to list groups: %s", err)
+	}
 
-	return groups, err
+	return groups, nil
 }
 
 func TrimNaisTeamPrefix(team string) string {

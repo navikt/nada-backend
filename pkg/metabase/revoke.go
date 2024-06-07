@@ -4,8 +4,6 @@ import (
 	"context"
 	"database/sql"
 	"errors"
-	"os"
-
 	"github.com/google/uuid"
 	"github.com/navikt/nada-backend/pkg/service"
 	"google.golang.org/api/googleapi"
@@ -162,7 +160,7 @@ func (m *Metabase) deleteRestrictedDatabase(ctx context.Context, datasetID uuid.
 
 func (m *Metabase) deleteServiceAccount(saEmail string) error {
 	_, err := m.iamService.Projects.ServiceAccounts.
-		Delete("projects/" + os.Getenv("GCP_TEAM_PROJECT_ID") + "/serviceAccounts/" + saEmail).
+		Delete("projects/" + m.gcpProject + "/serviceAccounts/" + saEmail).
 		Do()
 	if err != nil {
 		apiError, ok := err.(*googleapi.Error)

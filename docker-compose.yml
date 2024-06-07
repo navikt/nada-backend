@@ -1,25 +1,58 @@
-version: '3.1'
-
 services:
   db:
     image: postgres
     restart: always
     environment:
+      POSTGRES_USER: nada-backend
       POSTGRES_PASSWORD: postgres
       POSTGRES_DB: nada
     command: ["postgres", "-c", "log_statement=all", "-c", "wal_level=logical"]
     ports:
-      - 5432:5432
+      - "5432:5432"
+    networks:
+      - metanet1
 
   adminer:
     image: adminer
     restart: always
     ports:
-      - 8081:8080
+      - "8081:8080"
+    networks:
+      - metanet1
 
   gcs:
     image: fsouza/fake-gcs-server:1.44
     restart: always
     ports:
-      - 8082:4443
+      - "8082:4443"
     entrypoint: ["/bin/sh", "-c", "mkdir -p /storage/nada-quarto-storage-dev && /bin/fake-gcs-server -scheme http -public-host localhost:8082"]
+    networks:
+      - metanet1
+
+  metabase:
+    image: metabase-nada-backend:latest
+    container_name: metabase
+    hostname: metabase
+    volumes:
+      - metabase-data:/usr/src/metabase-data
+    ports:
+      - "8083:3000"
+    environment:
+      MB_DB_TYPE: h2
+      MB_DB_FILE: /usr/src/metabase-data/metabase.db
+      MB_ENABLE_PASSWORD_LOGIN: true
+      MB_PREMIUM_EMBEDDING_TOKEN: ${MB_PREMIUM_EMBEDDING_TOKEN}
+    networks:
+      - metanet1
+    healthcheck:
+      test: curl --fail -I http://localhost:3000/api/health || exit 1
+      interval: 15s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  metabase-data:
+
+networks:
+  metanet1:
+    driver: bridge

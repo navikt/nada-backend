@@ -32,6 +32,7 @@ type Metabase struct {
 	crmService *cloudresourcemanager.Service
 	log        *logrus.Entry
 	accessMgr  access.AccessManager
+	gcpProject string
 }
 
 type dsWrapper struct {
@@ -42,7 +43,7 @@ type dsWrapper struct {
 	CollectionID    int
 }
 
-func New(repo *database.Repo, client *Client, eventMgr *event.Manager, accessMgr access.AccessManager, serviceAccount, serviceAccountEmail string, errs *prometheus.CounterVec, iamService *iam.Service, crmService *cloudresourcemanager.Service, log *logrus.Entry) *Metabase {
+func New(repo *database.Repo, client *Client, eventMgr *event.Manager, accessMgr access.AccessManager, serviceAccount, serviceAccountEmail string, errs *prometheus.CounterVec, iamService *iam.Service, crmService *cloudresourcemanager.Service, gcpProject string, log *logrus.Entry) *Metabase {
 	m := &Metabase{
 		repo:       repo,
 		client:     client,
@@ -52,6 +53,7 @@ func New(repo *database.Repo, client *Client, eventMgr *event.Manager, accessMgr
 		errs:       errs,
 		iamService: iamService,
 		crmService: crmService,
+		gcpProject: gcpProject,
 		log:        log,
 		accessMgr:  accessMgr,
 	}

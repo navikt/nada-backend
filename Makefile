@@ -23,58 +23,48 @@ integration-test:
 .PHONY: integration-test
 
 env:
-	echo "NADA_CLIENT_ID=$(shell kubectl get --context=dev-gcp --namespace=nada `kubectl get secret --context=dev-gcp --namespace=nada --sort-by='{.metadata.creationTimestamp}' -l app=nada-backend,type=azurerator.nais.io -o name | tail -1` -o jsonpath='{.data.AZURE_APP_CLIENT_ID}' | base64 -d)" > .env
-	echo "NADA_CLIENT_SECRET=$(shell kubectl get --context=dev-gcp --namespace=nada `kubectl get secret --context=dev-gcp --namespace=nada --sort-by='{.metadata.creationTimestamp}' -l app=nada-backend,type=azurerator.nais.io -o name | tail -1` -o jsonpath='{.data.AZURE_APP_CLIENT_SECRET}' | base64 -d)" >> .env
-	echo "NADA_CLIENT_TENANT=$(shell kubectl get --context=dev-gcp --namespace=nada `kubectl get secret --context=dev-gcp --namespace=nada --sort-by='{.metadata.creationTimestamp}' -l app=nada-backend,type=azurerator.nais.io -o name | tail -1` -o jsonpath='{.data.AZURE_APP_TENANT_ID}' | base64 -d)" >> .env
-	echo "GITHUB_READ_TOKEN=$(shell kubectl get secret --context=dev-gcp --namespace=nada github-read-token -o jsonpath='{.data.GITHUB_READ_TOKEN}' | base64 -d)" >> .env
-	echo "METABASE_USERNAME=$(shell kubectl get secret --context=dev-gcp --namespace=nada nada-backend -o jsonpath='{.data.METABASE_USERNAME}' | base64 -d)" >> .env
-	echo "METABASE_PASSWORD=$(shell kubectl get secret --context=dev-gcp --namespace=nada nada-backend -o jsonpath='{.data.METABASE_PASSWORD}' | base64 -d)" >> .env
-	echo "CONSOLE_API_KEY=$(shell kubectl get secret --context=dev-gcp --namespace=nada nada-backend -o jsonpath='{.data.CONSOLE_API_KEY}' | base64 -d)" >> .env
-	echo "AMPLITUDE_API_KEY=$(shell kubectl get secret --context=dev-gcp --namespace=nada nada-backend -o jsonpath='{.data.AMPLITUDE_API_KEY}' | base64 -d)" >> .env
+	@echo "Re-creating .env file..."
+	@echo "NADA_OAUTH_CLIENT_ID=$(shell kubectl get --context=dev-gcp --namespace=nada `kubectl get secret --context=dev-gcp --namespace=nada --sort-by='{.metadata.creationTimestamp}' -l app=nada-backend,type=azurerator.nais.io -o name | tail -1` -o jsonpath='{.data.AZURE_APP_CLIENT_ID}' | base64 -d)" > .env
+	@echo "NADA_OAUTH_CLIENT_SECRET=$(shell kubectl get --context=dev-gcp --namespace=nada `kubectl get secret --context=dev-gcp --namespace=nada --sort-by='{.metadata.creationTimestamp}' -l app=nada-backend,type=azurerator.nais.io -o name | tail -1` -o jsonpath='{.data.AZURE_APP_CLIENT_SECRET}' | base64 -d)" >> .env
+	@echo "NADA_OAUTH_TENANT_ID=$(shell kubectl get --context=dev-gcp --namespace=nada `kubectl get secret --context=dev-gcp --namespace=nada --sort-by='{.metadata.creationTimestamp}' -l app=nada-backend,type=azurerator.nais.io -o name | tail -1` -o jsonpath='{.data.AZURE_APP_TENANT_ID}' | base64 -d)" >> .env
+	@echo "NADA_NAIS_CONSOLE_API_KEY=\"$(shell kubectl get secret --context=dev-gcp --namespace=nada nada-backend-secret -o jsonpath='{.data.NADA_NAIS_CONSOLE_API_KEY}' | base64 -d)\"" >> .env
+	@echo "NADA_AMPLITUDE_API_KEY=$(shell kubectl get secret --context=dev-gcp --namespace=nada nada-backend-secret -o jsonpath='{.data.NADA_AMPLITUDE_API_KEY}' | base64 -d)" >> .env
+	@echo "NADA_SLACK_WEBHOOK_URL=$(shell kubectl get secret --context=dev-gcp --namespace=nada nada-backend-secret -o jsonpath='{.data.NADA_SLACK_WEBHOOK_URL}' | base64 -d)" >> .env
+	@echo "NADA_SLACK_TOKEN=$(shell kubectl get secret --context=dev-gcp --namespace=nada nada-backend-secret -o jsonpath='{.data.NADA_SLACK_TOKEN}' | base64 -d)" >> .env
+
+    # Fetch metabase enterprise edition embedding token, so we get metabase ee locally
+    # - https://www.metabase.com/docs/v0.49/configuring-metabase/environment-variables#mb_premium_embedding_token
+	@echo "MB_PREMIUM_EMBEDDING_TOKEN=$(shell kubectl get secret --context=dev-gcp --namespace=nada metabase -o jsonpath='{.data.MB_PREMIUM_EMBEDDING_TOKEN}' | base64 -d)" >> .env
 .PHONY: env
 
 test-sa:
+	@echo "Fetching service account credentials..."
 	$(shell kubectl get --context=dev-gcp --namespace=nada secret/nada-backend-google-credentials -o json | jq -r '.data."sa.json"' | base64 -d > test-sa.json)
 .PHONY: test-sa
 
-local-with-auth:
-	STORAGE_EMULATOR_HOST=http://localhost:8082/storage/v1/ GCP_STORY_BUCKET_NAME=nada-quarto-storage-dev DASHBOARD_PA_ID=6dbeedea-b23e-4bf7-a1cb-21d02d15e452 go run ./cmd/nada-backend \
-	--oauth2-client-id=$(NADA_CLIENT_ID) \
-	--oauth2-client-secret=$(NADA_CLIENT_SECRET) \
-	--oauth2-tenant-id=$(NADA_CLIENT_TENANT) \
-	--teams-token=$(GITHUB_READ_TOKEN) \
-	--bind-address=127.0.0.1:8080 \
-	--hostname=localhost \
-	--service-account-file=./test-sa.json \
-	--google-admin-subject=johnny.horvi@nav.no \
-	--metabase-username=$(METABASE_USERNAME) \
-	--metabase-password=$(METABASE_PASSWORD) \
-	--amplitude-api-key=$(AMPLITUDE_API_KEY) \
-	--teamkatalogen-url=https://teamkatalog-api.intern.nav.no \
-	--polly-url=https://polly.intern.dev.nav.no/process \
-	--team-projects-url=https://raw.githubusercontent.com/nais/teams/master/gcp-projects/dev-output.json \
-	--story-bucket=nada-quarto-storage-dev \
-	--console-api-key="$(CONSOLE_API_KEY)" \
-	--nada-token-creds=1234 \
-	--log-level=debug \
-	--central-data-project=datamarkedsplassen-dev \
+metabase-sa:
+	@echo "Fetching metabase service account credentials..."
+	$(shell kubectl get --context=dev-gcp --namespace=nada secret/metabase-google-sa -o json | jq -r '.data."meta_creds.json"' | base64 -d > test-metabase-sa.json)
+.PHONY: test-sa
+
+local-with-auth: | env test-sa metabase-sa docker-build-metabase
+	@echo "Sourcing environment variables..."
+	set -a && source ./.env && set +a && \
+		STORAGE_EMULATOR_HOST=http://localhost:8082/storage/v1/ go run ./cmd/nada-backend --config ./config-local-online.yaml
 .PHONY: local-with-auth
 
+docker-compose-up:
+	@echo "Starting dependencies with docker-compose..."
+	docker-compose up -d
 
 local:
-	STORAGE_EMULATOR_HOST=http://localhost:8082/storage/v1/ GCP_STORY_BUCKET_NAME=nada-quarto-storage-dev DASHBOARD_PA_ID=Mocked-001 go run ./cmd/nada-backend \
-	--bind-address=127.0.0.1:8080 \
-	--hostname=localhost \
-	--mock-auth \
-	--skip-metadata-sync \
-	--story-bucket=nada-quarto-storage-dev \
-	--log-level=debug \
-	--nada-token-creds=1234 \
-	--slack-token=$(SLACK_TOKEN)
+	@echo "Sourcing environment variables and starting nada-backend..."
+	set -a && source ./.env && set +a && \
+		STORAGE_EMULATOR_HOST=http://localhost:8082/storage/v1/ go run ./cmd/nada-backend --config ./config-local.yaml
 .PHONY: local
 
 migrate:
-	go run github.com/pressly/goose/v3/cmd/goose -dir ./pkg/database/migrations postgres "user=postgres dbname=nada sslmode=disable password=postgres" up
+	go run github.com/pressly/goose/v3/cmd/goose -dir ./pkg/database/migrations postgres "user=nada-backend dbname=nada sslmode=disable password=postgres" up
 .PHONY: migrate
 
 generate-sql:
@@ -87,6 +77,10 @@ generate: generate-sql
 linux-build:
 	go build -a -installsuffix cgo -o $(APP) -ldflags "-s $(LDFLAGS)" ./cmd/nada-backend
 .PHONY: linux-build
+
+docker-build-metabase:
+	@echo "Building metabase docker image..."
+	docker image build -t metabase-nada-backend:latest -f Dockerfile.metabase .
 
 docker-build:
 	docker image build -t ghcr.io/navikt/$(APP):$(VERSION) -t ghcr.io/navikt/$(APP):latest .
