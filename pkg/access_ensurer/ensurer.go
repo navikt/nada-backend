@@ -18,7 +18,7 @@ import (
 type Service interface {
 	GetUnrevokedExpiredAccess(ctx context.Context) ([]*service.Access, error)
 	GetBigqueryDatasource(ctx context.Context, dataproductID uuid.UUID, isReference bool) (*service.BigQuery, error)
-	RevokeAccessToDataset(ctx context.Context, id uuid.UUID) error
+	RevokeAccessToDataset(ctx context.Context, id uuid.UUID, gcpProject string) error
 	GetPseudoDatasourcesToDelete(ctx context.Context) ([]*service.BigQuery, error)
 	SetDatasourceDeleted(ctx context.Context, id uuid.UUID) error
 	GetJoinableViewsWithReference(ctx context.Context) ([]gensql.GetJoinableViewsWithReferenceRow, error)
@@ -96,14 +96,14 @@ func (e *Ensurer) run(ctx context.Context) {
 			e.errs.WithLabelValues("Revoke").Inc()
 			continue
 		}
-		if err := e.s.RevokeAccessToDataset(ctx, entry.ID); err != nil {
+		if err := e.s.RevokeAccessToDataset(ctx, entry.ID, e.centralDataProject); err != nil {
 			e.log.WithError(err).Errorf("Setting access entry with ID %v to revoked in database", entry.ID)
 			e.errs.WithLabelValues("RevokeAccessToDataproduct").Inc()
 			continue
 		}
 	}
 
-	//TODO: enable pseudo feature
+	// TODO: enable pseudo feature
 	if true {
 		return
 	}

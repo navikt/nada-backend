@@ -184,13 +184,9 @@ func main() {
 	log.Infof("Listening on %s:%s", cfg.Server.Address, cfg.Server.Port)
 	auth.Init(repo.GetDB())
 	srv := api.New(
-		repo,
-		gcsClient,
-		teamcatalogue,
 		httpAPI,
 		authenticatorMiddleware,
 		prom(repo.Metrics()...),
-		amplitudeClient,
 		cfg.API.AuthToken,
 		cfg.GCP.Project,
 		log,

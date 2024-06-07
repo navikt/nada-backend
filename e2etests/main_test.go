@@ -15,17 +15,12 @@ import (
 	"testing"
 
 	graphProm "github.com/99designs/gqlgen-contrib/prometheus"
-	"github.com/navikt/nada-backend/pkg/access"
-	"github.com/navikt/nada-backend/pkg/amplitude"
 	"github.com/navikt/nada-backend/pkg/api"
 	"github.com/navikt/nada-backend/pkg/auth"
 	"github.com/navikt/nada-backend/pkg/database"
 	"github.com/navikt/nada-backend/pkg/database/gensql"
 	"github.com/navikt/nada-backend/pkg/event"
 	"github.com/navikt/nada-backend/pkg/gcs"
-	"github.com/navikt/nada-backend/pkg/polly"
-	"github.com/navikt/nada-backend/pkg/slack"
-	"github.com/navikt/nada-backend/pkg/teamkatalogen"
 	"github.com/navikt/nada-backend/pkg/teamprojectsupdater"
 	"github.com/ory/dockertest/v3"
 	"github.com/ory/dockertest/v3/docker"
@@ -101,7 +96,7 @@ func TestMain(m *testing.M) {
 		log.Fatalf("Could not connect to docker: %s", err)
 	}
 
-	gcsClient, err := gcs.New(context.Background(), storyBucket, storageEndpoint, logrus.NewEntry(logrus.StandardLogger()))
+	_, err = gcs.New(context.Background(), storyBucket, storageEndpoint, logrus.NewEntry(logrus.StandardLogger()))
 	if err != nil {
 		panic(err)
 	}
@@ -111,7 +106,7 @@ func TestMain(m *testing.M) {
 		panic(err)
 	}
 
-	tpu, err := teamprojectsupdater.NewMockTeamProjectsUpdater(context.Background(), repo)
+	_, err = teamprojectsupdater.NewMockTeamProjectsUpdater(context.Background(), repo)
 	if err != nil {
 		panic(err)
 	}
@@ -119,26 +114,10 @@ func TestMain(m *testing.M) {
 	promReg := prometheus.NewRegistry()
 	graphProm.RegisterOn(promReg)
 
-	gqlServer := graph.New(
-		repo,
-		bigquery.NewMock(),
-		tpu.TeamProjectsMapping,
-		access.NewNoop(),
-		teamkatalogen.NewMock(),
-		slack.NewMockSlackClient(logrus.StandardLogger()),
-		polly.NewMock("https://some.url"),
-		"",
-		logrus.StandardLogger().WithField("subsystem", "graphql"),
-	)
 	srv := api.New(
-		repo,
-		gcsClient,
-		teamkatalogen.NewMock(),
 		&mockAuthHandler{},
 		auth.MockJWTValidatorMiddleware(),
-		gqlServer,
 		prometheus.NewRegistry(),
-		amplitude.NewMock(),
 		"",
 		"datamarkedsplassen-dev",
 		logrus.StandardLogger(),

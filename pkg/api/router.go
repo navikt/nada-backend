@@ -11,13 +11,9 @@ import (
 	"github.com/99designs/gqlgen/graphql/playground"
 	"github.com/go-chi/chi"
 	"github.com/go-chi/cors"
-	"github.com/navikt/nada-backend/pkg/amplitude"
 	"github.com/navikt/nada-backend/pkg/auth"
-	"github.com/navikt/nada-backend/pkg/database"
-	"github.com/navikt/nada-backend/pkg/gcs"
 	"github.com/navikt/nada-backend/pkg/service"
 	. "github.com/navikt/nada-backend/pkg/service"
-	"github.com/navikt/nada-backend/pkg/teamkatalogen"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/sirupsen/logrus"
@@ -30,13 +26,9 @@ type HTTPAPI interface {
 }
 
 func New(
-	repo *database.Repo,
-	gcsClient *gcs.Client,
-	teamCatalog teamkatalogen.Teamkatalogen,
 	httpAPI HTTPAPI,
 	authMW auth.MiddlewareHandler,
 	promReg *prometheus.Registry,
-	amplitudeClient amplitude.Amplitude,
 	teamTokenCreds string,
 	gcpProjectID string,
 	log *logrus.Logger,

@@ -5,6 +5,8 @@ package e2etests
 import (
 	"bytes"
 	"context"
+	"github.com/navikt/nada-backend/pkg/database/gensql"
+	"github.com/navikt/nada-backend/pkg/service"
 	"io/ioutil"
 	"mime/multipart"
 	"net/http"
@@ -74,7 +76,7 @@ func TestStory(t *testing.T) {
 
 	newHtml := "<html><h1>Quarto updated</h1></html>"
 
-	teamToken, err := repo.GetNadaToken(ctx, testTeam)
+	teamToken, err := service.GetNadaToken(ctx, testTeam)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -199,7 +201,7 @@ func TestStory(t *testing.T) {
 		}
 	})
 
-	if err := repo.DeleteNadaToken(ctx, testTeam); err != nil {
+	if err := repo.Querier.DeleteNadaToken(ctx, testTeam); err != nil {
 		t.Fatal(err)
 	}
 
@@ -248,11 +250,12 @@ func prepareStoryTests(ctx context.Context) (uuid.UUID, error) {
 
 	description := "this is my story"
 
-	story, err := repo.CreateStory(ctx, "first.last@nav.no", models.NewStory{
+	story, err := repo.Querier.CreateStory(ctx, gensql.CreateStoryParams{
 		Name:        "story",
-		Description: &description,
-		Group:       testTeam + "@nav.no",
+		Creator:     "first.last@nav.no",
+		Description: description,
 		Keywords:    []string{},
+		OwnerGroup:  testTeam + "@nav.no",
 	})
 	if err != nil {
 		return uuid.UUID{}, err

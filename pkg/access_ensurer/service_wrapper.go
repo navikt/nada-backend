@@ -18,8 +18,8 @@ func (s ServiceWrapper) GetBigqueryDatasource(ctx context.Context, dataproductID
 	return service.GetBigqueryDatasource(ctx, dataproductID, isReference)
 }
 
-func (s ServiceWrapper) RevokeAccessToDataset(ctx context.Context, id uuid.UUID) error {
-	return service.RevokeAccessToDataset(ctx, id.String())
+func (s ServiceWrapper) RevokeAccessToDataset(ctx context.Context, id uuid.UUID, gcpProject string) error {
+	return service.RevokeAccessToDataset(ctx, id.String(), gcpProject)
 }
 
 func (s ServiceWrapper) GetPseudoDatasourcesToDelete(ctx context.Context) ([]*service.BigQuery, error) {
