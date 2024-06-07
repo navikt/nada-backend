@@ -6,7 +6,9 @@ import (
 	"io"
 	"net/http"
 	. "reflect"
+	"regexp"
 	"runtime"
+	"strconv"
 	"strings"
 
 	"github.com/go-chi/chi"
@@ -21,14 +23,20 @@ type Handler struct {
 	fptr any
 }
 
-//Map of all the handlers
-//the keys of the map are the endpoints, which follow the format:
+// Map of all the handlers
+//
+// the keys of the map are the endpoints, which follow the format:
+//
 //	<METHOD> /<PATH>/<PATH_VAR1>/<PATH_VAR2>?<QUERY_PARAM1>1&<QUERY_PARAM2>
 //	METHOD is the HTTP method
 //	PATH is the path of the endpoint
 //	PATH_VAR1, PATH_VAR2 are path variable names, which will be used as as parameters following "context" that is the first parameter of the handler function
 //	QUERY_PARAM1, QUERY_PARAM2 are query parameters names, which will be used as as parameters following the path variables
-
+//
+// The values of the map are the handlers, which contain the function pointer and the DTO type of the handler
+// The function pointer (fpt) is the function that will be called when the endpoint is hit, and the function must have context as its first parameter.
+// There can be a list of string parameters, which are the path variables and query parameters, that will be passed to the function.
+// The last parameter must be a DTO type which will be posted by the frontend as request body. The parameter must NOT be a pointer to DTO!
 var routerMap = map[string]Handler{
 	//dataproducts
 	"GET /api/dataproducts/{id}": {
@@ -97,15 +105,15 @@ var routerMap = map[string]Handler{
 	},
 
 	//productAreas
-	"GET /api/productAreas": {
+	"GET /api/productareas": {
 		fptr: service.GetProductAreas,
 	},
-	"GET /api/productAreas/{id}": {
+	"GET /api/productareas/{id}": {
 		fptr: service.GetProductAreaWithAssets,
 	},
 
 	//teamkatalogen
-	"GET /api/teamkatalogen?{gcpGroups}": {
+	"GET /api/teamkatalogen?{[gcpGroups]}": {
 		fptr: service.SearchTeamKatalogen,
 	},
 
@@ -194,6 +202,11 @@ var routerMap = map[string]Handler{
 	"DELETE /api/insightProducts/{id}": {
 		fptr: service.DeleteInsightProduct,
 	},
+
+	//search
+	"GET /api/search?{text}&{[keywords]}&{[groups]}&{[teamIDs]}&{[services]}&{[types]}&{(limit)}&{(offset)}": {
+		fptr: service.Search,
+	},
 }
 
 func InstallHanlers(router *chi.Mux) {
@@ -235,9 +248,9 @@ func InstallHanlers(router *chi.Mux) {
 					return
 				}
 				routerFn("/", apiWrapper(
-					func(r *http.Request) (interface{}, *service.APIError) {
-						return handlerDelegate(handler, pathvars, queryparams, r)
-					}))
+					func(r *http.Request, payload any) (interface{}, *service.APIError) {
+						return handlerDelegate(payload.(Handler), pathvars, queryparams, r)
+					}, handler))
 				log.Info(fmt.Sprintf("Installed path: %v %v, with %v, path vars %v, query params %v", method, path, handlerFuncName(handler), pathvars, queryparams))
 			}
 		})
@@ -293,7 +306,31 @@ func buildParamsForFunction(handler Handler, pathVars []string, queryParams []st
 	if len(queryParams) > 0 {
 		query := r.URL.Query()
 		for _, queryParam := range queryParams {
-			queryParamValue := query.Get(queryParam)
+			name, isArray := extractArrayName(queryParam)
+			var queryParamValue any = ""
+			if isArray {
+				queryParamValue = []string{}
+				if query.Has(name) {
+					queryParamValue = strings.Split(query[name][0], ",")
+				}
+			} else {
+				name, isInt := extractIntVariableName(queryParam)
+				if isInt {
+					queryParamValue = 0
+					if query.Has(name) {
+						queryParamIntValue, err := strconv.Atoi(query[name][0])
+						if err != nil {
+							return nil, service.NewAPIError(http.StatusBadRequest, fmt.Errorf("error parsing query parameter"), "Error parsing query parameter")
+						}
+						queryParamValue = queryParamIntValue
+					}
+				} else {
+					queryParamValue = ""
+					if query.Has(name) {
+						queryParamValue = query[name][0]
+					}
+				}
+			}
 			callParams = append(callParams, ValueOf(queryParamValue))
 		}
 	}
@@ -318,6 +355,7 @@ func buildAndCallFunction(handler Handler, funcParam []Value) (interface{}, *ser
 	if fn.Kind() != Func {
 		return nil, service.NewAPIError(http.StatusInternalServerError, fmt.Errorf("invalid endpoint"), "invalid endpoint")
 	}
+	fmt.Println("Calling function: ", handlerFuncName(handler))
 	re := fn.Call(funcParam)
 	outDto := re[0].Interface()
 	apiErr := re[1].Interface().(*service.APIError)
@@ -336,9 +374,9 @@ func handlerFuncName(handler Handler) string {
 	return runtime.FuncForPC(ValueOf(handler.fptr).Pointer()).Name()
 }
 
-func apiWrapper(handlerDelegate func(r *http.Request) (interface{}, *service.APIError)) http.HandlerFunc {
+func apiWrapper(handlerDelegate func(*http.Request, any) (interface{}, *service.APIError), payload any) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		dto, apiErr := handlerDelegate(r)
+		dto, apiErr := handlerDelegate(r, payload)
 		if apiErr != nil {
 			apiErr.Log()
 			http.Error(w, apiErr.Error(), apiErr.HttpStatus)
@@ -353,4 +391,22 @@ func apiWrapper(handlerDelegate func(r *http.Request) (interface{}, *service.API
 			}
 		}
 	}
+}
+
+func extractArrayName(s string) (string, bool) {
+	re := regexp.MustCompile(`^\[(.*)\]$`)
+	matches := re.FindStringSubmatch(s)
+	if len(matches) > 0 {
+		return matches[1], true
+	}
+	return s, false
+}
+
+func extractIntVariableName(s string) (string, bool) {
+	re := regexp.MustCompile(`^\((.*)\)$`)
+	matches := re.FindStringSubmatch(s)
+	if len(matches) > 0 {
+		return matches[1], true
+	}
+	return s, false
 }

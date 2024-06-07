@@ -3,7 +3,6 @@ package api
 import (
 	"encoding/json"
 	"net/http"
-	"strconv"
 	"strings"
 
 	"github.com/99designs/gqlgen/graphql/playground"
@@ -97,21 +96,22 @@ func NewRouter(
 			w.Write(payloadBytes)
 		})
 	})
+	/*
+		router.Route("/api/search", func(r chi.Router) {
+			r.Get("/", apiWrapper(func(r *http.Request, payload any) (interface{}, *APIError) {
+				searchOptions, err := parseSearchOptionsFromRequest(r)
+				if err != nil {
+					return nil, NewAPIError(http.StatusBadRequest, err, "Failed to parse search options")
+				}
 
-	router.Route("/api/search", func(r chi.Router) {
-		r.Get("/", apiWrapper(func(r *http.Request) (interface{}, *APIError) {
-			searchOptions, err := parseSearchOptionsFromRequest(r)
-			if err != nil {
-				return nil, NewAPIError(http.StatusBadRequest, err, "Failed to parse search options")
-			}
-
-			return Search(r.Context(), searchOptions)
-		}))
-	})
-
+				return Search(r.Context(), searchOptions)
+			}, nil))
+		})
+	*/
 	return router
 }
 
+/*
 func parseSearchOptionsFromRequest(r *http.Request) (*SearchOptions, error) {
 	query := r.URL.Query()
 
@@ -167,3 +167,4 @@ func parseSearchOptionsFromRequest(r *http.Request) (*SearchOptions, error) {
 
 	return &options, nil
 }
+*/
