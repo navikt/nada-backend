@@ -3,7 +3,11 @@ package service
 import (
 	"context"
 	"database/sql"
+	"encoding/json"
+	"errors"
 	"fmt"
+	"github.com/sqlc-dev/pqtype"
+	"google.golang.org/api/googleapi"
 	"net/http"
 	"strings"
 	"time"
@@ -118,4 +122,85 @@ func GetBigqueryDatasource(ctx context.Context, datasetID uuid.UUID, isReference
 		MissingSince:  &bq.MissingSince.Time,
 		PseudoColumns: bq.PseudoColumns,
 	}, nil
+}
+
+func GetBigqueryDatasources(ctx context.Context) ([]gensql.DatasourceBigquery, *APIError) {
+	bqs, err := queries.GetBigqueryDatasources(ctx)
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return nil, nil
+		}
+
+		return nil, DBErrorToAPIError(err, fmt.Sprintf("fetching bigquery datasources"))
+	}
+
+	return bqs, nil
+}
+
+const (
+	removalTime = -168 * time.Hour // 1 week
+)
+
+type ErrorList []error
+
+func (e ErrorList) Error() string {
+	if e == nil {
+		return "nil"
+	}
+	return fmt.Sprintf("%+v", []error(e))
+}
+
+func UpdateMetadata(ctx context.Context, ds gensql.DatasourceBigquery) error {
+	metadata, err := bq.TableMetadata(ctx, ds.ProjectID, ds.Dataset, ds.TableName)
+	if err != nil {
+		return fmt.Errorf("getting dataset schema: %w", err)
+	}
+
+	schemaJSON, err := json.Marshal(metadata.Schema.Columns)
+	if err != nil {
+		return fmt.Errorf("marshalling schema: %w", err)
+	}
+
+	err = queries.UpdateBigqueryDatasourceSchema(ctx, gensql.UpdateBigqueryDatasourceSchemaParams{
+		Schema: pqtype.NullRawMessage{
+			RawMessage: schemaJSON,
+			Valid:      true,
+		},
+		LastModified:  metadata.LastModified,
+		Expires:       sql.NullTime{Time: metadata.Expires, Valid: !metadata.Expires.IsZero()},
+		Description:   sql.NullString{String: metadata.Description, Valid: true},
+		PseudoColumns: nil,
+		DatasetID:     ds.DatasetID,
+	})
+	if err != nil {
+		return fmt.Errorf("writing metadata to database: %w", err)
+	}
+
+	return nil
+}
+
+func HandleSyncError(ctx context.Context, errs ErrorList, err error, bq gensql.DatasourceBigquery) ErrorList {
+	var e *googleapi.Error
+
+	if ok := errors.As(err, &e); ok {
+		if e.Code == 404 {
+			if err := handleTableNotFound(ctx, bq); err != nil {
+				errs = append(errs, err)
+			}
+		} else {
+			errs = append(errs, err)
+		}
+	}
+
+	return errs
+}
+
+func handleTableNotFound(ctx context.Context, bq gensql.DatasourceBigquery) error {
+	if !bq.MissingSince.Valid {
+		return queries.UpdateBigqueryDatasourceMissing(ctx, bq.DatasetID)
+	} else if bq.MissingSince.Time.Before(time.Now().Add(removalTime)) {
+		return queries.DeleteDataset(ctx, bq.DatasetID)
+	}
+
+	return nil
 }
