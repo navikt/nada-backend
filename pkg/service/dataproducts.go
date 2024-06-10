@@ -612,7 +612,8 @@ func dataproductMinimalFromSQL(dp *gensql.Dataproduct) *DataproductMinimal {
 	}
 }
 
-func MapDataset(ctx context.Context, datasetID string, services []string) (*Dataset, *APIError) {
+func MapDataset(ctx context.Context, datasetID string, datasetMap DatasetMap) (*Dataset, *APIError) {
+	services := datasetMap.Services
 	ds, apierr := GetDataset(ctx, datasetID)
 	if apierr != nil {
 		return nil, apierr
