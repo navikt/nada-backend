@@ -27,7 +27,7 @@ type Handler struct {
 //
 // the keys of the map are the endpoints, which follow the format:
 //
-//	<METHOD> /<PATH>/<PATH_VAR1>/<PATH_VAR2>?<QUERY_PARAM1>1&<QUERY_PARAM2>
+//	<METHOD> /<PATH>/<PATH_VAR1>/<PATH_VAR2>?<QUERY_PARAM1>&<QUERY_PARAM2>
 //	METHOD is the HTTP method
 //	PATH is the path of the endpoint
 //	PATH_VAR1, PATH_VAR2 are path variable names, which will be used as as parameters following "context" that is the first parameter of the handler function

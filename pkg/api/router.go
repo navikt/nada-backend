@@ -96,18 +96,29 @@ func NewRouter(
 			w.Write(payloadBytes)
 		})
 	})
-	/*
-		router.Route("/api/search", func(r chi.Router) {
-			r.Get("/", apiWrapper(func(r *http.Request, payload any) (interface{}, *APIError) {
-				searchOptions, err := parseSearchOptionsFromRequest(r)
-				if err != nil {
-					return nil, NewAPIError(http.StatusBadRequest, err, "Failed to parse search options")
-				}
 
-				return Search(r.Context(), searchOptions)
-			}, nil))
-		})
-	*/
+	router.Route("/api/bigquery/tables/sync", func(r chi.Router) {
+		r.Post("/", apiWrapper(func(r *http.Request, payload any) (interface{}, *APIError) {
+			bqs, err := GetBigqueryDatasources(r.Context())
+			if err != nil {
+				return false, err
+			}
+
+			var errs ErrorList
+
+			for _, bq := range bqs {
+				err := UpdateMetadata(r.Context(), bq)
+				if err != nil {
+					errs = HandleSyncError(r.Context(), errs, err, bq)
+				}
+			}
+			if len(errs) != 0 {
+				return false, NewAPIError(http.StatusInternalServerError, errs, "Failed to sync bigquery tables")
+			}
+
+			return true, nil
+		}, nil))
+	})
 	return router
 }
 
