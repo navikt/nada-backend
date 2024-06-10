@@ -192,7 +192,7 @@ func getAccessRequest(ctx context.Context, accessRequestID string) (*AccessReque
 	return accessRequest, nil
 }
 
-func CreateAccessRequest(ctx context.Context, input NewAccessRequestDTO) *APIError {
+func CreateAccessRequest(ctx context.Context, input NewAccessRequestDTO) (string, *APIError) {
 	user := auth.GetUser(ctx)
 	subj := user.Email
 	if input.Subject != nil {
@@ -215,7 +215,7 @@ func CreateAccessRequest(ctx context.Context, input NewAccessRequestDTO) *APIErr
 	if input.Polly != nil {
 		dbPolly, err := createPollyDocumentation(ctx, *input.Polly)
 		if err != nil {
-			return NewAPIError(http.StatusInternalServerError, err, "createAccessRequest(): failed to create polly documentation")
+			return "", NewAPIError(http.StatusInternalServerError, err, "createAccessRequest(): failed to create polly documentation")
 		}
 
 		pollyID = uuid.NullUUID{UUID: dbPolly.ID, Valid: true}
@@ -223,10 +223,10 @@ func CreateAccessRequest(ctx context.Context, input NewAccessRequestDTO) *APIErr
 
 	accessRequest, err := dbCreateAccessRequestForDataset(ctx, input.DatasetID, pollyID, subjWithType, owner, input.Expires)
 	if err != nil {
-		return DBErrorToAPIError(err, "createAccessRequest(): failed to create access request")
+		return "", DBErrorToAPIError(err, "createAccessRequest(): failed to create access request")
 	}
 	sendNewAccessRequestSlackNotification(ctx, accessRequest)
-	return nil
+	return accessRequest.ID.String(), nil
 }
 
 func DeleteAccessRequest(ctx context.Context, accessRequestID string) *APIError {

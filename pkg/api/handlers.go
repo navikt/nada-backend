@@ -34,9 +34,10 @@ type Handler struct {
 //	QUERY_PARAM1, QUERY_PARAM2 are query parameters names, which will be used as as parameters following the path variables
 //
 // The values of the map are the handlers, which contain the function pointer and the DTO type of the handler
-// The function pointer (fpt) is the function that will be called when the endpoint is hit, and the function must have context as its first parameter.
+// The function pointer (fptr) is the function that will be called when the endpoint is hit, and the function must have context as its first parameter.
 // There can be a list of string parameters, which are the path variables and query parameters, that will be passed to the function.
 // The last parameter must be a DTO type which will be posted by the frontend as request body. The parameter must NOT be a pointer to DTO!
+// The handler function must return a tuple of a response DTO and an *APIError.
 var routerMap = map[string]Handler{
 	//dataproducts
 	"GET /api/dataproducts/{id}": {
