@@ -14,7 +14,6 @@ import (
 	"github.com/coreos/go-oidc/v3/oidc"
 	"github.com/google/uuid"
 	"github.com/navikt/nada-backend/pkg/auth"
-	"github.com/navikt/nada-backend/pkg/service"
 	"github.com/sirupsen/logrus"
 	"golang.org/x/oauth2"
 )
@@ -218,23 +217,4 @@ func (h HTTP) Callback(w http.ResponseWriter, r *http.Request) {
 	})
 
 	http.Redirect(w, r, loginPage, http.StatusFound)
-}
-
-func apiWrapper(handlerDelegate func(r *http.Request) (interface{}, *service.APIError)) http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
-		dto, apiErr := handlerDelegate(r)
-		if apiErr != nil {
-			apiErr.Log()
-			http.Error(w, apiErr.Error(), apiErr.HttpStatus)
-			return
-		}
-		if dto != nil {
-			err := json.NewEncoder(w).Encode(dto)
-			if err != nil {
-				log.WithError(err).Error("Failed to encode response")
-				http.Error(w, err.Error(), http.StatusInternalServerError)
-				return
-			}
-		}
-	}
 }

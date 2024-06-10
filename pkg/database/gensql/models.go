@@ -253,6 +253,7 @@ type DatasetView struct {
 	DsSlug          string
 	Pii             PiiLevel
 	DsKeywords      []string
+	DsRepo          sql.NullString
 	BqID            uuid.UUID
 	BqCreated       time.Time
 	BqLastModified  time.Time
