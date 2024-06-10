@@ -158,10 +158,6 @@ var routerMap = map[string]Handler{
 		typeDTOIn: TypeOf(service.NewStory{}),
 		fptr:      service.CreateStory,
 	},
-	"PUT /api/stories/{id}": {
-		typeDTOIn: TypeOf(service.UpdateStoryDto{}),
-		fptr:      service.UpdateStory,
-	},
 	"DELETE /api/stories/{id}": {
 		fptr: service.DeleteStory,
 	},
