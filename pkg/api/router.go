@@ -53,7 +53,7 @@ func NewRouter(
 		r.HandleFunc("/oauth2/callback", httpAPI.Callback)
 		r.HandleFunc("/logout", httpAPI.Logout)
 	})
-	InstallHanlers(router)
+	MountHandlers(router)
 	router.Route(`/{story|quarto}/`, func(r chi.Router) {
 		r.Use(StoryHTTPMiddleware)
 		r.Get("/*", GetGCSObject)

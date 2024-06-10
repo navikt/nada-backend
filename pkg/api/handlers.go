@@ -209,9 +209,9 @@ var routerMap = map[string]Handler{
 	},
 }
 
-func InstallHanlers(router *chi.Mux) {
+func MountHandlers(router *chi.Mux) {
 	installedRoutes := make(map[string]bool)
-	for endpoint, _ := range routerMap {
+	for endpoint := range routerMap {
 
 		_, path, _, _, err := parseEndpoint(endpoint)
 		if err != nil {
@@ -251,7 +251,7 @@ func InstallHanlers(router *chi.Mux) {
 					func(r *http.Request, payload any) (interface{}, *service.APIError) {
 						return handlerDelegate(payload.(Handler), pathvars, queryparams, r)
 					}, handler))
-				log.Info(fmt.Sprintf("Installed path: %v %v, with %v, path vars %v, query params %v", method, path, handlerFuncName(handler), pathvars, queryparams))
+				log.Info(fmt.Sprintf("Mounted path: %v %v, with %v, path vars %v, query params %v", method, path, handlerFuncName(handler), pathvars, queryparams))
 			}
 		})
 	}
@@ -374,9 +374,9 @@ func handlerFuncName(handler Handler) string {
 	return runtime.FuncForPC(ValueOf(handler.fptr).Pointer()).Name()
 }
 
-func apiWrapper(handlerDelegate func(*http.Request, any) (interface{}, *service.APIError), payload any) http.HandlerFunc {
+func apiWrapper(handlerDelegate func(*http.Request, any) (interface{}, *service.APIError), handlerParam any) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		dto, apiErr := handlerDelegate(r, payload)
+		dto, apiErr := handlerDelegate(r, handlerParam)
 		if apiErr != nil {
 			apiErr.Log()
 			http.Error(w, apiErr.Error(), apiErr.HttpStatus)
