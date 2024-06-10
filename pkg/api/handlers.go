@@ -81,7 +81,7 @@ var routerMap = map[string]Handler{
 	},
 
 	//accessRequests
-	"GET /api/accessRequests?{datasetID}": {
+	"GET /api/accessRequests?{datasetId}": {
 		fptr: service.GetAccessRequests,
 	},
 	"POST /api/accessRequests/{id}/process?{action}&{reason}": {
@@ -305,8 +305,10 @@ func buildParamsForFunction(handler Handler, pathVars []string, queryParams []st
 
 	if len(queryParams) > 0 {
 		query := r.URL.Query()
+		fmt.Println(query)
 		for _, queryParam := range queryParams {
 			name, isArray := extractArrayName(queryParam)
+			fmt.Println(name, isArray)
 			var queryParamValue any = ""
 			if isArray {
 				queryParamValue = []string{}
@@ -315,6 +317,7 @@ func buildParamsForFunction(handler Handler, pathVars []string, queryParams []st
 				}
 			} else {
 				name, isInt := extractIntVariableName(queryParam)
+				fmt.Println(name, isInt)
 				if isInt {
 					queryParamValue = 0
 					if query.Has(name) {
@@ -326,8 +329,12 @@ func buildParamsForFunction(handler Handler, pathVars []string, queryParams []st
 					}
 				} else {
 					queryParamValue = ""
+					fmt.Println(name)
+					fmt.Print(query)
+					fmt.Println(query.Has(name))
 					if query.Has(name) {
 						queryParamValue = query[name][0]
+						fmt.Println(queryParamValue)
 					}
 				}
 			}

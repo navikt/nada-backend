@@ -152,6 +152,7 @@ func accessRequestStatusFromDB(sqlStatus gensql.AccessRequestStatusType) (Access
 }
 
 func GetAccessRequests(ctx context.Context, datasetID string) (*AccessRequestsWrapper, *APIError) {
+	fmt.Println(datasetID)
 	datasetUUID, err := uuid.Parse(datasetID)
 	if err != nil {
 		return nil, NewAPIError(http.StatusBadRequest, err, "invalid datasetID")
