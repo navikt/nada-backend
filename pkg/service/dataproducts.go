@@ -445,6 +445,7 @@ func datasetFromSQL(dsrows []gensql.DatasetView) (*Dataset, *APIError) {
 				Datasource:        nil,
 				Pii:               PiiLevel(dsrow.Pii),
 				MetabaseDeletedAt: nullTimeToPtr(dsrow.MbDeletedAt),
+				Repo:              nullStringToPtr(dsrow.DsRepo),
 			}
 		}
 
