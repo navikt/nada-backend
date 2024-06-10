@@ -10,7 +10,7 @@ require (
 	cloud.google.com/go/bigquery v1.61.0
 	cloud.google.com/go/iam v1.1.8
 	cloud.google.com/go/storage v1.41.0
-	github.com/99designs/gqlgen v0.17.47
+	github.com/99designs/gqlgen v0.17.48
 	github.com/99designs/gqlgen-contrib v0.1.1-0.20200601100547-7a955d321bbd
 	github.com/btcsuite/btcutil v1.0.2
 	github.com/coreos/go-oidc/v3 v3.10.0
@@ -29,8 +29,6 @@ require (
 	github.com/spf13/pflag v1.0.5
 	github.com/sqlc-dev/pqtype v0.3.0
 	github.com/sqlc-dev/sqlc v1.26.0
-	github.com/vektah/gqlparser/v2 v2.5.12
-	github.com/writeas/go-strip-markdown/v2 v2.1.1
 	golang.org/x/oauth2 v0.20.0
 	golang.org/x/xerrors v0.0.0-20231012003039-104605ab7028
 	google.golang.org/api v0.182.0
@@ -44,7 +42,6 @@ require (
 	github.com/Azure/go-ansiterm v0.0.0-20230124172434-306776ec8161 // indirect
 	github.com/Microsoft/go-winio v0.6.1 // indirect
 	github.com/Nvveen/Gotty v0.0.0-20120604004816-cd527374f1e5 // indirect
-	github.com/agnivade/levenshtein v1.1.1 // indirect
 	github.com/apache/arrow/go/v15 v15.0.2 // indirect
 	github.com/beorn7/perks v1.0.1 // indirect
 	github.com/cenkalti/backoff/v4 v4.2.1 // indirect
@@ -68,7 +65,6 @@ require (
 	github.com/googleapis/enterprise-certificate-proxy v0.3.2 // indirect
 	github.com/googleapis/gax-go/v2 v2.12.4 // indirect
 	github.com/gorilla/websocket v1.5.0 // indirect
-	github.com/hashicorp/golang-lru/v2 v2.0.7 // indirect
 	github.com/imdario/mergo v0.3.16 // indirect
 	github.com/klauspost/compress v1.17.2 // indirect
 	github.com/klauspost/cpuid/v2 v2.2.5 // indirect
@@ -85,6 +81,7 @@ require (
 	github.com/prometheus/procfs v0.12.0 // indirect
 	github.com/sethvargo/go-retry v0.2.4 // indirect
 	github.com/sosodev/duration v1.3.1 // indirect
+	github.com/vektah/gqlparser/v2 v2.5.12 // indirect
 	github.com/xeipuuv/gojsonpointer v0.0.0-20190905194746-02993c407bfb // indirect
 	github.com/xeipuuv/gojsonreference v0.0.0-20180127040603-bd5ef7bd5415 // indirect
 	github.com/xeipuuv/gojsonschema v1.2.0 // indirect
