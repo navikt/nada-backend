@@ -6,6 +6,7 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
+	"github.com/navikt/nada-backend/pkg/metabase"
 	"log"
 	"net/http"
 	"net/http/httptest"
@@ -13,7 +14,6 @@ import (
 	"testing"
 
 	"github.com/navikt/nada-backend/pkg/database"
-	"github.com/navikt/nada-backend/pkg/event"
 	"github.com/ory/dockertest/v3"
 	"github.com/sirupsen/logrus"
 )
@@ -53,7 +53,7 @@ func TestTeamProjectsUpdater(t *testing.T) {
 		log.Fatalf("Could not connect to docker: %s", err)
 	}
 
-	repo, err := database.New(dbString, 2, 0, &event.Manager{}, logrus.NewEntry(logrus.StandardLogger()), "nav-central-data-dev-e170")
+	repo, err := database.New(dbString, 2, 0, &metabase.Manager{}, logrus.NewEntry(logrus.StandardLogger()), "nav-central-data-dev-e170")
 	if err != nil {
 		panic(err)
 	}

@@ -3,6 +3,10 @@ package main
 import (
 	"context"
 	"encoding/json"
+	"github.com/navikt/nada-backend/pkg/service/core"
+	"github.com/navikt/nada-backend/pkg/service/core/api/gcp"
+	httpapi "github.com/navikt/nada-backend/pkg/service/core/api/http"
+	"github.com/navikt/nada-backend/pkg/service/core/storage/postgres"
 	"net"
 	"net/http"
 	"os"
@@ -19,7 +23,6 @@ import (
 	"github.com/navikt/nada-backend/pkg/bqclient"
 	"github.com/navikt/nada-backend/pkg/config/v2"
 	"github.com/navikt/nada-backend/pkg/database"
-	"github.com/navikt/nada-backend/pkg/event"
 	"github.com/navikt/nada-backend/pkg/gcs"
 	"github.com/navikt/nada-backend/pkg/httpwithcache"
 	"github.com/navikt/nada-backend/pkg/metabase"
@@ -80,13 +83,10 @@ func main() {
 
 	slackClient := slack.NewSlackClient(log, cfg.Slack.WebhookURL, cfg.Server.Hostname, cfg.Slack.Token)
 
-	eventMgr := event.New(ctx)
-
 	repo, err := database.New(
 		cfg.Postgres.ConnectionString(),
 		cfg.Postgres.Configuration.MaxIdleConnections,
 		cfg.Postgres.Configuration.MaxOpenConnections,
-		eventMgr,
 		log.WithField("subsystem", "repo"),
 		cfg.GCP.Project,
 	)
@@ -115,6 +115,72 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
+
+	bigQueryAPI := gcp.NewBigQueryAPI(
+		cfg.GCP.Project,
+		cfg.GCP.BigQuery.Endpoint,
+	)
+
+	iamService, err := iam.NewService(ctx)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	crmService, err := cloudresourcemanager.NewService(ctx)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	serviceAccountAPI := gcp.NewServiceAccountAPI(
+		iamService,
+		crmService,
+	)
+
+	thirdPartyMappingStorage := postgres.NewThirdPartyMappingStorage(repo)
+	metabaseStorage := postgres.NewMetabaseStorage(repo)
+	bigQueryStorage := postgres.NewBigQueryStorage(repo)
+	dataProductStorage := postgres.NewDataProductStorage(repo)
+	accessStorage := postgres.NewAccessStorage(repo)
+
+	metabaseAPI := httpapi.NewMetabaseHTTP(
+		cfg.Metabase.APIURL,
+		cfg.Metabase.Username,
+		cfg.Metabase.Password,
+		cfg.Oauth.ClientID,
+		cfg.Oauth.ClientSecret,
+		cfg.Oauth.TenantID,
+	)
+
+	sa, err := os.ReadFile(cfg.Metabase.CredentialsPath)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	metabaseSA := struct {
+		ClientEmail string `json:"client_email"`
+	}{}
+
+	err = json.Unmarshal(sa, &metabaseSA)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	metabaseService := core.NewMetabaseService(
+		cfg.GCP.Project,
+		string(sa),
+		metabaseSA.ClientEmail,
+		metabaseAPI,
+		bigQueryAPI,
+		serviceAccountAPI,
+		thirdPartyMappingStorage,
+		metabaseStorage,
+		bigQueryStorage,
+		dataProductStorage,
+		accessStorage,
+	)
+
+	metabaseSynchronizer := metabase.New(metabaseService)
+	go metabaseSynchronizer.Run(ctx, MetabaseUpdateFrequency, log.WithField("subsystem", "metabase"))
 
 	mockHTTP := service.NewMockHTTP(repo, log.WithField("subsystem", "mockhttp"))
 	var httpAPI api.HTTPAPI = mockHTTP
@@ -191,16 +257,11 @@ func main() {
 		cfg.GCP.Project,
 		log,
 	)
-	service.Init(repo.GetDB(), teamcatalogue, log, teamProjectsUpdater.TeamProjectsMapping, eventMgr, slackClient, bqClient, pollyAPI, teamProjectsUpdater.TeamProjectsMapping, gcsClient, amplitudeClient)
+	service.Init(repo.GetDB(), teamcatalogue, log, teamProjectsUpdater.TeamProjectsMapping, slackClient, bqClient, pollyAPI, teamProjectsUpdater.TeamProjectsMapping, gcsClient, amplitudeClient)
 
 	server := http.Server{
 		Addr:    net.JoinHostPort(cfg.Server.Address, cfg.Server.Port),
 		Handler: srv,
-	}
-
-	err = createMetabaseSyncer(ctx, log.WithField("subsystem", "metabase"), repo, accessMgr, eventMgr, cfg)
-	if err != nil {
-		log.WithError(err).Fatal("running metabase")
 	}
 
 	go access_ensurer.NewEnsurer(nil, accessMgr, bqClient, googleGroups, cfg.GCP.Project, promErrs, log.WithField("subsystem", "accessensurer")).Run(ctx, AccessEnsurerFrequency)
@@ -227,49 +288,4 @@ func prom(cols ...prometheus.Collector) *prometheus.Registry {
 	r.MustRegister(cols...)
 
 	return r
-}
-
-func createMetabaseSyncer(ctx context.Context, log *logrus.Entry, repo *database.Repo, accessMgr access.AccessManager, eventMgr *event.Manager, cfg config.Config) error {
-	if cfg.Metabase.CredentialsPath == "" {
-		log.Info("metabase sync disabled")
-		return nil
-	}
-
-	log.Info("metabase sync enabled")
-
-	client := metabase.NewClient(
-		cfg.Metabase.APIURL,
-		cfg.Metabase.Username,
-		cfg.Metabase.Password,
-		cfg.Oauth.ClientID,
-		cfg.Oauth.ClientSecret,
-		cfg.Oauth.TenantID,
-	)
-	crmService, err := cloudresourcemanager.NewService(ctx)
-	if err != nil {
-		return err
-	}
-
-	sa, err := os.ReadFile(cfg.Metabase.CredentialsPath)
-	if err != nil {
-		return err
-	}
-
-	metabaseSA := struct {
-		ClientEmail string `json:"client_email"`
-	}{}
-
-	err = json.Unmarshal(sa, &metabaseSA)
-	if err != nil {
-		return err
-	}
-
-	iamService, err := iam.NewService(ctx)
-	if err != nil {
-		return err
-	}
-
-	metabase := metabase.New(repo, client, eventMgr, accessMgr, string(sa), metabaseSA.ClientEmail, promErrs, iamService, crmService, cfg.Metabase.GCPProject, log.WithField("subsystem", "metabase"))
-	go metabase.Run(ctx, MetabaseUpdateFrequency)
-	return nil
 }

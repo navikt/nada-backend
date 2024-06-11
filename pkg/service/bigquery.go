@@ -18,6 +18,19 @@ import (
 	"github.com/navikt/nada-backend/pkg/database/gensql"
 )
 
+// For now, just exporting the functionality that is needed by Metabase
+type BigQueryStorage interface {
+	GetBigqueryDatasource(ctx context.Context, datasetID uuid.UUID, isReference bool) (*BigQuery, error)
+}
+
+// Same here
+type BigQueryAPI interface {
+	Grant(ctx context.Context, projectID, datasetID, tableID, member string) error
+	Revoke(ctx context.Context, projectID, datasetID, tableID, member string) error
+	HasAccess(ctx context.Context, projectID, datasetID, tableID, member string) (bool, error)
+	AddToAuthorizedViews(ctx context.Context, srcProjectID, srcDataset, sinkProjectID, sinkDataset, sinkTable string) error
+}
+
 type GCPProject struct {
 	ID    string      `json:"id"`
 	Name  string      `json:"name"`

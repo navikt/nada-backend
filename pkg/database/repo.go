@@ -13,8 +13,6 @@ import (
 	"github.com/sirupsen/logrus"
 
 	"github.com/navikt/nada-backend/pkg/database/gensql"
-	"github.com/navikt/nada-backend/pkg/event"
-
 	// Pin version of sqlc and goose for cli
 	"github.com/pressly/goose/v3"
 	"github.com/qustavo/sqlhooks/v2"
@@ -25,12 +23,9 @@ import (
 var embedMigrations embed.FS
 
 type Repo struct {
-	Querier Querier
-	db      *sql.DB
-	log     *logrus.Entry
-
-	events *event.Manager
-
+	Querier            Querier
+	db                 *sql.DB
+	log                *logrus.Entry
 	hooks              *Hooks
 	centralDataProject string
 }
@@ -44,7 +39,7 @@ type Querier interface {
 	WithTx(tx *sql.Tx) *gensql.Queries
 }
 
-func New(dbConnDSN string, maxIdleConn, maxOpenConn int, eventMgr *event.Manager, log *logrus.Entry, centralDataProject string) (*Repo, error) {
+func New(dbConnDSN string, maxIdleConn, maxOpenConn int, log *logrus.Entry, centralDataProject string) (*Repo, error) {
 	hooks := NewHooks()
 	sql.Register("psqlhooked", sqlhooks.Wrap(&pq.Driver{}, hooks))
 
@@ -65,7 +60,6 @@ func New(dbConnDSN string, maxIdleConn, maxOpenConn int, eventMgr *event.Manager
 		Querier:            gensql.New(db),
 		db:                 db,
 		log:                log,
-		events:             eventMgr,
 		hooks:              hooks,
 		centralDataProject: centralDataProject,
 	}, nil

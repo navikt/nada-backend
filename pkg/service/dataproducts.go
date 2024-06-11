@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"encoding/json"
 	"fmt"
+	"github.com/navikt/nada-backend/pkg/metabase"
 	"html"
 	"net/http"
 	"os"
@@ -18,6 +19,12 @@ import (
 	"github.com/navikt/nada-backend/pkg/database/gensql"
 	"github.com/sqlc-dev/pqtype"
 )
+
+type DataProductStorage interface {
+	GetDataproduct(ctx context.Context, id string) (*DataproductWithDataset, error)
+	GetDataproducts(ctx context.Context, ids []uuid.UUID) ([]DataproductWithDataset, error)
+	GetDataset(ctx context.Context, id string) (*Dataset, error)
+}
 
 type PiiLevel string
 
@@ -637,13 +644,21 @@ func MapDataset(ctx context.Context, datasetID string, services []string) (*Data
 	for _, svc := range services {
 		if svc == MappingServiceMetabase {
 			mapMetabase = true
-			eventManager.TriggerDatasetAddMetabaseMapping(ctx, uuid.MustParse(datasetID))
+
+			eventManager.Enqueue(metabase.AddDatasetMappingWork{
+				DpID: uuid.MustParse(datasetID),
+			})
+
 			break
 		}
 	}
+
 	if !mapMetabase {
-		eventManager.TriggerDatasetRemoveMetabaseMapping(ctx, uuid.MustParse(datasetID))
+		eventManager.Enqueue(metabase.RemoveDatasetMappingWork{
+			DpID: uuid.MustParse(datasetID),
+		})
 	}
+
 	return ds, nil
 }
 
@@ -1002,7 +1017,7 @@ func dbUpdateDataset(ctx context.Context, id string, input UpdateDatasetDto) (st
 		return "", fmt.Errorf("updating dataset in database: %w", err)
 	}
 
-	//TODO: tags table should be removed
+	// TODO: tags table should be removed
 	for _, keyword := range input.Keywords {
 		err = queries.CreateTagIfNotExist(ctx, keyword)
 		if err != nil {

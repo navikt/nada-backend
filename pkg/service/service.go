@@ -2,13 +2,11 @@ package service
 
 import (
 	"database/sql"
-
 	"github.com/navikt/nada-backend/pkg/access"
 	"github.com/navikt/nada-backend/pkg/amplitude"
 	"github.com/navikt/nada-backend/pkg/auth"
 	"github.com/navikt/nada-backend/pkg/bqclient"
 	"github.com/navikt/nada-backend/pkg/database/gensql"
-	"github.com/navikt/nada-backend/pkg/event"
 	"github.com/navikt/nada-backend/pkg/gcs"
 	"github.com/navikt/nada-backend/pkg/polly"
 	"github.com/navikt/nada-backend/pkg/slack"
@@ -22,7 +20,6 @@ var tkClient teamkatalogen.Teamkatalogen
 var log *logrus.Logger
 var teamProjectsMapping *auth.TeamProjectsMapping
 var accessManager access.Bigquery
-var eventManager *event.Manager
 var slackClient *slack.SlackClient
 var pollyClient polly.Polly
 var bq bqclient.BQClient
@@ -30,14 +27,13 @@ var gcpProjects *auth.TeamProjectsMapping
 var amplitudeClient amplitude.Amplitude
 var gcsClient *gcs.Client
 
-func Init(db *sql.DB, tk teamkatalogen.Teamkatalogen, l *logrus.Logger, projects *auth.TeamProjectsMapping, e *event.Manager,
+func Init(db *sql.DB, tk teamkatalogen.Teamkatalogen, l *logrus.Logger, projects *auth.TeamProjectsMapping,
 	sc *slack.SlackClient, b bqclient.BQClient, polly polly.Polly, gcpproj *auth.TeamProjectsMapping, gcs *gcs.Client, am amplitude.Amplitude) {
 	tkClient = tk
 	log = l
 	teamProjectsMapping = projects
 	sqldb = db
 	queries = gensql.New(sqldb)
-	eventManager = e
 	bq = b
 	slackClient = sc
 	pollyClient = polly

@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
+	"github.com/navikt/nada-backend/pkg/metabase"
 	"net/http"
 	"strings"
 	"time"
@@ -14,6 +15,10 @@ import (
 	"github.com/navikt/nada-backend/pkg/bqclient"
 	"github.com/navikt/nada-backend/pkg/database/gensql"
 )
+
+type AccessStorage interface {
+	ListActiveAccessToDataset(ctx context.Context, datasetID uuid.UUID) ([]*Access, error)
+}
 
 type Access struct {
 	ID              uuid.UUID  `json:"id"`
@@ -453,7 +458,11 @@ func RevokeAccessToDataset(ctx context.Context, id, gcpProjectID string) *APIErr
 		return DBErrorToAPIError(err, "revokeAccessToDataset(): failed to revoke access")
 	}
 
-	eventManager.TriggerDatasetRevoke(ctx, access.DatasetID, access.Subject)
+	eventManager.Enqueue(metabase.RevokeAccessWork{
+		DpID:    access.DatasetID,
+		Subject: access.Subject,
+	})
+
 	return nil
 }
 
@@ -537,7 +546,12 @@ func GrantAccessToDataset(ctx context.Context, input GrantAccessData, gcpProject
 	if err != nil {
 		return NewAPIError(http.StatusInternalServerError, err, "grantAccessToDataset(): failed to grant access")
 	}
-	eventManager.TriggerDatasetGrant(ctx, input.DatasetID, subjWithType)
+
+	eventManager.Enqueue(metabase.GrantAccessWork{
+		DpID:    input.DatasetID,
+		Subject: subjWithType,
+	})
+
 	return nil
 }
 

@@ -6,6 +6,7 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
+	"github.com/navikt/nada-backend/pkg/metabase"
 	"log"
 	"net"
 	"net/http"
@@ -19,7 +20,6 @@ import (
 	"github.com/navikt/nada-backend/pkg/auth"
 	"github.com/navikt/nada-backend/pkg/database"
 	"github.com/navikt/nada-backend/pkg/database/gensql"
-	"github.com/navikt/nada-backend/pkg/event"
 	"github.com/navikt/nada-backend/pkg/gcs"
 	"github.com/navikt/nada-backend/pkg/teamprojectsupdater"
 	"github.com/ory/dockertest/v3"
@@ -101,7 +101,7 @@ func TestMain(m *testing.M) {
 		panic(err)
 	}
 
-	repo, err = database.New(dbString, 2, 0, &event.Manager{}, logrus.NewEntry(logrus.StandardLogger()), "nav-central-data-dev-e170")
+	repo, err = database.New(dbString, 2, 0, &metabase.Manager{}, logrus.NewEntry(logrus.StandardLogger()), "nav-central-data-dev-e170")
 	if err != nil {
 		panic(err)
 	}
