@@ -18,7 +18,7 @@ func (s ServiceWrapper) GetBigqueryDatasource(ctx context.Context, dataproductID
 	return service.GetBigqueryDatasource(ctx, dataproductID, isReference)
 }
 
-func (s ServiceWrapper) RevokeAccessToDataset(ctx context.Context, id uuid.UUID) error {
+func (s ServiceWrapper) RevokeAccessToDataset(ctx context.Context, id uuid.UUID) *service.APIError {
 	return service.RevokeAccessToDataset(ctx, id.String())
 }
 

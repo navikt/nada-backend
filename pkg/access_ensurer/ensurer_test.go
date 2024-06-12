@@ -46,7 +46,7 @@ type MockServiceWrapper struct {
 	NSetJoinableViewDeleted        int
 }
 
-func (m *MockServiceWrapper) RevokeAccessToDataset(ctx context.Context, id uuid.UUID) error {
+func (m *MockServiceWrapper) RevokeAccessToDataset(ctx context.Context, id uuid.UUID) *service.APIError {
 	m.NRevokeAccessToDataset++
 	return nil
 }

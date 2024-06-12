@@ -18,7 +18,7 @@ import (
 type Service interface {
 	GetUnrevokedExpiredAccess(ctx context.Context) ([]*service.Access, error)
 	GetBigqueryDatasource(ctx context.Context, dataproductID uuid.UUID, isReference bool) (*service.BigQuery, *service.APIError)
-	RevokeAccessToDataset(ctx context.Context, id uuid.UUID) error
+	RevokeAccessToDataset(ctx context.Context, id uuid.UUID) *service.APIError
 	GetPseudoDatasourcesToDelete(ctx context.Context) ([]*service.BigQuery, error)
 	SetDatasourceDeleted(ctx context.Context, id uuid.UUID) error
 	GetJoinableViewsWithReference(ctx context.Context) ([]gensql.GetJoinableViewsWithReferenceRow, error)
