@@ -421,9 +421,11 @@ func RevokeAccessToDataset(ctx context.Context, id string) *APIError {
 	}
 
 	user := auth.GetUser(ctx)
-	err = ensureUserInGroup(ctx, dp.Owner.Group)
-	if err != nil && !strings.EqualFold("user:"+user.Email, access.Subject) {
-		return NewAPIError(http.StatusForbidden, err, "revokeAccessToDataset(): user is not member of owner group or the subject")
+	ensureErr := ensureUserInGroup(ctx, dp.Owner.Group)
+	if ensureErr != nil {
+		if !strings.EqualFold("user:"+user.Email, access.Subject) {
+			return NewAPIError(http.StatusForbidden, ensureErr, "revokeAccessToDataset(): user is not member of owner group or the subject")
+		}
 	}
 
 	subjectParts := strings.Split(access.Subject, ":")

@@ -770,7 +770,6 @@ func dbCreateDataset(ctx context.Context, ds NewDataset, referenceDatasource *Ne
 		AnonymisationDescription: ptrToNullString(ds.AnonymisationDescription),
 		TargetUser:               ptrToNullString(ds.TargetUser),
 	})
-
 	if err != nil {
 		return nil, err
 	}
@@ -801,7 +800,6 @@ func dbCreateDataset(ctx context.Context, ds NewDataset, referenceDatasource *Ne
 		PseudoColumns: ds.PseudoColumns,
 		IsReference:   false,
 	})
-
 	if err != nil {
 		if err := tx.Rollback(); err != nil {
 			log.WithError(err).Error("Rolling back dataset and datasource_bigquery transaction")
@@ -1002,7 +1000,7 @@ func dbUpdateDataset(ctx context.Context, id string, input UpdateDatasetDto) (st
 		return "", fmt.Errorf("updating dataset in database: %w", err)
 	}
 
-	//TODO: tags table should be removed
+	// TODO: tags table should be removed
 	for _, keyword := range input.Keywords {
 		err = queries.CreateTagIfNotExist(ctx, keyword)
 		if err != nil {
