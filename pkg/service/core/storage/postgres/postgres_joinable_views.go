@@ -1,0 +1,192 @@
+package postgres
+
+import (
+	"context"
+	"fmt"
+	"github.com/google/uuid"
+	"github.com/navikt/nada-backend/pkg/auth"
+	"github.com/navikt/nada-backend/pkg/database"
+	"github.com/navikt/nada-backend/pkg/database/gensql"
+	"github.com/navikt/nada-backend/pkg/service"
+	"time"
+)
+
+type joinableViewStorage struct {
+	db *database.Repo
+}
+
+var _ service.JoinableViewsStorage = &joinableViewStorage{}
+
+func (s *joinableViewStorage) GetJoinableViewsToBeDeletedWithRefDatasource(ctx context.Context) ([]service.JoinableViewToBeDeletedWithRefDatasource, error) {
+	rows, err := s.db.Querier.GetJoinableViewsToBeDeletedWithRefDatasource(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	joinableViews := make([]service.JoinableViewToBeDeletedWithRefDatasource, 0, len(rows))
+	for i, row := range rows {
+		joinableViews[i] = service.JoinableViewToBeDeletedWithRefDatasource{
+			JoinableViewID:   row.JoinableViewID,
+			JoinableViewName: row.JoinableViewName,
+			BqProjectID:      row.BqProjectID,
+			BqDatasetID:      row.BqDatasetID,
+			BqTableID:        row.BqTableID,
+		}
+	}
+
+	return joinableViews, nil
+}
+
+func (s *joinableViewStorage) GetJoinableViewsWithReference(ctx context.Context) ([]service.JoinableViewWithReference, error) {
+	rows, err := s.db.Querier.GetJoinableViewsWithReference(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	joinableViews := make([]service.JoinableViewWithReference, 0, len(rows))
+	for i, row := range rows {
+		joinableViews[i] = service.JoinableViewWithReference{
+			Owner:               row.Owner,
+			JoinableViewID:      row.JoinableViewID,
+			JoinableViewDataset: row.JoinableViewDataset,
+			PseudoViewID:        row.PseudoViewID,
+			PseudoProjectID:     row.PseudoProjectID,
+			PseudoDataset:       row.PseudoDataset,
+			PseudoTable:         row.PseudoTable,
+			Expires:             row.Expires,
+		}
+	}
+
+	return joinableViews, nil
+}
+
+func (s *joinableViewStorage) SetJoinableViewDeleted(ctx context.Context, id uuid.UUID) error {
+	err := s.db.Querier.SetJoinableViewDeleted(ctx, id)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (s *joinableViewStorage) GetJoinableViewsForOwner(ctx context.Context) ([]service.JoinableViewForOwner, error) {
+	// FIXME: Need to changes this magic stuff
+	user := auth.GetUser(ctx)
+	joinableViewsDB, err := s.db.Querier.GetJoinableViewsForOwner(ctx, user.Email)
+	if err != nil {
+		return nil, fmt.Errorf("get joinable views for owner: %w", err)
+	}
+
+	views := make([]service.JoinableViewForOwner, 0, len(joinableViewsDB))
+	for i, view := range joinableViewsDB {
+		views[i] = service.JoinableViewForOwner{
+			ID:        view.ID,
+			Name:      view.Name,
+			Owner:     view.Owner,
+			Created:   view.Created,
+			Expires:   nullTimeToPtr(view.Expires),
+			ProjectID: view.ProjectID,
+			DatasetID: view.DatasetID,
+			TableID:   view.TableID,
+		}
+	}
+
+	return views, nil
+}
+
+func (s *joinableViewStorage) GetJoinableViewsForReferenceAndUser(ctx context.Context, user string, pseudoDatasetID uuid.UUID) ([]service.JoinableViewForReferenceAndUser, error) {
+	joinableViews, err := s.db.Querier.GetJoinableViewsForReferenceAndUser(ctx, gensql.GetJoinableViewsForReferenceAndUserParams{
+		Owner:           user,
+		PseudoDatasetID: pseudoDatasetID,
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	views := make([]service.JoinableViewForReferenceAndUser, 0, len(joinableViews))
+
+	for i, view := range joinableViews {
+		views[i] = service.JoinableViewForReferenceAndUser{
+			ID:      view.ID,
+			Dataset: view.Dataset,
+		}
+	}
+
+	return views, nil
+}
+
+func (s *joinableViewStorage) GetJoinableViewWithDataset(ctx context.Context, id string) ([]service.JoinableViewWithDataset, error) {
+	joinableViewID, err := uuid.Parse(id)
+	if err != nil {
+		return nil, fmt.Errorf("parse joinable view id: %w", err)
+	}
+
+	joinableViewDatasets, err := s.db.Querier.GetJoinableViewWithDataset(ctx, joinableViewID)
+	if err != nil {
+		return nil, fmt.Errorf("get joinable view with dataset: %w", err)
+	}
+
+	views := make([]service.JoinableViewWithDataset, 0, len(joinableViewDatasets))
+	for i, view := range joinableViewDatasets {
+		views[i] = service.JoinableViewWithDataset{
+			BqProject:           view.BqProject,
+			BqDataset:           view.BqDataset,
+			BqTable:             view.BqTable,
+			Deleted:             nullTimeToPtr(view.Deleted),
+			DatasetID:           view.DatasetID,
+			JoinableViewID:      view.JoinableViewID,
+			Group:               view.Group.String,
+			JoinableViewName:    view.JoinableViewName,
+			JoinableViewCreated: view.JoinableViewCreated,
+			JoinableViewExpires: nullTimeToPtr(view.JoinableViewExpires),
+		}
+	}
+
+	return views, nil
+}
+
+func (s *joinableViewStorage) CreateJoinableViewsDB(ctx context.Context, name, owner string, expires *time.Time, datasourceIDs []uuid.UUID) (string, error) {
+	tx, err := s.db.GetDB().Begin()
+	if err != nil {
+		return "", err
+	}
+	defer tx.Rollback()
+
+	q := s.db.Querier.WithTx(tx)
+
+	jv, err := q.CreateJoinableViews(ctx, gensql.CreateJoinableViewsParams{
+		Name:    name,
+		Owner:   owner,
+		Created: time.Now(),
+		Expires: ptrToNullTime(expires),
+	})
+	if err != nil {
+		return "", err
+	}
+	for _, bqid := range datasourceIDs {
+		if err != nil {
+			return "", err
+		}
+
+		_, err = q.CreateJoinableViewsDatasource(ctx, gensql.CreateJoinableViewsDatasourceParams{
+			JoinableViewID: jv.ID,
+			DatasourceID:   bqid,
+		})
+
+		if err != nil {
+			return "", err
+		}
+	}
+
+	if err := tx.Commit(); err != nil {
+		return "", err
+	}
+
+	return jv.ID.String(), nil
+}
+
+func NewJoinableViewStorage(db *database.Repo) *joinableViewStorage {
+	return &joinableViewStorage{
+		db: db,
+	}
+}

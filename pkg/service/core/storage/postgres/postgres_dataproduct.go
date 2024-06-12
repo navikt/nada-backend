@@ -6,15 +6,273 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/google/uuid"
-	"github.com/navikt/nada-backend/pkg/bqclient"
+	"github.com/navikt/nada-backend/pkg/auth"
 	"github.com/navikt/nada-backend/pkg/database"
 	"github.com/navikt/nada-backend/pkg/database/gensql"
 	"github.com/navikt/nada-backend/pkg/service"
+	log "github.com/sirupsen/logrus"
+	"github.com/sqlc-dev/pqtype"
+	"net/url"
 	"os"
 )
 
+var _ service.DataProductsStorage = &dataProductPostgres{}
+
 type dataProductPostgres struct {
 	db *database.Repo
+}
+
+func (p *dataProductPostgres) GetAccessiblePseudoDatasourcesByUser(ctx context.Context, subjectsAsOwner []string, subjectsAsAccesser []string) ([]*service.PseudoDataset, error) {
+	rows, err := p.db.Querier.GetAccessiblePseudoDatasetsByUser(ctx, gensql.GetAccessiblePseudoDatasetsByUserParams{
+		OwnerSubjects:  subjectsAsOwner,
+		AccessSubjects: subjectsAsAccesser,
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	var pseudoDatasets []*service.PseudoDataset
+	bqIDMap := make(map[string]int)
+	for _, d := range rows {
+		pseudoDataset := &service.PseudoDataset{
+			// name is the name of the dataset
+			Name: d.Name,
+			// datasetID is the id of the dataset
+			DatasetID: d.DatasetID,
+			// datasourceID is the id of the bigquery datasource
+			DatasourceID: d.BqDatasourceID,
+		}
+		bqID := fmt.Sprintf("%v.%v.%v", d.BqProjectID, d.BqDatasetID, d.BqTableID)
+
+		_, exist := bqIDMap[bqID]
+		if exist {
+			continue
+		}
+		bqIDMap[bqID] = 1
+		pseudoDatasets = append(pseudoDatasets, pseudoDataset)
+	}
+	return pseudoDatasets, nil
+}
+
+func (p *dataProductPostgres) GetDatasetsMinimal(ctx context.Context) ([]*service.DatasetMinimal, error) {
+	sqldss, err := p.db.Querier.GetAllDatasetsMinimal(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("getting all datasets minimal: %w", err)
+	}
+
+	dss := make([]*service.DatasetMinimal, len(sqldss))
+	for i, ds := range sqldss {
+		dss[i] = &service.DatasetMinimal{
+			ID:              ds.ID,
+			Name:            ds.Name,
+			Created:         ds.Created,
+			BigQueryProject: ds.ProjectID,
+			BigQueryDataset: ds.Dataset,
+			BigQueryTable:   ds.TableName,
+		}
+	}
+
+	return dss, nil
+}
+
+func (p *dataProductPostgres) UpdateDataset(ctx context.Context, id string, input service.UpdateDatasetDto) (string, error) {
+	if input.Keywords == nil {
+		input.Keywords = []string{}
+	}
+
+	res, err := p.db.Querier.UpdateDataset(ctx, gensql.UpdateDatasetParams{
+		Name:                     input.Name,
+		Description:              ptrToNullString(input.Description),
+		ID:                       uuid.MustParse(id),
+		Pii:                      gensql.PiiLevel(input.Pii),
+		Slug:                     slugify(input.Slug, input.Name),
+		Repo:                     ptrToNullString(input.Repo),
+		Keywords:                 input.Keywords,
+		DataproductID:            *input.DataproductID,
+		AnonymisationDescription: ptrToNullString(input.AnonymisationDescription),
+		TargetUser:               ptrToNullString(input.TargetUser),
+	})
+	if err != nil {
+		return "", fmt.Errorf("updating dataset in database: %w", err)
+	}
+
+	// TODO: tags table should be removed
+	for _, keyword := range input.Keywords {
+		err = p.db.Querier.CreateTagIfNotExist(ctx, keyword)
+		if err != nil {
+			return "", fmt.Errorf("creating tag: %w", err)
+		}
+	}
+
+	if !json.Valid([]byte(*input.PiiTags)) {
+		return "", fmt.Errorf("invalid pii tags, must be json map or null: %w", err)
+	}
+
+	return res.ID.String(), nil
+}
+
+func (p *dataProductPostgres) CreateDataset(ctx context.Context, ds service.NewDataset, referenceDatasource *service.NewBigQuery, user *auth.User) (*string, error) {
+	tx, err := p.db.GetDB().Begin()
+	if err != nil {
+		return nil, err
+	}
+	defer tx.Rollback()
+
+	if ds.Keywords == nil {
+		ds.Keywords = []string{}
+	}
+
+	querier := p.db.Querier.WithTx(tx)
+
+	created, err := querier.CreateDataset(ctx, gensql.CreateDatasetParams{
+		Name:                     ds.Name,
+		DataproductID:            ds.DataproductID,
+		Description:              ptrToNullString(ds.Description),
+		Pii:                      gensql.PiiLevel(ds.Pii),
+		Type:                     "bigquery",
+		Slug:                     slugify(ds.Slug, ds.Name),
+		Repo:                     ptrToNullString(ds.Repo),
+		Keywords:                 ds.Keywords,
+		AnonymisationDescription: ptrToNullString(ds.AnonymisationDescription),
+		TargetUser:               ptrToNullString(ds.TargetUser),
+	})
+
+	if err != nil {
+		return nil, err
+	}
+
+	schemaJSON, err := json.Marshal(ds.Metadata.Schema.Columns)
+	if err != nil {
+		return nil, fmt.Errorf("marshalling schema: %w", err)
+	}
+
+	if ds.BigQuery.PiiTags != nil && !json.Valid([]byte(*ds.BigQuery.PiiTags)) {
+		return nil, fmt.Errorf("invalid pii tags, must be json map or null: %w", err)
+	}
+
+	_, err = querier.CreateBigqueryDatasource(ctx, gensql.CreateBigqueryDatasourceParams{
+		DatasetID:    created.ID,
+		ProjectID:    ds.BigQuery.ProjectID,
+		Dataset:      ds.BigQuery.Dataset,
+		TableName:    ds.BigQuery.Table,
+		Schema:       pqtype.NullRawMessage{RawMessage: schemaJSON, Valid: len(schemaJSON) > 4},
+		LastModified: ds.Metadata.LastModified,
+		Created:      ds.Metadata.Created,
+		Expires:      sql.NullTime{Time: ds.Metadata.Expires, Valid: !ds.Metadata.Expires.IsZero()},
+		TableType:    string(ds.Metadata.TableType),
+		PiiTags: pqtype.NullRawMessage{
+			RawMessage: json.RawMessage([]byte(ptrToString(ds.BigQuery.PiiTags))),
+			Valid:      len(ptrToString(ds.BigQuery.PiiTags)) > 4,
+		},
+		PseudoColumns: ds.PseudoColumns,
+		IsReference:   false,
+	})
+
+	if err != nil {
+		return nil, err
+	}
+
+	if len(ds.PseudoColumns) > 0 && referenceDatasource != nil {
+		_, err = querier.CreateBigqueryDatasource(ctx, gensql.CreateBigqueryDatasourceParams{
+			DatasetID:    created.ID,
+			ProjectID:    referenceDatasource.ProjectID,
+			Dataset:      referenceDatasource.Dataset,
+			TableName:    referenceDatasource.Table,
+			Schema:       pqtype.NullRawMessage{RawMessage: schemaJSON, Valid: len(schemaJSON) > 4},
+			LastModified: ds.Metadata.LastModified,
+			Created:      ds.Metadata.Created,
+			Expires:      sql.NullTime{Time: ds.Metadata.Expires, Valid: !ds.Metadata.Expires.IsZero()},
+			TableType:    string(ds.Metadata.TableType),
+			PiiTags: pqtype.NullRawMessage{
+				RawMessage: json.RawMessage([]byte(ptrToString(ds.BigQuery.PiiTags))),
+				Valid:      len(ptrToString(ds.BigQuery.PiiTags)) > 4,
+			},
+			PseudoColumns: ds.PseudoColumns,
+			IsReference:   true,
+		})
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	if ds.GrantAllUsers != nil && *ds.GrantAllUsers {
+		_, err = querier.GrantAccessToDataset(ctx, gensql.GrantAccessToDatasetParams{
+			DatasetID: created.ID,
+			Expires:   sql.NullTime{},
+			Subject:   emailOfSubjectToLower("group:all-users@nav.no"),
+			Granter:   user.Email,
+		})
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	for _, keyword := range ds.Keywords {
+		err = querier.CreateTagIfNotExist(ctx, keyword)
+		if err != nil {
+			log.WithError(err).Warn("failed to create tag when creating dataset in database")
+		}
+	}
+
+	if err := tx.Commit(); err != nil {
+		return nil, err
+	}
+
+	return &created.Slug, nil
+}
+
+func (p *dataProductPostgres) DeleteDataproduct(ctx context.Context, id string) error {
+	if err := p.db.Querier.DeleteDataproduct(ctx, uuid.MustParse(id)); err != nil {
+		return fmt.Errorf("deleting dataproduct: %w", err)
+	}
+
+	return nil
+}
+
+func (p *dataProductPostgres) UpdateDataproduct(ctx context.Context, id string, input service.UpdateDataproductDto) (*service.DataproductMinimal, error) {
+	res, err := p.db.Querier.UpdateDataproduct(ctx, gensql.UpdateDataproductParams{
+		Name:                  input.Name,
+		Description:           ptrToNullString(input.Description),
+		ID:                    uuid.MustParse(id),
+		OwnerTeamkatalogenUrl: ptrToNullString(input.TeamkatalogenURL),
+		TeamContact:           ptrToNullString(input.TeamContact),
+		Slug:                  slugify(input.Slug, input.Name),
+		TeamID:                ptrToNullString(input.TeamID),
+	})
+	if err != nil {
+		return nil, fmt.Errorf("updating dataproduct: %w", err)
+	}
+
+	return dataproductMinimalFromSQL(&res), nil
+}
+
+func (p *dataProductPostgres) CreateDataproduct(ctx context.Context, input service.NewDataproduct) (*service.DataproductMinimal, error) {
+	dataproduct, err := p.db.Querier.CreateDataproduct(ctx, gensql.CreateDataproductParams{
+		Name:                  input.Name,
+		Description:           ptrToNullString(input.Description),
+		OwnerGroup:            input.Group,
+		OwnerTeamkatalogenUrl: ptrToNullString(input.TeamkatalogenURL),
+		Slug:                  slugify(input.Slug, input.Name),
+		TeamContact:           ptrToNullString(input.TeamContact),
+		TeamID:                ptrToNullString(input.TeamID),
+	})
+	if err != nil {
+		return nil, fmt.Errorf("creating dataproduct: %w", err)
+	}
+
+	return dataproductMinimalFromSQL(&dataproduct), nil
+}
+
+func (p *dataProductPostgres) SetDatasourceDeleted(ctx context.Context, id uuid.UUID) error {
+	return p.db.Querier.SetDatasourceDeleted(ctx, id)
+}
+
+func (p *dataProductPostgres) GetOwnerGroupOfDataset(ctx context.Context, datasetID uuid.UUID) (string, error) {
+	return p.db.Querier.GetOwnerGroupOfDataset(ctx, datasetID)
+}
+
+func (p *dataProductPostgres) DeleteDataset(ctx context.Context, id uuid.UUID) error {
+	return p.db.Querier.DeleteDataset(ctx, id)
 }
 
 func (p *dataProductPostgres) GetDataset(ctx context.Context, id string) (*service.Dataset, error) {
@@ -63,7 +321,7 @@ func datasetFromSQL(dsrows []gensql.DatasetView) (*service.Dataset, error) {
 		}
 
 		if dsrow.BqID != uuid.Nil {
-			var schema []*bqclient.BigqueryColumn
+			var schema []*service.BigqueryColumn
 			if dsrow.BqSchema.Valid {
 				if err := json.Unmarshal(dsrow.BqSchema.RawMessage, &schema); err != nil {
 					return nil, fmt.Errorf("unmarshalling schema: %w", err)
@@ -76,7 +334,7 @@ func datasetFromSQL(dsrows []gensql.DatasetView) (*service.Dataset, error) {
 				ProjectID:     dsrow.BqProject,
 				Dataset:       dsrow.BqDataset,
 				Table:         dsrow.BqTableName,
-				TableType:     bqclient.BigQueryType(dsrow.BqTableType),
+				TableType:     service.BigQueryType(dsrow.BqTableType),
 				Created:       dsrow.BqCreated,
 				LastModified:  dsrow.BqLastModified,
 				Expires:       nullTimeToPtr(dsrow.BqExpires),
@@ -261,6 +519,38 @@ func datasetsInDataProductFromSQL(dsrows []gensql.GetDataproductsWithDatasetsRow
 	}
 
 	return datasets
+}
+
+func dataproductMinimalFromSQL(dp *gensql.Dataproduct) *service.DataproductMinimal {
+	return &service.DataproductMinimal{
+		ID:           dp.ID,
+		Name:         dp.Name,
+		Created:      dp.Created,
+		LastModified: dp.LastModified,
+		Description:  &dp.Description.String,
+		Slug:         dp.Slug,
+		Owner: &service.DataproductOwner{
+			Group:            dp.Group,
+			TeamkatalogenURL: &dp.TeamkatalogenUrl.String,
+			TeamContact:      &dp.TeamContact.String,
+			TeamID:           &dp.TeamID.String,
+		},
+	}
+}
+
+func slugify(maybeslug *string, fallback string) string {
+	if maybeslug != nil {
+		return *maybeslug
+	}
+	// TODO(thokra): Smartify this?
+	return url.PathEscape(fallback)
+}
+
+func ptrToString(s *string) string {
+	if s != nil {
+		return *s
+	}
+	return ""
 }
 
 func nullStringToPtr(ns sql.NullString) *string {
