@@ -51,7 +51,7 @@ func (m *MockServiceWrapper) RevokeAccessToDataset(ctx context.Context, id uuid.
 	return nil
 }
 
-func (m *MockServiceWrapper) GetBigqueryDatasource(ctx context.Context, dataproductID uuid.UUID, isReference bool) (*service.BigQuery, error) {
+func (m *MockServiceWrapper) GetBigqueryDatasource(ctx context.Context, dataproductID uuid.UUID, isReference bool) (*service.BigQuery, *service.APIError) {
 	m.NGetBigqueryDatasource++
 	return &service.BigQuery{}, nil
 }

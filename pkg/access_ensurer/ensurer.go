@@ -17,7 +17,7 @@ import (
 
 type Service interface {
 	GetUnrevokedExpiredAccess(ctx context.Context) ([]*service.Access, error)
-	GetBigqueryDatasource(ctx context.Context, dataproductID uuid.UUID, isReference bool) (*service.BigQuery, error)
+	GetBigqueryDatasource(ctx context.Context, dataproductID uuid.UUID, isReference bool) (*service.BigQuery, *service.APIError)
 	RevokeAccessToDataset(ctx context.Context, id uuid.UUID) error
 	GetPseudoDatasourcesToDelete(ctx context.Context) ([]*service.BigQuery, error)
 	SetDatasourceDeleted(ctx context.Context, id uuid.UUID) error
@@ -85,9 +85,9 @@ func (e *Ensurer) run(ctx context.Context) {
 	}
 
 	for _, entry := range entries {
-		ds, err := e.s.GetBigqueryDatasource(ctx, entry.DatasetID, false)
-		if err != nil {
-			e.log.WithError(err).Error("Getting dataproduct datasource for expired access entry")
+		ds, apiErr := e.s.GetBigqueryDatasource(ctx, entry.DatasetID, false)
+		if apiErr != nil {
+			e.log.WithError(apiErr.Err).Error("Getting dataproduct datasource for expired access entry")
 			e.errs.WithLabelValues("GetBigqueryDatasource").Inc()
 			continue
 		}
@@ -103,7 +103,7 @@ func (e *Ensurer) run(ctx context.Context) {
 		}
 	}
 
-	//TODO: enable pseudo feature
+	// TODO: enable pseudo feature
 	if true {
 		return
 	}

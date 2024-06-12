@@ -14,7 +14,7 @@ func (s ServiceWrapper) GetUnrevokedExpiredAccess(ctx context.Context) ([]*servi
 	return service.GetUnrevokedExpiredAccess(ctx)
 }
 
-func (s ServiceWrapper) GetBigqueryDatasource(ctx context.Context, dataproductID uuid.UUID, isReference bool) (*service.BigQuery, error) {
+func (s ServiceWrapper) GetBigqueryDatasource(ctx context.Context, dataproductID uuid.UUID, isReference bool) (*service.BigQuery, *service.APIError) {
 	return service.GetBigqueryDatasource(ctx, dataproductID, isReference)
 }
 
