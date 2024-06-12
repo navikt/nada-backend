@@ -1,34 +1,62 @@
 package service
 
 import (
+	"cloud.google.com/go/bigquery"
 	"context"
-	"database/sql"
-	"encoding/json"
-	"errors"
 	"fmt"
-	"github.com/sqlc-dev/pqtype"
-	"google.golang.org/api/googleapi"
-	"net/http"
-	"strings"
+	"io"
+	"strconv"
 	"time"
 
 	"github.com/google/uuid"
 	"github.com/navikt/nada-backend/pkg/auth"
-	"github.com/navikt/nada-backend/pkg/bqclient"
-	"github.com/navikt/nada-backend/pkg/database/gensql"
 )
 
-// For now, just exporting the functionality that is needed by Metabase
 type BigQueryStorage interface {
 	GetBigqueryDatasource(ctx context.Context, datasetID uuid.UUID, isReference bool) (*BigQuery, error)
+	GetBigqueryDatasources(ctx context.Context) ([]*BigQuery, error)
+	UpdateBigqueryDatasourceSchema(ctx context.Context, datasetID uuid.UUID, meta BigqueryMetadata) error
+	UpdateBigqueryDatasourceMissing(ctx context.Context, datasetID uuid.UUID) error
+	UpdateBigqueryDatasource(ctx context.Context, input BigQueryDataSourceUpdate) error
+	GetPseudoDatasourcesToDelete(ctx context.Context) ([]*BigQuery, error)
 }
 
-// Same here
 type BigQueryAPI interface {
 	Grant(ctx context.Context, projectID, datasetID, tableID, member string) error
 	Revoke(ctx context.Context, projectID, datasetID, tableID, member string) error
 	HasAccess(ctx context.Context, projectID, datasetID, tableID, member string) (bool, error)
 	AddToAuthorizedViews(ctx context.Context, srcProjectID, srcDataset, sinkProjectID, sinkDataset, sinkTable string) error
+	MakeBigQueryUrlForJoinableViews(name, projectID, datasetID, tableID string) string
+	CreateJoinableViewsForUser(ctx context.Context, name string, datasources []JoinableViewDatasource) (string, string, map[string]string, error)
+	CreateJoinableView(ctx context.Context, joinableDatasetID string, datasource JoinableViewDatasource) (string, error)
+	ComposeJoinableViewQuery(plainTable DatasourceForJoinableView, joinableDatasetID string) string
+	TableMetadata(ctx context.Context, projectID string, datasetID string, tableID string) (BigqueryMetadata, error)
+	GetTables(ctx context.Context, projectID, datasetID string) ([]*BigQueryTable, error)
+	GetDatasets(ctx context.Context, projectID string) ([]string, error)
+	CreatePseudonymisedView(ctx context.Context, projectID, datasetID, tableID string, piiColumns []string) (string, string, string, error)
+	DeleteJoinableView(ctx context.Context, joinableViewName, refProjectID, refDatasetID, refTableID string) error
+	DeletePseudoView(ctx context.Context, pseudoProjectID, pseudoDatasetID, pseudoTableID string) error
+	DeleteJoinableDataset(ctx context.Context, datasetID string) error
+}
+
+type BigQueryService interface {
+	SyncBigQueryTables(ctx context.Context) error
+	UpdateMetadata(ctx context.Context, ds *BigQuery) error
+	GetBigQueryTables(ctx context.Context, projectID string, datasetID string) (*BQTables, error)
+	GetBigQueryDatasets(ctx context.Context, projectID string) (*BQDatasets, error)
+	GetBigQueryColumns(ctx context.Context, projectID string, datasetID string, tableID string) (*BQColumns, error)
+}
+
+type DatasourceForJoinableView struct {
+	Project       string
+	Dataset       string
+	Table         string
+	PseudoColumns []string
+}
+
+type JoinableViewDatasource struct {
+	RefDatasource    *DatasourceForJoinableView
+	PseudoDatasource *DatasourceForJoinableView
 }
 
 type GCPProject struct {
@@ -40,22 +68,22 @@ type GCPProject struct {
 type BigQuery struct {
 	ID            uuid.UUID
 	DatasetID     uuid.UUID
-	ProjectID     string                     `json:"projectID"`
-	Dataset       string                     `json:"dataset"`
-	Table         string                     `json:"table"`
-	TableType     bqclient.BigQueryType      `json:"tableType"`
-	LastModified  time.Time                  `json:"lastModified"`
-	Created       time.Time                  `json:"created"`
-	Expires       *time.Time                 `json:"expired"`
-	Description   string                     `json:"description"`
-	PiiTags       *string                    `json:"piiTags"`
-	MissingSince  *time.Time                 `json:"missingSince"`
-	PseudoColumns []string                   `json:"pseudoColumns"`
-	Schema        []*bqclient.BigqueryColumn `json:"schema"`
+	ProjectID     string            `json:"projectID"`
+	Dataset       string            `json:"dataset"`
+	Table         string            `json:"table"`
+	TableType     BigQueryType      `json:"tableType"`
+	LastModified  time.Time         `json:"lastModified"`
+	Created       time.Time         `json:"created"`
+	Expires       *time.Time        `json:"expired"`
+	Description   string            `json:"description"`
+	PiiTags       *string           `json:"piiTags"`
+	MissingSince  *time.Time        `json:"missingSince"`
+	PseudoColumns []string          `json:"pseudoColumns"`
+	Schema        []*BigqueryColumn `json:"schema"`
 }
 
 type BQTables struct {
-	BQTables []*bqclient.BigQueryTable `json:"bqTables"`
+	BQTables []*BigQueryTable `json:"bqTables"`
 }
 
 type BQDatasets struct {
@@ -63,157 +91,88 @@ type BQDatasets struct {
 }
 
 type BQColumns struct {
-	BQColumns []*bqclient.BigqueryColumn `json:"bqColumns"`
+	BQColumns []*BigqueryColumn `json:"bqColumns"`
 }
 
-func GetBQTables(ctx context.Context, projectID string, datasetID string) (*BQTables, *APIError) {
-	tables, err := bq.GetTables(ctx, projectID, datasetID)
-	if err != nil {
-		return nil, NewAPIError(http.StatusInternalServerError, err, "Failed to retrive bigquery tables")
-	}
-	return &BQTables{BQTables: tables}, nil
+type NewBigQuery struct {
+	ProjectID string  `json:"projectID"`
+	Dataset   string  `json:"dataset"`
+	Table     string  `json:"table"`
+	PiiTags   *string `json:"piiTags"`
 }
 
-func GetBQDatasets(ctx context.Context, projectID string) (*BQDatasets, *APIError) {
-	datasets, err := bq.GetDatasets(ctx, projectID)
-	if err != nil {
-		return nil, NewAPIError(http.StatusInternalServerError, err, "Failed to retrieve bigquery datasets")
-	}
-	return &BQDatasets{
-		BQDatasets: datasets,
-	}, nil
+type BigquerySchema struct {
+	Columns []BigqueryColumn
 }
 
-func GetBQColumns(ctx context.Context, projectID string, datasetID string, tableID string) (*BQColumns, *APIError) {
-	metadata, err := bq.TableMetadata(ctx, projectID, datasetID, tableID)
-	if err != nil {
-		return nil, NewAPIError(http.StatusInternalServerError, err, "Failed to retrive bigquery table metadata")
-	}
+type BigQueryType string
 
-	columns := make([]*bqclient.BigqueryColumn, 0)
-	for _, column := range metadata.Schema.Columns {
-		columns = append(columns, &bqclient.BigqueryColumn{
-			Name:        column.Name,
-			Description: column.Description,
-			Mode:        column.Mode,
-			Type:        column.Type,
-		})
-	}
-	return &BQColumns{
-		BQColumns: columns,
-	}, nil
+type BigqueryMetadata struct {
+	Schema       BigquerySchema     `json:"schema"`
+	TableType    bigquery.TableType `json:"tableType"`
+	LastModified time.Time          `json:"lastModified"`
+	Created      time.Time          `json:"created"`
+	Expires      time.Time          `json:"expires"`
+	Description  string             `json:"description"`
 }
 
-func GetBigqueryDatasource(ctx context.Context, datasetID uuid.UUID, isReference bool) (*BigQuery, *APIError) {
-	bq, err := queries.GetBigqueryDatasource(ctx, gensql.GetBigqueryDatasourceParams{
-		DatasetID:   datasetID,
-		IsReference: isReference,
-	})
-	if err == sql.ErrNoRows {
-		return nil, NewAPIError(http.StatusNotFound, err, fmt.Sprintf("getBigqueryDatasource(): bigquery datasource not found for %v", datasetID))
-	} else if err != nil {
-		return nil, DBErrorToAPIError(err, fmt.Sprintf("getBigqueryDatasource(): failed to get bigquery datasource for %v", datasetID))
-	}
-
-	piiTags := "{}"
-	if bq.PiiTags.RawMessage != nil {
-		piiTags = string(bq.PiiTags.RawMessage)
-	}
-
-	return &BigQuery{
-		ID:            bq.ID,
-		DatasetID:     bq.DatasetID,
-		ProjectID:     bq.ProjectID,
-		Dataset:       bq.Dataset,
-		Table:         bq.TableName,
-		TableType:     bqclient.BigQueryType(strings.ToLower(bq.TableType)),
-		LastModified:  bq.LastModified,
-		Created:       bq.Created,
-		Expires:       nullTimeToPtr(bq.Expires),
-		Description:   bq.Description.String,
-		PiiTags:       &piiTags,
-		MissingSince:  &bq.MissingSince.Time,
-		PseudoColumns: bq.PseudoColumns,
-	}, nil
+type BigQueryDataSourceUpdate struct {
+	PiiTags       *string
+	PseudoColumns []string
+	DatasetID     uuid.UUID
 }
 
-func GetBigqueryDatasources(ctx context.Context) ([]gensql.DatasourceBigquery, *APIError) {
-	bqs, err := queries.GetBigqueryDatasources(ctx)
-	if err != nil {
-		if errors.Is(err, sql.ErrNoRows) {
-			return nil, nil
-		}
-
-		return nil, DBErrorToAPIError(err, fmt.Sprintf("fetching bigquery datasources"))
-	}
-
-	return bqs, nil
+type BigqueryColumn struct {
+	Name        string `json:"name"`
+	Type        string `json:"type"`
+	Mode        string `json:"mode"`
+	Description string `json:"description"`
 }
 
 const (
-	removalTime = -168 * time.Hour // 1 week
+	BigQueryTypeTable            BigQueryType = "table"
+	BigQueryTypeView             BigQueryType = "view"
+	BigQueryTypeMaterializedView BigQueryType = "materialized_view"
 )
 
-type ErrorList []error
-
-func (e ErrorList) Error() string {
-	if e == nil {
-		return "nil"
-	}
-	return fmt.Sprintf("%+v", []error(e))
+var AllBigQueryType = []BigQueryType{
+	BigQueryTypeTable,
+	BigQueryTypeView,
+	BigQueryTypeMaterializedView,
 }
 
-func UpdateMetadata(ctx context.Context, ds gensql.DatasourceBigquery) error {
-	metadata, err := bq.TableMetadata(ctx, ds.ProjectID, ds.Dataset, ds.TableName)
-	if err != nil {
-		return fmt.Errorf("getting dataset schema: %w", err)
+func (e BigQueryType) IsValid() bool {
+	switch e {
+	case BigQueryTypeTable, BigQueryTypeView, BigQueryTypeMaterializedView:
+		return true
+	}
+	return false
+}
+
+func (e BigQueryType) String() string {
+	return string(e)
+}
+
+func (e *BigQueryType) UnmarshalGQL(v interface{}) error {
+	str, ok := v.(string)
+	if !ok {
+		return fmt.Errorf("enums must be strings")
 	}
 
-	schemaJSON, err := json.Marshal(metadata.Schema.Columns)
-	if err != nil {
-		return fmt.Errorf("marshalling schema: %w", err)
+	*e = BigQueryType(str)
+	if !e.IsValid() {
+		return fmt.Errorf("%s is not a valid BigQueryType", str)
 	}
-
-	err = queries.UpdateBigqueryDatasourceSchema(ctx, gensql.UpdateBigqueryDatasourceSchemaParams{
-		Schema: pqtype.NullRawMessage{
-			RawMessage: schemaJSON,
-			Valid:      true,
-		},
-		LastModified:  metadata.LastModified,
-		Expires:       sql.NullTime{Time: metadata.Expires, Valid: !metadata.Expires.IsZero()},
-		Description:   sql.NullString{String: metadata.Description, Valid: true},
-		PseudoColumns: nil,
-		DatasetID:     ds.DatasetID,
-	})
-	if err != nil {
-		return fmt.Errorf("writing metadata to database: %w", err)
-	}
-
 	return nil
 }
 
-func HandleSyncError(ctx context.Context, errs ErrorList, err error, bq gensql.DatasourceBigquery) ErrorList {
-	var e *googleapi.Error
-
-	if ok := errors.As(err, &e); ok {
-		if e.Code == 404 {
-			if err := handleTableNotFound(ctx, bq); err != nil {
-				errs = append(errs, err)
-			}
-		} else {
-			errs = append(errs, err)
-		}
-	}
-
-	return errs
+func (e BigQueryType) MarshalGQL(w io.Writer) {
+	fmt.Fprint(w, strconv.Quote(e.String()))
 }
 
-func handleTableNotFound(ctx context.Context, bq gensql.DatasourceBigquery) error {
-	if !bq.MissingSince.Valid {
-		return queries.UpdateBigqueryDatasourceMissing(ctx, bq.DatasetID)
-	} else if bq.MissingSince.Time.Before(time.Now().Add(removalTime)) {
-		return queries.DeleteDataset(ctx, bq.DatasetID)
-	}
-
-	return nil
+type BigQueryTable struct {
+	Description  string       `json:"description"`
+	LastModified time.Time    `json:"lastModified"`
+	Name         string       `json:"name"`
+	Type         BigQueryType `json:"type"`
 }

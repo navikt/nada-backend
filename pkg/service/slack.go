@@ -1,12 +1,10 @@
 package service
 
-import "net/http"
+import (
+	"context"
+)
 
-func IsValidSlackChannel(name string) (bool, *APIError) {
-	ok, err := slackClient.IsValidSlackChannel(name)
-	if err != nil {
-		return false, NewAPIError(http.StatusInternalServerError, err, "Failed to validate slack channel")
-	}
-
-	return ok, nil
+type SlackAPI interface {
+	InformNewAccessRequest(ctx context.Context, subject, datasetID string) error
+	IsValidSlackChannel(name string) error
 }

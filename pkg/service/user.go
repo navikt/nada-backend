@@ -11,7 +11,6 @@ import (
 	"github.com/google/uuid"
 	"github.com/navikt/nada-backend/pkg/auth"
 	"github.com/navikt/nada-backend/pkg/database/gensql"
-	"github.com/navikt/nada-backend/pkg/polly"
 )
 
 func RotateNadaToken(ctx context.Context, team string) *APIError {
@@ -265,27 +264,6 @@ func GetUserData(ctx context.Context) (*UserInfo, *APIError) {
 	}
 
 	return userData, nil
-}
-
-func pollySQLToGraphql(ctx context.Context, id uuid.NullUUID) (*Polly, error) {
-	if !id.Valid {
-		return nil, nil
-	}
-
-	// TODO: either remove this or do it on database level for performance reasons
-	pollyDoc, err := queries.GetPollyDocumentation(ctx, id.UUID)
-	if err != nil {
-		return nil, err
-	}
-
-	return &Polly{
-		ID: pollyDoc.ID,
-		QueryPolly: polly.QueryPolly{
-			ExternalID: pollyDoc.ExternalID,
-			Name:       pollyDoc.Name,
-			URL:        pollyDoc.Url,
-		},
-	}, nil
 }
 
 func GetTeamFromToken(ctx context.Context, token uuid.UUID) (string, error) {

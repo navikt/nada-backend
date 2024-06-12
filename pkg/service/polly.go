@@ -9,6 +9,11 @@ import (
 	"github.com/navikt/nada-backend/pkg/polly"
 )
 
+type PollyStorage interface {
+	CreatePollyDocumentation(ctx context.Context, pollyInput PollyInput) (Polly, error)
+	GetPollyDocumentation(ctx context.Context, id uuid.UUID) (*Polly, error)
+}
+
 type Polly struct {
 	ID uuid.UUID `json:"id"`
 	polly.QueryPolly
