@@ -96,7 +96,7 @@ func (e *Ensurer) run(ctx context.Context) {
 			e.errs.WithLabelValues("Revoke").Inc()
 			continue
 		}
-		if apiErr := e.s.RevokeAccessToDataset(ctx, entry.ID); err != nil {
+		if apiErr := e.s.RevokeAccessToDataset(ctx, entry.ID); apiErr != nil {
 			e.log.WithError(apiErr.Err).Errorf("Setting access entry with ID %v to revoked in database", entry.ID)
 			e.errs.WithLabelValues("RevokeAccessToDataproduct").Inc()
 			continue
