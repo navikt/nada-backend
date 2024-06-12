@@ -27,7 +27,7 @@ type metabaseService struct {
 	thirdPartyMappingStorage service.ThirdPartyMappingStorage
 	metabaseStorage          service.MetabaseStorage
 	bigqueryStorage          service.BigQueryStorage
-	dataproductStorage       service.DataProductStorage
+	dataproductStorage       service.DataProductsStorage
 	accessStorage            service.AccessStorage
 }
 
@@ -538,6 +538,20 @@ func (s *metabaseService) deleteRestrictedDatabase(ctx context.Context, datasetI
 	return nil
 }
 
+func (s *metabaseService) RevokeMetabaseAccessFromAccessID(ctx context.Context, accessID string) error {
+	access, err := s.accessStorage.GetAccessRequest(ctx, accessID)
+	if err != nil {
+		return fmt.Errorf("get access request: %w", err)
+	}
+
+	err = s.RevokeMetabaseAccess(ctx, access.DatasetID, access.Subject)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
 func (s *metabaseService) RevokeMetabaseAccess(ctx context.Context, dsID uuid.UUID, subject string) error {
 	if subject == "group:all-users@nav.no" {
 		err := s.softDeleteDatabase(ctx, dsID)
@@ -731,7 +745,7 @@ func NewMetabaseService(
 	tpms service.ThirdPartyMappingStorage,
 	mbs service.MetabaseStorage,
 	bqs service.BigQueryStorage,
-	dps service.DataProductStorage,
+	dps service.DataProductsStorage,
 	as service.AccessStorage,
 ) *metabaseService {
 	return &metabaseService{
