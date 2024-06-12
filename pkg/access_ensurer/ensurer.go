@@ -9,6 +9,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/navikt/nada-backend/pkg/auth"
 	"github.com/navikt/nada-backend/pkg/bqclient"
+	"github.com/navikt/nada-backend/pkg/database"
 	"github.com/navikt/nada-backend/pkg/database/gensql"
 	"github.com/navikt/nada-backend/pkg/service"
 	"github.com/prometheus/client_golang/prometheus"
@@ -32,6 +33,7 @@ type Ensurer struct {
 	s                  Service
 	r                  Revoker
 	bq                 BigQuery
+	repo               *database.Repo
 	googleGroups       *auth.GoogleGroupClient
 	centralDataProject string
 	log                *logrus.Entry
@@ -49,7 +51,7 @@ type Revoker interface {
 	Revoke(ctx context.Context, projectID, dataset, table, member string) error
 }
 
-func NewEnsurer(s Service, r Revoker, bq BigQuery, googleGroups *auth.GoogleGroupClient, centralDataProject string, errs *prometheus.CounterVec, log *logrus.Entry) *Ensurer {
+func NewEnsurer(s Service, r Revoker, bq BigQuery, repo *database.Repo, googleGroups *auth.GoogleGroupClient, centralDataProject string, errs *prometheus.CounterVec, log *logrus.Entry) *Ensurer {
 	if s == nil {
 		s = ServiceWrapper{}
 	}
@@ -57,6 +59,7 @@ func NewEnsurer(s Service, r Revoker, bq BigQuery, googleGroups *auth.GoogleGrou
 		s:                  s,
 		r:                  r,
 		bq:                 bq,
+		repo:               repo,
 		googleGroups:       googleGroups,
 		centralDataProject: centralDataProject,
 		log:                log,
@@ -96,11 +99,11 @@ func (e *Ensurer) run(ctx context.Context) {
 			e.errs.WithLabelValues("Revoke").Inc()
 			continue
 		}
-		// if apiErr := e.s.RevokeAccessToDataset(ctx, entry.ID); apiErr != nil {
-		// 	e.log.WithError(apiErr.Err).Errorf("Setting access entry with ID %v to revoked in database", entry.ID)
-		// 	e.errs.WithLabelValues("RevokeAccessToDataproduct").Inc()
-		// 	continue
-		// }
+		if err := e.repo.Querier.RevokeAccessToDataset(ctx, entry.ID); err != nil {
+			e.log.WithError(err).Errorf("Setting access entry with ID %v to revoked in database", entry.ID)
+			e.errs.WithLabelValues("RevokeAccessToDataproduct").Inc()
+			continue
+		}
 	}
 
 	// TODO: enable pseudo feature

@@ -171,7 +171,7 @@ func main() {
 		log.WithError(err).Fatal("running metabase")
 	}
 
-	go access_ensurer.NewEnsurer(nil, accessMgr, bqClient, googleGroups, config.Conf.CentralDataProject, promErrs, log.WithField("subsystem", "accessensurer")).Run(ctx, AccessEnsurerFrequency)
+	go access_ensurer.NewEnsurer(nil, accessMgr, bqClient, repo, googleGroups, config.Conf.CentralDataProject, promErrs, log.WithField("subsystem", "accessensurer")).Run(ctx, AccessEnsurerFrequency)
 
 	go func() {
 		if err := server.ListenAndServe(); err != nil {
