@@ -3,6 +3,7 @@ package api
 import (
 	"encoding/json"
 	"fmt"
+	"github.com/navikt/nada-backend/pkg/service/core/handlers"
 	"io"
 	"net/http"
 	"strconv"
@@ -16,7 +17,6 @@ import (
 	. "github.com/navikt/nada-backend/pkg/service"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
-	"github.com/sirupsen/logrus"
 )
 
 type HTTPAPI interface {
@@ -26,12 +26,12 @@ type HTTPAPI interface {
 }
 
 func New(
+	endpoints *handlers.Endpoints,
+	realHandlers *handlers.Handlers,
 	httpAPI HTTPAPI,
 	authMW auth.MiddlewareHandler,
 	promReg *prometheus.Registry,
-	teamTokenCreds string,
 	gcpProjectID string,
-	log *logrus.Logger,
 ) *chi.Mux {
 	corsMW := cors.Handler(cors.Options{
 		AllowedOrigins:   []string{"https://*", "http://*"},
@@ -47,86 +47,29 @@ func New(
 		r.HandleFunc("/oauth2/callback", httpAPI.Callback)
 		r.HandleFunc("/logout", httpAPI.Logout)
 	})
+
 	router.Route(`/{story|quarto}/`, func(r chi.Router) {
-		r.Use(StoryHTTPMiddleware)
-		r.Get("/*", GetGCSObject)
-		r.Post("/create", CreateStoryHTTP)
+		// FIXME: not great, move into middlewares something
+		r.Use(handlers.StoryHTTPMiddleware(realHandlers.StoryHandler))
+		r.Get("/*", endpoints.GetGCSObject)
+		r.Post("/create", endpoints.CreateStoryHTTP)
 		r.Route("/update/{id}", func(r chi.Router) {
-			r.Put("/", UpdateStoryHTTP)
-			r.Patch("/", AppendFileHTTP)
+			r.Put("/", endpoints.UpdateStoryHTTP)
+			r.Patch("/", endpoints.AppendStoryHTTP)
 		})
 	})
+
 	router.Route("/internal", func(r chi.Router) {
 		r.Handle("/metrics", promhttp.HandlerFor(promReg, promhttp.HandlerOpts{}))
-		r.Get("/teamtokens", func(w http.ResponseWriter, r *http.Request) {
-			authHeader := r.Header.Get("Authorization")
-			authHeaderParts := strings.Split(authHeader, " ")
-			if len(authHeaderParts) != 2 {
-				w.WriteHeader(http.StatusUnauthorized)
-				return
-			}
-
-			if authHeaderParts[1] != teamTokenCreds {
-				w.WriteHeader(http.StatusUnauthorized)
-				return
-			}
-
-			tokenTeamMap, err := service.GetNadaTokens(r.Context())
-			if err != nil {
-				log.WithError(err).Error("getting nada tokens")
-				w.WriteHeader(http.StatusInternalServerError)
-				return
-			}
-
-			payloadBytes, err := json.Marshal(tokenTeamMap)
-			if err != nil {
-				log.WithError(err).Error("marshalling nada token map reponse")
-				w.WriteHeader(http.StatusInternalServerError)
-				return
-			}
-
-			w.Header().Set("Content-Type", "application/json")
-			w.Write(payloadBytes)
-		})
+		r.Get("/teamtokens", endpoints.GetAllTeamTokens)
 	})
 
 	router.Route("/api/dataproducts", func(r chi.Router) {
 		r.Use(authMW)
-		r.Get("/{id}", apiWrapper(func(r *http.Request) (interface{}, *service.APIError) {
-			return service.GetDataproduct(r.Context(), chi.URLParam(r, "id"))
-		}))
-		r.Post("/new", apiWrapper(func(r *http.Request) (interface{}, *service.APIError) {
-			bodyBytes, err := io.ReadAll(r.Body)
-			if err != nil {
-				return nil, service.NewAPIError(http.StatusBadRequest, fmt.Errorf("error reading body"), "Error reading request body")
-			}
-
-			newDataproduct := service.NewDataproduct{}
-			if err = json.Unmarshal(bodyBytes, &newDataproduct); err != nil {
-				return nil, service.NewAPIError(http.StatusBadRequest, fmt.Errorf("error unmarshalling request body"), "Error unmarshalling request body")
-			}
-
-			return service.CreateDataproduct(r.Context(), newDataproduct)
-		}))
-
-		r.Delete("/{id}", apiWrapper(func(r *http.Request) (interface{}, *service.APIError) {
-			return service.DeleteDataproduct(r.Context(), chi.URLParam(r, "id"))
-		}))
-
-		r.Put("/{id}", apiWrapper(func(r *http.Request) (interface{}, *service.APIError) {
-			bodyBytes, err := io.ReadAll(r.Body)
-			if err != nil {
-				return nil, service.NewAPIError(http.StatusBadRequest, fmt.Errorf("error reading body"), "Error reading request body")
-			}
-
-			dp := service.UpdateDataproductDto{}
-			if err = json.Unmarshal(bodyBytes, &dp); err != nil {
-				return nil, service.NewAPIError(http.StatusBadRequest, fmt.Errorf("error unmarshalling request body"), "Error unmarshalling request body")
-			}
-
-			return service.UpdateDataproduct(r.Context(), chi.URLParam(r, "id"), dp)
-		}))
-
+		r.Get("/{id}", endpoints.GetDataProduct)
+		r.Post("/new", endpoints.CreateDataProduct)
+		r.Delete("/{id}", endpoints.DeleteDataProduct)
+		r.Put("/{id}", endpoints.UpdateDataProduct)
 	})
 
 	router.Route("/api/datasets", func(r chi.Router) {
@@ -409,11 +352,17 @@ func New(
 			if err = json.Unmarshal(bodyBytes, &grantAccessData); err != nil {
 				return nil, NewAPIError(http.StatusBadRequest, fmt.Errorf("error unmarshalling request body"), "Error unmarshalling request body")
 			}
+			// FIXME: Need to call multiple services here
+			// - Access.GrantAccessToDataset
+			// - Metabase.GrantMetabaseAccess
 			return nil, GrantAccessToDataset(r.Context(), grantAccessData, gcpProjectID)
 		}))
 
 		r.Post("/revoke", apiWrapper(func(r *http.Request) (interface{}, *APIError) {
 			accessID := r.URL.Query().Get("id")
+			// FIXME: Need to call multiple services here
+			// - Access.RevokeAccessToDataset
+			// - Metabase.RevokeMetabaseAccessFromAccessID
 			return nil, RevokeAccessToDataset(r.Context(), accessID, gcpProjectID)
 		}))
 
