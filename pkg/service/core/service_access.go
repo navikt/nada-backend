@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"github.com/google/uuid"
 	"github.com/navikt/nada-backend/pkg/auth"
-	"github.com/navikt/nada-backend/pkg/bqclient"
 	"github.com/navikt/nada-backend/pkg/service"
 	"strings"
 	"time"
@@ -256,7 +255,7 @@ func (s *accessService) RevokeAccessToDataset(ctx context.Context, id, gcpProjec
 		}
 		for _, jv := range joinableViews {
 			// FIXME: this is a bit of a hack, we should probably have a better way to get the joinable view name
-			joinableViewName := bqclient.MakeJoinableViewName(bqds.ProjectID, bqds.Dataset, bqds.Table)
+			joinableViewName := makeJoinableViewName(bqds.ProjectID, bqds.Dataset, bqds.Table)
 			if err := s.bigQueryAPI.Revoke(ctx, gcpProjectID, jv.Dataset, joinableViewName, access.Subject); err != nil {
 				return fmt.Errorf("revoke access: %w", err)
 			}
@@ -272,6 +271,12 @@ func (s *accessService) RevokeAccessToDataset(ctx context.Context, id, gcpProjec
 	}
 
 	return nil
+}
+
+// FIXME: duplicated
+func makeJoinableViewName(projectID, datasetID, tableID string) string {
+	// datasetID will always be same markedsplassen dataset id
+	return fmt.Sprintf("%v_%v", projectID, tableID)
 }
 
 func (s *accessService) GrantAccessToDataset(ctx context.Context, input service.GrantAccessData, gcpProjectID string) error {
@@ -320,7 +325,7 @@ func (s *accessService) GrantAccessToDataset(ctx context.Context, input service.
 			return fmt.Errorf("get joinable views for reference and user: %w", err)
 		}
 		for _, jv := range joinableViews {
-			joinableViewName := bqclient.MakeJoinableViewName(bqds.ProjectID, bqds.Dataset, bqds.Table)
+			joinableViewName := makeJoinableViewName(bqds.ProjectID, bqds.Dataset, bqds.Table)
 			if err := s.bigQueryAPI.Grant(ctx, gcpProjectID, jv.Dataset, joinableViewName, subjWithType); err != nil {
 				return fmt.Errorf("grant access: %w", err)
 			}
