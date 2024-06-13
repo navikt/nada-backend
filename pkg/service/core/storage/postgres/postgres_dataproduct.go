@@ -22,6 +22,197 @@ type dataProductPostgres struct {
 	db *database.Repo
 }
 
+func (p *dataProductPostgres) GetDataproductKeywords(ctx context.Context, dpid uuid.UUID) ([]string, error) {
+	keywords, err := p.db.Querier.GetDataproductKeywords(ctx, dpid)
+	if err != nil && err != sql.ErrNoRows {
+		return nil, fmt.Errorf("getting dataproduct keywords: %w", err)
+	}
+
+	return keywords, nil
+}
+
+func (p *dataProductPostgres) GetDataproductsByTeamID(ctx context.Context, teamIDs []string) ([]*service.Dataproduct, error) {
+	sqlDP, err := p.db.Querier.GetDataproductsByProductArea(ctx, teamIDs)
+	if err == sql.ErrNoRows {
+		return nil, nil
+	}
+	if err != nil {
+		return nil, err
+	}
+
+	dps := make([]*service.Dataproduct, len(sqlDP))
+	for idx, dp := range sqlDP {
+		dps[idx] = dataproductFromSQL(&dp)
+
+		keywords, err := p.GetDataproductKeywords(ctx, dps[idx].ID)
+		if err != nil {
+			return nil, err
+		}
+
+		if keywords == nil {
+			keywords = []string{}
+		}
+
+		dps[idx].Keywords = keywords
+	}
+
+	return dps, nil
+}
+
+func (p *dataProductPostgres) GetDataproductsNumberByTeam(ctx context.Context, teamID string) (int64, error) {
+	n, err := p.db.Querier.GetDataproductsNumberByTeam(ctx, ptrToNullString(&teamID))
+	if err != nil {
+		return 0, fmt.Errorf("getting dataproducts number by team: %w", err)
+	}
+
+	return n, nil
+}
+
+func (p *dataProductPostgres) GetAccessibleDatasets(ctx context.Context, userGroups []string, requester string) (owned []*service.AccessibleDataset, granted []*service.AccessibleDataset, err error) {
+	datasetsSQL, err := p.db.Querier.GetAccessibleDatasets(ctx, gensql.GetAccessibleDatasetsParams{
+		Groups:    userGroups,
+		Requester: requester,
+	})
+	if err != nil {
+		return nil, nil, fmt.Errorf("getting accessible datasets: %w", err)
+	}
+	for _, d := range datasetsSQL {
+		if matchAny(nullStringToString(d.Group), userGroups) {
+			owned = append(owned, accessibleDatasetFromSql(&d))
+		} else {
+			granted = append(granted, accessibleDatasetFromSql(&d))
+		}
+	}
+
+	return
+}
+
+func matchAny(s string, targetSet []string) bool {
+	for _, v := range targetSet {
+		if s == v {
+			return true
+		}
+	}
+	return false
+}
+
+func accessibleDatasetFromSql(d *gensql.GetAccessibleDatasetsRow) *service.AccessibleDataset {
+	return &service.AccessibleDataset{
+		Dataset: service.Dataset{
+			ID:            d.ID,
+			Name:          d.Name,
+			DataproductID: d.DataproductID,
+			Keywords:      d.Keywords,
+			Slug:          d.Slug,
+			Description:   nullStringToPtr(d.Description),
+			Created:       d.Created,
+			LastModified:  d.LastModified,
+		},
+		Group:           nullStringToString(d.Group),
+		DpSlug:          *nullStringToPtr(d.DpSlug),
+		DataproductName: nullStringToString(d.DpName),
+	}
+}
+
+func nullStringToString(ns sql.NullString) string {
+	if !ns.Valid {
+		return ""
+	}
+
+	return ns.String
+}
+
+func (p *dataProductPostgres) GetDataproductsWithDatasetsAndAccessRequests(ctx context.Context, ids []uuid.UUID, groups []string) ([]service.DataproductWithDataset, []service.AccessRequestForGranter, error) {
+	dpres, err := p.db.Querier.GetDataproductsWithDatasetsAndAccessRequests(ctx, gensql.GetDataproductsWithDatasetsAndAccessRequestsParams{
+		Ids:    ids,
+		Groups: groups,
+	})
+	if err != nil {
+		return nil, nil, fmt.Errorf("getting dataproducts with datasets and access requests: %w", err)
+	}
+
+	dataproducts, accessRequests, err := dataproductsWithDatasetAndAccessRequestsForGranterFromSQL(dpres)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	return dataproducts, accessRequests, nil
+}
+
+func dataproductsWithDatasetAndAccessRequestsForGranterFromSQL(dprrows []gensql.GetDataproductsWithDatasetsAndAccessRequestsRow) ([]service.DataproductWithDataset, []service.AccessRequestForGranter, error) {
+	if dprrows == nil {
+		return nil, nil, nil
+	}
+
+	dprows := make([]gensql.GetDataproductsWithDatasetsRow, len(dprrows))
+	for i, dprrow := range dprrows {
+		dprows[i] = gensql.GetDataproductsWithDatasetsRow{
+			DpID:             dprrow.DpID,
+			DpName:           dprrow.DpName,
+			DpCreated:        dprrow.DpCreated,
+			DpLastModified:   dprrow.DpLastModified,
+			DpDescription:    dprrow.DpDescription,
+			DpSlug:           dprrow.DpSlug,
+			DpGroup:          dprrow.DpGroup,
+			TeamkatalogenUrl: dprrow.TeamkatalogenUrl,
+			TeamContact:      dprrow.TeamContact,
+			TeamID:           dprrow.TeamID,
+		}
+	}
+	dp := dataproductsWithDatasetFromSQL(dprows)
+
+	arrows := make([]gensql.DatasetAccessRequest, 0)
+
+	for _, dprrow := range dprrows {
+		if dprrow.DarID.Valid {
+			arrows = append(arrows, gensql.DatasetAccessRequest{
+				ID:                   dprrow.DarID.UUID,
+				DatasetID:            dprrow.DarDatasetID.UUID,
+				Subject:              dprrow.DarSubject.String,
+				Created:              dprrow.DarCreated.Time,
+				Status:               dprrow.DarStatus.AccessRequestStatusType,
+				Closed:               dprrow.DarClosed,
+				Expires:              dprrow.DarExpires,
+				Granter:              dprrow.DarGranter,
+				Owner:                dprrow.DarOwner.String,
+				PollyDocumentationID: dprrow.DarPollyDocumentationID,
+				Reason:               dprrow.DarReason,
+			})
+		}
+	}
+	ars, err := AccessRequestsFromSQL(arrows)
+
+	arfg := make([]service.AccessRequestForGranter, len(ars))
+	for i, ar := range ars {
+		dataproductID := uuid.Nil
+		datasetName := ""
+		dataproductName := ""
+		dataproductSlug := ""
+		for _, dprrow := range dprrows {
+			if dprrow.DarDatasetID.UUID == ar.DatasetID {
+				dataproductID = dprrow.DpID
+				datasetName = dprrow.DsName.String
+				dataproductName = dprrow.DpName
+				dataproductSlug = dprrow.DpSlug
+				break
+			}
+		}
+
+		arfg[i] = service.AccessRequestForGranter{
+			AccessRequest:   *ar,
+			DatasetName:     datasetName,
+			DataproductName: dataproductName,
+			DataproductID:   dataproductID,
+			DataproductSlug: dataproductSlug,
+		}
+	}
+	if err != nil {
+		return nil, nil, fmt.Errorf("access requests from sql: %w", err)
+	}
+
+	return dp, arfg, nil
+}
+
 func (p *dataProductPostgres) GetAccessiblePseudoDatasourcesByUser(ctx context.Context, subjectsAsOwner []string, subjectsAsAccesser []string) ([]*service.PseudoDataset, error) {
 	rows, err := p.db.Querier.GetAccessiblePseudoDatasetsByUser(ctx, gensql.GetAccessiblePseudoDatasetsByUserParams{
 		OwnerSubjects:  subjectsAsOwner,
@@ -535,6 +726,26 @@ func dataproductMinimalFromSQL(dp *gensql.Dataproduct) *service.DataproductMinim
 			TeamContact:      &dp.TeamContact.String,
 			TeamID:           &dp.TeamID.String,
 		},
+	}
+}
+
+func dataproductFromSQL(dp *gensql.DataproductWithTeamkatalogenView) *service.Dataproduct {
+	return &service.Dataproduct{
+		ID:          dp.ID,
+		Name:        dp.Name,
+		Description: &dp.Description.String,
+		Owner: &service.DataproductOwner{
+			Group:            dp.Group,
+			TeamkatalogenURL: nullStringToPtr(dp.TeamkatalogenUrl),
+			TeamContact:      nullStringToPtr(dp.TeamContact),
+			TeamID:           nullStringToPtr(dp.TeamID),
+			ProductAreaID:    nullUUIDToUUIDPtr(dp.PaID),
+		},
+		Created:         dp.Created,
+		LastModified:    dp.LastModified,
+		Slug:            dp.Slug,
+		TeamName:        nullStringToPtr(dp.TeamName),
+		ProductAreaName: nullStringToString(dp.PaName),
 	}
 }
 
