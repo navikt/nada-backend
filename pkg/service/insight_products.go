@@ -11,6 +11,11 @@ import (
 	"github.com/navikt/nada-backend/pkg/database/gensql"
 )
 
+type InsightProductStorage interface {
+	GetInsightProductsNumberByTeam(ctx context.Context, teamID string) (int64, error)
+	GetInsightProductsByTeamID(ctx context.Context, teamIDs []string) ([]*InsightProduct, error)
+}
+
 // InsightProduct contains the metadata of insight product.
 type InsightProduct struct {
 	// id of the insight product.

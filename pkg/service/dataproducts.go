@@ -14,19 +14,24 @@ import (
 )
 
 type DataProductsStorage interface {
-	GetDataproduct(ctx context.Context, id string) (*DataproductWithDataset, error)
-	GetDataproducts(ctx context.Context, ids []uuid.UUID) ([]DataproductWithDataset, error)
-	GetDataset(ctx context.Context, id string) (*Dataset, error)
-	DeleteDataset(ctx context.Context, id uuid.UUID) error
-	SetDatasourceDeleted(ctx context.Context, id uuid.UUID) error
-	GetOwnerGroupOfDataset(ctx context.Context, datasetID uuid.UUID) (string, error)
 	CreateDataproduct(ctx context.Context, input NewDataproduct) (*DataproductMinimal, error)
-	UpdateDataproduct(ctx context.Context, id string, input UpdateDataproductDto) (*DataproductMinimal, error)
-	DeleteDataproduct(ctx context.Context, id string) error
 	CreateDataset(ctx context.Context, ds NewDataset, referenceDatasource *NewBigQuery, user *auth.User) (*string, error)
-	UpdateDataset(ctx context.Context, id string, input UpdateDatasetDto) (string, error)
+	DeleteDataproduct(ctx context.Context, id string) error
+	DeleteDataset(ctx context.Context, id uuid.UUID) error
+	GetAccessibleDatasets(ctx context.Context, userGroups []string, requester string) (owned []*AccessibleDataset, granted []*AccessibleDataset, err error)
 	GetAccessiblePseudoDatasourcesByUser(ctx context.Context, subjectsAsOwner []string, subjectsAsAccesser []string) ([]*PseudoDataset, error)
+	GetDataproduct(ctx context.Context, id string) (*DataproductWithDataset, error)
+	GetDataproductKeywords(ctx context.Context, dpid uuid.UUID) ([]string, error)
+	GetDataproducts(ctx context.Context, ids []uuid.UUID) ([]DataproductWithDataset, error)
+	GetDataproductsByTeamID(ctx context.Context, teamIDs []string) ([]*Dataproduct, error)
+	GetDataproductsNumberByTeam(ctx context.Context, teamID string) (int64, error)
+	GetDataproductsWithDatasetsAndAccessRequests(ctx context.Context, ids []uuid.UUID, groups []string) ([]DataproductWithDataset, []AccessRequestForGranter, error)
+	GetDataset(ctx context.Context, id string) (*Dataset, error)
 	GetDatasetsMinimal(ctx context.Context) ([]*DatasetMinimal, error)
+	GetOwnerGroupOfDataset(ctx context.Context, datasetID uuid.UUID) (string, error)
+	SetDatasourceDeleted(ctx context.Context, id uuid.UUID) error
+	UpdateDataproduct(ctx context.Context, id string, input UpdateDataproductDto) (*DataproductMinimal, error)
+	UpdateDataset(ctx context.Context, id string, input UpdateDatasetDto) (string, error)
 }
 
 type DataProductsService interface {
@@ -62,6 +67,21 @@ type Dataset struct {
 	Datasource               *BigQuery  `json:"datasource"`
 	MetabaseUrl              *string    `json:"metabaseUrl"`
 	MetabaseDeletedAt        *time.Time `json:"metabaseDeletedAt"`
+}
+
+type AccessibleDataset struct {
+	Dataset
+	DataproductName string `json:"dataproductName"`
+	Slug            string `json:"slug"`
+	DpSlug          string `json:"dpSlug"`
+	Group           string `json:"group"`
+}
+
+type AccessibleDatasets struct {
+	// owned
+	Owned []*AccessibleDataset `json:"owned"`
+	// granted
+	Granted []*AccessibleDataset `json:"granted"`
 }
 
 type DatasetMinimal struct {
@@ -255,80 +275,6 @@ __loop_rows:
 		dataproducts = append(dataproducts, dataproduct)
 	}
 	return dataproducts
-}
-
-func dataproductsWithDatasetAndAccessRequestsForGranterFromSQL(dprrows []gensql.GetDataproductsWithDatasetsAndAccessRequestsRow) ([]DataproductWithDataset, []AccessRequestForGranter, *APIError) {
-	if dprrows == nil {
-		return nil, nil, nil
-	}
-
-	dprows := make([]gensql.GetDataproductsWithDatasetsRow, len(dprrows))
-	for i, dprrow := range dprrows {
-		dprows[i] = gensql.GetDataproductsWithDatasetsRow{
-			DpID:             dprrow.DpID,
-			DpName:           dprrow.DpName,
-			DpCreated:        dprrow.DpCreated,
-			DpLastModified:   dprrow.DpLastModified,
-			DpDescription:    dprrow.DpDescription,
-			DpSlug:           dprrow.DpSlug,
-			DpGroup:          dprrow.DpGroup,
-			TeamkatalogenUrl: dprrow.TeamkatalogenUrl,
-			TeamContact:      dprrow.TeamContact,
-			TeamID:           dprrow.TeamID,
-		}
-	}
-	dp := dataproductsWithDatasetFromSQL(dprows)
-
-	arrows := make([]gensql.DatasetAccessRequest, 0)
-
-	for _, dprrow := range dprrows {
-		if dprrow.DarID.Valid {
-			arrows = append(arrows, gensql.DatasetAccessRequest{
-				ID:                   dprrow.DarID.UUID,
-				DatasetID:            dprrow.DarDatasetID.UUID,
-				Subject:              dprrow.DarSubject.String,
-				Created:              dprrow.DarCreated.Time,
-				Status:               dprrow.DarStatus.AccessRequestStatusType,
-				Closed:               dprrow.DarClosed,
-				Expires:              dprrow.DarExpires,
-				Granter:              dprrow.DarGranter,
-				Owner:                dprrow.DarOwner.String,
-				PollyDocumentationID: dprrow.DarPollyDocumentationID,
-				Reason:               dprrow.DarReason,
-			})
-		}
-	}
-	ars, err := AccessRequestsFromSQL(context.Background(), arrows)
-
-	arfg := make([]AccessRequestForGranter, len(ars))
-	for i, ar := range ars {
-		dataproductID := uuid.Nil
-		datasetName := ""
-		dataproductName := ""
-		dataproductSlug := ""
-		for _, dprrow := range dprrows {
-			if dprrow.DarDatasetID.UUID == ar.DatasetID {
-				dataproductID = dprrow.DpID
-				datasetName = dprrow.DsName.String
-				dataproductName = dprrow.DpName
-				dataproductSlug = dprrow.DpSlug
-				break
-			}
-		}
-
-		arfg[i] = AccessRequestForGranter{
-			AccessRequest:   ar,
-			DatasetName:     datasetName,
-			DataproductName: dataproductName,
-			DataproductID:   dataproductID,
-			DataproductSlug: dataproductSlug,
-		}
-	}
-	if err != nil {
-		return nil, nil, NewAPIError(http.StatusInternalServerError, err, "dataproductsWithDatasetAndAccessRequestsFromSQL(): Error in accessRequestsFromSQL")
-	}
-
-	return dp, arfg, nil
 }
 
 func datasetsInDataProductFromSQL(dsrows []gensql.GetDataproductsWithDatasetsRow) []*DatasetInDataproduct {

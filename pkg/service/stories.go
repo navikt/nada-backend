@@ -1,16 +1,53 @@
 package service
 
 import (
+	"cloud.google.com/go/storage"
 	"context"
-	"encoding/json"
-	"fmt"
-	"net/http"
+	"mime/multipart"
 	"time"
 
 	"github.com/google/uuid"
-	"github.com/navikt/nada-backend/pkg/auth"
-	"github.com/navikt/nada-backend/pkg/database/gensql"
 )
+
+type StoryStorage interface {
+	GetStoriesWithTeamkatalogenByGroups(ctx context.Context, groups []string) ([]Story, error)
+	GetStoriesWithTeamkatalogenByIDs(ctx context.Context, ids []uuid.UUID) ([]Story, error)
+	GetStoriesNumberByTeam(ctx context.Context, teamID string) (int64, error)
+	GetStoriesByTeamID(ctx context.Context, teamIDs []string) ([]*Story, error)
+	GetStory(ctx context.Context, id uuid.UUID) (*Story, error)
+	CreateStory(ctx context.Context, creator string, newStory *NewStory) (*Story, error)
+	DeleteStory(ctx context.Context, id uuid.UUID) error
+	UpdateStory(ctx context.Context, id uuid.UUID, input UpdateStoryDto) (*Story, error)
+}
+
+type StoryAPI interface {
+	WriteFilesToBucket(ctx context.Context, storyID string, files []*UploadFile, cleanupOnFailure bool) error
+	WriteFileToBucket(ctx context.Context, gcsPath string, data []byte) error
+	DeleteStoryFolder(ctx context.Context, storyID string) error
+	GetIndexHtmlPath(ctx context.Context, prefix string) (string, error)
+	GetObject(ctx context.Context, path string) (*storage.ObjectAttrs, []byte, error)
+	UploadFile(ctx context.Context, name string, file multipart.File) error
+	DeleteObjectsWithPrefix(ctx context.Context, prefix string) error
+}
+
+type StoryService interface {
+	GetStory(ctx context.Context, id uuid.UUID) (*Story, error)
+	CreateStory(ctx context.Context, newStory *NewStory, files []*UploadFile) (*Story, error)
+	CreateStoryWithTeamAndProductArea(ctx context.Context, newStory *NewStory) (*Story, error)
+	DeleteStory(ctx context.Context, id string) (*Story, error)
+	UpdateStory(ctx context.Context, id string, input UpdateStoryDto) (*Story, error)
+	GetObject(ctx context.Context, path string) (*storage.ObjectAttrs, []byte, error)
+	RecreateStoryFiles(ctx context.Context, id string, files []*UploadFile) error
+	AppendStoryFiles(ctx context.Context, id string, files []*UploadFile) error
+	GetIndexHtmlPath(ctx context.Context, prefix string) (string, error)
+}
+
+type UploadFile struct {
+	// path of the file uploaded
+	Path string `json:"path"`
+	// file data
+	Data []byte `json:"file"`
+}
 
 // Story contains the metadata and content of data stories.
 type Story struct {
@@ -66,168 +103,4 @@ type UpdateStoryDto struct {
 	ProductAreaID    *string  `json:"productAreaID"`
 	TeamID           *string  `json:"teamID"`
 	Group            string   `json:"group"`
-}
-
-func GetStoryMetadata(ctx context.Context, id string) (*Story, *APIError) {
-	storyID := uuid.MustParse(id)
-	storySQLs, err := queries.GetStoriesWithTeamkatalogenByIDs(ctx, []uuid.UUID{storyID})
-	if err != nil {
-		return nil, &APIError{
-			HttpStatus: http.StatusInternalServerError,
-			Err:        err,
-			Message:    "fetching existing story metadata",
-		}
-	}
-	return storyFromSQL(&storySQLs[0]), nil
-}
-
-func storyFromSQL(story *gensql.StoryWithTeamkatalogenView) *Story {
-	return &Story{
-		ID:               story.ID,
-		Name:             story.Name,
-		Creator:          story.Creator,
-		Created:          story.Created,
-		LastModified:     &story.LastModified,
-		Keywords:         story.Keywords,
-		TeamID:           nullStringToPtr(story.TeamID),
-		TeamkatalogenURL: nullStringToPtr(story.TeamkatalogenUrl),
-		Description:      story.Description,
-		Group:            story.Group,
-		TeamName:         nullStringToPtr(story.TeamName),
-		ProductAreaName:  nullStringToString(story.PaName),
-	}
-}
-
-func ParseStoryFilesForm(ctx context.Context, r *http.Request) (*NewStory, []*UploadFile, *APIError) {
-	err := r.ParseMultipartForm(50 << 20) // Limit your max input length!
-	if err != nil {
-		return nil, nil, NewAPIError(http.StatusBadRequest, err, "Error parsing form")
-	}
-
-	newStory := &NewStory{}
-	err = json.Unmarshal([]byte(r.FormValue("story")), newStory)
-	if err != nil {
-		return nil, nil, NewAPIError(http.StatusBadRequest, err, "Error parsing story")
-	}
-
-	files := make([]*UploadFile, 0)
-	for i := 0; ; i++ {
-		pathKey := fmt.Sprintf("files[%d][path]", i)
-		fileKey := fmt.Sprintf("files[%d][file]", i)
-		path := r.FormValue(pathKey)
-		if path == "" {
-			break
-		}
-
-		file, _, err := r.FormFile(fileKey)
-		if err != nil {
-			return nil, nil, NewAPIError(http.StatusBadRequest, err, "Error retrieving file")
-		}
-		defer file.Close()
-
-		files = append(files, &UploadFile{
-			Path: path,
-			File: file,
-		})
-	}
-	return newStory, files, nil
-}
-
-func dbCreateStory(ctx context.Context, creator string, newStory *NewStory) (*gensql.Story, error) {
-	var storySQL gensql.Story
-	var err error
-	if newStory.ID == nil {
-		storySQL, err = queries.CreateStory(ctx, gensql.CreateStoryParams{
-			Name:             newStory.Name,
-			Creator:          creator,
-			Description:      ptrToString(newStory.Description),
-			Keywords:         newStory.Keywords,
-			TeamkatalogenUrl: ptrToNullString(newStory.TeamkatalogenURL),
-			TeamID:           ptrToNullString(newStory.TeamID),
-			OwnerGroup:       newStory.Group,
-		})
-	} else {
-		storySQL, err = queries.CreateStoryWithID(ctx, gensql.CreateStoryWithIDParams{
-			ID:               *newStory.ID,
-			Name:             newStory.Name,
-			Creator:          creator,
-			Description:      ptrToString(newStory.Description),
-			Keywords:         newStory.Keywords,
-			TeamkatalogenUrl: ptrToNullString(newStory.TeamkatalogenURL),
-			TeamID:           ptrToNullString(newStory.TeamID),
-			OwnerGroup:       newStory.Group,
-		})
-	}
-	return &storySQL, err
-}
-
-func CreateStory(ctx context.Context, newStory *NewStory, files []*UploadFile) (*Story, *APIError) {
-	creator := auth.GetUser(ctx).Email
-	storySQL, err := dbCreateStory(ctx, creator, newStory)
-
-	if err != nil {
-		return nil, DBErrorToAPIError(err, "Failed to create story")
-	}
-
-	if err = WriteFilesToBucket(ctx, storySQL.ID.String(), files); err != nil {
-		return nil, NewAPIError(http.StatusInternalServerError, err, "Failed to write files to bucket")
-	}
-
-	return GetStoryMetadata(ctx, storySQL.ID.String())
-}
-
-func DeleteStory(ctx context.Context, id string) (*Story, *APIError) {
-	storyID := uuid.MustParse(id)
-	story, apiErr := GetStoryMetadata(ctx, id)
-	if apiErr != nil {
-		return nil, apiErr
-	}
-
-	user := auth.GetUser(ctx)
-	if !user.GoogleGroups.Contains(story.Group) {
-		return nil, NewAPIError(http.StatusUnauthorized, nil, "Unauthorized")
-	}
-
-	err := queries.DeleteStory(ctx, storyID)
-	if err != nil {
-		return nil, DBErrorToAPIError(err, "Failed to delete story")
-	}
-
-	if err := deleteStoryFolder(ctx, id); err != nil {
-		return nil, NewAPIError(http.StatusInternalServerError, err, "Failed to delete story files")
-	}
-
-	return story, nil
-}
-
-func UpdateStory(ctx context.Context, id string, input UpdateStoryDto) (*Story, *APIError) {
-	storyUUID, err := uuid.Parse(id)
-	if err != nil {
-		return nil, NewAPIError(http.StatusBadRequest, err, "Invalid UUID")
-	}
-
-	existing, apierr := GetStoryMetadata(ctx, id)
-	if apierr != nil {
-		return nil, apierr
-	}
-
-	user := auth.GetUser(ctx)
-	if !user.GoogleGroups.Contains(existing.Group) {
-		return nil, NewAPIError(http.StatusUnauthorized, fmt.Errorf("unauthorized"), "user not in the group of the data story")
-	}
-
-	dbStory, err := queries.UpdateStory(ctx, gensql.UpdateStoryParams{
-		ID:               storyUUID,
-		Name:             input.Name,
-		Description:      input.Description,
-		Keywords:         input.Keywords,
-		TeamkatalogenUrl: ptrToNullString(input.TeamkatalogenURL),
-		TeamID:           ptrToNullString(input.TeamID),
-		OwnerGroup:       input.Group,
-	})
-	if err != nil {
-		return nil, DBErrorToAPIError(err, "Failed to update data story")
-	}
-
-	return GetStoryMetadata(ctx, dbStory.ID.String())
 }

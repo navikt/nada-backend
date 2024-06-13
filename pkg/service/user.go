@@ -13,35 +13,11 @@ import (
 	"github.com/navikt/nada-backend/pkg/database/gensql"
 )
 
-func RotateNadaToken(ctx context.Context, team string) *APIError {
-	if team == "" {
-		return NewAPIError(http.StatusBadRequest, errors.New("no team provided"), "RotateNadaToken(): no team provided")
-	}
-	if err := ensureUserInGroup(ctx, team+"@nav.no"); err != nil {
-		return NewAPIError(http.StatusUnauthorized, err, "RotateNadaToken(): user not in gcp group")
-	}
-
-	return DBErrorToAPIError(queries.RotateNadaToken(ctx, team), "RotateNadaToken(): Database error")
+type UserStorage interface {
 }
 
-type NadaToken struct {
-	Team  string    `json:"team"`
-	Token uuid.UUID `json:"token"`
-}
-
-type AccessibleDataset struct {
-	Dataset
-	DataproductName string `json:"dataproductName"`
-	Slug            string `json:"slug"`
-	DpSlug          string `json:"dpSlug"`
-	Group           string `json:"group"`
-}
-
-type AccessibleDatasets struct {
-	// owned
-	Owned []*AccessibleDataset `json:"owned"`
-	// granted
-	Granted []*AccessibleDataset `json:"granted"`
+type UserService interface {
+	GetUserData(ctx context.Context) (*UserInfo, error)
 }
 
 type UserInfo struct {
@@ -86,82 +62,6 @@ type UserInfo struct {
 
 	// accessRequestsAsGranter is a list of access requests where one of the users groups is obliged to handle.
 	AccessRequestsAsGranter []AccessRequestForGranter `json:"accessRequestsAsGranter"`
-}
-
-func teamNamesFromGroups(groups auth.Groups) []string {
-	teams := []string{}
-	for _, g := range groups {
-		teams = append(teams, auth.TrimNaisTeamPrefix(strings.Split(g.Email, "@")[0]))
-	}
-
-	return teams
-}
-
-func GetNadaTokensForTeams(ctx context.Context, teams []string) ([]NadaToken, error) {
-	tokensSQL, err := queries.GetNadaTokensForTeams(ctx, teams)
-	if err != nil {
-		return nil, err
-	}
-
-	tokens := make([]NadaToken, len(tokensSQL))
-	for i, t := range tokensSQL {
-		tokens[i] = NadaToken{
-			Team:  t.Team,
-			Token: t.Token,
-		}
-	}
-	return tokens, nil
-}
-
-func GetNadaTokens(ctx context.Context) (map[string]string, error) {
-	tokensSQL, err := queries.GetNadaTokens(ctx)
-	if err != nil {
-		return nil, err
-	}
-
-	tokenTeamMap := map[string]string{}
-	for _, t := range tokensSQL {
-		tokenTeamMap[t.Token.String()] = t.Team
-	}
-	return tokenTeamMap, nil
-}
-
-func accessibleDatasetFromSql(d *gensql.GetAccessibleDatasetsRow) *AccessibleDataset {
-	return &AccessibleDataset{
-		Dataset: Dataset{
-			ID:            d.ID,
-			Name:          d.Name,
-			DataproductID: d.DataproductID,
-			Keywords:      d.Keywords,
-			Slug:          d.Slug,
-			Description:   nullStringToPtr(d.Description),
-			Created:       d.Created,
-			LastModified:  d.LastModified,
-		},
-		Group:           nullStringToString(d.Group),
-		DpSlug:          *nullStringToPtr(d.DpSlug),
-		DataproductName: nullStringToString(d.DpName),
-	}
-}
-
-func getAccessibleDatasets(ctx context.Context, userGroups []string, requester string) (owned []*AccessibleDataset,
-	granted []*AccessibleDataset, apiErr *APIError,
-) {
-	datasetsSQL, err := queries.GetAccessibleDatasets(ctx, gensql.GetAccessibleDatasetsParams{
-		Groups:    userGroups,
-		Requester: requester,
-	})
-	if err != nil {
-		return nil, nil, DBErrorToAPIError(err, "getting accessible datasets from database")
-	}
-	for _, d := range datasetsSQL {
-		if matchAny(nullStringToString(d.Group), userGroups) {
-			owned = append(owned, accessibleDatasetFromSql(&d))
-		} else {
-			granted = append(granted, accessibleDatasetFromSql(&d))
-		}
-	}
-	return
 }
 
 func GetUserData(ctx context.Context) (*UserInfo, *APIError) {
@@ -264,12 +164,4 @@ func GetUserData(ctx context.Context) (*UserInfo, *APIError) {
 	}
 
 	return userData, nil
-}
-
-func GetTeamFromToken(ctx context.Context, token uuid.UUID) (string, error) {
-	return queries.GetTeamFromNadaToken(ctx, token)
-}
-
-func GetNadaToken(ctx context.Context, team string) (uuid.UUID, error) {
-	return queries.GetNadaToken(ctx, team)
 }
