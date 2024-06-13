@@ -8,18 +8,19 @@ import (
 )
 
 type AccessStorage interface {
-	ListActiveAccessToDataset(ctx context.Context, datasetID uuid.UUID) ([]*Access, error)
-	ListAccessRequestsForDataset(ctx context.Context, datasetID uuid.UUID) ([]*AccessRequest, error)
 	CreateAccessRequestForDataset(ctx context.Context, datasetID uuid.UUID, pollyDocumentationID uuid.NullUUID, subject, owner string, expires *time.Time) (*AccessRequest, error)
-	GetAccessRequest(ctx context.Context, accessRequestID string) (*AccessRequest, error)
 	DeleteAccessRequest(ctx context.Context, accessRequestID string) error
-	UpdateAccessRequest(ctx context.Context, input UpdateAccessRequestDTO) error
+	DenyAccessRequest(ctx context.Context, accessRequestID string, reason *string) error
+	GetAccessRequest(ctx context.Context, accessRequestID string) (*AccessRequest, error)
+	GetAccessToDataset(ctx context.Context, id uuid.UUID) (*Access, error)
+	GetUnrevokedExpiredAccess(ctx context.Context) ([]*Access, error)
 	GrantAccessToDatasetAndApproveRequest(ctx context.Context, datasetID, subject, accessRequestID string, expires *time.Time) error
 	GrantAccessToDatasetAndRenew(ctx context.Context, datasetID uuid.UUID, expires *time.Time, subject, granter string) error
-	DenyAccessRequest(ctx context.Context, accessRequestID string, reason *string) error
-	GetAccessToDataset(ctx context.Context, id uuid.UUID) (*Access, error)
+	ListAccessRequestsForDataset(ctx context.Context, datasetID uuid.UUID) ([]*AccessRequest, error)
+	ListAccessRequestsForOwner(ctx context.Context, owner []string) ([]*AccessRequest, error)
+	ListActiveAccessToDataset(ctx context.Context, datasetID uuid.UUID) ([]*Access, error)
 	RevokeAccessToDataset(ctx context.Context, id uuid.UUID) error
-	GetUnrevokedExpiredAccess(ctx context.Context) ([]*Access, error)
+	UpdateAccessRequest(ctx context.Context, input UpdateAccessRequestDTO) error
 }
 
 type AccessService interface {

@@ -3,6 +3,7 @@ package postgres
 import (
 	"context"
 	"database/sql"
+	"errors"
 	"fmt"
 	"github.com/navikt/nada-backend/pkg/database"
 	"github.com/navikt/nada-backend/pkg/database/gensql"
@@ -15,8 +16,25 @@ type insightProductStorage struct {
 	db *database.Repo
 }
 
+func (s *insightProductStorage) GetInsightProductsByGroups(ctx context.Context, groups []string) ([]*service.InsightProduct, error) {
+	raw, err := s.db.Querier.GetInsightProductsByGroups(ctx, groups)
+	if errors.Is(err, sql.ErrNoRows) {
+		return nil, nil
+	}
+	if err != nil {
+		return nil, err
+	}
+
+	insightProducts := make([]*service.InsightProduct, len(raw))
+	for idx, ip := range raw {
+		insightProducts[idx] = insightProductFromSQL(&ip)
+	}
+
+	return insightProducts, nil
+}
+
 func (s *insightProductStorage) GetInsightProductsByTeamID(ctx context.Context, teamIDs []string) ([]*service.InsightProduct, error) {
-	sqlInsightProducts, err := s.db.Querier.GetInsightProductsByProductArea(ctx, teamIDs)
+	raw, err := s.db.Querier.GetInsightProductsByProductArea(ctx, teamIDs)
 	if err == sql.ErrNoRows {
 		return nil, nil
 	}
@@ -24,8 +42,8 @@ func (s *insightProductStorage) GetInsightProductsByTeamID(ctx context.Context, 
 		return nil, err
 	}
 
-	insightProducts := make([]*service.InsightProduct, len(sqlInsightProducts))
-	for idx, ip := range sqlInsightProducts {
+	insightProducts := make([]*service.InsightProduct, len(raw))
+	for idx, ip := range raw {
 		insightProducts[idx] = insightProductFromSQL(&ip)
 	}
 

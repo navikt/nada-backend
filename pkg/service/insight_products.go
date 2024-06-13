@@ -14,6 +14,7 @@ import (
 type InsightProductStorage interface {
 	GetInsightProductsNumberByTeam(ctx context.Context, teamID string) (int64, error)
 	GetInsightProductsByTeamID(ctx context.Context, teamIDs []string) ([]*InsightProduct, error)
+	GetInsightProductsByGroups(ctx context.Context, groups []string) ([]*InsightProduct, error)
 }
 
 // InsightProduct contains the metadata of insight product.

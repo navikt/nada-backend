@@ -18,6 +18,20 @@ type accessStorage struct {
 	db *database.Repo
 }
 
+func (s *accessStorage) ListAccessRequestsForOwner(ctx context.Context, owner []string) ([]*service.AccessRequest, error) {
+	accessRequestsSQL, err := s.db.Querier.ListAccessRequestsForOwner(ctx, owner)
+	if err != nil && !errors.Is(err, sql.ErrNoRows) {
+		return nil, fmt.Errorf("list access requests for owner: %w", err)
+	}
+
+	accessRequests, err := AccessRequestsFromSQL(accessRequestsSQL)
+	if err != nil {
+		return nil, fmt.Errorf("access requests from sql: %w", err)
+	}
+
+	return accessRequests, nil
+}
+
 func (s *accessStorage) GetUnrevokedExpiredAccess(ctx context.Context) ([]*service.Access, error) {
 	expired, err := s.db.Querier.ListUnrevokedExpiredAccessEntries(ctx)
 	if err != nil {

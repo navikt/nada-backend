@@ -3,22 +3,23 @@ package core
 import (
 	"context"
 	"database/sql"
+	"errors"
 	"fmt"
 	"github.com/google/uuid"
 	"github.com/navikt/nada-backend/pkg/auth"
 	"github.com/navikt/nada-backend/pkg/service"
-	"net/http"
 	"strings"
 )
 
 var _ service.UserService = &userService{}
 
 type userService struct {
-	userStorage         service.UserStorage
-	tokenStorage        service.TokenStorage
-	storyStorage        service.StoryStorage
-	dataProductStorage  service.DataProductsStorage
-	teamProjectsMapping *auth.TeamProjectsMapping
+	accessStorage         service.AccessStorage
+	tokenStorage          service.TokenStorage
+	storyStorage          service.StoryStorage
+	dataProductStorage    service.DataProductsStorage
+	insightProductStorage service.InsightProductStorage
+	teamProjectsMapping   *auth.TeamProjectsMapping
 }
 
 func (s *userService) GetUserData(ctx context.Context) (*service.UserInfo, error) {
@@ -87,13 +88,13 @@ func (s *userService) GetUserData(ctx context.Context) (*service.UserInfo, error
 
 	userData.Stories = dbStories
 
-	dbProducts, err := queries.GetInsightProductsByGroups(ctx, user.GoogleGroups.Emails())
+	dbProducts, err := s.insightProductStorage.GetInsightProductsByGroups(ctx, user.GoogleGroups.Emails())
 	if err != nil {
-		return nil, DBErrorToAPIError(err, "getUserInfo(): getting insight products by group from database")
+		return nil, err
 	}
 
 	for _, p := range dbProducts {
-		userData.InsightProducts = append(userData.InsightProducts, *insightProductFromSQL(&p))
+		userData.InsightProducts = append(userData.InsightProducts, *p)
 	}
 
 	groups := []string{"user:" + strings.ToLower(user.Email)}
@@ -101,13 +102,15 @@ func (s *userService) GetUserData(ctx context.Context) (*service.UserInfo, error
 		groups = append(groups, "group:"+strings.ToLower(g.Email))
 	}
 
-	accessRequestSQLs, err := queries.ListAccessRequestsForOwner(ctx, groups)
+	accessRequestSQLs, err := s.accessStorage.ListAccessRequestsForOwner(ctx, groups)
 	if err != nil && !errors.Is(err, sql.ErrNoRows) {
-		return nil, DBErrorToAPIError(err, "getUserInfo(): getting access requests by owner from database")
+		return nil, err
 	} else if err == nil {
-		userData.AccessRequests, err = AccessRequestsFromSQL(ctx, accessRequestSQLs)
+		for _, ar := range accessRequestSQLs {
+			userData.AccessRequests = append(userData.AccessRequests, *ar)
+		}
 		if err != nil {
-			return nil, NewAPIError(http.StatusInternalServerError, err, "getUserInfo(): converting access requests from database")
+			return nil, err
 		}
 	}
 
@@ -123,8 +126,6 @@ func teamNamesFromGroups(groups auth.Groups) []string {
 	return teams
 }
 
-func NewUserService(storage service.UserStorage) *userService {
-	return &userService{
-		userStorage: storage,
-	}
+func NewUserService() *userService {
+	return &userService{}
 }

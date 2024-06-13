@@ -43,6 +43,7 @@ type DataProductsService interface {
 	UpdateDataset(ctx context.Context, id string, input UpdateDatasetDto) (string, error)
 	GetAccessiblePseudoDatasetsForUser(ctx context.Context) ([]*PseudoDataset, error)
 	GetDatasetsMinimal(ctx context.Context) ([]*DatasetMinimal, error)
+	GetDataproduct(ctx context.Context, id string) (*DataproductWithDataset, error)
 }
 
 type PiiLevel string

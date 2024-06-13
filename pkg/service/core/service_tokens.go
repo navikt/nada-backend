@@ -12,6 +12,10 @@ type tokenService struct {
 	tokenStorage service.TokenStorage
 }
 
+func (s *tokenService) GetNadaTokens(ctx context.Context) (map[string]string, error) {
+	return s.tokenStorage.GetNadaTokens(ctx)
+}
+
 func (s *tokenService) GetNadaTokenForTeam(ctx context.Context, team string) (string, error) {
 	token, err := s.tokenStorage.GetNadaToken(ctx, team)
 	if err != nil {

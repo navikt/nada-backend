@@ -19,6 +19,15 @@ type dataProductsService struct {
 	gcpProjects        *auth.TeamProjectsMapping
 }
 
+func (s *dataProductsService) GetDataproduct(ctx context.Context, id string) (*service.DataproductWithDataset, error) {
+	dp, err := s.dataProductStorage.GetDataproduct(ctx, id)
+	if err != nil {
+		return nil, fmt.Errorf("dbGetDataproduct: %w", err)
+	}
+
+	return dp, nil
+}
+
 func (s *dataProductsService) GetAccessiblePseudoDatasetsForUser(ctx context.Context) ([]*service.PseudoDataset, error) {
 	user := auth.GetUser(ctx)
 	subjectsAsOwner := []string{user.Email}
