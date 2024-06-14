@@ -20,7 +20,6 @@ import (
 	"github.com/navikt/nada-backend/pkg/auth"
 	"github.com/navikt/nada-backend/pkg/database"
 	"github.com/navikt/nada-backend/pkg/database/gensql"
-	"github.com/navikt/nada-backend/pkg/gcs"
 	"github.com/navikt/nada-backend/pkg/teamprojectsupdater"
 	"github.com/ory/dockertest/v3"
 	"github.com/ory/dockertest/v3/docker"
