@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"github.com/google/uuid"
 	"github.com/navikt/nada-backend/pkg/database"
+	"github.com/navikt/nada-backend/pkg/database/gensql"
 	"github.com/navikt/nada-backend/pkg/service"
 )
 
@@ -14,6 +15,57 @@ var _ service.ProductAreaStorage = &productAreaStorage{}
 
 type productAreaStorage struct {
 	db *database.Repo
+}
+
+func (s *productAreaStorage) UpsertProductAreaAndTeam(ctx context.Context, pas []*service.UpsertProductAreaRequest, teams []*service.UpsertTeamRequest) error {
+	tx, err := s.db.GetDB().Begin()
+	if err != nil {
+		return err
+	}
+	defer tx.Rollback()
+
+	q := s.db.Querier.WithTx(tx)
+
+	for _, pa := range pas {
+		paUUID, err := uuid.Parse(pa.ID)
+		if err != nil {
+			return fmt.Errorf("failed to parse product area UUID: %w", err)
+		}
+
+		err = q.UpsertProductArea(ctx, gensql.UpsertProductAreaParams{
+			ID: paUUID,
+			Name: sql.NullString{
+				String: pa.Name,
+				Valid:  true,
+			},
+		})
+		if err != nil {
+			return err
+		}
+	}
+
+	for _, team := range teams {
+		teamUUID, err := uuid.Parse(team.ID)
+		if err != nil {
+			return fmt.Errorf("failed to parse team UUID: %w", err)
+		}
+
+		err = q.UpsertTeam(context.Background(), gensql.UpsertTeamParams{
+			ID:            teamUUID,
+			ProductAreaID: uuid.NullUUID{UUID: uuid.MustParse(team.ProductAreaID), Valid: true},
+			Name: sql.NullString{
+				String: team.Name,
+				Valid:  true,
+			},
+		})
+		if err != nil {
+			return err
+		}
+	}
+
+	tx.Commit()
+
+	return nil
 }
 
 func (s *productAreaStorage) GetDashboard(ctx context.Context, id string) (*service.Dashboard, error) {

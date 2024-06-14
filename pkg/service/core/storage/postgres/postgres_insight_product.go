@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
+	"github.com/google/uuid"
 	"github.com/navikt/nada-backend/pkg/database"
 	"github.com/navikt/nada-backend/pkg/database/gensql"
 	"github.com/navikt/nada-backend/pkg/service"
@@ -14,6 +15,64 @@ var _ service.InsightProductStorage = &insightProductStorage{}
 
 type insightProductStorage struct {
 	db *database.Repo
+}
+
+func (s *insightProductStorage) DeleteInsightProduct(ctx context.Context, id uuid.UUID) error {
+	err := s.db.Querier.DeleteInsightProduct(ctx, id)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (s *insightProductStorage) CreateInsightProduct(ctx context.Context, creator string, input service.NewInsightProduct) (*service.InsightProduct, error) {
+	insightProductSQL, err := s.db.Querier.CreateInsightProduct(ctx, gensql.CreateInsightProductParams{
+		Name:             input.Name,
+		Creator:          creator,
+		Description:      ptrToNullString(input.Description),
+		Keywords:         input.Keywords,
+		OwnerGroup:       input.Group,
+		TeamkatalogenUrl: ptrToNullString(input.TeamkatalogenURL),
+		TeamID:           ptrToNullString(input.TeamID),
+		Type:             input.Type,
+		Link:             input.Link,
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	return s.GetInsightProductWithTeamkatalogen(ctx, insightProductSQL.ID)
+}
+
+func (s *insightProductStorage) UpdateInsightProduct(ctx context.Context, id uuid.UUID, input service.UpdateInsightProductDto) (*service.InsightProduct, error) {
+	dbProduct, err := s.db.Querier.UpdateInsightProduct(ctx, gensql.UpdateInsightProductParams{
+		ID:               id,
+		Name:             input.Name,
+		Description:      ptrToNullString(&input.Description),
+		Keywords:         input.Keywords,
+		TeamkatalogenUrl: ptrToNullString(input.TeamkatalogenURL),
+		TeamID:           ptrToNullString(input.TeamID),
+		Type:             input.TypeArg,
+		Link:             input.Link,
+	})
+	if err != nil {
+		return nil, fmt.Errorf("failed to update insight product: %w", err)
+	}
+
+	return s.GetInsightProductWithTeamkatalogen(ctx, dbProduct.ID)
+}
+
+func (s *insightProductStorage) GetInsightProductWithTeamkatalogen(ctx context.Context, id uuid.UUID) (*service.InsightProduct, error) {
+	raw, err := s.db.Querier.GetInsightProductWithTeamkatalogen(ctx, id)
+	if errors.Is(err, sql.ErrNoRows) {
+		return nil, nil
+	}
+	if err != nil {
+		return nil, err
+	}
+
+	return insightProductFromSQL(&raw), nil
 }
 
 func (s *insightProductStorage) GetInsightProductsByGroups(ctx context.Context, groups []string) ([]*service.InsightProduct, error) {
