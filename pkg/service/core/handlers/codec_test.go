@@ -40,11 +40,25 @@ func (h *testSimpleHandler) Simple(_ context.Context, _ *http.Request, in TestDa
 	}, nil
 }
 
-func (h *testSimpleHandler) SimpleNoInput(_ context.Context, _ *http.Request, _ interface{}) (*TestData, error) {
+func (h *testSimpleHandler) SimpleNoInput(_ context.Context, _ *http.Request, _ any) (*TestData, error) {
 	h.invocations++
 
 	return &TestData{
 		ID: "test",
+	}, nil
+}
+
+func (h *testSimpleHandler) SimpleNoOutput(_ context.Context, _ *http.Request, in TestData) (*Empty, error) {
+	h.invocations++
+
+	return &Empty{}, nil
+}
+
+func (h *testSimpleHandler) ParamFromContext(ctx context.Context, _ *http.Request, _ any) (*TestData, error) {
+	h.invocations++
+
+	return &TestData{
+		ID: chi.URLParamFromCtx(ctx, "id"),
 	}, nil
 }
 
@@ -106,7 +120,24 @@ func TestHandlerFor(t *testing.T) {
 			request: httptest.NewRequest(http.MethodGet, "/test", nil),
 			status:  http.StatusOK,
 		},
-		// FIXME: test all the possible error scenarios
+		{
+			name:    "handler-for-json-request-response-no-output",
+			desc:    "Invokes the handler, parses the request from JSON and returns the response as JSON, expect it to work",
+			store:   simple,
+			path:    "/test",
+			handler: HandlerFor(simple.SimpleNoOutput).ResponseToJSON().Build(),
+			request: httptest.NewRequest(http.MethodGet, "/test", strings.NewReader(`{"id": "test"}`)),
+			status:  http.StatusNoContent,
+		},
+		{
+			name:    "handler-for-param-from-context",
+			desc:    "Invokes the handler and expects the parameter to be taken from the context",
+			store:   simple,
+			path:    "/test/{id}",
+			handler: HandlerFor(simple.ParamFromContext).ResponseToJSON().Build(),
+			request: httptest.NewRequest(http.MethodGet, "/test/123", nil),
+			status:  http.StatusOK,
+		},
 	}
 
 	for _, tc := range testCases {

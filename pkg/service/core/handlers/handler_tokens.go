@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"context"
 	"encoding/json"
 	"github.com/navikt/nada-backend/pkg/service"
 	log "github.com/sirupsen/logrus"
@@ -11,6 +12,15 @@ import (
 type tokenHandler struct {
 	tokenService   service.TokenService
 	teamTokenCreds string
+}
+
+func (h *tokenHandler) RotateNadaToken(ctx context.Context, r *http.Request, _ any) (*Empty, error) {
+	err := h.tokenService.RotateNadaToken(ctx, r.URL.Query().Get("team"))
+	if err != nil {
+		return nil, err
+	}
+
+	return &Empty{}, nil
 }
 
 func (h *tokenHandler) GetAllTeamTokens(w http.ResponseWriter, r *http.Request) {

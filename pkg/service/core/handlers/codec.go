@@ -6,8 +6,16 @@ import (
 	"net/http"
 )
 
+// Inspired by: https://www.willem.dev/articles/generic-http-handlers/
+// go-kit
+// grafana matt article
+
 type StatusCoder interface {
 	StatusCode() int
+}
+
+type Validator interface {
+	Validate() error
 }
 
 // Empty provides a convenience struct for returning an empty response
@@ -18,6 +26,9 @@ func (e *Empty) StatusCode() int {
 }
 
 type DecoderFunc[In any] func(r *http.Request) (In, error)
+
+// We can probably get rid of having to pass the Request to the target function
+// just need to move some query params to chi context
 type TargetFunc[In any, Out any] func(context.Context, *http.Request, In) (Out, error)
 type EncoderFunc[Out any] func(w http.ResponseWriter, out Out) error
 
@@ -84,6 +95,17 @@ func (h *HandlerConfig[In, Out]) Build() http.HandlerFunc {
 			if err != nil {
 				// Handle error, probably just logging
 				return
+			}
+		}
+
+		if in != nil {
+			if v, ok := any(in).(Validator); ok {
+				err := v.Validate()
+				if err != nil {
+					// Format error response, something went wrong inside our app
+					http.Error(w, err.Error(), http.StatusBadRequest)
+					return
+				}
 			}
 		}
 

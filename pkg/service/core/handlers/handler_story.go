@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/go-chi/chi"
 	"github.com/google/uuid"
 	"github.com/navikt/nada-backend/pkg/amplitude"
 	"github.com/navikt/nada-backend/pkg/auth"
@@ -29,6 +30,47 @@ type storyHandler struct {
 	storyService    service.StoryService
 	tokenService    service.TokenService
 	amplitudeClient amplitude.Amplitude
+}
+
+func (h *storyHandler) DeleteStory(ctx context.Context, _ *http.Request, _ any) (*service.Story, error) {
+	story, err := h.storyService.DeleteStory(ctx, chi.URLParamFromCtx(ctx, "id"))
+	if err != nil {
+		return nil, err
+	}
+
+	return story, nil
+}
+
+func (h *storyHandler) UpdateStory(ctx context.Context, _ *http.Request, in service.UpdateStoryDto) (*service.Story, error) {
+	story, err := h.storyService.UpdateStory(ctx, chi.URLParamFromCtx(ctx, "id"), in)
+	if err != nil {
+		return nil, err
+	}
+
+	return story, nil
+}
+
+func (h *storyHandler) CreateStory(ctx context.Context, r *http.Request, _ any) (*service.Story, error) {
+	newStory, files, err := parseStoryFilesForm(ctx, r)
+	if err != nil {
+		return nil, err
+	}
+
+	story, err := h.storyService.CreateStory(ctx, newStory, files)
+	if err != nil {
+		return nil, err
+	}
+
+	return story, nil
+}
+
+func (h *storyHandler) GetStoryMetadata(ctx context.Context, _ *http.Request, _ any) (*service.Story, error) {
+	story, err := h.storyService.GetStory(ctx, uuid.MustParse(chi.URLParamFromCtx(ctx, "id")))
+	if err != nil {
+		return nil, err
+	}
+
+	return story, nil
 }
 
 func (h *storyHandler) GetGCSObject(w http.ResponseWriter, r *http.Request) {
@@ -322,6 +364,47 @@ func filesFromRequest(r *http.Request) ([]*service.UploadFile, error) {
 	}
 
 	return files, nil
+}
+
+func parseStoryFilesForm(_ context.Context, r *http.Request) (*service.NewStory, []*service.UploadFile, error) {
+	err := r.ParseMultipartForm(50 << 20) // Limit your max input length!
+	if err != nil {
+		return nil, nil, err
+	}
+
+	newStory := &service.NewStory{}
+	err = json.Unmarshal([]byte(r.FormValue("story")), newStory)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	files := make([]*service.UploadFile, 0)
+	for i := 0; ; i++ {
+		pathKey := fmt.Sprintf("files[%d][path]", i)
+		fileKey := fmt.Sprintf("files[%d][file]", i)
+		path := r.FormValue(pathKey)
+		if path == "" {
+			break
+		}
+
+		file, _, err := r.FormFile(fileKey)
+		if err != nil {
+			return nil, nil, err
+		}
+		defer file.Close()
+
+		data, err := io.ReadAll(file)
+		if err != nil {
+			return nil, nil, err
+		}
+
+		files = append(files, &service.UploadFile{
+			Path: path,
+			Data: data,
+		})
+	}
+
+	return newStory, files, nil
 }
 
 func getIDFromPath(r *http.Request, idPos int) (uuid.UUID, error) {
