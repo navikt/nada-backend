@@ -2,11 +2,7 @@ package service
 
 import (
 	"context"
-	"net/http"
-
 	"github.com/google/uuid"
-	"github.com/navikt/nada-backend/pkg/database/gensql"
-	"github.com/navikt/nada-backend/pkg/polly"
 )
 
 type PollyStorage interface {
@@ -14,40 +10,26 @@ type PollyStorage interface {
 	GetPollyDocumentation(ctx context.Context, id uuid.UUID) (*Polly, error)
 }
 
+type PollyAPI interface {
+	SearchPolly(ctx context.Context, q string) ([]*QueryPolly, error)
+}
+
+type PollyService interface {
+	SearchPolly(ctx context.Context, q string) ([]*QueryPolly, error)
+}
+
 type Polly struct {
 	ID uuid.UUID `json:"id"`
-	polly.QueryPolly
+	QueryPolly
 }
 
 type PollyInput struct {
 	ID *uuid.UUID `json:"id"`
-	polly.QueryPolly
+	QueryPolly
 }
 
-func createPollyDocumentation(ctx context.Context, pollyInput PollyInput) (Polly, error) {
-	pollyDocumentation, err := queries.CreatePollyDocumentation(ctx, gensql.CreatePollyDocumentationParams{
-		ExternalID: pollyInput.ExternalID,
-		Name:       pollyInput.Name,
-		Url:        pollyInput.URL,
-	})
-	if err != nil {
-		return Polly{}, err
-	}
-
-	return Polly{
-		ID: pollyDocumentation.ID,
-		QueryPolly: polly.QueryPolly{
-			ExternalID: pollyDocumentation.ExternalID,
-			Name:       pollyDocumentation.Name,
-			URL:        pollyDocumentation.Url,
-		},
-	}, nil
-}
-
-func SearchPolly(ctx context.Context, q string) ([]*polly.QueryPolly, *APIError) {
-	pollyDoc, err := pollyClient.SearchPolly(ctx, q)
-	if err != nil {
-		return nil, NewAPIError(http.StatusInternalServerError, err, "Failed to search polly")
-	}
-	return pollyDoc, nil
+type QueryPolly struct {
+	ExternalID string `json:"externalID"`
+	Name       string `json:"name"`
+	URL        string `json:"url"`
 }

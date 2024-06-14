@@ -2,15 +2,10 @@ package service
 
 import (
 	"context"
-	"encoding/json"
-	"fmt"
-	"net/http"
-	"os"
 	"time"
 
 	"github.com/google/uuid"
 	"github.com/navikt/nada-backend/pkg/auth"
-	"github.com/navikt/nada-backend/pkg/database/gensql"
 )
 
 type DataProductsStorage interface {
@@ -41,6 +36,7 @@ type DataProductsService interface {
 	CreateDataset(ctx context.Context, input NewDataset) (*string, error)
 	DeleteDataset(ctx context.Context, id string) (string, error)
 	UpdateDataset(ctx context.Context, id string, input UpdateDatasetDto) (string, error)
+	GetDataset(ctx context.Context, id string) (*Dataset, error)
 	GetAccessiblePseudoDatasetsForUser(ctx context.Context) ([]*PseudoDataset, error)
 	GetDatasetsMinimal(ctx context.Context) ([]*DatasetMinimal, error)
 	GetDataproduct(ctx context.Context, id string) (*DataproductWithDataset, error)
@@ -219,200 +215,3 @@ type UpdateDataproductDto struct {
 const (
 	MappingServiceMetabase string = "metabase"
 )
-
-func dataproductsWithDatasetFromSQL(dprows []gensql.GetDataproductsWithDatasetsRow) []DataproductWithDataset {
-	if dprows == nil {
-		return []DataproductWithDataset{}
-	}
-
-	datasets := datasetsInDataProductFromSQL(dprows)
-
-	dataproducts := []DataproductWithDataset{}
-
-__loop_rows:
-	for _, dprow := range dprows {
-		for _, dp := range dataproducts {
-			if dp.ID == dprow.DpID {
-				continue __loop_rows
-			}
-		}
-		dataproduct := DataproductWithDataset{
-			Dataproduct: Dataproduct{
-				ID:           dprow.DpID,
-				Name:         dprow.DpName,
-				Created:      dprow.DpCreated,
-				LastModified: dprow.DpLastModified,
-				Description:  nullStringToPtr(dprow.DpDescription),
-				Slug:         dprow.DpSlug,
-				Owner: &DataproductOwner{
-					Group:            dprow.DpGroup,
-					TeamkatalogenURL: nullStringToPtr(dprow.TeamkatalogenUrl),
-					TeamContact:      nullStringToPtr(dprow.TeamContact),
-					TeamID:           nullStringToPtr(dprow.TeamID),
-					ProductAreaID:    nullUUIDToUUIDPtr(dprow.PaID),
-				},
-			},
-		}
-		dpdatasets := []*DatasetInDataproduct{}
-		for _, ds := range datasets {
-			if ds.DataproductID == dataproduct.ID {
-				dpdatasets = append(dpdatasets, ds)
-			}
-		}
-
-		keywordsMap := make(map[string]bool)
-		for _, ds := range dpdatasets {
-			for _, k := range ds.Keywords {
-				keywordsMap[k] = true
-			}
-		}
-		keywords := []string{}
-		for k := range keywordsMap {
-			keywords = append(keywords, k)
-		}
-
-		dataproduct.Datasets = dpdatasets
-		dataproduct.Keywords = keywords
-		dataproducts = append(dataproducts, dataproduct)
-	}
-	return dataproducts
-}
-
-func datasetsInDataProductFromSQL(dsrows []gensql.GetDataproductsWithDatasetsRow) []*DatasetInDataproduct {
-	datasets := []*DatasetInDataproduct{}
-
-	for _, dsrow := range dsrows {
-		if !dsrow.DsID.Valid {
-			continue
-		}
-
-		var ds *DatasetInDataproduct
-
-		for _, dsIn := range datasets {
-			if dsIn.ID == dsrow.DsID.UUID {
-				ds = dsIn
-				break
-			}
-		}
-		if ds == nil {
-			ds = &DatasetInDataproduct{
-				ID:                     dsrow.DsID.UUID,
-				Name:                   dsrow.DsName.String,
-				Created:                dsrow.DsCreated.Time,
-				LastModified:           dsrow.DsLastModified.Time,
-				Description:            nullStringToPtr(dsrow.DsDescription),
-				Slug:                   dsrow.DsSlug.String,
-				Keywords:               dsrow.DsKeywords,
-				DataproductID:          dsrow.DpID,
-				DataSourceLastModified: dsrow.DsrcLastModified.Time,
-			}
-			datasets = append(datasets, ds)
-		}
-	}
-
-	return datasets
-}
-
-func datasetFromSQL(dsrows []gensql.DatasetView) (*Dataset, *APIError) {
-	var dataset *Dataset
-
-	for _, dsrow := range dsrows {
-		piiTags := "{}"
-		if dsrow.PiiTags.RawMessage != nil {
-			piiTags = string(dsrow.PiiTags.RawMessage)
-		}
-		if dataset == nil {
-			dataset = &Dataset{
-				ID:                dsrow.DsID,
-				Name:              dsrow.DsName,
-				Created:           dsrow.DsCreated,
-				LastModified:      dsrow.DsLastModified,
-				Description:       nullStringToPtr(dsrow.DsDescription),
-				Slug:              dsrow.DsSlug,
-				Keywords:          dsrow.DsKeywords,
-				DataproductID:     dsrow.DsDpID,
-				Mappings:          []string{},
-				Access:            []*Access{},
-				Datasource:        nil,
-				Pii:               PiiLevel(dsrow.Pii),
-				MetabaseDeletedAt: nullTimeToPtr(dsrow.MbDeletedAt),
-			}
-		}
-
-		if dsrow.BqID != uuid.Nil {
-			var schema []*BigqueryColumn
-			if dsrow.BqSchema.Valid {
-				if err := json.Unmarshal(dsrow.BqSchema.RawMessage, &schema); err != nil {
-					return nil, NewAPIError(http.StatusInternalServerError, err, "datasetFromSQL(): Error in BigQuery schema")
-				}
-			}
-
-			dsrc := &BigQuery{
-				ID:            dsrow.BqID,
-				DatasetID:     dsrow.DsID,
-				ProjectID:     dsrow.BqProject,
-				Dataset:       dsrow.BqDataset,
-				Table:         dsrow.BqTableName,
-				TableType:     BigQueryType(dsrow.BqTableType),
-				Created:       dsrow.BqCreated,
-				LastModified:  dsrow.BqLastModified,
-				Expires:       nullTimeToPtr(dsrow.BqExpires),
-				Description:   dsrow.BqDescription.String,
-				PiiTags:       &piiTags,
-				MissingSince:  nullTimeToPtr(dsrow.BqMissingSince),
-				PseudoColumns: dsrow.PseudoColumns,
-				Schema:        schema,
-			}
-			dataset.Datasource = dsrc
-		}
-
-		if len(dsrow.MappingServices) > 0 {
-			for _, service := range dsrow.MappingServices {
-				exist := false
-				for _, mapping := range dataset.Mappings {
-					if mapping == service {
-						exist = true
-						break
-					}
-				}
-				if !exist {
-					dataset.Mappings = append(dataset.Mappings, service)
-				}
-			}
-		}
-
-		if dsrow.AccessID.Valid {
-			exist := false
-			for _, dsAccess := range dataset.Access {
-				if dsAccess.ID == dsrow.AccessID.UUID {
-					exist = true
-					break
-				}
-			}
-			if !exist {
-				access := &Access{
-					ID:              dsrow.AccessID.UUID,
-					Subject:         dsrow.AccessSubject.String,
-					Granter:         dsrow.AccessGranter.String,
-					Expires:         nullTimeToPtr(dsrow.AccessExpires),
-					Created:         dsrow.AccessCreated.Time,
-					Revoked:         nullTimeToPtr(dsrow.AccessRevoked),
-					DatasetID:       dsrow.DsID,
-					AccessRequestID: nullUUIDToUUIDPtr(dsrow.AccessRequestID),
-				}
-				dataset.Access = append(dataset.Access, access)
-			}
-		}
-
-		if dataset.MetabaseUrl == nil && dsrow.MbDatabaseID.Valid {
-			base := "https://metabase.intern.dev.nav.no/browse/databases/%v"
-			if os.Getenv("NAIS_CLUSTER_NAME") == "prod-gcp" {
-				base = "https://metabase.intern.nav.no/browse/databases/%v"
-			}
-			url := fmt.Sprintf(base, dsrow.MbDatabaseID.Int32)
-			dataset.MetabaseUrl = &url
-		}
-	}
-
-	return dataset, nil
-}

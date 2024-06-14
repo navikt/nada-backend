@@ -2,19 +2,26 @@ package service
 
 import (
 	"context"
-	"fmt"
-	"net/http"
 	"time"
 
 	"github.com/google/uuid"
-	"github.com/navikt/nada-backend/pkg/auth"
-	"github.com/navikt/nada-backend/pkg/database/gensql"
 )
 
 type InsightProductStorage interface {
 	GetInsightProductsNumberByTeam(ctx context.Context, teamID string) (int64, error)
 	GetInsightProductsByTeamID(ctx context.Context, teamIDs []string) ([]*InsightProduct, error)
 	GetInsightProductsByGroups(ctx context.Context, groups []string) ([]*InsightProduct, error)
+	GetInsightProductWithTeamkatalogen(ctx context.Context, id uuid.UUID) (*InsightProduct, error)
+	UpdateInsightProduct(ctx context.Context, id uuid.UUID, in UpdateInsightProductDto) (*InsightProduct, error)
+	CreateInsightProduct(ctx context.Context, creator string, in NewInsightProduct) (*InsightProduct, error)
+	DeleteInsightProduct(ctx context.Context, id uuid.UUID) error
+}
+
+type InsightProductService interface {
+	GetInsightProduct(ctx context.Context, id string) (*InsightProduct, error)
+	UpdateInsightProduct(ctx context.Context, id string, input UpdateInsightProductDto) (*InsightProduct, error)
+	CreateInsightProduct(ctx context.Context, input NewInsightProduct) (*InsightProduct, error)
+	DeleteInsightProduct(ctx context.Context, id string) (*InsightProduct, error)
 }
 
 // InsightProduct contains the metadata of insight product.
@@ -79,111 +86,4 @@ type NewInsightProduct struct {
 	ProductAreaID *string `json:"productAreaID,omitempty"`
 	// Id of the creator's team.
 	TeamID *string `json:"teamID,omitempty"`
-}
-
-func insightProductFromSQL(insightProductSQL *gensql.InsightProductWithTeamkatalogenView) *InsightProduct {
-	return &InsightProduct{
-		ID:               insightProductSQL.ID,
-		Name:             insightProductSQL.Name,
-		Creator:          insightProductSQL.Creator,
-		Created:          insightProductSQL.Created,
-		Description:      insightProductSQL.Description.String,
-		Type:             insightProductSQL.Type,
-		Keywords:         insightProductSQL.Keywords,
-		TeamkatalogenURL: nullStringToPtr(insightProductSQL.TeamkatalogenUrl),
-		TeamID:           nullStringToPtr(insightProductSQL.TeamID),
-		Group:            insightProductSQL.Group,
-		Link:             insightProductSQL.Link,
-		TeamName:         nullStringToPtr(insightProductSQL.TeamName),
-		ProductAreaName:  nullStringToString(insightProductSQL.PaName),
-	}
-}
-
-func GetInsightProduct(ctx context.Context, id string) (*InsightProduct, *APIError) {
-	productUUID, err := uuid.Parse(id)
-	if err != nil {
-		return nil, NewAPIError(http.StatusBadRequest, err, "Invalid UUID")
-	}
-	productSQL, err := queries.GetInsightProductWithTeamkatalogen(ctx, productUUID)
-	if err != nil {
-		return nil, DBErrorToAPIError(err, "Failed to get insight product")
-	}
-
-	return insightProductFromSQL(&productSQL), nil
-}
-
-func UpdateInsightProduct(ctx context.Context, id string, input UpdateInsightProductDto) (*InsightProduct, *APIError) {
-	productUUID, err := uuid.Parse(id)
-	if err != nil {
-		return nil, NewAPIError(http.StatusBadRequest, err, "Invalid UUID")
-	}
-	existing, apierr := GetInsightProduct(ctx, id)
-	if apierr != nil {
-		return nil, apierr
-	}
-
-	user := auth.GetUser(ctx)
-	if !user.GoogleGroups.Contains(existing.Group) {
-		return nil, NewAPIError(http.StatusUnauthorized, fmt.Errorf("unauthorized"), "user not in the group of the insight product")
-	}
-
-	dbProduct, err := queries.UpdateInsightProduct(ctx, gensql.UpdateInsightProductParams{
-		ID:               productUUID,
-		Name:             input.Name,
-		Description:      ptrToNullString(&input.Description),
-		Keywords:         input.Keywords,
-		TeamkatalogenUrl: ptrToNullString(input.TeamkatalogenURL),
-		TeamID:           ptrToNullString(input.TeamID),
-		Type:             input.TypeArg,
-		Link:             input.Link,
-	})
-	if err != nil {
-		return nil, DBErrorToAPIError(err, "Failed to update insight product")
-	}
-
-	return GetInsightProduct(ctx, dbProduct.ID.String())
-}
-
-func CreateInsightProduct(ctx context.Context, input NewInsightProduct) (*InsightProduct, *APIError) {
-	creator := auth.GetUser(ctx).Email
-
-	insightProductSQL, err := queries.CreateInsightProduct(ctx, gensql.CreateInsightProductParams{
-		Name:             input.Name,
-		Creator:          creator,
-		Description:      ptrToNullString(input.Description),
-		Keywords:         input.Keywords,
-		OwnerGroup:       input.Group,
-		TeamkatalogenUrl: ptrToNullString(input.TeamkatalogenURL),
-		TeamID:           ptrToNullString(input.TeamID),
-		Type:             input.Type,
-		Link:             input.Link,
-	})
-	if err != nil {
-		return nil, DBErrorToAPIError(err, "Failed to create insight product")
-	}
-
-	return GetInsightProduct(ctx, insightProductSQL.ID.String())
-}
-
-func DeleteInsightProduct(ctx context.Context, id string) (*InsightProduct, *APIError) {
-	productUUID, err := uuid.Parse(id)
-	if err != nil {
-		return nil, NewAPIError(http.StatusBadRequest, err, "Invalid UUID")
-	}
-	product, apiErr := GetInsightProduct(ctx, id)
-	if apiErr != nil {
-		return nil, apiErr
-	}
-
-	user := auth.GetUser(ctx)
-	if !user.GoogleGroups.Contains(product.Group) {
-		return nil, NewAPIError(http.StatusUnauthorized, nil, "Unauthorized")
-	}
-
-	err = queries.DeleteInsightProduct(ctx, productUUID)
-	if err != nil {
-		return nil, DBErrorToAPIError(err, "Failed to delete insight product")
-	}
-
-	return product, nil
 }

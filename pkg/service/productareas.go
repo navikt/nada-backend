@@ -8,11 +8,24 @@ type ProductAreaStorage interface {
 	GetProductArea(ctx context.Context, paID string) (*ProductArea, error)
 	GetProductAreas(ctx context.Context) ([]*ProductArea, error)
 	GetDashboard(ctx context.Context, id string) (*Dashboard, error)
+	UpsertProductAreaAndTeam(ctx context.Context, pa []*UpsertProductAreaRequest, t []*UpsertTeamRequest) error
 }
 
 type ProductAreaService interface {
 	GetProductAreas(ctx context.Context) (*ProductAreasDto, error)
 	GetProductAreaWithAssets(ctx context.Context, id string) (*ProductAreaWithAssets, error)
+}
+
+type UpsertProductAreaRequest struct {
+	ID   string
+	Name string
+}
+
+// FIXCME: does this belong here?
+type UpsertTeamRequest struct {
+	ID            string
+	ProductAreaID string
+	Name          string
 }
 
 type Team struct {
