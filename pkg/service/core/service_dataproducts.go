@@ -19,6 +19,15 @@ type dataProductsService struct {
 	gcpProjects        *auth.TeamProjectsMapping
 }
 
+func (s *dataProductsService) GetDataset(ctx context.Context, id string) (*service.Dataset, error) {
+	ds, err := s.dataProductStorage.GetDataset(ctx, id)
+	if err != nil {
+		return nil, fmt.Errorf("dbGetDataset: %w", err)
+	}
+
+	return ds, nil
+}
+
 func (s *dataProductsService) GetDataproduct(ctx context.Context, id string) (*service.DataproductWithDataset, error) {
 	dp, err := s.dataProductStorage.GetDataproduct(ctx, id)
 	if err != nil {
