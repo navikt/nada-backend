@@ -205,8 +205,18 @@ func (s *joinableViewsService) CreateJoinableViews(ctx context.Context, input se
 	return joinableDatasetID, nil
 }
 
-func NewJoinableViewsService(joinableViewsStorage service.JoinableViewsStorage) *joinableViewsService {
+func NewJoinableViewsService(
+	joinableViewsStorage service.JoinableViewsStorage,
+	accessStorage service.AccessStorage,
+	dataProductStorage service.DataProductsStorage,
+	bigQueryAPI service.BigQueryAPI,
+	bigQueryStorage service.BigQueryStorage,
+) *joinableViewsService {
 	return &joinableViewsService{
 		joinableViewsStorage: joinableViewsStorage,
+		accessStorage:        accessStorage,
+		dataProductStorage:   dataProductStorage,
+		bigQueryAPI:          bigQueryAPI,
+		bigQueryStorage:      bigQueryStorage,
 	}
 }

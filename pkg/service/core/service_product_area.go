@@ -134,8 +134,16 @@ func (s *productAreaService) GetProductAreas(ctx context.Context) (*service.Prod
 	}, nil
 }
 
-func NewProductAreaService(productAreaStorage service.ProductAreaStorage) *productAreaService {
+func NewProductAreaService(
+	productAreaStorage service.ProductAreaStorage,
+	dataProductStorage service.DataProductsStorage,
+	insightProductStorage service.InsightProductStorage,
+	storyStorage service.StoryStorage,
+) *productAreaService {
 	return &productAreaService{
-		productAreaStorage: productAreaStorage,
+		productAreaStorage:    productAreaStorage,
+		dataProductStorage:    dataProductStorage,
+		insightProductStorage: insightProductStorage,
+		storyStorage:          storyStorage,
 	}
 }

@@ -84,9 +84,19 @@ func main() {
 
 	httpwithcache.SetDatabase(repo.GetDB())
 
+	// FIXME: rewrite this thing
+	teamProjectsUpdater := teamprojectsupdater.NewTeamProjectsUpdater(
+		ctx,
+		cfg.NaisConsole.APIURL,
+		cfg.NaisConsole.APIKey,
+		http.DefaultClient,
+		repo,
+	)
+	go teamProjectsUpdater.Run(ctx, TeamProjectsUpdateFrequency)
+
 	stores := storage.NewStores(repo)
 	apiClients := apiclients.NewClients(cfg, log.WithField("subsystem", "api_clients"))
-	services, err := core.NewServices(cfg, stores, apiClients)
+	services, err := core.NewServices(cfg, stores, apiClients, teamProjectsUpdater.TeamProjectsMapping)
 	if err != nil {
 		log.WithError(err).Fatal("setting up services")
 	}
@@ -115,16 +125,6 @@ func main() {
 		log,
 	)
 	go teamcatalogue.RunSyncer()
-
-	// FIXME: rewrite this thing
-	teamProjectsUpdater := teamprojectsupdater.NewTeamProjectsUpdater(
-		ctx,
-		cfg.NaisConsole.APIURL,
-		cfg.NaisConsole.APIKey,
-		http.DefaultClient,
-		repo,
-	)
-	go teamProjectsUpdater.Run(ctx, TeamProjectsUpdateFrequency)
 
 	azureGroups := auth.NewAzureGroups(
 		http.DefaultClient,

@@ -160,6 +160,20 @@ type Handlers struct {
 
 func NewHandlers(s *core.Services, amplitude amplitude.Amplitude) *Handlers {
 	return &Handlers{
-		StoryHandler: NewStoryHandler(s.StoryService, s.TokenService, amplitude),
+		StoryHandler:          NewStoryHandler(s.StoryService, s.TokenService, amplitude),
+		TokenHandler:          NewTokenHandler(s.TokenService),
+		DataProductsHandler:   NewDataProductsHandler(s.DataProductService),
+		MetabaseHandler:       NewMetabaseHandler(s.MetaBaseService),
+		AccessHandler:         NewAccessHandler(s.AccessService),
+		ProductAreasHandler:   NewProductAreasHandler(s.ProductAreaService),
+		BigQueryHandler:       NewBigQueryHandler(s.BigQueryService),
+		SearchHandler:         NewSearchHandler(s.SearchService),
+		UserHandler:           NewUserHandler(s.UserService),
+		SlackHandler:          NewSlackHandler(s.SlackService),
+		JoinableViewsHandler:  NewJoinableViewsHandler(s.JoinableViewService),
+		InsightProductHandler: NewInsightProductHandler(s.InsightProductService),
+		TeamKatalogenHandler:  NewTeamKatalogenHandler(s.TeamKatalogenService),
+		PollyHandler:          NewPollyHandler(s.PollyService),
+		KeywordsHandler:       NewKeywordsHandler(s.KeyWordService),
 	}
 }

@@ -126,6 +126,20 @@ func teamNamesFromGroups(groups auth.Groups) []string {
 	return teams
 }
 
-func NewUserService() *userService {
-	return &userService{}
+func NewUserService(
+	accessStorage service.AccessStorage,
+	tokenStorage service.TokenStorage,
+	storyStorage service.StoryStorage,
+	dataProductStorage service.DataProductsStorage,
+	insightProductStorage service.InsightProductStorage,
+	teamProjectsMapping *auth.TeamProjectsMapping,
+) *userService {
+	return &userService{
+		accessStorage:         accessStorage,
+		tokenStorage:          tokenStorage,
+		storyStorage:          storyStorage,
+		dataProductStorage:    dataProductStorage,
+		insightProductStorage: insightProductStorage,
+		teamProjectsMapping:   teamProjectsMapping,
+	}
 }

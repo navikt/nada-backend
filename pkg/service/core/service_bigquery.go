@@ -128,9 +128,14 @@ func (s *bigQueryService) handleTableNotFound(ctx context.Context, bq *service.B
 	return nil
 }
 
-func NewBigQueryService(storage service.BigQueryStorage, api service.BigQueryAPI) *bigQueryService {
+func NewBigQueryService(
+	bigQueryStorage service.BigQueryStorage,
+	bigQueryAPI service.BigQueryAPI,
+	dataProductStorage service.DataProductsStorage,
+) *bigQueryService {
 	return &bigQueryService{
-		bigQueryStorage: storage,
-		bigQueryAPI:     api,
+		bigQueryStorage:    bigQueryStorage,
+		bigQueryAPI:        bigQueryAPI,
+		dataProductStorage: dataProductStorage,
 	}
 }

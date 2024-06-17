@@ -330,8 +330,16 @@ func (s *dataProductsService) UpdateDataset(ctx context.Context, id string, inpu
 	return updatedID, nil
 }
 
-func NewDataProductsService(dataProductStorage service.DataProductsStorage) *dataProductsService {
+func NewDataProductsService(
+	dataProductStorage service.DataProductsStorage,
+	bigQueryStorage service.BigQueryStorage,
+	bigQueryAPI service.BigQueryAPI,
+	gcpProjects *auth.TeamProjectsMapping,
+) *dataProductsService {
 	return &dataProductsService{
 		dataProductStorage: dataProductStorage,
+		bigQueryStorage:    bigQueryStorage,
+		bigQueryAPI:        bigQueryAPI,
+		gcpProjects:        gcpProjects,
 	}
 }

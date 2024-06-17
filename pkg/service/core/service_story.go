@@ -138,8 +138,14 @@ func (s *storyService) GetStory(ctx context.Context, id uuid.UUID) (*service.Sto
 	return story, nil
 }
 
-func NewStoryService(storage service.StoryStorage) *storyService {
+func NewStoryService(
+	storyStorage service.StoryStorage,
+	teamKatalogenAPI service.TeamKatalogenAPI,
+	storyAPI service.StoryAPI,
+) *storyService {
 	return &storyService{
-		storyStorage: storage,
+		storyStorage:     storyStorage,
+		teamKatalogenAPI: teamKatalogenAPI,
+		storyAPI:         storyAPI,
 	}
 }

@@ -355,10 +355,22 @@ func ensureOwner(ctx context.Context, owner string) error {
 	return service.ErrUnauthorized
 }
 
-func NewAccessService(slackapi service.SlackAPI, pollyStorage service.PollyStorage, accessStorage service.AccessStorage) *accessService {
+func NewAccessService(
+	slackapi service.SlackAPI,
+	pollyStorage service.PollyStorage,
+	accessStorage service.AccessStorage,
+	dataProductStorage service.DataProductsStorage,
+	bigQueryStorage service.BigQueryStorage,
+	joinableViewStorage service.JoinableViewsStorage,
+	bigQueryAPI service.BigQueryAPI,
+) *accessService {
 	return &accessService{
-		slackapi:      slackapi,
-		pollyStorage:  pollyStorage,
-		accessStorage: accessStorage,
+		slackapi:            slackapi,
+		pollyStorage:        pollyStorage,
+		accessStorage:       accessStorage,
+		dataProductStorage:  dataProductStorage,
+		bigQueryStorage:     bigQueryStorage,
+		joinableViewStorage: joinableViewStorage,
+		bigQueryAPI:         bigQueryAPI,
 	}
 }

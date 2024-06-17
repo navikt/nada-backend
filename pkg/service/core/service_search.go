@@ -102,8 +102,14 @@ func sortSearch(ret []*service.SearchResultRow, order map[string]int) {
 	})
 }
 
-func NewSearchService(storage service.SearchStorage) *searchService {
+func NewSearchService(
+	searchStorage service.SearchStorage,
+	storyStorage service.StoryStorage,
+	dataProductsStorage service.DataProductsStorage,
+) *searchService {
 	return &searchService{
-		searchStorage: storage,
+		searchStorage:       searchStorage,
+		storyStorage:        storyStorage,
+		dataProductsStorage: dataProductsStorage,
 	}
 }
