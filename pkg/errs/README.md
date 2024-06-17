@@ -1,0 +1,1 @@
+We have copied the following package from: https://github.com/gilcrest/diygoapi, where Dan Gillis has written an excellent article explaining the thinking around the design of this package here: https://gilcrestian.medium.com/rest-api-error-handling-in-go-dab62323add5.
