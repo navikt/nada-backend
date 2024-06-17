@@ -1,9 +1,11 @@
 package config
 
 import (
+	"encoding/json"
 	"fmt"
 	"net"
 	"net/http"
+	"os"
 	"path/filepath"
 	"strings"
 
@@ -72,12 +74,14 @@ func (c Config) Validate() error {
 }
 
 type TreatmentCatalogue struct {
-	APIURL string `yaml:"api_url"`
+	APIURL     string `yaml:"api_url"`
+	PurposeURL string `yaml:"purpose_url"`
 }
 
 func (t TreatmentCatalogue) Validate() error {
 	return validation.ValidateStruct(&t,
 		validation.Field(&t.APIURL, validation.Required, is.URL),
+		validation.Field(&t.PurposeURL, validation.Required, is.URL),
 	)
 }
 
@@ -152,6 +156,24 @@ func (m Metabase) Validate() error {
 		validation.Field(&m.GCPProject, validation.Required),
 		validation.Field(&m.APIURL, validation.Required, is.URL),
 	)
+}
+
+func (m Metabase) LoadFromCredentialsPath() (string, string, error) {
+	sa, err := os.ReadFile(m.CredentialsPath)
+	if err != nil {
+		return "", "", fmt.Errorf("read service account: %w", err)
+	}
+
+	metabaseSA := struct {
+		ClientEmail string `json:"client_email"`
+	}{}
+
+	err = json.Unmarshal(sa, &metabaseSA)
+	if err != nil {
+		return "", "", fmt.Errorf("unmarshal service account: %w", err)
+	}
+
+	return string(sa), metabaseSA.ClientEmail, nil
 }
 
 type Github struct {

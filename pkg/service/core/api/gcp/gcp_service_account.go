@@ -1,6 +1,7 @@
 package gcp
 
 import (
+	"context"
 	"encoding/base64"
 	"errors"
 	"fmt"
@@ -13,13 +14,18 @@ import (
 	"strings"
 )
 
+var _ service.ServiceAccountAPI = &serviceAccountAPI{}
+
 type serviceAccountAPI struct {
-	iams *iam.Service
-	crms *cloudresourcemanager.Service
 }
 
-func (a *serviceAccountAPI) DeleteServiceAccount(gcpProject, saEmail string) error {
-	_, err := a.iams.Projects.ServiceAccounts.
+func (a *serviceAccountAPI) DeleteServiceAccount(ctx context.Context, gcpProject, saEmail string) error {
+	iamService, err := iam.NewService(ctx)
+	if err != nil {
+		return fmt.Errorf("initialising iam service: %w", err)
+	}
+
+	_, err = iamService.Projects.ServiceAccounts.
 		Delete("projects/" + gcpProject + "/serviceAccounts/" + saEmail).
 		Do()
 	if err != nil {
@@ -38,7 +44,7 @@ func (a *serviceAccountAPI) DeleteServiceAccount(gcpProject, saEmail string) err
 	return nil
 }
 
-func (a *serviceAccountAPI) CreateServiceAccount(gcpProject string, ds *service.Dataset) ([]byte, string, error) {
+func (a *serviceAccountAPI) CreateServiceAccount(ctx context.Context, gcpProject string, ds *service.Dataset) ([]byte, string, error) {
 	request := &iam.CreateServiceAccountRequest{
 		AccountId: "nada-" + MarshalUUID(ds.ID),
 		ServiceAccount: &iam.ServiceAccount{
@@ -47,12 +53,22 @@ func (a *serviceAccountAPI) CreateServiceAccount(gcpProject string, ds *service.
 		},
 	}
 
-	account, err := a.iams.Projects.ServiceAccounts.Create("projects/"+gcpProject, request).Do()
+	iamService, err := iam.NewService(ctx)
+	if err != nil {
+		return nil, "", fmt.Errorf("initialising iam service: %w", err)
+	}
+
+	account, err := iamService.Projects.ServiceAccounts.Create("projects/"+gcpProject, request).Do()
 	if err != nil {
 		return nil, "", fmt.Errorf("create service account: %w", err)
 	}
 
-	iamPolicyCall := a.crms.Projects.GetIamPolicy(gcpProject, &cloudresourcemanager.GetIamPolicyRequest{})
+	crmService, err := cloudresourcemanager.NewService(ctx)
+	if err != nil {
+		return nil, "", fmt.Errorf("initialising cloud resource manager service: %w", err)
+	}
+
+	iamPolicyCall := crmService.Projects.GetIamPolicy(gcpProject, &cloudresourcemanager.GetIamPolicyRequest{})
 	iamPolicies, err := iamPolicyCall.Do()
 	if err != nil {
 		return nil, "", fmt.Errorf("get iam policies: %w", err)
@@ -63,7 +79,7 @@ func (a *serviceAccountAPI) CreateServiceAccount(gcpProject string, ds *service.
 		Role:    "projects/" + gcpProject + "/roles/nada.metabase",
 	})
 
-	iamSetPolicyCall := a.crms.Projects.SetIamPolicy(gcpProject, &cloudresourcemanager.SetIamPolicyRequest{
+	iamSetPolicyCall := crmService.Projects.SetIamPolicy(gcpProject, &cloudresourcemanager.SetIamPolicyRequest{
 		Policy: iamPolicies,
 	})
 
@@ -74,7 +90,7 @@ func (a *serviceAccountAPI) CreateServiceAccount(gcpProject string, ds *service.
 
 	keyRequest := &iam.CreateServiceAccountKeyRequest{}
 
-	key, err := a.iams.Projects.ServiceAccounts.Keys.Create("projects/-/serviceAccounts/"+account.UniqueId, keyRequest).Do()
+	key, err := iamService.Projects.ServiceAccounts.Keys.Create("projects/-/serviceAccounts/"+account.UniqueId, keyRequest).Do()
 	if err != nil {
 		return nil, "", err
 	}
@@ -91,9 +107,6 @@ func MarshalUUID(id uuid.UUID) string {
 	return strings.ToLower(base58.Encode(id[:]))
 }
 
-func NewServiceAccountAPI(iams *iam.Service, crms *cloudresourcemanager.Service) *serviceAccountAPI {
-	return &serviceAccountAPI{
-		iams: iams,
-		crms: crms,
-	}
+func NewServiceAccountAPI() *serviceAccountAPI {
+	return &serviceAccountAPI{}
 }

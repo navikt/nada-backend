@@ -9,21 +9,23 @@ import (
 	"github.com/navikt/nada-backend/pkg/service"
 )
 
+var _ service.PollyStorage = &pollyStorage{}
+
 type pollyStorage struct {
 	db *database.Repo
 }
 
-func (s *pollyStorage) CreatePollyDocumentation(ctx context.Context, pollyInput service.PollyInput) (*service.Polly, error) {
+func (s *pollyStorage) CreatePollyDocumentation(ctx context.Context, pollyInput service.PollyInput) (service.Polly, error) {
 	pollyDocumentation, err := s.db.Querier.CreatePollyDocumentation(ctx, gensql.CreatePollyDocumentationParams{
 		ExternalID: pollyInput.ExternalID,
 		Name:       pollyInput.Name,
 		Url:        pollyInput.URL,
 	})
 	if err != nil {
-		return nil, fmt.Errorf("create polly documentation: %w", err)
+		return service.Polly{}, fmt.Errorf("create polly documentation: %w", err)
 	}
 
-	return &service.Polly{
+	return service.Polly{
 		ID: pollyDocumentation.ID,
 		QueryPolly: service.QueryPolly{
 			ExternalID: pollyDocumentation.ExternalID,

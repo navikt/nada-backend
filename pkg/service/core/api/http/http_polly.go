@@ -6,7 +6,6 @@ import (
 	"github.com/navikt/nada-backend/pkg/service"
 	"io"
 	"net/http"
-	"os"
 	"time"
 )
 
@@ -62,12 +61,6 @@ func (p *pollyAPI) SearchPolly(_ context.Context, q string) ([]*service.QueryPol
 }
 
 func NewPollyAPI(url, apiURL string) *pollyAPI {
-	// FIXME: make these configurable
-	url = "https://behandlingskatalog.intern.dev.nav.no/process/purpose"
-	if os.Getenv("NAIS_CLUSTER_NAME") == "prod-gcp" {
-		url = "https://behandlingskatalog.intern.nav.no/process/purpose"
-	}
-
 	return &pollyAPI{
 		client: &http.Client{
 			Timeout: 5 * time.Second,

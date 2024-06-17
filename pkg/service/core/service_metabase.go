@@ -221,7 +221,7 @@ func (s *metabaseService) createRestricted(ctx context.Context, ds *service.Data
 		return fmt.Errorf("creating collection with access: %w", err)
 	}
 
-	key, email, err := s.serviceAccountAPI.CreateServiceAccount(s.gcpProject, ds)
+	key, email, err := s.serviceAccountAPI.CreateServiceAccount(ctx, s.gcpProject, ds)
 	if err != nil {
 		return fmt.Errorf("creating service account: %w", err)
 	}
@@ -450,7 +450,7 @@ func (s *metabaseService) cleanupOnCreateDatabaseError(ctx context.Context, dbID
 			return err
 		}
 
-		if err := s.serviceAccountAPI.DeleteServiceAccount(s.gcpProject, ds.Email); err != nil {
+		if err := s.serviceAccountAPI.DeleteServiceAccount(ctx, s.gcpProject, ds.Email); err != nil {
 			return err
 		}
 	}
@@ -515,7 +515,7 @@ func (s *metabaseService) deleteRestrictedDatabase(ctx context.Context, datasetI
 		return fmt.Errorf("revoke access: %w", err)
 	}
 
-	if err := s.serviceAccountAPI.DeleteServiceAccount(s.gcpProject, mbMeta.SAEmail); err != nil {
+	if err := s.serviceAccountAPI.DeleteServiceAccount(ctx, s.gcpProject, mbMeta.SAEmail); err != nil {
 		return fmt.Errorf("delete service account: %w", err)
 	}
 

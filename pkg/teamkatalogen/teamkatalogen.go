@@ -17,11 +17,13 @@ type teamkatalogen struct {
 	log     *logrus.Logger
 }
 
-func New(url string, log *logrus.Logger) *teamkatalogen {
+func New(url string, api service.TeamKatalogenAPI, storage service.ProductAreaStorage, log *logrus.Logger) *teamkatalogen {
 	tk := &teamkatalogen{
-		client: http.DefaultClient,
-		url:    url,
-		log:    log,
+		client:  http.DefaultClient,
+		api:     api,
+		storage: storage,
+		url:     url,
+		log:     log,
 	}
 
 	tk.RunSyncer()
@@ -34,7 +36,7 @@ func (t *teamkatalogen) RunSyncer() {
 		t.log.Info("Starting Team Katalogen syncer")
 		for {
 			t.syncTeamkatalogen()
-			// FIXME: make this configurable
+			// FIXME: make this configurable, and use time.Ticker
 			time.Sleep(1 * time.Hour)
 		}
 	}()

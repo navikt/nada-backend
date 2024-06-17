@@ -19,7 +19,7 @@ import (
 // FIXME: consider moving some of these parts into its own package, so that we can
 // focus on the main logic of the service
 
-type metabaseHTTP struct {
+type metabaseAPI struct {
 	c                  *http.Client
 	password           string
 	url                string
@@ -31,9 +31,9 @@ type metabaseHTTP struct {
 	sessionID          string
 }
 
-var _ service.MetabaseAPI = &metabaseHTTP{}
+var _ service.MetabaseAPI = &metabaseAPI{}
 
-func (c *metabaseHTTP) request(ctx context.Context, method, path string, body interface{}, v interface{}) error {
+func (c *metabaseAPI) request(ctx context.Context, method, path string, body interface{}, v interface{}) error {
 	err := c.EnsureValidSession(ctx)
 	if err != nil {
 		return fmt.Errorf("%v %v: %w", method, path, err)
@@ -71,7 +71,7 @@ func (c *metabaseHTTP) request(ctx context.Context, method, path string, body in
 	return nil
 }
 
-func (c *metabaseHTTP) PerformRequest(ctx context.Context, method, path string, buffer io.ReadWriter) (*http.Response, error) {
+func (c *metabaseAPI) PerformRequest(ctx context.Context, method, path string, buffer io.ReadWriter) (*http.Response, error) {
 	req, err := http.NewRequestWithContext(ctx, method, c.url+path, buffer)
 	if err != nil {
 		return nil, err
@@ -83,7 +83,7 @@ func (c *metabaseHTTP) PerformRequest(ctx context.Context, method, path string, 
 	return c.c.Do(req)
 }
 
-func (c *metabaseHTTP) EnsureValidSession(ctx context.Context) error {
+func (c *metabaseAPI) EnsureValidSession(ctx context.Context) error {
 	if c.sessionID != "" && c.expiry.After(time.Now()) {
 		return nil
 	}
@@ -117,7 +117,7 @@ func (c *metabaseHTTP) EnsureValidSession(ctx context.Context) error {
 	return nil
 }
 
-func (c *metabaseHTTP) Databases(ctx context.Context) ([]service.MetabaseDatabase, error) {
+func (c *metabaseAPI) Databases(ctx context.Context) ([]service.MetabaseDatabase, error) {
 	v := struct {
 		Data []struct {
 			Details struct {
@@ -166,7 +166,7 @@ type Details struct {
 	SAEmail            string `json:"sa-email"`
 }
 
-func (c *metabaseHTTP) CreateDatabase(ctx context.Context, team, name, saJSON, saEmail string, ds *service.BigQuery) (int, error) {
+func (c *metabaseAPI) CreateDatabase(ctx context.Context, team, name, saJSON, saEmail string, ds *service.BigQuery) (int, error) {
 	dbs, err := c.Databases(ctx)
 	if err != nil {
 		return 0, err
@@ -200,7 +200,7 @@ func (c *metabaseHTTP) CreateDatabase(ctx context.Context, team, name, saJSON, s
 	return v.ID, err
 }
 
-func (c *metabaseHTTP) HideTables(ctx context.Context, ids []int) error {
+func (c *metabaseAPI) HideTables(ctx context.Context, ids []int) error {
 	t := struct {
 		IDs            []int  `json:"ids"`
 		VisibilityType string `json:"visibility_type"`
@@ -211,7 +211,7 @@ func (c *metabaseHTTP) HideTables(ctx context.Context, ids []int) error {
 	return c.request(ctx, http.MethodPut, "/table", t, nil)
 }
 
-func (c *metabaseHTTP) ShowTables(ctx context.Context, ids []int) error {
+func (c *metabaseAPI) ShowTables(ctx context.Context, ids []int) error {
 	t := struct {
 		IDs            []int   `json:"ids"`
 		VisibilityType *string `json:"visibility_type"`
@@ -222,7 +222,7 @@ func (c *metabaseHTTP) ShowTables(ctx context.Context, ids []int) error {
 	return c.request(ctx, http.MethodPut, "/table", t, nil)
 }
 
-func (c *metabaseHTTP) Tables(ctx context.Context, dbID int) ([]service.MetabaseTable, error) {
+func (c *metabaseAPI) Tables(ctx context.Context, dbID int) ([]service.MetabaseTable, error) {
 	var v struct {
 		Tables []service.MetabaseTable `json:"tables"`
 	}
@@ -242,7 +242,7 @@ func (c *metabaseHTTP) Tables(ctx context.Context, dbID int) ([]service.Metabase
 	return ret, nil
 }
 
-func (c *metabaseHTTP) DeleteDatabase(ctx context.Context, id int) error {
+func (c *metabaseAPI) DeleteDatabase(ctx context.Context, id int) error {
 	if err := c.EnsureValidSession(ctx); err != nil {
 		return err
 	}
@@ -258,7 +258,7 @@ func (c *metabaseHTTP) DeleteDatabase(ctx context.Context, id int) error {
 	return c.request(ctx, http.MethodDelete, fmt.Sprintf("/database/%v", id), nil, nil)
 }
 
-func (c *metabaseHTTP) AutoMapSemanticTypes(ctx context.Context, dbID int) error {
+func (c *metabaseAPI) AutoMapSemanticTypes(ctx context.Context, dbID int) error {
 	tables, err := c.Tables(ctx, dbID)
 	if err != nil {
 		return err
@@ -285,12 +285,12 @@ func (c *metabaseHTTP) AutoMapSemanticTypes(ctx context.Context, dbID int) error
 	return nil
 }
 
-func (c *metabaseHTTP) MapSemanticType(ctx context.Context, fieldID int, semanticType string) error {
+func (c *metabaseAPI) MapSemanticType(ctx context.Context, fieldID int, semanticType string) error {
 	payload := map[string]string{"semantic_type": semanticType}
 	return c.request(ctx, http.MethodPut, "/field/"+strconv.Itoa(fieldID), payload, nil)
 }
 
-func (c *metabaseHTTP) CreatePermissionGroup(ctx context.Context, name string) (int, error) {
+func (c *metabaseAPI) CreatePermissionGroup(ctx context.Context, name string) (int, error) {
 	group := service.MetabasePermissionGroup{}
 	payload := map[string]string{"name": name}
 	if err := c.request(ctx, http.MethodPost, "/permissions/group", payload, &group); err != nil {
@@ -299,7 +299,7 @@ func (c *metabaseHTTP) CreatePermissionGroup(ctx context.Context, name string) (
 	return group.ID, nil
 }
 
-func (c *metabaseHTTP) GetPermissionGroup(ctx context.Context, groupID int) ([]service.MetabasePermissionGroupMember, error) {
+func (c *metabaseAPI) GetPermissionGroup(ctx context.Context, groupID int) ([]service.MetabasePermissionGroupMember, error) {
 	g := service.MetabasePermissionGroup{}
 	err := c.request(ctx, http.MethodGet, fmt.Sprintf("/permissions/group/%v", groupID), nil, &g)
 	if err != nil {
@@ -309,11 +309,11 @@ func (c *metabaseHTTP) GetPermissionGroup(ctx context.Context, groupID int) ([]s
 	return g.Members, nil
 }
 
-func (c *metabaseHTTP) RemovePermissionGroupMember(ctx context.Context, memberID int) error {
+func (c *metabaseAPI) RemovePermissionGroupMember(ctx context.Context, memberID int) error {
 	return c.request(ctx, http.MethodDelete, fmt.Sprintf("/permissions/membership/%v", memberID), nil, nil)
 }
 
-func (c *metabaseHTTP) AddPermissionGroupMember(ctx context.Context, groupID int, email string) error {
+func (c *metabaseAPI) AddPermissionGroupMember(ctx context.Context, groupID int, email string) error {
 	var users struct {
 		Data []service.MetabaseUser
 	}
@@ -347,7 +347,7 @@ type permissionGroup struct {
 	DataModel *dataModelPermission `json:"data-model,omitempty"`
 }
 
-func (c *metabaseHTTP) RestrictAccessToDatabase(ctx context.Context, groupIDs []int, databaseID int) error {
+func (c *metabaseAPI) RestrictAccessToDatabase(ctx context.Context, groupIDs []int, databaseID int) error {
 	var permissionGraph struct {
 		Groups   map[string]map[string]permissionGroup `json:"groups"`
 		Revision int                                   `json:"revision"`
@@ -393,7 +393,7 @@ func (c *metabaseHTTP) RestrictAccessToDatabase(ctx context.Context, groupIDs []
 	return nil
 }
 
-func (c *metabaseHTTP) OpenAccessToDatabase(ctx context.Context, databaseID int) error {
+func (c *metabaseAPI) OpenAccessToDatabase(ctx context.Context, databaseID int) error {
 	var permissionGraph struct {
 		Groups   map[string]map[string]permissionGroup `json:"groups"`
 		Revision int                                   `json:"revision"`
@@ -423,14 +423,14 @@ func (c *metabaseHTTP) OpenAccessToDatabase(ctx context.Context, databaseID int)
 	return nil
 }
 
-func (c *metabaseHTTP) DeletePermissionGroup(ctx context.Context, groupID int) error {
+func (c *metabaseAPI) DeletePermissionGroup(ctx context.Context, groupID int) error {
 	if groupID <= 0 {
 		return nil
 	}
 	return c.request(ctx, http.MethodDelete, fmt.Sprintf("/permissions/group/%v", groupID), nil, nil)
 }
 
-func (c *metabaseHTTP) ArchiveCollection(ctx context.Context, colID int) error {
+func (c *metabaseAPI) ArchiveCollection(ctx context.Context, colID int) error {
 	var collection struct {
 		Name        string `json:"name"`
 		Description string `json:"description"`
@@ -452,7 +452,7 @@ func (c *metabaseHTTP) ArchiveCollection(ctx context.Context, colID int) error {
 	return nil
 }
 
-func (c *metabaseHTTP) CreateCollection(ctx context.Context, name string) (int, error) {
+func (c *metabaseAPI) CreateCollection(ctx context.Context, name string) (int, error) {
 	collection := struct {
 		Name        string `json:"name"`
 		Description string `json:"description"`
@@ -474,7 +474,7 @@ func (c *metabaseHTTP) CreateCollection(ctx context.Context, name string) (int, 
 	return response.ID, nil
 }
 
-func (c *metabaseHTTP) SetCollectionAccess(ctx context.Context, groupIDs []int, collectionID int) error {
+func (c *metabaseAPI) SetCollectionAccess(ctx context.Context, groupIDs []int, collectionID int) error {
 	var cPermissions struct {
 		Revision int                          `json:"revision"`
 		Groups   map[string]map[string]string `json:"groups"`
@@ -504,7 +504,7 @@ func (c *metabaseHTTP) SetCollectionAccess(ctx context.Context, groupIDs []int, 
 	return c.request(ctx, http.MethodPut, "/collection/graph", cPermissions, nil)
 }
 
-func (c *metabaseHTTP) CreateCollectionWithAccess(ctx context.Context, groupIDs []int, name string) (int, error) {
+func (c *metabaseAPI) CreateCollectionWithAccess(ctx context.Context, groupIDs []int, name string) (int, error) {
 	cid, err := c.CreateCollection(ctx, name)
 	if err != nil {
 		return 0, err
@@ -518,7 +518,7 @@ func (c *metabaseHTTP) CreateCollectionWithAccess(ctx context.Context, groupIDs 
 }
 
 // FIXME: move into something else
-func (c *metabaseHTTP) GetAzureGroupID(ctx context.Context, email string) (string, error) {
+func (c *metabaseAPI) GetAzureGroupID(ctx context.Context, email string) (string, error) {
 	token, err := c.getAzureAccessToken(ctx)
 	if err != nil {
 		return "", err
@@ -559,7 +559,7 @@ func (c *metabaseHTTP) GetAzureGroupID(ctx context.Context, email string) (strin
 }
 
 // FIXME: move into something else
-func (c *metabaseHTTP) getAzureAccessToken(ctx context.Context) (string, error) {
+func (c *metabaseAPI) getAzureAccessToken(ctx context.Context) (string, error) {
 	form := url.Values{}
 	form.Add("grant_type", "client_credentials")
 	form.Add("client_id", c.oauth2ClientID)
@@ -619,8 +619,8 @@ func dbExists(dbs []service.MetabaseDatabase, nadaID string) (int, bool) {
 	return 0, false
 }
 
-func NewMetabaseHTTP(url, username, password, oauth2ClientID, oauth2ClientSecret, oauth2TenantID string) *metabaseHTTP {
-	return &metabaseHTTP{
+func NewMetabaseHTTP(url, username, password, oauth2ClientID, oauth2ClientSecret, oauth2TenantID string) *metabaseAPI {
+	return &metabaseAPI{
 		c:                  http.DefaultClient,
 		url:                url,
 		password:           password,

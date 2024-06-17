@@ -6,7 +6,7 @@ import (
 )
 
 type PollyStorage interface {
-	CreatePollyDocumentation(ctx context.Context, pollyInput PollyInput) (Polly, error)
+	CreatePollyDocumentation(ctx context.Context, input PollyInput) (Polly, error)
 	GetPollyDocumentation(ctx context.Context, id uuid.UUID) (*Polly, error)
 }
 

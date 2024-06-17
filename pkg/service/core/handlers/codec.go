@@ -98,14 +98,12 @@ func (h *HandlerConfig[In, Out]) Build() http.HandlerFunc {
 			}
 		}
 
-		if in != nil {
-			if v, ok := any(in).(Validator); ok {
-				err := v.Validate()
-				if err != nil {
-					// Format error response, something went wrong inside our app
-					http.Error(w, err.Error(), http.StatusBadRequest)
-					return
-				}
+		if v, ok := any(in).(Validator); ok {
+			err := v.Validate()
+			if err != nil {
+				// Format error response, something went wrong inside our app
+				http.Error(w, err.Error(), http.StatusBadRequest)
+				return
 			}
 		}
 

@@ -28,12 +28,33 @@ type Ensurer struct {
 	errs               *prometheus.CounterVec
 }
 
-func NewEnsurer(googleGroups *auth.GoogleGroupClient, centralDataProject string, errs *prometheus.CounterVec, log *logrus.Entry) *Ensurer {
+func NewEnsurer(
+	googleGroups *auth.GoogleGroupClient,
+	centralDataProject string,
+	errs *prometheus.CounterVec,
+	accessStorage service.AccessStorage,
+	accessService service.AccessService,
+	metabaseService service.MetabaseService,
+	dataProductsStorage service.DataProductsStorage,
+	bigQueryStorage service.BigQueryStorage,
+	bigQueryAPI service.BigQueryAPI,
+	bigQueryService service.BigQueryService,
+	joinableViewService service.JoinableViewsService,
+	log *logrus.Entry,
+) *Ensurer {
 	return &Ensurer{
-		googleGroups:       googleGroups,
-		centralDataProject: centralDataProject,
-		log:                log,
-		errs:               errs,
+		accessStorage:       accessStorage,
+		accessService:       accessService,
+		metabaseService:     metabaseService,
+		dataProductsStorage: dataProductsStorage,
+		bigQueryStorage:     bigQueryStorage,
+		bigQueryAPI:         bigQueryAPI,
+		bigQueryService:     bigQueryService,
+		joinableViewService: joinableViewService,
+		googleGroups:        googleGroups,
+		centralDataProject:  centralDataProject,
+		log:                 log,
+		errs:                errs,
 	}
 }
 
