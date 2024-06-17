@@ -6,7 +6,6 @@ import (
 	"github.com/google/uuid"
 	"github.com/navikt/nada-backend/pkg/database"
 	"github.com/navikt/nada-backend/pkg/database/gensql"
-	"github.com/navikt/nada-backend/pkg/polly"
 	"github.com/navikt/nada-backend/pkg/service"
 )
 
@@ -26,7 +25,7 @@ func (s *pollyStorage) CreatePollyDocumentation(ctx context.Context, pollyInput 
 
 	return &service.Polly{
 		ID: pollyDocumentation.ID,
-		QueryPolly: polly.QueryPolly{
+		QueryPolly: service.QueryPolly{
 			ExternalID: pollyDocumentation.ExternalID,
 			Name:       pollyDocumentation.Name,
 			URL:        pollyDocumentation.Url,
@@ -43,7 +42,7 @@ func (s *pollyStorage) GetPollyDocumentation(ctx context.Context, id uuid.UUID) 
 
 	return &service.Polly{
 		ID: pollyDoc.ID,
-		QueryPolly: polly.QueryPolly{
+		QueryPolly: service.QueryPolly{
 			ExternalID: pollyDoc.ExternalID,
 			Name:       pollyDoc.Name,
 			URL:        pollyDoc.Url,

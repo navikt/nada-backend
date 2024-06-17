@@ -3,8 +3,11 @@ package service
 import (
 	"database/sql"
 	"errors"
+	"fmt"
 	"net/http"
 )
+
+var ErrUnauthorized = fmt.Errorf("unauthorized")
 
 type APIError struct {
 	HttpStatus int
@@ -41,5 +44,5 @@ func DBErrorToAPIError(err error, message string) *APIError {
 }
 
 func (e *APIError) Log() {
-	log.WithError(e.Err).Error(e.Message)
+	panic("implement me")
 }

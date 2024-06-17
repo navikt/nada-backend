@@ -15,7 +15,6 @@ import (
 	"time"
 
 	graphProm "github.com/99designs/gqlgen-contrib/prometheus"
-	"github.com/navikt/nada-backend/pkg/access"
 	"github.com/navikt/nada-backend/pkg/access_ensurer"
 	"github.com/navikt/nada-backend/pkg/amplitude"
 	"github.com/navikt/nada-backend/pkg/api"
