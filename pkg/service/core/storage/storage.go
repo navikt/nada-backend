@@ -1,6 +1,7 @@
 package storage
 
 import (
+	"github.com/navikt/nada-backend/pkg/config/v2"
 	"github.com/navikt/nada-backend/pkg/database"
 	"github.com/navikt/nada-backend/pkg/service"
 	"github.com/navikt/nada-backend/pkg/service/core/storage/postgres"
@@ -24,11 +25,12 @@ type Stores struct {
 
 func NewStores(
 	db *database.Repo,
+	cfg config.Config,
 ) *Stores {
 	return &Stores{
 		AccessStorage:            postgres.NewAccessStorage(db),
 		BigQueryStorage:          postgres.NewBigQueryStorage(db),
-		DataProductsStorage:      postgres.NewDataProductStorage(db),
+		DataProductsStorage:      postgres.NewDataProductStorage(cfg.Metabase.DatabasesBaseURL, db),
 		InsightProductStorage:    postgres.NewInsightProductStorage(db),
 		JoinableViewsStorage:     postgres.NewJoinableViewStorage(db),
 		KeyWordStorage:           postgres.NewKeywordsStorage(db),

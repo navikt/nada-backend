@@ -3,6 +3,8 @@ package handlers
 import (
 	"context"
 	"encoding/json"
+	"github.com/navikt/nada-backend/pkg/errs"
+	"github.com/rs/zerolog"
 	"net/http"
 )
 
@@ -85,7 +87,7 @@ func (h *HandlerConfig[In, Out]) ResponseToJSON() *HandlerConfig[In, Out] {
 	return h
 }
 
-func (h *HandlerConfig[In, Out]) Build() http.HandlerFunc {
+func (h *HandlerConfig[In, Out]) Build(logger zerolog.Logger) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		var in In
 		var err error
@@ -93,7 +95,7 @@ func (h *HandlerConfig[In, Out]) Build() http.HandlerFunc {
 		if h.decoderFn != nil {
 			in, err = h.decoderFn(r)
 			if err != nil {
-				// Handle error, probably just logging
+				errs.HTTPErrorResponse(w, logger, errs.E(errs.InvalidRequest, err))
 				return
 			}
 		}
@@ -101,17 +103,14 @@ func (h *HandlerConfig[In, Out]) Build() http.HandlerFunc {
 		if v, ok := any(in).(Validator); ok {
 			err := v.Validate()
 			if err != nil {
-				// Format error response, something went wrong inside our app
-				http.Error(w, err.Error(), http.StatusBadRequest)
+				errs.HTTPErrorResponse(w, logger, errs.E(errs.Validation, err))
 				return
 			}
 		}
 
 		out, err := h.targetFn(r.Context(), r, in)
-		// FIXME: handle error
 		if err != nil {
-			// Format error response, something went wrong inside our app
-			http.Error(w, err.Error(), http.StatusBadRequest)
+			errs.HTTPErrorResponse(w, logger, err)
 			return
 		}
 
@@ -119,7 +118,7 @@ func (h *HandlerConfig[In, Out]) Build() http.HandlerFunc {
 		if h.encoderFn != nil {
 			err = h.encoderFn(w, out)
 			if err != nil {
-				// Handle error, probably just logging
+				errs.HTTPErrorResponse(w, logger, errs.E(errs.Internal, err))
 				return
 			}
 		}

@@ -3,6 +3,7 @@ package handlers
 import (
 	"github.com/navikt/nada-backend/pkg/amplitude"
 	"github.com/navikt/nada-backend/pkg/service/core"
+	"github.com/rs/zerolog"
 	"net/http"
 )
 
@@ -57,86 +58,86 @@ type Endpoints struct {
 	UpdateKeywords                     http.HandlerFunc
 }
 
-func NewEndpoints(h *Handlers) *Endpoints {
+func NewEndpoints(h *Handlers, log zerolog.Logger) *Endpoints {
 	return &Endpoints{
 		// Story endpoints
 		GetGCSObject:     h.StoryHandler.GetGCSObject,
 		CreateStoryHTTP:  h.StoryHandler.CreateStoryHTTP,
 		UpdateStoryHTTP:  h.StoryHandler.UpdateStoryHTTP,
 		AppendStoryHTTP:  h.StoryHandler.AppendStoryHTTP,
-		GetStoryMetadata: HandlerFor(h.StoryHandler.GetStoryMetadata).ResponseToJSON().Build(),
-		CreateStory:      HandlerFor(h.StoryHandler.CreateStory).ResponseToJSON().Build(),
-		UpdateStory:      HandlerFor(h.StoryHandler.UpdateStory).RequestFromJSON().ResponseToJSON().Build(),
-		DeleteStory:      HandlerFor(h.StoryHandler.DeleteStory).ResponseToJSON().Build(),
+		GetStoryMetadata: HandlerFor(h.StoryHandler.GetStoryMetadata).ResponseToJSON().Build(log),
+		CreateStory:      HandlerFor(h.StoryHandler.CreateStory).ResponseToJSON().Build(log),
+		UpdateStory:      HandlerFor(h.StoryHandler.UpdateStory).RequestFromJSON().ResponseToJSON().Build(log),
+		DeleteStory:      HandlerFor(h.StoryHandler.DeleteStory).ResponseToJSON().Build(log),
 
 		// Token endpoints
 		GetAllTeamTokens: h.TokenHandler.GetAllTeamTokens,
-		RotateNadaToken:  HandlerFor(h.TokenHandler.RotateNadaToken).ResponseToJSON().Build(),
+		RotateNadaToken:  HandlerFor(h.TokenHandler.RotateNadaToken).ResponseToJSON().Build(log),
 
 		// Data product endpoints
-		GetDataProduct:     HandlerFor(h.DataProductsHandler.GetDataProduct).ResponseToJSON().Build(),
-		CreateDataProduct:  HandlerFor(h.DataProductsHandler.CreateDataProduct).RequestFromJSON().ResponseToJSON().Build(),
-		DeleteDataProduct:  HandlerFor(h.DataProductsHandler.DeleteDataProduct).ResponseToJSON().Build(),
-		UpdateDataProduct:  HandlerFor(h.DataProductsHandler.UpdateDataProduct).RequestFromJSON().ResponseToJSON().Build(),
-		GetDatasetsMinimal: HandlerFor(h.DataProductsHandler.GetDatasetsMinimal).ResponseToJSON().Build(),
-		GetDataset:         HandlerFor(h.DataProductsHandler.GetDataset).ResponseToJSON().Build(),
+		GetDataProduct:     HandlerFor(h.DataProductsHandler.GetDataProduct).ResponseToJSON().Build(log),
+		CreateDataProduct:  HandlerFor(h.DataProductsHandler.CreateDataProduct).RequestFromJSON().ResponseToJSON().Build(log),
+		DeleteDataProduct:  HandlerFor(h.DataProductsHandler.DeleteDataProduct).ResponseToJSON().Build(log),
+		UpdateDataProduct:  HandlerFor(h.DataProductsHandler.UpdateDataProduct).RequestFromJSON().ResponseToJSON().Build(log),
+		GetDatasetsMinimal: HandlerFor(h.DataProductsHandler.GetDatasetsMinimal).ResponseToJSON().Build(log),
+		GetDataset:         HandlerFor(h.DataProductsHandler.GetDataset).ResponseToJSON().Build(log),
 		// FIXME: should perhaps not marshal the response
-		CreateDataset:                      HandlerFor(h.DataProductsHandler.CreateDataset).RequestFromJSON().ResponseToJSON().Build(),
-		UpdateDataset:                      HandlerFor(h.DataProductsHandler.UpdateDataset).RequestFromJSON().ResponseToJSON().Build(),
-		DeleteDataset:                      HandlerFor(h.DataProductsHandler.DeleteDataset).ResponseToJSON().Build(),
-		GetAccessiblePseudoDatasetsForUser: HandlerFor(h.DataProductsHandler.GetAccessiblePseudoDatasetsForUser).ResponseToJSON().Build(),
+		CreateDataset:                      HandlerFor(h.DataProductsHandler.CreateDataset).RequestFromJSON().ResponseToJSON().Build(log),
+		UpdateDataset:                      HandlerFor(h.DataProductsHandler.UpdateDataset).RequestFromJSON().ResponseToJSON().Build(log),
+		DeleteDataset:                      HandlerFor(h.DataProductsHandler.DeleteDataset).ResponseToJSON().Build(log),
+		GetAccessiblePseudoDatasetsForUser: HandlerFor(h.DataProductsHandler.GetAccessiblePseudoDatasetsForUser).ResponseToJSON().Build(log),
 
 		// Metabase endpoints
-		MapDataset: HandlerFor(h.MetabaseHandler.MapDataset).RequestFromJSON().ResponseToJSON().Build(),
+		MapDataset: HandlerFor(h.MetabaseHandler.MapDataset).RequestFromJSON().ResponseToJSON().Build(log),
 
 		// Access endpoints
-		GetAccessRequests:     HandlerFor(h.AccessHandler.GetAccessRequests).ResponseToJSON().Build(),
-		ProcessAccessRequest:  HandlerFor(h.AccessHandler.ProcessAccessRequest).ResponseToJSON().Build(),
-		CreateAccessRequest:   HandlerFor(h.AccessHandler.NewAccessRequest).RequestFromJSON().ResponseToJSON().Build(),
-		DeleteAccessRequest:   HandlerFor(h.AccessHandler.DeleteAccessRequest).ResponseToJSON().Build(),
-		UpdateAccessRequest:   HandlerFor(h.AccessHandler.UpdateAccessRequest).RequestFromJSON().ResponseToJSON().Build(),
-		GrantAccessToDataset:  HandlerFor(h.AccessHandler.GrantAccessToDataset).RequestFromJSON().ResponseToJSON().Build(),
-		RevokeAccessToDataset: HandlerFor(h.AccessHandler.RevokeAccessToDataset).ResponseToJSON().Build(),
+		GetAccessRequests:     HandlerFor(h.AccessHandler.GetAccessRequests).ResponseToJSON().Build(log),
+		ProcessAccessRequest:  HandlerFor(h.AccessHandler.ProcessAccessRequest).ResponseToJSON().Build(log),
+		CreateAccessRequest:   HandlerFor(h.AccessHandler.NewAccessRequest).RequestFromJSON().ResponseToJSON().Build(log),
+		DeleteAccessRequest:   HandlerFor(h.AccessHandler.DeleteAccessRequest).ResponseToJSON().Build(log),
+		UpdateAccessRequest:   HandlerFor(h.AccessHandler.UpdateAccessRequest).RequestFromJSON().ResponseToJSON().Build(log),
+		GrantAccessToDataset:  HandlerFor(h.AccessHandler.GrantAccessToDataset).RequestFromJSON().ResponseToJSON().Build(log),
+		RevokeAccessToDataset: HandlerFor(h.AccessHandler.RevokeAccessToDataset).ResponseToJSON().Build(log),
 
 		// Product areas endpoints
-		GetProductAreas:          HandlerFor(h.ProductAreasHandler.GetProductAreas).ResponseToJSON().Build(),
-		GetProductAreaWithAssets: HandlerFor(h.ProductAreasHandler.GetProductAreaWithAssets).ResponseToJSON().Build(),
+		GetProductAreas:          HandlerFor(h.ProductAreasHandler.GetProductAreas).ResponseToJSON().Build(log),
+		GetProductAreaWithAssets: HandlerFor(h.ProductAreasHandler.GetProductAreaWithAssets).ResponseToJSON().Build(log),
 
 		// BigQuery endpoints
-		GetBigQueryColumns:  HandlerFor(h.BigQueryHandler.GetBigQueryColumns).ResponseToJSON().Build(),
-		GetBigQueryTables:   HandlerFor(h.BigQueryHandler.GetBigQueryTables).ResponseToJSON().Build(),
-		GetBigQueryDatasets: HandlerFor(h.BigQueryHandler.GetBigQueryDatasets).ResponseToJSON().Build(),
-		SyncBigQueryTables:  HandlerFor(h.BigQueryHandler.SyncBigQueryTables).ResponseToJSON().Build(),
+		GetBigQueryColumns:  HandlerFor(h.BigQueryHandler.GetBigQueryColumns).ResponseToJSON().Build(log),
+		GetBigQueryTables:   HandlerFor(h.BigQueryHandler.GetBigQueryTables).ResponseToJSON().Build(log),
+		GetBigQueryDatasets: HandlerFor(h.BigQueryHandler.GetBigQueryDatasets).ResponseToJSON().Build(log),
+		SyncBigQueryTables:  HandlerFor(h.BigQueryHandler.SyncBigQueryTables).ResponseToJSON().Build(log),
 
 		// Search endpoint
-		Search: HandlerFor(h.SearchHandler.Search).ResponseToJSON().Build(),
+		Search: HandlerFor(h.SearchHandler.Search).ResponseToJSON().Build(log),
 
 		// User endpoint
-		GetUserData: HandlerFor(h.UserHandler.GetUserData).ResponseToJSON().Build(),
+		GetUserData: HandlerFor(h.UserHandler.GetUserData).ResponseToJSON().Build(log),
 
 		// Slack endpoint
-		IsValidSlackChannel: HandlerFor(h.SlackHandler.IsValidSlackChannel).ResponseToJSON().Build(),
+		IsValidSlackChannel: HandlerFor(h.SlackHandler.IsValidSlackChannel).ResponseToJSON().Build(log),
 
 		// Joinable views endpoint
-		CreateJoinableViews:     HandlerFor(h.JoinableViewsHandler.CreateJoinableViews).RequestFromJSON().ResponseToJSON().Build(),
-		GetJoinableViewsForUser: HandlerFor(h.JoinableViewsHandler.GetJoinableViewsForUser).ResponseToJSON().Build(),
-		GetJoinableView:         HandlerFor(h.JoinableViewsHandler.GetJoinableView).ResponseToJSON().Build(),
+		CreateJoinableViews:     HandlerFor(h.JoinableViewsHandler.CreateJoinableViews).RequestFromJSON().ResponseToJSON().Build(log),
+		GetJoinableViewsForUser: HandlerFor(h.JoinableViewsHandler.GetJoinableViewsForUser).ResponseToJSON().Build(log),
+		GetJoinableView:         HandlerFor(h.JoinableViewsHandler.GetJoinableView).ResponseToJSON().Build(log),
 
 		// Insight product endpoint
-		GetInsightProduct:    HandlerFor(h.InsightProductHandler.GetInsightProduct).ResponseToJSON().Build(),
-		CreateInsightProduct: HandlerFor(h.InsightProductHandler.CreateInsightProduct).RequestFromJSON().ResponseToJSON().Build(),
-		UpdateInsightProduct: HandlerFor(h.InsightProductHandler.UpdateInsightProduct).RequestFromJSON().ResponseToJSON().Build(),
-		DeleteInsightProduct: HandlerFor(h.InsightProductHandler.DeleteInsightProduct).ResponseToJSON().Build(),
+		GetInsightProduct:    HandlerFor(h.InsightProductHandler.GetInsightProduct).ResponseToJSON().Build(log),
+		CreateInsightProduct: HandlerFor(h.InsightProductHandler.CreateInsightProduct).RequestFromJSON().ResponseToJSON().Build(log),
+		UpdateInsightProduct: HandlerFor(h.InsightProductHandler.UpdateInsightProduct).RequestFromJSON().ResponseToJSON().Build(log),
+		DeleteInsightProduct: HandlerFor(h.InsightProductHandler.DeleteInsightProduct).ResponseToJSON().Build(log),
 
 		// Teamkatalogen endpoint
-		SearchTeamKatalogen: HandlerFor(h.TeamKatalogenHandler.SearchTeamKatalogen).ResponseToJSON().Build(),
+		SearchTeamKatalogen: HandlerFor(h.TeamKatalogenHandler.SearchTeamKatalogen).ResponseToJSON().Build(log),
 
 		// Polly endpoint
-		SearchPolly: HandlerFor(h.PollyHandler.SearchPolly).ResponseToJSON().Build(),
+		SearchPolly: HandlerFor(h.PollyHandler.SearchPolly).ResponseToJSON().Build(log),
 
 		// Keywords endpoint
-		GetKeywordsListSortedByPopularity: HandlerFor(h.KeywordsHandler.GetKeywordsListSortedByPopularity).ResponseToJSON().Build(),
-		UpdateKeywords:                    HandlerFor(h.KeywordsHandler.UpdateKeywords).RequestFromJSON().ResponseToJSON().Build(),
+		GetKeywordsListSortedByPopularity: HandlerFor(h.KeywordsHandler.GetKeywordsListSortedByPopularity).ResponseToJSON().Build(log),
+		UpdateKeywords:                    HandlerFor(h.KeywordsHandler.UpdateKeywords).RequestFromJSON().ResponseToJSON().Build(log),
 	}
 }
 

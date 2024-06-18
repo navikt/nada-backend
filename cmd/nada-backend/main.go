@@ -7,8 +7,11 @@ import (
 	apiclients "github.com/navikt/nada-backend/pkg/service/core/api"
 	"github.com/navikt/nada-backend/pkg/service/core/handlers"
 	"github.com/navikt/nada-backend/pkg/service/core/storage"
+	"github.com/rs/zerolog"
+	"github.com/rs/zerolog/pkgerrors"
 	"net"
 	"net/http"
+	"os"
 	"os/signal"
 	"syscall"
 	"time"
@@ -43,6 +46,10 @@ const (
 
 func main() {
 	flag.Parse()
+
+	zerolog.ErrorStackMarshaler = pkgerrors.MarshalStack
+
+	zlog := zerolog.New(os.Stdout).With().Timestamp().Logger()
 
 	log := logrus.StandardLogger()
 	log.SetFormatter(&logrus.JSONFormatter{})
@@ -94,7 +101,7 @@ func main() {
 	)
 	go teamProjectsUpdater.Run(ctx, TeamProjectsUpdateFrequency)
 
-	stores := storage.NewStores(repo)
+	stores := storage.NewStores(repo, cfg)
 	apiClients := apiclients.NewClients(cfg, log.WithField("subsystem", "api_clients"))
 	services, err := core.NewServices(cfg, stores, apiClients, teamProjectsUpdater.TeamProjectsMapping)
 	if err != nil {
@@ -160,7 +167,10 @@ func main() {
 		amplitude.New(cfg.AmplitudeAPIKey, log.WithField("subsystem", "amplitude")),
 	)
 
-	endpoints := handlers.NewEndpoints(h)
+	endpoints := handlers.NewEndpoints(
+		h,
+		zlog,
+	)
 
 	log.Infof("Listening on %s:%s", cfg.Server.Address, cfg.Server.Port)
 	auth.Init(repo.GetDB())

@@ -15,6 +15,7 @@ data:
       api_url: http://metabase/api
       credentials_path: /var/run/secrets/metabase/meta_creds.json
       gcp_project: # Loaded from env var GCP_TEAM_PROJECT_ID
+      databases_base_url: https://metabase.intern.nav.no/browse/databases
     slack:
       webhook_url: # Loaded from env var NADA_SLACK_WEBHOOK_URL
       token: # Loaded from env var NADA_SLACK_TOKEN

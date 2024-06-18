@@ -142,11 +142,12 @@ func (s Slack) Validate() error {
 }
 
 type Metabase struct {
-	Username        string `yaml:"username"`
-	Password        string `yaml:"password"`
-	APIURL          string `yaml:"api_url"`
-	GCPProject      string `yaml:"gcp_project"`
-	CredentialsPath string `yaml:"credentials_path"`
+	Username         string `yaml:"username"`
+	Password         string `yaml:"password"`
+	APIURL           string `yaml:"api_url"`
+	GCPProject       string `yaml:"gcp_project"`
+	CredentialsPath  string `yaml:"credentials_path"`
+	DatabasesBaseURL string `yaml:"databases_base_url"`
 }
 
 func (m Metabase) Validate() error {
@@ -155,6 +156,7 @@ func (m Metabase) Validate() error {
 		validation.Field(&m.Password, validation.Required),
 		validation.Field(&m.GCPProject, validation.Required),
 		validation.Field(&m.APIURL, validation.Required, is.URL),
+		validation.Field(&m.DatabasesBaseURL, validation.Required, is.URL),
 	)
 }
 
