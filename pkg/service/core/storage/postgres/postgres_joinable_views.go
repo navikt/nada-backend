@@ -2,25 +2,27 @@ package postgres
 
 import (
 	"context"
-	"fmt"
+	"database/sql"
+	"errors"
 	"github.com/google/uuid"
 	"github.com/navikt/nada-backend/pkg/auth"
 	"github.com/navikt/nada-backend/pkg/database"
 	"github.com/navikt/nada-backend/pkg/database/gensql"
+	"github.com/navikt/nada-backend/pkg/errs"
 	"github.com/navikt/nada-backend/pkg/service"
 	"time"
 )
+
+var _ service.JoinableViewsStorage = &joinableViewStorage{}
 
 type joinableViewStorage struct {
 	db *database.Repo
 }
 
-var _ service.JoinableViewsStorage = &joinableViewStorage{}
-
 func (s *joinableViewStorage) GetJoinableViewsToBeDeletedWithRefDatasource(ctx context.Context) ([]service.JoinableViewToBeDeletedWithRefDatasource, error) {
 	rows, err := s.db.Querier.GetJoinableViewsToBeDeletedWithRefDatasource(ctx)
 	if err != nil {
-		return nil, err
+		return nil, errs.E(errs.Database, err)
 	}
 
 	joinableViews := make([]service.JoinableViewToBeDeletedWithRefDatasource, 0, len(rows))
@@ -40,7 +42,7 @@ func (s *joinableViewStorage) GetJoinableViewsToBeDeletedWithRefDatasource(ctx c
 func (s *joinableViewStorage) GetJoinableViewsWithReference(ctx context.Context) ([]service.JoinableViewWithReference, error) {
 	rows, err := s.db.Querier.GetJoinableViewsWithReference(ctx)
 	if err != nil {
-		return nil, err
+		return nil, errs.E(errs.Database, err)
 	}
 
 	joinableViews := make([]service.JoinableViewWithReference, 0, len(rows))
@@ -63,18 +65,18 @@ func (s *joinableViewStorage) GetJoinableViewsWithReference(ctx context.Context)
 func (s *joinableViewStorage) SetJoinableViewDeleted(ctx context.Context, id uuid.UUID) error {
 	err := s.db.Querier.SetJoinableViewDeleted(ctx, id)
 	if err != nil {
-		return err
+		return errs.E(errs.Database, err)
 	}
 
 	return nil
 }
 
 func (s *joinableViewStorage) GetJoinableViewsForOwner(ctx context.Context) ([]service.JoinableViewForOwner, error) {
-	// FIXME: Need to changes this magic stuff
+	// FIXME: move this up the call chain
 	user := auth.GetUser(ctx)
 	joinableViewsDB, err := s.db.Querier.GetJoinableViewsForOwner(ctx, user.Email)
 	if err != nil {
-		return nil, fmt.Errorf("get joinable views for owner: %w", err)
+		return nil, errs.E(errs.Database, err)
 	}
 
 	views := make([]service.JoinableViewForOwner, 0, len(joinableViewsDB))
@@ -100,7 +102,7 @@ func (s *joinableViewStorage) GetJoinableViewsForReferenceAndUser(ctx context.Co
 		PseudoDatasetID: pseudoDatasetID,
 	})
 	if err != nil {
-		return nil, err
+		return nil, errs.E(errs.Database, err)
 	}
 
 	views := make([]service.JoinableViewForReferenceAndUser, 0, len(joinableViews))
@@ -116,14 +118,15 @@ func (s *joinableViewStorage) GetJoinableViewsForReferenceAndUser(ctx context.Co
 }
 
 func (s *joinableViewStorage) GetJoinableViewWithDataset(ctx context.Context, id string) ([]service.JoinableViewWithDataset, error) {
+	// FIXME: move this up the call chain
 	joinableViewID, err := uuid.Parse(id)
 	if err != nil {
-		return nil, fmt.Errorf("parse joinable view id: %w", err)
+		return nil, errs.E(errs.InvalidRequest, err)
 	}
 
 	joinableViewDatasets, err := s.db.Querier.GetJoinableViewWithDataset(ctx, joinableViewID)
 	if err != nil {
-		return nil, fmt.Errorf("get joinable view with dataset: %w", err)
+		return nil, errs.E(errs.Database, err)
 	}
 
 	views := make([]service.JoinableViewWithDataset, 0, len(joinableViewDatasets))
@@ -148,7 +151,7 @@ func (s *joinableViewStorage) GetJoinableViewWithDataset(ctx context.Context, id
 func (s *joinableViewStorage) CreateJoinableViewsDB(ctx context.Context, name, owner string, expires *time.Time, datasourceIDs []uuid.UUID) (string, error) {
 	tx, err := s.db.GetDB().Begin()
 	if err != nil {
-		return "", err
+		return "", errs.E(errs.Database, err)
 	}
 	defer tx.Rollback()
 
@@ -161,25 +164,30 @@ func (s *joinableViewStorage) CreateJoinableViewsDB(ctx context.Context, name, o
 		Expires: ptrToNullTime(expires),
 	})
 	if err != nil {
-		return "", err
-	}
-	for _, bqid := range datasourceIDs {
-		if err != nil {
-			return "", err
+		if errors.Is(err, sql.ErrNoRows) {
+			return "", errs.E(errs.NotExist, err)
 		}
 
+		return "", errs.E(errs.Database, err)
+	}
+
+	for _, bqid := range datasourceIDs {
 		_, err = q.CreateJoinableViewsDatasource(ctx, gensql.CreateJoinableViewsDatasourceParams{
 			JoinableViewID: jv.ID,
 			DatasourceID:   bqid,
 		})
-
 		if err != nil {
-			return "", err
+			if errors.Is(err, sql.ErrNoRows) {
+				return "", errs.E(errs.NotExist, err)
+			}
+
+			return "", errs.E(errs.Database, err)
 		}
 	}
 
-	if err := tx.Commit(); err != nil {
-		return "", err
+	err = tx.Commit()
+	if err != nil {
+		return "", errs.E(errs.Database, err)
 	}
 
 	return jv.ID.String(), nil

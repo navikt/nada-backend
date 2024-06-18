@@ -4,10 +4,10 @@ import (
 	"context"
 	"database/sql"
 	"errors"
-	"fmt"
 	"github.com/google/uuid"
 	"github.com/navikt/nada-backend/pkg/database"
 	"github.com/navikt/nada-backend/pkg/database/gensql"
+	"github.com/navikt/nada-backend/pkg/errs"
 	"github.com/navikt/nada-backend/pkg/service"
 )
 
@@ -20,7 +20,7 @@ type insightProductStorage struct {
 func (s *insightProductStorage) DeleteInsightProduct(ctx context.Context, id uuid.UUID) error {
 	err := s.db.Querier.DeleteInsightProduct(ctx, id)
 	if err != nil {
-		return err
+		return errs.E(errs.Database, err)
 	}
 
 	return nil
@@ -39,7 +39,11 @@ func (s *insightProductStorage) CreateInsightProduct(ctx context.Context, creato
 		Link:             input.Link,
 	})
 	if err != nil {
-		return nil, err
+		if errors.Is(err, sql.ErrNoRows) {
+			return nil, errs.E(errs.NotExist, err)
+		}
+
+		return nil, errs.E(errs.Database, err)
 	}
 
 	return s.GetInsightProductWithTeamkatalogen(ctx, insightProductSQL.ID)
@@ -57,7 +61,11 @@ func (s *insightProductStorage) UpdateInsightProduct(ctx context.Context, id uui
 		Link:             input.Link,
 	})
 	if err != nil {
-		return nil, fmt.Errorf("failed to update insight product: %w", err)
+		if errors.Is(err, sql.ErrNoRows) {
+			return nil, errs.E(errs.NotExist, err)
+		}
+
+		return nil, errs.E(errs.Database, err)
 	}
 
 	return s.GetInsightProductWithTeamkatalogen(ctx, dbProduct.ID)
@@ -65,10 +73,11 @@ func (s *insightProductStorage) UpdateInsightProduct(ctx context.Context, id uui
 
 func (s *insightProductStorage) GetInsightProductWithTeamkatalogen(ctx context.Context, id uuid.UUID) (*service.InsightProduct, error) {
 	raw, err := s.db.Querier.GetInsightProductWithTeamkatalogen(ctx, id)
-	if errors.Is(err, sql.ErrNoRows) {
-		return nil, nil
-	}
 	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return nil, errs.E(errs.NotExist, err)
+		}
+
 		return nil, err
 	}
 
@@ -77,11 +86,12 @@ func (s *insightProductStorage) GetInsightProductWithTeamkatalogen(ctx context.C
 
 func (s *insightProductStorage) GetInsightProductsByGroups(ctx context.Context, groups []string) ([]*service.InsightProduct, error) {
 	raw, err := s.db.Querier.GetInsightProductsByGroups(ctx, groups)
-	if errors.Is(err, sql.ErrNoRows) {
-		return nil, nil
-	}
 	if err != nil {
-		return nil, err
+		if errors.Is(err, sql.ErrNoRows) {
+			return nil, nil
+		}
+
+		return nil, errs.E(errs.Database, err)
 	}
 
 	insightProducts := make([]*service.InsightProduct, len(raw))
@@ -94,11 +104,12 @@ func (s *insightProductStorage) GetInsightProductsByGroups(ctx context.Context, 
 
 func (s *insightProductStorage) GetInsightProductsByTeamID(ctx context.Context, teamIDs []string) ([]*service.InsightProduct, error) {
 	raw, err := s.db.Querier.GetInsightProductsByProductArea(ctx, teamIDs)
-	if err == sql.ErrNoRows {
-		return nil, nil
-	}
 	if err != nil {
-		return nil, err
+		if errors.Is(err, sql.ErrNoRows) {
+			return nil, nil
+		}
+
+		return nil, errs.E(errs.Database, err)
 	}
 
 	insightProducts := make([]*service.InsightProduct, len(raw))
@@ -112,7 +123,11 @@ func (s *insightProductStorage) GetInsightProductsByTeamID(ctx context.Context, 
 func (s *insightProductStorage) GetInsightProductsNumberByTeam(ctx context.Context, teamID string) (int64, error) {
 	n, err := s.db.Querier.GetInsightProductsNumberByTeam(ctx, ptrToNullString(&teamID))
 	if err != nil {
-		return 0, fmt.Errorf("failed to get insight products number: %w", err)
+		if errors.Is(err, sql.ErrNoRows) {
+			return 0, nil
+		}
+
+		return 0, errs.E(errs.Database, err)
 	}
 
 	return n, nil

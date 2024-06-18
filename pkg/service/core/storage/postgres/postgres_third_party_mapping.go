@@ -2,10 +2,10 @@ package postgres
 
 import (
 	"context"
-	"fmt"
 	"github.com/google/uuid"
 	"github.com/navikt/nada-backend/pkg/database"
 	"github.com/navikt/nada-backend/pkg/database/gensql"
+	"github.com/navikt/nada-backend/pkg/errs"
 )
 
 type thirdPartyMappingStorage struct {
@@ -18,7 +18,7 @@ func (s *thirdPartyMappingStorage) MapDataset(ctx context.Context, datasetID str
 		Services:  services,
 	})
 	if err != nil {
-		return fmt.Errorf("mapping dataset: %w", err)
+		return errs.E(errs.Database, err)
 	}
 
 	return nil

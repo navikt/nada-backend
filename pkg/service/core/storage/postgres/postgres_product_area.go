@@ -4,10 +4,10 @@ import (
 	"context"
 	"database/sql"
 	"errors"
-	"fmt"
 	"github.com/google/uuid"
 	"github.com/navikt/nada-backend/pkg/database"
 	"github.com/navikt/nada-backend/pkg/database/gensql"
+	"github.com/navikt/nada-backend/pkg/errs"
 	"github.com/navikt/nada-backend/pkg/service"
 )
 
@@ -20,7 +20,7 @@ type productAreaStorage struct {
 func (s *productAreaStorage) UpsertProductAreaAndTeam(ctx context.Context, pas []*service.UpsertProductAreaRequest, teams []*service.UpsertTeamRequest) error {
 	tx, err := s.db.GetDB().Begin()
 	if err != nil {
-		return err
+		return errs.E(errs.Database, err)
 	}
 	defer tx.Rollback()
 
@@ -29,7 +29,7 @@ func (s *productAreaStorage) UpsertProductAreaAndTeam(ctx context.Context, pas [
 	for _, pa := range pas {
 		paUUID, err := uuid.Parse(pa.ID)
 		if err != nil {
-			return fmt.Errorf("failed to parse product area UUID: %w", err)
+			return errs.E(errs.Internal, err, errs.Parameter("product_area_id"))
 		}
 
 		err = q.UpsertProductArea(ctx, gensql.UpsertProductAreaParams{
@@ -40,14 +40,14 @@ func (s *productAreaStorage) UpsertProductAreaAndTeam(ctx context.Context, pas [
 			},
 		})
 		if err != nil {
-			return err
+			return errs.E(errs.Database, err)
 		}
 	}
 
 	for _, team := range teams {
 		teamUUID, err := uuid.Parse(team.ID)
 		if err != nil {
-			return fmt.Errorf("failed to parse team UUID: %w", err)
+			return errs.E(errs.Internal, err, errs.Parameter("team_id"))
 		}
 
 		err = q.UpsertTeam(context.Background(), gensql.UpsertTeamParams{
@@ -71,7 +71,7 @@ func (s *productAreaStorage) UpsertProductAreaAndTeam(ctx context.Context, pas [
 func (s *productAreaStorage) GetDashboard(ctx context.Context, id string) (*service.Dashboard, error) {
 	dashboard, err := s.db.Querier.GetDashboard(ctx, id)
 	if err != nil && !errors.Is(err, sql.ErrNoRows) {
-		return nil, fmt.Errorf("failed to get dashboard: %w", err)
+		return nil, errs.E(errs.Database, err)
 	}
 
 	return &service.Dashboard{
@@ -83,15 +83,19 @@ func (s *productAreaStorage) GetDashboard(ctx context.Context, id string) (*serv
 func (s *productAreaStorage) GetProductArea(ctx context.Context, paID string) (*service.ProductArea, error) {
 	pa, err := s.db.Querier.GetProductArea(ctx, uuid.MustParse(paID))
 	if err != nil {
-		return nil, err
+		if errors.Is(err, sql.ErrNoRows) {
+			return nil, errs.E(errs.NotExist, err, errs.Parameter("product_area_id"))
+		}
+
+		return nil, errs.E(errs.Database, err)
 	}
 
 	teams, err := s.db.Querier.GetTeamsInProductArea(ctx, uuid.NullUUID{
 		UUID:  pa.ID,
 		Valid: true,
 	})
-	if err != nil {
-		return nil, err
+	if err != nil && !errors.Is(err, sql.ErrNoRows) {
+		return nil, errs.E(errs.Database, err)
 	}
 
 	paTeams := make([]*service.Team, 0)
@@ -123,13 +127,13 @@ func (s *productAreaStorage) GetProductArea(ctx context.Context, paID string) (*
 func (s *productAreaStorage) GetProductAreas(ctx context.Context) ([]*service.ProductArea, error) {
 	pas, err := s.db.Querier.GetProductAreas(ctx)
 	if err != nil {
-		return nil, err
+		return nil, errs.E(errs.Database, err)
 	}
 
 	// FIXME: not optimal, but unsure how else to do this
 	teams, err := s.db.Querier.GetAllTeams(ctx)
 	if err != nil {
-		return nil, err
+		return nil, errs.E(errs.Database, err)
 	}
 
 	productAreas := make([]*service.ProductArea, 0)

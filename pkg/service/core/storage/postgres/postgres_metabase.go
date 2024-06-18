@@ -3,10 +3,11 @@ package postgres
 import (
 	"context"
 	"database/sql"
-	"fmt"
+	"errors"
 	"github.com/google/uuid"
 	"github.com/navikt/nada-backend/pkg/database"
 	"github.com/navikt/nada-backend/pkg/database/gensql"
+	"github.com/navikt/nada-backend/pkg/errs"
 	"github.com/navikt/nada-backend/pkg/service"
 	"time"
 )
@@ -29,10 +30,15 @@ func NewMetabaseStorage(db *database.Repo) *metabaseStorage {
 }
 
 func (s *metabaseStorage) SetPermissionGroupMetabaseMetadata(ctx context.Context, datasetID uuid.UUID, groupID int) error {
-	return s.db.Querier.SetPermissionGroupMetabaseMetadata(ctx, gensql.SetPermissionGroupMetabaseMetadataParams{
+	err := s.db.Querier.SetPermissionGroupMetabaseMetadata(ctx, gensql.SetPermissionGroupMetabaseMetadataParams{
 		ID:        sql.NullInt32{Valid: true, Int32: int32(groupID)},
 		DatasetID: datasetID,
 	})
+	if err != nil {
+		return errs.E(errs.Database, err)
+	}
+
+	return nil
 }
 
 func (s *metabaseStorage) CreateMetadata(ctx context.Context, metadata *service.MetabaseMetadata) error {
@@ -52,7 +58,7 @@ func (s *metabaseStorage) CreateMetadata(ctx context.Context, metadata *service.
 
 	err := s.db.Querier.CreateMetabaseMetadata(ctx, params)
 	if err != nil {
-		return fmt.Errorf("create metabase metadata: %w", err)
+		return errs.E(errs.Database, err)
 	}
 
 	return nil
@@ -62,7 +68,11 @@ func (s *metabaseStorage) GetMetadata(ctx context.Context, datasetID uuid.UUID, 
 	if includeDeleted {
 		meta, err := s.db.Querier.GetMetabaseMetadataWithDeleted(ctx, datasetID)
 		if err != nil {
-			return nil, fmt.Errorf("get metabase metadata with deleted: %w", err)
+			if errors.Is(err, sql.ErrNoRows) {
+				return nil, errs.E(errs.NotExist, err)
+			}
+
+			return nil, errs.E(errs.Database, err)
 		}
 
 		return ToLocal(meta).Convert(), nil
@@ -70,7 +80,11 @@ func (s *metabaseStorage) GetMetadata(ctx context.Context, datasetID uuid.UUID, 
 
 	meta, err := s.db.Querier.GetMetabaseMetadata(ctx, datasetID)
 	if err != nil {
-		return nil, fmt.Errorf("get metabase metadata: %w", err)
+		if errors.Is(err, sql.ErrNoRows) {
+			return nil, errs.E(errs.NotExist, err)
+		}
+
+		return nil, errs.E(errs.Database, err)
 	}
 
 	return ToLocal(meta).Convert(), nil
@@ -79,7 +93,7 @@ func (s *metabaseStorage) GetMetadata(ctx context.Context, datasetID uuid.UUID, 
 func (s *metabaseStorage) GetAllMetadata(ctx context.Context) ([]*service.MetabaseMetadata, error) {
 	mbs, err := s.db.Querier.GetAllMetabaseMetadata(ctx)
 	if err != nil {
-		return nil, fmt.Errorf("get all metabase metadata: %w", err)
+		return nil, errs.E(errs.Database, err)
 	}
 
 	mbMetas := make([]*service.MetabaseMetadata, len(mbs))
@@ -96,7 +110,7 @@ func (s *metabaseStorage) GetOpenTablesInSameBigQueryDataset(ctx context.Context
 		Dataset:   dataset,
 	})
 	if err != nil {
-		return nil, fmt.Errorf("get open metabase tables in same bigquery dataset: %w", err)
+		return nil, errs.E(errs.Database, err)
 	}
 
 	return tables, nil
@@ -108,7 +122,7 @@ func (s *metabaseStorage) SetPermissionsGroup(ctx context.Context, datasetID uui
 		DatasetID: datasetID,
 	})
 	if err != nil {
-		return fmt.Errorf("set permission group metabase metadata: %w", err)
+		return errs.E(errs.Database, err)
 	}
 
 	return nil
@@ -117,7 +131,7 @@ func (s *metabaseStorage) SetPermissionsGroup(ctx context.Context, datasetID uui
 func (s *metabaseStorage) SoftDeleteMetadata(ctx context.Context, datasetID uuid.UUID) error {
 	err := s.db.Querier.SoftDeleteMetabaseMetadata(ctx, datasetID)
 	if err != nil {
-		return fmt.Errorf("soft delete metabase metadata: %w", err)
+		return errs.E(errs.Database, err)
 	}
 
 	return nil
@@ -126,7 +140,7 @@ func (s *metabaseStorage) SoftDeleteMetadata(ctx context.Context, datasetID uuid
 func (s *metabaseStorage) RestoreMetadata(ctx context.Context, datasetID uuid.UUID) error {
 	err := s.db.Querier.RestoreMetabaseMetadata(ctx, datasetID)
 	if err != nil {
-		return fmt.Errorf("restore metabase metadata: %w", err)
+		return errs.E(errs.Database, err)
 	}
 
 	return nil
@@ -135,7 +149,7 @@ func (s *metabaseStorage) RestoreMetadata(ctx context.Context, datasetID uuid.UU
 func (s *metabaseStorage) DeleteMetadata(ctx context.Context, datasetID uuid.UUID) error {
 	err := s.db.Querier.DeleteMetabaseMetadata(ctx, datasetID)
 	if err != nil {
-		return fmt.Errorf("delete metabase metadata: %w", err)
+		return errs.E(errs.Database, err)
 	}
 
 	return nil
@@ -144,19 +158,23 @@ func (s *metabaseStorage) DeleteMetadata(ctx context.Context, datasetID uuid.UUI
 func (s *metabaseStorage) DeleteRestrictedMetadata(ctx context.Context, datasetID uuid.UUID) error {
 	mapping, err := s.db.Querier.GetDatasetMappings(ctx, datasetID)
 	if err != nil {
-		return fmt.Errorf("get dataset mappings: %w", err)
+		if errors.Is(err, sql.ErrNoRows) {
+			return errs.E(errs.NotExist, err)
+		}
+
+		return errs.E(errs.Database, err)
 	}
 
 	tx, err := s.db.GetDB().Begin()
 	if err != nil {
-		return fmt.Errorf("begin transaction: %w", err)
+		return errs.E(errs.Database, err)
 	}
 	defer tx.Rollback()
 
 	querier := s.db.Querier.WithTx(tx)
 	err = querier.DeleteMetabaseMetadata(ctx, datasetID)
 	if err != nil {
-		return fmt.Errorf("delete metabase metadata: %w", err)
+		return errs.E(errs.Database, err)
 	}
 
 	err = querier.MapDataset(ctx, gensql.MapDatasetParams{
@@ -164,11 +182,12 @@ func (s *metabaseStorage) DeleteRestrictedMetadata(ctx context.Context, datasetI
 		Services:  mapping.Services,
 	})
 	if err != nil {
-		return fmt.Errorf("map dataset: %w", err)
+		return errs.E(errs.Database, err)
 	}
 
-	if err := tx.Commit(); err != nil {
-		return fmt.Errorf("commit transaction: %w", err)
+	err = tx.Commit()
+	if err != nil {
+		return errs.E(errs.Database, err)
 	}
 
 	return nil

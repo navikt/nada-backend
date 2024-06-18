@@ -2,8 +2,10 @@ package postgres
 
 import (
 	"context"
-	"fmt"
+	"database/sql"
+	"errors"
 	"github.com/navikt/nada-backend/pkg/database"
+	"github.com/navikt/nada-backend/pkg/errs"
 	"github.com/navikt/nada-backend/pkg/service"
 )
 
@@ -16,7 +18,11 @@ type tokenStorage struct {
 func (s *tokenStorage) GetNadaToken(ctx context.Context, team string) (string, error) {
 	token, err := s.db.Querier.GetNadaToken(ctx, team)
 	if err != nil {
-		return "", fmt.Errorf("failed to get nada token: %w", err)
+		if errors.Is(err, sql.ErrNoRows) {
+			return "", errs.E(errs.NotExist, err)
+		}
+
+		return "", errs.E(errs.Database, err)
 	}
 
 	return token.String(), nil
@@ -25,7 +31,7 @@ func (s *tokenStorage) GetNadaToken(ctx context.Context, team string) (string, e
 func (s *tokenStorage) RotateNadaToken(ctx context.Context, team string) error {
 	err := s.db.Querier.RotateNadaToken(ctx, team)
 	if err != nil {
-		return fmt.Errorf("failed to rotate nada token: %w", err)
+		return errs.E(errs.Database, err)
 	}
 
 	return nil
@@ -34,7 +40,7 @@ func (s *tokenStorage) RotateNadaToken(ctx context.Context, team string) error {
 func (s *tokenStorage) GetNadaTokensForTeams(ctx context.Context, teams []string) ([]service.NadaToken, error) {
 	rawTokens, err := s.db.Querier.GetNadaTokensForTeams(ctx, teams)
 	if err != nil {
-		return nil, err
+		return nil, errs.E(errs.Database, err)
 	}
 
 	tokens := make([]service.NadaToken, len(rawTokens))
@@ -51,7 +57,7 @@ func (s *tokenStorage) GetNadaTokensForTeams(ctx context.Context, teams []string
 func (s *tokenStorage) GetNadaTokens(ctx context.Context) (map[string]string, error) {
 	rawTokens, err := s.db.Querier.GetNadaTokens(ctx)
 	if err != nil {
-		return nil, err
+		return nil, errs.E(errs.Database, err)
 	}
 
 	tokens := map[string]string{}

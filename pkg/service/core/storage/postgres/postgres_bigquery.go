@@ -5,10 +5,10 @@ import (
 	"database/sql"
 	"encoding/json"
 	"errors"
-	"fmt"
 	"github.com/google/uuid"
 	"github.com/navikt/nada-backend/pkg/database"
 	"github.com/navikt/nada-backend/pkg/database/gensql"
+	"github.com/navikt/nada-backend/pkg/errs"
 	"github.com/navikt/nada-backend/pkg/service"
 	"github.com/sqlc-dev/pqtype"
 	"strings"
@@ -30,7 +30,7 @@ func (s *bigQueryStorage) UpdateBigqueryDatasource(ctx context.Context, input se
 		PseudoColumns: input.PseudoColumns,
 	})
 	if err != nil {
-		return err
+		return errs.E(errs.Database, err)
 	}
 
 	return nil
@@ -39,10 +39,10 @@ func (s *bigQueryStorage) UpdateBigqueryDatasource(ctx context.Context, input se
 func (s *bigQueryStorage) GetPseudoDatasourcesToDelete(ctx context.Context) ([]*service.BigQuery, error) {
 	rows, err := s.db.Querier.GetPseudoDatasourcesToDelete(ctx)
 	if err != nil {
-		return nil, err
+		return nil, errs.E(errs.Database, err)
 	}
 
-	pseudoViews := []*service.BigQuery{}
+	var pseudoViews []*service.BigQuery
 	for _, d := range rows {
 		pseudoViews = append(pseudoViews, &service.BigQuery{
 			ID:            d.ID,
@@ -57,13 +57,18 @@ func (s *bigQueryStorage) GetPseudoDatasourcesToDelete(ctx context.Context) ([]*
 }
 
 func (s *bigQueryStorage) UpdateBigqueryDatasourceMissing(ctx context.Context, datasetID uuid.UUID) error {
-	return s.db.Querier.UpdateBigqueryDatasourceMissing(ctx, datasetID)
+	err := s.db.Querier.UpdateBigqueryDatasourceMissing(ctx, datasetID)
+	if err != nil {
+		return errs.E(errs.Database, err)
+	}
+
+	return nil
 }
 
 func (s *bigQueryStorage) UpdateBigqueryDatasourceSchema(ctx context.Context, datasetID uuid.UUID, meta service.BigqueryMetadata) error {
 	schemaJSON, err := json.Marshal(meta.Schema.Columns)
 	if err != nil {
-		return fmt.Errorf("marshalling schema: %w", err)
+		return errs.E(errs.InvalidRequest, err)
 	}
 
 	err = s.db.Querier.UpdateBigqueryDatasourceSchema(ctx, gensql.UpdateBigqueryDatasourceSchemaParams{
@@ -78,7 +83,7 @@ func (s *bigQueryStorage) UpdateBigqueryDatasourceSchema(ctx context.Context, da
 		DatasetID:     datasetID,
 	})
 	if err != nil {
-		return fmt.Errorf("writing metadata to database: %w", err)
+		return errs.E(errs.Database, err)
 	}
 
 	return nil
@@ -87,11 +92,7 @@ func (s *bigQueryStorage) UpdateBigqueryDatasourceSchema(ctx context.Context, da
 func (s *bigQueryStorage) GetBigqueryDatasources(ctx context.Context) ([]*service.BigQuery, error) {
 	bqs, err := s.db.Querier.GetBigqueryDatasources(ctx)
 	if err != nil {
-		if errors.Is(err, sql.ErrNoRows) {
-			return nil, nil
-		}
-
-		return nil, fmt.Errorf("getting bigquery datasources: %w", err)
+		return nil, errs.E(errs.Database, err)
 	}
 
 	ret := make([]*service.BigQuery, len(bqs))
@@ -128,10 +129,10 @@ func (s *bigQueryStorage) GetBigqueryDatasource(ctx context.Context, datasetID u
 	})
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
-			return nil, fmt.Errorf("getting bigquery datasource: %w", err)
+			return nil, errs.E(errs.NotExist, err)
 		}
 
-		return nil, fmt.Errorf("getting bigquery datasource: %w", err)
+		return nil, errs.E(errs.Database, err)
 	}
 
 	piiTags := "{}"

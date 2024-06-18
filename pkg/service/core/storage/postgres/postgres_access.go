@@ -9,24 +9,27 @@ import (
 	"github.com/navikt/nada-backend/pkg/auth"
 	"github.com/navikt/nada-backend/pkg/database"
 	"github.com/navikt/nada-backend/pkg/database/gensql"
+	"github.com/navikt/nada-backend/pkg/errs"
 	"github.com/navikt/nada-backend/pkg/service"
 	"strings"
 	"time"
 )
+
+var _ service.AccessStorage = &accessStorage{}
 
 type accessStorage struct {
 	db *database.Repo
 }
 
 func (s *accessStorage) ListAccessRequestsForOwner(ctx context.Context, owner []string) ([]*service.AccessRequest, error) {
-	accessRequestsSQL, err := s.db.Querier.ListAccessRequestsForOwner(ctx, owner)
-	if err != nil && !errors.Is(err, sql.ErrNoRows) {
-		return nil, fmt.Errorf("list access requests for owner: %w", err)
+	accessRequest, err := s.db.Querier.ListAccessRequestsForOwner(ctx, owner)
+	if err != nil {
+		return nil, errs.E(errs.Database, err, errs.Parameter("owner"))
 	}
 
-	accessRequests, err := AccessRequestsFromSQL(accessRequestsSQL)
+	accessRequests, err := accessRequestsFromSQL(accessRequest)
 	if err != nil {
-		return nil, fmt.Errorf("access requests from sql: %w", err)
+		return nil, errs.E(errs.Internal, err)
 	}
 
 	return accessRequests, nil
@@ -35,7 +38,7 @@ func (s *accessStorage) ListAccessRequestsForOwner(ctx context.Context, owner []
 func (s *accessStorage) GetUnrevokedExpiredAccess(ctx context.Context) ([]*service.Access, error) {
 	expired, err := s.db.Querier.ListUnrevokedExpiredAccessEntries(ctx)
 	if err != nil {
-		return nil, err
+		return nil, errs.E(errs.Database, err)
 	}
 
 	var ret []*service.Access
@@ -46,12 +49,10 @@ func (s *accessStorage) GetUnrevokedExpiredAccess(ctx context.Context) ([]*servi
 	return ret, nil
 }
 
-var _ service.AccessStorage = &accessStorage{}
-
 func (s *accessStorage) ListActiveAccessToDataset(ctx context.Context, datasetID uuid.UUID) ([]*service.Access, error) {
 	access, err := s.db.Querier.ListActiveAccessToDataset(ctx, datasetID)
 	if err != nil {
-		return nil, fmt.Errorf("list active access to dataset: %w", err)
+		return nil, errs.E(errs.Database, err, errs.Parameter("datasetID"))
 	}
 
 	var ret []*service.Access
@@ -64,13 +65,13 @@ func (s *accessStorage) ListActiveAccessToDataset(ctx context.Context, datasetID
 
 func (s *accessStorage) ListAccessRequestsForDataset(ctx context.Context, datasetID uuid.UUID) ([]*service.AccessRequest, error) {
 	accessRequestsSQL, err := s.db.Querier.ListAccessRequestsForDataset(ctx, datasetID)
-	if err != nil && !errors.Is(err, sql.ErrNoRows) {
-		return nil, fmt.Errorf("list access requests for dataset: %w", err)
+	if err != nil {
+		return nil, errs.E(errs.Database, err, errs.Parameter("datasetID"))
 	}
 
-	accessRequests, err := AccessRequestsFromSQL(accessRequestsSQL)
+	accessRequests, err := accessRequestsFromSQL(accessRequestsSQL)
 	if err != nil {
-		return nil, fmt.Errorf("access requests from sql: %w", err)
+		return nil, errs.E(errs.Internal, err)
 	}
 
 	return accessRequests, nil
@@ -85,41 +86,57 @@ func (s *accessStorage) CreateAccessRequestForDataset(ctx context.Context, datas
 		PollyDocumentationID: pollyDocumentationID,
 	})
 	if err != nil {
-		return nil, fmt.Errorf("create access request for dataset: %w", err)
+		if errors.Is(err, sql.ErrNoRows) {
+			return nil, errs.E(errs.NotExist, err, errs.Parameter("datasetID"))
+		}
+
+		return nil, errs.E(errs.Database, err)
 	}
 
-	return AccessRequestFromSQL(requestSQL)
+	ar, err := accessRequestFromSQL(requestSQL)
+	if err != nil {
+		return nil, errs.E(errs.Internal, err)
+	}
+
+	return ar, nil
 }
 
 func (s *accessStorage) GetAccessRequest(ctx context.Context, accessRequestID string) (*service.AccessRequest, error) {
-	accessRequestUUID, err := uuid.Parse(accessRequestID)
+	id, err := uuid.Parse(accessRequestID)
 	if err != nil {
-		return nil, fmt.Errorf("parsing access request id: %w", err)
+		return nil, errs.E(errs.Validation, err, errs.Parameter("accessRequestID"))
 	}
 
-	accessRequestsSQL, err := s.db.Querier.GetAccessRequest(ctx, accessRequestUUID)
-	if errors.Is(err, sql.ErrNoRows) {
-		return nil, fmt.Errorf("get access request: %w", err)
-	} else if err != nil {
-		return nil, fmt.Errorf("get access request: %w", err)
+	accessRequestsSQL, err := s.db.Querier.GetAccessRequest(ctx, id)
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return nil, errs.E(errs.NotExist, err, errs.Parameter("accessRequestID"))
+		}
+
+		return nil, errs.E(errs.Database, err)
 	}
 
-	accessRequest, err := AccessRequestFromSQL(accessRequestsSQL)
+	accessRequest, err := accessRequestFromSQL(accessRequestsSQL)
 	if err != nil {
-		return nil, fmt.Errorf("access request from sql: %w", err)
+		return nil, errs.E(errs.Internal, err)
 	}
 
 	return accessRequest, nil
 }
 
 func (s *accessStorage) DeleteAccessRequest(ctx context.Context, accessRequestID string) error {
-	accessRequestUUID, err := uuid.Parse(accessRequestID)
+	id, err := uuid.Parse(accessRequestID)
 	if err != nil {
-		return fmt.Errorf("parsing access request id: %w", err)
+		return errs.E(errs.Validation, err, errs.Parameter("accessRequestID"))
 	}
 
-	if err := s.db.Querier.DeleteAccessRequest(ctx, accessRequestUUID); err != nil {
-		return fmt.Errorf("delete access request: %w", err)
+	err = s.db.Querier.DeleteAccessRequest(ctx, id)
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return nil
+		}
+
+		return errs.E(errs.Database, err)
 	}
 
 	return nil
@@ -139,23 +156,22 @@ func (s *accessStorage) UpdateAccessRequest(ctx context.Context, input service.U
 		ID:                   input.ID,
 	})
 	if err != nil {
-		return fmt.Errorf("update access request: %w", err)
+		if errors.Is(err, sql.ErrNoRows) {
+			return errs.E(errs.NotExist, err)
+		}
+
+		return errs.E(errs.Database, err)
 	}
 
 	return nil
 }
 
-func (s *accessStorage) GrantAccessToDatasetAndApproveRequest(ctx context.Context, datasetID, subject, accessRequestID string, expires *time.Time) (err error) {
+func (s *accessStorage) GrantAccessToDatasetAndApproveRequest(ctx context.Context, datasetID, subject, accessRequestID string, expires *time.Time) error {
 	tx, err := s.db.GetDB().Begin()
 	if err != nil {
-		return fmt.Errorf("begin transaction: %w", err)
+		return errs.E(errs.Database, err)
 	}
-
-	defer func() {
-		if err := tx.Rollback(); err != nil && !errors.Is(err, sql.ErrTxDone) {
-			err = fmt.Errorf("rollback transaction: %w", err)
-		}
-	}()
+	defer tx.Rollback()
 
 	user := auth.GetUser(ctx)
 	q := s.db.Querier.WithTx(tx)
@@ -171,7 +187,11 @@ func (s *accessStorage) GrantAccessToDatasetAndApproveRequest(ctx context.Contex
 		},
 	})
 	if err != nil {
-		return fmt.Errorf("grant access to dataset: %w", err)
+		if errors.Is(err, sql.ErrNoRows) {
+			return errs.E(errs.NotExist, err)
+		}
+
+		return errs.E(errs.Database, err)
 	}
 
 	err = q.ApproveAccessRequest(ctx, gensql.ApproveAccessRequestParams{
@@ -179,11 +199,12 @@ func (s *accessStorage) GrantAccessToDatasetAndApproveRequest(ctx context.Contex
 		Granter: sql.NullString{String: user.Email, Valid: true},
 	})
 	if err != nil {
-		return fmt.Errorf("approve access request: %w", err)
+		return errs.E(errs.Database, err)
 	}
 
-	if err := tx.Commit(); err != nil {
-		return fmt.Errorf("commit transaction: %w", err)
+	err = tx.Commit()
+	if err != nil {
+		return errs.E(errs.Database, err)
 	}
 
 	return nil
@@ -194,25 +215,25 @@ func (s *accessStorage) GrantAccessToDatasetAndRenew(ctx context.Context, datase
 		DatasetID: datasetID,
 		Subject:   subject,
 	})
-	if err != nil && !errors.Is(err, sql.ErrNoRows) {
-		return err
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return errs.E(errs.NotExist, err)
+		}
+
+		return errs.E(errs.Database, err)
 	}
 
 	tx, err := s.db.GetDB().Begin()
-	defer func() {
-		if err := tx.Rollback(); err != nil && !errors.Is(err, sql.ErrTxDone) {
-			err = fmt.Errorf("rollback transaction: %w", err)
-		}
-	}()
 	if err != nil {
-		return err
+		return errs.E(errs.Database, err)
 	}
+	defer tx.Rollback()
 
 	querier := s.db.Querier.WithTx(tx)
 
 	if len(a.Subject) > 0 {
 		if err := querier.RevokeAccessToDataset(ctx, a.ID); err != nil {
-			return err
+			return errs.E(errs.Database, err)
 		}
 	}
 
@@ -223,11 +244,12 @@ func (s *accessStorage) GrantAccessToDatasetAndRenew(ctx context.Context, datase
 		Granter:   granter,
 	})
 	if err != nil {
-		return err
+		return errs.E(errs.Database, err)
 	}
 
-	if err = tx.Commit(); err != nil {
-		return err
+	err = tx.Commit()
+	if err != nil {
+		return errs.E(errs.Database, err)
 	}
 
 	return nil
@@ -243,7 +265,7 @@ func (s *accessStorage) DenyAccessRequest(ctx context.Context, accessRequestID s
 		Reason:  ptrToNullString(reason),
 	})
 	if err != nil {
-		return fmt.Errorf("deny access request: %w", err)
+		return errs.E(errs.Database, err)
 	}
 
 	return nil
@@ -252,8 +274,13 @@ func (s *accessStorage) DenyAccessRequest(ctx context.Context, accessRequestID s
 func (s *accessStorage) GetAccessToDataset(ctx context.Context, id uuid.UUID) (*service.Access, error) {
 	access, err := s.db.Querier.GetAccessToDataset(ctx, id)
 	if err != nil {
-		return nil, err
+		if errors.Is(err, sql.ErrNoRows) {
+			return nil, errs.E(errs.NotExist, err, errs.Parameter("id"))
+		}
+
+		return nil, errs.E(errs.Database, err, errs.Parameter("id"))
 	}
+
 	return &service.Access{
 		ID:              access.ID,
 		Subject:         access.Subject,
@@ -269,7 +296,7 @@ func (s *accessStorage) GetAccessToDataset(ctx context.Context, id uuid.UUID) (*
 func (s *accessStorage) RevokeAccessToDataset(ctx context.Context, id uuid.UUID) error {
 	err := s.db.Querier.RevokeAccessToDataset(ctx, id)
 	if err != nil {
-		return fmt.Errorf("revoke access to dataset: %w", err)
+		return errs.E(errs.Database, err)
 	}
 
 	return nil
@@ -292,8 +319,8 @@ func ptrToNullTime(t *time.Time) sql.NullTime {
 	return sql.NullTime{Time: *t, Valid: true}
 }
 
-func emailOfSubjectToLower(subectWithType string) string {
-	parts := strings.Split(subectWithType, ":")
+func emailOfSubjectToLower(subjectWithType string) string {
+	parts := strings.Split(subjectWithType, ":")
 	parts[1] = strings.ToLower(parts[1])
 
 	return strings.Join(parts, ":")
@@ -312,19 +339,21 @@ func accessFromSQL(access gensql.DatasetAccess) *service.Access {
 	}
 }
 
-func AccessRequestsFromSQL(accessRequestSQLs []gensql.DatasetAccessRequest) ([]*service.AccessRequest, error) {
+func accessRequestsFromSQL(accessRequestSQLs []gensql.DatasetAccessRequest) ([]*service.AccessRequest, error) {
 	var accessRequests []*service.AccessRequest
+
 	for _, ar := range accessRequestSQLs {
-		accessRequestGraphql, err := AccessRequestFromSQL(ar)
+		accessRequestGraphql, err := accessRequestFromSQL(ar)
 		if err != nil {
 			return nil, err
 		}
 		accessRequests = append(accessRequests, accessRequestGraphql)
 	}
+
 	return accessRequests, nil
 }
 
-func AccessRequestFromSQL(dataproductAccessRequest gensql.DatasetAccessRequest) (*service.AccessRequest, error) {
+func accessRequestFromSQL(dataproductAccessRequest gensql.DatasetAccessRequest) (*service.AccessRequest, error) {
 	splits := strings.Split(dataproductAccessRequest.Subject, ":")
 	if len(splits) != 2 {
 		return nil, fmt.Errorf("%v is not a valid subject (can't split on :)", dataproductAccessRequest.Subject)
@@ -362,8 +391,8 @@ func AccessRequestFromSQL(dataproductAccessRequest gensql.DatasetAccessRequest) 
 	}, nil
 }
 
-func accessRequestStatusFromDB(sqlStatus gensql.AccessRequestStatusType) (service.AccessRequestStatus, error) {
-	switch sqlStatus {
+func accessRequestStatusFromDB(status gensql.AccessRequestStatusType) (service.AccessRequestStatus, error) {
+	switch status {
 	case gensql.AccessRequestStatusTypePending:
 		return service.AccessRequestStatusPending, nil
 	case gensql.AccessRequestStatusTypeApproved:
@@ -371,7 +400,7 @@ func accessRequestStatusFromDB(sqlStatus gensql.AccessRequestStatusType) (servic
 	case gensql.AccessRequestStatusTypeDenied:
 		return service.AccessRequestStatusDenied, nil
 	default:
-		return "", fmt.Errorf("unknown access request status %q", sqlStatus)
+		return "", fmt.Errorf("unknown access request status %q", status)
 	}
 }
 

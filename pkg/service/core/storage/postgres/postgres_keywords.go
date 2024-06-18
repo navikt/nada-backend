@@ -4,6 +4,7 @@ import (
 	"context"
 	"github.com/navikt/nada-backend/pkg/database"
 	"github.com/navikt/nada-backend/pkg/database/gensql"
+	"github.com/navikt/nada-backend/pkg/errs"
 	"github.com/navikt/nada-backend/pkg/service"
 )
 
@@ -16,7 +17,7 @@ type keywordsStorage struct {
 func (s *keywordsStorage) GetKeywordsListSortedByPopularity(ctx context.Context) (*service.KeywordsList, error) {
 	ks, err := s.db.Querier.GetKeywords(ctx)
 	if err != nil {
-		return nil, err
+		return nil, errs.E(errs.Database, err)
 	}
 
 	km := make([]service.KeywordItem, len(ks))
@@ -35,7 +36,7 @@ func (s *keywordsStorage) GetKeywordsListSortedByPopularity(ctx context.Context)
 func (s *keywordsStorage) UpdateKeywords(ctx context.Context, input service.UpdateKeywordsDto) error {
 	tx, err := s.db.GetDB().Begin()
 	if err != nil {
-		return err
+		return errs.E(errs.Database, err)
 	}
 	defer tx.Rollback()
 
@@ -45,11 +46,12 @@ func (s *keywordsStorage) UpdateKeywords(ctx context.Context, input service.Upda
 		for _, kw := range input.ObsoleteKeywords {
 			err := querier.RemoveKeywordInDatasets(ctx, kw)
 			if err != nil {
-				return err
+				return errs.E(errs.Database, err)
 			}
+
 			err = querier.RemoveKeywordInStories(ctx, kw)
 			if err != nil {
-				return err
+				return errs.E(errs.Database, err)
 			}
 		}
 	}
@@ -61,14 +63,15 @@ func (s *keywordsStorage) UpdateKeywords(ctx context.Context, input service.Upda
 				NewTextForKeyword: input.NewText[i],
 			})
 			if err != nil {
-				return err
+				return errs.E(errs.Database, err)
 			}
+
 			err = querier.ReplaceKeywordInStories(ctx, gensql.ReplaceKeywordInStoriesParams{
 				Keyword:           kw,
 				NewTextForKeyword: input.NewText[i],
 			})
 			if err != nil {
-				return err
+				return errs.E(errs.Database, err)
 			}
 		}
 	}

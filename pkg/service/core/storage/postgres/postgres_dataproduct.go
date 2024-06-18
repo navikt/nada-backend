@@ -4,28 +4,30 @@ import (
 	"context"
 	"database/sql"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"github.com/google/uuid"
 	"github.com/navikt/nada-backend/pkg/auth"
 	"github.com/navikt/nada-backend/pkg/database"
 	"github.com/navikt/nada-backend/pkg/database/gensql"
+	"github.com/navikt/nada-backend/pkg/errs"
 	"github.com/navikt/nada-backend/pkg/service"
 	log "github.com/sirupsen/logrus"
 	"github.com/sqlc-dev/pqtype"
 	"net/url"
-	"os"
 )
 
 var _ service.DataProductsStorage = &dataProductPostgres{}
 
 type dataProductPostgres struct {
-	db *database.Repo
+	databasesBaseURL string
+	db               *database.Repo
 }
 
 func (p *dataProductPostgres) GetDataproductKeywords(ctx context.Context, dpid uuid.UUID) ([]string, error) {
 	keywords, err := p.db.Querier.GetDataproductKeywords(ctx, dpid)
-	if err != nil && err != sql.ErrNoRows {
-		return nil, fmt.Errorf("getting dataproduct keywords: %w", err)
+	if err != nil {
+		return nil, errs.E(errs.Database, err)
 	}
 
 	return keywords, nil
@@ -33,11 +35,8 @@ func (p *dataProductPostgres) GetDataproductKeywords(ctx context.Context, dpid u
 
 func (p *dataProductPostgres) GetDataproductsByTeamID(ctx context.Context, teamIDs []string) ([]*service.Dataproduct, error) {
 	sqlDP, err := p.db.Querier.GetDataproductsByProductArea(ctx, teamIDs)
-	if err == sql.ErrNoRows {
-		return nil, nil
-	}
 	if err != nil {
-		return nil, err
+		return nil, errs.E(errs.Database, err)
 	}
 
 	dps := make([]*service.Dataproduct, len(sqlDP))
@@ -62,7 +61,11 @@ func (p *dataProductPostgres) GetDataproductsByTeamID(ctx context.Context, teamI
 func (p *dataProductPostgres) GetDataproductsNumberByTeam(ctx context.Context, teamID string) (int64, error) {
 	n, err := p.db.Querier.GetDataproductsNumberByTeam(ctx, ptrToNullString(&teamID))
 	if err != nil {
-		return 0, fmt.Errorf("getting dataproducts number by team: %w", err)
+		if errors.Is(err, sql.ErrNoRows) {
+			return 0, nil
+		}
+
+		return 0, errs.E(errs.Database, err)
 	}
 
 	return n, nil
@@ -74,8 +77,9 @@ func (p *dataProductPostgres) GetAccessibleDatasets(ctx context.Context, userGro
 		Requester: requester,
 	})
 	if err != nil {
-		return nil, nil, fmt.Errorf("getting accessible datasets: %w", err)
+		return nil, nil, errs.E(errs.Database, err)
 	}
+
 	for _, d := range datasetsSQL {
 		if matchAny(nullStringToString(d.Group), userGroups) {
 			owned = append(owned, accessibleDatasetFromSql(&d))
@@ -128,12 +132,12 @@ func (p *dataProductPostgres) GetDataproductsWithDatasetsAndAccessRequests(ctx c
 		Groups: groups,
 	})
 	if err != nil {
-		return nil, nil, fmt.Errorf("getting dataproducts with datasets and access requests: %w", err)
+		return nil, nil, errs.E(errs.Database, err)
 	}
 
 	dataproducts, accessRequests, err := dataproductsWithDatasetAndAccessRequestsForGranterFromSQL(dpres)
 	if err != nil {
-		return nil, nil, err
+		return nil, nil, errs.E(errs.Internal, err)
 	}
 
 	return dataproducts, accessRequests, nil
@@ -180,7 +184,7 @@ func dataproductsWithDatasetAndAccessRequestsForGranterFromSQL(dprrows []gensql.
 			})
 		}
 	}
-	ars, err := AccessRequestsFromSQL(arrows)
+	ars, err := accessRequestsFromSQL(arrows)
 
 	arfg := make([]service.AccessRequestForGranter, len(ars))
 	for i, ar := range ars {
@@ -219,7 +223,7 @@ func (p *dataProductPostgres) GetAccessiblePseudoDatasourcesByUser(ctx context.C
 		AccessSubjects: subjectsAsAccesser,
 	})
 	if err != nil {
-		return nil, err
+		return nil, errs.E(errs.Database, err)
 	}
 
 	var pseudoDatasets []*service.PseudoDataset
@@ -239,16 +243,18 @@ func (p *dataProductPostgres) GetAccessiblePseudoDatasourcesByUser(ctx context.C
 		if exist {
 			continue
 		}
+
 		bqIDMap[bqID] = 1
 		pseudoDatasets = append(pseudoDatasets, pseudoDataset)
 	}
+
 	return pseudoDatasets, nil
 }
 
 func (p *dataProductPostgres) GetDatasetsMinimal(ctx context.Context) ([]*service.DatasetMinimal, error) {
 	sqldss, err := p.db.Querier.GetAllDatasetsMinimal(ctx)
 	if err != nil {
-		return nil, fmt.Errorf("getting all datasets minimal: %w", err)
+		return nil, errs.E(errs.Database, err)
 	}
 
 	dss := make([]*service.DatasetMinimal, len(sqldss))
@@ -284,19 +290,23 @@ func (p *dataProductPostgres) UpdateDataset(ctx context.Context, id string, inpu
 		TargetUser:               ptrToNullString(input.TargetUser),
 	})
 	if err != nil {
-		return "", fmt.Errorf("updating dataset in database: %w", err)
+		if errors.Is(err, sql.ErrNoRows) {
+			return "", errs.E(errs.NotExist, err)
+		}
+
+		return "", errs.E(errs.Database, err)
 	}
 
 	// TODO: tags table should be removed
 	for _, keyword := range input.Keywords {
 		err = p.db.Querier.CreateTagIfNotExist(ctx, keyword)
 		if err != nil {
-			return "", fmt.Errorf("creating tag: %w", err)
+			return "", errs.E(errs.Database, err)
 		}
 	}
 
 	if !json.Valid([]byte(*input.PiiTags)) {
-		return "", fmt.Errorf("invalid pii tags, must be json map or null: %w", err)
+		return "", errs.E(errs.InvalidRequest, err, errs.Parameter("pii_tags"))
 	}
 
 	return res.ID.String(), nil
@@ -305,7 +315,7 @@ func (p *dataProductPostgres) UpdateDataset(ctx context.Context, id string, inpu
 func (p *dataProductPostgres) CreateDataset(ctx context.Context, ds service.NewDataset, referenceDatasource *service.NewBigQuery, user *auth.User) (*string, error) {
 	tx, err := p.db.GetDB().Begin()
 	if err != nil {
-		return nil, err
+		return nil, errs.E(errs.Database, err)
 	}
 	defer tx.Rollback()
 
@@ -327,18 +337,21 @@ func (p *dataProductPostgres) CreateDataset(ctx context.Context, ds service.NewD
 		AnonymisationDescription: ptrToNullString(ds.AnonymisationDescription),
 		TargetUser:               ptrToNullString(ds.TargetUser),
 	})
-
 	if err != nil {
-		return nil, err
+		if errors.Is(err, sql.ErrNoRows) {
+			return nil, errs.E(errs.NotExist, err)
+		}
+
+		return nil, errs.E(errs.Database, err)
 	}
 
 	schemaJSON, err := json.Marshal(ds.Metadata.Schema.Columns)
 	if err != nil {
-		return nil, fmt.Errorf("marshalling schema: %w", err)
+		return nil, errs.E(errs.InvalidRequest, err, errs.Parameter("schema_columns"))
 	}
 
 	if ds.BigQuery.PiiTags != nil && !json.Valid([]byte(*ds.BigQuery.PiiTags)) {
-		return nil, fmt.Errorf("invalid pii tags, must be json map or null: %w", err)
+		return nil, errs.E(errs.InvalidRequest, err, errs.Parameter("pii_tags"))
 	}
 
 	_, err = querier.CreateBigqueryDatasource(ctx, gensql.CreateBigqueryDatasourceParams{
@@ -358,9 +371,12 @@ func (p *dataProductPostgres) CreateDataset(ctx context.Context, ds service.NewD
 		PseudoColumns: ds.PseudoColumns,
 		IsReference:   false,
 	})
-
 	if err != nil {
-		return nil, err
+		if errors.Is(err, sql.ErrNoRows) {
+			return nil, errs.E(errs.NotExist, err)
+		}
+
+		return nil, errs.E(errs.Database, err)
 	}
 
 	if len(ds.PseudoColumns) > 0 && referenceDatasource != nil {
@@ -382,7 +398,11 @@ func (p *dataProductPostgres) CreateDataset(ctx context.Context, ds service.NewD
 			IsReference:   true,
 		})
 		if err != nil {
-			return nil, err
+			if errors.Is(err, sql.ErrNoRows) {
+				return nil, errs.E(errs.NotExist, err)
+			}
+
+			return nil, errs.E(errs.Database, err)
 		}
 	}
 
@@ -394,27 +414,34 @@ func (p *dataProductPostgres) CreateDataset(ctx context.Context, ds service.NewD
 			Granter:   user.Email,
 		})
 		if err != nil {
-			return nil, err
+			if errors.Is(err, sql.ErrNoRows) {
+				return nil, errs.E(errs.NotExist, err)
+			}
+
+			return nil, errs.E(errs.Database, err)
 		}
 	}
 
 	for _, keyword := range ds.Keywords {
 		err = querier.CreateTagIfNotExist(ctx, keyword)
 		if err != nil {
+			// FIXME: receive the log
 			log.WithError(err).Warn("failed to create tag when creating dataset in database")
 		}
 	}
 
-	if err := tx.Commit(); err != nil {
-		return nil, err
+	err = tx.Commit()
+	if err != nil {
+		return nil, errs.E(errs.Database, err)
 	}
 
 	return &created.Slug, nil
 }
 
 func (p *dataProductPostgres) DeleteDataproduct(ctx context.Context, id string) error {
-	if err := p.db.Querier.DeleteDataproduct(ctx, uuid.MustParse(id)); err != nil {
-		return fmt.Errorf("deleting dataproduct: %w", err)
+	err := p.db.Querier.DeleteDataproduct(ctx, uuid.MustParse(id))
+	if err != nil {
+		return errs.E(errs.Database, err)
 	}
 
 	return nil
@@ -431,7 +458,11 @@ func (p *dataProductPostgres) UpdateDataproduct(ctx context.Context, id string, 
 		TeamID:                ptrToNullString(input.TeamID),
 	})
 	if err != nil {
-		return nil, fmt.Errorf("updating dataproduct: %w", err)
+		if errors.Is(err, sql.ErrNoRows) {
+			return nil, errs.E(errs.NotExist, err)
+		}
+
+		return nil, errs.E(errs.Database, err)
 	}
 
 	return dataproductMinimalFromSQL(&res), nil
@@ -448,44 +479,64 @@ func (p *dataProductPostgres) CreateDataproduct(ctx context.Context, input servi
 		TeamID:                ptrToNullString(input.TeamID),
 	})
 	if err != nil {
-		return nil, fmt.Errorf("creating dataproduct: %w", err)
+		if errors.Is(err, sql.ErrNoRows) {
+			return nil, errs.E(errs.NotExist, err)
+		}
+
+		return nil, errs.E(errs.Database, err)
 	}
 
 	return dataproductMinimalFromSQL(&dataproduct), nil
 }
 
 func (p *dataProductPostgres) SetDatasourceDeleted(ctx context.Context, id uuid.UUID) error {
-	return p.db.Querier.SetDatasourceDeleted(ctx, id)
+	err := p.db.Querier.SetDatasourceDeleted(ctx, id)
+	if err != nil {
+		return errs.E(errs.Database, err)
+	}
+
+	return nil
 }
 
 func (p *dataProductPostgres) GetOwnerGroupOfDataset(ctx context.Context, datasetID uuid.UUID) (string, error) {
-	return p.db.Querier.GetOwnerGroupOfDataset(ctx, datasetID)
+	owner, err := p.db.Querier.GetOwnerGroupOfDataset(ctx, datasetID)
+	if err != nil {
+		return "", errs.E(errs.Database, err)
+	}
+
+	return owner, nil
 }
 
 func (p *dataProductPostgres) DeleteDataset(ctx context.Context, id uuid.UUID) error {
-	return p.db.Querier.DeleteDataset(ctx, id)
+	err := p.db.Querier.DeleteDataset(ctx, id)
+	if err != nil {
+		return errs.E(errs.Database, err)
+	}
+
+	return nil
 }
 
 func (p *dataProductPostgres) GetDataset(ctx context.Context, id string) (*service.Dataset, error) {
+	// FIXME: move up the chain
 	uuid, err := uuid.Parse(id)
 	if err != nil {
-		return nil, fmt.Errorf("parsing dataset id: %w", err)
+		return nil, errs.E(errs.InvalidRequest, err, errs.Parameter("id"))
 	}
 
-	sqlds, err := p.db.Querier.GetDatasetComplete(ctx, uuid)
+	rawDataset, err := p.db.Querier.GetDatasetComplete(ctx, uuid)
 	if err != nil {
-		return nil, fmt.Errorf("getting dataset: %w", err)
+		return nil, errs.E(errs.Database, err)
 	}
 
-	ds, apiErr := datasetFromSQL(sqlds)
+	ds, err := p.datasetFromSQL(rawDataset)
 	if err != nil {
-		return nil, apiErr
+		return nil, errs.E(errs.Internal, err)
 	}
 
 	return ds, nil
 }
 
-func datasetFromSQL(dsrows []gensql.DatasetView) (*service.Dataset, error) {
+func (p *dataProductPostgres) datasetFromSQL(dsrows []gensql.DatasetView) (*service.Dataset, error) {
 	var dataset *service.Dataset
 
 	for _, dsrow := range dsrows {
@@ -576,14 +627,9 @@ func datasetFromSQL(dsrows []gensql.DatasetView) (*service.Dataset, error) {
 			}
 		}
 
-		// FIXME: these should all be configured during startup and injected
 		if dataset.MetabaseUrl == nil && dsrow.MbDatabaseID.Valid {
-			base := "https://metabase.intern.dev.nav.no/browse/databases/%v"
-			if os.Getenv("NAIS_CLUSTER_NAME") == "prod-gcp" {
-				base = "https://metabase.intern.nav.no/browse/databases/%v"
-			}
-			url := fmt.Sprintf(base, dsrow.MbDatabaseID.Int32)
-			dataset.MetabaseUrl = &url
+			metabaseURL := fmt.Sprintf("%s/%v", p.databasesBaseURL, dsrow.MbDatabaseID.Int32)
+			dataset.MetabaseUrl = &metabaseURL
 		}
 	}
 
@@ -596,21 +642,31 @@ func (p *dataProductPostgres) GetDataproducts(ctx context.Context, ids []uuid.UU
 		Groups: []string{},
 	})
 	if err != nil {
-		return nil, fmt.Errorf("getting dataproducts: %w", err)
+		return nil, errs.E(errs.Database, err)
 	}
 
-	return dataproductsWithDatasetFromSQL(dp), nil
+	products, err := dataproductsWithDatasetFromSQL(dp), nil
+	if err != nil {
+		return nil, errs.E(errs.Internal, err)
+	}
+
+	return products, nil
 }
 
 func (p *dataProductPostgres) GetDataproduct(ctx context.Context, id string) (*service.DataproductWithDataset, error) {
+	// FIXME: move this up the chain
 	dpuuid, err := uuid.Parse(id)
 	if err != nil {
-		return nil, fmt.Errorf("parsing dataproduct id: %w", err)
+		return nil, errs.E(errs.InvalidRequest, err, errs.Parameter("id"))
 	}
 
 	dps, err := p.GetDataproducts(ctx, []uuid.UUID{dpuuid})
 	if err != nil {
-		return nil, fmt.Errorf("getting dataproduct: %w", err)
+		return nil, errs.E(errs.Database, err)
+	}
+
+	if len(dps) == 0 {
+		return nil, errs.E(errs.NotExist, fmt.Errorf("dataproduct with id %v does not exist", dpuuid))
 	}
 
 	// it is safe to directly use the first element without checking the length
@@ -665,7 +721,7 @@ __loop_rows:
 				keywordsMap[k] = true
 			}
 		}
-		keywords := []string{}
+		var keywords []string
 		for k := range keywordsMap {
 			keywords = append(keywords, k)
 		}
@@ -779,8 +835,9 @@ func nullUUIDToUUIDPtr(nu uuid.NullUUID) *uuid.UUID {
 	return &nu.UUID
 }
 
-func NewDataProductStorage(db *database.Repo) *dataProductPostgres {
+func NewDataProductStorage(databasesBaseURL string, db *database.Repo) *dataProductPostgres {
 	return &dataProductPostgres{
-		db: db,
+		db:               db,
+		databasesBaseURL: databasesBaseURL,
 	}
 }

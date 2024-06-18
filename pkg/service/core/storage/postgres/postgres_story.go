@@ -8,6 +8,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/navikt/nada-backend/pkg/database"
 	"github.com/navikt/nada-backend/pkg/database/gensql"
+	"github.com/navikt/nada-backend/pkg/errs"
 	"github.com/navikt/nada-backend/pkg/service"
 )
 
@@ -20,11 +21,7 @@ type storyStorage struct {
 func (s *storyStorage) GetStoriesByTeamID(ctx context.Context, teamIDs []string) ([]*service.Story, error) {
 	sqlStories, err := s.db.Querier.GetStoriesByProductArea(ctx, teamIDs)
 	if err != nil {
-		if errors.Is(err, sql.ErrNoRows) {
-			return []*service.Story{}, nil
-		}
-
-		return nil, err
+		return nil, errs.E(errs.Database, err)
 	}
 
 	stories := make([]*service.Story, len(sqlStories))
@@ -38,7 +35,11 @@ func (s *storyStorage) GetStoriesByTeamID(ctx context.Context, teamIDs []string)
 func (s *storyStorage) GetStoriesNumberByTeam(ctx context.Context, teamID string) (int64, error) {
 	n, err := s.db.Querier.GetStoriesNumberByTeam(ctx, ptrToNullString(&teamID))
 	if err != nil {
-		return 0, fmt.Errorf("failed to get stories number: %w", err)
+		if errors.Is(err, sql.ErrNoRows) {
+			return 0, nil
+		}
+
+		return 0, errs.E(errs.Database, err)
 	}
 
 	return n, nil
@@ -55,15 +56,23 @@ func (s *storyStorage) UpdateStory(ctx context.Context, id uuid.UUID, input serv
 		OwnerGroup:       input.Group,
 	})
 	if err != nil {
-		return nil, fmt.Errorf("failed to update data story: %w", err)
+		if errors.Is(err, sql.ErrNoRows) {
+			return nil, errs.E(errs.NotExist, err)
+		}
+
+		return nil, errs.E(errs.Database, err)
 	}
 
-	// FIXME: is this really needed? maybe some updated_at timestamp thingie?
 	return s.GetStory(ctx, dbStory.ID)
 }
 
 func (s *storyStorage) DeleteStory(ctx context.Context, id uuid.UUID) error {
-	return s.db.Querier.DeleteStory(ctx, id)
+	err := s.db.Querier.DeleteStory(ctx, id)
+	if err != nil {
+		return errs.E(errs.Database, err)
+	}
+
+	return nil
 }
 
 func (s *storyStorage) CreateStory(ctx context.Context, creator string, newStory *service.NewStory) (*service.Story, error) {
@@ -93,7 +102,7 @@ func (s *storyStorage) CreateStory(ctx context.Context, creator string, newStory
 		})
 	}
 	if err != nil {
-		return nil, fmt.Errorf("failed to create story: %w", err)
+		return nil, errs.E(errs.Database, err)
 	}
 
 	return s.GetStory(ctx, storySQL.ID)
@@ -102,7 +111,11 @@ func (s *storyStorage) CreateStory(ctx context.Context, creator string, newStory
 func (s *storyStorage) GetStory(ctx context.Context, id uuid.UUID) (*service.Story, error) {
 	stories, err := s.GetStoriesWithTeamkatalogenByIDs(ctx, []uuid.UUID{id})
 	if err != nil {
-		return nil, fmt.Errorf("failed to get story: %w", err)
+		return nil, err
+	}
+
+	if len(stories) == 0 {
+		return nil, errs.E(errs.NotExist, fmt.Errorf("story with id %s not found", id))
 	}
 
 	return &stories[0], nil
@@ -111,7 +124,7 @@ func (s *storyStorage) GetStory(ctx context.Context, id uuid.UUID) (*service.Sto
 func (s *storyStorage) GetStoriesWithTeamkatalogenByIDs(ctx context.Context, ids []uuid.UUID) ([]service.Story, error) {
 	dbStories, err := s.db.Querier.GetStoriesWithTeamkatalogenByIDs(ctx, ids)
 	if err != nil {
-		return nil, fmt.Errorf("failed to get stories with teamkatalogen by ids: %w", err)
+		return nil, errs.E(errs.Database, err)
 	}
 
 	stories := make([]service.Story, len(dbStories))
@@ -125,7 +138,7 @@ func (s *storyStorage) GetStoriesWithTeamkatalogenByIDs(ctx context.Context, ids
 func (s *storyStorage) GetStoriesWithTeamkatalogenByGroups(ctx context.Context, groups []string) ([]service.Story, error) {
 	dbStories, err := s.db.Querier.GetStoriesWithTeamkatalogenByGroups(ctx, groups)
 	if err != nil {
-		return nil, fmt.Errorf("failed to get stories with teamkatalogen by groups: %w", err)
+		return nil, errs.E(errs.Database, err)
 	}
 
 	stories := make([]service.Story, len(dbStories))

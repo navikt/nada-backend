@@ -2,10 +2,12 @@ package postgres
 
 import (
 	"context"
-	"fmt"
+	"database/sql"
+	"errors"
 	"github.com/google/uuid"
 	"github.com/navikt/nada-backend/pkg/database"
 	"github.com/navikt/nada-backend/pkg/database/gensql"
+	"github.com/navikt/nada-backend/pkg/errs"
 	"github.com/navikt/nada-backend/pkg/service"
 )
 
@@ -22,7 +24,7 @@ func (s *pollyStorage) CreatePollyDocumentation(ctx context.Context, pollyInput 
 		Url:        pollyInput.URL,
 	})
 	if err != nil {
-		return service.Polly{}, fmt.Errorf("create polly documentation: %w", err)
+		return service.Polly{}, errs.E(errs.Database, err)
 	}
 
 	return service.Polly{
@@ -39,7 +41,11 @@ func (s *pollyStorage) GetPollyDocumentation(ctx context.Context, id uuid.UUID) 
 	// TODO: either remove this or do it on database level for performance reasons
 	pollyDoc, err := s.db.Querier.GetPollyDocumentation(ctx, id)
 	if err != nil {
-		return nil, err
+		if errors.Is(err, sql.ErrNoRows) {
+			return nil, errs.E(errs.NotExist, err)
+		}
+
+		return nil, errs.E(errs.Database, err)
 	}
 
 	return &service.Polly{

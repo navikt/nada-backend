@@ -2,9 +2,9 @@ package postgres
 
 import (
 	"context"
-	"fmt"
 	"github.com/navikt/nada-backend/pkg/database"
 	"github.com/navikt/nada-backend/pkg/database/gensql"
+	"github.com/navikt/nada-backend/pkg/errs"
 	"github.com/navikt/nada-backend/pkg/service"
 )
 
@@ -25,9 +25,8 @@ func (s *searchStorage) Search(ctx context.Context, query *service.SearchOptions
 		Lim:     int32(ptrToIntDefault(query.Limit, 24)),
 		Offs:    int32(ptrToIntDefault(query.Offset, 0)),
 	})
-
 	if err != nil {
-		return nil, fmt.Errorf("searching: %w", err)
+		return nil, errs.E(errs.Database, err)
 	}
 
 	results := make([]*service.SearchResultRaw, 0, len(res))
