@@ -3,6 +3,7 @@ package http
 import (
 	"context"
 	"encoding/json"
+	"github.com/navikt/nada-backend/pkg/errs"
 	"github.com/navikt/nada-backend/pkg/service"
 	"io"
 	"net/http"
@@ -28,19 +29,22 @@ type PollyResponse struct {
 }
 
 func (p *pollyAPI) SearchPolly(_ context.Context, q string) ([]*service.QueryPolly, error) {
+	const op errs.Op = "http.SearchPolly"
+
 	var pr PollyResponse
 	res, err := p.client.Get(p.apiURL + "/search/" + q + "?includePurpose=true")
 	if err != nil {
-		return nil, err
+		return nil, errs.E(errs.IO, op, err)
 	}
 	defer res.Body.Close()
+
 	bodyBytes, err := io.ReadAll(res.Body)
 	if err != nil {
-		return nil, err
+		return nil, errs.E(errs.IO, op, err)
 	}
 
 	if err := json.Unmarshal(bodyBytes, &pr); err != nil {
-		return nil, err
+		return nil, errs.E(errs.IO, op, err)
 	}
 
 	numRes := 10

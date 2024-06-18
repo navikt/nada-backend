@@ -18,9 +18,11 @@ type productAreaStorage struct {
 }
 
 func (s *productAreaStorage) UpsertProductAreaAndTeam(ctx context.Context, pas []*service.UpsertProductAreaRequest, teams []*service.UpsertTeamRequest) error {
+	const op errs.Op = "postgres.UpsertProductAreaAndTeam"
+
 	tx, err := s.db.GetDB().Begin()
 	if err != nil {
-		return errs.E(errs.Database, err)
+		return errs.E(errs.Database, op, err)
 	}
 	defer tx.Rollback()
 
@@ -29,7 +31,7 @@ func (s *productAreaStorage) UpsertProductAreaAndTeam(ctx context.Context, pas [
 	for _, pa := range pas {
 		paUUID, err := uuid.Parse(pa.ID)
 		if err != nil {
-			return errs.E(errs.Internal, err, errs.Parameter("product_area_id"))
+			return errs.E(errs.Internal, op, err, errs.Parameter("product_area_id"))
 		}
 
 		err = q.UpsertProductArea(ctx, gensql.UpsertProductAreaParams{
@@ -40,14 +42,14 @@ func (s *productAreaStorage) UpsertProductAreaAndTeam(ctx context.Context, pas [
 			},
 		})
 		if err != nil {
-			return errs.E(errs.Database, err)
+			return errs.E(errs.Database, op, err)
 		}
 	}
 
 	for _, team := range teams {
 		teamUUID, err := uuid.Parse(team.ID)
 		if err != nil {
-			return errs.E(errs.Internal, err, errs.Parameter("team_id"))
+			return errs.E(errs.Internal, op, err, errs.Parameter("team_id"))
 		}
 
 		err = q.UpsertTeam(context.Background(), gensql.UpsertTeamParams{
@@ -59,7 +61,7 @@ func (s *productAreaStorage) UpsertProductAreaAndTeam(ctx context.Context, pas [
 			},
 		})
 		if err != nil {
-			return err
+			return errs.E(errs.Database, op, err)
 		}
 	}
 
@@ -69,9 +71,11 @@ func (s *productAreaStorage) UpsertProductAreaAndTeam(ctx context.Context, pas [
 }
 
 func (s *productAreaStorage) GetDashboard(ctx context.Context, id string) (*service.Dashboard, error) {
+	const op errs.Op = "postgres.GetDashboard"
+
 	dashboard, err := s.db.Querier.GetDashboard(ctx, id)
 	if err != nil && !errors.Is(err, sql.ErrNoRows) {
-		return nil, errs.E(errs.Database, err)
+		return nil, errs.E(errs.Database, op, err)
 	}
 
 	return &service.Dashboard{
@@ -81,13 +85,15 @@ func (s *productAreaStorage) GetDashboard(ctx context.Context, id string) (*serv
 }
 
 func (s *productAreaStorage) GetProductArea(ctx context.Context, paID string) (*service.ProductArea, error) {
+	const op errs.Op = "postgres.GetProductArea"
+
 	pa, err := s.db.Querier.GetProductArea(ctx, uuid.MustParse(paID))
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
-			return nil, errs.E(errs.NotExist, err, errs.Parameter("product_area_id"))
+			return nil, errs.E(errs.NotExist, op, err, errs.Parameter("product_area_id"))
 		}
 
-		return nil, errs.E(errs.Database, err)
+		return nil, errs.E(errs.Database, op, err)
 	}
 
 	teams, err := s.db.Querier.GetTeamsInProductArea(ctx, uuid.NullUUID{
@@ -95,7 +101,7 @@ func (s *productAreaStorage) GetProductArea(ctx context.Context, paID string) (*
 		Valid: true,
 	})
 	if err != nil && !errors.Is(err, sql.ErrNoRows) {
-		return nil, errs.E(errs.Database, err)
+		return nil, errs.E(errs.Database, op, err)
 	}
 
 	paTeams := make([]*service.Team, 0)
@@ -125,15 +131,17 @@ func (s *productAreaStorage) GetProductArea(ctx context.Context, paID string) (*
 }
 
 func (s *productAreaStorage) GetProductAreas(ctx context.Context) ([]*service.ProductArea, error) {
+	const op errs.Op = "postgres.GetProductAreas"
+
 	pas, err := s.db.Querier.GetProductAreas(ctx)
 	if err != nil {
-		return nil, errs.E(errs.Database, err)
+		return nil, errs.E(errs.Database, op, err)
 	}
 
 	// FIXME: not optimal, but unsure how else to do this
 	teams, err := s.db.Querier.GetAllTeams(ctx)
 	if err != nil {
-		return nil, errs.E(errs.Database, err)
+		return nil, errs.E(errs.Database, op, err)
 	}
 
 	productAreas := make([]*service.ProductArea, 0)

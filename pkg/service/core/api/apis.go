@@ -26,6 +26,7 @@ func NewClients(
 	return &Clients{
 		BigQueryAPI: gcp.NewBigQueryAPI(
 			cfg.GCP.Project,
+			cfg.GCP.Region,
 			cfg.GCP.BigQuery.Endpoint,
 			cfg.GCP.BigQuery.PseudoViewsDatasetName,
 		),

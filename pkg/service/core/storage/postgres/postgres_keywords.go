@@ -15,9 +15,11 @@ type keywordsStorage struct {
 }
 
 func (s *keywordsStorage) GetKeywordsListSortedByPopularity(ctx context.Context) (*service.KeywordsList, error) {
+	const op errs.Op = "postgres.GetKeywordsListSortedByPopularity"
+
 	ks, err := s.db.Querier.GetKeywords(ctx)
 	if err != nil {
-		return nil, errs.E(errs.Database, err)
+		return nil, errs.E(errs.Database, op, err)
 	}
 
 	km := make([]service.KeywordItem, len(ks))
@@ -34,9 +36,11 @@ func (s *keywordsStorage) GetKeywordsListSortedByPopularity(ctx context.Context)
 }
 
 func (s *keywordsStorage) UpdateKeywords(ctx context.Context, input service.UpdateKeywordsDto) error {
+	const op errs.Op = "postgres.UpdateKeywords"
+
 	tx, err := s.db.GetDB().Begin()
 	if err != nil {
-		return errs.E(errs.Database, err)
+		return errs.E(errs.Database, op, err)
 	}
 	defer tx.Rollback()
 
@@ -46,12 +50,12 @@ func (s *keywordsStorage) UpdateKeywords(ctx context.Context, input service.Upda
 		for _, kw := range input.ObsoleteKeywords {
 			err := querier.RemoveKeywordInDatasets(ctx, kw)
 			if err != nil {
-				return errs.E(errs.Database, err)
+				return errs.E(errs.Database, op, err)
 			}
 
 			err = querier.RemoveKeywordInStories(ctx, kw)
 			if err != nil {
-				return errs.E(errs.Database, err)
+				return errs.E(errs.Database, op, err)
 			}
 		}
 	}
@@ -63,7 +67,7 @@ func (s *keywordsStorage) UpdateKeywords(ctx context.Context, input service.Upda
 				NewTextForKeyword: input.NewText[i],
 			})
 			if err != nil {
-				return errs.E(errs.Database, err)
+				return errs.E(errs.Database, op, err)
 			}
 
 			err = querier.ReplaceKeywordInStories(ctx, gensql.ReplaceKeywordInStoriesParams{
@@ -71,7 +75,7 @@ func (s *keywordsStorage) UpdateKeywords(ctx context.Context, input service.Upda
 				NewTextForKeyword: input.NewText[i],
 			})
 			if err != nil {
-				return errs.E(errs.Database, err)
+				return errs.E(errs.Database, op, err)
 			}
 		}
 	}

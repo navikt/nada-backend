@@ -20,9 +20,11 @@ type joinableViewStorage struct {
 }
 
 func (s *joinableViewStorage) GetJoinableViewsToBeDeletedWithRefDatasource(ctx context.Context) ([]service.JoinableViewToBeDeletedWithRefDatasource, error) {
+	const op errs.Op = "postgres.GetJoinableViewsToBeDeletedWithRefDatasource"
+
 	rows, err := s.db.Querier.GetJoinableViewsToBeDeletedWithRefDatasource(ctx)
 	if err != nil {
-		return nil, errs.E(errs.Database, err)
+		return nil, errs.E(errs.Database, op, err)
 	}
 
 	joinableViews := make([]service.JoinableViewToBeDeletedWithRefDatasource, 0, len(rows))
@@ -40,9 +42,11 @@ func (s *joinableViewStorage) GetJoinableViewsToBeDeletedWithRefDatasource(ctx c
 }
 
 func (s *joinableViewStorage) GetJoinableViewsWithReference(ctx context.Context) ([]service.JoinableViewWithReference, error) {
+	const op errs.Op = "postgres.GetJoinableViewsWithReference"
+
 	rows, err := s.db.Querier.GetJoinableViewsWithReference(ctx)
 	if err != nil {
-		return nil, errs.E(errs.Database, err)
+		return nil, errs.E(errs.Database, op, err)
 	}
 
 	joinableViews := make([]service.JoinableViewWithReference, 0, len(rows))
@@ -63,20 +67,24 @@ func (s *joinableViewStorage) GetJoinableViewsWithReference(ctx context.Context)
 }
 
 func (s *joinableViewStorage) SetJoinableViewDeleted(ctx context.Context, id uuid.UUID) error {
+	const op errs.Op = "postgres.SetJoinableViewDeleted"
+
 	err := s.db.Querier.SetJoinableViewDeleted(ctx, id)
 	if err != nil {
-		return errs.E(errs.Database, err)
+		return errs.E(errs.Database, op, err)
 	}
 
 	return nil
 }
 
 func (s *joinableViewStorage) GetJoinableViewsForOwner(ctx context.Context) ([]service.JoinableViewForOwner, error) {
+	const op errs.Op = "postgres.GetJoinableViewsForOwner"
+
 	// FIXME: move this up the call chain
 	user := auth.GetUser(ctx)
 	joinableViewsDB, err := s.db.Querier.GetJoinableViewsForOwner(ctx, user.Email)
 	if err != nil {
-		return nil, errs.E(errs.Database, err)
+		return nil, errs.E(errs.Database, op, err)
 	}
 
 	views := make([]service.JoinableViewForOwner, 0, len(joinableViewsDB))
@@ -97,12 +105,14 @@ func (s *joinableViewStorage) GetJoinableViewsForOwner(ctx context.Context) ([]s
 }
 
 func (s *joinableViewStorage) GetJoinableViewsForReferenceAndUser(ctx context.Context, user string, pseudoDatasetID uuid.UUID) ([]service.JoinableViewForReferenceAndUser, error) {
+	const op errs.Op = "postgres.GetJoinableViewsForReferenceAndUser"
+
 	joinableViews, err := s.db.Querier.GetJoinableViewsForReferenceAndUser(ctx, gensql.GetJoinableViewsForReferenceAndUserParams{
 		Owner:           user,
 		PseudoDatasetID: pseudoDatasetID,
 	})
 	if err != nil {
-		return nil, errs.E(errs.Database, err)
+		return nil, errs.E(errs.Database, op, err)
 	}
 
 	views := make([]service.JoinableViewForReferenceAndUser, 0, len(joinableViews))
@@ -118,15 +128,17 @@ func (s *joinableViewStorage) GetJoinableViewsForReferenceAndUser(ctx context.Co
 }
 
 func (s *joinableViewStorage) GetJoinableViewWithDataset(ctx context.Context, id string) ([]service.JoinableViewWithDataset, error) {
+	const op errs.Op = "postgres.GetJoinableViewWithDataset"
+
 	// FIXME: move this up the call chain
 	joinableViewID, err := uuid.Parse(id)
 	if err != nil {
-		return nil, errs.E(errs.InvalidRequest, err)
+		return nil, errs.E(errs.InvalidRequest, op, err)
 	}
 
 	joinableViewDatasets, err := s.db.Querier.GetJoinableViewWithDataset(ctx, joinableViewID)
 	if err != nil {
-		return nil, errs.E(errs.Database, err)
+		return nil, errs.E(errs.Database, op, err)
 	}
 
 	views := make([]service.JoinableViewWithDataset, 0, len(joinableViewDatasets))
@@ -149,9 +161,11 @@ func (s *joinableViewStorage) GetJoinableViewWithDataset(ctx context.Context, id
 }
 
 func (s *joinableViewStorage) CreateJoinableViewsDB(ctx context.Context, name, owner string, expires *time.Time, datasourceIDs []uuid.UUID) (string, error) {
+	const op errs.Op = "postgres.CreateJoinableViewsDB"
+
 	tx, err := s.db.GetDB().Begin()
 	if err != nil {
-		return "", errs.E(errs.Database, err)
+		return "", errs.E(errs.Database, op, err)
 	}
 	defer tx.Rollback()
 
@@ -165,10 +179,10 @@ func (s *joinableViewStorage) CreateJoinableViewsDB(ctx context.Context, name, o
 	})
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
-			return "", errs.E(errs.NotExist, err)
+			return "", errs.E(errs.NotExist, op, err)
 		}
 
-		return "", errs.E(errs.Database, err)
+		return "", errs.E(errs.Database, op, err)
 	}
 
 	for _, bqid := range datasourceIDs {
@@ -178,16 +192,16 @@ func (s *joinableViewStorage) CreateJoinableViewsDB(ctx context.Context, name, o
 		})
 		if err != nil {
 			if errors.Is(err, sql.ErrNoRows) {
-				return "", errs.E(errs.NotExist, err)
+				return "", errs.E(errs.NotExist, op, err)
 			}
 
-			return "", errs.E(errs.Database, err)
+			return "", errs.E(errs.Database, op, err)
 		}
 	}
 
 	err = tx.Commit()
 	if err != nil {
-		return "", errs.E(errs.Database, err)
+		return "", errs.E(errs.Database, op, err)
 	}
 
 	return jv.ID.String(), nil

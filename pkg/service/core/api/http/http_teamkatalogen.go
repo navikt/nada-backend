@@ -5,6 +5,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"github.com/navikt/nada-backend/pkg/errs"
 	"github.com/navikt/nada-backend/pkg/httpwithcache"
 	"github.com/navikt/nada-backend/pkg/service"
 	"net/http"
@@ -24,19 +25,21 @@ func (t *teamKatalogenAPI) GetProductArea(ctx context.Context, paID string) (*se
 }
 
 func (t *teamKatalogenAPI) GetProductAreas(ctx context.Context) ([]*service.TeamkatalogenProductArea, error) {
+	const op errs.Op = "teamKatalogenAPI.GetProductAreas"
+
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, t.url+"/productarea", nil)
+	if err != nil {
+		return nil, errs.E(errs.IO, op, err)
+	}
+
 	q := req.URL.Query()
 	q.Add("status", "active")
 	req.URL.RawQuery = q.Encode()
 
-	if err != nil {
-		return nil, err
-	}
-
 	setRequestHeaders(req)
 	res, err := httpwithcache.Do(t.client, req)
 	if err != nil {
-		return nil, fmt.Errorf("unable to retrieve product areas from team catalogue")
+		return nil, errs.E(errs.IO, op, err)
 	}
 
 	var pasdto struct {
@@ -48,7 +51,7 @@ func (t *teamKatalogenAPI) GetProductAreas(ctx context.Context) ([]*service.Team
 	}
 
 	if err := json.Unmarshal(res, &pasdto); err != nil {
-		return nil, fmt.Errorf("unable to retrieve product areas from team catalogue")
+		return nil, errs.E(errs.IO, op, err)
 	}
 
 	pas := make([]*service.TeamkatalogenProductArea, 0)
@@ -64,15 +67,17 @@ func (t *teamKatalogenAPI) GetProductAreas(ctx context.Context) ([]*service.Team
 }
 
 func (t *teamKatalogenAPI) GetTeam(ctx context.Context, teamID string) (*service.TeamkatalogenTeam, error) {
+	const op errs.Op = "teamKatalogenAPI.GetTeam"
+
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, t.url+"/team/"+teamID, nil)
 	if err != nil {
-		return nil, err
+		return nil, errs.E(errs.IO, op, err)
 	}
 
 	setRequestHeaders(req)
 	res, err := httpwithcache.Do(t.client, req)
 	if err != nil {
-		return nil, fmt.Errorf("unable to retrieve team '%v' from team catalogue", teamID)
+		return nil, errs.E(errs.IO, op, err)
 	}
 
 	var team struct {
@@ -82,7 +87,7 @@ func (t *teamKatalogenAPI) GetTeam(ctx context.Context, teamID string) (*service
 	}
 
 	if err := json.Unmarshal(res, &team); err != nil {
-		return nil, fmt.Errorf("unable to retrieve team '%v' from team catalogue", teamID)
+		return nil, errs.E(errs.IO, op, err)
 	}
 
 	return &service.TeamkatalogenTeam{
@@ -97,15 +102,17 @@ func (t *teamKatalogenAPI) GetTeamCatalogURL(teamID string) string {
 }
 
 func (t *teamKatalogenAPI) GetTeamsInProductArea(ctx context.Context, paID string) ([]*service.TeamkatalogenTeam, error) {
+	const op errs.Op = "teamKatalogenAPI.GetTeamsInProductArea"
+
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, t.url+"/team?status=ACTIVE&productAreaId="+paID, nil)
 	if err != nil {
-		return nil, err
+		return nil, errs.E(errs.IO, op, err)
 	}
 
 	setRequestHeaders(req)
 	res, err := httpwithcache.Do(t.client, req)
 	if err != nil {
-		return nil, fmt.Errorf("unable to retrieve teams in product area with id '%v' from team catalogue", paID)
+		return nil, errs.E(errs.IO, op, err)
 	}
 
 	var teams struct {
@@ -117,7 +124,7 @@ func (t *teamKatalogenAPI) GetTeamsInProductArea(ctx context.Context, paID strin
 	}
 
 	if err := json.Unmarshal(res, &teams); err != nil {
-		return nil, fmt.Errorf("unable to retrieve teams in product area with id '%v' from team catalogue", paID)
+		return nil, errs.E(errs.IO, op, err)
 	}
 
 	teamsGraph := make([]*service.TeamkatalogenTeam, len(teams.Content))
@@ -146,20 +153,22 @@ type TeamkatalogenResponse struct {
 }
 
 func (t *teamKatalogenAPI) Search(ctx context.Context, gcpGroups []string) ([]service.TeamkatalogenResult, error) {
+	const op errs.Op = "teamKatalogenAPI.Search"
+
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, fmt.Sprintf("%v/team?status=ACTIVE", t.url), nil)
 	if err != nil {
-		return nil, err
+		return nil, errs.E(errs.IO, op, err)
 	}
 
 	setRequestHeaders(req)
 	res, err := httpwithcache.Do(t.client, req)
 	if err != nil {
-		return nil, fmt.Errorf("unable to retrieve teams from team catalogue")
+		return nil, errs.E(errs.IO, op, err)
 	}
 
 	var tkRes TeamkatalogenResponse
 	if err := json.NewDecoder(bytes.NewReader(res)).Decode(&tkRes); err != nil {
-		return nil, fmt.Errorf("unable to retrieve teams from team catalogue")
+		return nil, errs.E(errs.IO, op, err)
 	}
 
 	var ret []service.TeamkatalogenResult

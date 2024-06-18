@@ -4,13 +4,14 @@ import (
 	"context"
 	"encoding/base64"
 	"errors"
-	"fmt"
 	"github.com/btcsuite/btcutil/base58"
 	"github.com/google/uuid"
+	"github.com/navikt/nada-backend/pkg/errs"
 	"github.com/navikt/nada-backend/pkg/service"
 	"google.golang.org/api/cloudresourcemanager/v1"
 	"google.golang.org/api/googleapi"
 	"google.golang.org/api/iam/v1"
+	"net/http"
 	"strings"
 )
 
@@ -20,9 +21,11 @@ type serviceAccountAPI struct {
 }
 
 func (a *serviceAccountAPI) DeleteServiceAccount(ctx context.Context, gcpProject, saEmail string) error {
+	const op errs.Op = "gcp.DeleteServiceAccount"
+
 	iamService, err := iam.NewService(ctx)
 	if err != nil {
-		return fmt.Errorf("initialising iam service: %w", err)
+		return errs.E(errs.IO, op, err)
 	}
 
 	_, err = iamService.Projects.ServiceAccounts.
@@ -33,18 +36,20 @@ func (a *serviceAccountAPI) DeleteServiceAccount(ctx context.Context, gcpProject
 
 		ok := errors.As(err, &apiError)
 		if ok {
-			if apiError.Code == 404 {
+			if apiError.Code == http.StatusNotFound {
 				return nil
 			}
 		}
 
-		return fmt.Errorf("delete service account: %w", err)
+		return errs.E(errs.IO, op, err)
 	}
 
 	return nil
 }
 
 func (a *serviceAccountAPI) CreateServiceAccount(ctx context.Context, gcpProject string, ds *service.Dataset) ([]byte, string, error) {
+	const op errs.Op = "gcp.CreateServiceAccount"
+
 	request := &iam.CreateServiceAccountRequest{
 		AccountId: "nada-" + MarshalUUID(ds.ID),
 		ServiceAccount: &iam.ServiceAccount{
@@ -55,23 +60,23 @@ func (a *serviceAccountAPI) CreateServiceAccount(ctx context.Context, gcpProject
 
 	iamService, err := iam.NewService(ctx)
 	if err != nil {
-		return nil, "", fmt.Errorf("initialising iam service: %w", err)
+		return nil, "", errs.E(errs.IO, op, err)
 	}
 
 	account, err := iamService.Projects.ServiceAccounts.Create("projects/"+gcpProject, request).Do()
 	if err != nil {
-		return nil, "", fmt.Errorf("create service account: %w", err)
+		return nil, "", errs.E(errs.IO, op, err)
 	}
 
 	crmService, err := cloudresourcemanager.NewService(ctx)
 	if err != nil {
-		return nil, "", fmt.Errorf("initialising cloud resource manager service: %w", err)
+		return nil, "", errs.E(errs.IO, op, err)
 	}
 
 	iamPolicyCall := crmService.Projects.GetIamPolicy(gcpProject, &cloudresourcemanager.GetIamPolicyRequest{})
 	iamPolicies, err := iamPolicyCall.Do()
 	if err != nil {
-		return nil, "", fmt.Errorf("get iam policies: %w", err)
+		return nil, "", errs.E(errs.IO, op, err)
 	}
 
 	iamPolicies.Bindings = append(iamPolicies.Bindings, &cloudresourcemanager.Binding{
@@ -85,22 +90,22 @@ func (a *serviceAccountAPI) CreateServiceAccount(ctx context.Context, gcpProject
 
 	_, err = iamSetPolicyCall.Do()
 	if err != nil {
-		return nil, "", err
+		return nil, "", errs.E(errs.IO, op, err)
 	}
 
 	keyRequest := &iam.CreateServiceAccountKeyRequest{}
 
 	key, err := iamService.Projects.ServiceAccounts.Keys.Create("projects/-/serviceAccounts/"+account.UniqueId, keyRequest).Do()
 	if err != nil {
-		return nil, "", err
+		return nil, "", errs.E(errs.IO, op, err)
 	}
 
 	saJson, err := base64.StdEncoding.DecodeString(key.PrivateKeyData)
 	if err != nil {
-		return nil, "", err
+		return nil, "", errs.E(errs.IO, op, err)
 	}
 
-	return saJson, account.Email, err
+	return saJson, account.Email, nil
 }
 
 func MarshalUUID(id uuid.UUID) string {

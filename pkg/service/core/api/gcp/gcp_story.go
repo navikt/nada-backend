@@ -5,6 +5,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"github.com/navikt/nada-backend/pkg/errs"
 	"github.com/navikt/nada-backend/pkg/service"
 	"github.com/sirupsen/logrus"
 	"google.golang.org/api/iterator"
@@ -23,37 +24,46 @@ type storyAPI struct {
 }
 
 func (s *storyAPI) GetIndexHtmlPath(ctx context.Context, prefix string) (string, error) {
+	const op errs.Op = "gcp.GetIndexHtmlPath"
+
 	client, err := s.newClient(ctx)
 	if err != nil {
-		return "", err
+		return "", errs.E(op, err)
 	}
 	defer client.Close()
 
 	prefix, _ = strings.CutSuffix(prefix, "/")
 
 	_, err = client.Bucket(s.bucketName).Object(prefix + "/index.html").NewReader(ctx)
-	if err != nil {
-		objs := client.Bucket(s.bucketName).Objects(ctx, &storage.Query{Prefix: prefix + "/"})
-		return s.findIndexPage(prefix, objs)
+	if err == nil {
+		return prefix + "/index.html", nil
 	}
 
-	return prefix + "/index.html", nil
+	objs := client.Bucket(s.bucketName).Objects(ctx, &storage.Query{Prefix: prefix + "/"})
+	index, err := s.findIndexPage(prefix, objs)
+	if err != nil {
+		return "", errs.E(op, err)
+	}
+
+	return index, nil
 }
 
 func (s *storyAPI) findIndexPage(qID string, objs *storage.ObjectIterator) (string, error) {
+	const op errs.Op = "gcp.findIndexPage"
+
 	page := ""
 	for {
 		o, err := objs.Next()
 		if errors.Is(err, iterator.Done) {
 			if page == "" {
-				return "", fmt.Errorf("could not find html for id %v", qID)
+				return "", errs.E(errs.InvalidRequest, op, fmt.Errorf("could not find html for id %v", qID))
 			}
 
 			// FIXME: is this correct?
 			return page, nil
 		}
 		if err != nil {
-			return "", fmt.Errorf("index page not found")
+			return "", errs.E(errs.IO, op, err)
 		}
 
 		if strings.HasSuffix(strings.ToLower(o.Name), "/index.html") {
@@ -65,60 +75,66 @@ func (s *storyAPI) findIndexPage(qID string, objs *storage.ObjectIterator) (stri
 }
 
 func (s *storyAPI) GetObject(ctx context.Context, path string) (*storage.ObjectAttrs, []byte, error) {
+	const op errs.Op = "gcp.GetObject"
+
 	client, err := s.newClient(ctx)
 	if err != nil {
-		return nil, nil, err
+		return nil, nil, errs.E(op, err)
 	}
 	defer client.Close()
 
 	obj := client.Bucket(s.bucketName).Object(path)
 	reader, err := obj.NewReader(ctx)
 	if err != nil {
-		return nil, nil, err
+		return nil, nil, errs.E(errs.IO, op, err)
 	}
 
 	datab, err := io.ReadAll(reader)
 	if err != nil {
-		return nil, nil, err
+		return nil, nil, errs.E(errs.IO, op, err)
 	}
 
 	attr, err := obj.Attrs(ctx)
 	if err != nil {
-		return nil, nil, err
+		return nil, nil, errs.E(errs.IO, op, err)
 	}
 
 	return attr, datab, nil
 }
 
 func (s *storyAPI) UploadFile(ctx context.Context, name string, file multipart.File) error {
+	const op errs.Op = "gcp.UploadFile"
+
 	client, err := s.newClient(ctx)
 	if err != nil {
-		return err
+		return errs.E(op, err)
 	}
 	defer client.Close()
 
 	datab, err := io.ReadAll(file)
 	if err != nil {
-		return fmt.Errorf("reading uploaded file %v: %w", name, err)
+		return errs.E(errs.IO, op, err)
 	}
 
 	writer := client.Bucket(s.bucketName).Object(name).NewWriter(ctx)
 	_, err = writer.Write(datab)
 	if err != nil {
-		return fmt.Errorf("writing file %v to bucket: %w", name, err)
+		return errs.E(errs.IO, op, err)
 	}
 
 	if err = writer.Close(); err != nil {
-		return err
+		return errs.E(errs.IO, op, err)
 	}
 
 	return nil
 }
 
 func (s *storyAPI) DeleteObjectsWithPrefix(ctx context.Context, prefix string) error {
+	const op errs.Op = "gcp.DeleteObjectsWithPrefix"
+
 	client, err := s.newClient(ctx)
 	if err != nil {
-		return err
+		return errs.E(op, err)
 	}
 	defer client.Close()
 
@@ -132,12 +148,12 @@ func (s *storyAPI) DeleteObjectsWithPrefix(ctx context.Context, prefix string) e
 			break
 		}
 		if err != nil {
-			return fmt.Errorf("failed to list objects with prefix: %w", err)
+			return errs.E(errs.IO, op, err)
 		}
 
 		obj := bucket.Object(attrs.Name)
 		if err := obj.Delete(ctx); err != nil {
-			return fmt.Errorf("failed to delete object: %w", err)
+			return errs.E(errs.IO, op, err)
 		}
 	}
 
@@ -145,6 +161,8 @@ func (s *storyAPI) DeleteObjectsWithPrefix(ctx context.Context, prefix string) e
 }
 
 func (s *storyAPI) WriteFilesToBucket(ctx context.Context, storyID string, files []*service.UploadFile, cleanupOnFailure bool) error {
+	const op errs.Op = "gcp.WriteFilesToBucket"
+
 	var err error
 
 	for _, file := range files {
@@ -162,13 +180,19 @@ func (s *storyAPI) WriteFilesToBucket(ctx context.Context, storyID string, files
 		}
 	}
 
-	return err
+	if err != nil {
+		return errs.E(errs.IO, op, err)
+	}
+
+	return nil
 }
 
 func (s *storyAPI) WriteFileToBucket(ctx context.Context, gcsPath string, data []byte) error {
+	const op errs.Op = "gcp.WriteFileToBucket"
+
 	client, err := s.newClient(ctx)
 	if err != nil {
-		return err
+		return errs.E(op, err)
 	}
 	defer client.Close()
 
@@ -183,29 +207,31 @@ func (s *storyAPI) WriteFileToBucket(ctx context.Context, gcsPath string, data [
 
 	// Write the file contents to the GCP object
 	if _, err = writer.Write(data); err != nil {
-		return err
+		return errs.E(errs.IO, op, err)
 	}
 
 	if err = writer.Close(); err != nil {
-		return err
+		return errs.E(errs.IO, op, err)
 	}
 
 	_, err = object.Attrs(ctx)
 	if err != nil {
-		return err
+		return errs.E(errs.IO, op, err)
 	}
 
 	return nil
 }
 
 func (s *storyAPI) DeleteStoryFolder(ctx context.Context, storyID string) error {
+	const op errs.Op = "gcp.DeleteStoryFolder"
+
 	if len(storyID) == 0 {
 		return fmt.Errorf("try to delete files in GCP with invalid story id")
 	}
 
 	client, err := s.newClient(ctx)
 	if err != nil {
-		return err
+		return errs.E(op, err)
 	}
 	defer client.Close()
 
@@ -223,25 +249,27 @@ func (s *storyAPI) DeleteStoryFolder(ctx context.Context, storyID string) error 
 			break
 		}
 		if err != nil {
-			return fmt.Errorf("failed to find objects %v: %v", storyID, err)
+			return errs.E(errs.IO, op, err)
 		}
 
 		err = bucket.Object(f.Name).Delete(ctx)
 		if err != nil {
-			return fmt.Errorf("failed to delete %v: %v", f.Name, err)
+			return errs.E(errs.IO, op, err)
 		}
 
 		deletedFiles = append(deletedFiles, f.Name)
 	}
 
 	if len(deletedFiles) == 0 {
-		return fmt.Errorf("object not found %v", storyID)
+		return errs.E(errs.NotExist, op, fmt.Errorf("no files found for story id %v", storyID))
 	}
 
 	return nil
 }
 
 func (s *storyAPI) newClient(ctx context.Context) (*storage.Client, error) {
+	const op errs.Op = "gcp.newClient"
+
 	var options []option.ClientOption
 
 	if s.endpoint != "" {
@@ -250,7 +278,7 @@ func (s *storyAPI) newClient(ctx context.Context) (*storage.Client, error) {
 
 	client, err := storage.NewClient(ctx, options...)
 	if err != nil {
-		return nil, fmt.Errorf("failed to create GCP storage client: %w", err)
+		return nil, errs.E(errs.IO, op, err)
 	}
 
 	return client, nil

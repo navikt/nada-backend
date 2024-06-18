@@ -19,9 +19,11 @@ type storyStorage struct {
 }
 
 func (s *storyStorage) GetStoriesByTeamID(ctx context.Context, teamIDs []string) ([]*service.Story, error) {
+	const op errs.Op = "postgres.GetStoriesByTeamID"
+
 	sqlStories, err := s.db.Querier.GetStoriesByProductArea(ctx, teamIDs)
 	if err != nil {
-		return nil, errs.E(errs.Database, err)
+		return nil, errs.E(errs.Database, op, err)
 	}
 
 	stories := make([]*service.Story, len(sqlStories))
@@ -33,19 +35,23 @@ func (s *storyStorage) GetStoriesByTeamID(ctx context.Context, teamIDs []string)
 }
 
 func (s *storyStorage) GetStoriesNumberByTeam(ctx context.Context, teamID string) (int64, error) {
+	const op errs.Op = "postgres.GetStoriesNumberByTeam"
+
 	n, err := s.db.Querier.GetStoriesNumberByTeam(ctx, ptrToNullString(&teamID))
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return 0, nil
 		}
 
-		return 0, errs.E(errs.Database, err)
+		return 0, errs.E(errs.Database, op, err)
 	}
 
 	return n, nil
 }
 
 func (s *storyStorage) UpdateStory(ctx context.Context, id uuid.UUID, input service.UpdateStoryDto) (*service.Story, error) {
+	const op errs.Op = "postgres.UpdateStory"
+
 	dbStory, err := s.db.Querier.UpdateStory(ctx, gensql.UpdateStoryParams{
 		ID:               id,
 		Name:             input.Name,
@@ -57,25 +63,34 @@ func (s *storyStorage) UpdateStory(ctx context.Context, id uuid.UUID, input serv
 	})
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
-			return nil, errs.E(errs.NotExist, err)
+			return nil, errs.E(errs.NotExist, op, err)
 		}
 
-		return nil, errs.E(errs.Database, err)
+		return nil, errs.E(errs.Database, op, err)
 	}
 
-	return s.GetStory(ctx, dbStory.ID)
+	st, err := s.GetStory(ctx, dbStory.ID)
+	if err != nil {
+		return nil, errs.E(op, err)
+	}
+
+	return st, nil
 }
 
 func (s *storyStorage) DeleteStory(ctx context.Context, id uuid.UUID) error {
+	const op errs.Op = "postgres.DeleteStory"
+
 	err := s.db.Querier.DeleteStory(ctx, id)
 	if err != nil {
-		return errs.E(errs.Database, err)
+		return errs.E(errs.Database, op, err)
 	}
 
 	return nil
 }
 
 func (s *storyStorage) CreateStory(ctx context.Context, creator string, newStory *service.NewStory) (*service.Story, error) {
+	const op errs.Op = "postgres.CreateStory"
+
 	var storySQL gensql.Story
 	var err error
 
@@ -102,29 +117,38 @@ func (s *storyStorage) CreateStory(ctx context.Context, creator string, newStory
 		})
 	}
 	if err != nil {
-		return nil, errs.E(errs.Database, err)
+		return nil, errs.E(errs.Database, op, err)
 	}
 
-	return s.GetStory(ctx, storySQL.ID)
+	st, err := s.GetStory(ctx, storySQL.ID)
+	if err != nil {
+		return nil, errs.E(op, err)
+	}
+
+	return st, nil
 }
 
 func (s *storyStorage) GetStory(ctx context.Context, id uuid.UUID) (*service.Story, error) {
+	const op errs.Op = "postgres.GetStory"
+
 	stories, err := s.GetStoriesWithTeamkatalogenByIDs(ctx, []uuid.UUID{id})
 	if err != nil {
-		return nil, err
+		return nil, errs.E(op, err)
 	}
 
 	if len(stories) == 0 {
-		return nil, errs.E(errs.NotExist, fmt.Errorf("story with id %s not found", id))
+		return nil, errs.E(errs.NotExist, op, fmt.Errorf("story with id %s not found", id))
 	}
 
 	return &stories[0], nil
 }
 
 func (s *storyStorage) GetStoriesWithTeamkatalogenByIDs(ctx context.Context, ids []uuid.UUID) ([]service.Story, error) {
+	const op errs.Op = "postgres.GetStoriesWithTeamkatalogenByIDs"
+
 	dbStories, err := s.db.Querier.GetStoriesWithTeamkatalogenByIDs(ctx, ids)
 	if err != nil {
-		return nil, errs.E(errs.Database, err)
+		return nil, errs.E(errs.Database, op, err)
 	}
 
 	stories := make([]service.Story, len(dbStories))
@@ -136,9 +160,11 @@ func (s *storyStorage) GetStoriesWithTeamkatalogenByIDs(ctx context.Context, ids
 }
 
 func (s *storyStorage) GetStoriesWithTeamkatalogenByGroups(ctx context.Context, groups []string) ([]service.Story, error) {
+	const op errs.Op = "postgres.GetStoriesWithTeamkatalogenByGroups"
+
 	dbStories, err := s.db.Querier.GetStoriesWithTeamkatalogenByGroups(ctx, groups)
 	if err != nil {
-		return nil, errs.E(errs.Database, err)
+		return nil, errs.E(errs.Database, op, err)
 	}
 
 	stories := make([]service.Story, len(dbStories))

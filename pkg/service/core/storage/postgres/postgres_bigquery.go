@@ -21,6 +21,8 @@ type bigQueryStorage struct {
 }
 
 func (s *bigQueryStorage) UpdateBigqueryDatasource(ctx context.Context, input service.BigQueryDataSourceUpdate) error {
+	const op errs.Op = "postgres.UpdateBigqueryDatasource"
+
 	err := s.db.Querier.UpdateBigqueryDatasource(ctx, gensql.UpdateBigqueryDatasourceParams{
 		DatasetID: input.DatasetID,
 		PiiTags: pqtype.NullRawMessage{
@@ -30,16 +32,18 @@ func (s *bigQueryStorage) UpdateBigqueryDatasource(ctx context.Context, input se
 		PseudoColumns: input.PseudoColumns,
 	})
 	if err != nil {
-		return errs.E(errs.Database, err)
+		return errs.E(errs.Database, op, err)
 	}
 
 	return nil
 }
 
 func (s *bigQueryStorage) GetPseudoDatasourcesToDelete(ctx context.Context) ([]*service.BigQuery, error) {
+	const op errs.Op = "postgres.GetPseudoDatasourcesToDelete"
+
 	rows, err := s.db.Querier.GetPseudoDatasourcesToDelete(ctx)
 	if err != nil {
-		return nil, errs.E(errs.Database, err)
+		return nil, errs.E(errs.Database, op, err)
 	}
 
 	var pseudoViews []*service.BigQuery
@@ -57,18 +61,22 @@ func (s *bigQueryStorage) GetPseudoDatasourcesToDelete(ctx context.Context) ([]*
 }
 
 func (s *bigQueryStorage) UpdateBigqueryDatasourceMissing(ctx context.Context, datasetID uuid.UUID) error {
+	const op errs.Op = "postgres.UpdateBigqueryDatasourceMissing"
+
 	err := s.db.Querier.UpdateBigqueryDatasourceMissing(ctx, datasetID)
 	if err != nil {
-		return errs.E(errs.Database, err)
+		return errs.E(errs.Database, op, err)
 	}
 
 	return nil
 }
 
 func (s *bigQueryStorage) UpdateBigqueryDatasourceSchema(ctx context.Context, datasetID uuid.UUID, meta service.BigqueryMetadata) error {
+	const op errs.Op = "postgres.UpdateBigqueryDatasourceSchema"
+
 	schemaJSON, err := json.Marshal(meta.Schema.Columns)
 	if err != nil {
-		return errs.E(errs.InvalidRequest, err)
+		return errs.E(errs.InvalidRequest, op, err)
 	}
 
 	err = s.db.Querier.UpdateBigqueryDatasourceSchema(ctx, gensql.UpdateBigqueryDatasourceSchemaParams{
@@ -83,16 +91,18 @@ func (s *bigQueryStorage) UpdateBigqueryDatasourceSchema(ctx context.Context, da
 		DatasetID:     datasetID,
 	})
 	if err != nil {
-		return errs.E(errs.Database, err)
+		return errs.E(errs.Database, op, err)
 	}
 
 	return nil
 }
 
 func (s *bigQueryStorage) GetBigqueryDatasources(ctx context.Context) ([]*service.BigQuery, error) {
+	const op errs.Op = "postgres.GetBigqueryDatasources"
+
 	bqs, err := s.db.Querier.GetBigqueryDatasources(ctx)
 	if err != nil {
-		return nil, errs.E(errs.Database, err)
+		return nil, errs.E(errs.Database, op, err)
 	}
 
 	ret := make([]*service.BigQuery, len(bqs))
@@ -123,16 +133,18 @@ func (s *bigQueryStorage) GetBigqueryDatasources(ctx context.Context) ([]*servic
 }
 
 func (s *bigQueryStorage) GetBigqueryDatasource(ctx context.Context, datasetID uuid.UUID, isReference bool) (*service.BigQuery, error) {
+	const op errs.Op = "postgres.GetBigqueryDatasource"
+
 	bq, err := s.db.Querier.GetBigqueryDatasource(ctx, gensql.GetBigqueryDatasourceParams{
 		DatasetID:   datasetID,
 		IsReference: isReference,
 	})
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
-			return nil, errs.E(errs.NotExist, err)
+			return nil, errs.E(errs.NotExist, op, err)
 		}
 
-		return nil, errs.E(errs.Database, err)
+		return nil, errs.E(errs.Database, op, err)
 	}
 
 	piiTags := "{}"

@@ -3,6 +3,7 @@ package slack
 import (
 	"context"
 	"fmt"
+	"github.com/navikt/nada-backend/pkg/errs"
 	"github.com/navikt/nada-backend/pkg/service"
 	slackapi "github.com/slack-go/slack"
 	"net/url"
@@ -22,14 +23,16 @@ type slackAPI struct {
 var _ service.SlackAPI = &slackAPI{}
 
 func (a *slackAPI) InformNewAccessRequest(ctx context.Context, subject, datasetID string) error {
+	const op = "slackAPI.InformNewAccessRequest"
+
 	ds, err := a.dataProductsStorage.GetDataset(ctx, datasetID)
 	if err != nil {
-		return err
+		return errs.E(op, err)
 	}
 
 	dp, err := a.dataProductsStorage.GetDataproduct(ctx, ds.DataproductID.String())
 	if err != nil {
-		return err
+		return errs.E(op, err)
 	}
 
 	if dp.Owner.TeamContact == nil || *dp.Owner.TeamContact == "" {
@@ -60,7 +63,7 @@ func (a *slackAPI) InformNewAccessRequest(ctx context.Context, subject, datasetI
 
 	_, _, _, err = a.api.SendMessage(*dp.Owner.TeamContact, slackapi.MsgOptionText(message, false))
 	if err != nil {
-		return fmt.Errorf("sending slack message: %w", err)
+		return errs.E(errs.IO, op, err)
 
 	}
 
@@ -68,6 +71,8 @@ func (a *slackAPI) InformNewAccessRequest(ctx context.Context, subject, datasetI
 }
 
 func (a *slackAPI) IsValidSlackChannel(name string) error {
+	const op = "slackAPI.IsValidSlackChannel"
+
 	c := ""
 	for i := 0; i < 10; i++ {
 		chn, nc, e := a.api.GetConversations(&slackapi.GetConversationsParameters{
@@ -77,7 +82,7 @@ func (a *slackAPI) IsValidSlackChannel(name string) error {
 			Limit:           1000,
 		})
 		if e != nil {
-			return fmt.Errorf("get conversations: %w", e)
+			return errs.E(errs.IO, op, e)
 		}
 
 		for _, cn := range chn {
@@ -87,13 +92,13 @@ func (a *slackAPI) IsValidSlackChannel(name string) error {
 		}
 
 		if nc == "" {
-			return fmt.Errorf("channel '%s' not found", name)
+			return errs.E(errs.NotExist, op, fmt.Errorf("channel %s not found", name))
 		}
 
 		c = nc
 	}
 
-	return fmt.Errorf("too many channels in workspace")
+	return errs.E(errs.Internal, op, fmt.Errorf("too many channels to search"))
 }
 
 func NewSlackAPI(webhookURL, dataCatalogueURL, token string) *slackAPI {

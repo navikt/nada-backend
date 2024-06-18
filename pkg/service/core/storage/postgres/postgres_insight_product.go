@@ -18,15 +18,19 @@ type insightProductStorage struct {
 }
 
 func (s *insightProductStorage) DeleteInsightProduct(ctx context.Context, id uuid.UUID) error {
+	const op errs.Op = "postgres.DeleteInsightProduct"
+
 	err := s.db.Querier.DeleteInsightProduct(ctx, id)
 	if err != nil {
-		return errs.E(errs.Database, err)
+		return errs.E(errs.Database, op, err)
 	}
 
 	return nil
 }
 
 func (s *insightProductStorage) CreateInsightProduct(ctx context.Context, creator string, input service.NewInsightProduct) (*service.InsightProduct, error) {
+	const op errs.Op = "postgres.CreateInsightProduct"
+
 	insightProductSQL, err := s.db.Querier.CreateInsightProduct(ctx, gensql.CreateInsightProductParams{
 		Name:             input.Name,
 		Creator:          creator,
@@ -40,16 +44,18 @@ func (s *insightProductStorage) CreateInsightProduct(ctx context.Context, creato
 	})
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
-			return nil, errs.E(errs.NotExist, err)
+			return nil, errs.E(errs.NotExist, op, err)
 		}
 
-		return nil, errs.E(errs.Database, err)
+		return nil, errs.E(errs.Database, op, err)
 	}
 
 	return s.GetInsightProductWithTeamkatalogen(ctx, insightProductSQL.ID)
 }
 
 func (s *insightProductStorage) UpdateInsightProduct(ctx context.Context, id uuid.UUID, input service.UpdateInsightProductDto) (*service.InsightProduct, error) {
+	const op errs.Op = "postgres.UpdateInsightProduct"
+
 	dbProduct, err := s.db.Querier.UpdateInsightProduct(ctx, gensql.UpdateInsightProductParams{
 		ID:               id,
 		Name:             input.Name,
@@ -62,36 +68,45 @@ func (s *insightProductStorage) UpdateInsightProduct(ctx context.Context, id uui
 	})
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
-			return nil, errs.E(errs.NotExist, err)
+			return nil, errs.E(errs.NotExist, op, err)
 		}
 
-		return nil, errs.E(errs.Database, err)
+		return nil, errs.E(errs.Database, op, err)
 	}
 
-	return s.GetInsightProductWithTeamkatalogen(ctx, dbProduct.ID)
+	p, err := s.GetInsightProductWithTeamkatalogen(ctx, dbProduct.ID)
+	if err != nil {
+		return nil, errs.E(errs.Database, op, err)
+	}
+
+	return p, nil
 }
 
 func (s *insightProductStorage) GetInsightProductWithTeamkatalogen(ctx context.Context, id uuid.UUID) (*service.InsightProduct, error) {
+	const op errs.Op = "postgres.GetInsightProductWithTeamkatalogen"
+
 	raw, err := s.db.Querier.GetInsightProductWithTeamkatalogen(ctx, id)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
-			return nil, errs.E(errs.NotExist, err)
+			return nil, errs.E(errs.NotExist, op, err)
 		}
 
-		return nil, err
+		return nil, errs.E(errs.Database, op, err)
 	}
 
 	return insightProductFromSQL(&raw), nil
 }
 
 func (s *insightProductStorage) GetInsightProductsByGroups(ctx context.Context, groups []string) ([]*service.InsightProduct, error) {
+	const op errs.Op = "postgres.GetInsightProductsByGroups"
+
 	raw, err := s.db.Querier.GetInsightProductsByGroups(ctx, groups)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return nil, nil
 		}
 
-		return nil, errs.E(errs.Database, err)
+		return nil, errs.E(errs.Database, op, err)
 	}
 
 	insightProducts := make([]*service.InsightProduct, len(raw))
@@ -103,13 +118,15 @@ func (s *insightProductStorage) GetInsightProductsByGroups(ctx context.Context, 
 }
 
 func (s *insightProductStorage) GetInsightProductsByTeamID(ctx context.Context, teamIDs []string) ([]*service.InsightProduct, error) {
+	const op errs.Op = "postgres.GetInsightProductsByTeamID"
+
 	raw, err := s.db.Querier.GetInsightProductsByProductArea(ctx, teamIDs)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return nil, nil
 		}
 
-		return nil, errs.E(errs.Database, err)
+		return nil, errs.E(errs.Database, op, err)
 	}
 
 	insightProducts := make([]*service.InsightProduct, len(raw))
@@ -121,13 +138,15 @@ func (s *insightProductStorage) GetInsightProductsByTeamID(ctx context.Context, 
 }
 
 func (s *insightProductStorage) GetInsightProductsNumberByTeam(ctx context.Context, teamID string) (int64, error) {
+	const op errs.Op = "postgres.GetInsightProductsNumberByTeam"
+
 	n, err := s.db.Querier.GetInsightProductsNumberByTeam(ctx, ptrToNullString(&teamID))
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return 0, nil
 		}
 
-		return 0, errs.E(errs.Database, err)
+		return 0, errs.E(errs.Database, op, err)
 	}
 
 	return n, nil
