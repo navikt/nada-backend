@@ -45,6 +45,7 @@ type Config struct {
 	NaisConsole        NaisConsole        `yaml:"nais_console"`
 	API                API                `yaml:"api"`
 
+	AllUsersGroup    string `yaml:"all_users_group"`
 	LoginPage        string `yaml:"login_page"`
 	AmplitudeAPIKey  string `yaml:"amplitude_api_key"`
 	LogLevel         string `yaml:"log_level"`
@@ -70,6 +71,7 @@ func (c Config) Validate() error {
 		validation.Field(&c.LoginPage, validation.Required),
 		validation.Field(&c.AmplitudeAPIKey, validation.Required),
 		validation.Field(&c.LogLevel, validation.Required),
+		validation.Field(&c.AllUsersGroup, validation.Required),
 	)
 }
 

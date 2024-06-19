@@ -78,6 +78,7 @@ data:
       api_url: https://console.nav.cloud.nais.io
     api:
       auth_token: # Loaded from env var NADA_API_AUTH_TOKEN
+    all_users_group: group:all-users@nav.no
     login_page: https://data.ansatt.nav.no/
     amplitude_api_key: # Loaded from env var NADA_AMPLITUDE_API_KEY
     skip_metadata_sync: false

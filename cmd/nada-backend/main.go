@@ -8,7 +8,6 @@ import (
 	"github.com/navikt/nada-backend/pkg/service/core/handlers"
 	"github.com/navikt/nada-backend/pkg/service/core/storage"
 	"github.com/rs/zerolog"
-	"github.com/rs/zerolog/pkgerrors"
 	"net"
 	"net/http"
 	"os"
@@ -47,7 +46,7 @@ const (
 func main() {
 	flag.Parse()
 
-	zerolog.ErrorStackMarshaler = pkgerrors.MarshalStack
+	// zerolog.ErrorStackMarshaler = pkgerrors.MarshalStack
 
 	zlog := zerolog.New(os.Stdout).With().Timestamp().Logger()
 
