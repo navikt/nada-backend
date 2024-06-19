@@ -24,6 +24,7 @@ var embedMigrations embed.FS
 
 type Repo struct {
 	Querier            Querier
+	queries            *gensql.Queries
 	db                 *sql.DB
 	log                *logrus.Entry
 	hooks              *Hooks
@@ -37,6 +38,25 @@ func (r *Repo) Metrics() []prometheus.Collector {
 type Querier interface {
 	gensql.Querier
 	WithTx(tx *sql.Tx) *gensql.Queries
+}
+
+type Transacter interface {
+	Commit() error
+	Rollback() error
+}
+
+// WithTx is a helper function that returns a function that will return a new transaction and the querier
+// to be used within the transaction. It allows us to define a subset of the queries to be used within the
+// transaction.
+func WithTx[T any](r *Repo) func() (T, Transacter, error) {
+	return func() (T, Transacter, error) {
+		tx, err := r.db.Begin()
+		if err != nil {
+			return *new(T), nil, fmt.Errorf("begin tx: %w", err)
+		}
+
+		return any(r.queries.WithTx(tx)).(T), tx, nil
+	}
 }
 
 func New(dbConnDSN string, maxIdleConn, maxOpenConn int, log *logrus.Entry, centralDataProject string) (*Repo, error) {
@@ -56,8 +76,10 @@ func New(dbConnDSN string, maxIdleConn, maxOpenConn int, log *logrus.Entry, cent
 		return nil, fmt.Errorf("goose up: %w", err)
 	}
 
+	queries := gensql.New(db)
 	return &Repo{
-		Querier:            gensql.New(db),
+		Querier:            queries,
+		queries:            queries,
 		db:                 db,
 		log:                log,
 		hooks:              hooks,

@@ -15,16 +15,36 @@ import (
 	"time"
 )
 
+type AccessQueries interface {
+	ListAccessRequestsForOwner(ctx context.Context, owner []string) ([]gensql.DatasetAccessRequest, error)
+	ListUnrevokedExpiredAccessEntries(ctx context.Context) ([]gensql.DatasetAccess, error)
+	ListActiveAccessToDataset(ctx context.Context, datasetID uuid.UUID) ([]gensql.DatasetAccess, error)
+	ListAccessRequestsForDataset(ctx context.Context, datasetID uuid.UUID) ([]gensql.DatasetAccessRequest, error)
+	CreateAccessRequestForDataset(ctx context.Context, params gensql.CreateAccessRequestForDatasetParams) (gensql.DatasetAccessRequest, error)
+	GetAccessRequest(ctx context.Context, id uuid.UUID) (gensql.DatasetAccessRequest, error)
+	DeleteAccessRequest(ctx context.Context, id uuid.UUID) error
+	UpdateAccessRequest(ctx context.Context, params gensql.UpdateAccessRequestParams) (gensql.DatasetAccessRequest, error)
+	GrantAccessToDataset(ctx context.Context, params gensql.GrantAccessToDatasetParams) (gensql.DatasetAccess, error)
+	ApproveAccessRequest(ctx context.Context, params gensql.ApproveAccessRequestParams) error
+	GetActiveAccessToDatasetForSubject(ctx context.Context, params gensql.GetActiveAccessToDatasetForSubjectParams) (gensql.DatasetAccess, error)
+	RevokeAccessToDataset(ctx context.Context, id uuid.UUID) error
+	DenyAccessRequest(ctx context.Context, params gensql.DenyAccessRequestParams) error
+	GetAccessToDataset(ctx context.Context, id uuid.UUID) (gensql.DatasetAccess, error)
+}
+
 var _ service.AccessStorage = &accessStorage{}
 
+type AccessQueriesWithTxFn func() (AccessQueries, database.Transacter, error)
+
 type accessStorage struct {
-	db *database.Repo
+	queries  AccessQueries
+	withTxFn AccessQueriesWithTxFn
 }
 
 func (s *accessStorage) ListAccessRequestsForOwner(ctx context.Context, owner []string) ([]*service.AccessRequest, error) {
 	const op errs.Op = "postgres.ListAccessRequestsForOwner"
 
-	accessRequest, err := s.db.Querier.ListAccessRequestsForOwner(ctx, owner)
+	accessRequest, err := s.queries.ListAccessRequestsForOwner(ctx, owner)
 	if err != nil {
 		return nil, errs.E(errs.Database, op, err, errs.Parameter("owner"))
 	}
@@ -40,7 +60,7 @@ func (s *accessStorage) ListAccessRequestsForOwner(ctx context.Context, owner []
 func (s *accessStorage) GetUnrevokedExpiredAccess(ctx context.Context) ([]*service.Access, error) {
 	const op errs.Op = "postgres.GetUnrevokedExpiredAccess"
 
-	expired, err := s.db.Querier.ListUnrevokedExpiredAccessEntries(ctx)
+	expired, err := s.queries.ListUnrevokedExpiredAccessEntries(ctx)
 	if err != nil {
 		return nil, errs.E(errs.Database, op, err)
 	}
@@ -56,7 +76,7 @@ func (s *accessStorage) GetUnrevokedExpiredAccess(ctx context.Context) ([]*servi
 func (s *accessStorage) ListActiveAccessToDataset(ctx context.Context, datasetID uuid.UUID) ([]*service.Access, error) {
 	const op errs.Op = "postgres.ListActiveAccessToDataset"
 
-	access, err := s.db.Querier.ListActiveAccessToDataset(ctx, datasetID)
+	access, err := s.queries.ListActiveAccessToDataset(ctx, datasetID)
 	if err != nil {
 		return nil, errs.E(errs.Database, op, err, errs.Parameter("datasetID"))
 	}
@@ -72,7 +92,7 @@ func (s *accessStorage) ListActiveAccessToDataset(ctx context.Context, datasetID
 func (s *accessStorage) ListAccessRequestsForDataset(ctx context.Context, datasetID uuid.UUID) ([]*service.AccessRequest, error) {
 	const op errs.Op = "postgres.ListAccessRequestsForDataset"
 
-	accessRequestsSQL, err := s.db.Querier.ListAccessRequestsForDataset(ctx, datasetID)
+	accessRequestsSQL, err := s.queries.ListAccessRequestsForDataset(ctx, datasetID)
 	if err != nil {
 		return nil, errs.E(errs.Database, op, err, errs.Parameter("datasetID"))
 	}
@@ -88,7 +108,7 @@ func (s *accessStorage) ListAccessRequestsForDataset(ctx context.Context, datase
 func (s *accessStorage) CreateAccessRequestForDataset(ctx context.Context, datasetID uuid.UUID, pollyDocumentationID uuid.NullUUID, subject, owner string, expires *time.Time) (*service.AccessRequest, error) {
 	const op errs.Op = "postgres.CreateAccessRequestForDataset"
 
-	requestSQL, err := s.db.Querier.CreateAccessRequestForDataset(ctx, gensql.CreateAccessRequestForDatasetParams{
+	requestSQL, err := s.queries.CreateAccessRequestForDataset(ctx, gensql.CreateAccessRequestForDatasetParams{
 		DatasetID:            datasetID,
 		Subject:              emailOfSubjectToLower(subject),
 		Owner:                owner,
@@ -119,7 +139,7 @@ func (s *accessStorage) GetAccessRequest(ctx context.Context, accessRequestID st
 		return nil, errs.E(errs.Validation, op, err, errs.Parameter("accessRequestID"))
 	}
 
-	accessRequestsSQL, err := s.db.Querier.GetAccessRequest(ctx, id)
+	accessRequestsSQL, err := s.queries.GetAccessRequest(ctx, id)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return nil, errs.E(errs.NotExist, op, err, errs.Parameter("accessRequestID"))
@@ -144,7 +164,7 @@ func (s *accessStorage) DeleteAccessRequest(ctx context.Context, accessRequestID
 		return errs.E(errs.Validation, op, err, errs.Parameter("accessRequestID"))
 	}
 
-	err = s.db.Querier.DeleteAccessRequest(ctx, id)
+	err = s.queries.DeleteAccessRequest(ctx, id)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return nil
@@ -165,7 +185,7 @@ func (s *accessStorage) UpdateAccessRequest(ctx context.Context, input service.U
 		pollyID = uuid.NullUUID{UUID: *input.Polly.ID, Valid: true}
 	}
 
-	_, err := s.db.Querier.UpdateAccessRequest(ctx, gensql.UpdateAccessRequestParams{
+	_, err := s.queries.UpdateAccessRequest(ctx, gensql.UpdateAccessRequestParams{
 		Owner:                input.Owner,
 		Expires:              ptrToNullTime(input.Expires),
 		PollyDocumentationID: pollyID,
@@ -185,14 +205,14 @@ func (s *accessStorage) UpdateAccessRequest(ctx context.Context, input service.U
 func (s *accessStorage) GrantAccessToDatasetAndApproveRequest(ctx context.Context, datasetID, subject, accessRequestID string, expires *time.Time) error {
 	const op errs.Op = "postgres.GrantAccessToDatasetAndApproveRequest"
 
-	tx, err := s.db.GetDB().Begin()
+	q, tx, err := s.withTxFn()
 	if err != nil {
 		return errs.E(errs.Database, op, err)
 	}
 	defer tx.Rollback()
 
+	// FIXME: move this up the call chain
 	user := auth.GetUser(ctx)
-	q := s.db.Querier.WithTx(tx)
 
 	_, err = q.GrantAccessToDataset(ctx, gensql.GrantAccessToDatasetParams{
 		DatasetID: uuid.MustParse(datasetID),
@@ -231,7 +251,7 @@ func (s *accessStorage) GrantAccessToDatasetAndApproveRequest(ctx context.Contex
 func (s *accessStorage) GrantAccessToDatasetAndRenew(ctx context.Context, datasetID uuid.UUID, expires *time.Time, subject, granter string) (err error) {
 	const op errs.Op = "postgres.GrantAccessToDatasetAndRenew"
 
-	a, err := s.db.Querier.GetActiveAccessToDatasetForSubject(ctx, gensql.GetActiveAccessToDatasetForSubjectParams{
+	a, err := s.queries.GetActiveAccessToDatasetForSubject(ctx, gensql.GetActiveAccessToDatasetForSubjectParams{
 		DatasetID: datasetID,
 		Subject:   subject,
 	})
@@ -243,21 +263,19 @@ func (s *accessStorage) GrantAccessToDatasetAndRenew(ctx context.Context, datase
 		return errs.E(errs.Database, op, err)
 	}
 
-	tx, err := s.db.GetDB().Begin()
+	q, tx, err := s.withTxFn()
 	if err != nil {
 		return errs.E(errs.Database, op, err)
 	}
 	defer tx.Rollback()
 
-	querier := s.db.Querier.WithTx(tx)
-
 	if len(a.Subject) > 0 {
-		if err := querier.RevokeAccessToDataset(ctx, a.ID); err != nil {
+		if err := q.RevokeAccessToDataset(ctx, a.ID); err != nil {
 			return errs.E(errs.Database, op, err)
 		}
 	}
 
-	_, err = querier.GrantAccessToDataset(ctx, gensql.GrantAccessToDatasetParams{
+	_, err = q.GrantAccessToDataset(ctx, gensql.GrantAccessToDatasetParams{
 		DatasetID: datasetID,
 		Subject:   emailOfSubjectToLower(subject),
 		Expires:   ptrToNullTime(expires),
@@ -281,7 +299,7 @@ func (s *accessStorage) DenyAccessRequest(ctx context.Context, accessRequestID s
 	// FIXME: move up the invocation chain
 	user := auth.GetUser(ctx)
 
-	err := s.db.Querier.DenyAccessRequest(ctx, gensql.DenyAccessRequestParams{
+	err := s.queries.DenyAccessRequest(ctx, gensql.DenyAccessRequestParams{
 		ID:      uuid.MustParse(accessRequestID),
 		Granter: sql.NullString{String: user.Email, Valid: true},
 		Reason:  ptrToNullString(reason),
@@ -296,7 +314,7 @@ func (s *accessStorage) DenyAccessRequest(ctx context.Context, accessRequestID s
 func (s *accessStorage) GetAccessToDataset(ctx context.Context, id uuid.UUID) (*service.Access, error) {
 	const op errs.Op = "postgres.GetAccessToDataset"
 
-	access, err := s.db.Querier.GetAccessToDataset(ctx, id)
+	access, err := s.queries.GetAccessToDataset(ctx, id)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return nil, errs.E(errs.NotExist, op, err, errs.Parameter("id"))
@@ -320,7 +338,7 @@ func (s *accessStorage) GetAccessToDataset(ctx context.Context, id uuid.UUID) (*
 func (s *accessStorage) RevokeAccessToDataset(ctx context.Context, id uuid.UUID) error {
 	const op errs.Op = "postgres.RevokeAccessToDataset"
 
-	err := s.db.Querier.RevokeAccessToDataset(ctx, id)
+	err := s.queries.RevokeAccessToDataset(ctx, id)
 	if err != nil {
 		return errs.E(errs.Database, op, err)
 	}
@@ -437,8 +455,9 @@ func accessRequestStatusFromDB(status gensql.AccessRequestStatusType) (service.A
 	}
 }
 
-func NewAccessStorage(db *database.Repo) *accessStorage {
+func NewAccessStorage(queries AccessQueries, fn AccessQueriesWithTxFn) *accessStorage {
 	return &accessStorage{
-		db: db,
+		withTxFn: fn,
+		queries:  queries,
 	}
 }
