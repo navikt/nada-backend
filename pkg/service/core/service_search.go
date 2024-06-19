@@ -3,6 +3,7 @@ package core
 import (
 	"context"
 	"github.com/google/uuid"
+	"github.com/navikt/nada-backend/pkg/errs"
 	"github.com/navikt/nada-backend/pkg/service"
 	"sort"
 	"time"
@@ -17,9 +18,11 @@ type searchService struct {
 }
 
 func (s *searchService) Search(ctx context.Context, query *service.SearchOptions) (*service.SearchResult, error) {
+	const op errs.Op = "searchService.Search"
+
 	res, err := s.searchStorage.Search(ctx, query)
 	if err != nil {
-		return nil, err
+		return nil, errs.E(op, err)
 	}
 
 	order := map[string]int{}
@@ -39,14 +42,14 @@ func (s *searchService) Search(ctx context.Context, query *service.SearchOptions
 		excerpts[sr.ElementID] = sr.Excerpt
 	}
 
-	dps, apierr := s.dataProductsStorage.GetDataproducts(ctx, dataproducts)
-	if apierr != nil {
-		return nil, apierr
+	dps, err := s.dataProductsStorage.GetDataproducts(ctx, dataproducts)
+	if err != nil {
+		return nil, errs.E(op, err)
 	}
 
 	ss, err := s.storyStorage.GetStoriesWithTeamkatalogenByIDs(ctx, stories)
 	if err != nil {
-		return nil, err
+		return nil, errs.E(op, err)
 	}
 
 	ret := []*service.SearchResultRow{}

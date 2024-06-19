@@ -2,6 +2,7 @@ package core
 
 import (
 	"context"
+	"github.com/navikt/nada-backend/pkg/errs"
 	"github.com/navikt/nada-backend/pkg/service"
 )
 
@@ -12,7 +13,14 @@ type teamkatalogenService struct {
 }
 
 func (t *teamkatalogenService) SearchTeamKatalogen(ctx context.Context, gcpGroups []string) ([]service.TeamkatalogenResult, error) {
-	return t.teamKatalogenAPI.Search(ctx, gcpGroups)
+	const op = "teamkatalogenService.SearchTeamKatalogen"
+
+	res, err := t.teamKatalogenAPI.Search(ctx, gcpGroups)
+	if err != nil {
+		return nil, errs.E(op, err)
+	}
+
+	return res, nil
 }
 
 func NewTeamKatalogenService(api service.TeamKatalogenAPI) *teamkatalogenService {

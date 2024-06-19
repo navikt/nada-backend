@@ -2,7 +2,7 @@ package core
 
 import (
 	"context"
-	"fmt"
+	"github.com/navikt/nada-backend/pkg/errs"
 	"github.com/navikt/nada-backend/pkg/service"
 )
 
@@ -16,14 +16,16 @@ type productAreaService struct {
 }
 
 func (s *productAreaService) GetProductAreaWithAssets(ctx context.Context, id string) (*service.ProductAreaWithAssets, error) {
+	const op errs.Op = "productAreaService.GetProductAreaWithAssets"
+
 	rawProductArea, err := s.productAreaStorage.GetProductArea(ctx, id)
 	if err != nil {
-		return nil, err
+		return nil, errs.E(op, err)
 	}
 
 	dash, err := s.productAreaStorage.GetDashboard(ctx, id)
 	if err != nil {
-		return nil, err
+		return nil, errs.E(op, err)
 	}
 
 	productArea := &service.ProductAreaWithAssets{
@@ -46,14 +48,14 @@ func (s *productAreaService) GetProductAreaWithAssets(ctx context.Context, id st
 
 		teamDash, err := s.productAreaStorage.GetDashboard(ctx, teamIDs[idx])
 		if err != nil {
-			return nil, err
+			return nil, errs.E(op, err)
 		}
 		productArea.Teams[idx].DashboardURL = teamDash.Url
 	}
 
-	dataproducts, apiErr := s.dataProductStorage.GetDataproductsByTeamID(ctx, teamIDs)
-	if apiErr != nil {
-		return nil, apiErr
+	dataproducts, err := s.dataProductStorage.GetDataproductsByTeamID(ctx, teamIDs)
+	if err != nil {
+		return nil, errs.E(op, err)
 	}
 
 	for _, dp := range dataproducts {
@@ -64,9 +66,9 @@ func (s *productAreaService) GetProductAreaWithAssets(ctx context.Context, id st
 		}
 	}
 
-	stories, apiErr := s.storyStorage.GetStoriesByTeamID(ctx, teamIDs)
-	if apiErr != nil {
-		return nil, apiErr
+	stories, err := s.storyStorage.GetStoriesByTeamID(ctx, teamIDs)
+	if err != nil {
+		return nil, errs.E(op, err)
 	}
 
 	for _, s := range stories {
@@ -77,9 +79,9 @@ func (s *productAreaService) GetProductAreaWithAssets(ctx context.Context, id st
 		}
 	}
 
-	insightProducts, apiErr := s.insightProductStorage.GetInsightProductsByTeamID(ctx, teamIDs)
-	if apiErr != nil {
-		return nil, apiErr
+	insightProducts, err := s.insightProductStorage.GetInsightProductsByTeamID(ctx, teamIDs)
+	if err != nil {
+		return nil, errs.E(op, err)
 	}
 
 	for _, ip := range insightProducts {
@@ -94,15 +96,17 @@ func (s *productAreaService) GetProductAreaWithAssets(ctx context.Context, id st
 }
 
 func (s *productAreaService) GetProductAreas(ctx context.Context) (*service.ProductAreasDto, error) {
+	const op errs.Op = "productAreaService.GetProductAreas"
+
 	pa, err := s.productAreaStorage.GetProductAreas(ctx)
 	if err != nil {
-		return nil, fmt.Errorf("get product areas: %w", err)
+		return nil, errs.E(op, err)
 	}
 
 	for _, p := range pa {
 		dash, err := s.productAreaStorage.GetDashboard(ctx, p.ID)
 		if err != nil {
-			return nil, err
+			return nil, errs.E(op, err)
 		}
 
 		p.DashboardURL = dash.Url
@@ -110,17 +114,17 @@ func (s *productAreaService) GetProductAreas(ctx context.Context) (*service.Prod
 		for _, team := range p.Teams {
 			numDataProducts, err := s.dataProductStorage.GetDataproductsNumberByTeam(ctx, team.ID)
 			if err != nil {
-				return nil, err
+				return nil, errs.E(op, err)
 			}
 
 			numStories, err := s.storyStorage.GetStoriesNumberByTeam(ctx, team.ID)
 			if err != nil {
-				return nil, err
+				return nil, errs.E(op, err)
 			}
 
 			numInsightProducts, err := s.insightProductStorage.GetInsightProductsNumberByTeam(ctx, team.ID)
 			if err != nil {
-				return nil, err
+				return nil, errs.E(op, err)
 			}
 
 			team.DataproductsNumber = int(numDataProducts)

@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"github.com/google/uuid"
 	"github.com/navikt/nada-backend/pkg/auth"
+	"github.com/navikt/nada-backend/pkg/errs"
 	"github.com/navikt/nada-backend/pkg/service"
 	"html"
 )
@@ -17,27 +18,35 @@ type dataProductsService struct {
 	bigQueryStorage    service.BigQueryStorage
 	bigQueryAPI        service.BigQueryAPI
 	gcpProjects        *auth.TeamProjectsMapping
+	allUsersGroup      string
 }
 
 func (s *dataProductsService) GetDataset(ctx context.Context, id string) (*service.Dataset, error) {
+	const op errs.Op = "dataProductsService.GetDataset"
+
 	ds, err := s.dataProductStorage.GetDataset(ctx, id)
 	if err != nil {
-		return nil, fmt.Errorf("dbGetDataset: %w", err)
+		return nil, errs.E(op, err)
 	}
 
 	return ds, nil
 }
 
 func (s *dataProductsService) GetDataproduct(ctx context.Context, id string) (*service.DataproductWithDataset, error) {
+	const op errs.Op = "dataProductsService.GetDataproduct"
+
 	dp, err := s.dataProductStorage.GetDataproduct(ctx, id)
 	if err != nil {
-		return nil, fmt.Errorf("dbGetDataproduct: %w", err)
+		return nil, errs.E(op, err)
 	}
 
 	return dp, nil
 }
 
 func (s *dataProductsService) GetAccessiblePseudoDatasetsForUser(ctx context.Context) ([]*service.PseudoDataset, error) {
+	const op errs.Op = "dataProductsService.GetAccessiblePseudoDatasetsForUser"
+
+	// FIXME: move up the call chain
 	user := auth.GetUser(ctx)
 	subjectsAsOwner := []string{user.Email}
 	subjectsAsOwner = append(subjectsAsOwner, user.GoogleGroups.Emails()...)
@@ -49,24 +58,28 @@ func (s *dataProductsService) GetAccessiblePseudoDatasetsForUser(ctx context.Con
 
 	pseudoDatasets, err := s.dataProductStorage.GetAccessiblePseudoDatasourcesByUser(ctx, subjectsAsOwner, subjectsAsAccesser)
 	if err != nil {
-		return nil, fmt.Errorf("dbGetAccessiblePseudoDatasourcesByUser: %w", err)
+		return nil, errs.E(op, err)
 	}
 
 	return pseudoDatasets, nil
 }
 
 func (s *dataProductsService) GetDatasetsMinimal(ctx context.Context) ([]*service.DatasetMinimal, error) {
+	const op errs.Op = "dataProductsService.GetDatasetsMinimal"
+
 	datasets, err := s.dataProductStorage.GetDatasetsMinimal(ctx)
 	if err != nil {
-		return nil, fmt.Errorf("dbGetDatasetsMinimal: %w", err)
+		return nil, errs.E(op, err)
 	}
 
 	return datasets, nil
 }
 
 func (s *dataProductsService) CreateDataproduct(ctx context.Context, input service.NewDataproduct) (*service.DataproductMinimal, error) {
+	const op errs.Op = "dataProductsService.CreateDataproduct"
+
 	if err := ensureUserInGroup(ctx, input.Group); err != nil {
-		return nil, fmt.Errorf("ensureUserInGroup: %w", err)
+		return nil, errs.E(op, err)
 	}
 
 	if input.Description != nil && *input.Description != "" {
@@ -75,20 +88,22 @@ func (s *dataProductsService) CreateDataproduct(ctx context.Context, input servi
 
 	dataproduct, err := s.dataProductStorage.CreateDataproduct(ctx, input)
 	if err != nil {
-		return nil, fmt.Errorf("creating dataproduct: %w", err)
+		return nil, errs.E(op, err)
 	}
 
 	return dataproduct, nil
 }
 
 func (s *dataProductsService) UpdateDataproduct(ctx context.Context, id string, input service.UpdateDataproductDto) (*service.DataproductMinimal, error) {
-	dp, apierr := s.dataProductStorage.GetDataproduct(ctx, id)
-	if apierr != nil {
-		return nil, apierr
+	const op errs.Op = "dataProductsService.UpdateDataproduct"
+
+	dp, err := s.dataProductStorage.GetDataproduct(ctx, id)
+	if err != nil {
+		return nil, errs.E(op, err)
 	}
 
 	if err := ensureUserInGroup(ctx, dp.Owner.Group); err != nil {
-		return nil, fmt.Errorf("ensureUserInGroup: %w", err)
+		return nil, errs.E(op, err)
 	}
 
 	if input.Description != nil && *input.Description != "" {
@@ -97,40 +112,45 @@ func (s *dataProductsService) UpdateDataproduct(ctx context.Context, id string, 
 
 	dataproduct, err := s.dataProductStorage.UpdateDataproduct(ctx, id, input)
 	if err != nil {
-		return nil, fmt.Errorf("updating dataproduct: %w", err)
+		return nil, errs.E(op, err)
 	}
 
 	return dataproduct, nil
 }
 
 func (s *dataProductsService) DeleteDataproduct(ctx context.Context, id string) (*service.DataproductWithDataset, error) {
-	dp, apierr := s.dataProductStorage.GetDataproduct(ctx, id)
-	if apierr != nil {
-		return nil, apierr
+	const op errs.Op = "dataProductsService.DeleteDataproduct"
+
+	dp, err := s.dataProductStorage.GetDataproduct(ctx, id)
+	if err != nil {
+		return nil, errs.E(op, err)
 	}
 
 	if err := ensureUserInGroup(ctx, dp.Owner.Group); err != nil {
-		return nil, fmt.Errorf("ensureUserInGroup: %w", err)
+		return nil, errs.E(op, err)
 	}
 
-	err := s.dataProductStorage.DeleteDataproduct(ctx, id)
+	err = s.dataProductStorage.DeleteDataproduct(ctx, id)
 	if err != nil {
-		return nil, fmt.Errorf("deleting dataproduct: %w", err)
+		return nil, errs.E(op, err)
 	}
 
 	return dp, nil
 }
 
 func (s *dataProductsService) CreateDataset(ctx context.Context, input service.NewDataset) (*string, error) {
+	const op errs.Op = "dataProductsService.CreateDataset"
+
+	// FIXME: move up the call chain
 	user := auth.GetUser(ctx)
 
-	dp, apierr := s.dataProductStorage.GetDataproduct(ctx, input.DataproductID.String())
-	if apierr != nil {
-		return nil, apierr
+	dp, err := s.dataProductStorage.GetDataproduct(ctx, input.DataproductID.String())
+	if err != nil {
+		return nil, errs.E(op, err)
 	}
 
 	if err := ensureUserInGroup(ctx, dp.Owner.Group); err != nil {
-		return nil, fmt.Errorf("ensureUserInGroup: %w", err)
+		return nil, errs.E(op, err)
 	}
 
 	var referenceDatasource *service.NewBigQuery
@@ -139,7 +159,7 @@ func (s *dataProductsService) CreateDataset(ctx context.Context, input service.N
 		projectID, datasetID, tableID, err := s.bigQueryAPI.CreatePseudonymisedView(ctx, input.BigQuery.ProjectID,
 			input.BigQuery.Dataset, input.BigQuery.Table, input.PseudoColumns)
 		if err != nil {
-			return nil, fmt.Errorf("createPseudonymisedView: %w", err)
+			return nil, errs.E(op, err)
 		}
 
 		referenceDatasource = &input.BigQuery
@@ -152,9 +172,9 @@ func (s *dataProductsService) CreateDataset(ctx context.Context, input service.N
 		}
 	}
 
-	updatedInput, apierr := s.prepareBigQueryHandlePseudoView(ctx, input, pseudoBigQuery, dp.Owner.Group)
-	if apierr != nil {
-		return nil, apierr
+	updatedInput, err := s.prepareBigQueryHandlePseudoView(ctx, input, pseudoBigQuery, dp.Owner.Group)
+	if err != nil {
+		return nil, errs.E(op, err)
 	}
 
 	if updatedInput.Description != nil && *updatedInput.Description != "" {
@@ -163,12 +183,12 @@ func (s *dataProductsService) CreateDataset(ctx context.Context, input service.N
 
 	ds, err := s.dataProductStorage.CreateDataset(ctx, updatedInput, referenceDatasource, user)
 	if err != nil {
-		return nil, fmt.Errorf("dbCreateDataset: %w", err)
+		return nil, errs.E(op, err)
 	}
 
 	if pseudoBigQuery == nil && updatedInput.GrantAllUsers != nil && *updatedInput.GrantAllUsers {
-		if err := s.bigQueryAPI.Grant(ctx, updatedInput.BigQuery.ProjectID, updatedInput.BigQuery.Dataset, updatedInput.BigQuery.Table, "group:all-users@nav.no"); err != nil {
-			return nil, fmt.Errorf("grant: %w", err)
+		if err := s.bigQueryAPI.Grant(ctx, updatedInput.BigQuery.ProjectID, updatedInput.BigQuery.Dataset, updatedInput.BigQuery.Table, s.allUsersGroup); err != nil {
+			return nil, errs.E(op, err)
 		}
 	}
 
@@ -176,14 +196,16 @@ func (s *dataProductsService) CreateDataset(ctx context.Context, input service.N
 }
 
 func (s *dataProductsService) prepareBigQueryHandlePseudoView(ctx context.Context, ds service.NewDataset, viewBQ *service.NewBigQuery, group string) (service.NewDataset, error) {
+	const op errs.Op = "dataProductsService.prepareBigQueryHandlePseudoView"
+
 	if err := s.ensureGroupOwnsGCPProject(group, ds.BigQuery.ProjectID); err != nil {
-		return service.NewDataset{}, fmt.Errorf("ensureGroupOwnsGCPProject: %w", err)
+		return service.NewDataset{}, errs.E(op, err)
 	}
 
 	if viewBQ != nil {
 		metadata, err := s.prepareBigQuery(ctx, ds.BigQuery.ProjectID, ds.BigQuery.Dataset, viewBQ.ProjectID, viewBQ.Dataset, viewBQ.Table)
 		if err != nil {
-			return service.NewDataset{}, err
+			return service.NewDataset{}, errs.E(op, err)
 		}
 		ds.BigQuery = *viewBQ
 		ds.Metadata = *metadata
@@ -192,7 +214,7 @@ func (s *dataProductsService) prepareBigQueryHandlePseudoView(ctx context.Contex
 
 	metadata, err := s.prepareBigQuery(ctx, ds.BigQuery.ProjectID, ds.BigQuery.Dataset, ds.BigQuery.ProjectID, ds.BigQuery.Dataset, ds.BigQuery.Table)
 	if err != nil {
-		return service.NewDataset{}, err
+		return service.NewDataset{}, errs.E(op, err)
 	}
 	ds.Metadata = *metadata
 
@@ -200,22 +222,26 @@ func (s *dataProductsService) prepareBigQueryHandlePseudoView(ctx context.Contex
 }
 
 func (s *dataProductsService) ensureGroupOwnsGCPProject(group, projectID string) error {
+	const op errs.Op = "dataProductsService.ensureGroupOwnsGCPProject"
+
 	groupProject, ok := s.gcpProjects.Get(auth.TrimNaisTeamPrefix(group))
 	if !ok {
-		return service.ErrUnauthorized
+		return errs.E(errs.Unauthorized, op, fmt.Errorf("group %s does not own the GCP project %s", group, projectID))
 	}
 
 	if groupProject == projectID {
 		return nil
 	}
 
-	return service.ErrUnauthorized
+	return errs.E(errs.Unauthorized, op, fmt.Errorf("group %s does not own the GCP project %s", group, projectID))
 }
 
 func (s *dataProductsService) prepareBigQuery(ctx context.Context, srcProject, srcDataset, sinkProject, sinkDataset, sinkTable string) (*service.BigqueryMetadata, error) {
+	const op errs.Op = "dataProductsService.prepareBigQuery"
+
 	metadata, err := s.bigQueryAPI.TableMetadata(ctx, sinkProject, sinkDataset, sinkTable)
 	if err != nil {
-		return nil, fmt.Errorf("getTableMetadata: %w", err)
+		return nil, errs.E(op, err)
 	}
 
 	switch metadata.TableType {
@@ -224,55 +250,59 @@ func (s *dataProductsService) prepareBigQuery(ctx context.Context, srcProject, s
 		fallthrough
 	case bigquery.MaterializedView:
 		if err := s.bigQueryAPI.AddToAuthorizedViews(ctx, srcProject, srcDataset, sinkProject, sinkDataset, sinkTable); err != nil {
-			return nil, fmt.Errorf("addToAuthorizedViews: %w", err)
+			return nil, errs.E(op, err)
 		}
 	default:
-		return nil, fmt.Errorf("prepareBigQuery: unsupported table type %v", metadata.TableType)
+		return nil, errs.E(errs.InvalidRequest, op, fmt.Errorf("prepareBigQuery: unsupported table type %v", metadata.TableType))
 	}
 
 	return &metadata, nil
 }
 
 func (s *dataProductsService) DeleteDataset(ctx context.Context, id string) (string, error) {
-	ds, apierr := s.dataProductStorage.GetDataset(ctx, id)
-	if apierr != nil {
-		return "", apierr
+	const op errs.Op = "dataProductsService.DeleteDataset"
+
+	ds, err := s.dataProductStorage.GetDataset(ctx, id)
+	if err != nil {
+		return "", errs.E(op, err)
 	}
 
-	dp, apierr := s.dataProductStorage.GetDataproduct(ctx, ds.DataproductID.String())
-	if apierr != nil {
-		return "", apierr
+	dp, err := s.dataProductStorage.GetDataproduct(ctx, ds.DataproductID.String())
+	if err != nil {
+		return "", errs.E(op, err)
 	}
 
 	if err := ensureUserInGroup(ctx, dp.Owner.Group); err != nil {
-		return "", fmt.Errorf("ensureUserInGroup: %w", err)
+		return "", errs.E(op, err)
 	}
 
-	err := s.dataProductStorage.DeleteDataset(ctx, uuid.MustParse(id))
+	err = s.dataProductStorage.DeleteDataset(ctx, uuid.MustParse(id))
 	if err != nil {
-		return "", fmt.Errorf("deleting dataset: %w", err)
+		return "", errs.E(op, err)
 	}
 
 	return dp.ID.String(), nil
 }
 
 func (s *dataProductsService) UpdateDataset(ctx context.Context, id string, input service.UpdateDatasetDto) (string, error) {
-	ds, apierr := s.dataProductStorage.GetDataset(ctx, id)
-	if apierr != nil {
-		return "", apierr
+	const op errs.Op = "dataProductsService.UpdateDataset"
+
+	ds, err := s.dataProductStorage.GetDataset(ctx, id)
+	if err != nil {
+		return "", errs.E(op, err)
 	}
 
 	if input.DataproductID == nil {
 		input.DataproductID = &ds.DataproductID
 	}
 
-	dp, apierr := s.dataProductStorage.GetDataproduct(ctx, ds.DataproductID.String())
-	if apierr != nil {
-		return "", apierr
+	dp, err := s.dataProductStorage.GetDataproduct(ctx, ds.DataproductID.String())
+	if err != nil {
+		return "", errs.E(op, err)
 	}
 
 	if err := ensureUserInGroup(ctx, dp.Owner.Group); err != nil {
-		return "", fmt.Errorf("ensureUserInGroup: %w", err)
+		return "", errs.E(op, err)
 	}
 
 	if input.Description != nil && *input.Description != "" {
@@ -286,26 +316,28 @@ func (s *dataProductsService) UpdateDataset(ctx context.Context, id string, inpu
 	if *input.DataproductID != ds.DataproductID {
 		dp2, err := s.dataProductStorage.GetDataproduct(ctx, input.DataproductID.String())
 		if err != nil {
-			return "", err
+			return "", errs.E(op, err)
 		}
+
 		if err := ensureUserInGroup(ctx, dp2.Owner.Group); err != nil {
-			return "", fmt.Errorf("ensureUserInGroup: %w", err)
+			return "", errs.E(op, err)
 		}
+
 		if dp.Owner.Group != dp2.Owner.Group {
-			return "", fmt.Errorf("updateDataset: cannot move dataset between dataproducts owned by different groups")
+			return "", errs.E(errs.InvalidRequest, op, fmt.Errorf("updateDataset: cannot move dataset between dataproducts owned by different groups"))
 		}
 	}
 
 	if len(input.PseudoColumns) > 0 {
 		referenceDatasource, err := s.bigQueryStorage.GetBigqueryDatasource(ctx, uuid.MustParse(id), true)
 		if err != nil {
-			return "", fmt.Errorf("get reference data source: %w", err)
+			return "", errs.E(op, err)
 		}
 
 		_, _, _, err = s.bigQueryAPI.CreatePseudonymisedView(ctx, referenceDatasource.ProjectID,
 			referenceDatasource.Dataset, referenceDatasource.Table, input.PseudoColumns)
 		if err != nil {
-			return "", fmt.Errorf("createPseudonymisedView: %w", err)
+			return "", errs.E(op, err)
 		}
 	}
 
@@ -315,7 +347,7 @@ func (s *dataProductsService) UpdateDataset(ctx context.Context, id string, inpu
 
 	updatedID, err := s.dataProductStorage.UpdateDataset(ctx, id, input)
 	if err != nil {
-		return "", fmt.Errorf("dbUpdateDataset: %w", err)
+		return "", errs.E(op, err)
 	}
 
 	err = s.bigQueryStorage.UpdateBigqueryDatasource(ctx, service.BigQueryDataSourceUpdate{
@@ -324,7 +356,7 @@ func (s *dataProductsService) UpdateDataset(ctx context.Context, id string, inpu
 		DatasetID:     uuid.MustParse(id),
 	})
 	if err != nil {
-		return "", fmt.Errorf("updateBigqueryDatasource: %w", err)
+		return "", errs.E(op, err)
 	}
 
 	return updatedID, nil
@@ -335,11 +367,13 @@ func NewDataProductsService(
 	bigQueryStorage service.BigQueryStorage,
 	bigQueryAPI service.BigQueryAPI,
 	gcpProjects *auth.TeamProjectsMapping,
+	allUsersGroup string,
 ) *dataProductsService {
 	return &dataProductsService{
 		dataProductStorage: dataProductStorage,
 		bigQueryStorage:    bigQueryStorage,
 		bigQueryAPI:        bigQueryAPI,
 		gcpProjects:        gcpProjects,
+		allUsersGroup:      allUsersGroup,
 	}
 }

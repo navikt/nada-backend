@@ -58,6 +58,7 @@ func NewServices(
 			stores.BigQueryStorage,
 			clients.BigQueryAPI,
 			teamMappings,
+			cfg.AllUsersGroup,
 		),
 		InsightProductService: NewInsightProductService(
 			stores.InsightProductStorage,
@@ -76,6 +77,7 @@ func NewServices(
 			cfg.GCP.Project,
 			mbSa,
 			mbSaEmail,
+			cfg.AllUsersGroup,
 			clients.MetaBaseAPI,
 			clients.BigQueryAPI,
 			clients.ServiceAccountAPI,

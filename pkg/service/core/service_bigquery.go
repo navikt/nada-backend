@@ -4,8 +4,10 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"github.com/navikt/nada-backend/pkg/errs"
 	"github.com/navikt/nada-backend/pkg/service"
 	"google.golang.org/api/googleapi"
+	"net/http"
 	"time"
 )
 
@@ -18,9 +20,11 @@ type bigQueryService struct {
 var _ service.BigQueryService = &bigQueryService{}
 
 func (s *bigQueryService) GetBigQueryTables(ctx context.Context, projectID string, datasetID string) (*service.BQTables, error) {
+	const op errs.Op = "bigQueryService.GetBigQueryTables"
+
 	tables, err := s.bigQueryAPI.GetTables(ctx, projectID, datasetID)
 	if err != nil {
-		return nil, fmt.Errorf("getting tables: %w", err)
+		return nil, errs.E(op, err)
 	}
 
 	return &service.BQTables{
@@ -29,9 +33,11 @@ func (s *bigQueryService) GetBigQueryTables(ctx context.Context, projectID strin
 }
 
 func (s *bigQueryService) GetBigQueryDatasets(ctx context.Context, projectID string) (*service.BQDatasets, error) {
+	const op errs.Op = "bigQueryService.GetBigQueryDatasets"
+
 	datasets, err := s.bigQueryAPI.GetDatasets(ctx, projectID)
 	if err != nil {
-		return nil, fmt.Errorf("getting datasets: %w", err)
+		return nil, errs.E(op, err)
 	}
 
 	return &service.BQDatasets{
@@ -40,9 +46,11 @@ func (s *bigQueryService) GetBigQueryDatasets(ctx context.Context, projectID str
 }
 
 func (s *bigQueryService) GetBigQueryColumns(ctx context.Context, projectID string, datasetID string, tableID string) (*service.BQColumns, error) {
+	const op errs.Op = "bigQueryService.GetBigQueryColumns"
+
 	metadata, err := s.bigQueryAPI.TableMetadata(ctx, projectID, datasetID, tableID)
 	if err != nil {
-		return nil, fmt.Errorf("getting table metadata: %w", err)
+		return nil, errs.E(op, err)
 	}
 
 	columns := make([]*service.BigqueryColumn, 0)
@@ -61,38 +69,42 @@ func (s *bigQueryService) GetBigQueryColumns(ctx context.Context, projectID stri
 }
 
 func (s *bigQueryService) UpdateMetadata(ctx context.Context, ds *service.BigQuery) error {
+	const op errs.Op = "bigQueryService.UpdateMetadata"
+
 	metadata, err := s.bigQueryAPI.TableMetadata(ctx, ds.ProjectID, ds.Dataset, ds.Table)
 	if err != nil {
-		return fmt.Errorf("getting dataset schema: %w", err)
+		return errs.E(op, err)
 	}
 
 	err = s.bigQueryStorage.UpdateBigqueryDatasourceSchema(ctx, ds.DatasetID, metadata)
 	if err != nil {
-		return fmt.Errorf("updating bigquery datasource schema: %w", err)
+		return errs.E(op, err)
 	}
 
 	return nil
 }
 
 func (s *bigQueryService) SyncBigQueryTables(ctx context.Context) error {
+	const op errs.Op = "bigQueryService.SyncBigQueryTables"
+
 	bqs, err := s.bigQueryStorage.GetBigqueryDatasources(ctx)
 	if err != nil {
-		return err
+		return errs.E(op, err)
 	}
 
-	var errs []error
+	var errList []error
 
 	for _, bq := range bqs {
 		err := s.UpdateMetadata(ctx, bq)
 		if err != nil {
-			errs = s.handleSyncError(ctx, errs, err, bq)
+			errList = s.handleSyncError(ctx, errList, err, bq)
 		}
 	}
 
-	// FIXME: not very nice
-	if len(errs) != 0 {
-		errMessage := fmt.Sprintf("syncing bigquery tables: %v", errs)
-		return fmt.Errorf("%w", errors.New(errMessage))
+	// FIXME: not very nice, should probably log all the errors and return something more generic here
+	if len(errList) != 0 {
+		errMessage := fmt.Sprintf("syncing bigquery tables: %v", errList)
+		return errs.E(errs.IO, op, fmt.Errorf("%w", errors.New(errMessage)))
 	}
 
 	return nil
@@ -102,7 +114,7 @@ func (s *bigQueryService) handleSyncError(ctx context.Context, errs []error, err
 	var e *googleapi.Error
 
 	if ok := errors.As(err, &e); ok {
-		if e.Code == 404 {
+		if e.Code == http.StatusNotFound {
 			if err := s.handleTableNotFound(ctx, bq); err != nil {
 				errs = append(errs, err)
 			}

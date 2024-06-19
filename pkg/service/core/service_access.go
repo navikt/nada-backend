@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"github.com/google/uuid"
 	"github.com/navikt/nada-backend/pkg/auth"
+	"github.com/navikt/nada-backend/pkg/errs"
 	"github.com/navikt/nada-backend/pkg/service"
 	"strings"
 	"time"
@@ -21,21 +22,24 @@ type accessService struct {
 }
 
 func (s *accessService) GetAccessRequests(ctx context.Context, datasetID string) (*service.AccessRequestsWrapper, error) {
+	const op errs.Op = "accessService.GetAccessRequests"
+
+	// FIXME: move up the call chain
 	datasetUUID, err := uuid.Parse(datasetID)
 	if err != nil {
-		return nil, fmt.Errorf("parsing dataset id: %w", err)
+		return nil, errs.E(errs.InvalidRequest, op, fmt.Errorf("parsing dataset id: %w", err))
 	}
 
 	requests, err := s.accessStorage.ListAccessRequestsForDataset(ctx, datasetUUID)
 	if err != nil {
-		return nil, fmt.Errorf("list access requests for dataset: %w", err)
+		return nil, errs.E(op, err)
 	}
 
 	for _, r := range requests {
 		if r.Polly != nil {
 			polly, err := s.pollyStorage.GetPollyDocumentation(ctx, r.Polly.ID)
 			if err != nil {
-				return nil, fmt.Errorf("get polly documentation: %w", err)
+				return nil, errs.E(op, err)
 			}
 
 			r.Polly = polly
@@ -48,7 +52,9 @@ func (s *accessService) GetAccessRequests(ctx context.Context, datasetID string)
 }
 
 func (s *accessService) CreateAccessRequest(ctx context.Context, input service.NewAccessRequestDTO) error {
-	// FIXME: don't like this, lets see if we can do something about it
+	const op errs.Op = "accessService.CreateAccessRequest"
+
+	// FIXME: move up the call chain
 	user := auth.GetUser(ctx)
 	subj := user.Email
 	if input.Subject != nil {
@@ -71,7 +77,7 @@ func (s *accessService) CreateAccessRequest(ctx context.Context, input service.N
 	if input.Polly != nil {
 		dbPolly, err := s.pollyStorage.CreatePollyDocumentation(ctx, *input.Polly)
 		if err != nil {
-			return fmt.Errorf("create polly documentation: %w", err)
+			return errs.E(op, err)
 		}
 
 		pollyID = uuid.NullUUID{UUID: dbPolly.ID, Valid: true}
@@ -79,46 +85,50 @@ func (s *accessService) CreateAccessRequest(ctx context.Context, input service.N
 
 	accessRequest, err := s.accessStorage.CreateAccessRequestForDataset(ctx, input.DatasetID, pollyID, subjWithType, owner, input.Expires)
 	if err != nil {
-		return err
+		return errs.E(op, err)
 	}
 
 	err = s.slackapi.InformNewAccessRequest(ctx, accessRequest.Owner, accessRequest.ID.String())
 	if err != nil {
-		return fmt.Errorf("inform new access request: %w", err)
+		return errs.E(op, err)
 	}
 
 	return nil
 }
 
 func (s *accessService) DeleteAccessRequest(ctx context.Context, accessRequestID string) error {
-	accessRequest, apierr := s.accessStorage.GetAccessRequest(ctx, accessRequestID)
-	if apierr != nil {
-		return apierr
+	const op errs.Op = "accessService.DeleteAccessRequest"
+
+	accessRequest, err := s.accessStorage.GetAccessRequest(ctx, accessRequestID)
+	if err != nil {
+		return errs.E(op, err)
 	}
 
 	splits := strings.Split(accessRequest.Owner, ":")
 	if len(splits) != 2 {
-		return fmt.Errorf("owner is not in the correct format")
+		return errs.E(errs.InvalidRequest, op, fmt.Errorf("owner is not in the correct format"))
 	}
 	owner := splits[1]
 
 	if err := ensureOwner(ctx, owner); err != nil {
-		return fmt.Errorf("ensure owner: %w", err)
+		return errs.E(op, err)
 	}
 
 	if err := s.accessStorage.DeleteAccessRequest(ctx, accessRequestID); err != nil {
-		return fmt.Errorf("delete access request: %w", err)
+		return errs.E(op, err)
 	}
 
 	return nil
 }
 
 func (s *accessService) UpdateAccessRequest(ctx context.Context, input service.UpdateAccessRequestDTO) error {
+	const op errs.Op = "accessService.UpdateAccessRequest"
+
 	if input.Polly != nil {
 		if input.Polly.ID == nil {
 			dbPolly, err := s.pollyStorage.CreatePollyDocumentation(ctx, *input.Polly)
 			if err != nil {
-				return fmt.Errorf("create polly documentation: %w", err)
+				return errs.E(op, err)
 			}
 
 			input.Polly.ID = &dbPolly.ID
@@ -127,47 +137,50 @@ func (s *accessService) UpdateAccessRequest(ctx context.Context, input service.U
 
 	err := s.accessStorage.UpdateAccessRequest(ctx, input)
 	if err != nil {
-		return fmt.Errorf("update access request: %w", err)
+		return errs.E(op, err)
 	}
 
 	return nil
 }
 
 func (s *accessService) ApproveAccessRequest(ctx context.Context, accessRequestID string) error {
-	ar, apierr := s.accessStorage.GetAccessRequest(ctx, accessRequestID)
-	if apierr != nil {
-		return apierr
+	const op errs.Op = "accessService.ApproveAccessRequest"
+
+	ar, err := s.accessStorage.GetAccessRequest(ctx, accessRequestID)
+	if err != nil {
+		return errs.E(op, err)
 	}
 
-	ds, apierr := s.dataProductStorage.GetDataset(ctx, ar.DatasetID.String())
-	if apierr != nil {
-		return apierr
+	ds, err := s.dataProductStorage.GetDataset(ctx, ar.DatasetID.String())
+	if err != nil {
+		return errs.E(op, err)
 	}
 
-	bq, apiError := s.bigQueryStorage.GetBigqueryDatasource(ctx, ds.ID, false)
-	if apiError != nil {
-		return apiError
+	bq, err := s.bigQueryStorage.GetBigqueryDatasource(ctx, ds.ID, false)
+	if err != nil {
+		return errs.E(op, err)
 	}
 
-	dp, apiError := s.dataProductStorage.GetDataproduct(ctx, ds.DataproductID.String())
-	if apiError != nil {
-		return apiError
+	dp, err := s.dataProductStorage.GetDataproduct(ctx, ds.DataproductID.String())
+	if err != nil {
+		return errs.E(op, err)
 	}
 
-	if err := ensureUserInGroup(ctx, dp.Owner.Group); err != nil {
-		return fmt.Errorf("ensure user in group: %w", err)
+	err = ensureUserInGroup(ctx, dp.Owner.Group)
+	if err != nil {
+		return errs.E(op, err)
 	}
 
 	if ds.Pii == "sensitive" && ar.Subject == "all-users@nav.no" {
-		return fmt.Errorf("cannot approve access request for sensitive dataset for all-users")
+		return errs.E(errs.InvalidRequest, op, fmt.Errorf("datasett som inneholder personopplysninger kan ikke gjøres tilgjengelig for alle interne brukere"))
 	}
 
 	subjWithType := ar.SubjectType + ":" + ar.Subject
 	if err := s.bigQueryAPI.Grant(ctx, bq.ProjectID, bq.Dataset, bq.Table, subjWithType); err != nil {
-		return fmt.Errorf("grant access: %w", err)
+		return errs.E(op, err)
 	}
 
-	err := s.accessStorage.GrantAccessToDatasetAndApproveRequest(
+	err = s.accessStorage.GrantAccessToDatasetAndApproveRequest(
 		ctx,
 		ds.ID.String(),
 		subjWithType,
@@ -175,75 +188,82 @@ func (s *accessService) ApproveAccessRequest(ctx context.Context, accessRequestI
 		ar.Expires,
 	)
 	if err != nil {
-		return fmt.Errorf("grant access to dataset and approve request: %w", err)
+		return errs.E(op, err)
 	}
 
 	return nil
 }
 
 func (s *accessService) DenyAccessRequest(ctx context.Context, accessRequestID string, reason *string) error {
-	ar, apierr := s.accessStorage.GetAccessRequest(ctx, accessRequestID)
-	if apierr != nil {
-		return apierr
-	}
+	const op errs.Op = "accessService.DenyAccessRequest"
 
-	ds, apierr := s.dataProductStorage.GetDataset(ctx, ar.DatasetID.String())
-	if apierr != nil {
-		return apierr
-	}
-
-	dp, apierr := s.dataProductStorage.GetDataproduct(ctx, ds.DataproductID.String())
-	if apierr != nil {
-		return apierr
-	}
-
-	err := ensureUserInGroup(ctx, dp.Owner.Group)
+	ar, err := s.accessStorage.GetAccessRequest(ctx, accessRequestID)
 	if err != nil {
-		return fmt.Errorf("ensure user in group: %w", err)
+		return errs.E(op, err)
+	}
+
+	ds, err := s.dataProductStorage.GetDataset(ctx, ar.DatasetID.String())
+	if err != nil {
+		return errs.E(op, err)
+	}
+
+	dp, err := s.dataProductStorage.GetDataproduct(ctx, ds.DataproductID.String())
+	if err != nil {
+		return errs.E(op, err)
+	}
+
+	err = ensureUserInGroup(ctx, dp.Owner.Group)
+	if err != nil {
+		return errs.E(op, err)
 	}
 
 	err = s.accessStorage.DenyAccessRequest(ctx, accessRequestID, reason)
 	if err != nil {
-		return fmt.Errorf("deny access request: %w", err)
+		return errs.E(op, err)
 	}
 
 	return nil
 }
 
 func (s *accessService) RevokeAccessToDataset(ctx context.Context, id, gcpProjectID string) error {
+	const op errs.Op = "accessService.RevokeAccessToDataset"
+
+	// FIXME: move this up the call chain
 	accessID, err := uuid.Parse(id)
 	if err != nil {
-		return fmt.Errorf("parsing access id: %w", err)
+		return errs.E(errs.InvalidRequest, op, fmt.Errorf("parsing access id: %w", err))
 	}
+
 	access, err := s.accessStorage.GetAccessToDataset(ctx, accessID)
 	if err != nil {
-		return fmt.Errorf("get access to dataset: %w", err)
+		return errs.E(op, err)
 	}
 
-	ds, apierr := s.dataProductStorage.GetDataset(ctx, access.DatasetID.String())
-	if apierr != nil {
-		return apierr
+	ds, err := s.dataProductStorage.GetDataset(ctx, access.DatasetID.String())
+	if err != nil {
+		return errs.E(op, err)
 	}
 
-	dp, apierr := s.dataProductStorage.GetDataproduct(ctx, ds.DataproductID.String())
-	if apierr != nil {
-		return apierr
+	dp, err := s.dataProductStorage.GetDataproduct(ctx, ds.DataproductID.String())
+	if err != nil {
+		return errs.E(op, err)
 	}
 
-	bqds, apierr := s.bigQueryStorage.GetBigqueryDatasource(ctx, access.DatasetID, false)
-	if apierr != nil {
-		return apierr
+	bqds, err := s.bigQueryStorage.GetBigqueryDatasource(ctx, access.DatasetID, false)
+	if err != nil {
+		return errs.E(op, err)
 	}
 
+	// FIXME: move this up the call chain
 	user := auth.GetUser(ctx)
 	err = ensureUserInGroup(ctx, dp.Owner.Group)
 	if err != nil && !strings.EqualFold("user:"+user.Email, access.Subject) {
-		return fmt.Errorf("ensure user in group: %w", err)
+		return errs.E(op, err)
 	}
 
 	subjectParts := strings.Split(access.Subject, ":")
 	if len(subjectParts) != 2 {
-		return fmt.Errorf("subject is not in the correct format")
+		return errs.E(errs.InvalidRequest, op, fmt.Errorf("subject is not in the correct format"))
 	}
 
 	subjectWithoutType := subjectParts[1]
@@ -251,23 +271,24 @@ func (s *accessService) RevokeAccessToDataset(ctx context.Context, id, gcpProjec
 	if len(bqds.PseudoColumns) > 0 {
 		joinableViews, err := s.joinableViewStorage.GetJoinableViewsForReferenceAndUser(ctx, subjectWithoutType, ds.ID)
 		if err != nil {
-			return fmt.Errorf("get joinable views for reference and user: %w", err)
+			return errs.E(op, err)
 		}
+
 		for _, jv := range joinableViews {
 			// FIXME: this is a bit of a hack, we should probably have a better way to get the joinable view name
 			joinableViewName := makeJoinableViewName(bqds.ProjectID, bqds.Dataset, bqds.Table)
 			if err := s.bigQueryAPI.Revoke(ctx, gcpProjectID, jv.Dataset, joinableViewName, access.Subject); err != nil {
-				return fmt.Errorf("revoke access: %w", err)
+				return errs.E(op, err)
 			}
 		}
 	}
 
 	if err := s.bigQueryAPI.Revoke(ctx, bqds.ProjectID, bqds.Dataset, bqds.Table, access.Subject); err != nil {
-		return fmt.Errorf("revoke access: %w", err)
+		return errs.E(op, err)
 	}
 
 	if err := s.accessStorage.RevokeAccessToDataset(ctx, accessID); err != nil {
-		return fmt.Errorf("revoke access to dataset: %w", err)
+		return errs.E(op, err)
 	}
 
 	return nil
@@ -280,36 +301,40 @@ func makeJoinableViewName(projectID, datasetID, tableID string) string {
 }
 
 func (s *accessService) GrantAccessToDataset(ctx context.Context, input service.GrantAccessData, gcpProjectID string) error {
+	const op errs.Op = "accessService.GrantAccessToDataset"
+
+	// FIXME: move this up the call chain
 	if input.Expires != nil && input.Expires.Before(time.Now()) {
-		return fmt.Errorf("datoen tilgangen skal utløpe må være fram i tid")
+		return errs.E(errs.InvalidRequest, op, fmt.Errorf("expires is in the past"))
 	}
 
+	// FIXME: move this up the call chain
 	user := auth.GetUser(ctx)
 	subj := user.Email
 	if input.Subject != nil {
 		subj = *input.Subject
 	}
-	ds, apierr := s.dataProductStorage.GetDataset(ctx, input.DatasetID.String())
-	if apierr != nil {
-		return fmt.Errorf("get dataset: %w", apierr)
+	ds, err := s.dataProductStorage.GetDataset(ctx, input.DatasetID.String())
+	if err != nil {
+		return errs.E(op, err)
 	}
 
-	dp, apierr := s.dataProductStorage.GetDataproduct(ctx, ds.DataproductID.String())
-	if apierr != nil {
-		return fmt.Errorf("get dataproduct: %w", apierr)
+	dp, err := s.dataProductStorage.GetDataproduct(ctx, ds.DataproductID.String())
+	if err != nil {
+		return errs.E(op, err)
 	}
 
 	if err := ensureUserInGroup(ctx, dp.Owner.Group); err != nil {
-		return fmt.Errorf("ensure user in group: %w", err)
+		return errs.E(op, err)
 	}
 
 	if ds.Pii == "sensitive" && subj == "all-users@nav.no" {
-		return fmt.Errorf("datasett som inneholder personopplysninger kan ikke gjøres tilgjengelig for alle interne brukere")
+		return errs.E(errs.InvalidRequest, op, fmt.Errorf("datasett som inneholder personopplysninger kan ikke gjøres tilgjengelig for alle interne brukere"))
 	}
 
-	bqds, apierr := s.bigQueryStorage.GetBigqueryDatasource(ctx, ds.ID, false)
-	if apierr != nil {
-		return fmt.Errorf("get bigquery datasource: %w", apierr)
+	bqds, err := s.bigQueryStorage.GetBigqueryDatasource(ctx, ds.ID, false)
+	if err != nil {
+		return errs.E(op, err)
 	}
 
 	subjType := service.SubjectTypeUser
@@ -322,37 +347,39 @@ func (s *accessService) GrantAccessToDataset(ctx context.Context, input service.
 	if len(bqds.PseudoColumns) > 0 {
 		joinableViews, err := s.joinableViewStorage.GetJoinableViewsForReferenceAndUser(ctx, subj, ds.ID)
 		if err != nil {
-			return fmt.Errorf("get joinable views for reference and user: %w", err)
+			return errs.E(op, err)
 		}
+
 		for _, jv := range joinableViews {
 			joinableViewName := makeJoinableViewName(bqds.ProjectID, bqds.Dataset, bqds.Table)
 			if err := s.bigQueryAPI.Grant(ctx, gcpProjectID, jv.Dataset, joinableViewName, subjWithType); err != nil {
-				return fmt.Errorf("grant access: %w", err)
+				return errs.E(op, err)
 			}
 		}
 	}
 
 	if err := s.bigQueryAPI.Grant(ctx, bqds.ProjectID, bqds.Dataset, bqds.Table, subjWithType); err != nil {
-		return fmt.Errorf("grant access: %w", err)
+		return errs.E(op, err)
 	}
 
-	err := s.accessStorage.GrantAccessToDatasetAndRenew(ctx, input.DatasetID, input.Expires, subjWithType, user.Email)
+	err = s.accessStorage.GrantAccessToDatasetAndRenew(ctx, input.DatasetID, input.Expires, subjWithType, user.Email)
 	if err != nil {
-		return fmt.Errorf("grant access to dataset and renew: %w", err)
+		return errs.E(op, err)
 	}
 
 	return nil
 }
 
-// FIXME: still dont like this
 func ensureOwner(ctx context.Context, owner string) error {
+	const op errs.Op = "ensureOwner"
+	// FIXME: move this up the call chain
 	user := auth.GetUser(ctx)
 
 	if user != nil && (user.GoogleGroups.Contains(owner) || owner == user.Email) {
 		return nil
 	}
 
-	return service.ErrUnauthorized
+	return errs.E(errs.Unauthorized, op, errs.UserName(user.Email), fmt.Errorf("user is not owner"))
 }
 
 func NewAccessService(

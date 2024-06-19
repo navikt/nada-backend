@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"github.com/google/uuid"
 	"github.com/navikt/nada-backend/pkg/auth"
+	"github.com/navikt/nada-backend/pkg/errs"
 	"github.com/navikt/nada-backend/pkg/service"
 )
 
@@ -19,22 +20,44 @@ type joinableViewsService struct {
 var _ service.JoinableViewsService = &joinableViewsService{}
 
 func (s *joinableViewsService) GetJoinableViewsToBeDeletedWithRefDatasource(ctx context.Context) ([]service.JoinableViewToBeDeletedWithRefDatasource, error) {
-	return s.joinableViewsStorage.GetJoinableViewsToBeDeletedWithRefDatasource(ctx)
+	const op = "joinableViewsService.GetJoinableViewsToBeDeletedWithRefDatasource"
+
+	views, err := s.joinableViewsStorage.GetJoinableViewsToBeDeletedWithRefDatasource(ctx)
+	if err != nil {
+		return nil, errs.E(op, err)
+	}
+
+	return views, nil
 }
 
 func (s *joinableViewsService) GetJoinableViewsWithReference(ctx context.Context) ([]service.JoinableViewWithReference, error) {
-	return s.joinableViewsStorage.GetJoinableViewsWithReference(ctx)
+	const op = "joinableViewsService.GetJoinableViewsWithReference"
+
+	views, err := s.joinableViewsStorage.GetJoinableViewsWithReference(ctx)
+	if err != nil {
+		return nil, errs.E(op, err)
+	}
+
+	return views, nil
 }
 
 func (s *joinableViewsService) SetJoinableViewDeleted(ctx context.Context, id uuid.UUID) error {
-	return s.joinableViewsStorage.SetJoinableViewDeleted(ctx, id)
+	const op = "joinableViewsService.SetJoinableViewDeleted"
+
+	err := s.joinableViewsStorage.SetJoinableViewDeleted(ctx, id)
+	if err != nil {
+		return errs.E(op, err)
+	}
+
+	return nil
 }
 
-// FIXME: We should pass in the user
 func (s *joinableViewsService) GetJoinableViewsForUser(ctx context.Context) ([]service.JoinableView, error) {
+	const op = "joinableViewsService.GetJoinableViewsForUser"
+
 	joinableViewsDB, err := s.joinableViewsStorage.GetJoinableViewsForOwner(ctx)
 	if err != nil {
-		return nil, err
+		return nil, errs.E(op, err)
 	}
 
 	joinableViewsDBMerged := make(map[uuid.UUID][]service.JoinableViewForOwner)
@@ -63,11 +86,14 @@ func (s *joinableViewsService) GetJoinableViewsForUser(ctx context.Context) ([]s
 }
 
 func (s *joinableViewsService) GetJoinableView(ctx context.Context, id string) (*service.JoinableViewWithDatasource, error) {
+	const op = "joinableViewsService.GetJoinableView"
+
 	joinableViewDatasets, err := s.joinableViewsStorage.GetJoinableViewWithDataset(ctx, id)
 	if err != nil {
-		return nil, err
+		return nil, errs.E(op, err)
 	}
 
+	// FIXME: move up to the call chain
 	user := auth.GetUser(ctx)
 
 	jv := service.JoinableViewWithDatasource{
@@ -88,10 +114,9 @@ func (s *joinableViewsService) GetJoinableView(ctx context.Context, id string) (
 		if user.GoogleGroups.Contains(ds.Group) {
 			jvbq.Accessible = true
 		} else {
-			activeAccessList, apierr := s.accessStorage.ListActiveAccessToDataset(ctx, ds.DatasetID.UUID)
-
-			if apierr != nil {
-				return nil, apierr
+			activeAccessList, err := s.accessStorage.ListActiveAccessToDataset(ctx, ds.DatasetID.UUID)
+			if err != nil {
+				return nil, errs.E(op, err)
 			}
 
 			jvbq.Accessible = false
@@ -110,35 +135,44 @@ func (s *joinableViewsService) GetJoinableView(ctx context.Context, id string) (
 }
 
 func (s *joinableViewsService) CreateJoinableViews(ctx context.Context, input service.NewJoinableViews) (string, error) {
+	const op = "joinableViewsService.CreateJoinableViews"
+
+	// FIXME: move up to the call chain
 	user := auth.GetUser(ctx)
 
 	var datasets []*service.Dataset
 	for _, dsid := range input.DatasetIDs {
-		dataset, apierr := s.dataProductStorage.GetDataset(ctx, dsid.String())
-		if apierr != nil {
-			return "", apierr
+		dataset, err := s.dataProductStorage.GetDataset(ctx, dsid.String())
+		if err != nil {
+			return "", errs.E(op, err)
 		}
-		dataproduct, apierr := s.dataProductStorage.GetDataproduct(ctx, dataset.DataproductID.String())
-		if apierr != nil {
-			return "", apierr
+
+		dataproduct, err := s.dataProductStorage.GetDataproduct(ctx, dataset.DataproductID.String())
+		if err != nil {
+			return "", errs.E(op, err)
 		}
+
 		if !user.GoogleGroups.Contains(dataproduct.Owner.Group) {
-			access, apierr := s.accessStorage.ListActiveAccessToDataset(ctx, dataset.ID)
-			if apierr != nil {
-				return "", apierr
+			access, err := s.accessStorage.ListActiveAccessToDataset(ctx, dataset.ID)
+			if err != nil {
+				return "", errs.E(op, err)
 			}
+
 			accessSet := make(map[string]int)
 			for _, da := range access {
 				accessSet[da.Subject] = 1
 			}
+
 			for _, ugg := range user.GoogleGroups {
 				accessSet["group:"+ugg.Email] = 1
 			}
+
 			accessSet["user:"+user.Email] = 1
 			if len(accessSet) == len(user.GoogleGroups.Emails())+1+len(access) {
-				return "", service.ErrUnauthorized
+				return "", errs.E(errs.Unauthorized, op, errs.UserName(user.Email), fmt.Errorf("user not authorized to create joinable views"))
 			}
 		}
+
 		datasets = append(datasets, dataset)
 	}
 
@@ -148,12 +182,12 @@ func (s *joinableViewsService) CreateJoinableViews(ctx context.Context, input se
 	for _, ds := range datasets {
 		refDatasource, err := s.bigQueryStorage.GetBigqueryDatasource(ctx, ds.ID, true)
 		if err != nil {
-			return "", fmt.Errorf("get bigquery datasource: %w", err)
+			return "", errs.E(op, err)
 		}
 
 		pseudoDatasource, err := s.bigQueryStorage.GetBigqueryDatasource(ctx, ds.ID, false)
 		if err != nil {
-			return "", fmt.Errorf("get bigquery datasource: %w", err)
+			return "", errs.E(op, err)
 		}
 
 		datasources = append(datasources, service.JoinableViewDatasource{
@@ -175,16 +209,17 @@ func (s *joinableViewsService) CreateJoinableViews(ctx context.Context, input se
 
 	projectID, joinableDatasetID, joinableViewsMap, err := s.bigQueryAPI.CreateJoinableViewsForUser(ctx, input.Name, datasources)
 	if err != nil {
-		return "", fmt.Errorf("create joinable views for user: %w", err)
+		return "", errs.E(op, err)
 	}
 
 	for _, d := range datasources {
 		dstbl := d.RefDatasource
 		if err := s.bigQueryAPI.AddToAuthorizedViews(ctx, dstbl.Project, dstbl.Dataset, projectID, joinableDatasetID, joinableViewsMap[dstbl.Dataset]); err != nil {
-			return "", fmt.Errorf("add to authorized views: %w", err)
+			return "", errs.E(op, err)
 		}
+
 		if err := s.bigQueryAPI.AddToAuthorizedViews(ctx, projectID, "secrets_vault", projectID, joinableDatasetID, joinableViewsMap[dstbl.Dataset]); err != nil {
-			return "", fmt.Errorf("add to secrets' authorized views: %w", err)
+			return "", errs.E(op, err)
 		}
 	}
 
@@ -194,12 +229,12 @@ func (s *joinableViewsService) CreateJoinableViews(ctx context.Context, input se
 
 	for _, v := range joinableViewsMap {
 		if err := s.bigQueryAPI.Grant(ctx, projectID, joinableDatasetID, v, subjWithType); err != nil {
-			return "", fmt.Errorf("grant: %w", err)
+			return "", errs.E(op, err)
 		}
 	}
 
 	if _, err := s.joinableViewsStorage.CreateJoinableViewsDB(ctx, joinableDatasetID, user.Email, input.Expires, pseudoDatasourceIDs); err != nil {
-		return "", fmt.Errorf("create joinable views db: %w", err)
+		return "", errs.E(op, err)
 	}
 
 	return joinableDatasetID, nil

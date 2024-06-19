@@ -2,11 +2,10 @@ package core
 
 import (
 	"context"
-	"database/sql"
-	"errors"
 	"fmt"
 	"github.com/google/uuid"
 	"github.com/navikt/nada-backend/pkg/auth"
+	"github.com/navikt/nada-backend/pkg/errs"
 	"github.com/navikt/nada-backend/pkg/service"
 	"strings"
 )
@@ -23,9 +22,12 @@ type userService struct {
 }
 
 func (s *userService) GetUserData(ctx context.Context) (*service.UserInfo, error) {
+	const op = "userService.GetUserData"
+
+	// FIXME: move this up the call chain
 	user := auth.GetUser(ctx)
 	if user == nil {
-		return nil, fmt.Errorf("no user found in context")
+		return nil, errs.E(errs.Unauthenticated, op, fmt.Errorf("no user found in context"))
 	}
 
 	userData := &service.UserInfo{
@@ -40,7 +42,7 @@ func (s *userService) GetUserData(ctx context.Context) (*service.UserInfo, error
 	teams := teamNamesFromGroups(userData.GoogleGroups)
 	tokens, err := s.tokenStorage.GetNadaTokensForTeams(ctx, teams)
 	if err != nil {
-		return nil, fmt.Errorf("failed to get nada tokens for teams: %w", err)
+		return nil, errs.E(op, errs.Parameter("team"), err)
 	}
 
 	for _, grp := range user.GoogleGroups {
@@ -62,7 +64,7 @@ func (s *userService) GetUserData(ctx context.Context) (*service.UserInfo, error
 
 	dpwithds, dar, err := s.dataProductStorage.GetDataproductsWithDatasetsAndAccessRequests(ctx, []uuid.UUID{}, userData.GoogleGroups.Emails())
 	if err != nil {
-		return nil, fmt.Errorf("failed to get dataproducts by group from database: %w", err)
+		return nil, errs.E(op, err)
 	}
 
 	for _, dpds := range dpwithds {
@@ -71,9 +73,9 @@ func (s *userService) GetUserData(ctx context.Context) (*service.UserInfo, error
 
 	userData.AccessRequestsAsGranter = dar
 
-	owned, granted, apiErr := s.dataProductStorage.GetAccessibleDatasets(ctx, userData.GoogleGroups.Emails(), "user:"+strings.ToLower(user.Email))
-	if apiErr != nil {
-		return nil, apiErr
+	owned, granted, err := s.dataProductStorage.GetAccessibleDatasets(ctx, userData.GoogleGroups.Emails(), "user:"+strings.ToLower(user.Email))
+	if err != nil {
+		return nil, errs.E(op, err)
 	}
 
 	userData.Accessable = service.AccessibleDatasets{
@@ -83,14 +85,14 @@ func (s *userService) GetUserData(ctx context.Context) (*service.UserInfo, error
 
 	dbStories, err := s.storyStorage.GetStoriesWithTeamkatalogenByGroups(ctx, user.GoogleGroups.Emails())
 	if err != nil {
-		return nil, fmt.Errorf("failed to get stories with teamkatalogen by groups: %w", err)
+		return nil, errs.E(op, err)
 	}
 
 	userData.Stories = dbStories
 
 	dbProducts, err := s.insightProductStorage.GetInsightProductsByGroups(ctx, user.GoogleGroups.Emails())
 	if err != nil {
-		return nil, err
+		return nil, errs.E(op, err)
 	}
 
 	for _, p := range dbProducts {
@@ -103,22 +105,21 @@ func (s *userService) GetUserData(ctx context.Context) (*service.UserInfo, error
 	}
 
 	accessRequestSQLs, err := s.accessStorage.ListAccessRequestsForOwner(ctx, groups)
-	if err != nil && !errors.Is(err, sql.ErrNoRows) {
-		return nil, err
-	} else if err == nil {
-		for _, ar := range accessRequestSQLs {
-			userData.AccessRequests = append(userData.AccessRequests, *ar)
+	if err != nil {
+		if !errs.KindIs(errs.NotExist, err) {
+			return nil, errs.E(op, err)
 		}
-		if err != nil {
-			return nil, err
-		}
+	}
+
+	for _, ar := range accessRequestSQLs {
+		userData.AccessRequests = append(userData.AccessRequests, *ar)
 	}
 
 	return userData, nil
 }
 
 func teamNamesFromGroups(groups auth.Groups) []string {
-	teams := []string{}
+	var teams []string
 	for _, g := range groups {
 		teams = append(teams, auth.TrimNaisTeamPrefix(strings.Split(g.Email, "@")[0]))
 	}

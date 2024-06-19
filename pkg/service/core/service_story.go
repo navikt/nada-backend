@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"github.com/google/uuid"
 	"github.com/navikt/nada-backend/pkg/auth"
+	"github.com/navikt/nada-backend/pkg/errs"
 	"github.com/navikt/nada-backend/pkg/service"
 )
 
@@ -18,121 +19,162 @@ type storyService struct {
 }
 
 func (s *storyService) GetIndexHtmlPath(ctx context.Context, prefix string) (string, error) {
-	return s.storyAPI.GetIndexHtmlPath(ctx, prefix)
+	const op = "storyService.GetIndexHtmlPath"
+
+	index, err := s.storyAPI.GetIndexHtmlPath(ctx, prefix)
+	if err != nil {
+		return "", errs.E(op, err)
+	}
+
+	return index, nil
 }
 
 func (s *storyService) AppendStoryFiles(ctx context.Context, id string, files []*service.UploadFile) error {
+	const op = "storyService.AppendStoryFiles"
+
 	err := s.storyAPI.WriteFilesToBucket(ctx, id, files, false)
 	if err != nil {
-		return err
+		return errs.E(op, err)
 	}
 
 	return nil
 }
 
 func (s *storyService) RecreateStoryFiles(ctx context.Context, id string, files []*service.UploadFile) error {
+	const op = "storyService.RecreateStoryFiles"
+
 	err := s.storyAPI.DeleteObjectsWithPrefix(ctx, id)
 	if err != nil {
-		return err
+		return errs.E(op, err)
 	}
 
 	err = s.storyAPI.WriteFilesToBucket(ctx, id, files, false)
 	if err != nil {
-		return err
+		return errs.E(op, err)
 	}
 
 	return nil
 }
 
 func (s *storyService) CreateStoryWithTeamAndProductArea(ctx context.Context, newStory *service.NewStory) (*service.Story, error) {
+	const op = "storyService.CreateStoryWithTeamAndProductArea"
+
 	if newStory.TeamID != nil {
 		teamCatalogURL := s.teamKatalogenAPI.GetTeamCatalogURL(*newStory.TeamID)
 		team, err := s.teamKatalogenAPI.GetTeam(ctx, *newStory.TeamID)
 		if err != nil {
-			return nil, fmt.Errorf("failed to get team: %w", err)
+			return nil, errs.E(op, err)
 		}
 
 		newStory.TeamkatalogenURL = &teamCatalogURL
 		newStory.ProductAreaID = &team.ProductAreaID
 	}
 
-	return s.CreateStory(ctx, newStory, nil)
+	story, err := s.CreateStory(ctx, newStory, nil)
+	if err != nil {
+		return nil, errs.E(op, err)
+	}
+
+	return story, nil
 }
 
 func (s *storyService) GetObject(ctx context.Context, path string) (*storage.ObjectAttrs, []byte, error) {
-	return s.storyAPI.GetObject(ctx, path)
+	const op = "storyService.GetObject"
+
+	attrs, data, err := s.storyAPI.GetObject(ctx, path)
+	if err != nil {
+		return nil, nil, errs.E(op, err)
+	}
+
+	return attrs, data, nil
 }
 
 func (s *storyService) CreateStory(ctx context.Context, newStory *service.NewStory, files []*service.UploadFile) (*service.Story, error) {
-	creator := auth.GetUser(ctx).Email
-	story, err := s.storyStorage.CreateStory(ctx, creator, newStory)
+	const op = "storyService.CreateStory"
 
+	// FIXME: move this up the chain
+	creator := auth.GetUser(ctx).Email
+
+	story, err := s.storyStorage.CreateStory(ctx, creator, newStory)
 	if err != nil {
-		return nil, fmt.Errorf("failed to create story: %w", err)
+		return nil, errs.E(op, err)
 	}
 
 	err = s.storyAPI.WriteFilesToBucket(ctx, story.ID.String(), files, true)
 	if err != nil {
-		return nil, fmt.Errorf("failed to write files to bucket: %w", err)
+		return nil, errs.E(op, err)
 	}
 
-	// FIXME: this extra getstory might not be necessary
-	return s.storyStorage.GetStory(ctx, story.ID)
+	st, err := s.storyStorage.GetStory(ctx, story.ID)
+	if err != nil {
+		return nil, errs.E(op, err)
+	}
+
+	return st, nil
 }
 
 func (s *storyService) DeleteStory(ctx context.Context, id string) (*service.Story, error) {
+	const op = "storyService.DeleteStory"
+
+	// FIXME: move this up the chain
 	storyID := uuid.MustParse(id)
 
-	story, apiErr := s.storyStorage.GetStory(ctx, storyID)
-	if apiErr != nil {
-		return nil, apiErr
+	story, err := s.storyStorage.GetStory(ctx, storyID)
+	if err != nil {
+		return nil, errs.E(op, err)
 	}
 
+	// FIXME: move this up the chain
 	user := auth.GetUser(ctx)
 	if !user.GoogleGroups.Contains(story.Group) {
-		return nil, fmt.Errorf("unauthorized")
+		return nil, errs.E(errs.Unauthorized, op, errs.UserName(user.Email), fmt.Errorf("user not in the group of the data story: %s", story.Group))
 	}
 
-	err := s.storyStorage.DeleteStory(ctx, storyID)
+	err = s.storyStorage.DeleteStory(ctx, storyID)
 	if err != nil {
-		return nil, fmt.Errorf("failed to delete story: %w", err)
+		return nil, errs.E(op, err)
 	}
 
 	if err := s.storyAPI.DeleteStoryFolder(ctx, id); err != nil {
-		return nil, fmt.Errorf("failed to delete story files: %w", err)
+		return nil, errs.E(op, err)
 	}
 
 	return story, nil
 }
 
 func (s *storyService) UpdateStory(ctx context.Context, id string, input service.UpdateStoryDto) (*service.Story, error) {
+	const op = "storyService.UpdateStory"
+
+	// FIXME: move this up the chain
 	storyUUID, err := uuid.Parse(id)
 	if err != nil {
-		return nil, fmt.Errorf("invalid UUID: %w", err)
+		return nil, errs.E(errs.InvalidRequest, op, fmt.Errorf("invalid story id: %s", id))
 	}
 
-	existing, apierr := s.storyStorage.GetStory(ctx, storyUUID)
-	if apierr != nil {
-		return nil, apierr
+	existing, err := s.storyStorage.GetStory(ctx, storyUUID)
+	if err != nil {
+		return nil, errs.E(op, err)
 	}
 
 	user := auth.GetUser(ctx)
 	if !user.GoogleGroups.Contains(existing.Group) {
-		return nil, fmt.Errorf("user not in the group of the data story")
+		return nil, errs.E(errs.Unauthorized, op, errs.UserName(user.Email), fmt.Errorf("user not in the group of the data story: %s", existing.Group))
 	}
 
 	story, err := s.storyStorage.UpdateStory(ctx, storyUUID, input)
 	if err != nil {
-		return nil, fmt.Errorf("failed to update story: %w", err)
+		return nil, errs.E(op, err)
 	}
 
 	return story, nil
 }
 
 func (s *storyService) GetStory(ctx context.Context, id uuid.UUID) (*service.Story, error) {
+	const op = "storyService.GetStory"
+
 	story, err := s.storyStorage.GetStory(ctx, id)
 	if err != nil {
-		return nil, err
+		return nil, errs.E(op, err)
 	}
 
 	return story, nil

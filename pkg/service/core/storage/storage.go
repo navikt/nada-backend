@@ -28,7 +28,7 @@ func NewStores(
 	cfg config.Config,
 ) *Stores {
 	return &Stores{
-		AccessStorage:            postgres.NewAccessStorage(db),
+		AccessStorage:            postgres.NewAccessStorage(db.Querier, database.WithTx[postgres.AccessQueries](db)),
 		BigQueryStorage:          postgres.NewBigQueryStorage(db),
 		DataProductsStorage:      postgres.NewDataProductStorage(cfg.Metabase.DatabasesBaseURL, db),
 		InsightProductStorage:    postgres.NewInsightProductStorage(db),

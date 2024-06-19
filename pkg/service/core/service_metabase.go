@@ -2,12 +2,11 @@ package core
 
 import (
 	"context"
-	"database/sql"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"github.com/google/uuid"
 	"github.com/navikt/nada-backend/pkg/auth"
+	"github.com/navikt/nada-backend/pkg/errs"
 	"github.com/navikt/nada-backend/pkg/service"
 	"io"
 	"net/http"
@@ -19,6 +18,7 @@ type metabaseService struct {
 	gcpProject          string
 	serviceAccount      string
 	serviceAccountEmail string
+	groupAllUsers       string
 
 	metabaseAPI       service.MetabaseAPI
 	bigqueryAPI       service.BigQueryAPI
@@ -34,24 +34,25 @@ type metabaseService struct {
 var _ service.MetabaseService = &metabaseService{}
 
 func (s *metabaseService) MapDataset(ctx context.Context, datasetID string, services []string) (*service.Dataset, error) {
+	const op errs.Op = "metabaseService.MapDataset"
+
 	ds, err := s.dataproductStorage.GetDataset(ctx, datasetID)
 	if err != nil {
-		return nil, err
+		return nil, errs.E(op, err)
 	}
 
 	dp, err := s.dataproductStorage.GetDataproduct(ctx, ds.DataproductID.String())
 	if err != nil {
-		return nil, err
+		return nil, errs.E(op, err)
 	}
 
 	if err := ensureUserInGroup(ctx, dp.Owner.Group); err != nil {
-		// FIXME: not sure if errunauthorized will work
-		return nil, service.ErrUnauthorized
+		return nil, errs.E(op, err)
 	}
 
 	err = s.thirdPartyMappingStorage.MapDataset(ctx, datasetID, services)
 	if err != nil {
-		return nil, fmt.Errorf("mapping dataset: %w", err)
+		return nil, errs.E(op, err)
 	}
 
 	mapMetabase := false
@@ -61,7 +62,7 @@ func (s *metabaseService) MapDataset(ctx context.Context, datasetID string, serv
 
 			err := s.addDatasetMapping(ctx, uuid.MustParse(datasetID))
 			if err != nil {
-				return nil, fmt.Errorf("adding dataset mapping: %w", err)
+				return nil, errs.E(op, err)
 			}
 
 			break
@@ -71,7 +72,7 @@ func (s *metabaseService) MapDataset(ctx context.Context, datasetID string, serv
 	if !mapMetabase {
 		err = s.DeleteDatabase(ctx, uuid.MustParse(datasetID))
 		if err != nil {
-			return nil, fmt.Errorf("delete database: %w", err)
+			return nil, errs.E(op, err)
 		}
 	}
 
@@ -79,15 +80,17 @@ func (s *metabaseService) MapDataset(ctx context.Context, datasetID string, serv
 }
 
 func (s *metabaseService) addDatasetMapping(ctx context.Context, dsID uuid.UUID) error {
+	const op errs.Op = "metabaseService.addDatasetMapping"
+
 	accesses, err := s.accessStorage.ListActiveAccessToDataset(ctx, dsID)
 	if err != nil {
-		return fmt.Errorf("listing active access to dataset: %w", err)
+		return errs.E(op, err)
 	}
 
-	if containsAllUsers(accesses) {
+	if s.containsAllUsers(accesses) {
 		err := s.addAllUsersDataset(ctx, dsID)
 		if err != nil {
-			return fmt.Errorf("adding all users dataset: %w", err)
+			return errs.E(op, err)
 		}
 
 		return nil
@@ -95,15 +98,15 @@ func (s *metabaseService) addDatasetMapping(ctx context.Context, dsID uuid.UUID)
 
 	err = s.addRestrictedDatasetMapping(ctx, dsID)
 	if err != nil {
-		return fmt.Errorf("adding restricted dataset mapping: %w", err)
+		return errs.E(op, err)
 	}
 
 	return nil
 }
 
-func containsAllUsers(accesses []*service.Access) bool {
+func (s *metabaseService) containsAllUsers(accesses []*service.Access) bool {
 	for _, a := range accesses {
-		if a.Subject == "group:all-users@nav.no" {
+		if a.Subject == s.groupAllUsers {
 			return true
 		}
 	}
@@ -112,57 +115,61 @@ func containsAllUsers(accesses []*service.Access) bool {
 }
 
 func (s *metabaseService) addRestrictedDatasetMapping(ctx context.Context, dsID uuid.UUID) error {
+	const op errs.Op = "metabaseService.addRestrictedDatasetMapping"
+
 	mbMeta, err := s.metabaseStorage.GetMetadata(ctx, dsID, true)
-	if errors.Is(err, sql.ErrNoRows) {
+	if errs.KindIs(errs.NotExist, err) {
 		ds, err := s.dataproductStorage.GetDataset(ctx, dsID.String())
 		if err != nil {
-			return fmt.Errorf("getting dataset: %w", err)
+			return errs.E(op, err)
 		}
 
 		if err := s.createRestricted(ctx, ds); err != nil {
-			return fmt.Errorf("create restricted database: %w", err)
+			return errs.E(op, err)
 		}
 	} else if err != nil {
-		return fmt.Errorf("get metabase metadata: %w", err)
+		return errs.E(op, err)
 	}
 
 	if mbMeta != nil && mbMeta.PermissionGroupID == 0 {
-		return fmt.Errorf("not allowed to expose a previously open database as a restricted")
+		return errs.E(errs.InvalidRequest, op, fmt.Errorf("not allowed to expose a previously open database as a restricted"))
 	}
 
 	if mbMeta != nil && mbMeta.DeletedAt != nil {
 		if err := s.restore(ctx, dsID, mbMeta); err != nil {
-			return fmt.Errorf("restoring db: %w", err)
+			return errs.E(op, err)
 		}
 	}
 
 	if err := s.grantAccessesOnCreation(ctx, dsID); err != nil {
-		return fmt.Errorf("granting accesses on creation: %w", err)
+		return errs.E(op, err)
 	}
 
 	return nil
 }
 
 func (s *metabaseService) grantAccessesOnCreation(ctx context.Context, dsID uuid.UUID) error {
+	const op errs.Op = "metabaseService.grantAccessesOnCreation"
+
 	accesses, err := s.accessStorage.ListActiveAccessToDataset(ctx, dsID)
 	if err != nil {
-		return err
+		return errs.E(op, err)
 	}
 
 	for _, a := range accesses {
 		email, sType, err := parseSubject(a.Subject)
 		if err != nil {
-			return fmt.Errorf("parse subject %v: %w", a.Subject, err)
+			return errs.E(op, err)
 		}
 
 		switch sType {
 		case "user":
 			err := s.addMetabaseGroupMember(ctx, dsID, email)
 			if err != nil {
-				return fmt.Errorf("adding metabase group member: %w", err)
+				return errs.E(op, err)
 			}
 		default:
-			return fmt.Errorf("unsupported subject type %v for metabase access grant", sType)
+			return errs.E(errs.InvalidRequest, op, fmt.Errorf("unsupported subject type %v for metabase access grant", sType))
 		}
 	}
 
@@ -170,14 +177,16 @@ func (s *metabaseService) grantAccessesOnCreation(ctx context.Context, dsID uuid
 }
 
 func (s *metabaseService) addMetabaseGroupMember(ctx context.Context, dsID uuid.UUID, email string) error {
+	const op errs.Op = "metabaseService.addMetabaseGroupMember"
+
 	mbMetadata, err := s.metabaseStorage.GetMetadata(ctx, dsID, false)
 	if err != nil {
-		return fmt.Errorf("get metabase metadata: %w", err)
+		return errs.E(op, err)
 	}
 
 	mbGroupMembers, err := s.metabaseAPI.GetPermissionGroup(ctx, mbMetadata.PermissionGroupID)
 	if err != nil {
-		return fmt.Errorf("get permission group: %w", err)
+		return errs.E(op, err)
 	}
 
 	exists, _ := memberExists(mbGroupMembers, email)
@@ -186,44 +195,48 @@ func (s *metabaseService) addMetabaseGroupMember(ctx context.Context, dsID uuid.
 	}
 
 	if err := s.metabaseAPI.AddPermissionGroupMember(ctx, mbMetadata.PermissionGroupID, email); err != nil {
-		return fmt.Errorf("add permission group member: %w", err)
+		return errs.E(op, err)
 	}
 
 	return nil
 }
 
 func (s *metabaseService) restore(ctx context.Context, datasetID uuid.UUID, mbMetadata *service.MetabaseMetadata) error {
-	ds, apierr := s.bigqueryStorage.GetBigqueryDatasource(ctx, datasetID, false)
-	if apierr != nil {
-		return apierr
+	const op errs.Op = "metabaseService.restore"
+
+	ds, err := s.bigqueryStorage.GetBigqueryDatasource(ctx, datasetID, false)
+	if err != nil {
+		return errs.E(op, err)
 	}
 
-	err := s.bigqueryAPI.Grant(ctx, ds.ProjectID, ds.Dataset, ds.Table, "serviceAccount:"+mbMetadata.SAEmail)
+	err = s.bigqueryAPI.Grant(ctx, ds.ProjectID, ds.Dataset, ds.Table, "serviceAccount:"+mbMetadata.SAEmail)
 	if err != nil {
-		return fmt.Errorf("granting access: %w", err)
+		return errs.E(op, err)
 	}
 
 	if err := s.metabaseStorage.RestoreMetadata(ctx, datasetID); err != nil {
-		return fmt.Errorf("restoring metabase metadata: %w", err)
+		return errs.E(op, err)
 	}
 
 	return nil
 }
 
 func (s *metabaseService) createRestricted(ctx context.Context, ds *service.Dataset) error {
+	const op errs.Op = "metabaseService.createRestricted"
+
 	groupID, err := s.metabaseAPI.CreatePermissionGroup(ctx, ds.Name)
 	if err != nil {
-		return fmt.Errorf("creating permission group: %w", err)
+		return errs.E(op, err)
 	}
 
 	colID, err := s.metabaseAPI.CreateCollectionWithAccess(ctx, []int{groupID}, ds.Name)
 	if err != nil {
-		return fmt.Errorf("creating collection with access: %w", err)
+		return errs.E(op, err)
 	}
 
 	key, email, err := s.serviceAccountAPI.CreateServiceAccount(ctx, s.gcpProject, ds)
 	if err != nil {
-		return fmt.Errorf("creating service account: %w", err)
+		return errs.E(op, err)
 	}
 
 	err = s.create(ctx, dsWrapper{
@@ -234,7 +247,7 @@ func (s *metabaseService) createRestricted(ctx context.Context, ds *service.Data
 		CollectionID:    colID,
 	})
 	if err != nil {
-		return fmt.Errorf("creating database: %w", err)
+		return errs.E(op, err)
 	}
 
 	return nil
@@ -244,18 +257,23 @@ func (s *metabaseService) createRestricted(ctx context.Context, ds *service.Data
 // we should parse it out from the request and pass it down the line
 // it shouldn't just magically appear
 func ensureUserInGroup(ctx context.Context, group string) error {
+	const op errs.Op = "ensureUserInGroup"
+
 	user := auth.GetUser(ctx)
 	if user == nil || !user.GoogleGroups.Contains(group) {
-		return service.ErrUnauthorized
+		return errs.E(errs.Unauthorized, op, errs.UserName(user.Email), fmt.Errorf("user not in group %v", group))
 	}
+
 	return nil
 }
 
 func (s *metabaseService) GrantMetabaseAccess(ctx context.Context, dsID uuid.UUID, subject string) error {
-	if subject == "group:all-users@nav.no" {
+	const op errs.Op = "metabaseService.GrantMetabaseAccess"
+
+	if subject == s.groupAllUsers {
 		err := s.addAllUsersDataset(ctx, dsID)
 		if err != nil {
-			return fmt.Errorf("adding all users dataset: %w", err)
+			return errs.E(op, err)
 		}
 
 		return nil
@@ -263,17 +281,17 @@ func (s *metabaseService) GrantMetabaseAccess(ctx context.Context, dsID uuid.UUI
 
 	email, sType, err := parseSubject(subject)
 	if err != nil {
-		return fmt.Errorf("parsing subject %v: %w", subject, err)
+		return errs.E(op, err)
 	}
 
 	switch sType {
 	case "user":
 		err := s.addMetabaseGroupMember(ctx, dsID, email)
 		if err != nil {
-			return fmt.Errorf("adding metabase group member: %w", err)
+			return errs.E(op, err)
 		}
 	default:
-		return fmt.Errorf("unsupported subject type %v for metabase access grant", sType)
+		return errs.E(errs.InvalidRequest, op, fmt.Errorf("unsupported subject type %v for metabase access grant", sType))
 	}
 
 	return nil
@@ -288,12 +306,14 @@ type dsWrapper struct {
 }
 
 func (s *metabaseService) addAllUsersDataset(ctx context.Context, dsID uuid.UUID) error {
+	const op errs.Op = "metabaseService.addAllUsersDataset"
+
 	mbMetadata, err := s.metabaseStorage.GetMetadata(ctx, dsID, true)
 	if err != nil {
-		if errors.Is(err, sql.ErrNoRows) {
-			ds, apierr := s.dataproductStorage.GetDataset(ctx, dsID.String())
-			if apierr != nil {
-				return fmt.Errorf("getting dataset: %w", apierr)
+		if errs.KindIs(errs.NotExist, err) {
+			ds, err := s.dataproductStorage.GetDataset(ctx, dsID.String())
+			if err != nil {
+				return errs.E(op, err)
 			}
 
 			err = s.create(ctx, dsWrapper{
@@ -302,19 +322,19 @@ func (s *metabaseService) addAllUsersDataset(ctx context.Context, dsID uuid.UUID
 				Email:   s.serviceAccountEmail,
 			})
 			if err != nil {
-				return fmt.Errorf("create all users database: %w", err)
+				return errs.E(op, err)
 			}
 
 			return nil
 		}
 
-		return fmt.Errorf("get metabase metadata: %w", err)
+		return errs.E(op, err)
 	}
 
 	if mbMetadata.DeletedAt != nil {
 		err := s.restore(ctx, dsID, mbMetadata)
 		if err != nil {
-			return fmt.Errorf("restoring db: %w", err)
+			return errs.E(op, err)
 		}
 
 		return nil
@@ -327,49 +347,51 @@ func (s *metabaseService) addAllUsersDataset(ctx context.Context, dsID uuid.UUID
 
 	err = s.metabaseAPI.OpenAccessToDatabase(ctx, mbMetadata.DatabaseID)
 	if err != nil {
-		return fmt.Errorf("opening access to database: %w", err)
+		return errs.E(op, err)
 	}
 
 	err = s.metabaseAPI.DeletePermissionGroup(ctx, mbMetadata.PermissionGroupID)
 	if err != nil {
-		return fmt.Errorf("deleting permission group: %w", err)
+		return errs.E(op, err)
 	}
 
 	err = s.metabaseStorage.SetPermissionGroupMetabaseMetadata(ctx, mbMetadata.DatasetID, 0)
 	if err != nil {
-		return fmt.Errorf("setting permission group to all users: %w", err)
+		return errs.E(op, err)
 	}
 
 	return nil
 }
 
 func (s *metabaseService) create(ctx context.Context, ds dsWrapper) error {
+	const op errs.Op = "metabaseService.create"
+
 	datasource, err := s.bigqueryStorage.GetBigqueryDatasource(ctx, ds.Dataset.ID, false)
 	if err != nil {
-		return fmt.Errorf("getting bigquery datasource: %w", err)
+		return errs.E(op, err)
 	}
 
 	err = s.bigqueryAPI.Grant(ctx, datasource.ProjectID, datasource.Dataset, datasource.Table, "serviceAccount:"+ds.Email)
 	if err != nil {
-		return fmt.Errorf("granting access: %w", err)
+		return errs.E(op, err)
 	}
 
 	dp, err := s.dataproductStorage.GetDataproduct(ctx, ds.Dataset.DataproductID.String())
 	if err != nil {
-		return fmt.Errorf("getting dataproduct: %w", err)
+		return errs.E(op, err)
 	}
 
 	dbID, err := s.metabaseAPI.CreateDatabase(ctx, dp.Owner.Group, ds.Dataset.Name, ds.Key, ds.Email, datasource)
 	if err != nil {
-		return fmt.Errorf("creating database: %w", err)
+		return errs.E(op, err)
 	}
 
 	if err := s.waitForDatabase(ctx, dbID, datasource.Table); err != nil {
 		if err := s.cleanupOnCreateDatabaseError(ctx, dbID, ds); err != nil {
-			return fmt.Errorf("cleanup on create database error: %w", err)
+			return errs.E(op, err)
 		}
 
-		return fmt.Errorf("waiting for database: %w", err)
+		return errs.E(op, err)
 	}
 
 	mbMeta := &service.MetabaseMetadata{
@@ -381,33 +403,35 @@ func (s *metabaseService) create(ctx context.Context, ds dsWrapper) error {
 	}
 	err = s.metabaseStorage.CreateMetadata(ctx, mbMeta)
 	if err != nil {
-		return fmt.Errorf("creating metabase metadata: %w", err)
+		return errs.E(op, err)
 	}
 
 	if ds.MetabaseGroupID > 0 {
 		err := s.metabaseAPI.RestrictAccessToDatabase(ctx, []int{ds.MetabaseGroupID}, dbID)
 		if err != nil {
-			return err
+			return errs.E(op, err)
 		}
 	} else {
 		err := s.metabaseAPI.OpenAccessToDatabase(ctx, dbID)
 		if err != nil {
-			return err
+			return errs.E(op, err)
 		}
 	}
 
 	if err := s.SyncTableVisibility(ctx, mbMeta, *datasource); err != nil {
-		return err
+		return errs.E(op, err)
 	}
 
 	if err := s.metabaseAPI.AutoMapSemanticTypes(ctx, dbID); err != nil {
-		return err
+		return errs.E(op, err)
 	}
 
 	return nil
 }
 
 func (s *metabaseService) waitForDatabase(ctx context.Context, dbID int, tableName string) error {
+	const op errs.Op = "metabaseService.waitForDatabase"
+
 	for i := 0; i < 200; i++ {
 		time.Sleep(100 * time.Millisecond)
 		tables, err := s.metabaseAPI.Tables(ctx, dbID)
@@ -421,13 +445,15 @@ func (s *metabaseService) waitForDatabase(ctx context.Context, dbID int, tableNa
 		}
 	}
 
-	return fmt.Errorf("unable to create database %v", tableName)
+	return errs.E(errs.Internal, op, fmt.Errorf("unable to create database %v", tableName))
 }
 
 func (s *metabaseService) cleanupOnCreateDatabaseError(ctx context.Context, dbID int, ds dsWrapper) error {
+	const op errs.Op = "metabaseService.cleanupOnCreateDatabaseError"
+
 	dataset, err := s.dataproductStorage.GetDataset(ctx, ds.Dataset.ID.String())
 	if err != nil {
-		return err
+		return errs.E(op, err)
 	}
 	services := dataset.Mappings
 
@@ -438,45 +464,47 @@ func (s *metabaseService) cleanupOnCreateDatabaseError(ctx context.Context, dbID
 	}
 
 	if err := s.metabaseAPI.DeleteDatabase(ctx, dbID); err != nil {
-		return err
+		return errs.E(op, err)
 	}
 
 	if ds.CollectionID != 0 {
 		if err := s.metabaseAPI.DeletePermissionGroup(ctx, ds.MetabaseGroupID); err != nil {
-			return err
+			return errs.E(op, err)
 		}
 
 		if err := s.metabaseAPI.ArchiveCollection(ctx, ds.CollectionID); err != nil {
-			return err
+			return errs.E(op, err)
 		}
 
 		if err := s.serviceAccountAPI.DeleteServiceAccount(ctx, s.gcpProject, ds.Email); err != nil {
-			return err
+			return errs.E(op, err)
 		}
 	}
 
 	_, err = s.MapDataset(ctx, ds.Dataset.ID.String(), services)
 	if err != nil {
-		return fmt.Errorf("mapping dataset: %w", err)
+		return errs.E(op, err)
 	}
 
 	return nil
 }
 
 func (s *metabaseService) DeleteDatabase(ctx context.Context, dsID uuid.UUID) error {
+	const op errs.Op = "metabaseService.DeleteDatabase"
+
 	mbMeta, err := s.metabaseStorage.GetMetadata(ctx, dsID, true)
 	if err != nil {
-		if errors.Is(err, sql.ErrNoRows) {
+		if errs.KindIs(errs.NotExist, err) {
 			return nil
 		}
 
-		return fmt.Errorf("get metabase metadata: %w", err)
+		return errs.E(op, err)
 	}
 
 	if isRestrictedDatabase(mbMeta) {
 		err = s.deleteRestrictedDatabase(ctx, dsID, mbMeta)
 		if err != nil {
-			return fmt.Errorf("delete restricted database: %w", err)
+			return errs.E(op, err)
 		}
 
 		return nil
@@ -484,91 +512,99 @@ func (s *metabaseService) DeleteDatabase(ctx context.Context, dsID uuid.UUID) er
 
 	err = s.deleteAllUsersDatabase(ctx, dsID, mbMeta)
 	if err != nil {
-		return fmt.Errorf("delete all-users database: %w", err)
+		return errs.E(op, err)
 	}
 
 	return nil
 }
 
 func (s *metabaseService) deleteAllUsersDatabase(ctx context.Context, datasetID uuid.UUID, mbMeta *service.MetabaseMetadata) error {
+	const op errs.Op = "metabaseService.deleteAllUsersDatabase"
+
 	err := s.metabaseAPI.DeleteDatabase(ctx, mbMeta.DatabaseID)
 	if err != nil {
-		return fmt.Errorf("delete all-users database: %w", err)
+		return errs.E(op, err)
 	}
 
 	err = s.metabaseStorage.DeleteMetadata(ctx, mbMeta.DatasetID)
 	if err != nil {
-		return fmt.Errorf("delete all-users metabase metadata: %w", err)
+		return errs.E(op, err)
 	}
 
 	return nil
 }
 
 func (s *metabaseService) deleteRestrictedDatabase(ctx context.Context, datasetID uuid.UUID, mbMeta *service.MetabaseMetadata) error {
-	ds, apierr := s.bigqueryStorage.GetBigqueryDatasource(ctx, datasetID, false)
-	if apierr != nil {
-		return fmt.Errorf("get bigquery datasource: %w", apierr)
+	const op errs.Op = "metabaseService.deleteRestrictedDatabase"
+
+	ds, err := s.bigqueryStorage.GetBigqueryDatasource(ctx, datasetID, false)
+	if err != nil {
+		return errs.E(op, err)
 	}
 
-	err := s.bigqueryAPI.Revoke(ctx, ds.ProjectID, ds.Dataset, ds.Table, "serviceAccount:"+mbMeta.SAEmail)
+	err = s.bigqueryAPI.Revoke(ctx, ds.ProjectID, ds.Dataset, ds.Table, "serviceAccount:"+mbMeta.SAEmail)
 	if err != nil {
-		return fmt.Errorf("revoke access: %w", err)
+		return errs.E(op, err)
 	}
 
 	if err := s.serviceAccountAPI.DeleteServiceAccount(ctx, s.gcpProject, mbMeta.SAEmail); err != nil {
-		return fmt.Errorf("delete service account: %w", err)
+		return errs.E(op, err)
 	}
 
 	if err := s.metabaseAPI.DeletePermissionGroup(ctx, mbMeta.PermissionGroupID); err != nil {
-		return fmt.Errorf("delete permission group: %w", err)
+		return errs.E(op, err)
 	}
 
 	if err := s.metabaseAPI.ArchiveCollection(ctx, mbMeta.CollectionID); err != nil {
-		return fmt.Errorf("archive collection: %w", err)
+		return errs.E(op, err)
 	}
 
 	if err := s.metabaseAPI.DeleteDatabase(ctx, mbMeta.DatabaseID); err != nil {
-		return fmt.Errorf("delete restricted database: %w", err)
+		return errs.E(op, err)
 	}
 
 	if err := s.metabaseStorage.DeleteRestrictedMetadata(ctx, datasetID); err != nil {
-		return fmt.Errorf("delete restricted metabase metadata: %w", err)
+		return errs.E(op, err)
 	}
 
 	return nil
 }
 
 func (s *metabaseService) RevokeMetabaseAccessFromAccessID(ctx context.Context, accessID string) error {
+	const op errs.Op = "metabaseService.RevokeMetabaseAccessFromAccessID"
+
 	access, err := s.accessStorage.GetAccessRequest(ctx, accessID)
 	if err != nil {
-		return fmt.Errorf("get access request: %w", err)
+		return errs.E(op, err)
 	}
 
 	err = s.RevokeMetabaseAccess(ctx, access.DatasetID, access.Subject)
 	if err != nil {
-		return err
+		return errs.E(op, err)
 	}
 
 	return nil
 }
 
 func (s *metabaseService) RevokeMetabaseAccess(ctx context.Context, dsID uuid.UUID, subject string) error {
-	if subject == "group:all-users@nav.no" {
+	const op errs.Op = "metabaseService.RevokeMetabaseAccess"
+
+	if subject == s.groupAllUsers {
 		err := s.softDeleteDatabase(ctx, dsID)
 		if err != nil {
-			return fmt.Errorf("soft delete database: %v", err)
+			return errs.E(op, err)
 		}
 	}
 
 	email, sType, err := parseSubject(subject)
 	if err != nil {
-		return fmt.Errorf("parsing subject %v: %w", subject, err)
+		return errs.E(op, err)
 	}
 
 	if sType == "user" {
 		err = s.removeMetabaseGroupMember(ctx, dsID, email)
 		if err != nil {
-			return fmt.Errorf("remove metabase group member: %w", err)
+			return errs.E(op, err)
 		}
 	}
 
@@ -578,38 +614,42 @@ func (s *metabaseService) RevokeMetabaseAccess(ctx context.Context, dsID uuid.UU
 }
 
 func (s *metabaseService) softDeleteDatabase(ctx context.Context, datasetID uuid.UUID) error {
+	const op errs.Op = "metabaseService.softDeleteDatabase"
+
 	mbMeta, err := s.metabaseStorage.GetMetadata(ctx, datasetID, false)
 	if err != nil {
-		return fmt.Errorf("get metabase metadata: %w", err)
+		return errs.E(op, err)
 	}
 
-	ds, apierr := s.bigqueryStorage.GetBigqueryDatasource(ctx, datasetID, false)
-	if apierr != nil {
-		return fmt.Errorf("get bigquery datasource: %w", apierr)
+	ds, err := s.bigqueryStorage.GetBigqueryDatasource(ctx, datasetID, false)
+	if err != nil {
+		return errs.E(op, err)
 	}
 
 	err = s.bigqueryAPI.Revoke(ctx, ds.ProjectID, ds.Dataset, ds.Table, "serviceAccount:"+mbMeta.SAEmail)
 	if err != nil {
-		return fmt.Errorf("revoke access: %w", err)
+		return errs.E(op, err)
 	}
 
 	err = s.metabaseStorage.SoftDeleteMetadata(ctx, datasetID)
 	if err != nil {
-		return fmt.Errorf("soft delete metabase metadata: %w", err)
+		return errs.E(op, err)
 	}
 
 	return nil
 }
 
 func (s *metabaseService) removeMetabaseGroupMember(ctx context.Context, dsID uuid.UUID, email string) error {
+	const op errs.Op = "metabaseService.removeMetabaseGroupMember"
+
 	mbMetadata, err := s.metabaseStorage.GetMetadata(ctx, dsID, false)
 	if err != nil {
-		return fmt.Errorf("get metabase metadata: %w", err)
+		return errs.E(op, err)
 	}
 
 	mbGroupMembers, err := s.metabaseAPI.GetPermissionGroup(ctx, mbMetadata.PermissionGroupID)
 	if err != nil {
-		return fmt.Errorf("get permission group: %w", err)
+		return errs.E(op, err)
 	}
 
 	exists, memberID := memberExists(mbGroupMembers, email)
@@ -619,26 +659,28 @@ func (s *metabaseService) removeMetabaseGroupMember(ctx context.Context, dsID uu
 
 	err = s.metabaseAPI.RemovePermissionGroupMember(ctx, memberID)
 	if err != nil {
-		return fmt.Errorf("remove permission group member: %w", err)
+		return errs.E(op, err)
 	}
 
 	return nil
 }
 
 func (s *metabaseService) SyncAllTablesVisibility(ctx context.Context) error {
+	const op errs.Op = "metabaseService.SyncAllTablesVisibility"
+
 	mbMetas, err := s.metabaseStorage.GetAllMetadata(ctx)
 	if err != nil {
-		return fmt.Errorf("getting all metabase metadata: %w", err)
+		return errs.E(op, err)
 	}
 
 	for _, db := range mbMetas {
 		bq, err := s.bigqueryStorage.GetBigqueryDatasource(ctx, db.DatasetID, false)
 		if err != nil {
-			return fmt.Errorf("getting bigquery datasource: %w", err)
+			return errs.E(op, err)
 		}
 
 		if err := s.SyncTableVisibility(ctx, db, *bq); err != nil {
-			return fmt.Errorf("syncing table visibility: %w", err)
+			return errs.E(op, err)
 		}
 	}
 
@@ -646,20 +688,22 @@ func (s *metabaseService) SyncAllTablesVisibility(ctx context.Context) error {
 }
 
 func (s *metabaseService) SyncTableVisibility(ctx context.Context, mbMeta *service.MetabaseMetadata, bq service.BigQuery) error {
+	const op errs.Op = "metabaseService.SyncTableVisibility"
+
 	err := s.metabaseAPI.EnsureValidSession(ctx)
 	if err != nil {
-		return fmt.Errorf("ensuring valid session: %w", err)
+		return errs.E(op, err)
 	}
 
 	var buf io.ReadWriter
 	res, err := s.metabaseAPI.PerformRequest(ctx, http.MethodGet, fmt.Sprintf("/database/%v/metadata?include_hidden=true", mbMeta.DatabaseID), buf)
 	// FIXME: dont return the error code, lets handle it in the caller
-	if res.StatusCode == 404 {
+	if res.StatusCode == http.StatusNotFound {
 		// suppress error when database does not exist
 		return nil
 	}
 	if err != nil {
-		return fmt.Errorf("performing request: %w", err)
+		return errs.E(op, err)
 	}
 	defer res.Body.Close()
 
@@ -667,14 +711,14 @@ func (s *metabaseService) SyncTableVisibility(ctx context.Context, mbMeta *servi
 		Tables []service.MetabaseTable `json:"tables"`
 	}
 	if err := json.NewDecoder(res.Body).Decode(&v); err != nil {
-		return fmt.Errorf("decoding response: %w", err)
+		return errs.E(errs.IO, op, err)
 	}
 
 	includedTables := []string{bq.Table}
 	if !isRestrictedDatabase(mbMeta) {
 		includedTables, err = s.metabaseStorage.GetOpenTablesInSameBigQueryDataset(ctx, bq.ProjectID, bq.Dataset)
 		if err != nil {
-			return fmt.Errorf("getting open metabase tables in same bigquery dataset: %w", err)
+			return errs.E(op, err)
 		}
 	}
 
@@ -690,13 +734,13 @@ func (s *metabaseService) SyncTableVisibility(ctx context.Context, mbMeta *servi
 
 	if len(excludedIDs) != 0 {
 		if err := s.metabaseAPI.HideTables(ctx, excludedIDs); err != nil {
-			return fmt.Errorf("hiding tables: %w", err)
+			return errs.E(op, err)
 		}
 	}
 
 	err = s.metabaseAPI.ShowTables(ctx, includedIDs)
 	if err != nil {
-		return fmt.Errorf("showing tables: %w", err)
+		return errs.E(op, err)
 	}
 
 	return nil
@@ -717,9 +761,11 @@ func contains(elems []string, elem string) bool {
 }
 
 func parseSubject(subject string) (string, string, error) {
+	const op errs.Op = "parseSubject"
+
 	s := strings.Split(subject, ":")
 	if len(s) != 2 {
-		return "", "", fmt.Errorf("invalid subject format, should be type:email")
+		return "", "", errs.E(errs.InvalidRequest, op, errs.Parameter("subject"), fmt.Errorf("invalid subject format, should be type:email"))
 	}
 
 	return s[1], s[0], nil
@@ -739,6 +785,7 @@ func NewMetabaseService(
 	gcpProject string,
 	serviceAccount string,
 	serviceAccountEmail string,
+	groupAllUsers string,
 	mbapi service.MetabaseAPI,
 	bqapi service.BigQueryAPI,
 	saapi service.ServiceAccountAPI,
@@ -752,6 +799,7 @@ func NewMetabaseService(
 		gcpProject:               gcpProject,
 		serviceAccount:           serviceAccount,
 		serviceAccountEmail:      serviceAccountEmail,
+		groupAllUsers:            groupAllUsers,
 		metabaseAPI:              mbapi,
 		bigqueryAPI:              bqapi,
 		serviceAccountAPI:        saapi,

@@ -2,6 +2,7 @@ package core
 
 import (
 	"context"
+	"github.com/navikt/nada-backend/pkg/errs"
 	"github.com/navikt/nada-backend/pkg/service"
 )
 
@@ -13,7 +14,14 @@ type pollyService struct {
 }
 
 func (p *pollyService) SearchPolly(ctx context.Context, q string) ([]*service.QueryPolly, error) {
-	return p.pollyAPI.SearchPolly(ctx, q)
+	const op errs.Op = "pollyService.SearchPolly"
+
+	res, err := p.pollyAPI.SearchPolly(ctx, q)
+	if err != nil {
+		return nil, errs.E(op, err)
+	}
+
+	return res, nil
 }
 
 func NewPollyService(storage service.PollyStorage, api service.PollyAPI) *pollyService {
