@@ -23,12 +23,11 @@ import (
 var embedMigrations embed.FS
 
 type Repo struct {
-	Querier            Querier
-	queries            *gensql.Queries
-	db                 *sql.DB
-	log                *logrus.Entry
-	hooks              *Hooks
-	centralDataProject string
+	Querier Querier
+	queries *gensql.Queries
+	db      *sql.DB
+	log     *logrus.Entry
+	hooks   *Hooks
 }
 
 func (r *Repo) Metrics() []prometheus.Collector {
@@ -59,7 +58,7 @@ func WithTx[T any](r *Repo) func() (T, Transacter, error) {
 	}
 }
 
-func New(dbConnDSN string, maxIdleConn, maxOpenConn int, log *logrus.Entry, centralDataProject string) (*Repo, error) {
+func New(dbConnDSN string, maxIdleConn, maxOpenConn int, log *logrus.Entry) (*Repo, error) {
 	hooks := NewHooks()
 	sql.Register("psqlhooked", sqlhooks.Wrap(&pq.Driver{}, hooks))
 
@@ -78,12 +77,11 @@ func New(dbConnDSN string, maxIdleConn, maxOpenConn int, log *logrus.Entry, cent
 
 	queries := gensql.New(db)
 	return &Repo{
-		Querier:            queries,
-		queries:            queries,
-		db:                 db,
-		log:                log,
-		hooks:              hooks,
-		centralDataProject: centralDataProject,
+		Querier: queries,
+		queries: queries,
+		db:      db,
+		log:     log,
+		hooks:   hooks,
 	}, nil
 }
 
