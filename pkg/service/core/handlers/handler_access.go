@@ -95,8 +95,14 @@ func (h *accessHandler) UpdateAccessRequest(ctx context.Context, _ *http.Request
 	return &Empty{}, nil
 }
 
-func NewAccessHandler(service service.AccessService) *accessHandler {
+func NewAccessHandler(
+	service service.AccessService,
+	metabaseService service.MetabaseService,
+	gcpProjectID string,
+) *accessHandler {
 	return &accessHandler{
-		accessService: service,
+		accessService:   service,
+		metabaseService: metabaseService,
+		gcpProjectID:    gcpProjectID,
 	}
 }
