@@ -109,7 +109,7 @@ func New(
 	})
 
 	router.Route("/api/bigquery/tables", func(r chi.Router) {
-		r.Get("/", endpoints.GetBigQueryColumns)
+		r.Get("/", endpoints.GetBigQueryTables)
 	})
 
 	router.Route("/api/bigquery/datasets", func(r chi.Router) {
