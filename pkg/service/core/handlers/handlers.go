@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"github.com/navikt/nada-backend/pkg/amplitude"
+	"github.com/navikt/nada-backend/pkg/config/v2"
 	"github.com/navikt/nada-backend/pkg/service/core"
 	"github.com/rs/zerolog"
 	"net/http"
@@ -159,13 +160,17 @@ type Handlers struct {
 	KeywordsHandler       *keywordsHandler
 }
 
-func NewHandlers(s *core.Services, amplitude amplitude.Amplitude) *Handlers {
+func NewHandlers(
+	s *core.Services,
+	amplitude amplitude.Amplitude,
+	cfg config.Config,
+) *Handlers {
 	return &Handlers{
 		StoryHandler:          NewStoryHandler(s.StoryService, s.TokenService, amplitude),
 		TokenHandler:          NewTokenHandler(s.TokenService),
 		DataProductsHandler:   NewDataProductsHandler(s.DataProductService),
 		MetabaseHandler:       NewMetabaseHandler(s.MetaBaseService),
-		AccessHandler:         NewAccessHandler(s.AccessService),
+		AccessHandler:         NewAccessHandler(s.AccessService, s.MetaBaseService, cfg.Metabase.GCPProject),
 		ProductAreasHandler:   NewProductAreasHandler(s.ProductAreaService),
 		BigQueryHandler:       NewBigQueryHandler(s.BigQueryService),
 		SearchHandler:         NewSearchHandler(s.SearchService),

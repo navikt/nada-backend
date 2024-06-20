@@ -16,6 +16,16 @@ data:
       credentials_path: /var/run/secrets/metabase/meta_creds.json
       gcp_project: # Loaded from env var GCP_TEAM_PROJECT_ID
       databases_base_url: https://metabase.intern.nav.no/browse/databases
+    cross_team_pseudonymization:
+      gcp_project_id: datamarkedsplassen
+      gcp_region: europe-north1
+    gcs:
+      story_bucket_name: nada-quarto-storage-prod
+      central_gcp_project: datamarkedsplassen
+    big_query:
+      team_project_pseudo_views_dataset_name: markedsplassen_pseudo
+      gcp_region: europe-north1
+      central_gcp_project: datamarkedsplassen
     slack:
       webhook_url: # Loaded from env var NADA_SLACK_WEBHOOK_URL
       token: # Loaded from env var NADA_SLACK_TOKEN
@@ -41,13 +51,6 @@ data:
     google_groups:
       impersonation_subject: johnny.horvi@nav.no
       credentials_file: /var/run/secrets/google-groups/sa.json
-    gcp:
-      project: datamarkedsplassen
-      region: europe-north1
-      gcs:
-        story_bucket_name: nada-quarto-storage-prod
-      big_query:
-        pseudo_views_dataset_name: markedsplassen_pseudo
     cookies:
       redirect:
         name: redirecturi

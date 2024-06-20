@@ -90,7 +90,7 @@ func (e *Ensurer) run(ctx context.Context) {
 			e.errs.WithLabelValues("Revoke").Inc()
 			continue
 		}
-		// FIXME: need to call revoke access to dataset and metabse revoke access from access id
+
 		if err := e.accessService.RevokeAccessToDataset(ctx, entry.ID.String(), e.centralDataProject); err != nil {
 			e.log.WithError(err).Errorf("Setting access entry with ID %v to revoked in database", entry.ID)
 			e.errs.WithLabelValues("RevokeAccessToDataproduct").Inc()

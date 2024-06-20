@@ -74,7 +74,7 @@ func NewServices(
 			stores.KeyWordStorage,
 		),
 		MetaBaseService: NewMetabaseService(
-			cfg.GCP.Project,
+			cfg.Metabase.GCPProject,
 			mbSa,
 			mbSaEmail,
 			cfg.AllUsersGroup,

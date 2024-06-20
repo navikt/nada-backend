@@ -82,7 +82,6 @@ func main() {
 		cfg.Postgres.Configuration.MaxIdleConnections,
 		cfg.Postgres.Configuration.MaxOpenConnections,
 		log.WithField("subsystem", "repo"),
-		cfg.GCP.Project,
 	)
 	if err != nil {
 		log.WithError(err).Fatal("setting up database")
@@ -164,6 +163,7 @@ func main() {
 	h := handlers.NewHandlers(
 		services,
 		amplitude.New(cfg.AmplitudeAPIKey, log.WithField("subsystem", "amplitude")),
+		cfg,
 	)
 
 	endpoints := handlers.NewEndpoints(
@@ -188,7 +188,7 @@ func main() {
 
 	go access_ensurer.NewEnsurer(
 		googleGroups,
-		cfg.GCP.Project,
+		cfg.BigQuery.CentralGCPProject,
 		promErrs,
 		stores.AccessStorage,
 		services.AccessService,

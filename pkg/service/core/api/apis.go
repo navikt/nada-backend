@@ -25,14 +25,14 @@ func NewClients(
 ) *Clients {
 	return &Clients{
 		BigQueryAPI: gcp.NewBigQueryAPI(
-			cfg.GCP.Project,
-			cfg.GCP.Region,
-			cfg.GCP.BigQuery.Endpoint,
-			cfg.GCP.BigQuery.PseudoViewsDatasetName,
+			cfg.BigQuery.CentralGCPProject,
+			cfg.BigQuery.GCPRegion,
+			cfg.BigQuery.Endpoint,
+			cfg.BigQuery.TeamProjectPseudoViewsDatasetName,
 		),
 		StoryAPI: gcp.NewStoryAPI(
-			cfg.GCP.Project,
-			cfg.GCP.GCS.StoryBucketName,
+			cfg.GCS.CentralGCPProject,
+			cfg.GCS.StoryBucketName,
 			log,
 		),
 		ServiceAccountAPI: gcp.NewServiceAccountAPI(),
