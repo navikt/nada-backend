@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/base64"
 	"errors"
+	"fmt"
 	"github.com/btcsuite/btcutil/base58"
 	"github.com/google/uuid"
 	"github.com/navikt/nada-backend/pkg/errs"
@@ -41,7 +42,7 @@ func (a *serviceAccountAPI) DeleteServiceAccount(ctx context.Context, gcpProject
 			}
 		}
 
-		return errs.E(errs.IO, op, err)
+		return errs.E(errs.IO, op, fmt.Errorf("deleting service account '%s': %w", saEmail, err))
 	}
 
 	return nil
