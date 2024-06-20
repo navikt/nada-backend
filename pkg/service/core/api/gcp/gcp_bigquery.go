@@ -27,7 +27,7 @@ type bigQueryAPI struct {
 var _ service.BigQueryAPI = &bigQueryAPI{}
 
 func (a *bigQueryAPI) GetTables(ctx context.Context, projectID, datasetID string) ([]*service.BigQueryTable, error) {
-	const op errs.Op = "gcp.GetTables"
+	const op errs.Op = "bigQueryAPI.GetTables"
 
 	client, err := a.clientFromProjectID(ctx, projectID)
 	if err != nil {
@@ -84,7 +84,7 @@ func isSupportedTableType(tableType bigquery.TableType) bool {
 }
 
 func (a *bigQueryAPI) GetDatasets(ctx context.Context, projectID string) ([]string, error) {
-	const op errs.Op = "gcp.GetDatasets"
+	const op errs.Op = "bigQueryAPI.GetDatasets"
 
 	client, err := a.clientFromProjectID(ctx, projectID)
 	if err != nil {
@@ -110,7 +110,7 @@ func (a *bigQueryAPI) GetDatasets(ctx context.Context, projectID string) ([]stri
 }
 
 func (a *bigQueryAPI) createDataset(ctx context.Context, projectID, datasetID string) error {
-	const op errs.Op = "gcp.createDataset"
+	const op errs.Op = "bigQueryAPI.createDataset"
 
 	client, err := a.clientFromProjectID(ctx, projectID)
 	if err != nil {
@@ -163,7 +163,7 @@ func composePseudoViewQuery(projectID, datasetID, tableID string, targetColumns 
 }
 
 func (a *bigQueryAPI) CreatePseudonymisedView(ctx context.Context, projectID, datasetID, tableID string, piiColumns []string) (string, string, string, error) {
-	const op errs.Op = "gcp.CreatePseudonymisedView"
+	const op errs.Op = "bigQueryAPI.CreatePseudonymisedView"
 
 	client, err := a.clientFromProjectID(ctx, projectID)
 	if err != nil {
@@ -214,7 +214,7 @@ func (a *bigQueryAPI) CreatePseudonymisedView(ctx context.Context, projectID, da
 }
 
 func (a *bigQueryAPI) deleteBigqueryTable(ctx context.Context, projectID, datasetID, tableID string) error {
-	const op errs.Op = "gcp.deleteBigqueryTable"
+	const op errs.Op = "bigQueryAPI.deleteBigqueryTable"
 
 	client, err := a.clientFromProjectID(ctx, projectID)
 	if err != nil {
@@ -235,7 +235,7 @@ func (a *bigQueryAPI) deleteBigqueryTable(ctx context.Context, projectID, datase
 }
 
 func (a *bigQueryAPI) DeleteJoinableView(ctx context.Context, joinableViewName, refProjectID, refDatasetID, refTableID string) error {
-	const op errs.Op = "gcp.DeleteJoinableView"
+	const op errs.Op = "bigQueryAPI.DeleteJoinableView"
 
 	err := a.deleteBigqueryTable(ctx, a.gcpProject, joinableViewName, makeJoinableViewName(refProjectID, refDatasetID, refTableID))
 	if err != nil {
@@ -246,7 +246,7 @@ func (a *bigQueryAPI) DeleteJoinableView(ctx context.Context, joinableViewName, 
 }
 
 func (a *bigQueryAPI) DeletePseudoView(ctx context.Context, pseudoProjectID, pseudoDatasetID, pseudoTableID string) error {
-	const op errs.Op = "gcp.DeletePseudoView"
+	const op errs.Op = "bigQueryAPI.DeletePseudoView"
 
 	if pseudoDatasetID != a.pseudoDataSet {
 		return errs.E(errs.InvalidRequest, op, fmt.Errorf("cannot delete pseudo view from dataset %v, not a markedsplassen dataset", pseudoDatasetID))
@@ -261,7 +261,7 @@ func (a *bigQueryAPI) DeletePseudoView(ctx context.Context, pseudoProjectID, pse
 }
 
 func (a *bigQueryAPI) DeleteJoinableDataset(ctx context.Context, datasetID string) error {
-	const op errs.Op = "gcp.DeleteJoinableDataset"
+	const op errs.Op = "bigQueryAPI.DeleteJoinableDataset"
 
 	client, err := bigquery.NewClient(ctx, a.gcpProject)
 	if err != nil {
@@ -281,7 +281,7 @@ func (a *bigQueryAPI) DeleteJoinableDataset(ctx context.Context, datasetID strin
 }
 
 func (a *bigQueryAPI) TableMetadata(ctx context.Context, projectID string, datasetID string, tableID string) (service.BigqueryMetadata, error) {
-	const op errs.Op = "gcp.TableMetadata"
+	const op errs.Op = "bigQueryAPI.TableMetadata"
 
 	client, err := a.clientFromProjectID(ctx, projectID)
 	if err != nil {
@@ -354,7 +354,7 @@ func (a *bigQueryAPI) ComposeJoinableViewQuery(plainTable service.DatasourceForJ
 }
 
 func (a *bigQueryAPI) CreateJoinableView(ctx context.Context, joinableDatasetID string, datasource service.JoinableViewDatasource) (string, error) {
-	const op errs.Op = "gcp.CreateJoinableView"
+	const op errs.Op = "bigQueryAPI.CreateJoinableView"
 
 	query := a.ComposeJoinableViewQuery(*datasource.RefDatasource, joinableDatasetID)
 
@@ -378,7 +378,7 @@ func (a *bigQueryAPI) CreateJoinableView(ctx context.Context, joinableDatasetID 
 }
 
 func (a *bigQueryAPI) CreateJoinableViewsForUser(ctx context.Context, name string, datasources []service.JoinableViewDatasource) (string, string, map[string]string, error) {
-	const op errs.Op = "gcp.CreateJoinableViewsForUser"
+	const op errs.Op = "bigQueryAPI.CreateJoinableViewsForUser"
 
 	client, err := a.clientFromProjectID(ctx, a.gcpProject)
 	if err != nil {
@@ -414,7 +414,7 @@ func (a *bigQueryAPI) CreateJoinableViewsForUser(ctx context.Context, name strin
 }
 
 func (a *bigQueryAPI) createDatasetInCentralProject(ctx context.Context, datasetID string) (string, error) {
-	const op errs.Op = "gcp.createDatasetInCentralProject"
+	const op errs.Op = "bigQueryAPI.createDatasetInCentralProject"
 
 	client, err := a.clientFromProjectID(ctx, a.gcpProject)
 	if err != nil {
@@ -445,7 +445,7 @@ func (a *bigQueryAPI) createDatasetInCentralProject(ctx context.Context, dataset
 }
 
 func (a *bigQueryAPI) createSecretTable(ctx context.Context, datasetID, tableID string) error {
-	const op errs.Op = "gcp.createSecretTable"
+	const op errs.Op = "bigQueryAPI.createSecretTable"
 
 	client, err := a.clientFromProjectID(ctx, a.gcpProject)
 	if err != nil {
@@ -485,7 +485,7 @@ func (a *bigQueryAPI) createSecretTable(ctx context.Context, datasetID, tableID 
 }
 
 func (a *bigQueryAPI) insertSecretIfNotExists(ctx context.Context, secretDatasetID, secretTableID, key string) error {
-	const op errs.Op = "gcp.insertSecretIfNotExists"
+	const op errs.Op = "bigQueryAPI.insertSecretIfNotExists"
 
 	client, err := a.clientFromProjectID(ctx, a.gcpProject)
 	if err != nil {
@@ -525,7 +525,7 @@ func (a *bigQueryAPI) MakeBigQueryUrlForJoinableViews(name, projectID, datasetID
 }
 
 func (a *bigQueryAPI) Grant(ctx context.Context, projectID, datasetID, tableID, member string) error {
-	const op errs.Op = "gcp.Grant"
+	const op errs.Op = "bigQueryAPI.Grant"
 
 	bqClient, err := a.clientFromProjectID(ctx, projectID)
 	if err != nil {
@@ -580,7 +580,7 @@ func (a *bigQueryAPI) Grant(ctx context.Context, projectID, datasetID, tableID, 
 }
 
 func (a *bigQueryAPI) Revoke(ctx context.Context, projectID, datasetID, tableID, member string) error {
-	const op errs.Op = "gcp.Revoke"
+	const op errs.Op = "bigQueryAPI.Revoke"
 
 	bqClient, err := a.clientFromProjectID(ctx, projectID)
 	if err != nil {
@@ -607,7 +607,7 @@ func (a *bigQueryAPI) Revoke(ctx context.Context, projectID, datasetID, tableID,
 }
 
 func (a *bigQueryAPI) AddToAuthorizedViews(ctx context.Context, srcProjectID, srcDataset, sinkProjectID, sinkDataset, sinkTable string) error {
-	const op errs.Op = "gcp.AddToAuthorizedViews"
+	const op errs.Op = "bigQueryAPI.AddToAuthorizedViews"
 
 	bqClient, err := a.clientFromProjectID(ctx, srcProjectID)
 	if err != nil {
@@ -650,7 +650,7 @@ func (a *bigQueryAPI) AddToAuthorizedViews(ctx context.Context, srcProjectID, sr
 }
 
 func (a *bigQueryAPI) HasAccess(ctx context.Context, projectID, datasetID, tableID, member string) (bool, error) {
-	const op errs.Op = "gcp.HasAccess"
+	const op errs.Op = "bigQueryAPI.HasAccess"
 
 	bqClient, err := a.clientFromProjectID(ctx, projectID)
 	if err != nil {
@@ -669,7 +669,7 @@ func (a *bigQueryAPI) HasAccess(ctx context.Context, projectID, datasetID, table
 }
 
 func (a *bigQueryAPI) clientFromProjectID(ctx context.Context, projectID string) (*bigquery.Client, error) {
-	const op errs.Op = "gcp.clientFromProjectID"
+	const op errs.Op = "bigQueryAPI.clientFromProjectID"
 
 	var options []option.ClientOption
 
@@ -686,7 +686,7 @@ func (a *bigQueryAPI) clientFromProjectID(ctx context.Context, projectID string)
 }
 
 func getPolicy(ctx context.Context, bqclient *bigquery.Client, datasetID, tableID string) (*iam.Policy, error) {
-	const op errs.Op = "gcp.getPolicy"
+	const op errs.Op = "bigQueryAPI.getPolicy"
 
 	ctx, cancel := context.WithTimeout(ctx, time.Second*10)
 	defer cancel()
