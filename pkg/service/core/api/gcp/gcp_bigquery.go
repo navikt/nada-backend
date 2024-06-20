@@ -171,9 +171,24 @@ func (a *bigQueryAPI) CreatePseudonymisedView(ctx context.Context, projectID, da
 	}
 	defer client.Close()
 
-	err = a.createDataset(ctx, projectID, a.pseudoDataSet)
+	datasets, err := a.GetDatasets(ctx, projectID)
 	if err != nil {
 		return "", "", "", errs.E(op, err)
+	}
+
+	var foundDataset bool
+	for _, ds := range datasets {
+		if ds == a.pseudoDataSet {
+			foundDataset = true
+			break
+		}
+	}
+
+	if !foundDataset {
+		err = a.createDataset(ctx, projectID, a.pseudoDataSet)
+		if err != nil {
+			return "", "", "", errs.E(op, err)
+		}
 	}
 
 	viewQuery := composePseudoViewQuery(projectID, datasetID, tableID, piiColumns)
