@@ -1,4 +1,4 @@
-package handlers
+package transport
 
 import (
 	"context"
@@ -83,7 +83,7 @@ func TestHandlerFor(t *testing.T) {
 			desc:    "Invokes the handler and returns the response as JSON, expecting the result to be empty {}",
 			store:   simple,
 			path:    "/test",
-			handler: TransportFor(simple.Simple).Build(logger),
+			handler: For(simple.Simple).Build(logger),
 			request: httptest.NewRequest(http.MethodGet, "/test", nil),
 			status:  http.StatusOK,
 		},
@@ -92,7 +92,7 @@ func TestHandlerFor(t *testing.T) {
 			desc:    "Invokes the handler, parses the request from JSON and returns the response as JSON, expect it to work",
 			store:   simple,
 			path:    "/test",
-			handler: TransportFor(simple.Simple).RequestFromJSON().Build(logger),
+			handler: For(simple.Simple).RequestFromJSON().Build(logger),
 			request: httptest.NewRequest(http.MethodGet, "/test", strings.NewReader(`{"id": "test"}`)),
 			status:  http.StatusOK,
 		},
@@ -101,7 +101,7 @@ func TestHandlerFor(t *testing.T) {
 			desc:    "Invokes the handler, parses the request from JSON and returns the response as JSON, expect it to work",
 			store:   simple,
 			path:    "/test",
-			handler: TransportFor(simple.SimpleNoInput).Build(logger),
+			handler: For(simple.SimpleNoInput).Build(logger),
 			request: httptest.NewRequest(http.MethodGet, "/test", nil),
 			status:  http.StatusOK,
 		},
@@ -110,7 +110,7 @@ func TestHandlerFor(t *testing.T) {
 			desc:    "Invokes the handler, parses the request from JSON and returns the response as JSON, expect it to work",
 			store:   simple,
 			path:    "/test",
-			handler: TransportFor(simple.SimpleNoOutput).Build(logger),
+			handler: For(simple.SimpleNoOutput).Build(logger),
 			request: httptest.NewRequest(http.MethodGet, "/test", strings.NewReader(`{"id": "test"}`)),
 			status:  http.StatusNoContent,
 		},
@@ -119,7 +119,7 @@ func TestHandlerFor(t *testing.T) {
 			desc:    "Invokes the handler and expects the parameter to be taken from the context",
 			store:   simple,
 			path:    "/test/{id}",
-			handler: TransportFor(simple.ParamFromContext).Build(logger),
+			handler: For(simple.ParamFromContext).Build(logger),
 			request: httptest.NewRequest(http.MethodGet, "/test/123", nil),
 			status:  http.StatusOK,
 		},

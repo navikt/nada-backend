@@ -3,6 +3,7 @@ package handlers
 import (
 	"context"
 	"github.com/navikt/nada-backend/pkg/service"
+	"github.com/navikt/nada-backend/pkg/service/core/transport"
 	"net/http"
 )
 
@@ -31,13 +32,13 @@ func (h *bigQueryHandler) GetBigQueryDatasets(ctx context.Context, r *http.Reque
 	return h.service.GetBigQueryDatasets(ctx, projectID)
 }
 
-func (h *bigQueryHandler) SyncBigQueryTables(ctx context.Context, _ *http.Request, _ any) (*Empty, error) {
+func (h *bigQueryHandler) SyncBigQueryTables(ctx context.Context, _ *http.Request, _ any) (*transport.Empty, error) {
 	err := h.service.SyncBigQueryTables(ctx)
 	if err != nil {
 		return nil, err
 	}
 
-	return &Empty{}, nil
+	return &transport.Empty{}, nil
 }
 
 func NewBigQueryHandler(service service.BigQueryService) *bigQueryHandler {

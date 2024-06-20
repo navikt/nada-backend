@@ -1,4 +1,10 @@
-package handlers
+// Package transport provides a generic HTTP transport layer for services.
+//
+// Inspired by:
+// - https://www.willem.dev/articles/generic-http-handlers/ - for use of generics
+// - https://github.com/go-kit/kit - for StatusCoder interface
+
+package transport
 
 import (
 	"context"
@@ -7,10 +13,6 @@ import (
 	"github.com/rs/zerolog"
 	"net/http"
 )
-
-// Inspired by: https://www.willem.dev/articles/generic-http-handlers/
-// go-kit
-// grafana matt article
 
 type StatusCoder interface {
 	StatusCode() int
@@ -27,24 +29,26 @@ func (e *Empty) StatusCode() int {
 	return http.StatusNoContent
 }
 
+// DecoderFunc is a function that decodes a request into a struct
 type DecoderFunc[In any] func(r *http.Request) (In, error)
 
-// We can probably get rid of having to pass the Request to the target function
-// just need to move some query params to chi context
+// TargetFunc is a function that handles the request and returns a response, ideally
+// we shouldn't have to use the http.Request, but sometimes we need it to fetch
+// query parameters, headers, or similar
 type TargetFunc[In any, Out any] func(context.Context, *http.Request, In) (Out, error)
 
-type TransportConfig[In any, Out any] struct {
+type Transport[In any, Out any] struct {
 	decoderFn DecoderFunc[In]
 	targetFn  TargetFunc[In, Out]
 }
 
-func TransportFor[In any, Out any](target TargetFunc[In, Out]) *TransportConfig[In, Out] {
-	return &TransportConfig[In, Out]{
+func For[In any, Out any](target TargetFunc[In, Out]) *Transport[In, Out] {
+	return &Transport[In, Out]{
 		targetFn: target,
 	}
 }
 
-func (h *TransportConfig[In, Out]) RequestFromJSON() *TransportConfig[In, Out] {
+func (h *Transport[In, Out]) RequestFromJSON() *Transport[In, Out] {
 	h.decoderFn = func(r *http.Request) (In, error) {
 		var in In
 
@@ -59,7 +63,7 @@ func (h *TransportConfig[In, Out]) RequestFromJSON() *TransportConfig[In, Out] {
 	return h
 }
 
-func (h *TransportConfig[In, Out]) encode(w http.ResponseWriter, out Out) error {
+func (h *Transport[In, Out]) encode(w http.ResponseWriter, out Out) error {
 	w.Header().Set("Content-Type", "application/json; charset=utf-8")
 
 	// If the output implements the StatusCoder interface, use the status code from it
@@ -81,7 +85,7 @@ func (h *TransportConfig[In, Out]) encode(w http.ResponseWriter, out Out) error 
 	return nil
 }
 
-func (h *TransportConfig[In, Out]) Build(logger zerolog.Logger) http.HandlerFunc {
+func (h *Transport[In, Out]) Build(logger zerolog.Logger) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		logger.Info().Str("method", r.Method).Str("url", r.URL.RequestURI())
 

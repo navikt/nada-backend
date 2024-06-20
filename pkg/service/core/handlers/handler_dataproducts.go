@@ -4,6 +4,7 @@ import (
 	"context"
 	"github.com/go-chi/chi"
 	"github.com/navikt/nada-backend/pkg/service"
+	"github.com/navikt/nada-backend/pkg/service/core/transport"
 	"net/http"
 )
 
@@ -29,14 +30,14 @@ func (h *dataProductsHandler) CreateDataProduct(ctx context.Context, _ *http.Req
 	return dp, nil
 }
 
-func (h *dataProductsHandler) DeleteDataProduct(ctx context.Context, _ *http.Request, _ interface{}) (*Empty, error) {
+func (h *dataProductsHandler) DeleteDataProduct(ctx context.Context, _ *http.Request, _ interface{}) (*transport.Empty, error) {
 	_, err := h.service.DeleteDataproduct(ctx, chi.URLParamFromCtx(ctx, "id"))
 	if err != nil {
 		return nil, err
 	}
 
 	// FIXME: it might be wrong to return empty, since the response is not empty
-	return &Empty{}, nil
+	return &transport.Empty{}, nil
 }
 
 func (h *dataProductsHandler) UpdateDataProduct(ctx context.Context, _ *http.Request, in service.UpdateDataproductDto) (*service.DataproductMinimal, error) {
@@ -85,13 +86,13 @@ func (h *dataProductsHandler) UpdateDataset(ctx context.Context, _ *http.Request
 	return dataset, nil
 }
 
-func (h *dataProductsHandler) DeleteDataset(ctx context.Context, _ *http.Request, _ interface{}) (*Empty, error) {
+func (h *dataProductsHandler) DeleteDataset(ctx context.Context, _ *http.Request, _ interface{}) (*transport.Empty, error) {
 	_, err := h.service.DeleteDataset(ctx, chi.URLParamFromCtx(ctx, "id"))
 	if err != nil {
 		return nil, err
 	}
 
-	return &Empty{}, nil
+	return &transport.Empty{}, nil
 }
 
 func (h *dataProductsHandler) GetAccessiblePseudoDatasetsForUser(ctx context.Context, _ *http.Request, _ interface{}) ([]*service.PseudoDataset, error) {

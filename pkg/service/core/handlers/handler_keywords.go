@@ -3,6 +3,7 @@ package handlers
 import (
 	"context"
 	"github.com/navikt/nada-backend/pkg/service"
+	"github.com/navikt/nada-backend/pkg/service/core/transport"
 	"net/http"
 )
 
@@ -14,13 +15,13 @@ func (h *keywordsHandler) GetKeywordsListSortedByPopularity(ctx context.Context,
 	return h.keywordsService.GetKeywordsListSortedByPopularity(ctx)
 }
 
-func (h *keywordsHandler) UpdateKeywords(ctx context.Context, _ *http.Request, input service.UpdateKeywordsDto) (*Empty, error) {
+func (h *keywordsHandler) UpdateKeywords(ctx context.Context, _ *http.Request, input service.UpdateKeywordsDto) (*transport.Empty, error) {
 	err := h.keywordsService.UpdateKeywords(ctx, input)
 	if err != nil {
 		return nil, err
 	}
 
-	return &Empty{}, nil
+	return &transport.Empty{}, nil
 }
 
 func NewKeywordsHandler(service service.KeywordsService) *keywordsHandler {
