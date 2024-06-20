@@ -61,7 +61,7 @@ func TestAccessStorage_ListAccessRequestsForOwner(t *testing.T) {
 			mockReturn:     nil,
 			mockReturnErr:  fmt.Errorf("error fetching access requests"),
 			expectedResult: nil,
-			expectedErr:    errs.E(errs.Database, errs.Op("postgres.ListAccessRequestsForOwner"), errs.Parameter("owner"), fmt.Errorf("error fetching access requests")),
+			expectedErr:    errs.E(errs.Database, errs.Op("accessStorage.ListAccessRequestsForOwner"), errs.Parameter("owner"), fmt.Errorf("error fetching access requests")),
 		},
 	}
 

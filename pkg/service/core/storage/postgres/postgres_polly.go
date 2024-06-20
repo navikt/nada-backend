@@ -18,7 +18,7 @@ type pollyStorage struct {
 }
 
 func (s *pollyStorage) CreatePollyDocumentation(ctx context.Context, pollyInput service.PollyInput) (service.Polly, error) {
-	const op errs.Op = "postgres.CreatePollyDocumentation"
+	const op errs.Op = "pollyStorage.CreatePollyDocumentation"
 
 	pollyDocumentation, err := s.db.Querier.CreatePollyDocumentation(ctx, gensql.CreatePollyDocumentationParams{
 		ExternalID: pollyInput.ExternalID,
@@ -40,7 +40,7 @@ func (s *pollyStorage) CreatePollyDocumentation(ctx context.Context, pollyInput 
 }
 
 func (s *pollyStorage) GetPollyDocumentation(ctx context.Context, id uuid.UUID) (*service.Polly, error) {
-	const op errs.Op = "postgres.GetPollyDocumentation"
+	const op errs.Op = "pollyStorage.GetPollyDocumentation"
 
 	// TODO: either remove this or do it on database level for performance reasons
 	pollyDoc, err := s.db.Querier.GetPollyDocumentation(ctx, id)

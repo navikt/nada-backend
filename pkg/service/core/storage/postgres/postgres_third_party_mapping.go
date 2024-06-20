@@ -13,7 +13,7 @@ type thirdPartyMappingStorage struct {
 }
 
 func (s *thirdPartyMappingStorage) MapDataset(ctx context.Context, datasetID string, services []string) error {
-	const op errs.Op = "postgres.MapDataset"
+	const op errs.Op = "thirdPartyMappingStorage.MapDataset"
 
 	err := s.db.Querier.MapDataset(ctx, gensql.MapDatasetParams{
 		DatasetID: uuid.MustParse(datasetID),

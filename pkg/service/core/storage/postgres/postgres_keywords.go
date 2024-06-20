@@ -15,7 +15,7 @@ type keywordsStorage struct {
 }
 
 func (s *keywordsStorage) GetKeywordsListSortedByPopularity(ctx context.Context) (*service.KeywordsList, error) {
-	const op errs.Op = "postgres.GetKeywordsListSortedByPopularity"
+	const op errs.Op = "keywordStorage.GetKeywordsListSortedByPopularity"
 
 	ks, err := s.db.Querier.GetKeywords(ctx)
 	if err != nil {
@@ -36,7 +36,7 @@ func (s *keywordsStorage) GetKeywordsListSortedByPopularity(ctx context.Context)
 }
 
 func (s *keywordsStorage) UpdateKeywords(ctx context.Context, input service.UpdateKeywordsDto) error {
-	const op errs.Op = "postgres.UpdateKeywords"
+	const op errs.Op = "keywordStorage.UpdateKeywords"
 
 	tx, err := s.db.GetDB().Begin()
 	if err != nil {

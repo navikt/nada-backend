@@ -15,7 +15,7 @@ type searchStorage struct {
 }
 
 func (s *searchStorage) Search(ctx context.Context, query *service.SearchOptions) ([]*service.SearchResultRaw, error) {
-	const op errs.Op = "postgres.Search"
+	const op errs.Op = "searchStorage.Search"
 
 	res, err := s.db.Querier.Search(ctx, gensql.SearchParams{
 		Query:   query.Text,

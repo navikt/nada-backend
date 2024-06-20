@@ -19,7 +19,7 @@ type storyStorage struct {
 }
 
 func (s *storyStorage) GetStoriesByTeamID(ctx context.Context, teamIDs []string) ([]*service.Story, error) {
-	const op errs.Op = "postgres.GetStoriesByTeamID"
+	const op errs.Op = "storyStorage.GetStoriesByTeamID"
 
 	sqlStories, err := s.db.Querier.GetStoriesByProductArea(ctx, teamIDs)
 	if err != nil {
@@ -35,7 +35,7 @@ func (s *storyStorage) GetStoriesByTeamID(ctx context.Context, teamIDs []string)
 }
 
 func (s *storyStorage) GetStoriesNumberByTeam(ctx context.Context, teamID string) (int64, error) {
-	const op errs.Op = "postgres.GetStoriesNumberByTeam"
+	const op errs.Op = "storyStorage.GetStoriesNumberByTeam"
 
 	n, err := s.db.Querier.GetStoriesNumberByTeam(ctx, ptrToNullString(&teamID))
 	if err != nil {
@@ -50,7 +50,7 @@ func (s *storyStorage) GetStoriesNumberByTeam(ctx context.Context, teamID string
 }
 
 func (s *storyStorage) UpdateStory(ctx context.Context, id uuid.UUID, input service.UpdateStoryDto) (*service.Story, error) {
-	const op errs.Op = "postgres.UpdateStory"
+	const op errs.Op = "storyStorage.UpdateStory"
 
 	dbStory, err := s.db.Querier.UpdateStory(ctx, gensql.UpdateStoryParams{
 		ID:               id,
@@ -78,7 +78,7 @@ func (s *storyStorage) UpdateStory(ctx context.Context, id uuid.UUID, input serv
 }
 
 func (s *storyStorage) DeleteStory(ctx context.Context, id uuid.UUID) error {
-	const op errs.Op = "postgres.DeleteStory"
+	const op errs.Op = "storyStorage.DeleteStory"
 
 	err := s.db.Querier.DeleteStory(ctx, id)
 	if err != nil {
@@ -89,7 +89,7 @@ func (s *storyStorage) DeleteStory(ctx context.Context, id uuid.UUID) error {
 }
 
 func (s *storyStorage) CreateStory(ctx context.Context, creator string, newStory *service.NewStory) (*service.Story, error) {
-	const op errs.Op = "postgres.CreateStory"
+	const op errs.Op = "storyStorage.CreateStory"
 
 	var storySQL gensql.Story
 	var err error
@@ -129,7 +129,7 @@ func (s *storyStorage) CreateStory(ctx context.Context, creator string, newStory
 }
 
 func (s *storyStorage) GetStory(ctx context.Context, id uuid.UUID) (*service.Story, error) {
-	const op errs.Op = "postgres.GetStory"
+	const op errs.Op = "storyStorage.GetStory"
 
 	stories, err := s.GetStoriesWithTeamkatalogenByIDs(ctx, []uuid.UUID{id})
 	if err != nil {
@@ -144,7 +144,7 @@ func (s *storyStorage) GetStory(ctx context.Context, id uuid.UUID) (*service.Sto
 }
 
 func (s *storyStorage) GetStoriesWithTeamkatalogenByIDs(ctx context.Context, ids []uuid.UUID) ([]service.Story, error) {
-	const op errs.Op = "postgres.GetStoriesWithTeamkatalogenByIDs"
+	const op errs.Op = "storyStorage.GetStoriesWithTeamkatalogenByIDs"
 
 	dbStories, err := s.db.Querier.GetStoriesWithTeamkatalogenByIDs(ctx, ids)
 	if err != nil {
@@ -160,7 +160,7 @@ func (s *storyStorage) GetStoriesWithTeamkatalogenByIDs(ctx context.Context, ids
 }
 
 func (s *storyStorage) GetStoriesWithTeamkatalogenByGroups(ctx context.Context, groups []string) ([]service.Story, error) {
-	const op errs.Op = "postgres.GetStoriesWithTeamkatalogenByGroups"
+	const op errs.Op = "storyStorage.GetStoriesWithTeamkatalogenByGroups"
 
 	dbStories, err := s.db.Querier.GetStoriesWithTeamkatalogenByGroups(ctx, groups)
 	if err != nil {

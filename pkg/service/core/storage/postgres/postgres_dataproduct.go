@@ -17,17 +17,17 @@ import (
 	"net/url"
 )
 
-var _ service.DataProductsStorage = &dataProductPostgres{}
+var _ service.DataProductsStorage = &dataProductStorage{}
 
-type dataProductPostgres struct {
+type dataProductStorage struct {
 	databasesBaseURL string
 	db               *database.Repo
 }
 
-func (p *dataProductPostgres) GetDataproductKeywords(ctx context.Context, dpid uuid.UUID) ([]string, error) {
-	const op errs.Op = "postgres.GetDataproductKeywords"
+func (s *dataProductStorage) GetDataproductKeywords(ctx context.Context, dpid uuid.UUID) ([]string, error) {
+	const op errs.Op = "dataProductStorage.GetDataproductKeywords"
 
-	keywords, err := p.db.Querier.GetDataproductKeywords(ctx, dpid)
+	keywords, err := s.db.Querier.GetDataproductKeywords(ctx, dpid)
 	if err != nil {
 		return nil, errs.E(errs.Database, op, err)
 	}
@@ -35,10 +35,10 @@ func (p *dataProductPostgres) GetDataproductKeywords(ctx context.Context, dpid u
 	return keywords, nil
 }
 
-func (p *dataProductPostgres) GetDataproductsByTeamID(ctx context.Context, teamIDs []string) ([]*service.Dataproduct, error) {
-	const op errs.Op = "postgres.GetDataproductsByTeamID"
+func (s *dataProductStorage) GetDataproductsByTeamID(ctx context.Context, teamIDs []string) ([]*service.Dataproduct, error) {
+	const op errs.Op = "dataProductStorage.GetDataproductsByTeamID"
 
-	sqlDP, err := p.db.Querier.GetDataproductsByProductArea(ctx, teamIDs)
+	sqlDP, err := s.db.Querier.GetDataproductsByProductArea(ctx, teamIDs)
 	if err != nil {
 		return nil, errs.E(errs.Database, op, err)
 	}
@@ -47,7 +47,7 @@ func (p *dataProductPostgres) GetDataproductsByTeamID(ctx context.Context, teamI
 	for idx, dp := range sqlDP {
 		dps[idx] = dataproductFromSQL(&dp)
 
-		keywords, err := p.GetDataproductKeywords(ctx, dps[idx].ID)
+		keywords, err := s.GetDataproductKeywords(ctx, dps[idx].ID)
 		if err != nil {
 			return nil, errs.E(op, err)
 		}
@@ -62,10 +62,10 @@ func (p *dataProductPostgres) GetDataproductsByTeamID(ctx context.Context, teamI
 	return dps, nil
 }
 
-func (p *dataProductPostgres) GetDataproductsNumberByTeam(ctx context.Context, teamID string) (int64, error) {
-	const op errs.Op = "postgres.GetDataproductsNumberByTeam"
+func (s *dataProductStorage) GetDataproductsNumberByTeam(ctx context.Context, teamID string) (int64, error) {
+	const op errs.Op = "dataProductStorage.GetDataproductsNumberByTeam"
 
-	n, err := p.db.Querier.GetDataproductsNumberByTeam(ctx, ptrToNullString(&teamID))
+	n, err := s.db.Querier.GetDataproductsNumberByTeam(ctx, ptrToNullString(&teamID))
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return 0, nil
@@ -77,10 +77,10 @@ func (p *dataProductPostgres) GetDataproductsNumberByTeam(ctx context.Context, t
 	return n, nil
 }
 
-func (p *dataProductPostgres) GetAccessibleDatasets(ctx context.Context, userGroups []string, requester string) (owned []*service.AccessibleDataset, granted []*service.AccessibleDataset, err error) {
-	const op errs.Op = "postgres.GetAccessibleDatasets"
+func (s *dataProductStorage) GetAccessibleDatasets(ctx context.Context, userGroups []string, requester string) (owned []*service.AccessibleDataset, granted []*service.AccessibleDataset, err error) {
+	const op errs.Op = "dataProductStorage.GetAccessibleDatasets"
 
-	datasetsSQL, err := p.db.Querier.GetAccessibleDatasets(ctx, gensql.GetAccessibleDatasetsParams{
+	datasetsSQL, err := s.db.Querier.GetAccessibleDatasets(ctx, gensql.GetAccessibleDatasetsParams{
 		Groups:    userGroups,
 		Requester: requester,
 	})
@@ -134,10 +134,10 @@ func nullStringToString(ns sql.NullString) string {
 	return ns.String
 }
 
-func (p *dataProductPostgres) GetDataproductsWithDatasetsAndAccessRequests(ctx context.Context, ids []uuid.UUID, groups []string) ([]service.DataproductWithDataset, []service.AccessRequestForGranter, error) {
-	const op errs.Op = "postgres.GetDataproductsWithDatasetsAndAccessRequests"
+func (s *dataProductStorage) GetDataproductsWithDatasetsAndAccessRequests(ctx context.Context, ids []uuid.UUID, groups []string) ([]service.DataproductWithDataset, []service.AccessRequestForGranter, error) {
+	const op errs.Op = "dataProductStorage.GetDataproductsWithDatasetsAndAccessRequests"
 
-	dpres, err := p.db.Querier.GetDataproductsWithDatasetsAndAccessRequests(ctx, gensql.GetDataproductsWithDatasetsAndAccessRequestsParams{
+	dpres, err := s.db.Querier.GetDataproductsWithDatasetsAndAccessRequests(ctx, gensql.GetDataproductsWithDatasetsAndAccessRequestsParams{
 		Ids:    ids,
 		Groups: groups,
 	})
@@ -154,7 +154,7 @@ func (p *dataProductPostgres) GetDataproductsWithDatasetsAndAccessRequests(ctx c
 }
 
 func dataproductsWithDatasetAndAccessRequestsForGranterFromSQL(dprrows []gensql.GetDataproductsWithDatasetsAndAccessRequestsRow) ([]service.DataproductWithDataset, []service.AccessRequestForGranter, error) {
-	const op errs.Op = "postgres.dataproductsWithDatasetAndAccessRequestsForGranterFromSQL"
+	const op errs.Op = "dataProductStorage.dataproductsWithDatasetAndAccessRequestsForGranterFromSQL"
 
 	if dprrows == nil {
 		return nil, nil, nil
@@ -229,10 +229,10 @@ func dataproductsWithDatasetAndAccessRequestsForGranterFromSQL(dprrows []gensql.
 	return dp, arfg, nil
 }
 
-func (p *dataProductPostgres) GetAccessiblePseudoDatasourcesByUser(ctx context.Context, subjectsAsOwner []string, subjectsAsAccesser []string) ([]*service.PseudoDataset, error) {
-	const op errs.Op = "postgres.GetAccessiblePseudoDatasourcesByUser"
+func (s *dataProductStorage) GetAccessiblePseudoDatasourcesByUser(ctx context.Context, subjectsAsOwner []string, subjectsAsAccesser []string) ([]*service.PseudoDataset, error) {
+	const op errs.Op = "dataProductStorage.GetAccessiblePseudoDatasourcesByUser"
 
-	rows, err := p.db.Querier.GetAccessiblePseudoDatasetsByUser(ctx, gensql.GetAccessiblePseudoDatasetsByUserParams{
+	rows, err := s.db.Querier.GetAccessiblePseudoDatasetsByUser(ctx, gensql.GetAccessiblePseudoDatasetsByUserParams{
 		OwnerSubjects:  subjectsAsOwner,
 		AccessSubjects: subjectsAsAccesser,
 	})
@@ -265,10 +265,10 @@ func (p *dataProductPostgres) GetAccessiblePseudoDatasourcesByUser(ctx context.C
 	return pseudoDatasets, nil
 }
 
-func (p *dataProductPostgres) GetDatasetsMinimal(ctx context.Context) ([]*service.DatasetMinimal, error) {
-	const op errs.Op = "postgres.GetDatasetsMinimal"
+func (s *dataProductStorage) GetDatasetsMinimal(ctx context.Context) ([]*service.DatasetMinimal, error) {
+	const op errs.Op = "dataProductStorage.GetDatasetsMinimal"
 
-	sqldss, err := p.db.Querier.GetAllDatasetsMinimal(ctx)
+	sqldss, err := s.db.Querier.GetAllDatasetsMinimal(ctx)
 	if err != nil {
 		return nil, errs.E(errs.Database, op, err)
 	}
@@ -288,14 +288,14 @@ func (p *dataProductPostgres) GetDatasetsMinimal(ctx context.Context) ([]*servic
 	return dss, nil
 }
 
-func (p *dataProductPostgres) UpdateDataset(ctx context.Context, id string, input service.UpdateDatasetDto) (string, error) {
-	const op errs.Op = "postgres.UpdateDataset"
+func (s *dataProductStorage) UpdateDataset(ctx context.Context, id string, input service.UpdateDatasetDto) (string, error) {
+	const op errs.Op = "dataProductStorage.UpdateDataset"
 
 	if input.Keywords == nil {
 		input.Keywords = []string{}
 	}
 
-	res, err := p.db.Querier.UpdateDataset(ctx, gensql.UpdateDatasetParams{
+	res, err := s.db.Querier.UpdateDataset(ctx, gensql.UpdateDatasetParams{
 		Name:                     input.Name,
 		Description:              ptrToNullString(input.Description),
 		ID:                       uuid.MustParse(id),
@@ -317,7 +317,7 @@ func (p *dataProductPostgres) UpdateDataset(ctx context.Context, id string, inpu
 
 	// TODO: tags table should be removed
 	for _, keyword := range input.Keywords {
-		err = p.db.Querier.CreateTagIfNotExist(ctx, keyword)
+		err = s.db.Querier.CreateTagIfNotExist(ctx, keyword)
 		if err != nil {
 			return "", errs.E(errs.Database, op, err)
 		}
@@ -330,10 +330,10 @@ func (p *dataProductPostgres) UpdateDataset(ctx context.Context, id string, inpu
 	return res.ID.String(), nil
 }
 
-func (p *dataProductPostgres) CreateDataset(ctx context.Context, ds service.NewDataset, referenceDatasource *service.NewBigQuery, user *auth.User) (*string, error) {
-	const op errs.Op = "postgres.CreateDataset"
+func (s *dataProductStorage) CreateDataset(ctx context.Context, ds service.NewDataset, referenceDatasource *service.NewBigQuery, user *auth.User) (*string, error) {
+	const op errs.Op = "dataProductStorage.CreateDataset"
 
-	tx, err := p.db.GetDB().Begin()
+	tx, err := s.db.GetDB().Begin()
 	if err != nil {
 		return nil, errs.E(errs.Database, op, err)
 	}
@@ -343,7 +343,7 @@ func (p *dataProductPostgres) CreateDataset(ctx context.Context, ds service.NewD
 		ds.Keywords = []string{}
 	}
 
-	querier := p.db.Querier.WithTx(tx)
+	querier := s.db.Querier.WithTx(tx)
 
 	created, err := querier.CreateDataset(ctx, gensql.CreateDatasetParams{
 		Name:                     ds.Name,
@@ -458,10 +458,10 @@ func (p *dataProductPostgres) CreateDataset(ctx context.Context, ds service.NewD
 	return &created.Slug, nil
 }
 
-func (p *dataProductPostgres) DeleteDataproduct(ctx context.Context, id string) error {
-	const op errs.Op = "postgres.DeleteDataproduct"
+func (s *dataProductStorage) DeleteDataproduct(ctx context.Context, id string) error {
+	const op errs.Op = "dataProductStorage.DeleteDataproduct"
 
-	err := p.db.Querier.DeleteDataproduct(ctx, uuid.MustParse(id))
+	err := s.db.Querier.DeleteDataproduct(ctx, uuid.MustParse(id))
 	if err != nil {
 		return errs.E(errs.Database, op, err)
 	}
@@ -469,10 +469,10 @@ func (p *dataProductPostgres) DeleteDataproduct(ctx context.Context, id string) 
 	return nil
 }
 
-func (p *dataProductPostgres) UpdateDataproduct(ctx context.Context, id string, input service.UpdateDataproductDto) (*service.DataproductMinimal, error) {
-	const op errs.Op = "postgres.UpdateDataproduct"
+func (s *dataProductStorage) UpdateDataproduct(ctx context.Context, id string, input service.UpdateDataproductDto) (*service.DataproductMinimal, error) {
+	const op errs.Op = "dataProductStorage.UpdateDataproduct"
 
-	res, err := p.db.Querier.UpdateDataproduct(ctx, gensql.UpdateDataproductParams{
+	res, err := s.db.Querier.UpdateDataproduct(ctx, gensql.UpdateDataproductParams{
 		Name:                  input.Name,
 		Description:           ptrToNullString(input.Description),
 		ID:                    uuid.MustParse(id),
@@ -492,10 +492,10 @@ func (p *dataProductPostgres) UpdateDataproduct(ctx context.Context, id string, 
 	return dataproductMinimalFromSQL(&res), nil
 }
 
-func (p *dataProductPostgres) CreateDataproduct(ctx context.Context, input service.NewDataproduct) (*service.DataproductMinimal, error) {
-	const op errs.Op = "postgres.CreateDataproduct"
+func (s *dataProductStorage) CreateDataproduct(ctx context.Context, input service.NewDataproduct) (*service.DataproductMinimal, error) {
+	const op errs.Op = "dataProductStorage.CreateDataproduct"
 
-	dataproduct, err := p.db.Querier.CreateDataproduct(ctx, gensql.CreateDataproductParams{
+	dataproduct, err := s.db.Querier.CreateDataproduct(ctx, gensql.CreateDataproductParams{
 		Name:                  input.Name,
 		Description:           ptrToNullString(input.Description),
 		OwnerGroup:            input.Group,
@@ -515,10 +515,10 @@ func (p *dataProductPostgres) CreateDataproduct(ctx context.Context, input servi
 	return dataproductMinimalFromSQL(&dataproduct), nil
 }
 
-func (p *dataProductPostgres) SetDatasourceDeleted(ctx context.Context, id uuid.UUID) error {
-	const op errs.Op = "postgres.SetDatasourceDeleted"
+func (s *dataProductStorage) SetDatasourceDeleted(ctx context.Context, id uuid.UUID) error {
+	const op errs.Op = "dataProductStorage.SetDatasourceDeleted"
 
-	err := p.db.Querier.SetDatasourceDeleted(ctx, id)
+	err := s.db.Querier.SetDatasourceDeleted(ctx, id)
 	if err != nil {
 		return errs.E(errs.Database, op, err)
 	}
@@ -526,10 +526,10 @@ func (p *dataProductPostgres) SetDatasourceDeleted(ctx context.Context, id uuid.
 	return nil
 }
 
-func (p *dataProductPostgres) GetOwnerGroupOfDataset(ctx context.Context, datasetID uuid.UUID) (string, error) {
-	const op errs.Op = "postgres.GetOwnerGroupOfDataset"
+func (s *dataProductStorage) GetOwnerGroupOfDataset(ctx context.Context, datasetID uuid.UUID) (string, error) {
+	const op errs.Op = "dataProductStorage.GetOwnerGroupOfDataset"
 
-	owner, err := p.db.Querier.GetOwnerGroupOfDataset(ctx, datasetID)
+	owner, err := s.db.Querier.GetOwnerGroupOfDataset(ctx, datasetID)
 	if err != nil {
 		return "", errs.E(errs.Database, op, err)
 	}
@@ -537,10 +537,10 @@ func (p *dataProductPostgres) GetOwnerGroupOfDataset(ctx context.Context, datase
 	return owner, nil
 }
 
-func (p *dataProductPostgres) DeleteDataset(ctx context.Context, id uuid.UUID) error {
-	const op errs.Op = "postgres.DeleteDataset"
+func (s *dataProductStorage) DeleteDataset(ctx context.Context, id uuid.UUID) error {
+	const op errs.Op = "dataProductStorage.DeleteDataset"
 
-	err := p.db.Querier.DeleteDataset(ctx, id)
+	err := s.db.Querier.DeleteDataset(ctx, id)
 	if err != nil {
 		return errs.E(errs.Database, op, err)
 	}
@@ -548,8 +548,8 @@ func (p *dataProductPostgres) DeleteDataset(ctx context.Context, id uuid.UUID) e
 	return nil
 }
 
-func (p *dataProductPostgres) GetDataset(ctx context.Context, id string) (*service.Dataset, error) {
-	const op errs.Op = "postgres.GetDataset"
+func (s *dataProductStorage) GetDataset(ctx context.Context, id string) (*service.Dataset, error) {
+	const op errs.Op = "dataProductStorage.GetDataset"
 
 	// FIXME: move up the chain
 	uuid, err := uuid.Parse(id)
@@ -557,12 +557,12 @@ func (p *dataProductPostgres) GetDataset(ctx context.Context, id string) (*servi
 		return nil, errs.E(errs.InvalidRequest, op, err, errs.Parameter("id"))
 	}
 
-	rawDataset, err := p.db.Querier.GetDatasetComplete(ctx, uuid)
+	rawDataset, err := s.db.Querier.GetDatasetComplete(ctx, uuid)
 	if err != nil {
 		return nil, errs.E(errs.Database, op, err)
 	}
 
-	ds, err := p.datasetFromSQL(rawDataset)
+	ds, err := s.datasetFromSQL(rawDataset)
 	if err != nil {
 		return nil, errs.E(errs.Internal, op, err)
 	}
@@ -570,8 +570,8 @@ func (p *dataProductPostgres) GetDataset(ctx context.Context, id string) (*servi
 	return ds, nil
 }
 
-func (p *dataProductPostgres) datasetFromSQL(dsrows []gensql.DatasetView) (*service.Dataset, error) {
-	const op errs.Op = "postgres.datasetFromSQL"
+func (s *dataProductStorage) datasetFromSQL(dsrows []gensql.DatasetView) (*service.Dataset, error) {
+	const op errs.Op = "dataProductStorage.datasetFromSQL"
 
 	var dataset *service.Dataset
 
@@ -664,7 +664,7 @@ func (p *dataProductPostgres) datasetFromSQL(dsrows []gensql.DatasetView) (*serv
 		}
 
 		if dataset.MetabaseUrl == nil && dsrow.MbDatabaseID.Valid {
-			metabaseURL := fmt.Sprintf("%s/%v", p.databasesBaseURL, dsrow.MbDatabaseID.Int32)
+			metabaseURL := fmt.Sprintf("%s/%v", s.databasesBaseURL, dsrow.MbDatabaseID.Int32)
 			dataset.MetabaseUrl = &metabaseURL
 		}
 	}
@@ -672,10 +672,10 @@ func (p *dataProductPostgres) datasetFromSQL(dsrows []gensql.DatasetView) (*serv
 	return dataset, nil
 }
 
-func (p *dataProductPostgres) GetDataproducts(ctx context.Context, ids []uuid.UUID) ([]service.DataproductWithDataset, error) {
-	const op errs.Op = "postgres.GetDataproducts"
+func (s *dataProductStorage) GetDataproducts(ctx context.Context, ids []uuid.UUID) ([]service.DataproductWithDataset, error) {
+	const op errs.Op = "dataProductStorage.GetDataproducts"
 
-	dp, err := p.db.Querier.GetDataproductsWithDatasets(ctx, gensql.GetDataproductsWithDatasetsParams{
+	dp, err := s.db.Querier.GetDataproductsWithDatasets(ctx, gensql.GetDataproductsWithDatasetsParams{
 		Ids:    ids,
 		Groups: []string{},
 	})
@@ -691,8 +691,8 @@ func (p *dataProductPostgres) GetDataproducts(ctx context.Context, ids []uuid.UU
 	return products, nil
 }
 
-func (p *dataProductPostgres) GetDataproduct(ctx context.Context, id string) (*service.DataproductWithDataset, error) {
-	const op errs.Op = "postgres.GetDataproduct"
+func (s *dataProductStorage) GetDataproduct(ctx context.Context, id string) (*service.DataproductWithDataset, error) {
+	const op errs.Op = "dataProductStorage.GetDataproduct"
 
 	// FIXME: move this up the chain
 	dpuuid, err := uuid.Parse(id)
@@ -700,7 +700,7 @@ func (p *dataProductPostgres) GetDataproduct(ctx context.Context, id string) (*s
 		return nil, errs.E(errs.InvalidRequest, op, err, errs.Parameter("id"))
 	}
 
-	dps, err := p.GetDataproducts(ctx, []uuid.UUID{dpuuid})
+	dps, err := s.GetDataproducts(ctx, []uuid.UUID{dpuuid})
 	if err != nil {
 		return nil, errs.E(errs.Database, op, err)
 	}
@@ -711,7 +711,17 @@ func (p *dataProductPostgres) GetDataproduct(ctx context.Context, id string) (*s
 
 	// it is safe to directly use the first element without checking the length
 	// because if the length was 0, the sql query in GetDataproducts should have returned no row
-	return &dps[0], nil
+	dataProduct := dps[0]
+
+	if dataProduct.Keywords == nil {
+		dataProduct.Keywords = make([]string, 0)
+	}
+
+	if dataProduct.Datasets == nil {
+		dataProduct.Datasets = make([]*service.DatasetInDataproduct, 0)
+	}
+
+	return &dataProduct, nil
 }
 
 func dataproductsWithDatasetFromSQL(dprows []gensql.GetDataproductsWithDatasetsRow) []service.DataproductWithDataset {
@@ -875,8 +885,8 @@ func nullUUIDToUUIDPtr(nu uuid.NullUUID) *uuid.UUID {
 	return &nu.UUID
 }
 
-func NewDataProductStorage(databasesBaseURL string, db *database.Repo) *dataProductPostgres {
-	return &dataProductPostgres{
+func NewDataProductStorage(databasesBaseURL string, db *database.Repo) *dataProductStorage {
+	return &dataProductStorage{
 		db:               db,
 		databasesBaseURL: databasesBaseURL,
 	}

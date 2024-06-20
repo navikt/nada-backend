@@ -42,7 +42,7 @@ type accessStorage struct {
 }
 
 func (s *accessStorage) ListAccessRequestsForOwner(ctx context.Context, owner []string) ([]*service.AccessRequest, error) {
-	const op errs.Op = "postgres.ListAccessRequestsForOwner"
+	const op errs.Op = "accessStorage.ListAccessRequestsForOwner"
 
 	accessRequest, err := s.queries.ListAccessRequestsForOwner(ctx, owner)
 	if err != nil {
@@ -58,7 +58,7 @@ func (s *accessStorage) ListAccessRequestsForOwner(ctx context.Context, owner []
 }
 
 func (s *accessStorage) GetUnrevokedExpiredAccess(ctx context.Context) ([]*service.Access, error) {
-	const op errs.Op = "postgres.GetUnrevokedExpiredAccess"
+	const op errs.Op = "accessStorage.GetUnrevokedExpiredAccess"
 
 	expired, err := s.queries.ListUnrevokedExpiredAccessEntries(ctx)
 	if err != nil {
@@ -74,7 +74,7 @@ func (s *accessStorage) GetUnrevokedExpiredAccess(ctx context.Context) ([]*servi
 }
 
 func (s *accessStorage) ListActiveAccessToDataset(ctx context.Context, datasetID uuid.UUID) ([]*service.Access, error) {
-	const op errs.Op = "postgres.ListActiveAccessToDataset"
+	const op errs.Op = "accessStorage.ListActiveAccessToDataset"
 
 	access, err := s.queries.ListActiveAccessToDataset(ctx, datasetID)
 	if err != nil {
@@ -90,7 +90,7 @@ func (s *accessStorage) ListActiveAccessToDataset(ctx context.Context, datasetID
 }
 
 func (s *accessStorage) ListAccessRequestsForDataset(ctx context.Context, datasetID uuid.UUID) ([]*service.AccessRequest, error) {
-	const op errs.Op = "postgres.ListAccessRequestsForDataset"
+	const op errs.Op = "accessStorage.ListAccessRequestsForDataset"
 
 	accessRequestsSQL, err := s.queries.ListAccessRequestsForDataset(ctx, datasetID)
 	if err != nil {
@@ -106,7 +106,7 @@ func (s *accessStorage) ListAccessRequestsForDataset(ctx context.Context, datase
 }
 
 func (s *accessStorage) CreateAccessRequestForDataset(ctx context.Context, datasetID uuid.UUID, pollyDocumentationID uuid.NullUUID, subject, owner string, expires *time.Time) (*service.AccessRequest, error) {
-	const op errs.Op = "postgres.CreateAccessRequestForDataset"
+	const op errs.Op = "accessStorage.CreateAccessRequestForDataset"
 
 	requestSQL, err := s.queries.CreateAccessRequestForDataset(ctx, gensql.CreateAccessRequestForDatasetParams{
 		DatasetID:            datasetID,
@@ -132,7 +132,7 @@ func (s *accessStorage) CreateAccessRequestForDataset(ctx context.Context, datas
 }
 
 func (s *accessStorage) GetAccessRequest(ctx context.Context, accessRequestID string) (*service.AccessRequest, error) {
-	const op errs.Op = "postgres.GetAccessRequest"
+	const op errs.Op = "accessStorage.GetAccessRequest"
 
 	id, err := uuid.Parse(accessRequestID)
 	if err != nil {
@@ -157,7 +157,7 @@ func (s *accessStorage) GetAccessRequest(ctx context.Context, accessRequestID st
 }
 
 func (s *accessStorage) DeleteAccessRequest(ctx context.Context, accessRequestID string) error {
-	const op errs.Op = "postgres.DeleteAccessRequest"
+	const op errs.Op = "accessStorage.DeleteAccessRequest"
 
 	id, err := uuid.Parse(accessRequestID)
 	if err != nil {
@@ -177,7 +177,7 @@ func (s *accessStorage) DeleteAccessRequest(ctx context.Context, accessRequestID
 }
 
 func (s *accessStorage) UpdateAccessRequest(ctx context.Context, input service.UpdateAccessRequestDTO) error {
-	const op errs.Op = "postgres.UpdateAccessRequest"
+	const op errs.Op = "accessStorage.UpdateAccessRequest"
 
 	var pollyID uuid.NullUUID
 
@@ -203,7 +203,7 @@ func (s *accessStorage) UpdateAccessRequest(ctx context.Context, input service.U
 }
 
 func (s *accessStorage) GrantAccessToDatasetAndApproveRequest(ctx context.Context, datasetID, subject, accessRequestID string, expires *time.Time) error {
-	const op errs.Op = "postgres.GrantAccessToDatasetAndApproveRequest"
+	const op errs.Op = "accessStorage.GrantAccessToDatasetAndApproveRequest"
 
 	q, tx, err := s.withTxFn()
 	if err != nil {
@@ -249,17 +249,13 @@ func (s *accessStorage) GrantAccessToDatasetAndApproveRequest(ctx context.Contex
 }
 
 func (s *accessStorage) GrantAccessToDatasetAndRenew(ctx context.Context, datasetID uuid.UUID, expires *time.Time, subject, granter string) (err error) {
-	const op errs.Op = "postgres.GrantAccessToDatasetAndRenew"
+	const op errs.Op = "accessStorage.GrantAccessToDatasetAndRenew"
 
 	a, err := s.queries.GetActiveAccessToDatasetForSubject(ctx, gensql.GetActiveAccessToDatasetForSubjectParams{
 		DatasetID: datasetID,
 		Subject:   subject,
 	})
-	if err != nil {
-		if errors.Is(err, sql.ErrNoRows) {
-			return errs.E(errs.NotExist, op, err)
-		}
-
+	if err != nil && !errors.Is(err, sql.ErrNoRows) {
 		return errs.E(errs.Database, op, err)
 	}
 
@@ -294,7 +290,7 @@ func (s *accessStorage) GrantAccessToDatasetAndRenew(ctx context.Context, datase
 }
 
 func (s *accessStorage) DenyAccessRequest(ctx context.Context, accessRequestID string, reason *string) error {
-	const op errs.Op = "postgres.DenyAccessRequest"
+	const op errs.Op = "accessStorage.DenyAccessRequest"
 
 	// FIXME: move up the invocation chain
 	user := auth.GetUser(ctx)
@@ -312,7 +308,7 @@ func (s *accessStorage) DenyAccessRequest(ctx context.Context, accessRequestID s
 }
 
 func (s *accessStorage) GetAccessToDataset(ctx context.Context, id uuid.UUID) (*service.Access, error) {
-	const op errs.Op = "postgres.GetAccessToDataset"
+	const op errs.Op = "accessStorage.GetAccessToDataset"
 
 	access, err := s.queries.GetAccessToDataset(ctx, id)
 	if err != nil {
@@ -336,7 +332,7 @@ func (s *accessStorage) GetAccessToDataset(ctx context.Context, id uuid.UUID) (*
 }
 
 func (s *accessStorage) RevokeAccessToDataset(ctx context.Context, id uuid.UUID) error {
-	const op errs.Op = "postgres.RevokeAccessToDataset"
+	const op errs.Op = "accessStorage.RevokeAccessToDataset"
 
 	err := s.queries.RevokeAccessToDataset(ctx, id)
 	if err != nil {
@@ -384,7 +380,7 @@ func accessFromSQL(access gensql.DatasetAccess) *service.Access {
 }
 
 func accessRequestsFromSQL(accessRequestSQLs []gensql.DatasetAccessRequest) ([]*service.AccessRequest, error) {
-	const op errs.Op = "postgres.accessRequestsFromSQL"
+	const op errs.Op = "accessStorage.accessRequestsFromSQL"
 
 	var accessRequests []*service.AccessRequest
 
@@ -401,7 +397,7 @@ func accessRequestsFromSQL(accessRequestSQLs []gensql.DatasetAccessRequest) ([]*
 }
 
 func accessRequestFromSQL(dataproductAccessRequest gensql.DatasetAccessRequest) (*service.AccessRequest, error) {
-	const op errs.Op = "postgres.accessRequestFromSQL"
+	const op errs.Op = "accessStorage.accessRequestFromSQL"
 
 	splits := strings.Split(dataproductAccessRequest.Subject, ":")
 	if len(splits) != 2 {
@@ -441,7 +437,7 @@ func accessRequestFromSQL(dataproductAccessRequest gensql.DatasetAccessRequest) 
 }
 
 func accessRequestStatusFromDB(status gensql.AccessRequestStatusType) (service.AccessRequestStatus, error) {
-	const op errs.Op = "postgres.accessRequestStatusFromDB"
+	const op errs.Op = "accessStorage.accessRequestStatusFromDB"
 
 	switch status {
 	case gensql.AccessRequestStatusTypePending:

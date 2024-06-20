@@ -16,7 +16,7 @@ type tokenStorage struct {
 }
 
 func (s *tokenStorage) GetNadaToken(ctx context.Context, team string) (string, error) {
-	const op errs.Op = "postgres.GetNadaToken"
+	const op errs.Op = "tokenStorage.GetNadaToken"
 
 	token, err := s.db.Querier.GetNadaToken(ctx, team)
 	if err != nil {
@@ -31,7 +31,7 @@ func (s *tokenStorage) GetNadaToken(ctx context.Context, team string) (string, e
 }
 
 func (s *tokenStorage) RotateNadaToken(ctx context.Context, team string) error {
-	const op errs.Op = "postgres.RotateNadaToken"
+	const op errs.Op = "tokenStorage.RotateNadaToken"
 
 	err := s.db.Querier.RotateNadaToken(ctx, team)
 	if err != nil {
@@ -42,7 +42,7 @@ func (s *tokenStorage) RotateNadaToken(ctx context.Context, team string) error {
 }
 
 func (s *tokenStorage) GetNadaTokensForTeams(ctx context.Context, teams []string) ([]service.NadaToken, error) {
-	const op errs.Op = "postgres.GetNadaTokensForTeams"
+	const op errs.Op = "tokenStorage.GetNadaTokensForTeams"
 
 	rawTokens, err := s.db.Querier.GetNadaTokensForTeams(ctx, teams)
 	if err != nil {
@@ -61,7 +61,7 @@ func (s *tokenStorage) GetNadaTokensForTeams(ctx context.Context, teams []string
 }
 
 func (s *tokenStorage) GetNadaTokens(ctx context.Context) (map[string]string, error) {
-	const op errs.Op = "postgres.GetNadaTokens"
+	const op errs.Op = "tokenStorage.GetNadaTokens"
 
 	rawTokens, err := s.db.Querier.GetNadaTokens(ctx)
 	if err != nil {

@@ -18,7 +18,7 @@ type insightProductStorage struct {
 }
 
 func (s *insightProductStorage) DeleteInsightProduct(ctx context.Context, id uuid.UUID) error {
-	const op errs.Op = "postgres.DeleteInsightProduct"
+	const op errs.Op = "insightProductStorage.DeleteInsightProduct"
 
 	err := s.db.Querier.DeleteInsightProduct(ctx, id)
 	if err != nil {
@@ -29,7 +29,7 @@ func (s *insightProductStorage) DeleteInsightProduct(ctx context.Context, id uui
 }
 
 func (s *insightProductStorage) CreateInsightProduct(ctx context.Context, creator string, input service.NewInsightProduct) (*service.InsightProduct, error) {
-	const op errs.Op = "postgres.CreateInsightProduct"
+	const op errs.Op = "insightProductStorage.CreateInsightProduct"
 
 	insightProductSQL, err := s.db.Querier.CreateInsightProduct(ctx, gensql.CreateInsightProductParams{
 		Name:             input.Name,
@@ -54,7 +54,7 @@ func (s *insightProductStorage) CreateInsightProduct(ctx context.Context, creato
 }
 
 func (s *insightProductStorage) UpdateInsightProduct(ctx context.Context, id uuid.UUID, input service.UpdateInsightProductDto) (*service.InsightProduct, error) {
-	const op errs.Op = "postgres.UpdateInsightProduct"
+	const op errs.Op = "insightProductStorage.UpdateInsightProduct"
 
 	dbProduct, err := s.db.Querier.UpdateInsightProduct(ctx, gensql.UpdateInsightProductParams{
 		ID:               id,
@@ -83,7 +83,7 @@ func (s *insightProductStorage) UpdateInsightProduct(ctx context.Context, id uui
 }
 
 func (s *insightProductStorage) GetInsightProductWithTeamkatalogen(ctx context.Context, id uuid.UUID) (*service.InsightProduct, error) {
-	const op errs.Op = "postgres.GetInsightProductWithTeamkatalogen"
+	const op errs.Op = "insightProductStorage.GetInsightProductWithTeamkatalogen"
 
 	raw, err := s.db.Querier.GetInsightProductWithTeamkatalogen(ctx, id)
 	if err != nil {
@@ -98,7 +98,7 @@ func (s *insightProductStorage) GetInsightProductWithTeamkatalogen(ctx context.C
 }
 
 func (s *insightProductStorage) GetInsightProductsByGroups(ctx context.Context, groups []string) ([]*service.InsightProduct, error) {
-	const op errs.Op = "postgres.GetInsightProductsByGroups"
+	const op errs.Op = "insightProductStorage.GetInsightProductsByGroups"
 
 	raw, err := s.db.Querier.GetInsightProductsByGroups(ctx, groups)
 	if err != nil {
@@ -118,7 +118,7 @@ func (s *insightProductStorage) GetInsightProductsByGroups(ctx context.Context, 
 }
 
 func (s *insightProductStorage) GetInsightProductsByTeamID(ctx context.Context, teamIDs []string) ([]*service.InsightProduct, error) {
-	const op errs.Op = "postgres.GetInsightProductsByTeamID"
+	const op errs.Op = "insightProductStorage.GetInsightProductsByTeamID"
 
 	raw, err := s.db.Querier.GetInsightProductsByProductArea(ctx, teamIDs)
 	if err != nil {
@@ -138,7 +138,7 @@ func (s *insightProductStorage) GetInsightProductsByTeamID(ctx context.Context, 
 }
 
 func (s *insightProductStorage) GetInsightProductsNumberByTeam(ctx context.Context, teamID string) (int64, error) {
-	const op errs.Op = "postgres.GetInsightProductsNumberByTeam"
+	const op errs.Op = "insightProductStorage.GetInsightProductsNumberByTeam"
 
 	n, err := s.db.Querier.GetInsightProductsNumberByTeam(ctx, ptrToNullString(&teamID))
 	if err != nil {

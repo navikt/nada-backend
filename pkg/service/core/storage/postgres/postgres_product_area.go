@@ -18,7 +18,7 @@ type productAreaStorage struct {
 }
 
 func (s *productAreaStorage) UpsertProductAreaAndTeam(ctx context.Context, pas []*service.UpsertProductAreaRequest, teams []*service.UpsertTeamRequest) error {
-	const op errs.Op = "postgres.UpsertProductAreaAndTeam"
+	const op errs.Op = "productAreaStorage.UpsertProductAreaAndTeam"
 
 	tx, err := s.db.GetDB().Begin()
 	if err != nil {
@@ -71,7 +71,7 @@ func (s *productAreaStorage) UpsertProductAreaAndTeam(ctx context.Context, pas [
 }
 
 func (s *productAreaStorage) GetDashboard(ctx context.Context, id string) (*service.Dashboard, error) {
-	const op errs.Op = "postgres.GetDashboard"
+	const op errs.Op = "productAreaStorage.GetDashboard"
 
 	dashboard, err := s.db.Querier.GetDashboard(ctx, id)
 	if err != nil && !errors.Is(err, sql.ErrNoRows) {
@@ -85,7 +85,7 @@ func (s *productAreaStorage) GetDashboard(ctx context.Context, id string) (*serv
 }
 
 func (s *productAreaStorage) GetProductArea(ctx context.Context, paID string) (*service.ProductArea, error) {
-	const op errs.Op = "postgres.GetProductArea"
+	const op errs.Op = "productAreaStorage.GetProductArea"
 
 	pa, err := s.db.Querier.GetProductArea(ctx, uuid.MustParse(paID))
 	if err != nil {
@@ -131,7 +131,7 @@ func (s *productAreaStorage) GetProductArea(ctx context.Context, paID string) (*
 }
 
 func (s *productAreaStorage) GetProductAreas(ctx context.Context) ([]*service.ProductArea, error) {
-	const op errs.Op = "postgres.GetProductAreas"
+	const op errs.Op = "productAreaStorage.GetProductAreas"
 
 	pas, err := s.db.Querier.GetProductAreas(ctx)
 	if err != nil {
