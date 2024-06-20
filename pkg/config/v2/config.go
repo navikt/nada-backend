@@ -32,18 +32,20 @@ type Loader interface {
 }
 
 type Config struct {
-	Oauth              Oauth              `yaml:"oauth"`
-	Metabase           Metabase           `yaml:"metabase"`
-	Slack              Slack              `yaml:"slack"`
-	Server             Server             `yaml:"server"`
-	Postgres           Postgres           `yaml:"postgres"`
-	TeamsCatalogue     TeamsCatalogue     `yaml:"teams_catalogue"`
-	TreatmentCatalogue TreatmentCatalogue `yaml:"treatment_catalogue"`
-	GoogleGroups       GoogleGroups       `yaml:"google_groups"`
-	GCP                GCP                `yaml:"gcp"`
-	Cookies            Cookies            `yaml:"cookies"`
-	NaisConsole        NaisConsole        `yaml:"nais_console"`
-	API                API                `yaml:"api"`
+	Oauth                     Oauth                     `yaml:"oauth"`
+	Metabase                  Metabase                  `yaml:"metabase"`
+	CrossTeamPseudonymization CrossTeamPseudonymization `yaml:"cross_team_pseudonymization"`
+	GCS                       GCS                       `yaml:"gcs"`
+	BigQuery                  BigQuery                  `yaml:"big_query"`
+	Slack                     Slack                     `yaml:"slack"`
+	Server                    Server                    `yaml:"server"`
+	Postgres                  Postgres                  `yaml:"postgres"`
+	TeamsCatalogue            TeamsCatalogue            `yaml:"teams_catalogue"`
+	TreatmentCatalogue        TreatmentCatalogue        `yaml:"treatment_catalogue"`
+	GoogleGroups              GoogleGroups              `yaml:"google_groups"`
+	Cookies                   Cookies                   `yaml:"cookies"`
+	NaisConsole               NaisConsole               `yaml:"nais_console"`
+	API                       API                       `yaml:"api"`
 
 	AllUsersGroup    string `yaml:"all_users_group"`
 	LoginPage        string `yaml:"login_page"`
@@ -64,7 +66,6 @@ func (c Config) Validate() error {
 		validation.Field(&c.TeamsCatalogue, validation.Required),
 		validation.Field(&c.TreatmentCatalogue, validation.Required),
 		validation.Field(&c.GoogleGroups, validation.Required),
-		validation.Field(&c.GCP, validation.Required),
 		validation.Field(&c.Cookies, validation.Required),
 		validation.Field(&c.NaisConsole, validation.Required),
 		validation.Field(&c.API, validation.Required),
@@ -72,6 +73,9 @@ func (c Config) Validate() error {
 		validation.Field(&c.AmplitudeAPIKey, validation.Required),
 		validation.Field(&c.LogLevel, validation.Required),
 		validation.Field(&c.AllUsersGroup, validation.Required),
+		validation.Field(&c.CrossTeamPseudonymization, validation.Required),
+		validation.Field(&c.GCS, validation.Required),
+		validation.Field(&c.BigQuery, validation.Required),
 	)
 }
 
@@ -144,9 +148,10 @@ func (s Slack) Validate() error {
 }
 
 type Metabase struct {
-	Username         string `yaml:"username"`
-	Password         string `yaml:"password"`
-	APIURL           string `yaml:"api_url"`
+	Username string `yaml:"username"`
+	Password string `yaml:"password"`
+	APIURL   string `yaml:"api_url"`
+	// GCPProject where metabase will create service accounts
 	GCPProject       string `yaml:"gcp_project"`
 	CredentialsPath  string `yaml:"credentials_path"`
 	DatabasesBaseURL string `yaml:"databases_base_url"`
@@ -264,43 +269,46 @@ func (o Oauth) Validate() error {
 	)
 }
 
-type GCP struct {
-	Project  string   `yaml:"project"`
-	Region   string   `yaml:"region"`
-	GCS      GCS      `yaml:"gcs"`
-	BigQuery BigQuery `yaml:"big_query"`
+// CrossTeamPseudonymization contains the configuration for pseudonymization in a cross-team context.
+type CrossTeamPseudonymization struct {
+	GCPProjectID string `yaml:"gcp_project_id"`
+	GCPRegion    string `yaml:"gcp_region"`
 }
 
-func (g GCP) Validate() error {
-	return validation.ValidateStruct(&g,
-		validation.Field(&g.Project, validation.Required),
-		// Valid regions and zones:
-		// - https://cloud.google.com/compute/docs/regions-zones
-		validation.Field(&g.Region, validation.Required, validation.In("europe-north1")),
-		validation.Field(&g.GCS, validation.Required),
-		validation.Field(&g.BigQuery, validation.Required),
+func (p *CrossTeamPseudonymization) Validate() error {
+	return validation.ValidateStruct(p,
+		validation.Field(&p.GCPProjectID, validation.Required),
+		validation.Field(&p.GCPRegion, validation.Required),
 	)
 }
 
 type GCS struct {
-	Endpoint        string `yaml:"endpoint"`
-	StoryBucketName string `yaml:"story_bucket_name"`
+	Endpoint          string `yaml:"endpoint"`
+	StoryBucketName   string `yaml:"story_bucket_name"`
+	CentralGCPProject string `yaml:"central_gcp_project"`
 }
 
 func (g GCS) Validate() error {
 	return validation.ValidateStruct(&g,
 		validation.Field(&g.StoryBucketName, validation.Required),
+		validation.Field(&g.CentralGCPProject, validation.Required),
 	)
 }
 
 type BigQuery struct {
-	Endpoint               string `yaml:"endpoint"`
-	PseudoViewsDatasetName string `yaml:"pseudo_views_dataset_name"`
+	Endpoint string `yaml:"endpoint"`
+	// TeamProjectPseudoViewsDatasetName is the name of the dataset in the team's
+	// own gcp project that contains the pseudo views.
+	TeamProjectPseudoViewsDatasetName string `yaml:"team_project_pseudo_views_dataset_name"`
+	GCPRegion                         string `yaml:"gcp_region"`
+	CentralGCPProject                 string `yaml:"central_gcp_project"`
 }
 
 func (b BigQuery) Validate() error {
 	return validation.ValidateStruct(&b,
-		validation.Field(&b.PseudoViewsDatasetName, validation.Required),
+		validation.Field(&b.TeamProjectPseudoViewsDatasetName, validation.Required),
+		validation.Field(&b.GCPRegion, validation.Required),
+		validation.Field(&b.CentralGCPProject, validation.Required),
 	)
 }
 

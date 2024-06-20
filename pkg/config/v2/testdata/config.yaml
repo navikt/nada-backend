@@ -7,7 +7,21 @@ metabase:
     username: fake_username
     password: fake_password
     api_url: http://localhost:3000/api
+    gcp_project: some-gcp-project
     credentials_path: /some/path
+    databases_base_url: http://localhost:3000
+cross_team_pseudonymization:
+    gcp_project_id: some-project
+    gcp_region: eu-north1
+gcs:
+    endpoint: http://localhost:9090
+    story_bucket_name: some-bucket
+    central_gcp_project: central-project
+big_query:
+    endpoint: http://localhost:7070
+    team_project_pseudo_views_dataset_name: some-dataset
+    gcp_region: eu-north1
+    central_gcp_project: central-project
 slack:
     token: fake_token
     webhook_url: http://localhost:8080/webhook
@@ -29,16 +43,10 @@ teams_catalogue:
     api_url: http://localhost:8080/api
 treatment_catalogue:
     api_url: http://localhost:8080/api
+    purpose_url: http://localhost:8080/api/purpose
 google_groups:
     impersonation_subject: something@example.com
     credentials_file: /some/secret/path
-gcp:
-    project: fake_project
-    region: europe-north1
-    gcs:
-        story_bucket_name: fake_bucket
-    big_query:
-        pseudo_views_dataset_name: fake_dataset
 cookies:
     redirect:
         name: redirect
@@ -69,6 +77,7 @@ nais_console:
     api_url: http://localhost:8080/api
 api:
     auth_token: fake_token
+all_users_group: group:all-users@nav.no
 login_page: http://localhost:8080/
 amplitude_api_key: fake_key
 log_level: info

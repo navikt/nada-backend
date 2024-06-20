@@ -23,10 +23,27 @@ func newFakeConfig() config.Config {
 			RedirectURL:  "http://localhost:8080/auth/callback",
 		},
 		Metabase: config.Metabase{
-			Username:        "fake_username",
-			Password:        "fake_password",
-			APIURL:          "http://localhost:3000/api",
-			CredentialsPath: "/some/path",
+			Username:         "fake_username",
+			Password:         "fake_password",
+			APIURL:           "http://localhost:3000/api",
+			GCPProject:       "some-gcp-project",
+			CredentialsPath:  "/some/path",
+			DatabasesBaseURL: "http://localhost:3000",
+		},
+		CrossTeamPseudonymization: config.CrossTeamPseudonymization{
+			GCPProjectID: "some-project",
+			GCPRegion:    "eu-north1",
+		},
+		GCS: config.GCS{
+			Endpoint:          "http://localhost:9090",
+			StoryBucketName:   "some-bucket",
+			CentralGCPProject: "central-project",
+		},
+		BigQuery: config.BigQuery{
+			Endpoint:                          "http://localhost:7070",
+			TeamProjectPseudoViewsDatasetName: "some-dataset",
+			GCPRegion:                         "eu-north1",
+			CentralGCPProject:                 "central-project",
 		},
 		Slack: config.Slack{
 			Token:      "fake_token",
@@ -53,21 +70,12 @@ func newFakeConfig() config.Config {
 			APIURL: "http://localhost:8080/api",
 		},
 		TreatmentCatalogue: config.TreatmentCatalogue{
-			APIURL: "http://localhost:8080/api",
+			APIURL:     "http://localhost:8080/api",
+			PurposeURL: "http://localhost:8080/api/purpose",
 		},
 		GoogleGroups: config.GoogleGroups{
 			ImpersonationSubject: "something@example.com",
 			CredentialsFile:      "/some/secret/path",
-		},
-		GCP: config.GCP{
-			Project: "fake_project",
-			Region:  "europe-north1",
-			GCS: config.GCS{
-				StoryBucketName: "fake_bucket",
-			},
-			BigQuery: config.BigQuery{
-				PseudoViewsDatasetName: "fake_dataset",
-			},
 		},
 		Cookies: config.Cookies{
 			Redirect: config.CookieSettings{
@@ -107,6 +115,7 @@ func newFakeConfig() config.Config {
 		API: config.API{
 			AuthToken: "fake_token",
 		},
+		AllUsersGroup:    "group:all-users@nav.no",
 		LoginPage:        "http://localhost:8080/",
 		AmplitudeAPIKey:  "fake_key",
 		LogLevel:         "info",
@@ -168,13 +177,11 @@ func TestLoad(t *testing.T) {
 			expect: func() config.Config {
 				cfg := newFakeConfig()
 				cfg.Server.Address = "example.com"
-				cfg.GCP.Project = "project_x"
 
 				return cfg
 			}(),
 			envs: map[string]string{
 				"SERVER_ADDRESS": "example.com",
-				"GCP_PROJECT":    "project_x",
 			},
 		},
 		{
@@ -186,13 +193,11 @@ func TestLoad(t *testing.T) {
 			expect: func() config.Config {
 				cfg := newFakeConfig()
 				cfg.Server.Address = "example.com"
-				cfg.GCP.Project = "project_x"
 
 				return cfg
 			}(),
 			envs: map[string]string{
 				"NADA_SERVER_ADDRESS": "example.com",
-				"NADA_GCP_PROJECT":    "project_x",
 			},
 		},
 		{
