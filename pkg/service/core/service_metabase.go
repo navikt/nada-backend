@@ -267,10 +267,10 @@ func ensureUserInGroup(ctx context.Context, group string) error {
 	return nil
 }
 
-func (s *metabaseService) GrantMetabaseAccess(ctx context.Context, dsID uuid.UUID, subject string) error {
+func (s *metabaseService) GrantMetabaseAccess(ctx context.Context, dsID uuid.UUID, subject, subjectType string) error {
 	const op errs.Op = "metabaseService.GrantMetabaseAccess"
 
-	if subject == s.groupAllUsers {
+	if fmt.Sprintf("%s:%s", subjectType, subject) == s.groupAllUsers {
 		err := s.addAllUsersDataset(ctx, dsID)
 		if err != nil {
 			return errs.E(op, err)
@@ -279,19 +279,14 @@ func (s *metabaseService) GrantMetabaseAccess(ctx context.Context, dsID uuid.UUI
 		return nil
 	}
 
-	email, sType, err := parseSubject(subject)
-	if err != nil {
-		return errs.E(op, err)
-	}
-
-	switch sType {
+	switch subjectType {
 	case "user":
-		err := s.addMetabaseGroupMember(ctx, dsID, email)
+		err := s.addMetabaseGroupMember(ctx, dsID, subject)
 		if err != nil {
 			return errs.E(op, err)
 		}
 	default:
-		return errs.E(errs.InvalidRequest, op, fmt.Errorf("unsupported subject type %v for metabase access grant", sType))
+		return errs.E(errs.InvalidRequest, op, fmt.Errorf("unsupported subject type %v for metabase access grant", subjectType))
 	}
 
 	return nil
@@ -573,7 +568,8 @@ func (s *metabaseService) deleteRestrictedDatabase(ctx context.Context, datasetI
 func (s *metabaseService) RevokeMetabaseAccessFromAccessID(ctx context.Context, accessID string) error {
 	const op errs.Op = "metabaseService.RevokeMetabaseAccessFromAccessID"
 
-	access, err := s.accessStorage.GetAccessRequest(ctx, accessID)
+	// FIXME: move this up the chain
+	access, err := s.accessStorage.GetAccessToDataset(ctx, uuid.MustParse(accessID))
 	if err != nil {
 		return errs.E(op, err)
 	}
@@ -765,7 +761,7 @@ func parseSubject(subject string) (string, string, error) {
 
 	s := strings.Split(subject, ":")
 	if len(s) != 2 {
-		return "", "", errs.E(errs.InvalidRequest, op, errs.Parameter("subject"), fmt.Errorf("invalid subject format, should be type:email"))
+		return "", "", errs.E(errs.InvalidRequest, op, errs.Parameter("subject"), fmt.Errorf("invalid subject format, got: %s, should be type:email", subject))
 	}
 
 	return s[1], s[0], nil

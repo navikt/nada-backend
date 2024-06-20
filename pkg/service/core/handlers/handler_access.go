@@ -14,14 +14,15 @@ type accessHandler struct {
 	gcpProjectID    string
 }
 
-func (h *accessHandler) RevokeAccessToDataset(ctx context.Context, _ *http.Request, _ any) (*Empty, error) {
-	accessID := chi.URLParamFromCtx(ctx, "id")
-	err := h.accessService.RevokeAccessToDataset(ctx, accessID, h.gcpProjectID)
+func (h *accessHandler) RevokeAccessToDataset(ctx context.Context, r *http.Request, _ any) (*Empty, error) {
+	accessID := r.URL.Query().Get("id")
+
+	err := h.metabaseService.RevokeMetabaseAccessFromAccessID(ctx, accessID)
 	if err != nil {
 		return nil, err
 	}
 
-	err = h.metabaseService.RevokeMetabaseAccessFromAccessID(ctx, accessID)
+	err = h.accessService.RevokeAccessToDataset(ctx, accessID, h.gcpProjectID)
 	if err != nil {
 		return nil, err
 	}
@@ -35,7 +36,7 @@ func (h *accessHandler) GrantAccessToDataset(ctx context.Context, _ *http.Reques
 		return nil, err
 	}
 
-	err = h.metabaseService.GrantMetabaseAccess(ctx, in.DatasetID, *in.Subject)
+	err = h.metabaseService.GrantMetabaseAccess(ctx, in.DatasetID, *in.Subject, *in.SubjectType)
 	if err != nil {
 		return nil, err
 	}
@@ -44,7 +45,7 @@ func (h *accessHandler) GrantAccessToDataset(ctx context.Context, _ *http.Reques
 }
 
 func (h *accessHandler) GetAccessRequests(ctx context.Context, r *http.Request, _ interface{}) (*service.AccessRequestsWrapper, error) {
-	access, err := h.accessService.GetAccessRequests(ctx, r.URL.Query().Get("datasetID"))
+	access, err := h.accessService.GetAccessRequests(ctx, r.URL.Query().Get("datasetId"))
 	if err != nil {
 		return nil, err
 	}

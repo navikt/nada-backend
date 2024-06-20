@@ -51,7 +51,7 @@ type MetabaseService interface {
 	RevokeMetabaseAccess(ctx context.Context, dsID uuid.UUID, subject string) error
 	RevokeMetabaseAccessFromAccessID(ctx context.Context, accessID string) error
 	DeleteDatabase(ctx context.Context, dsID uuid.UUID) error
-	GrantMetabaseAccess(ctx context.Context, dsID uuid.UUID, subject string) error
+	GrantMetabaseAccess(ctx context.Context, dsID uuid.UUID, subject, subjectType string) error
 	MapDataset(ctx context.Context, datasetID string, services []string) (*Dataset, error)
 }
 
