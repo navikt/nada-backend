@@ -3,10 +3,12 @@ package handlers
 import (
 	"context"
 	"github.com/go-chi/chi"
+	"github.com/rs/zerolog"
 	"github.com/sebdah/goldie/v2"
 	"github.com/stretchr/testify/assert"
 	"net/http"
 	"net/http/httptest"
+	"os"
 	"strings"
 	"testing"
 )
@@ -65,6 +67,7 @@ func (h *testSimpleHandler) ParamFromContext(ctx context.Context, _ *http.Reques
 func TestHandlerFor(t *testing.T) {
 
 	simple := &testSimpleHandler{}
+	logger := zerolog.New(os.Stdout)
 
 	testCases := []struct {
 		name    string
@@ -76,30 +79,12 @@ func TestHandlerFor(t *testing.T) {
 		status  int
 	}{
 		{
-			name:    "handler-for-simple",
-			desc:    "Just invokes the handler, so no output is expected",
-			store:   simple,
-			path:    "/test",
-			handler: HandlerFor(simple.Simple).Build(),
-			request: httptest.NewRequest(http.MethodGet, "/test", nil),
-			status:  http.StatusOK,
-		},
-		{
 			name:    "handler-for-json-response",
 			desc:    "Invokes the handler and returns the response as JSON, expecting the result to be empty {}",
 			store:   simple,
 			path:    "/test",
-			handler: HandlerFor(simple.Simple).ResponseToJSON().Build(),
+			handler: TransportFor(simple.Simple).Build(logger),
 			request: httptest.NewRequest(http.MethodGet, "/test", nil),
-			status:  http.StatusOK,
-		},
-		{
-			name:    "handler-for-json-request",
-			desc:    "Invokes the handler and parses the request from JSON, expect it to work, no result in body",
-			store:   simple,
-			path:    "/test",
-			handler: HandlerFor(simple.Simple).RequestFromJSON().Build(),
-			request: httptest.NewRequest(http.MethodGet, "/test", strings.NewReader(`{"id": "test"}`)),
 			status:  http.StatusOK,
 		},
 		{
@@ -107,7 +92,7 @@ func TestHandlerFor(t *testing.T) {
 			desc:    "Invokes the handler, parses the request from JSON and returns the response as JSON, expect it to work",
 			store:   simple,
 			path:    "/test",
-			handler: HandlerFor(simple.Simple).RequestFromJSON().ResponseToJSON().Build(),
+			handler: TransportFor(simple.Simple).RequestFromJSON().Build(logger),
 			request: httptest.NewRequest(http.MethodGet, "/test", strings.NewReader(`{"id": "test"}`)),
 			status:  http.StatusOK,
 		},
@@ -116,7 +101,7 @@ func TestHandlerFor(t *testing.T) {
 			desc:    "Invokes the handler, parses the request from JSON and returns the response as JSON, expect it to work",
 			store:   simple,
 			path:    "/test",
-			handler: HandlerFor(simple.SimpleNoInput).ResponseToJSON().Build(),
+			handler: TransportFor(simple.SimpleNoInput).Build(logger),
 			request: httptest.NewRequest(http.MethodGet, "/test", nil),
 			status:  http.StatusOK,
 		},
@@ -125,7 +110,7 @@ func TestHandlerFor(t *testing.T) {
 			desc:    "Invokes the handler, parses the request from JSON and returns the response as JSON, expect it to work",
 			store:   simple,
 			path:    "/test",
-			handler: HandlerFor(simple.SimpleNoOutput).ResponseToJSON().Build(),
+			handler: TransportFor(simple.SimpleNoOutput).Build(logger),
 			request: httptest.NewRequest(http.MethodGet, "/test", strings.NewReader(`{"id": "test"}`)),
 			status:  http.StatusNoContent,
 		},
@@ -134,7 +119,7 @@ func TestHandlerFor(t *testing.T) {
 			desc:    "Invokes the handler and expects the parameter to be taken from the context",
 			store:   simple,
 			path:    "/test/{id}",
-			handler: HandlerFor(simple.ParamFromContext).ResponseToJSON().Build(),
+			handler: TransportFor(simple.ParamFromContext).Build(logger),
 			request: httptest.NewRequest(http.MethodGet, "/test/123", nil),
 			status:  http.StatusOK,
 		},

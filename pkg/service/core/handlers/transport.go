@@ -32,21 +32,19 @@ type DecoderFunc[In any] func(r *http.Request) (In, error)
 // We can probably get rid of having to pass the Request to the target function
 // just need to move some query params to chi context
 type TargetFunc[In any, Out any] func(context.Context, *http.Request, In) (Out, error)
-type EncoderFunc[Out any] func(w http.ResponseWriter, out Out) error
 
-type HandlerConfig[In any, Out any] struct {
+type TransportConfig[In any, Out any] struct {
 	decoderFn DecoderFunc[In]
-	encoderFn EncoderFunc[Out]
 	targetFn  TargetFunc[In, Out]
 }
 
-func HandlerFor[In any, Out any](target TargetFunc[In, Out]) *HandlerConfig[In, Out] {
-	return &HandlerConfig[In, Out]{
+func TransportFor[In any, Out any](target TargetFunc[In, Out]) *TransportConfig[In, Out] {
+	return &TransportConfig[In, Out]{
 		targetFn: target,
 	}
 }
 
-func (h *HandlerConfig[In, Out]) RequestFromJSON() *HandlerConfig[In, Out] {
+func (h *TransportConfig[In, Out]) RequestFromJSON() *TransportConfig[In, Out] {
 	h.decoderFn = func(r *http.Request) (In, error) {
 		var in In
 
@@ -61,34 +59,32 @@ func (h *HandlerConfig[In, Out]) RequestFromJSON() *HandlerConfig[In, Out] {
 	return h
 }
 
-func (h *HandlerConfig[In, Out]) ResponseToJSON() *HandlerConfig[In, Out] {
-	h.encoderFn = func(w http.ResponseWriter, out Out) error {
-		w.Header().Set("Content-Type", "application/json; charset=utf-8")
+func (h *TransportConfig[In, Out]) encode(w http.ResponseWriter, out Out) error {
+	w.Header().Set("Content-Type", "application/json; charset=utf-8")
 
-		// If the output implements the StatusCoder interface, use the status code from it
-		code := http.StatusOK
-		if sc, ok := any(out).(StatusCoder); ok {
-			code = sc.StatusCode()
-		}
+	// If the output implements the StatusCoder interface, use the status code from it
+	code := http.StatusOK
+	if sc, ok := any(out).(StatusCoder); ok {
+		code = sc.StatusCode()
+	}
 
-		w.WriteHeader(code)
-		if code == http.StatusNoContent {
-			return nil
-		}
-
-		err := json.NewEncoder(w).Encode(out)
-		if err != nil {
-			return err
-		}
-
+	w.WriteHeader(code)
+	if code == http.StatusNoContent {
 		return nil
 	}
 
-	return h
+	err := json.NewEncoder(w).Encode(out)
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
 
-func (h *HandlerConfig[In, Out]) Build(logger zerolog.Logger) http.HandlerFunc {
+func (h *TransportConfig[In, Out]) Build(logger zerolog.Logger) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
+		logger.Info().Str("method", r.Method).Str("url", r.URL.RequestURI())
+
 		var in In
 		var err error
 
@@ -114,13 +110,12 @@ func (h *HandlerConfig[In, Out]) Build(logger zerolog.Logger) http.HandlerFunc {
 			return
 		}
 
-		// Format and write response
-		if h.encoderFn != nil {
-			err = h.encoderFn(w, out)
-			if err != nil {
-				errs.HTTPErrorResponse(w, logger, errs.E(errs.Internal, err))
-				return
-			}
+		// We always encode the response as JSON, you can use Empty{} or build
+		// a custom reponse struct if needed
+		err = h.encode(w, out)
+		if err != nil {
+			errs.HTTPErrorResponse(w, logger, errs.E(errs.Internal, err))
+			return
 		}
 	}
 }

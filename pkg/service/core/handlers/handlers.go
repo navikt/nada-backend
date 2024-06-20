@@ -66,79 +66,79 @@ func NewEndpoints(h *Handlers, log zerolog.Logger) *Endpoints {
 		CreateStoryHTTP:  h.StoryHandler.CreateStoryHTTP,
 		UpdateStoryHTTP:  h.StoryHandler.UpdateStoryHTTP,
 		AppendStoryHTTP:  h.StoryHandler.AppendStoryHTTP,
-		GetStoryMetadata: HandlerFor(h.StoryHandler.GetStoryMetadata).ResponseToJSON().Build(log),
-		CreateStory:      HandlerFor(h.StoryHandler.CreateStory).ResponseToJSON().Build(log),
-		UpdateStory:      HandlerFor(h.StoryHandler.UpdateStory).RequestFromJSON().ResponseToJSON().Build(log),
-		DeleteStory:      HandlerFor(h.StoryHandler.DeleteStory).ResponseToJSON().Build(log),
+		GetStoryMetadata: TransportFor(h.StoryHandler.GetStoryMetadata).Build(log),
+		CreateStory:      TransportFor(h.StoryHandler.CreateStory).Build(log),
+		UpdateStory:      TransportFor(h.StoryHandler.UpdateStory).RequestFromJSON().Build(log),
+		DeleteStory:      TransportFor(h.StoryHandler.DeleteStory).Build(log),
 
 		// Token endpoints
 		GetAllTeamTokens: h.TokenHandler.GetAllTeamTokens,
-		RotateNadaToken:  HandlerFor(h.TokenHandler.RotateNadaToken).ResponseToJSON().Build(log),
+		RotateNadaToken:  TransportFor(h.TokenHandler.RotateNadaToken).Build(log),
 
 		// Data product endpoints
-		GetDataProduct:     HandlerFor(h.DataProductsHandler.GetDataProduct).ResponseToJSON().Build(log),
-		CreateDataProduct:  HandlerFor(h.DataProductsHandler.CreateDataProduct).RequestFromJSON().ResponseToJSON().Build(log),
-		DeleteDataProduct:  HandlerFor(h.DataProductsHandler.DeleteDataProduct).ResponseToJSON().Build(log),
-		UpdateDataProduct:  HandlerFor(h.DataProductsHandler.UpdateDataProduct).RequestFromJSON().ResponseToJSON().Build(log),
-		GetDatasetsMinimal: HandlerFor(h.DataProductsHandler.GetDatasetsMinimal).ResponseToJSON().Build(log),
-		GetDataset:         HandlerFor(h.DataProductsHandler.GetDataset).ResponseToJSON().Build(log),
+		GetDataProduct:     TransportFor(h.DataProductsHandler.GetDataProduct).Build(log),
+		CreateDataProduct:  TransportFor(h.DataProductsHandler.CreateDataProduct).RequestFromJSON().Build(log),
+		DeleteDataProduct:  TransportFor(h.DataProductsHandler.DeleteDataProduct).Build(log),
+		UpdateDataProduct:  TransportFor(h.DataProductsHandler.UpdateDataProduct).RequestFromJSON().Build(log),
+		GetDatasetsMinimal: TransportFor(h.DataProductsHandler.GetDatasetsMinimal).Build(log),
+		GetDataset:         TransportFor(h.DataProductsHandler.GetDataset).Build(log),
 		// FIXME: should perhaps not marshal the response
-		CreateDataset:                      HandlerFor(h.DataProductsHandler.CreateDataset).RequestFromJSON().ResponseToJSON().Build(log),
-		UpdateDataset:                      HandlerFor(h.DataProductsHandler.UpdateDataset).RequestFromJSON().ResponseToJSON().Build(log),
-		DeleteDataset:                      HandlerFor(h.DataProductsHandler.DeleteDataset).ResponseToJSON().Build(log),
-		GetAccessiblePseudoDatasetsForUser: HandlerFor(h.DataProductsHandler.GetAccessiblePseudoDatasetsForUser).ResponseToJSON().Build(log),
+		CreateDataset:                      TransportFor(h.DataProductsHandler.CreateDataset).RequestFromJSON().Build(log),
+		UpdateDataset:                      TransportFor(h.DataProductsHandler.UpdateDataset).RequestFromJSON().Build(log),
+		DeleteDataset:                      TransportFor(h.DataProductsHandler.DeleteDataset).Build(log),
+		GetAccessiblePseudoDatasetsForUser: TransportFor(h.DataProductsHandler.GetAccessiblePseudoDatasetsForUser).Build(log),
 
 		// Metabase endpoints
-		MapDataset: HandlerFor(h.MetabaseHandler.MapDataset).RequestFromJSON().ResponseToJSON().Build(log),
+		MapDataset: TransportFor(h.MetabaseHandler.MapDataset).RequestFromJSON().Build(log),
 
 		// Access endpoints
-		GetAccessRequests:     HandlerFor(h.AccessHandler.GetAccessRequests).ResponseToJSON().Build(log),
-		ProcessAccessRequest:  HandlerFor(h.AccessHandler.ProcessAccessRequest).ResponseToJSON().Build(log),
-		CreateAccessRequest:   HandlerFor(h.AccessHandler.NewAccessRequest).RequestFromJSON().ResponseToJSON().Build(log),
-		DeleteAccessRequest:   HandlerFor(h.AccessHandler.DeleteAccessRequest).ResponseToJSON().Build(log),
-		UpdateAccessRequest:   HandlerFor(h.AccessHandler.UpdateAccessRequest).RequestFromJSON().ResponseToJSON().Build(log),
-		GrantAccessToDataset:  HandlerFor(h.AccessHandler.GrantAccessToDataset).RequestFromJSON().ResponseToJSON().Build(log),
-		RevokeAccessToDataset: HandlerFor(h.AccessHandler.RevokeAccessToDataset).ResponseToJSON().Build(log),
+		GetAccessRequests:     TransportFor(h.AccessHandler.GetAccessRequests).Build(log),
+		ProcessAccessRequest:  TransportFor(h.AccessHandler.ProcessAccessRequest).Build(log),
+		CreateAccessRequest:   TransportFor(h.AccessHandler.NewAccessRequest).RequestFromJSON().Build(log),
+		DeleteAccessRequest:   TransportFor(h.AccessHandler.DeleteAccessRequest).Build(log),
+		UpdateAccessRequest:   TransportFor(h.AccessHandler.UpdateAccessRequest).RequestFromJSON().Build(log),
+		GrantAccessToDataset:  TransportFor(h.AccessHandler.GrantAccessToDataset).RequestFromJSON().Build(log),
+		RevokeAccessToDataset: TransportFor(h.AccessHandler.RevokeAccessToDataset).Build(log),
 
 		// Product areas endpoints
-		GetProductAreas:          HandlerFor(h.ProductAreasHandler.GetProductAreas).ResponseToJSON().Build(log),
-		GetProductAreaWithAssets: HandlerFor(h.ProductAreasHandler.GetProductAreaWithAssets).ResponseToJSON().Build(log),
+		GetProductAreas:          TransportFor(h.ProductAreasHandler.GetProductAreas).Build(log),
+		GetProductAreaWithAssets: TransportFor(h.ProductAreasHandler.GetProductAreaWithAssets).Build(log),
 
 		// BigQuery endpoints
-		GetBigQueryColumns:  HandlerFor(h.BigQueryHandler.GetBigQueryColumns).ResponseToJSON().Build(log),
-		GetBigQueryTables:   HandlerFor(h.BigQueryHandler.GetBigQueryTables).ResponseToJSON().Build(log),
-		GetBigQueryDatasets: HandlerFor(h.BigQueryHandler.GetBigQueryDatasets).ResponseToJSON().Build(log),
-		SyncBigQueryTables:  HandlerFor(h.BigQueryHandler.SyncBigQueryTables).ResponseToJSON().Build(log),
+		GetBigQueryColumns:  TransportFor(h.BigQueryHandler.GetBigQueryColumns).Build(log),
+		GetBigQueryTables:   TransportFor(h.BigQueryHandler.GetBigQueryTables).Build(log),
+		GetBigQueryDatasets: TransportFor(h.BigQueryHandler.GetBigQueryDatasets).Build(log),
+		SyncBigQueryTables:  TransportFor(h.BigQueryHandler.SyncBigQueryTables).Build(log),
 
 		// Search endpoint
-		Search: HandlerFor(h.SearchHandler.Search).ResponseToJSON().Build(log),
+		Search: TransportFor(h.SearchHandler.Search).Build(log),
 
 		// User endpoint
-		GetUserData: HandlerFor(h.UserHandler.GetUserData).ResponseToJSON().Build(log),
+		GetUserData: TransportFor(h.UserHandler.GetUserData).Build(log),
 
 		// Slack endpoint
-		IsValidSlackChannel: HandlerFor(h.SlackHandler.IsValidSlackChannel).ResponseToJSON().Build(log),
+		IsValidSlackChannel: TransportFor(h.SlackHandler.IsValidSlackChannel).Build(log),
 
 		// Joinable views endpoint
-		CreateJoinableViews:     HandlerFor(h.JoinableViewsHandler.CreateJoinableViews).RequestFromJSON().ResponseToJSON().Build(log),
-		GetJoinableViewsForUser: HandlerFor(h.JoinableViewsHandler.GetJoinableViewsForUser).ResponseToJSON().Build(log),
-		GetJoinableView:         HandlerFor(h.JoinableViewsHandler.GetJoinableView).ResponseToJSON().Build(log),
+		CreateJoinableViews:     TransportFor(h.JoinableViewsHandler.CreateJoinableViews).RequestFromJSON().Build(log),
+		GetJoinableViewsForUser: TransportFor(h.JoinableViewsHandler.GetJoinableViewsForUser).Build(log),
+		GetJoinableView:         TransportFor(h.JoinableViewsHandler.GetJoinableView).Build(log),
 
 		// Insight product endpoint
-		GetInsightProduct:    HandlerFor(h.InsightProductHandler.GetInsightProduct).ResponseToJSON().Build(log),
-		CreateInsightProduct: HandlerFor(h.InsightProductHandler.CreateInsightProduct).RequestFromJSON().ResponseToJSON().Build(log),
-		UpdateInsightProduct: HandlerFor(h.InsightProductHandler.UpdateInsightProduct).RequestFromJSON().ResponseToJSON().Build(log),
-		DeleteInsightProduct: HandlerFor(h.InsightProductHandler.DeleteInsightProduct).ResponseToJSON().Build(log),
+		GetInsightProduct:    TransportFor(h.InsightProductHandler.GetInsightProduct).Build(log),
+		CreateInsightProduct: TransportFor(h.InsightProductHandler.CreateInsightProduct).RequestFromJSON().Build(log),
+		UpdateInsightProduct: TransportFor(h.InsightProductHandler.UpdateInsightProduct).RequestFromJSON().Build(log),
+		DeleteInsightProduct: TransportFor(h.InsightProductHandler.DeleteInsightProduct).Build(log),
 
 		// Teamkatalogen endpoint
-		SearchTeamKatalogen: HandlerFor(h.TeamKatalogenHandler.SearchTeamKatalogen).ResponseToJSON().Build(log),
+		SearchTeamKatalogen: TransportFor(h.TeamKatalogenHandler.SearchTeamKatalogen).Build(log),
 
 		// Polly endpoint
-		SearchPolly: HandlerFor(h.PollyHandler.SearchPolly).ResponseToJSON().Build(log),
+		SearchPolly: TransportFor(h.PollyHandler.SearchPolly).Build(log),
 
 		// Keywords endpoint
-		GetKeywordsListSortedByPopularity: HandlerFor(h.KeywordsHandler.GetKeywordsListSortedByPopularity).ResponseToJSON().Build(log),
-		UpdateKeywords:                    HandlerFor(h.KeywordsHandler.UpdateKeywords).RequestFromJSON().ResponseToJSON().Build(log),
+		GetKeywordsListSortedByPopularity: TransportFor(h.KeywordsHandler.GetKeywordsListSortedByPopularity).Build(log),
+		UpdateKeywords:                    TransportFor(h.KeywordsHandler.UpdateKeywords).RequestFromJSON().Build(log),
 	}
 }
 
