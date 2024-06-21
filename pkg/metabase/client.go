@@ -434,7 +434,7 @@ func (c *Client) RestrictAccessToDatabase(ctx context.Context, groupIDs []int, d
 		}
 		if !containsGroup(grpSIDs, gid) {
 			permission[dbSID] = permissionGroup{
-				ViewData: "unrestricted",
+				ViewData: "blocked",
 			}
 		}
 	}
