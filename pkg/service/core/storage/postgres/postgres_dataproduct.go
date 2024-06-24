@@ -612,7 +612,7 @@ func (s *dataProductStorage) datasetFromSQL(dsrows []gensql.DatasetView) (*servi
 				ProjectID:     dsrow.BqProject,
 				Dataset:       dsrow.BqDataset,
 				Table:         dsrow.BqTableName,
-				TableType:     service.BigQueryType(dsrow.BqTableType),
+				TableType:     service.BigQueryTableType(dsrow.BqTableType),
 				Created:       dsrow.BqCreated,
 				LastModified:  dsrow.BqLastModified,
 				Expires:       nullTimeToPtr(dsrow.BqExpires),

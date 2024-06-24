@@ -11,7 +11,6 @@ import (
 	"github.com/navikt/nada-backend/pkg/errs"
 	"github.com/navikt/nada-backend/pkg/service"
 	"github.com/sqlc-dev/pqtype"
-	"strings"
 )
 
 var _ service.BigQueryStorage = &bigQueryStorage{}
@@ -118,7 +117,7 @@ func (s *bigQueryStorage) GetBigqueryDatasources(ctx context.Context) ([]*servic
 			ProjectID:     bq.ProjectID,
 			Dataset:       bq.Dataset,
 			Table:         bq.TableName,
-			TableType:     service.BigQueryType(strings.ToLower(bq.TableType)),
+			TableType:     service.BigQueryTableType(bq.TableType),
 			LastModified:  bq.LastModified,
 			Created:       bq.Created,
 			Expires:       nullTimeToPtr(bq.Expires),
@@ -158,7 +157,7 @@ func (s *bigQueryStorage) GetBigqueryDatasource(ctx context.Context, datasetID u
 		ProjectID:     bq.ProjectID,
 		Dataset:       bq.Dataset,
 		Table:         bq.TableName,
-		TableType:     service.BigQueryType(strings.ToLower(bq.TableType)),
+		TableType:     service.BigQueryTableType(bq.TableType),
 		LastModified:  bq.LastModified,
 		Created:       bq.Created,
 		Expires:       nullTimeToPtr(bq.Expires),

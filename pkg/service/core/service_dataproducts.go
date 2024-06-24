@@ -1,7 +1,6 @@
 package core
 
 import (
-	"cloud.google.com/go/bigquery"
 	"context"
 	"fmt"
 	"github.com/google/uuid"
@@ -245,10 +244,10 @@ func (s *dataProductsService) prepareBigQuery(ctx context.Context, srcProject, s
 	}
 
 	switch metadata.TableType {
-	case bigquery.RegularTable:
-	case bigquery.ViewTable:
+	case service.RegularTable:
+	case service.ViewTable:
 		fallthrough
-	case bigquery.MaterializedView:
+	case service.MaterializedView:
 		if err := s.bigQueryAPI.AddToAuthorizedViews(ctx, srcProject, srcDataset, sinkProject, sinkDataset, sinkTable); err != nil {
 			return nil, errs.E(op, err)
 		}

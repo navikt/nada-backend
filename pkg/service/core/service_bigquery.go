@@ -53,18 +53,8 @@ func (s *bigQueryService) GetBigQueryColumns(ctx context.Context, projectID stri
 		return nil, errs.E(op, err)
 	}
 
-	columns := make([]*service.BigqueryColumn, 0)
-	for _, column := range metadata.Schema.Columns {
-		columns = append(columns, &service.BigqueryColumn{
-			Name:        column.Name,
-			Description: column.Description,
-			Mode:        column.Mode,
-			Type:        column.Type,
-		})
-	}
-
 	return &service.BQColumns{
-		BQColumns: columns,
+		BQColumns: metadata.Schema.Columns,
 	}, nil
 }
 

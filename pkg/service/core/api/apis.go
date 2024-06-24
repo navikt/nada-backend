@@ -1,6 +1,7 @@
 package api
 
 import (
+	"github.com/navikt/nada-backend/pkg/bq"
 	"github.com/navikt/nada-backend/pkg/config/v2"
 	"github.com/navikt/nada-backend/pkg/service"
 	"github.com/navikt/nada-backend/pkg/service/core/api/gcp"
@@ -20,6 +21,7 @@ type Clients struct {
 }
 
 func NewClients(
+	bqClient bq.Operations,
 	cfg config.Config,
 	log *logrus.Entry,
 ) *Clients {
@@ -27,8 +29,8 @@ func NewClients(
 		BigQueryAPI: gcp.NewBigQueryAPI(
 			cfg.BigQuery.CentralGCPProject,
 			cfg.BigQuery.GCPRegion,
-			cfg.BigQuery.Endpoint,
 			cfg.BigQuery.TeamProjectPseudoViewsDatasetName,
+			bqClient,
 		),
 		StoryAPI: gcp.NewStoryAPI(
 			cfg.GCS.CentralGCPProject,

@@ -1,11 +1,7 @@
 package service
 
 import (
-	"cloud.google.com/go/bigquery"
 	"context"
-	"fmt"
-	"io"
-	"strconv"
 	"time"
 
 	"github.com/google/uuid"
@@ -24,7 +20,6 @@ type BigQueryStorage interface {
 type BigQueryAPI interface {
 	Grant(ctx context.Context, projectID, datasetID, tableID, member string) error
 	Revoke(ctx context.Context, projectID, datasetID, tableID, member string) error
-	HasAccess(ctx context.Context, projectID, datasetID, tableID, member string) (bool, error)
 	AddToAuthorizedViews(ctx context.Context, srcProjectID, srcDataset, sinkProjectID, sinkDataset, sinkTable string) error
 	MakeBigQueryUrlForJoinableViews(name, projectID, datasetID, tableID string) string
 	CreateJoinableViewsForUser(ctx context.Context, name string, datasources []JoinableViewDatasource) (string, string, map[string]string, error)
@@ -46,6 +41,26 @@ type BigQueryService interface {
 	GetBigQueryDatasets(ctx context.Context, projectID string) (*BQDatasets, error)
 	GetBigQueryColumns(ctx context.Context, projectID string, datasetID string, tableID string) (*BQColumns, error)
 }
+
+type BigQueryTableType string
+
+const (
+	// RegularTable is a regular table.
+	RegularTable BigQueryTableType = "TABLE"
+	// ViewTable is a table type describing that the table is a logical view.
+	// See more information at https://cloud.google.com//docs/views.
+	ViewTable BigQueryTableType = "VIEW"
+	// ExternalTable is a table type describing that the table is an external
+	// table (also known as a federated data source). See more information at
+	// https://cloud.google.com/bigquery/external-data-sources.
+	ExternalTable BigQueryTableType = "EXTERNAL"
+	// MaterializedView represents a managed storage table that's derived from
+	// a base table.
+	MaterializedView BigQueryTableType = "MATERIALIZED_VIEW"
+	// Snapshot represents an immutable point in time snapshot of some other
+	// table.
+	Snapshot BigQueryTableType = "SNAPSHOT"
+)
 
 type DatasourceForJoinableView struct {
 	Project       string
@@ -71,7 +86,7 @@ type BigQuery struct {
 	ProjectID     string            `json:"projectID"`
 	Dataset       string            `json:"dataset"`
 	Table         string            `json:"table"`
-	TableType     BigQueryType      `json:"tableType"`
+	TableType     BigQueryTableType `json:"tableType"`
 	LastModified  time.Time         `json:"lastModified"`
 	Created       time.Time         `json:"created"`
 	Expires       *time.Time        `json:"expired"`
@@ -102,18 +117,16 @@ type NewBigQuery struct {
 }
 
 type BigquerySchema struct {
-	Columns []BigqueryColumn
+	Columns []*BigqueryColumn
 }
 
-type BigQueryType string
-
 type BigqueryMetadata struct {
-	Schema       BigquerySchema     `json:"schema"`
-	TableType    bigquery.TableType `json:"tableType"`
-	LastModified time.Time          `json:"lastModified"`
-	Created      time.Time          `json:"created"`
-	Expires      time.Time          `json:"expires"`
-	Description  string             `json:"description"`
+	Schema       BigquerySchema    `json:"schema"`
+	TableType    BigQueryTableType `json:"tableType"`
+	LastModified time.Time         `json:"lastModified"`
+	Created      time.Time         `json:"created"`
+	Expires      time.Time         `json:"expires"`
+	Description  string            `json:"description"`
 }
 
 type BigQueryDataSourceUpdate struct {
@@ -129,50 +142,9 @@ type BigqueryColumn struct {
 	Description string `json:"description"`
 }
 
-const (
-	BigQueryTypeTable            BigQueryType = "table"
-	BigQueryTypeView             BigQueryType = "view"
-	BigQueryTypeMaterializedView BigQueryType = "materialized_view"
-)
-
-var AllBigQueryType = []BigQueryType{
-	BigQueryTypeTable,
-	BigQueryTypeView,
-	BigQueryTypeMaterializedView,
-}
-
-func (e BigQueryType) IsValid() bool {
-	switch e {
-	case BigQueryTypeTable, BigQueryTypeView, BigQueryTypeMaterializedView:
-		return true
-	}
-	return false
-}
-
-func (e BigQueryType) String() string {
-	return string(e)
-}
-
-func (e *BigQueryType) UnmarshalGQL(v interface{}) error {
-	str, ok := v.(string)
-	if !ok {
-		return fmt.Errorf("enums must be strings")
-	}
-
-	*e = BigQueryType(str)
-	if !e.IsValid() {
-		return fmt.Errorf("%s is not a valid BigQueryType", str)
-	}
-	return nil
-}
-
-func (e BigQueryType) MarshalGQL(w io.Writer) {
-	fmt.Fprint(w, strconv.Quote(e.String()))
-}
-
 type BigQueryTable struct {
-	Description  string       `json:"description"`
-	LastModified time.Time    `json:"lastModified"`
-	Name         string       `json:"name"`
-	Type         BigQueryType `json:"type"`
+	Description  string            `json:"description"`
+	LastModified time.Time         `json:"lastModified"`
+	Name         string            `json:"name"`
+	Type         BigQueryTableType `json:"type"`
 }

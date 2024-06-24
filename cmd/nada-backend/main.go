@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"github.com/navikt/nada-backend/pkg/amplitude"
+	"github.com/navikt/nada-backend/pkg/bq"
 	"github.com/navikt/nada-backend/pkg/service/core"
 	apiclients "github.com/navikt/nada-backend/pkg/service/core/api"
 	"github.com/navikt/nada-backend/pkg/service/core/handlers"
@@ -99,8 +100,11 @@ func main() {
 	)
 	go teamProjectsUpdater.Run(ctx, TeamProjectsUpdateFrequency)
 
+	// FIXME: make authentication configurable
+	bqClient := bq.NewClient(cfg.BigQuery.Endpoint, true)
+
 	stores := storage.NewStores(repo, cfg)
-	apiClients := apiclients.NewClients(cfg, log.WithField("subsystem", "api_clients"))
+	apiClients := apiclients.NewClients(bqClient, cfg, log.WithField("subsystem", "api_clients"))
 	services, err := core.NewServices(cfg, stores, apiClients, teamProjectsUpdater.TeamProjectsMapping)
 	if err != nil {
 		log.WithError(err).Fatal("setting up services")
