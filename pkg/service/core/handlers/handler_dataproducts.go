@@ -3,6 +3,8 @@ package handlers
 import (
 	"context"
 	"github.com/go-chi/chi"
+	"github.com/google/uuid"
+	"github.com/navikt/nada-backend/pkg/errs"
 	"github.com/navikt/nada-backend/pkg/service"
 	"github.com/navikt/nada-backend/pkg/service/core/transport"
 	"net/http"
@@ -13,7 +15,14 @@ type dataProductsHandler struct {
 }
 
 func (h *dataProductsHandler) GetDataProduct(ctx context.Context, _ *http.Request, _ any) (*service.DataproductWithDataset, error) {
-	dp, err := h.service.GetDataproduct(ctx, chi.URLParamFromCtx(ctx, "id"))
+	const op errs.Op = "dataProductsHandler.GetDataProduct"
+
+	id, err := uuid.Parse(chi.URLParamFromCtx(ctx, "id"))
+	if err != nil {
+		return nil, errs.E(errs.InvalidRequest, op, err)
+	}
+
+	dp, err := h.service.GetDataproduct(ctx, id)
 	if err != nil {
 		return nil, err
 	}
@@ -31,7 +40,14 @@ func (h *dataProductsHandler) CreateDataProduct(ctx context.Context, _ *http.Req
 }
 
 func (h *dataProductsHandler) DeleteDataProduct(ctx context.Context, _ *http.Request, _ interface{}) (*transport.Empty, error) {
-	_, err := h.service.DeleteDataproduct(ctx, chi.URLParamFromCtx(ctx, "id"))
+	const op errs.Op = "dataProductsHandler.DeleteDataProduct"
+
+	id, err := uuid.Parse(chi.URLParamFromCtx(ctx, "id"))
+	if err != nil {
+		return nil, errs.E(errs.InvalidRequest, op, err)
+	}
+
+	_, err = h.service.DeleteDataproduct(ctx, id)
 	if err != nil {
 		return nil, err
 	}
@@ -41,7 +57,14 @@ func (h *dataProductsHandler) DeleteDataProduct(ctx context.Context, _ *http.Req
 }
 
 func (h *dataProductsHandler) UpdateDataProduct(ctx context.Context, _ *http.Request, in service.UpdateDataproductDto) (*service.DataproductMinimal, error) {
-	dp, err := h.service.UpdateDataproduct(ctx, chi.URLParamFromCtx(ctx, "id"), in)
+	const op errs.Op = "dataProductsHandler.UpdateDataProduct"
+
+	id, err := uuid.Parse(chi.URLParamFromCtx(ctx, "id"))
+	if err != nil {
+		return nil, errs.E(errs.InvalidRequest, op, err)
+	}
+
+	dp, err := h.service.UpdateDataproduct(ctx, id, in)
 	if err != nil {
 		return nil, err
 	}
@@ -59,7 +82,14 @@ func (h *dataProductsHandler) GetDatasetsMinimal(ctx context.Context, _ *http.Re
 }
 
 func (h *dataProductsHandler) GetDataset(ctx context.Context, _ *http.Request, _ interface{}) (*service.Dataset, error) {
-	dataset, err := h.service.GetDataset(ctx, chi.URLParamFromCtx(ctx, "id"))
+	const op errs.Op = "dataProductsHandler.GetDataset"
+
+	id, err := uuid.Parse(chi.URLParamFromCtx(ctx, "id"))
+	if err != nil {
+		return nil, errs.E(errs.InvalidRequest, op, err)
+	}
+
+	dataset, err := h.service.GetDataset(ctx, id)
 	if err != nil {
 		return nil, err
 	}
@@ -78,7 +108,14 @@ func (h *dataProductsHandler) CreateDataset(ctx context.Context, _ *http.Request
 }
 
 func (h *dataProductsHandler) UpdateDataset(ctx context.Context, _ *http.Request, in service.UpdateDatasetDto) (string, error) {
-	dataset, err := h.service.UpdateDataset(ctx, chi.URLParamFromCtx(ctx, "id"), in)
+	const op errs.Op = "dataProductsHandler.UpdateDataset"
+
+	id, err := uuid.Parse(chi.URLParamFromCtx(ctx, "id"))
+	if err != nil {
+		return "", errs.E(errs.InvalidRequest, op, err)
+	}
+
+	dataset, err := h.service.UpdateDataset(ctx, id, in)
 	if err != nil {
 		return "", err
 	}
@@ -87,7 +124,14 @@ func (h *dataProductsHandler) UpdateDataset(ctx context.Context, _ *http.Request
 }
 
 func (h *dataProductsHandler) DeleteDataset(ctx context.Context, _ *http.Request, _ interface{}) (*transport.Empty, error) {
-	_, err := h.service.DeleteDataset(ctx, chi.URLParamFromCtx(ctx, "id"))
+	const op errs.Op = "dataProductsHandler.DeleteDataset"
+
+	id, err := uuid.Parse(chi.URLParamFromCtx(ctx, "id"))
+	if err != nil {
+		return nil, errs.E(errs.InvalidRequest, op, err)
+	}
+
+	_, err = h.service.DeleteDataset(ctx, id)
 	if err != nil {
 		return nil, err
 	}

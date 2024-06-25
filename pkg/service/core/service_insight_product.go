@@ -15,14 +15,8 @@ type insightProductService struct {
 	insightProductStorage service.InsightProductStorage
 }
 
-func (s *insightProductService) DeleteInsightProduct(ctx context.Context, id string) (*service.InsightProduct, error) {
+func (s *insightProductService) DeleteInsightProduct(ctx context.Context, id uuid.UUID) (*service.InsightProduct, error) {
 	const op errs.Op = "insightProductService.DeleteInsightProduct"
-
-	// FIXME: move up the call chain
-	productUUID, err := uuid.Parse(id)
-	if err != nil {
-		return nil, errs.E(errs.InvalidRequest, op, fmt.Errorf("parse product id: %v", err))
-	}
 
 	product, err := s.GetInsightProduct(ctx, id)
 	if err != nil {
@@ -34,7 +28,7 @@ func (s *insightProductService) DeleteInsightProduct(ctx context.Context, id str
 		return nil, errs.E(errs.Unauthorized, op, errs.UserName(user.Email), fmt.Errorf("user not authorized to delete product"))
 	}
 
-	err = s.insightProductStorage.DeleteInsightProduct(ctx, productUUID)
+	err = s.insightProductStorage.DeleteInsightProduct(ctx, id)
 	if err != nil {
 		return nil, errs.E(op, err)
 	}
@@ -42,13 +36,8 @@ func (s *insightProductService) DeleteInsightProduct(ctx context.Context, id str
 	return product, nil
 }
 
-func (s *insightProductService) UpdateInsightProduct(ctx context.Context, id string, input service.UpdateInsightProductDto) (*service.InsightProduct, error) {
+func (s *insightProductService) UpdateInsightProduct(ctx context.Context, id uuid.UUID, input service.UpdateInsightProductDto) (*service.InsightProduct, error) {
 	const op errs.Op = "insightProductService.UpdateInsightProduct"
-
-	productUUID, err := uuid.Parse(id)
-	if err != nil {
-		return nil, errs.E(errs.InvalidRequest, op, fmt.Errorf("parse product id: %v", err))
-	}
 
 	existing, err := s.GetInsightProduct(ctx, id)
 	if err != nil {
@@ -61,7 +50,7 @@ func (s *insightProductService) UpdateInsightProduct(ctx context.Context, id str
 		return nil, errs.E(errs.Unauthorized, op, errs.UserName(user.Email), fmt.Errorf("user not authorized to update product"))
 	}
 
-	productSQL, err := s.insightProductStorage.UpdateInsightProduct(ctx, productUUID, input)
+	productSQL, err := s.insightProductStorage.UpdateInsightProduct(ctx, id, input)
 	if err != nil {
 		return nil, errs.E(op, err)
 	}
@@ -82,20 +71,15 @@ func (s *insightProductService) CreateInsightProduct(ctx context.Context, input 
 	return productSQL, nil
 }
 
-func (s *insightProductService) GetInsightProduct(ctx context.Context, id string) (*service.InsightProduct, error) {
+func (s *insightProductService) GetInsightProduct(ctx context.Context, id uuid.UUID) (*service.InsightProduct, error) {
 	const op errs.Op = "insightProductService.GetInsightProduct"
 
-	productUUID, err := uuid.Parse(id)
-	if err != nil {
-		return nil, errs.E(errs.InvalidRequest, op, fmt.Errorf("parse product id: %v", err))
-	}
-
-	productSQL, err := s.insightProductStorage.GetInsightProductWithTeamkatalogen(ctx, productUUID)
+	product, err := s.insightProductStorage.GetInsightProductWithTeamkatalogen(ctx, id)
 	if err != nil {
 		return nil, errs.E(op, err)
 	}
 
-	return productSQL, nil
+	return product, nil
 }
 
 func NewInsightProductService(storage service.InsightProductStorage) *insightProductService {

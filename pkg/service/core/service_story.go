@@ -29,10 +29,10 @@ func (s *storyService) GetIndexHtmlPath(ctx context.Context, prefix string) (str
 	return index, nil
 }
 
-func (s *storyService) AppendStoryFiles(ctx context.Context, id string, files []*service.UploadFile) error {
+func (s *storyService) AppendStoryFiles(ctx context.Context, id uuid.UUID, files []*service.UploadFile) error {
 	const op = "storyService.AppendStoryFiles"
 
-	err := s.storyAPI.WriteFilesToBucket(ctx, id, files, false)
+	err := s.storyAPI.WriteFilesToBucket(ctx, id.String(), files, false)
 	if err != nil {
 		return errs.E(op, err)
 	}
@@ -40,15 +40,15 @@ func (s *storyService) AppendStoryFiles(ctx context.Context, id string, files []
 	return nil
 }
 
-func (s *storyService) RecreateStoryFiles(ctx context.Context, id string, files []*service.UploadFile) error {
+func (s *storyService) RecreateStoryFiles(ctx context.Context, id uuid.UUID, files []*service.UploadFile) error {
 	const op = "storyService.RecreateStoryFiles"
 
-	err := s.storyAPI.DeleteObjectsWithPrefix(ctx, id)
+	err := s.storyAPI.DeleteObjectsWithPrefix(ctx, id.String())
 	if err != nil {
 		return errs.E(op, err)
 	}
 
-	err = s.storyAPI.WriteFilesToBucket(ctx, id, files, false)
+	err = s.storyAPI.WriteFilesToBucket(ctx, id.String(), files, false)
 	if err != nil {
 		return errs.E(op, err)
 	}
@@ -113,11 +113,8 @@ func (s *storyService) CreateStory(ctx context.Context, newStory *service.NewSto
 	return st, nil
 }
 
-func (s *storyService) DeleteStory(ctx context.Context, id string) (*service.Story, error) {
+func (s *storyService) DeleteStory(ctx context.Context, storyID uuid.UUID) (*service.Story, error) {
 	const op = "storyService.DeleteStory"
-
-	// FIXME: move this up the chain
-	storyID := uuid.MustParse(id)
 
 	story, err := s.storyStorage.GetStory(ctx, storyID)
 	if err != nil {
@@ -135,23 +132,17 @@ func (s *storyService) DeleteStory(ctx context.Context, id string) (*service.Sto
 		return nil, errs.E(op, err)
 	}
 
-	if err := s.storyAPI.DeleteStoryFolder(ctx, id); err != nil {
+	if err := s.storyAPI.DeleteStoryFolder(ctx, storyID.String()); err != nil {
 		return nil, errs.E(op, err)
 	}
 
 	return story, nil
 }
 
-func (s *storyService) UpdateStory(ctx context.Context, id string, input service.UpdateStoryDto) (*service.Story, error) {
+func (s *storyService) UpdateStory(ctx context.Context, storyID uuid.UUID, input service.UpdateStoryDto) (*service.Story, error) {
 	const op = "storyService.UpdateStory"
 
-	// FIXME: move this up the chain
-	storyUUID, err := uuid.Parse(id)
-	if err != nil {
-		return nil, errs.E(errs.InvalidRequest, op, fmt.Errorf("invalid story id: %s", id))
-	}
-
-	existing, err := s.storyStorage.GetStory(ctx, storyUUID)
+	existing, err := s.storyStorage.GetStory(ctx, storyID)
 	if err != nil {
 		return nil, errs.E(op, err)
 	}
@@ -161,7 +152,7 @@ func (s *storyService) UpdateStory(ctx context.Context, id string, input service
 		return nil, errs.E(errs.Unauthorized, op, errs.UserName(user.Email), fmt.Errorf("user not in the group of the data story: %s", existing.Group))
 	}
 
-	story, err := s.storyStorage.UpdateStory(ctx, storyUUID, input)
+	story, err := s.storyStorage.UpdateStory(ctx, storyID, input)
 	if err != nil {
 		return nil, errs.E(op, err)
 	}
@@ -169,10 +160,10 @@ func (s *storyService) UpdateStory(ctx context.Context, id string, input service
 	return story, nil
 }
 
-func (s *storyService) GetStory(ctx context.Context, id uuid.UUID) (*service.Story, error) {
+func (s *storyService) GetStory(ctx context.Context, storyID uuid.UUID) (*service.Story, error) {
 	const op = "storyService.GetStory"
 
-	story, err := s.storyStorage.GetStory(ctx, id)
+	story, err := s.storyStorage.GetStory(ctx, storyID)
 	if err != nil {
 		return nil, errs.E(op, err)
 	}

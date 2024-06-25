@@ -11,35 +11,35 @@ import (
 type DataProductsStorage interface {
 	CreateDataproduct(ctx context.Context, input NewDataproduct) (*DataproductMinimal, error)
 	CreateDataset(ctx context.Context, ds NewDataset, referenceDatasource *NewBigQuery, user *auth.User) (*string, error)
-	DeleteDataproduct(ctx context.Context, id string) error
+	DeleteDataproduct(ctx context.Context, id uuid.UUID) error
 	DeleteDataset(ctx context.Context, id uuid.UUID) error
 	GetAccessibleDatasets(ctx context.Context, userGroups []string, requester string) (owned []*AccessibleDataset, granted []*AccessibleDataset, err error)
 	GetAccessiblePseudoDatasourcesByUser(ctx context.Context, subjectsAsOwner []string, subjectsAsAccesser []string) ([]*PseudoDataset, error)
-	GetDataproduct(ctx context.Context, id string) (*DataproductWithDataset, error)
+	GetDataproduct(ctx context.Context, id uuid.UUID) (*DataproductWithDataset, error)
 	GetDataproductKeywords(ctx context.Context, dpid uuid.UUID) ([]string, error)
 	GetDataproducts(ctx context.Context, ids []uuid.UUID) ([]DataproductWithDataset, error)
-	GetDataproductsByTeamID(ctx context.Context, teamIDs []string) ([]*Dataproduct, error)
-	GetDataproductsNumberByTeam(ctx context.Context, teamID string) (int64, error)
+	GetDataproductsByTeamID(ctx context.Context, teamIDs []uuid.UUID) ([]*Dataproduct, error)
+	GetDataproductsNumberByTeam(ctx context.Context, teamID uuid.UUID) (int64, error)
 	GetDataproductsWithDatasetsAndAccessRequests(ctx context.Context, ids []uuid.UUID, groups []string) ([]DataproductWithDataset, []AccessRequestForGranter, error)
-	GetDataset(ctx context.Context, id string) (*Dataset, error)
+	GetDataset(ctx context.Context, id uuid.UUID) (*Dataset, error)
 	GetDatasetsMinimal(ctx context.Context) ([]*DatasetMinimal, error)
 	GetOwnerGroupOfDataset(ctx context.Context, datasetID uuid.UUID) (string, error)
 	SetDatasourceDeleted(ctx context.Context, id uuid.UUID) error
-	UpdateDataproduct(ctx context.Context, id string, input UpdateDataproductDto) (*DataproductMinimal, error)
-	UpdateDataset(ctx context.Context, id string, input UpdateDatasetDto) (string, error)
+	UpdateDataproduct(ctx context.Context, id uuid.UUID, input UpdateDataproductDto) (*DataproductMinimal, error)
+	UpdateDataset(ctx context.Context, id uuid.UUID, input UpdateDatasetDto) (string, error)
 }
 
 type DataProductsService interface {
 	CreateDataproduct(ctx context.Context, input NewDataproduct) (*DataproductMinimal, error)
-	UpdateDataproduct(ctx context.Context, id string, input UpdateDataproductDto) (*DataproductMinimal, error)
-	DeleteDataproduct(ctx context.Context, id string) (*DataproductWithDataset, error)
+	UpdateDataproduct(ctx context.Context, id uuid.UUID, input UpdateDataproductDto) (*DataproductMinimal, error)
+	DeleteDataproduct(ctx context.Context, id uuid.UUID) (*DataproductWithDataset, error)
 	CreateDataset(ctx context.Context, input NewDataset) (*string, error)
-	DeleteDataset(ctx context.Context, id string) (string, error)
-	UpdateDataset(ctx context.Context, id string, input UpdateDatasetDto) (string, error)
-	GetDataset(ctx context.Context, id string) (*Dataset, error)
+	DeleteDataset(ctx context.Context, id uuid.UUID) (string, error)
+	UpdateDataset(ctx context.Context, id uuid.UUID, input UpdateDatasetDto) (string, error)
+	GetDataset(ctx context.Context, id uuid.UUID) (*Dataset, error)
 	GetAccessiblePseudoDatasetsForUser(ctx context.Context) ([]*PseudoDataset, error)
 	GetDatasetsMinimal(ctx context.Context) ([]*DatasetMinimal, error)
-	GetDataproduct(ctx context.Context, id string) (*DataproductWithDataset, error)
+	GetDataproduct(ctx context.Context, id uuid.UUID) (*DataproductWithDataset, error)
 }
 
 type PiiLevel string
@@ -136,7 +136,7 @@ type DataproductOwner struct {
 	Group            string     `json:"group"`
 	TeamkatalogenURL *string    `json:"teamkatalogenURL"`
 	TeamContact      *string    `json:"teamContact"`
-	TeamID           *string    `json:"teamID"`
+	TeamID           *uuid.UUID `json:"teamID"`
 	ProductAreaID    *uuid.UUID `json:"productAreaID"`
 }
 

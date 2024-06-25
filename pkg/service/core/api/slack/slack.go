@@ -3,6 +3,7 @@ package slack
 import (
 	"context"
 	"fmt"
+	"github.com/google/uuid"
 	"github.com/navikt/nada-backend/pkg/errs"
 	"github.com/navikt/nada-backend/pkg/service"
 	slackapi "github.com/slack-go/slack"
@@ -22,7 +23,7 @@ type slackAPI struct {
 
 var _ service.SlackAPI = &slackAPI{}
 
-func (a *slackAPI) InformNewAccessRequest(ctx context.Context, subject, datasetID string) error {
+func (a *slackAPI) InformNewAccessRequest(ctx context.Context, subject string, datasetID uuid.UUID) error {
 	const op = "slackAPI.InformNewAccessRequest"
 
 	ds, err := a.dataProductsStorage.GetDataset(ctx, datasetID)
@@ -30,7 +31,7 @@ func (a *slackAPI) InformNewAccessRequest(ctx context.Context, subject, datasetI
 		return errs.E(op, err)
 	}
 
-	dp, err := a.dataProductsStorage.GetDataproduct(ctx, ds.DataproductID.String())
+	dp, err := a.dataProductsStorage.GetDataproduct(ctx, ds.DataproductID)
 	if err != nil {
 		return errs.E(op, err)
 	}

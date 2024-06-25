@@ -2,6 +2,7 @@ package core
 
 import (
 	"context"
+	"github.com/google/uuid"
 	"github.com/navikt/nada-backend/pkg/errs"
 	"github.com/navikt/nada-backend/pkg/service"
 )
@@ -15,7 +16,7 @@ type productAreaService struct {
 	storyStorage          service.StoryStorage
 }
 
-func (s *productAreaService) GetProductAreaWithAssets(ctx context.Context, id string) (*service.ProductAreaWithAssets, error) {
+func (s *productAreaService) GetProductAreaWithAssets(ctx context.Context, id uuid.UUID) (*service.ProductAreaWithAssets, error) {
 	const op errs.Op = "productAreaService.GetProductAreaWithAssets"
 
 	rawProductArea, err := s.productAreaStorage.GetProductArea(ctx, id)
@@ -36,7 +37,7 @@ func (s *productAreaService) GetProductAreaWithAssets(ctx context.Context, id st
 		Teams: make([]*service.TeamWithAssets, 0),
 	}
 
-	teamIDs := make([]string, len(rawProductArea.Teams))
+	teamIDs := make([]uuid.UUID, len(rawProductArea.Teams))
 	for idx, tkTeam := range rawProductArea.Teams {
 		productArea.Teams = append(productArea.Teams, &service.TeamWithAssets{
 			TeamkatalogenTeam: tkTeam.TeamkatalogenTeam,

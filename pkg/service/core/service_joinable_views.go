@@ -85,7 +85,7 @@ func (s *joinableViewsService) GetJoinableViewsForUser(ctx context.Context) ([]s
 	return joinableViews, nil
 }
 
-func (s *joinableViewsService) GetJoinableView(ctx context.Context, id string) (*service.JoinableViewWithDatasource, error) {
+func (s *joinableViewsService) GetJoinableView(ctx context.Context, id uuid.UUID) (*service.JoinableViewWithDatasource, error) {
 	const op = "joinableViewsService.GetJoinableView"
 
 	joinableViewDatasets, err := s.joinableViewsStorage.GetJoinableViewWithDataset(ctx, id)
@@ -142,12 +142,12 @@ func (s *joinableViewsService) CreateJoinableViews(ctx context.Context, input se
 
 	var datasets []*service.Dataset
 	for _, dsid := range input.DatasetIDs {
-		dataset, err := s.dataProductStorage.GetDataset(ctx, dsid.String())
+		dataset, err := s.dataProductStorage.GetDataset(ctx, dsid)
 		if err != nil {
 			return "", errs.E(op, err)
 		}
 
-		dataproduct, err := s.dataProductStorage.GetDataproduct(ctx, dataset.DataproductID.String())
+		dataproduct, err := s.dataProductStorage.GetDataproduct(ctx, dataset.DataproductID)
 		if err != nil {
 			return "", errs.E(op, err)
 		}

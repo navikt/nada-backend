@@ -2,29 +2,30 @@ package service
 
 import (
 	"context"
+	"github.com/google/uuid"
 )
 
 type ProductAreaStorage interface {
-	GetProductArea(ctx context.Context, paID string) (*ProductArea, error)
+	GetProductArea(ctx context.Context, paID uuid.UUID) (*ProductArea, error)
 	GetProductAreas(ctx context.Context) ([]*ProductArea, error)
-	GetDashboard(ctx context.Context, id string) (*Dashboard, error)
+	GetDashboard(ctx context.Context, id uuid.UUID) (*Dashboard, error)
 	UpsertProductAreaAndTeam(ctx context.Context, pa []*UpsertProductAreaRequest, t []*UpsertTeamRequest) error
 }
 
 type ProductAreaService interface {
 	GetProductAreas(ctx context.Context) (*ProductAreasDto, error)
-	GetProductAreaWithAssets(ctx context.Context, id string) (*ProductAreaWithAssets, error)
+	GetProductAreaWithAssets(ctx context.Context, id uuid.UUID) (*ProductAreaWithAssets, error)
 }
 
 type UpsertProductAreaRequest struct {
-	ID   string
+	ID   uuid.UUID
 	Name string
 }
 
 // FIXCME: does this belong here?
 type UpsertTeamRequest struct {
-	ID            string
-	ProductAreaID string
+	ID            uuid.UUID
+	ProductAreaID uuid.UUID
 	Name          string
 }
 

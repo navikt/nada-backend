@@ -127,16 +127,10 @@ func (s *joinableViewStorage) GetJoinableViewsForReferenceAndUser(ctx context.Co
 	return views, nil
 }
 
-func (s *joinableViewStorage) GetJoinableViewWithDataset(ctx context.Context, id string) ([]service.JoinableViewWithDataset, error) {
+func (s *joinableViewStorage) GetJoinableViewWithDataset(ctx context.Context, id uuid.UUID) ([]service.JoinableViewWithDataset, error) {
 	const op errs.Op = "joinableViewStorage.GetJoinableViewWithDataset"
 
-	// FIXME: move this up the call chain
-	joinableViewID, err := uuid.Parse(id)
-	if err != nil {
-		return nil, errs.E(errs.InvalidRequest, op, err)
-	}
-
-	joinableViewDatasets, err := s.db.Querier.GetJoinableViewWithDataset(ctx, joinableViewID)
+	joinableViewDatasets, err := s.db.Querier.GetJoinableViewWithDataset(ctx, id)
 	if err != nil {
 		return nil, errs.E(errs.Database, op, err)
 	}

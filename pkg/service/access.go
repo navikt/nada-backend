@@ -9,12 +9,12 @@ import (
 
 type AccessStorage interface {
 	CreateAccessRequestForDataset(ctx context.Context, datasetID uuid.UUID, pollyDocumentationID uuid.NullUUID, subject, owner string, expires *time.Time) (*AccessRequest, error)
-	DeleteAccessRequest(ctx context.Context, accessRequestID string) error
-	DenyAccessRequest(ctx context.Context, accessRequestID string, reason *string) error
-	GetAccessRequest(ctx context.Context, accessRequestID string) (*AccessRequest, error)
+	DeleteAccessRequest(ctx context.Context, accessRequestID uuid.UUID) error
+	DenyAccessRequest(ctx context.Context, accessRequestID uuid.UUID, reason *string) error
+	GetAccessRequest(ctx context.Context, accessRequestID uuid.UUID) (*AccessRequest, error)
 	GetAccessToDataset(ctx context.Context, id uuid.UUID) (*Access, error)
 	GetUnrevokedExpiredAccess(ctx context.Context) ([]*Access, error)
-	GrantAccessToDatasetAndApproveRequest(ctx context.Context, datasetID, subject, accessRequestID string, expires *time.Time) error
+	GrantAccessToDatasetAndApproveRequest(ctx context.Context, datasetID uuid.UUID, subject string, accessRequestID uuid.UUID, expires *time.Time) error
 	GrantAccessToDatasetAndRenew(ctx context.Context, datasetID uuid.UUID, expires *time.Time, subject, granter string) error
 	ListAccessRequestsForDataset(ctx context.Context, datasetID uuid.UUID) ([]*AccessRequest, error)
 	ListAccessRequestsForOwner(ctx context.Context, owner []string) ([]*AccessRequest, error)
@@ -24,13 +24,13 @@ type AccessStorage interface {
 }
 
 type AccessService interface {
-	GetAccessRequests(ctx context.Context, datasetID string) (*AccessRequestsWrapper, error)
+	GetAccessRequests(ctx context.Context, datasetID uuid.UUID) (*AccessRequestsWrapper, error)
 	CreateAccessRequest(ctx context.Context, input NewAccessRequestDTO) error
-	DeleteAccessRequest(ctx context.Context, accessRequestID string) error
+	DeleteAccessRequest(ctx context.Context, accessRequestID uuid.UUID) error
 	UpdateAccessRequest(ctx context.Context, input UpdateAccessRequestDTO) error
-	ApproveAccessRequest(ctx context.Context, accessRequestID string) error
-	DenyAccessRequest(ctx context.Context, accessRequestID string, reason *string) error
-	RevokeAccessToDataset(ctx context.Context, id, gcpProjectID string) error
+	ApproveAccessRequest(ctx context.Context, accessRequestID uuid.UUID) error
+	DenyAccessRequest(ctx context.Context, accessRequestID uuid.UUID, reason *string) error
+	RevokeAccessToDataset(ctx context.Context, id uuid.UUID, gcpProjectID string) error
 	GrantAccessToDataset(ctx context.Context, input GrantAccessData, gcpProjectID string) error
 }
 

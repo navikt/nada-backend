@@ -133,15 +133,10 @@ func (s *accessStorage) CreateAccessRequestForDataset(ctx context.Context, datas
 	return ar, nil
 }
 
-func (s *accessStorage) GetAccessRequest(ctx context.Context, accessRequestID string) (*service.AccessRequest, error) {
+func (s *accessStorage) GetAccessRequest(ctx context.Context, accessRequestID uuid.UUID) (*service.AccessRequest, error) {
 	const op errs.Op = "accessStorage.GetAccessRequest"
 
-	id, err := uuid.Parse(accessRequestID)
-	if err != nil {
-		return nil, errs.E(errs.Validation, op, err, errs.Parameter("accessRequestID"))
-	}
-
-	raw, err := s.queries.GetAccessRequest(ctx, id)
+	raw, err := s.queries.GetAccessRequest(ctx, accessRequestID)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return nil, errs.E(errs.NotExist, op, err, errs.Parameter("accessRequestID"))
@@ -158,15 +153,10 @@ func (s *accessStorage) GetAccessRequest(ctx context.Context, accessRequestID st
 	return ar, nil
 }
 
-func (s *accessStorage) DeleteAccessRequest(ctx context.Context, accessRequestID string) error {
+func (s *accessStorage) DeleteAccessRequest(ctx context.Context, accessRequestID uuid.UUID) error {
 	const op errs.Op = "accessStorage.DeleteAccessRequest"
 
-	id, err := uuid.Parse(accessRequestID)
-	if err != nil {
-		return errs.E(errs.Validation, op, err, errs.Parameter("accessRequestID"))
-	}
-
-	err = s.queries.DeleteAccessRequest(ctx, id)
+	err := s.queries.DeleteAccessRequest(ctx, accessRequestID)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return nil
@@ -204,7 +194,7 @@ func (s *accessStorage) UpdateAccessRequest(ctx context.Context, input service.U
 	return nil
 }
 
-func (s *accessStorage) GrantAccessToDatasetAndApproveRequest(ctx context.Context, datasetID, subject, accessRequestID string, expires *time.Time) error {
+func (s *accessStorage) GrantAccessToDatasetAndApproveRequest(ctx context.Context, datasetID uuid.UUID, subject string, accessRequestID uuid.UUID, expires *time.Time) error {
 	const op errs.Op = "accessStorage.GrantAccessToDatasetAndApproveRequest"
 
 	q, tx, err := s.withTxFn()
@@ -217,12 +207,12 @@ func (s *accessStorage) GrantAccessToDatasetAndApproveRequest(ctx context.Contex
 	user := auth.GetUser(ctx)
 
 	_, err = q.GrantAccessToDataset(ctx, gensql.GrantAccessToDatasetParams{
-		DatasetID: uuid.MustParse(datasetID),
+		DatasetID: datasetID,
 		Subject:   subject,
 		Granter:   user.Email,
 		Expires:   ptrToNullTime(expires),
 		AccessRequestID: uuid.NullUUID{
-			UUID:  uuid.MustParse(accessRequestID),
+			UUID:  accessRequestID,
 			Valid: true,
 		},
 	})
@@ -235,7 +225,7 @@ func (s *accessStorage) GrantAccessToDatasetAndApproveRequest(ctx context.Contex
 	}
 
 	err = q.ApproveAccessRequest(ctx, gensql.ApproveAccessRequestParams{
-		ID:      uuid.MustParse(accessRequestID),
+		ID:      accessRequestID,
 		Granter: sql.NullString{String: user.Email, Valid: true},
 	})
 	if err != nil {
@@ -291,14 +281,14 @@ func (s *accessStorage) GrantAccessToDatasetAndRenew(ctx context.Context, datase
 	return nil
 }
 
-func (s *accessStorage) DenyAccessRequest(ctx context.Context, accessRequestID string, reason *string) error {
+func (s *accessStorage) DenyAccessRequest(ctx context.Context, accessRequestID uuid.UUID, reason *string) error {
 	const op errs.Op = "accessStorage.DenyAccessRequest"
 
 	// FIXME: move up the invocation chain
 	user := auth.GetUser(ctx)
 
 	err := s.queries.DenyAccessRequest(ctx, gensql.DenyAccessRequestParams{
-		ID:      uuid.MustParse(accessRequestID),
+		ID:      accessRequestID,
 		Granter: sql.NullString{String: user.Email, Valid: true},
 		Reason:  ptrToNullString(reason),
 	})

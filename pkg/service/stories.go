@@ -12,8 +12,8 @@ import (
 type StoryStorage interface {
 	GetStoriesWithTeamkatalogenByGroups(ctx context.Context, groups []string) ([]Story, error)
 	GetStoriesWithTeamkatalogenByIDs(ctx context.Context, ids []uuid.UUID) ([]Story, error)
-	GetStoriesNumberByTeam(ctx context.Context, teamID string) (int64, error)
-	GetStoriesByTeamID(ctx context.Context, teamIDs []string) ([]*Story, error)
+	GetStoriesNumberByTeam(ctx context.Context, teamID uuid.UUID) (int64, error)
+	GetStoriesByTeamID(ctx context.Context, teamIDs []uuid.UUID) ([]*Story, error)
 	GetStory(ctx context.Context, id uuid.UUID) (*Story, error)
 	CreateStory(ctx context.Context, creator string, newStory *NewStory) (*Story, error)
 	DeleteStory(ctx context.Context, id uuid.UUID) error
@@ -34,11 +34,11 @@ type StoryService interface {
 	GetStory(ctx context.Context, id uuid.UUID) (*Story, error)
 	CreateStory(ctx context.Context, newStory *NewStory, files []*UploadFile) (*Story, error)
 	CreateStoryWithTeamAndProductArea(ctx context.Context, newStory *NewStory) (*Story, error)
-	DeleteStory(ctx context.Context, id string) (*Story, error)
-	UpdateStory(ctx context.Context, id string, input UpdateStoryDto) (*Story, error)
+	DeleteStory(ctx context.Context, id uuid.UUID) (*Story, error)
+	UpdateStory(ctx context.Context, id uuid.UUID, input UpdateStoryDto) (*Story, error)
 	GetObject(ctx context.Context, path string) (*storage.ObjectAttrs, []byte, error)
-	RecreateStoryFiles(ctx context.Context, id string, files []*UploadFile) error
-	AppendStoryFiles(ctx context.Context, id string, files []*UploadFile) error
+	RecreateStoryFiles(ctx context.Context, id uuid.UUID, files []*UploadFile) error
+	AppendStoryFiles(ctx context.Context, id uuid.UUID, files []*UploadFile) error
 	GetIndexHtmlPath(ctx context.Context, prefix string) (string, error)
 }
 
@@ -64,7 +64,7 @@ type Story struct {
 	// teamkatalogenURL of the creator.
 	TeamkatalogenURL *string `json:"teamkatalogenURL"`
 	// Id of the creator's team.
-	TeamID *string `json:"teamID"`
+	TeamID *uuid.UUID `json:"teamID"`
 	// created is the timestamp for when the data story was created.
 	Created time.Time `json:"created"`
 	// lastModified is the timestamp for when the dataproduct was last modified.
@@ -88,9 +88,9 @@ type NewStory struct {
 	// teamkatalogenURL of the creator.
 	TeamkatalogenURL *string `json:"teamkatalogenURL"`
 	// Id of the creator's product area.
-	ProductAreaID *string `json:"productAreaID"`
+	ProductAreaID *uuid.UUID `json:"productAreaID"`
 	// Id of the creator's team.
-	TeamID *string `json:"teamID"`
+	TeamID *uuid.UUID `json:"teamID"`
 	// group is the owner group of the data story.
 	Group string `json:"group"`
 }

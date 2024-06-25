@@ -49,10 +49,10 @@ type MetabaseService interface {
 	SyncTableVisibility(ctx context.Context, mbMeta *MetabaseMetadata, bq BigQuery) error
 	SyncAllTablesVisibility(ctx context.Context) error
 	RevokeMetabaseAccess(ctx context.Context, dsID uuid.UUID, subject string) error
-	RevokeMetabaseAccessFromAccessID(ctx context.Context, accessID string) error
+	RevokeMetabaseAccessFromAccessID(ctx context.Context, accessID uuid.UUID) error
 	DeleteDatabase(ctx context.Context, dsID uuid.UUID) error
 	GrantMetabaseAccess(ctx context.Context, dsID uuid.UUID, subject, subjectType string) error
-	MapDataset(ctx context.Context, datasetID string, services []string) (*Dataset, error)
+	MapDataset(ctx context.Context, datasetID uuid.UUID, services []string) (*Dataset, error)
 }
 
 type MetabaseField struct{}

@@ -44,13 +44,6 @@ func (s *searchStorage) Search(ctx context.Context, query *service.SearchOptions
 	return results, nil
 }
 
-func ptrToIntDefault(v *int, def int) int {
-	if v == nil {
-		return def
-	}
-	return *v
-}
-
 func NewSearchStorage(db *database.Repo) *searchStorage {
 	return &searchStorage{
 		db: db,

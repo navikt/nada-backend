@@ -11,6 +11,8 @@ import (
 	"time"
 )
 
+var _ service.AccessService = (*accessService)(nil)
+
 type accessService struct {
 	slackapi            service.SlackAPI
 	pollyStorage        service.PollyStorage
@@ -21,16 +23,10 @@ type accessService struct {
 	bigQueryAPI         service.BigQueryAPI
 }
 
-func (s *accessService) GetAccessRequests(ctx context.Context, datasetID string) (*service.AccessRequestsWrapper, error) {
+func (s *accessService) GetAccessRequests(ctx context.Context, datasetID uuid.UUID) (*service.AccessRequestsWrapper, error) {
 	const op errs.Op = "accessService.GetAccessRequests"
 
-	// FIXME: move up the call chain
-	datasetUUID, err := uuid.Parse(datasetID)
-	if err != nil {
-		return nil, errs.E(errs.InvalidRequest, op, fmt.Errorf("parsing dataset id: %w", err))
-	}
-
-	requests, err := s.accessStorage.ListAccessRequestsForDataset(ctx, datasetUUID)
+	requests, err := s.accessStorage.ListAccessRequestsForDataset(ctx, datasetID)
 	if err != nil {
 		return nil, errs.E(op, err)
 	}
@@ -88,7 +84,7 @@ func (s *accessService) CreateAccessRequest(ctx context.Context, input service.N
 		return errs.E(op, err)
 	}
 
-	err = s.slackapi.InformNewAccessRequest(ctx, accessRequest.Owner, accessRequest.ID.String())
+	err = s.slackapi.InformNewAccessRequest(ctx, accessRequest.Owner, accessRequest.ID)
 	if err != nil {
 		return errs.E(op, err)
 	}
@@ -96,7 +92,7 @@ func (s *accessService) CreateAccessRequest(ctx context.Context, input service.N
 	return nil
 }
 
-func (s *accessService) DeleteAccessRequest(ctx context.Context, accessRequestID string) error {
+func (s *accessService) DeleteAccessRequest(ctx context.Context, accessRequestID uuid.UUID) error {
 	const op errs.Op = "accessService.DeleteAccessRequest"
 
 	accessRequest, err := s.accessStorage.GetAccessRequest(ctx, accessRequestID)
@@ -143,7 +139,7 @@ func (s *accessService) UpdateAccessRequest(ctx context.Context, input service.U
 	return nil
 }
 
-func (s *accessService) ApproveAccessRequest(ctx context.Context, accessRequestID string) error {
+func (s *accessService) ApproveAccessRequest(ctx context.Context, accessRequestID uuid.UUID) error {
 	const op errs.Op = "accessService.ApproveAccessRequest"
 
 	ar, err := s.accessStorage.GetAccessRequest(ctx, accessRequestID)
@@ -151,7 +147,7 @@ func (s *accessService) ApproveAccessRequest(ctx context.Context, accessRequestI
 		return errs.E(op, err)
 	}
 
-	ds, err := s.dataProductStorage.GetDataset(ctx, ar.DatasetID.String())
+	ds, err := s.dataProductStorage.GetDataset(ctx, ar.DatasetID)
 	if err != nil {
 		return errs.E(op, err)
 	}
@@ -161,7 +157,7 @@ func (s *accessService) ApproveAccessRequest(ctx context.Context, accessRequestI
 		return errs.E(op, err)
 	}
 
-	dp, err := s.dataProductStorage.GetDataproduct(ctx, ds.DataproductID.String())
+	dp, err := s.dataProductStorage.GetDataproduct(ctx, ds.DataproductID)
 	if err != nil {
 		return errs.E(op, err)
 	}
@@ -182,9 +178,9 @@ func (s *accessService) ApproveAccessRequest(ctx context.Context, accessRequestI
 
 	err = s.accessStorage.GrantAccessToDatasetAndApproveRequest(
 		ctx,
-		ds.ID.String(),
+		ds.ID,
 		subjWithType,
-		ar.ID.String(),
+		ar.ID,
 		ar.Expires,
 	)
 	if err != nil {
@@ -194,7 +190,7 @@ func (s *accessService) ApproveAccessRequest(ctx context.Context, accessRequestI
 	return nil
 }
 
-func (s *accessService) DenyAccessRequest(ctx context.Context, accessRequestID string, reason *string) error {
+func (s *accessService) DenyAccessRequest(ctx context.Context, accessRequestID uuid.UUID, reason *string) error {
 	const op errs.Op = "accessService.DenyAccessRequest"
 
 	ar, err := s.accessStorage.GetAccessRequest(ctx, accessRequestID)
@@ -202,12 +198,12 @@ func (s *accessService) DenyAccessRequest(ctx context.Context, accessRequestID s
 		return errs.E(op, err)
 	}
 
-	ds, err := s.dataProductStorage.GetDataset(ctx, ar.DatasetID.String())
+	ds, err := s.dataProductStorage.GetDataset(ctx, ar.DatasetID)
 	if err != nil {
 		return errs.E(op, err)
 	}
 
-	dp, err := s.dataProductStorage.GetDataproduct(ctx, ds.DataproductID.String())
+	dp, err := s.dataProductStorage.GetDataproduct(ctx, ds.DataproductID)
 	if err != nil {
 		return errs.E(op, err)
 	}
@@ -225,26 +221,20 @@ func (s *accessService) DenyAccessRequest(ctx context.Context, accessRequestID s
 	return nil
 }
 
-func (s *accessService) RevokeAccessToDataset(ctx context.Context, id, gcpProjectID string) error {
+func (s *accessService) RevokeAccessToDataset(ctx context.Context, accessID uuid.UUID, gcpProjectID string) error {
 	const op errs.Op = "accessService.RevokeAccessToDataset"
-
-	// FIXME: move this up the call chain
-	accessID, err := uuid.Parse(id)
-	if err != nil {
-		return errs.E(errs.InvalidRequest, op, fmt.Errorf("parsing access id: %w", err))
-	}
 
 	access, err := s.accessStorage.GetAccessToDataset(ctx, accessID)
 	if err != nil {
 		return errs.E(op, err)
 	}
 
-	ds, err := s.dataProductStorage.GetDataset(ctx, access.DatasetID.String())
+	ds, err := s.dataProductStorage.GetDataset(ctx, access.DatasetID)
 	if err != nil {
 		return errs.E(op, err)
 	}
 
-	dp, err := s.dataProductStorage.GetDataproduct(ctx, ds.DataproductID.String())
+	dp, err := s.dataProductStorage.GetDataproduct(ctx, ds.DataproductID)
 	if err != nil {
 		return errs.E(op, err)
 	}
@@ -314,12 +304,12 @@ func (s *accessService) GrantAccessToDataset(ctx context.Context, input service.
 	if input.Subject != nil {
 		subj = *input.Subject
 	}
-	ds, err := s.dataProductStorage.GetDataset(ctx, input.DatasetID.String())
+	ds, err := s.dataProductStorage.GetDataset(ctx, input.DatasetID)
 	if err != nil {
 		return errs.E(op, err)
 	}
 
-	dp, err := s.dataProductStorage.GetDataproduct(ctx, ds.DataproductID.String())
+	dp, err := s.dataProductStorage.GetDataproduct(ctx, ds.DataproductID)
 	if err != nil {
 		return errs.E(op, err)
 	}

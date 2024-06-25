@@ -91,7 +91,7 @@ func (e *Ensurer) run(ctx context.Context) {
 			continue
 		}
 
-		if err := e.accessService.RevokeAccessToDataset(ctx, entry.ID.String(), e.centralDataProject); err != nil {
+		if err := e.accessService.RevokeAccessToDataset(ctx, entry.ID, e.centralDataProject); err != nil {
 			e.log.WithError(err).Errorf("Setting access entry with ID %v to revoked in database", entry.ID)
 			e.errs.WithLabelValues("RevokeAccessToDataproduct").Inc()
 			continue

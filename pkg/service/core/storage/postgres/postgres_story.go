@@ -18,10 +18,10 @@ type storyStorage struct {
 	db *database.Repo
 }
 
-func (s *storyStorage) GetStoriesByTeamID(ctx context.Context, teamIDs []string) ([]*service.Story, error) {
+func (s *storyStorage) GetStoriesByTeamID(ctx context.Context, teamIDs []uuid.UUID) ([]*service.Story, error) {
 	const op errs.Op = "storyStorage.GetStoriesByTeamID"
 
-	sqlStories, err := s.db.Querier.GetStoriesByProductArea(ctx, teamIDs)
+	sqlStories, err := s.db.Querier.GetStoriesByProductArea(ctx, uuidListToStringList(teamIDs))
 	if err != nil {
 		return nil, errs.E(errs.Database, op, err)
 	}
@@ -34,10 +34,10 @@ func (s *storyStorage) GetStoriesByTeamID(ctx context.Context, teamIDs []string)
 	return stories, nil
 }
 
-func (s *storyStorage) GetStoriesNumberByTeam(ctx context.Context, teamID string) (int64, error) {
+func (s *storyStorage) GetStoriesNumberByTeam(ctx context.Context, teamID uuid.UUID) (int64, error) {
 	const op errs.Op = "storyStorage.GetStoriesNumberByTeam"
 
-	n, err := s.db.Querier.GetStoriesNumberByTeam(ctx, ptrToNullString(&teamID))
+	n, err := s.db.Querier.GetStoriesNumberByTeam(ctx, uuidToNullString(teamID))
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return 0, nil
@@ -101,7 +101,7 @@ func (s *storyStorage) CreateStory(ctx context.Context, creator string, newStory
 			Description:      ptrToString(newStory.Description),
 			Keywords:         newStory.Keywords,
 			TeamkatalogenUrl: ptrToNullString(newStory.TeamkatalogenURL),
-			TeamID:           ptrToNullString(newStory.TeamID),
+			TeamID:           uuidPtrToNullString(newStory.TeamID),
 			OwnerGroup:       newStory.Group,
 		})
 	} else {
@@ -112,7 +112,7 @@ func (s *storyStorage) CreateStory(ctx context.Context, creator string, newStory
 			Description:      ptrToString(newStory.Description),
 			Keywords:         newStory.Keywords,
 			TeamkatalogenUrl: ptrToNullString(newStory.TeamkatalogenURL),
-			TeamID:           ptrToNullString(newStory.TeamID),
+			TeamID:           uuidPtrToNullString(newStory.TeamID),
 			OwnerGroup:       newStory.Group,
 		})
 	}
@@ -183,7 +183,7 @@ func storyFromSQL(story *gensql.StoryWithTeamkatalogenView) *service.Story {
 		Created:          story.Created,
 		LastModified:     &story.LastModified,
 		Keywords:         story.Keywords,
-		TeamID:           nullStringToPtr(story.TeamID),
+		TeamID:           nullStringToUUIDPtr(story.TeamID),
 		TeamkatalogenURL: nullStringToPtr(story.TeamkatalogenUrl),
 		Description:      story.Description,
 		Group:            story.Group,

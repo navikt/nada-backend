@@ -33,7 +33,7 @@ type metabaseService struct {
 
 var _ service.MetabaseService = &metabaseService{}
 
-func (s *metabaseService) MapDataset(ctx context.Context, datasetID string, services []string) (*service.Dataset, error) {
+func (s *metabaseService) MapDataset(ctx context.Context, datasetID uuid.UUID, services []string) (*service.Dataset, error) {
 	const op errs.Op = "metabaseService.MapDataset"
 
 	ds, err := s.dataproductStorage.GetDataset(ctx, datasetID)
@@ -41,7 +41,7 @@ func (s *metabaseService) MapDataset(ctx context.Context, datasetID string, serv
 		return nil, errs.E(op, err)
 	}
 
-	dp, err := s.dataproductStorage.GetDataproduct(ctx, ds.DataproductID.String())
+	dp, err := s.dataproductStorage.GetDataproduct(ctx, ds.DataproductID)
 	if err != nil {
 		return nil, errs.E(op, err)
 	}
@@ -60,7 +60,7 @@ func (s *metabaseService) MapDataset(ctx context.Context, datasetID string, serv
 		if svc == service.MappingServiceMetabase {
 			mapMetabase = true
 
-			err := s.addDatasetMapping(ctx, uuid.MustParse(datasetID))
+			err := s.addDatasetMapping(ctx, datasetID)
 			if err != nil {
 				return nil, errs.E(op, err)
 			}
@@ -70,7 +70,7 @@ func (s *metabaseService) MapDataset(ctx context.Context, datasetID string, serv
 	}
 
 	if !mapMetabase {
-		err = s.DeleteDatabase(ctx, uuid.MustParse(datasetID))
+		err = s.DeleteDatabase(ctx, datasetID)
 		if err != nil {
 			return nil, errs.E(op, err)
 		}
@@ -119,7 +119,7 @@ func (s *metabaseService) addRestrictedDatasetMapping(ctx context.Context, dsID 
 
 	mbMeta, err := s.metabaseStorage.GetMetadata(ctx, dsID, true)
 	if errs.KindIs(errs.NotExist, err) {
-		ds, err := s.dataproductStorage.GetDataset(ctx, dsID.String())
+		ds, err := s.dataproductStorage.GetDataset(ctx, dsID)
 		if err != nil {
 			return errs.E(op, err)
 		}
@@ -306,7 +306,7 @@ func (s *metabaseService) addAllUsersDataset(ctx context.Context, dsID uuid.UUID
 	mbMetadata, err := s.metabaseStorage.GetMetadata(ctx, dsID, true)
 	if err != nil {
 		if errs.KindIs(errs.NotExist, err) {
-			ds, err := s.dataproductStorage.GetDataset(ctx, dsID.String())
+			ds, err := s.dataproductStorage.GetDataset(ctx, dsID)
 			if err != nil {
 				return errs.E(op, err)
 			}
@@ -371,7 +371,7 @@ func (s *metabaseService) create(ctx context.Context, ds dsWrapper) error {
 		return errs.E(op, err)
 	}
 
-	dp, err := s.dataproductStorage.GetDataproduct(ctx, ds.Dataset.DataproductID.String())
+	dp, err := s.dataproductStorage.GetDataproduct(ctx, ds.Dataset.DataproductID)
 	if err != nil {
 		return errs.E(op, err)
 	}
@@ -446,7 +446,7 @@ func (s *metabaseService) waitForDatabase(ctx context.Context, dbID int, tableNa
 func (s *metabaseService) cleanupOnCreateDatabaseError(ctx context.Context, dbID int, ds dsWrapper) error {
 	const op errs.Op = "metabaseService.cleanupOnCreateDatabaseError"
 
-	dataset, err := s.dataproductStorage.GetDataset(ctx, ds.Dataset.ID.String())
+	dataset, err := s.dataproductStorage.GetDataset(ctx, ds.Dataset.ID)
 	if err != nil {
 		return errs.E(op, err)
 	}
@@ -476,7 +476,7 @@ func (s *metabaseService) cleanupOnCreateDatabaseError(ctx context.Context, dbID
 		}
 	}
 
-	_, err = s.MapDataset(ctx, ds.Dataset.ID.String(), services)
+	_, err = s.MapDataset(ctx, ds.Dataset.ID, services)
 	if err != nil {
 		return errs.E(op, err)
 	}
@@ -565,11 +565,11 @@ func (s *metabaseService) deleteRestrictedDatabase(ctx context.Context, datasetI
 	return nil
 }
 
-func (s *metabaseService) RevokeMetabaseAccessFromAccessID(ctx context.Context, accessID string) error {
+func (s *metabaseService) RevokeMetabaseAccessFromAccessID(ctx context.Context, accessID uuid.UUID) error {
 	const op errs.Op = "metabaseService.RevokeMetabaseAccessFromAccessID"
 
 	// FIXME: move this up the chain
-	access, err := s.accessStorage.GetAccessToDataset(ctx, uuid.MustParse(accessID))
+	access, err := s.accessStorage.GetAccessToDataset(ctx, accessID)
 	if err != nil {
 		return errs.E(op, err)
 	}

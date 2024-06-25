@@ -117,10 +117,10 @@ func (s *insightProductStorage) GetInsightProductsByGroups(ctx context.Context, 
 	return insightProducts, nil
 }
 
-func (s *insightProductStorage) GetInsightProductsByTeamID(ctx context.Context, teamIDs []string) ([]*service.InsightProduct, error) {
+func (s *insightProductStorage) GetInsightProductsByTeamID(ctx context.Context, teamIDs []uuid.UUID) ([]*service.InsightProduct, error) {
 	const op errs.Op = "insightProductStorage.GetInsightProductsByTeamID"
 
-	raw, err := s.db.Querier.GetInsightProductsByProductArea(ctx, teamIDs)
+	raw, err := s.db.Querier.GetInsightProductsByProductArea(ctx, uuidListToStringList(teamIDs))
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return nil, nil
@@ -137,10 +137,10 @@ func (s *insightProductStorage) GetInsightProductsByTeamID(ctx context.Context, 
 	return insightProducts, nil
 }
 
-func (s *insightProductStorage) GetInsightProductsNumberByTeam(ctx context.Context, teamID string) (int64, error) {
+func (s *insightProductStorage) GetInsightProductsNumberByTeam(ctx context.Context, teamID uuid.UUID) (int64, error) {
 	const op errs.Op = "insightProductStorage.GetInsightProductsNumberByTeam"
 
-	n, err := s.db.Querier.GetInsightProductsNumberByTeam(ctx, ptrToNullString(&teamID))
+	n, err := s.db.Querier.GetInsightProductsNumberByTeam(ctx, uuidToNullString(teamID))
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return 0, nil
@@ -162,7 +162,7 @@ func insightProductFromSQL(insightProductSQL *gensql.InsightProductWithTeamkatal
 		Type:             insightProductSQL.Type,
 		Keywords:         insightProductSQL.Keywords,
 		TeamkatalogenURL: nullStringToPtr(insightProductSQL.TeamkatalogenUrl),
-		TeamID:           nullStringToPtr(insightProductSQL.TeamID),
+		TeamID:           nullStringToUUIDPtr(insightProductSQL.TeamID),
 		Group:            insightProductSQL.Group,
 		Link:             insightProductSQL.Link,
 		TeamName:         nullStringToPtr(insightProductSQL.TeamName),

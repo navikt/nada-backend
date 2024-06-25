@@ -2,8 +2,9 @@ package service
 
 import (
 	"context"
+	"github.com/google/uuid"
 )
 
 type ThirdPartyMappingStorage interface {
-	MapDataset(ctx context.Context, datasetID string, Services []string) error
+	MapDataset(ctx context.Context, datasetID uuid.UUID, Services []string) error
 }

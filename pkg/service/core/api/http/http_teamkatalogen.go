@@ -5,6 +5,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"github.com/google/uuid"
 	"github.com/navikt/nada-backend/pkg/errs"
 	"github.com/navikt/nada-backend/pkg/httpwithcache"
 	"github.com/navikt/nada-backend/pkg/service"
@@ -19,7 +20,7 @@ type teamKatalogenAPI struct {
 	url    string
 }
 
-func (t *teamKatalogenAPI) GetProductArea(ctx context.Context, paID string) (*service.TeamkatalogenProductArea, error) {
+func (t *teamKatalogenAPI) GetProductArea(ctx context.Context, paID uuid.UUID) (*service.TeamkatalogenProductArea, error) {
 	// TODO implement me
 	panic("implement me")
 }
@@ -44,9 +45,9 @@ func (t *teamKatalogenAPI) GetProductAreas(ctx context.Context) ([]*service.Team
 
 	var pasdto struct {
 		Content []struct {
-			ID       string `json:"id"`
-			Name     string `json:"name"`
-			AreaType string `json:"areaType"`
+			ID       uuid.UUID `json:"id"`
+			Name     string    `json:"name"`
+			AreaType string    `json:"areaType"`
 		} `json:"content"`
 	}
 
@@ -66,10 +67,10 @@ func (t *teamKatalogenAPI) GetProductAreas(ctx context.Context) ([]*service.Team
 	return pas, nil
 }
 
-func (t *teamKatalogenAPI) GetTeam(ctx context.Context, teamID string) (*service.TeamkatalogenTeam, error) {
+func (t *teamKatalogenAPI) GetTeam(ctx context.Context, teamID uuid.UUID) (*service.TeamkatalogenTeam, error) {
 	const op errs.Op = "teamKatalogenAPI.GetTeam"
 
-	req, err := http.NewRequestWithContext(ctx, http.MethodGet, t.url+"/team/"+teamID, nil)
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, t.url+"/team/"+teamID.String(), nil)
 	if err != nil {
 		return nil, errs.E(errs.IO, op, err)
 	}
@@ -81,9 +82,9 @@ func (t *teamKatalogenAPI) GetTeam(ctx context.Context, teamID string) (*service
 	}
 
 	var team struct {
-		ID            string `json:"id"`
-		Name          string `json:"name"`
-		ProductAreaID string `json:"productAreaId"`
+		ID            uuid.UUID `json:"id"`
+		Name          string    `json:"name"`
+		ProductAreaID uuid.UUID `json:"productAreaId"`
 	}
 
 	if err := json.Unmarshal(res, &team); err != nil {
@@ -97,14 +98,14 @@ func (t *teamKatalogenAPI) GetTeam(ctx context.Context, teamID string) (*service
 	}, nil
 }
 
-func (t *teamKatalogenAPI) GetTeamCatalogURL(teamID string) string {
-	return t.url + "/team/" + teamID
+func (t *teamKatalogenAPI) GetTeamCatalogURL(teamID uuid.UUID) string {
+	return t.url + "/team/" + teamID.String()
 }
 
-func (t *teamKatalogenAPI) GetTeamsInProductArea(ctx context.Context, paID string) ([]*service.TeamkatalogenTeam, error) {
+func (t *teamKatalogenAPI) GetTeamsInProductArea(ctx context.Context, paID uuid.UUID) ([]*service.TeamkatalogenTeam, error) {
 	const op errs.Op = "teamKatalogenAPI.GetTeamsInProductArea"
 
-	req, err := http.NewRequestWithContext(ctx, http.MethodGet, t.url+"/team?status=ACTIVE&productAreaId="+paID, nil)
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, t.url+"/team?status=ACTIVE&productAreaId="+paID.String(), nil)
 	if err != nil {
 		return nil, errs.E(errs.IO, op, err)
 	}
@@ -117,9 +118,9 @@ func (t *teamKatalogenAPI) GetTeamsInProductArea(ctx context.Context, paID strin
 
 	var teams struct {
 		Content []struct {
-			ID            string `json:"id"`
-			Name          string `json:"name"`
-			ProductAreaID string `json:"productAreaId"`
+			ID            uuid.UUID `json:"id"`
+			Name          string    `json:"name"`
+			ProductAreaID uuid.UUID `json:"productAreaId"`
 		} `json:"content"`
 	}
 

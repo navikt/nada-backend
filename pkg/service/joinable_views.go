@@ -11,7 +11,7 @@ import (
 type JoinableViewsStorage interface {
 	GetJoinableViewsForReferenceAndUser(ctx context.Context, user string, pseudoDatasetID uuid.UUID) ([]JoinableViewForReferenceAndUser, error)
 	GetJoinableViewsForOwner(ctx context.Context) ([]JoinableViewForOwner, error)
-	GetJoinableViewWithDataset(ctx context.Context, id string) ([]JoinableViewWithDataset, error)
+	GetJoinableViewWithDataset(ctx context.Context, id uuid.UUID) ([]JoinableViewWithDataset, error)
 	CreateJoinableViewsDB(ctx context.Context, name, owner string, expires *time.Time, datasourceIDs []uuid.UUID) (string, error)
 	GetJoinableViewsToBeDeletedWithRefDatasource(ctx context.Context) ([]JoinableViewToBeDeletedWithRefDatasource, error)
 	GetJoinableViewsWithReference(ctx context.Context) ([]JoinableViewWithReference, error)
@@ -20,7 +20,7 @@ type JoinableViewsStorage interface {
 
 type JoinableViewsService interface {
 	GetJoinableViewsForUser(ctx context.Context) ([]JoinableView, error)
-	GetJoinableView(ctx context.Context, id string) (*JoinableViewWithDatasource, error)
+	GetJoinableView(ctx context.Context, id uuid.UUID) (*JoinableViewWithDatasource, error)
 	CreateJoinableViews(ctx context.Context, input NewJoinableViews) (string, error)
 	GetJoinableViewsToBeDeletedWithRefDatasource(ctx context.Context) ([]JoinableViewToBeDeletedWithRefDatasource, error)
 	GetJoinableViewsWithReference(ctx context.Context) ([]JoinableViewWithReference, error)

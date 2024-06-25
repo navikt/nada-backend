@@ -8,8 +8,8 @@ import (
 )
 
 type InsightProductStorage interface {
-	GetInsightProductsNumberByTeam(ctx context.Context, teamID string) (int64, error)
-	GetInsightProductsByTeamID(ctx context.Context, teamIDs []string) ([]*InsightProduct, error)
+	GetInsightProductsNumberByTeam(ctx context.Context, teamID uuid.UUID) (int64, error)
+	GetInsightProductsByTeamID(ctx context.Context, teamIDs []uuid.UUID) ([]*InsightProduct, error)
 	GetInsightProductsByGroups(ctx context.Context, groups []string) ([]*InsightProduct, error)
 	GetInsightProductWithTeamkatalogen(ctx context.Context, id uuid.UUID) (*InsightProduct, error)
 	UpdateInsightProduct(ctx context.Context, id uuid.UUID, in UpdateInsightProductDto) (*InsightProduct, error)
@@ -18,10 +18,10 @@ type InsightProductStorage interface {
 }
 
 type InsightProductService interface {
-	GetInsightProduct(ctx context.Context, id string) (*InsightProduct, error)
-	UpdateInsightProduct(ctx context.Context, id string, input UpdateInsightProductDto) (*InsightProduct, error)
+	GetInsightProduct(ctx context.Context, id uuid.UUID) (*InsightProduct, error)
+	UpdateInsightProduct(ctx context.Context, id uuid.UUID, input UpdateInsightProductDto) (*InsightProduct, error)
 	CreateInsightProduct(ctx context.Context, input NewInsightProduct) (*InsightProduct, error)
-	DeleteInsightProduct(ctx context.Context, id string) (*InsightProduct, error)
+	DeleteInsightProduct(ctx context.Context, id uuid.UUID) (*InsightProduct, error)
 }
 
 // InsightProduct contains the metadata of insight product.
@@ -45,7 +45,7 @@ type InsightProduct struct {
 	// teamkatalogenURL of the creator
 	TeamkatalogenURL *string `json:"teamkatalogenURL,omitempty"`
 	// Id of the creator's team.
-	TeamID *string `json:"teamID,omitempty"`
+	TeamID *uuid.UUID `json:"teamID,omitempty"`
 	// created is the timestamp for when the insight product was created
 	Created time.Time `json:"created"`
 	// lastModified is the timestamp for when the insight product was last modified

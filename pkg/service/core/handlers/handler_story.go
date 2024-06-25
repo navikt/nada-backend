@@ -10,6 +10,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/navikt/nada-backend/pkg/amplitude"
 	"github.com/navikt/nada-backend/pkg/auth"
+	"github.com/navikt/nada-backend/pkg/errs"
 	"github.com/navikt/nada-backend/pkg/service"
 	log "github.com/sirupsen/logrus"
 	"io"
@@ -33,7 +34,14 @@ type storyHandler struct {
 }
 
 func (h *storyHandler) DeleteStory(ctx context.Context, _ *http.Request, _ any) (*service.Story, error) {
-	story, err := h.storyService.DeleteStory(ctx, chi.URLParamFromCtx(ctx, "id"))
+	const op errs.Op = "storyHandler.DeleteStory"
+
+	id, err := uuid.Parse(chi.URLParamFromCtx(ctx, "id"))
+	if err != nil {
+		return nil, errs.E(errs.InvalidRequest, op, err)
+	}
+
+	story, err := h.storyService.DeleteStory(ctx, id)
 	if err != nil {
 		return nil, err
 	}
@@ -42,7 +50,14 @@ func (h *storyHandler) DeleteStory(ctx context.Context, _ *http.Request, _ any) 
 }
 
 func (h *storyHandler) UpdateStory(ctx context.Context, _ *http.Request, in service.UpdateStoryDto) (*service.Story, error) {
-	story, err := h.storyService.UpdateStory(ctx, chi.URLParamFromCtx(ctx, "id"), in)
+	const op errs.Op = "storyHandler.UpdateStory"
+
+	id, err := uuid.Parse(chi.URLParamFromCtx(ctx, "id"))
+	if err != nil {
+		return nil, errs.E(errs.InvalidRequest, op, err)
+	}
+
+	story, err := h.storyService.UpdateStory(ctx, id, in)
 	if err != nil {
 		return nil, err
 	}
@@ -65,7 +80,14 @@ func (h *storyHandler) CreateStory(ctx context.Context, r *http.Request, _ any) 
 }
 
 func (h *storyHandler) GetStoryMetadata(ctx context.Context, _ *http.Request, _ any) (*service.Story, error) {
-	story, err := h.storyService.GetStory(ctx, uuid.MustParse(chi.URLParamFromCtx(ctx, "id")))
+	const op errs.Op = "storyHandler.GetStoryMetadata"
+
+	id, err := uuid.Parse(chi.URLParamFromCtx(ctx, "id"))
+	if err != nil {
+		return nil, errs.E(errs.InvalidRequest, op, fmt.Errorf("parsing id: %w", err))
+	}
+
+	story, err := h.storyService.GetStory(ctx, id)
 	if err != nil {
 		return nil, err
 	}
@@ -152,7 +174,7 @@ func (h *storyHandler) UpdateStoryHTTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	err = h.storyService.RecreateStoryFiles(r.Context(), qID.String(), files)
+	err = h.storyService.RecreateStoryFiles(r.Context(), qID, files)
 	if err != nil {
 		log.WithError(err).Errorf("uploading file")
 		writeError(w, http.StatusInternalServerError, fmt.Errorf("internal server error"))
@@ -305,7 +327,6 @@ func (h *storyHandler) getStoryHTTP(w http.ResponseWriter, r *http.Request, next
 	next.ServeHTTP(w, r)
 }
 
-// FIXME: this mustParse stuff isn't great
 func (h *storyHandler) publishAmplitudeEvent(ctx context.Context, path string) error {
 	id := strings.Split(path, "/")[2]
 

@@ -2,7 +2,10 @@ package handlers
 
 import (
 	"context"
+	"fmt"
 	"github.com/go-chi/chi"
+	"github.com/google/uuid"
+	"github.com/navikt/nada-backend/pkg/errs"
 	"github.com/navikt/nada-backend/pkg/service"
 	"net/http"
 )
@@ -31,7 +34,14 @@ func (h *joinableViewsHandler) GetJoinableViewsForUser(ctx context.Context, _ *h
 }
 
 func (h *joinableViewsHandler) GetJoinableView(ctx context.Context, _ *http.Request, _ any) (*service.JoinableViewWithDatasource, error) {
-	view, err := h.service.GetJoinableView(ctx, chi.URLParamFromCtx(ctx, "id"))
+	const op errs.Op = "joinableViewsHandler.GetJoinableView"
+
+	id, err := uuid.Parse(chi.URLParamFromCtx(ctx, "id"))
+	if err != nil {
+		return nil, errs.E(errs.InvalidRequest, op, fmt.Errorf("parsing id: %w", err))
+	}
+
+	view, err := h.service.GetJoinableView(ctx, id)
 	if err != nil {
 		return nil, err
 	}

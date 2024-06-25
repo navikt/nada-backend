@@ -14,7 +14,6 @@ import (
 	"github.com/navikt/nada-backend/pkg/service"
 	log "github.com/sirupsen/logrus"
 	"github.com/sqlc-dev/pqtype"
-	"net/url"
 )
 
 var _ service.DataProductsStorage = &dataProductStorage{}
@@ -35,16 +34,16 @@ func (s *dataProductStorage) GetDataproductKeywords(ctx context.Context, dpid uu
 	return keywords, nil
 }
 
-func (s *dataProductStorage) GetDataproductsByTeamID(ctx context.Context, teamIDs []string) ([]*service.Dataproduct, error) {
+func (s *dataProductStorage) GetDataproductsByTeamID(ctx context.Context, teamIDs []uuid.UUID) ([]*service.Dataproduct, error) {
 	const op errs.Op = "dataProductStorage.GetDataproductsByTeamID"
 
-	sqlDP, err := s.db.Querier.GetDataproductsByProductArea(ctx, teamIDs)
+	raw, err := s.db.Querier.GetDataproductsByProductArea(ctx, uuidListToStringList(teamIDs))
 	if err != nil {
 		return nil, errs.E(errs.Database, op, err)
 	}
 
-	dps := make([]*service.Dataproduct, len(sqlDP))
-	for idx, dp := range sqlDP {
+	dps := make([]*service.Dataproduct, len(raw))
+	for idx, dp := range raw {
 		dps[idx] = dataproductFromSQL(&dp)
 
 		keywords, err := s.GetDataproductKeywords(ctx, dps[idx].ID)
@@ -62,10 +61,10 @@ func (s *dataProductStorage) GetDataproductsByTeamID(ctx context.Context, teamID
 	return dps, nil
 }
 
-func (s *dataProductStorage) GetDataproductsNumberByTeam(ctx context.Context, teamID string) (int64, error) {
+func (s *dataProductStorage) GetDataproductsNumberByTeam(ctx context.Context, teamID uuid.UUID) (int64, error) {
 	const op errs.Op = "dataProductStorage.GetDataproductsNumberByTeam"
 
-	n, err := s.db.Querier.GetDataproductsNumberByTeam(ctx, ptrToNullString(&teamID))
+	n, err := s.db.Querier.GetDataproductsNumberByTeam(ctx, uuidToNullString(teamID))
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return 0, nil
@@ -99,15 +98,6 @@ func (s *dataProductStorage) GetAccessibleDatasets(ctx context.Context, userGrou
 	return
 }
 
-func matchAny(s string, targetSet []string) bool {
-	for _, v := range targetSet {
-		if s == v {
-			return true
-		}
-	}
-	return false
-}
-
 func accessibleDatasetFromSql(d *gensql.GetAccessibleDatasetsRow) *service.AccessibleDataset {
 	return &service.AccessibleDataset{
 		Dataset: service.Dataset{
@@ -124,14 +114,6 @@ func accessibleDatasetFromSql(d *gensql.GetAccessibleDatasetsRow) *service.Acces
 		DpSlug:          *nullStringToPtr(d.DpSlug),
 		DataproductName: nullStringToString(d.DpName),
 	}
-}
-
-func nullStringToString(ns sql.NullString) string {
-	if !ns.Valid {
-		return ""
-	}
-
-	return ns.String
 }
 
 func (s *dataProductStorage) GetDataproductsWithDatasetsAndAccessRequests(ctx context.Context, ids []uuid.UUID, groups []string) ([]service.DataproductWithDataset, []service.AccessRequestForGranter, error) {
@@ -288,7 +270,7 @@ func (s *dataProductStorage) GetDatasetsMinimal(ctx context.Context) ([]*service
 	return dss, nil
 }
 
-func (s *dataProductStorage) UpdateDataset(ctx context.Context, id string, input service.UpdateDatasetDto) (string, error) {
+func (s *dataProductStorage) UpdateDataset(ctx context.Context, id uuid.UUID, input service.UpdateDatasetDto) (string, error) {
 	const op errs.Op = "dataProductStorage.UpdateDataset"
 
 	if input.Keywords == nil {
@@ -298,7 +280,7 @@ func (s *dataProductStorage) UpdateDataset(ctx context.Context, id string, input
 	res, err := s.db.Querier.UpdateDataset(ctx, gensql.UpdateDatasetParams{
 		Name:                     input.Name,
 		Description:              ptrToNullString(input.Description),
-		ID:                       uuid.MustParse(id),
+		ID:                       id,
 		Pii:                      gensql.PiiLevel(input.Pii),
 		Slug:                     slugify(input.Slug, input.Name),
 		Repo:                     ptrToNullString(input.Repo),
@@ -458,10 +440,10 @@ func (s *dataProductStorage) CreateDataset(ctx context.Context, ds service.NewDa
 	return &created.Slug, nil
 }
 
-func (s *dataProductStorage) DeleteDataproduct(ctx context.Context, id string) error {
+func (s *dataProductStorage) DeleteDataproduct(ctx context.Context, id uuid.UUID) error {
 	const op errs.Op = "dataProductStorage.DeleteDataproduct"
 
-	err := s.db.Querier.DeleteDataproduct(ctx, uuid.MustParse(id))
+	err := s.db.Querier.DeleteDataproduct(ctx, id)
 	if err != nil {
 		return errs.E(errs.Database, op, err)
 	}
@@ -469,13 +451,13 @@ func (s *dataProductStorage) DeleteDataproduct(ctx context.Context, id string) e
 	return nil
 }
 
-func (s *dataProductStorage) UpdateDataproduct(ctx context.Context, id string, input service.UpdateDataproductDto) (*service.DataproductMinimal, error) {
+func (s *dataProductStorage) UpdateDataproduct(ctx context.Context, id uuid.UUID, input service.UpdateDataproductDto) (*service.DataproductMinimal, error) {
 	const op errs.Op = "dataProductStorage.UpdateDataproduct"
 
 	res, err := s.db.Querier.UpdateDataproduct(ctx, gensql.UpdateDataproductParams{
 		Name:                  input.Name,
 		Description:           ptrToNullString(input.Description),
-		ID:                    uuid.MustParse(id),
+		ID:                    id,
 		OwnerTeamkatalogenUrl: ptrToNullString(input.TeamkatalogenURL),
 		TeamContact:           ptrToNullString(input.TeamContact),
 		Slug:                  slugify(input.Slug, input.Name),
@@ -548,16 +530,10 @@ func (s *dataProductStorage) DeleteDataset(ctx context.Context, id uuid.UUID) er
 	return nil
 }
 
-func (s *dataProductStorage) GetDataset(ctx context.Context, id string) (*service.Dataset, error) {
+func (s *dataProductStorage) GetDataset(ctx context.Context, id uuid.UUID) (*service.Dataset, error) {
 	const op errs.Op = "dataProductStorage.GetDataset"
 
-	// FIXME: move up the chain
-	uuid, err := uuid.Parse(id)
-	if err != nil {
-		return nil, errs.E(errs.InvalidRequest, op, err, errs.Parameter("id"))
-	}
-
-	rawDataset, err := s.db.Querier.GetDatasetComplete(ctx, uuid)
+	rawDataset, err := s.db.Querier.GetDatasetComplete(ctx, id)
 	if err != nil {
 		return nil, errs.E(errs.Database, op, err)
 	}
@@ -691,22 +667,16 @@ func (s *dataProductStorage) GetDataproducts(ctx context.Context, ids []uuid.UUI
 	return products, nil
 }
 
-func (s *dataProductStorage) GetDataproduct(ctx context.Context, id string) (*service.DataproductWithDataset, error) {
+func (s *dataProductStorage) GetDataproduct(ctx context.Context, id uuid.UUID) (*service.DataproductWithDataset, error) {
 	const op errs.Op = "dataProductStorage.GetDataproduct"
 
-	// FIXME: move this up the chain
-	dpuuid, err := uuid.Parse(id)
-	if err != nil {
-		return nil, errs.E(errs.InvalidRequest, op, err, errs.Parameter("id"))
-	}
-
-	dps, err := s.GetDataproducts(ctx, []uuid.UUID{dpuuid})
+	dps, err := s.GetDataproducts(ctx, []uuid.UUID{id})
 	if err != nil {
 		return nil, errs.E(errs.Database, op, err)
 	}
 
 	if len(dps) == 0 {
-		return nil, errs.E(errs.NotExist, op, fmt.Errorf("dataproduct with id %v does not exist", dpuuid))
+		return nil, errs.E(errs.NotExist, op, fmt.Errorf("dataproduct with id %v does not exist", id))
 	}
 
 	// it is safe to directly use the first element without checking the length
@@ -752,7 +722,7 @@ __loop_rows:
 					Group:            dprow.DpGroup,
 					TeamkatalogenURL: nullStringToPtr(dprow.TeamkatalogenUrl),
 					TeamContact:      nullStringToPtr(dprow.TeamContact),
-					TeamID:           nullStringToPtr(dprow.TeamID),
+					TeamID:           nullStringToUUIDPtr(dprow.TeamID),
 					ProductAreaID:    nullUUIDToUUIDPtr(dprow.PaID),
 				},
 			},
@@ -830,7 +800,7 @@ func dataproductMinimalFromSQL(dp *gensql.Dataproduct) *service.DataproductMinim
 			Group:            dp.Group,
 			TeamkatalogenURL: &dp.TeamkatalogenUrl.String,
 			TeamContact:      &dp.TeamContact.String,
-			TeamID:           &dp.TeamID.String,
+			TeamID:           nullStringToUUIDPtr(dp.TeamID),
 		},
 	}
 }
@@ -844,7 +814,7 @@ func dataproductFromSQL(dp *gensql.DataproductWithTeamkatalogenView) *service.Da
 			Group:            dp.Group,
 			TeamkatalogenURL: nullStringToPtr(dp.TeamkatalogenUrl),
 			TeamContact:      nullStringToPtr(dp.TeamContact),
-			TeamID:           nullStringToPtr(dp.TeamID),
+			TeamID:           nullStringToUUIDPtr(dp.TeamID),
 			ProductAreaID:    nullUUIDToUUIDPtr(dp.PaID),
 		},
 		Created:         dp.Created,
@@ -853,36 +823,6 @@ func dataproductFromSQL(dp *gensql.DataproductWithTeamkatalogenView) *service.Da
 		TeamName:        nullStringToPtr(dp.TeamName),
 		ProductAreaName: nullStringToString(dp.PaName),
 	}
-}
-
-func slugify(maybeslug *string, fallback string) string {
-	if maybeslug != nil {
-		return *maybeslug
-	}
-	// TODO(thokra): Smartify this?
-	return url.PathEscape(fallback)
-}
-
-func ptrToString(s *string) string {
-	if s != nil {
-		return *s
-	}
-	return ""
-}
-
-func nullStringToPtr(ns sql.NullString) *string {
-	if !ns.Valid {
-		return nil
-	}
-
-	return &ns.String
-}
-
-func nullUUIDToUUIDPtr(nu uuid.NullUUID) *uuid.UUID {
-	if !nu.Valid {
-		return nil
-	}
-	return &nu.UUID
 }
 
 func NewDataProductStorage(databasesBaseURL string, db *database.Repo) *dataProductStorage {

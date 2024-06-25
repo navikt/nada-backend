@@ -20,7 +20,7 @@ type dataProductsService struct {
 	allUsersGroup      string
 }
 
-func (s *dataProductsService) GetDataset(ctx context.Context, id string) (*service.Dataset, error) {
+func (s *dataProductsService) GetDataset(ctx context.Context, id uuid.UUID) (*service.Dataset, error) {
 	const op errs.Op = "dataProductsService.GetDataset"
 
 	ds, err := s.dataProductStorage.GetDataset(ctx, id)
@@ -31,7 +31,7 @@ func (s *dataProductsService) GetDataset(ctx context.Context, id string) (*servi
 	return ds, nil
 }
 
-func (s *dataProductsService) GetDataproduct(ctx context.Context, id string) (*service.DataproductWithDataset, error) {
+func (s *dataProductsService) GetDataproduct(ctx context.Context, id uuid.UUID) (*service.DataproductWithDataset, error) {
 	const op errs.Op = "dataProductsService.GetDataproduct"
 
 	dp, err := s.dataProductStorage.GetDataproduct(ctx, id)
@@ -93,7 +93,7 @@ func (s *dataProductsService) CreateDataproduct(ctx context.Context, input servi
 	return dataproduct, nil
 }
 
-func (s *dataProductsService) UpdateDataproduct(ctx context.Context, id string, input service.UpdateDataproductDto) (*service.DataproductMinimal, error) {
+func (s *dataProductsService) UpdateDataproduct(ctx context.Context, id uuid.UUID, input service.UpdateDataproductDto) (*service.DataproductMinimal, error) {
 	const op errs.Op = "dataProductsService.UpdateDataproduct"
 
 	dp, err := s.dataProductStorage.GetDataproduct(ctx, id)
@@ -117,7 +117,7 @@ func (s *dataProductsService) UpdateDataproduct(ctx context.Context, id string, 
 	return dataproduct, nil
 }
 
-func (s *dataProductsService) DeleteDataproduct(ctx context.Context, id string) (*service.DataproductWithDataset, error) {
+func (s *dataProductsService) DeleteDataproduct(ctx context.Context, id uuid.UUID) (*service.DataproductWithDataset, error) {
 	const op errs.Op = "dataProductsService.DeleteDataproduct"
 
 	dp, err := s.dataProductStorage.GetDataproduct(ctx, id)
@@ -143,7 +143,7 @@ func (s *dataProductsService) CreateDataset(ctx context.Context, input service.N
 	// FIXME: move up the call chain
 	user := auth.GetUser(ctx)
 
-	dp, err := s.dataProductStorage.GetDataproduct(ctx, input.DataproductID.String())
+	dp, err := s.dataProductStorage.GetDataproduct(ctx, input.DataproductID)
 	if err != nil {
 		return nil, errs.E(op, err)
 	}
@@ -258,7 +258,7 @@ func (s *dataProductsService) prepareBigQuery(ctx context.Context, srcProject, s
 	return &metadata, nil
 }
 
-func (s *dataProductsService) DeleteDataset(ctx context.Context, id string) (string, error) {
+func (s *dataProductsService) DeleteDataset(ctx context.Context, id uuid.UUID) (string, error) {
 	const op errs.Op = "dataProductsService.DeleteDataset"
 
 	ds, err := s.dataProductStorage.GetDataset(ctx, id)
@@ -266,7 +266,7 @@ func (s *dataProductsService) DeleteDataset(ctx context.Context, id string) (str
 		return "", errs.E(op, err)
 	}
 
-	dp, err := s.dataProductStorage.GetDataproduct(ctx, ds.DataproductID.String())
+	dp, err := s.dataProductStorage.GetDataproduct(ctx, ds.DataproductID)
 	if err != nil {
 		return "", errs.E(op, err)
 	}
@@ -275,7 +275,7 @@ func (s *dataProductsService) DeleteDataset(ctx context.Context, id string) (str
 		return "", errs.E(op, err)
 	}
 
-	err = s.dataProductStorage.DeleteDataset(ctx, uuid.MustParse(id))
+	err = s.dataProductStorage.DeleteDataset(ctx, id)
 	if err != nil {
 		return "", errs.E(op, err)
 	}
@@ -283,7 +283,7 @@ func (s *dataProductsService) DeleteDataset(ctx context.Context, id string) (str
 	return dp.ID.String(), nil
 }
 
-func (s *dataProductsService) UpdateDataset(ctx context.Context, id string, input service.UpdateDatasetDto) (string, error) {
+func (s *dataProductsService) UpdateDataset(ctx context.Context, id uuid.UUID, input service.UpdateDatasetDto) (string, error) {
 	const op errs.Op = "dataProductsService.UpdateDataset"
 
 	ds, err := s.dataProductStorage.GetDataset(ctx, id)
@@ -295,7 +295,7 @@ func (s *dataProductsService) UpdateDataset(ctx context.Context, id string, inpu
 		input.DataproductID = &ds.DataproductID
 	}
 
-	dp, err := s.dataProductStorage.GetDataproduct(ctx, ds.DataproductID.String())
+	dp, err := s.dataProductStorage.GetDataproduct(ctx, ds.DataproductID)
 	if err != nil {
 		return "", errs.E(op, err)
 	}
@@ -313,7 +313,7 @@ func (s *dataProductsService) UpdateDataset(ctx context.Context, id string, inpu
 	}
 
 	if *input.DataproductID != ds.DataproductID {
-		dp2, err := s.dataProductStorage.GetDataproduct(ctx, input.DataproductID.String())
+		dp2, err := s.dataProductStorage.GetDataproduct(ctx, *input.DataproductID)
 		if err != nil {
 			return "", errs.E(op, err)
 		}
@@ -328,7 +328,7 @@ func (s *dataProductsService) UpdateDataset(ctx context.Context, id string, inpu
 	}
 
 	if len(input.PseudoColumns) > 0 {
-		referenceDatasource, err := s.bigQueryStorage.GetBigqueryDatasource(ctx, uuid.MustParse(id), true)
+		referenceDatasource, err := s.bigQueryStorage.GetBigqueryDatasource(ctx, id, true)
 		if err != nil {
 			return "", errs.E(op, err)
 		}
@@ -352,7 +352,7 @@ func (s *dataProductsService) UpdateDataset(ctx context.Context, id string, inpu
 	err = s.bigQueryStorage.UpdateBigqueryDatasource(ctx, service.BigQueryDataSourceUpdate{
 		PiiTags:       input.PiiTags,
 		PseudoColumns: input.PseudoColumns,
-		DatasetID:     uuid.MustParse(id),
+		DatasetID:     id,
 	})
 	if err != nil {
 		return "", errs.E(op, err)

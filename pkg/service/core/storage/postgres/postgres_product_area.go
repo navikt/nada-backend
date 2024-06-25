@@ -29,13 +29,8 @@ func (s *productAreaStorage) UpsertProductAreaAndTeam(ctx context.Context, pas [
 	q := s.db.Querier.WithTx(tx)
 
 	for _, pa := range pas {
-		paUUID, err := uuid.Parse(pa.ID)
-		if err != nil {
-			return errs.E(errs.Internal, op, err, errs.Parameter("product_area_id"))
-		}
-
 		err = q.UpsertProductArea(ctx, gensql.UpsertProductAreaParams{
-			ID: paUUID,
+			ID: pa.ID,
 			Name: sql.NullString{
 				String: pa.Name,
 				Valid:  true,
@@ -47,14 +42,9 @@ func (s *productAreaStorage) UpsertProductAreaAndTeam(ctx context.Context, pas [
 	}
 
 	for _, team := range teams {
-		teamUUID, err := uuid.Parse(team.ID)
-		if err != nil {
-			return errs.E(errs.Internal, op, err, errs.Parameter("team_id"))
-		}
-
 		err = q.UpsertTeam(context.Background(), gensql.UpsertTeamParams{
-			ID:            teamUUID,
-			ProductAreaID: uuid.NullUUID{UUID: uuid.MustParse(team.ProductAreaID), Valid: true},
+			ID:            team.ID,
+			ProductAreaID: uuid.NullUUID{UUID: team.ProductAreaID, Valid: true},
 			Name: sql.NullString{
 				String: team.Name,
 				Valid:  true,
@@ -70,10 +60,10 @@ func (s *productAreaStorage) UpsertProductAreaAndTeam(ctx context.Context, pas [
 	return nil
 }
 
-func (s *productAreaStorage) GetDashboard(ctx context.Context, id string) (*service.Dashboard, error) {
+func (s *productAreaStorage) GetDashboard(ctx context.Context, id uuid.UUID) (*service.Dashboard, error) {
 	const op errs.Op = "productAreaStorage.GetDashboard"
 
-	dashboard, err := s.db.Querier.GetDashboard(ctx, id)
+	dashboard, err := s.db.Querier.GetDashboard(ctx, id.String())
 	if err != nil && !errors.Is(err, sql.ErrNoRows) {
 		return nil, errs.E(errs.Database, op, err)
 	}
@@ -84,10 +74,10 @@ func (s *productAreaStorage) GetDashboard(ctx context.Context, id string) (*serv
 	}, nil
 }
 
-func (s *productAreaStorage) GetProductArea(ctx context.Context, paID string) (*service.ProductArea, error) {
+func (s *productAreaStorage) GetProductArea(ctx context.Context, paID uuid.UUID) (*service.ProductArea, error) {
 	const op errs.Op = "productAreaStorage.GetProductArea"
 
-	pa, err := s.db.Querier.GetProductArea(ctx, uuid.MustParse(paID))
+	pa, err := s.db.Querier.GetProductArea(ctx, paID)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return nil, errs.E(errs.NotExist, op, err, errs.Parameter("product_area_id"))
@@ -108,9 +98,9 @@ func (s *productAreaStorage) GetProductArea(ctx context.Context, paID string) (*
 	for _, team := range teams {
 		paTeams = append(paTeams, &service.Team{
 			TeamkatalogenTeam: &service.TeamkatalogenTeam{
-				ID:            team.ID.String(),
+				ID:            team.ID,
 				Name:          team.Name.String,
-				ProductAreaID: team.ProductAreaID.UUID.String(),
+				ProductAreaID: team.ProductAreaID.UUID,
 			},
 		})
 	}
@@ -122,7 +112,7 @@ func (s *productAreaStorage) GetProductArea(ctx context.Context, paID string) (*
 
 	return &service.ProductArea{
 		TeamkatalogenProductArea: &service.TeamkatalogenProductArea{
-			ID:       pa.ID.String(),
+			ID:       pa.ID,
 			Name:     pa.Name.String,
 			AreaType: areaType,
 		},
@@ -151,9 +141,9 @@ func (s *productAreaStorage) GetProductAreas(ctx context.Context) ([]*service.Pr
 			if team.ProductAreaID.Valid && team.ProductAreaID.UUID == pa.ID {
 				paTeams = append(paTeams, &service.Team{
 					TeamkatalogenTeam: &service.TeamkatalogenTeam{
-						ID:            team.ID.String(),
+						ID:            team.ID,
 						Name:          team.Name.String,
-						ProductAreaID: team.ProductAreaID.UUID.String(),
+						ProductAreaID: team.ProductAreaID.UUID,
 					},
 				})
 			}
@@ -164,7 +154,7 @@ func (s *productAreaStorage) GetProductAreas(ctx context.Context) ([]*service.Pr
 		}
 		productAreas = append(productAreas, &service.ProductArea{
 			TeamkatalogenProductArea: &service.TeamkatalogenProductArea{
-				ID:       pa.ID.String(),
+				ID:       pa.ID,
 				Name:     pa.Name.String,
 				AreaType: areaType,
 			},
