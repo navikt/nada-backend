@@ -1,13 +1,14 @@
 package auth
 
 import (
+	"github.com/navikt/nada-backend/pkg/service"
 	"sync"
 	"time"
 )
 
 type groupsCacheValue struct {
-	GoogleGroups  Groups
-	AzureGroups   Groups
+	GoogleGroups  service.Groups
+	AzureGroups   service.Groups
 	GoogleExpires time.Time
 	AzureExpires  time.Time
 }
@@ -17,7 +18,7 @@ type groupsCacher struct {
 	cache map[string]groupsCacheValue
 }
 
-func (g *groupsCacher) GetGoogleGroups(email string) (Groups, bool) {
+func (g *groupsCacher) GetGoogleGroups(email string) (service.Groups, bool) {
 	g.lock.RLock()
 	defer g.lock.RUnlock()
 
@@ -31,7 +32,7 @@ func (g *groupsCacher) GetGoogleGroups(email string) (Groups, bool) {
 	return v.GoogleGroups, true
 }
 
-func (g *groupsCacher) SetGoogleGroups(email string, groups Groups) {
+func (g *groupsCacher) SetGoogleGroups(email string, groups service.Groups) {
 	g.lock.Lock()
 	defer g.lock.Unlock()
 
@@ -50,7 +51,7 @@ func (g *groupsCacher) SetGoogleGroups(email string, groups Groups) {
 	}
 }
 
-func (g *groupsCacher) GetAzureGroups(email string) (Groups, bool) {
+func (g *groupsCacher) GetAzureGroups(email string) (service.Groups, bool) {
 	g.lock.RLock()
 	defer g.lock.RUnlock()
 
@@ -64,7 +65,7 @@ func (g *groupsCacher) GetAzureGroups(email string) (Groups, bool) {
 	return v.AzureGroups, true
 }
 
-func (g *groupsCacher) SetAzureGroups(email string, groups Groups) {
+func (g *groupsCacher) SetAzureGroups(email string, groups service.Groups) {
 	g.lock.Lock()
 	defer g.lock.Unlock()
 

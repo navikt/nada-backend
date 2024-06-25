@@ -21,11 +21,9 @@ type userService struct {
 	teamProjectsMapping   *auth.TeamProjectsMapping
 }
 
-func (s *userService) GetUserData(ctx context.Context) (*service.UserInfo, error) {
+func (s *userService) GetUserData(ctx context.Context, user *service.User) (*service.UserInfo, error) {
 	const op = "userService.GetUserData"
 
-	// FIXME: move this up the call chain
-	user := auth.GetUser(ctx)
 	if user == nil {
 		return nil, errs.E(errs.Unauthenticated, op, fmt.Errorf("no user found in context"))
 	}
@@ -53,7 +51,7 @@ func (s *userService) GetUserData(ctx context.Context) (*service.UserInfo, error
 
 		userData.GcpProjects = append(userData.GcpProjects, service.GCPProject{
 			ID: proj,
-			Group: &auth.Group{
+			Group: &service.Group{
 				Name:  grp.Name,
 				Email: grp.Email,
 			},
@@ -118,7 +116,7 @@ func (s *userService) GetUserData(ctx context.Context) (*service.UserInfo, error
 	return userData, nil
 }
 
-func teamNamesFromGroups(groups auth.Groups) []string {
+func teamNamesFromGroups(groups service.Groups) []string {
 	var teams []string
 	for _, g := range groups {
 		teams = append(teams, auth.TrimNaisTeamPrefix(strings.Split(g.Email, "@")[0]))

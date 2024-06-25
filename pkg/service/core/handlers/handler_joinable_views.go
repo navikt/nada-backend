@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"github.com/go-chi/chi"
 	"github.com/google/uuid"
+	"github.com/navikt/nada-backend/pkg/auth"
 	"github.com/navikt/nada-backend/pkg/errs"
 	"github.com/navikt/nada-backend/pkg/service"
 	"net/http"
@@ -16,7 +17,9 @@ type joinableViewsHandler struct {
 
 // FIXME: return something other than a string
 func (h *joinableViewsHandler) CreateJoinableViews(ctx context.Context, _ *http.Request, in service.NewJoinableViews) (string, error) {
-	id, err := h.service.CreateJoinableViews(ctx, in)
+	user := auth.GetUser(ctx)
+
+	id, err := h.service.CreateJoinableViews(ctx, user, in)
 	if err != nil {
 		return "", nil
 	}
@@ -25,7 +28,9 @@ func (h *joinableViewsHandler) CreateJoinableViews(ctx context.Context, _ *http.
 }
 
 func (h *joinableViewsHandler) GetJoinableViewsForUser(ctx context.Context, _ *http.Request, _ any) ([]service.JoinableView, error) {
-	views, err := h.service.GetJoinableViewsForUser(ctx)
+	user := auth.GetUser(ctx)
+
+	views, err := h.service.GetJoinableViewsForUser(ctx, user)
 	if err != nil {
 		return nil, err
 	}
@@ -41,7 +46,9 @@ func (h *joinableViewsHandler) GetJoinableView(ctx context.Context, _ *http.Requ
 		return nil, errs.E(errs.InvalidRequest, op, fmt.Errorf("parsing id: %w", err))
 	}
 
-	view, err := h.service.GetJoinableView(ctx, id)
+	user := auth.GetUser(ctx)
+
+	view, err := h.service.GetJoinableView(ctx, user, id)
 	if err != nil {
 		return nil, err
 	}

@@ -13,7 +13,7 @@ type TokenStorage interface {
 }
 
 type TokenService interface {
-	RotateNadaToken(ctx context.Context, team string) error
+	RotateNadaToken(ctx context.Context, user *User, team string) error
 	GetTeamFromNadaToken(ctx context.Context, token string) (string, error)
 	GetNadaTokenForTeam(ctx context.Context, team string) (string, error)
 	GetNadaTokens(ctx context.Context) (map[string]string, error)

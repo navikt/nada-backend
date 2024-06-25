@@ -3,12 +3,61 @@ package service
 import (
 	"context"
 	"time"
-
-	"github.com/navikt/nada-backend/pkg/auth"
 )
 
 type UserService interface {
-	GetUserData(ctx context.Context) (*UserInfo, error)
+	GetUserData(ctx context.Context, user *User) (*UserInfo, error)
+}
+
+type User struct {
+	Name            string `json:"name"`
+	Email           string `json:"email"`
+	AzureGroups     Groups
+	GoogleGroups    Groups
+	AllGoogleGroups Groups
+	Expiry          time.Time `json:"expiry"`
+}
+
+type Group struct {
+	Name  string `json:"name"`
+	Email string `json:"email"`
+}
+
+type Groups []Group
+
+func (g Groups) Names() []string {
+	names := make([]string, len(g))
+
+	for i, g := range g {
+		names[i] = g.Name
+	}
+
+	return names
+}
+
+func (g Groups) Emails() []string {
+	emails := make([]string, len(g))
+
+	for i, g := range g {
+		emails[i] = g.Email
+	}
+
+	return emails
+}
+
+func (g Groups) Get(email string) (Group, bool) {
+	for _, grp := range g {
+		if grp.Email == email {
+			return grp, true
+		}
+	}
+
+	return Group{}, false
+}
+
+func (g Groups) Contains(email string) bool {
+	_, ok := g.Get(email)
+	return ok
 }
 
 type UserInfo struct {
@@ -19,13 +68,13 @@ type UserInfo struct {
 	Email string `json:"email"`
 
 	// googleGroups is the google groups the user is member of.
-	GoogleGroups auth.Groups `json:"googleGroups"`
+	GoogleGroups Groups `json:"googleGroups"`
 
 	// allGoogleGroups is the all the known google groups of the user domains.
-	AllGoogleGroups auth.Groups `json:"allGoogleGroups"`
+	AllGoogleGroups Groups `json:"allGoogleGroups"`
 
 	// azureGroups is the azure groups the user is member of.
-	AzureGroups auth.Groups `json:"azureGroups"`
+	AzureGroups Groups `json:"azureGroups"`
 
 	// gcpProjects is GCP projects the user is a member of.
 	GcpProjects []GCPProject `json:"gcpProjects"`

@@ -7,7 +7,6 @@ import (
 	"errors"
 	"fmt"
 	"github.com/google/uuid"
-	"github.com/navikt/nada-backend/pkg/auth"
 	"github.com/navikt/nada-backend/pkg/database"
 	"github.com/navikt/nada-backend/pkg/database/gensql"
 	"github.com/navikt/nada-backend/pkg/errs"
@@ -312,7 +311,7 @@ func (s *dataProductStorage) UpdateDataset(ctx context.Context, id uuid.UUID, in
 	return res.ID.String(), nil
 }
 
-func (s *dataProductStorage) CreateDataset(ctx context.Context, ds service.NewDataset, referenceDatasource *service.NewBigQuery, user *auth.User) (*string, error) {
+func (s *dataProductStorage) CreateDataset(ctx context.Context, ds service.NewDataset, referenceDatasource *service.NewBigQuery, user *service.User) (*string, error) {
 	const op errs.Op = "dataProductStorage.CreateDataset"
 
 	tx, err := s.db.GetDB().Begin()

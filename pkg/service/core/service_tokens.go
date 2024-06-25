@@ -27,6 +27,8 @@ func (s *tokenService) GetNadaTokens(ctx context.Context) (map[string]string, er
 func (s *tokenService) GetNadaTokenForTeam(ctx context.Context, team string) (string, error) {
 	const op errs.Op = "tokenService.GetNadaTokenForTeam"
 
+	// FIXME: should we not check the user here?
+
 	token, err := s.tokenStorage.GetNadaToken(ctx, team)
 	if err != nil {
 		return "", errs.E(op, err)
@@ -51,14 +53,14 @@ func (s *tokenService) GetTeamFromNadaToken(ctx context.Context, token string) (
 	return team, nil
 }
 
-func (s *tokenService) RotateNadaToken(ctx context.Context, team string) error {
+func (s *tokenService) RotateNadaToken(ctx context.Context, user *service.User, team string) error {
 	const op errs.Op = "tokenService.RotateNadaToken"
 
 	if team == "" {
 		return errs.E(errs.InvalidRequest, op, fmt.Errorf("no team provided"))
 	}
 
-	if err := ensureUserInGroup(ctx, team+"@nav.no"); err != nil {
+	if err := ensureUserInGroup(user, team+"@nav.no"); err != nil {
 		return errs.E(op, err)
 	}
 

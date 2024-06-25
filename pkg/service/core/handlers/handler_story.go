@@ -41,7 +41,9 @@ func (h *storyHandler) DeleteStory(ctx context.Context, _ *http.Request, _ any) 
 		return nil, errs.E(errs.InvalidRequest, op, err)
 	}
 
-	story, err := h.storyService.DeleteStory(ctx, id)
+	user := auth.GetUser(ctx)
+
+	story, err := h.storyService.DeleteStory(ctx, user, id)
 	if err != nil {
 		return nil, err
 	}
@@ -57,7 +59,9 @@ func (h *storyHandler) UpdateStory(ctx context.Context, _ *http.Request, in serv
 		return nil, errs.E(errs.InvalidRequest, op, err)
 	}
 
-	story, err := h.storyService.UpdateStory(ctx, id, in)
+	user := auth.GetUser(ctx)
+
+	story, err := h.storyService.UpdateStory(ctx, user, id, in)
 	if err != nil {
 		return nil, err
 	}
@@ -71,7 +75,9 @@ func (h *storyHandler) CreateStory(ctx context.Context, r *http.Request, _ any) 
 		return nil, err
 	}
 
-	story, err := h.storyService.CreateStory(ctx, newStory, files)
+	user := auth.GetUser(ctx)
+
+	story, err := h.storyService.CreateStory(ctx, user.Email, newStory, files)
 	if err != nil {
 		return nil, err
 	}
@@ -141,7 +147,7 @@ func (h *storyHandler) CreateStoryHTTP(w http.ResponseWriter, r *http.Request) {
 		newStory.Keywords = []string{}
 	}
 
-	story, err := h.storyService.CreateStoryWithTeamAndProductArea(r.Context(), &newStory)
+	story, err := h.storyService.CreateStoryWithTeamAndProductArea(r.Context(), team, &newStory)
 	if err != nil {
 		log.WithError(err).Errorf("creating story")
 		writeError(w, http.StatusInternalServerError, fmt.Errorf("error creating story"))

@@ -8,8 +8,8 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/navikt/nada-backend/pkg/service"
 	"io"
-	"io/ioutil"
 	"net/http"
 	"strings"
 	"time"
@@ -20,18 +20,11 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
+type MiddlewareHandler func(http.Handler) http.Handler
+
 type contextKey int
 
 const ContextUserKey contextKey = 1
-
-type User struct {
-	Name            string `json:"name"`
-	Email           string `json:"email"`
-	AzureGroups     Groups
-	GoogleGroups    Groups
-	AllGoogleGroups Groups
-	Expiry          time.Time `json:"expiry"`
-}
 
 type CertificateList []*x509.Certificate
 
@@ -87,7 +80,7 @@ func (k *KeyDiscovery) Map() (result map[string]CertificateList, err error) {
 func (c EncodedCertificate) Decode() (*x509.Certificate, error) {
 	stream := strings.NewReader(string(c))
 	decoder := base64.NewDecoder(base64.StdEncoding, stream)
-	key, err := ioutil.ReadAll(decoder)
+	key, err := io.ReadAll(decoder)
 	if err != nil {
 		return nil, err
 	}
@@ -105,7 +98,7 @@ func DiscoverURL(url string) (*KeyDiscovery, error) {
 }
 
 func Discover(reader io.Reader) (*KeyDiscovery, error) {
-	document, err := ioutil.ReadAll(reader)
+	document, err := io.ReadAll(reader)
 	if err != nil {
 		return nil, err
 	}
@@ -116,12 +109,13 @@ func Discover(reader io.Reader) (*KeyDiscovery, error) {
 	return keyDiscovery, err
 }
 
-func GetUser(ctx context.Context) *User {
+func GetUser(ctx context.Context) *service.User {
 	user := ctx.Value(ContextUserKey)
 	if user == nil {
 		return nil
 	}
-	return user.(*User)
+
+	return user.(*service.User)
 }
 
 type SessionRetriever interface {
@@ -193,7 +187,7 @@ func (m *Middleware) handle(next http.Handler) http.Handler {
 	})
 }
 
-func (m *Middleware) validateUser(certificates map[string]CertificateList, w http.ResponseWriter, token string) (*User, error) {
+func (m *Middleware) validateUser(certificates map[string]CertificateList, _ http.ResponseWriter, token string) (*service.User, error) {
 	var claims jwt.MapClaims
 
 	jwtValidator := JWTValidator(certificates, m.azureGroups.OAuthClientID)
@@ -203,7 +197,7 @@ func (m *Middleware) validateUser(certificates map[string]CertificateList, w htt
 		return nil, err
 	}
 
-	return &User{
+	return &service.User{
 		Name:   claims["name"].(string),
 		Email:  strings.ToLower(claims["preferred_username"].(string)),
 		Expiry: time.Unix(int64(claims["exp"].(float64)), 0),
@@ -244,7 +238,7 @@ func JWTValidator(certificates map[string]CertificateList, audience string) jwt.
 	}
 }
 
-func (m *Middleware) addGroupsToUser(ctx context.Context, token string, u *User) error {
+func (m *Middleware) addGroupsToUser(ctx context.Context, token string, u *service.User) error {
 	err := m.addAzureGroups(ctx, token, u)
 	if err != nil {
 		return fmt.Errorf("unable to add azure groups: %w", err)
@@ -258,7 +252,7 @@ func (m *Middleware) addGroupsToUser(ctx context.Context, token string, u *User)
 	return nil
 }
 
-func (m *Middleware) addAzureGroups(ctx context.Context, token string, u *User) error {
+func (m *Middleware) addAzureGroups(ctx context.Context, token string, u *service.User) error {
 	groups, ok := m.groupsCache.GetAzureGroups(u.Email)
 	if ok {
 		u.AzureGroups = groups
@@ -275,7 +269,7 @@ func (m *Middleware) addAzureGroups(ctx context.Context, token string, u *User) 
 	return nil
 }
 
-func (m *Middleware) addGoogleGroups(ctx context.Context, u *User) error {
+func (m *Middleware) addGoogleGroups(ctx context.Context, u *service.User) error {
 	groups, ok := m.groupsCache.GetGoogleGroups(u.Email)
 	if !ok {
 		var err error

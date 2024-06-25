@@ -4,6 +4,7 @@ import (
 	"context"
 	"github.com/go-chi/chi"
 	"github.com/google/uuid"
+	"github.com/navikt/nada-backend/pkg/auth"
 	"github.com/navikt/nada-backend/pkg/errs"
 	"github.com/navikt/nada-backend/pkg/service"
 	"github.com/navikt/nada-backend/pkg/service/core/transport"
@@ -31,7 +32,9 @@ func (h *dataProductsHandler) GetDataProduct(ctx context.Context, _ *http.Reques
 }
 
 func (h *dataProductsHandler) CreateDataProduct(ctx context.Context, _ *http.Request, in service.NewDataproduct) (*service.DataproductMinimal, error) {
-	dp, err := h.service.CreateDataproduct(ctx, in)
+	user := auth.GetUser(ctx)
+
+	dp, err := h.service.CreateDataproduct(ctx, user, in)
 	if err != nil {
 		return nil, err
 	}
@@ -47,7 +50,9 @@ func (h *dataProductsHandler) DeleteDataProduct(ctx context.Context, _ *http.Req
 		return nil, errs.E(errs.InvalidRequest, op, err)
 	}
 
-	_, err = h.service.DeleteDataproduct(ctx, id)
+	user := auth.GetUser(ctx)
+
+	_, err = h.service.DeleteDataproduct(ctx, user, id)
 	if err != nil {
 		return nil, err
 	}
@@ -64,7 +69,9 @@ func (h *dataProductsHandler) UpdateDataProduct(ctx context.Context, _ *http.Req
 		return nil, errs.E(errs.InvalidRequest, op, err)
 	}
 
-	dp, err := h.service.UpdateDataproduct(ctx, id, in)
+	user := auth.GetUser(ctx)
+
+	dp, err := h.service.UpdateDataproduct(ctx, user, id, in)
 	if err != nil {
 		return nil, err
 	}
@@ -98,7 +105,9 @@ func (h *dataProductsHandler) GetDataset(ctx context.Context, _ *http.Request, _
 }
 
 func (h *dataProductsHandler) CreateDataset(ctx context.Context, _ *http.Request, in service.NewDataset) (*string, error) {
-	datasetSlug, err := h.service.CreateDataset(ctx, in)
+	user := auth.GetUser(ctx)
+
+	datasetSlug, err := h.service.CreateDataset(ctx, user, in)
 	if err != nil {
 		return nil, err
 	}
@@ -115,7 +124,9 @@ func (h *dataProductsHandler) UpdateDataset(ctx context.Context, _ *http.Request
 		return "", errs.E(errs.InvalidRequest, op, err)
 	}
 
-	dataset, err := h.service.UpdateDataset(ctx, id, in)
+	user := auth.GetUser(ctx)
+
+	dataset, err := h.service.UpdateDataset(ctx, user, id, in)
 	if err != nil {
 		return "", err
 	}
@@ -131,7 +142,9 @@ func (h *dataProductsHandler) DeleteDataset(ctx context.Context, _ *http.Request
 		return nil, errs.E(errs.InvalidRequest, op, err)
 	}
 
-	_, err = h.service.DeleteDataset(ctx, id)
+	user := auth.GetUser(ctx)
+
+	_, err = h.service.DeleteDataset(ctx, user, id)
 	if err != nil {
 		return nil, err
 	}
@@ -140,7 +153,9 @@ func (h *dataProductsHandler) DeleteDataset(ctx context.Context, _ *http.Request
 }
 
 func (h *dataProductsHandler) GetAccessiblePseudoDatasetsForUser(ctx context.Context, _ *http.Request, _ interface{}) ([]*service.PseudoDataset, error) {
-	datasets, err := h.service.GetAccessiblePseudoDatasetsForUser(ctx)
+	user := auth.GetUser(ctx)
+
+	datasets, err := h.service.GetAccessiblePseudoDatasetsForUser(ctx, user)
 	if err != nil {
 		return nil, err
 	}

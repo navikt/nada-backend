@@ -6,7 +6,6 @@ import (
 	"errors"
 	"fmt"
 	"github.com/google/uuid"
-	"github.com/navikt/nada-backend/pkg/auth"
 	"github.com/navikt/nada-backend/pkg/database"
 	"github.com/navikt/nada-backend/pkg/database/gensql"
 	"github.com/navikt/nada-backend/pkg/errs"
@@ -194,7 +193,7 @@ func (s *accessStorage) UpdateAccessRequest(ctx context.Context, input service.U
 	return nil
 }
 
-func (s *accessStorage) GrantAccessToDatasetAndApproveRequest(ctx context.Context, datasetID uuid.UUID, subject string, accessRequestID uuid.UUID, expires *time.Time) error {
+func (s *accessStorage) GrantAccessToDatasetAndApproveRequest(ctx context.Context, user *service.User, datasetID uuid.UUID, subject string, accessRequestID uuid.UUID, expires *time.Time) error {
 	const op errs.Op = "accessStorage.GrantAccessToDatasetAndApproveRequest"
 
 	q, tx, err := s.withTxFn()
@@ -202,9 +201,6 @@ func (s *accessStorage) GrantAccessToDatasetAndApproveRequest(ctx context.Contex
 		return errs.E(errs.Database, op, err)
 	}
 	defer tx.Rollback()
-
-	// FIXME: move this up the call chain
-	user := auth.GetUser(ctx)
 
 	_, err = q.GrantAccessToDataset(ctx, gensql.GrantAccessToDatasetParams{
 		DatasetID: datasetID,
@@ -281,11 +277,8 @@ func (s *accessStorage) GrantAccessToDatasetAndRenew(ctx context.Context, datase
 	return nil
 }
 
-func (s *accessStorage) DenyAccessRequest(ctx context.Context, accessRequestID uuid.UUID, reason *string) error {
+func (s *accessStorage) DenyAccessRequest(ctx context.Context, user *service.User, accessRequestID uuid.UUID, reason *string) error {
 	const op errs.Op = "accessStorage.DenyAccessRequest"
-
-	// FIXME: move up the invocation chain
-	user := auth.GetUser(ctx)
 
 	err := s.queries.DenyAccessRequest(ctx, gensql.DenyAccessRequestParams{
 		ID:      accessRequestID,

@@ -19,9 +19,9 @@ type InsightProductStorage interface {
 
 type InsightProductService interface {
 	GetInsightProduct(ctx context.Context, id uuid.UUID) (*InsightProduct, error)
-	UpdateInsightProduct(ctx context.Context, id uuid.UUID, input UpdateInsightProductDto) (*InsightProduct, error)
-	CreateInsightProduct(ctx context.Context, input NewInsightProduct) (*InsightProduct, error)
-	DeleteInsightProduct(ctx context.Context, id uuid.UUID) (*InsightProduct, error)
+	UpdateInsightProduct(ctx context.Context, user *User, id uuid.UUID, input UpdateInsightProductDto) (*InsightProduct, error)
+	CreateInsightProduct(ctx context.Context, user *User, input NewInsightProduct) (*InsightProduct, error)
+	DeleteInsightProduct(ctx context.Context, user *User, id uuid.UUID) (*InsightProduct, error)
 }
 
 // InsightProduct contains the metadata of insight product.

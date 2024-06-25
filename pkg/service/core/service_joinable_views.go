@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"github.com/google/uuid"
-	"github.com/navikt/nada-backend/pkg/auth"
 	"github.com/navikt/nada-backend/pkg/errs"
 	"github.com/navikt/nada-backend/pkg/service"
 )
@@ -52,10 +51,10 @@ func (s *joinableViewsService) SetJoinableViewDeleted(ctx context.Context, id uu
 	return nil
 }
 
-func (s *joinableViewsService) GetJoinableViewsForUser(ctx context.Context) ([]service.JoinableView, error) {
+func (s *joinableViewsService) GetJoinableViewsForUser(ctx context.Context, user *service.User) ([]service.JoinableView, error) {
 	const op = "joinableViewsService.GetJoinableViewsForUser"
 
-	joinableViewsDB, err := s.joinableViewsStorage.GetJoinableViewsForOwner(ctx)
+	joinableViewsDB, err := s.joinableViewsStorage.GetJoinableViewsForOwner(ctx, user)
 	if err != nil {
 		return nil, errs.E(op, err)
 	}
@@ -85,16 +84,13 @@ func (s *joinableViewsService) GetJoinableViewsForUser(ctx context.Context) ([]s
 	return joinableViews, nil
 }
 
-func (s *joinableViewsService) GetJoinableView(ctx context.Context, id uuid.UUID) (*service.JoinableViewWithDatasource, error) {
+func (s *joinableViewsService) GetJoinableView(ctx context.Context, user *service.User, id uuid.UUID) (*service.JoinableViewWithDatasource, error) {
 	const op = "joinableViewsService.GetJoinableView"
 
 	joinableViewDatasets, err := s.joinableViewsStorage.GetJoinableViewWithDataset(ctx, id)
 	if err != nil {
 		return nil, errs.E(op, err)
 	}
-
-	// FIXME: move up to the call chain
-	user := auth.GetUser(ctx)
 
 	jv := service.JoinableViewWithDatasource{
 		JoinableView: service.JoinableView{
@@ -134,11 +130,8 @@ func (s *joinableViewsService) GetJoinableView(ctx context.Context, id uuid.UUID
 	return &jv, nil
 }
 
-func (s *joinableViewsService) CreateJoinableViews(ctx context.Context, input service.NewJoinableViews) (string, error) {
+func (s *joinableViewsService) CreateJoinableViews(ctx context.Context, user *service.User, input service.NewJoinableViews) (string, error) {
 	const op = "joinableViewsService.CreateJoinableViews"
-
-	// FIXME: move up to the call chain
-	user := auth.GetUser(ctx)
 
 	var datasets []*service.Dataset
 	for _, dsid := range input.DatasetIDs {

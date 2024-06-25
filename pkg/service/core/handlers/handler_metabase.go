@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"github.com/go-chi/chi"
 	"github.com/google/uuid"
+	"github.com/navikt/nada-backend/pkg/auth"
 	"github.com/navikt/nada-backend/pkg/errs"
 	"github.com/navikt/nada-backend/pkg/service"
 	"net/http"
@@ -22,7 +23,9 @@ func (h *metabaseHandler) MapDataset(ctx context.Context, _ *http.Request, in se
 		return nil, errs.E(errs.InvalidRequest, op, fmt.Errorf("parsing id: %w", err))
 	}
 
-	dataset, err := h.service.MapDataset(ctx, id, in.Services)
+	user := auth.GetUser(ctx)
+
+	dataset, err := h.service.MapDataset(ctx, user, id, in.Services)
 	if err != nil {
 		return nil, err
 	}

@@ -3,10 +3,10 @@ package access_ensurer
 import (
 	"context"
 	"fmt"
+	"github.com/navikt/nada-backend/pkg/auth"
 	"strings"
 	"time"
 
-	"github.com/navikt/nada-backend/pkg/auth"
 	"github.com/navikt/nada-backend/pkg/service"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/sirupsen/logrus"
@@ -14,7 +14,6 @@ import (
 
 type Ensurer struct {
 	accessStorage       service.AccessStorage
-	accessService       service.AccessService
 	metabaseService     service.MetabaseService
 	dataProductsStorage service.DataProductsStorage
 	bigQueryStorage     service.BigQueryStorage
@@ -33,7 +32,6 @@ func NewEnsurer(
 	centralDataProject string,
 	errs *prometheus.CounterVec,
 	accessStorage service.AccessStorage,
-	accessService service.AccessService,
 	metabaseService service.MetabaseService,
 	dataProductsStorage service.DataProductsStorage,
 	bigQueryStorage service.BigQueryStorage,
@@ -44,7 +42,6 @@ func NewEnsurer(
 ) *Ensurer {
 	return &Ensurer{
 		accessStorage:       accessStorage,
-		accessService:       accessService,
 		metabaseService:     metabaseService,
 		dataProductsStorage: dataProductsStorage,
 		bigQueryStorage:     bigQueryStorage,
@@ -91,7 +88,7 @@ func (e *Ensurer) run(ctx context.Context) {
 			continue
 		}
 
-		if err := e.accessService.RevokeAccessToDataset(ctx, entry.ID, e.centralDataProject); err != nil {
+		if err := e.accessStorage.RevokeAccessToDataset(ctx, entry.ID); err != nil {
 			e.log.WithError(err).Errorf("Setting access entry with ID %v to revoked in database", entry.ID)
 			e.errs.WithLabelValues("RevokeAccessToDataproduct").Inc()
 			continue

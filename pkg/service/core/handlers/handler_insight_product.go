@@ -4,6 +4,7 @@ import (
 	"context"
 	"github.com/go-chi/chi"
 	"github.com/google/uuid"
+	"github.com/navikt/nada-backend/pkg/auth"
 	"github.com/navikt/nada-backend/pkg/errs"
 	"github.com/navikt/nada-backend/pkg/service"
 	"net/http"
@@ -30,7 +31,9 @@ func (h *insightProductHandler) GetInsightProduct(ctx context.Context, _ *http.R
 }
 
 func (h *insightProductHandler) CreateInsightProduct(ctx context.Context, _ *http.Request, in service.NewInsightProduct) (*service.InsightProduct, error) {
-	insightProduct, err := h.service.CreateInsightProduct(ctx, in)
+	user := auth.GetUser(ctx)
+
+	insightProduct, err := h.service.CreateInsightProduct(ctx, user, in)
 	if err != nil {
 		return nil, err
 	}
@@ -46,7 +49,9 @@ func (h *insightProductHandler) UpdateInsightProduct(ctx context.Context, _ *htt
 		return nil, errs.E(errs.InvalidRequest, op, err)
 	}
 
-	insightProduct, err := h.service.UpdateInsightProduct(ctx, id, in)
+	user := auth.GetUser(ctx)
+
+	insightProduct, err := h.service.UpdateInsightProduct(ctx, user, id, in)
 	if err != nil {
 		return nil, err
 	}
@@ -62,7 +67,9 @@ func (h *insightProductHandler) DeleteInsightProduct(ctx context.Context, _ *htt
 		return nil, errs.E(errs.InvalidRequest, op, err)
 	}
 
-	deleted, err := h.service.DeleteInsightProduct(ctx, id)
+	user := auth.GetUser(ctx)
+
+	deleted, err := h.service.DeleteInsightProduct(ctx, user, id)
 	if err != nil {
 		return nil, err
 	}

@@ -5,7 +5,6 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	"github.com/navikt/nada-backend/pkg/auth"
 )
 
 type BigQueryStorage interface {
@@ -75,9 +74,9 @@ type JoinableViewDatasource struct {
 }
 
 type GCPProject struct {
-	ID    string      `json:"id"`
-	Name  string      `json:"name"`
-	Group *auth.Group `json:"group"`
+	ID    string `json:"id"`
+	Name  string `json:"name"`
+	Group *Group `json:"group"`
 }
 
 type BigQuery struct {

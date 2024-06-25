@@ -5,7 +5,6 @@ import (
 	"context"
 	"fmt"
 	"github.com/google/uuid"
-	"github.com/navikt/nada-backend/pkg/auth"
 	"github.com/navikt/nada-backend/pkg/errs"
 	"github.com/navikt/nada-backend/pkg/service"
 )
@@ -56,7 +55,7 @@ func (s *storyService) RecreateStoryFiles(ctx context.Context, id uuid.UUID, fil
 	return nil
 }
 
-func (s *storyService) CreateStoryWithTeamAndProductArea(ctx context.Context, newStory *service.NewStory) (*service.Story, error) {
+func (s *storyService) CreateStoryWithTeamAndProductArea(ctx context.Context, creatorEmail string, newStory *service.NewStory) (*service.Story, error) {
 	const op = "storyService.CreateStoryWithTeamAndProductArea"
 
 	if newStory.TeamID != nil {
@@ -70,7 +69,7 @@ func (s *storyService) CreateStoryWithTeamAndProductArea(ctx context.Context, ne
 		newStory.ProductAreaID = &team.ProductAreaID
 	}
 
-	story, err := s.CreateStory(ctx, newStory, nil)
+	story, err := s.CreateStory(ctx, creatorEmail, newStory, nil)
 	if err != nil {
 		return nil, errs.E(op, err)
 	}
@@ -89,13 +88,10 @@ func (s *storyService) GetObject(ctx context.Context, path string) (*storage.Obj
 	return attrs, data, nil
 }
 
-func (s *storyService) CreateStory(ctx context.Context, newStory *service.NewStory, files []*service.UploadFile) (*service.Story, error) {
+func (s *storyService) CreateStory(ctx context.Context, creatorEmail string, newStory *service.NewStory, files []*service.UploadFile) (*service.Story, error) {
 	const op = "storyService.CreateStory"
 
-	// FIXME: move this up the chain
-	creator := auth.GetUser(ctx).Email
-
-	story, err := s.storyStorage.CreateStory(ctx, creator, newStory)
+	story, err := s.storyStorage.CreateStory(ctx, creatorEmail, newStory)
 	if err != nil {
 		return nil, errs.E(op, err)
 	}
@@ -113,7 +109,7 @@ func (s *storyService) CreateStory(ctx context.Context, newStory *service.NewSto
 	return st, nil
 }
 
-func (s *storyService) DeleteStory(ctx context.Context, storyID uuid.UUID) (*service.Story, error) {
+func (s *storyService) DeleteStory(ctx context.Context, user *service.User, storyID uuid.UUID) (*service.Story, error) {
 	const op = "storyService.DeleteStory"
 
 	story, err := s.storyStorage.GetStory(ctx, storyID)
@@ -121,8 +117,6 @@ func (s *storyService) DeleteStory(ctx context.Context, storyID uuid.UUID) (*ser
 		return nil, errs.E(op, err)
 	}
 
-	// FIXME: move this up the chain
-	user := auth.GetUser(ctx)
 	if !user.GoogleGroups.Contains(story.Group) {
 		return nil, errs.E(errs.Unauthorized, op, errs.UserName(user.Email), fmt.Errorf("user not in the group of the data story: %s", story.Group))
 	}
@@ -139,7 +133,7 @@ func (s *storyService) DeleteStory(ctx context.Context, storyID uuid.UUID) (*ser
 	return story, nil
 }
 
-func (s *storyService) UpdateStory(ctx context.Context, storyID uuid.UUID, input service.UpdateStoryDto) (*service.Story, error) {
+func (s *storyService) UpdateStory(ctx context.Context, user *service.User, storyID uuid.UUID, input service.UpdateStoryDto) (*service.Story, error) {
 	const op = "storyService.UpdateStory"
 
 	existing, err := s.storyStorage.GetStory(ctx, storyID)
@@ -147,7 +141,6 @@ func (s *storyService) UpdateStory(ctx context.Context, storyID uuid.UUID, input
 		return nil, errs.E(op, err)
 	}
 
-	user := auth.GetUser(ctx)
 	if !user.GoogleGroups.Contains(existing.Group) {
 		return nil, errs.E(errs.Unauthorized, op, errs.UserName(user.Email), fmt.Errorf("user not in the group of the data story: %s", existing.Group))
 	}

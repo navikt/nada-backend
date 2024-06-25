@@ -195,7 +195,6 @@ func main() {
 		cfg.BigQuery.CentralGCPProject,
 		promErrs,
 		stores.AccessStorage,
-		services.AccessService,
 		services.MetaBaseService,
 		stores.DataProductsStorage,
 		stores.BigQueryStorage,

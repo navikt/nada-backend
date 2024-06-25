@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"github.com/navikt/nada-backend/pkg/service"
 	"net/http"
 	"net/url"
 	"strings"
@@ -48,7 +49,7 @@ func NewAzureGroups(client *http.Client, clientID, clientSecret, tenantID string
 	}
 }
 
-func (a *AzureGroupClient) GroupsForUser(ctx context.Context, token, email string) (Groups, error) {
+func (a *AzureGroupClient) GroupsForUser(ctx context.Context, token, email string) (service.Groups, error) {
 	bearerToken, err := a.getBearerTokenOnBehalfOfUser(ctx, token)
 	if err != nil {
 		return nil, fmt.Errorf("getting bearer token: %w", err)
@@ -69,14 +70,14 @@ func (a *AzureGroupClient) GroupsForUser(ctx context.Context, token, email strin
 	if err := json.NewDecoder(response.Body).Decode(&memberOfResponse); err != nil {
 		return nil, err
 	}
-	var groups Groups
+	var groups service.Groups
 
 	for _, entry := range memberOfResponse.Groups {
 		mail := strings.ToLower(entry.Mail)
 		if !contains("Unified", entry.GroupTypes) || !strings.HasSuffix(mail, "@nav.no") {
 			continue
 		}
-		groups = append(groups, Group{
+		groups = append(groups, service.Group{
 			Name:  entry.DisplayName,
 			Email: mail,
 		})

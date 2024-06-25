@@ -5,7 +5,6 @@ import (
 	"database/sql"
 	"errors"
 	"github.com/google/uuid"
-	"github.com/navikt/nada-backend/pkg/auth"
 	"github.com/navikt/nada-backend/pkg/database"
 	"github.com/navikt/nada-backend/pkg/database/gensql"
 	"github.com/navikt/nada-backend/pkg/errs"
@@ -77,11 +76,9 @@ func (s *joinableViewStorage) SetJoinableViewDeleted(ctx context.Context, id uui
 	return nil
 }
 
-func (s *joinableViewStorage) GetJoinableViewsForOwner(ctx context.Context) ([]service.JoinableViewForOwner, error) {
+func (s *joinableViewStorage) GetJoinableViewsForOwner(ctx context.Context, user *service.User) ([]service.JoinableViewForOwner, error) {
 	const op errs.Op = "joinableViewStorage.GetJoinableViewsForOwner"
 
-	// FIXME: move this up the call chain
-	user := auth.GetUser(ctx)
 	joinableViewsDB, err := s.db.Querier.GetJoinableViewsForOwner(ctx, user.Email)
 	if err != nil {
 		return nil, errs.E(errs.Database, op, err)

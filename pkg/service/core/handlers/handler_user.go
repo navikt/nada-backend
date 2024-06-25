@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"context"
+	"github.com/navikt/nada-backend/pkg/auth"
 	"github.com/navikt/nada-backend/pkg/service"
 	"net/http"
 )
@@ -11,8 +12,9 @@ type userHandler struct {
 }
 
 func (h *userHandler) GetUserData(ctx context.Context, _ *http.Request, _ any) (*service.UserInfo, error) {
-	// FIXME: read out the user here
-	return h.service.GetUserData(ctx)
+	user := auth.GetUser(ctx)
+
+	return h.service.GetUserData(ctx, user)
 }
 
 func NewUserHandler(service service.UserService) *userHandler {

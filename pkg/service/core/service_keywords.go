@@ -23,11 +23,11 @@ func (k *keywordsService) GetKeywordsListSortedByPopularity(ctx context.Context)
 	return kw, nil
 }
 
-func (k *keywordsService) UpdateKeywords(ctx context.Context, input service.UpdateKeywordsDto) error {
+func (k *keywordsService) UpdateKeywords(ctx context.Context, user *service.User, input service.UpdateKeywordsDto) error {
 	const op errs.Op = "keywordsService.UpdateKeywords"
 
 	// FIXME: make this configurable
-	err := ensureUserInGroup(ctx, "nada@nav.no")
+	err := ensureUserInGroup(user, "nada@nav.no")
 	if err != nil {
 		return errs.E(op, err)
 	}

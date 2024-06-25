@@ -11,7 +11,7 @@ type KeywordsStorage interface {
 
 type KeywordsService interface {
 	GetKeywordsListSortedByPopularity(ctx context.Context) (*KeywordsList, error)
-	UpdateKeywords(ctx context.Context, input UpdateKeywordsDto) error
+	UpdateKeywords(ctx context.Context, user *User, input UpdateKeywordsDto) error
 }
 
 type KeywordsList struct {

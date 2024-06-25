@@ -3,6 +3,7 @@ package handlers
 import (
 	"context"
 	"encoding/json"
+	"github.com/navikt/nada-backend/pkg/auth"
 	"github.com/navikt/nada-backend/pkg/service"
 	"github.com/navikt/nada-backend/pkg/service/core/transport"
 	log "github.com/sirupsen/logrus"
@@ -16,7 +17,9 @@ type tokenHandler struct {
 }
 
 func (h *tokenHandler) RotateNadaToken(ctx context.Context, r *http.Request, _ any) (*transport.Empty, error) {
-	err := h.tokenService.RotateNadaToken(ctx, r.URL.Query().Get("team"))
+	user := auth.GetUser(ctx)
+
+	err := h.tokenService.RotateNadaToken(ctx, user, r.URL.Query().Get("team"))
 	if err != nil {
 		return nil, err
 	}

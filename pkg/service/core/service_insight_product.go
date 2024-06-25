@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"github.com/google/uuid"
-	"github.com/navikt/nada-backend/pkg/auth"
 	"github.com/navikt/nada-backend/pkg/errs"
 	"github.com/navikt/nada-backend/pkg/service"
 )
@@ -15,7 +14,7 @@ type insightProductService struct {
 	insightProductStorage service.InsightProductStorage
 }
 
-func (s *insightProductService) DeleteInsightProduct(ctx context.Context, id uuid.UUID) (*service.InsightProduct, error) {
+func (s *insightProductService) DeleteInsightProduct(ctx context.Context, user *service.User, id uuid.UUID) (*service.InsightProduct, error) {
 	const op errs.Op = "insightProductService.DeleteInsightProduct"
 
 	product, err := s.GetInsightProduct(ctx, id)
@@ -23,7 +22,6 @@ func (s *insightProductService) DeleteInsightProduct(ctx context.Context, id uui
 		return nil, errs.E(op, err)
 	}
 
-	user := auth.GetUser(ctx)
 	if !user.GoogleGroups.Contains(product.Group) {
 		return nil, errs.E(errs.Unauthorized, op, errs.UserName(user.Email), fmt.Errorf("user not authorized to delete product"))
 	}
@@ -36,7 +34,7 @@ func (s *insightProductService) DeleteInsightProduct(ctx context.Context, id uui
 	return product, nil
 }
 
-func (s *insightProductService) UpdateInsightProduct(ctx context.Context, id uuid.UUID, input service.UpdateInsightProductDto) (*service.InsightProduct, error) {
+func (s *insightProductService) UpdateInsightProduct(ctx context.Context, user *service.User, id uuid.UUID, input service.UpdateInsightProductDto) (*service.InsightProduct, error) {
 	const op errs.Op = "insightProductService.UpdateInsightProduct"
 
 	existing, err := s.GetInsightProduct(ctx, id)
@@ -44,8 +42,6 @@ func (s *insightProductService) UpdateInsightProduct(ctx context.Context, id uui
 		return nil, errs.E(op, err)
 	}
 
-	// FIXME: move up the call chain
-	user := auth.GetUser(ctx)
 	if !user.GoogleGroups.Contains(existing.Group) {
 		return nil, errs.E(errs.Unauthorized, op, errs.UserName(user.Email), fmt.Errorf("user not authorized to update product"))
 	}
@@ -58,14 +54,12 @@ func (s *insightProductService) UpdateInsightProduct(ctx context.Context, id uui
 	return productSQL, nil
 }
 
-func (s *insightProductService) CreateInsightProduct(ctx context.Context, input service.NewInsightProduct) (*service.InsightProduct, error) {
+func (s *insightProductService) CreateInsightProduct(ctx context.Context, user *service.User, input service.NewInsightProduct) (*service.InsightProduct, error) {
 	const op errs.Op = "insightProductService.CreateInsightProduct"
 
-	creator := auth.GetUser(ctx).Email
-
-	productSQL, err := s.insightProductStorage.CreateInsightProduct(ctx, creator, input)
+	productSQL, err := s.insightProductStorage.CreateInsightProduct(ctx, user.Email, input)
 	if err != nil {
-		return nil, errs.E(op, errs.UserName(creator), err)
+		return nil, errs.E(op, errs.UserName(user.Email), err)
 	}
 
 	return productSQL, nil

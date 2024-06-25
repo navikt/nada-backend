@@ -42,11 +42,9 @@ func (s *dataProductsService) GetDataproduct(ctx context.Context, id uuid.UUID) 
 	return dp, nil
 }
 
-func (s *dataProductsService) GetAccessiblePseudoDatasetsForUser(ctx context.Context) ([]*service.PseudoDataset, error) {
+func (s *dataProductsService) GetAccessiblePseudoDatasetsForUser(ctx context.Context, user *service.User) ([]*service.PseudoDataset, error) {
 	const op errs.Op = "dataProductsService.GetAccessiblePseudoDatasetsForUser"
 
-	// FIXME: move up the call chain
-	user := auth.GetUser(ctx)
 	subjectsAsOwner := []string{user.Email}
 	subjectsAsOwner = append(subjectsAsOwner, user.GoogleGroups.Emails()...)
 	subjectsAsAccesser := []string{"user:" + user.Email}
@@ -74,10 +72,10 @@ func (s *dataProductsService) GetDatasetsMinimal(ctx context.Context) ([]*servic
 	return datasets, nil
 }
 
-func (s *dataProductsService) CreateDataproduct(ctx context.Context, input service.NewDataproduct) (*service.DataproductMinimal, error) {
+func (s *dataProductsService) CreateDataproduct(ctx context.Context, user *service.User, input service.NewDataproduct) (*service.DataproductMinimal, error) {
 	const op errs.Op = "dataProductsService.CreateDataproduct"
 
-	if err := ensureUserInGroup(ctx, input.Group); err != nil {
+	if err := ensureUserInGroup(user, input.Group); err != nil {
 		return nil, errs.E(op, err)
 	}
 
@@ -93,7 +91,7 @@ func (s *dataProductsService) CreateDataproduct(ctx context.Context, input servi
 	return dataproduct, nil
 }
 
-func (s *dataProductsService) UpdateDataproduct(ctx context.Context, id uuid.UUID, input service.UpdateDataproductDto) (*service.DataproductMinimal, error) {
+func (s *dataProductsService) UpdateDataproduct(ctx context.Context, user *service.User, id uuid.UUID, input service.UpdateDataproductDto) (*service.DataproductMinimal, error) {
 	const op errs.Op = "dataProductsService.UpdateDataproduct"
 
 	dp, err := s.dataProductStorage.GetDataproduct(ctx, id)
@@ -101,7 +99,7 @@ func (s *dataProductsService) UpdateDataproduct(ctx context.Context, id uuid.UUI
 		return nil, errs.E(op, err)
 	}
 
-	if err := ensureUserInGroup(ctx, dp.Owner.Group); err != nil {
+	if err := ensureUserInGroup(user, dp.Owner.Group); err != nil {
 		return nil, errs.E(op, err)
 	}
 
@@ -117,7 +115,7 @@ func (s *dataProductsService) UpdateDataproduct(ctx context.Context, id uuid.UUI
 	return dataproduct, nil
 }
 
-func (s *dataProductsService) DeleteDataproduct(ctx context.Context, id uuid.UUID) (*service.DataproductWithDataset, error) {
+func (s *dataProductsService) DeleteDataproduct(ctx context.Context, user *service.User, id uuid.UUID) (*service.DataproductWithDataset, error) {
 	const op errs.Op = "dataProductsService.DeleteDataproduct"
 
 	dp, err := s.dataProductStorage.GetDataproduct(ctx, id)
@@ -125,7 +123,7 @@ func (s *dataProductsService) DeleteDataproduct(ctx context.Context, id uuid.UUI
 		return nil, errs.E(op, err)
 	}
 
-	if err := ensureUserInGroup(ctx, dp.Owner.Group); err != nil {
+	if err := ensureUserInGroup(user, dp.Owner.Group); err != nil {
 		return nil, errs.E(op, err)
 	}
 
@@ -137,18 +135,15 @@ func (s *dataProductsService) DeleteDataproduct(ctx context.Context, id uuid.UUI
 	return dp, nil
 }
 
-func (s *dataProductsService) CreateDataset(ctx context.Context, input service.NewDataset) (*string, error) {
+func (s *dataProductsService) CreateDataset(ctx context.Context, user *service.User, input service.NewDataset) (*string, error) {
 	const op errs.Op = "dataProductsService.CreateDataset"
-
-	// FIXME: move up the call chain
-	user := auth.GetUser(ctx)
 
 	dp, err := s.dataProductStorage.GetDataproduct(ctx, input.DataproductID)
 	if err != nil {
 		return nil, errs.E(op, err)
 	}
 
-	if err := ensureUserInGroup(ctx, dp.Owner.Group); err != nil {
+	if err := ensureUserInGroup(user, dp.Owner.Group); err != nil {
 		return nil, errs.E(op, err)
 	}
 
@@ -258,7 +253,7 @@ func (s *dataProductsService) prepareBigQuery(ctx context.Context, srcProject, s
 	return &metadata, nil
 }
 
-func (s *dataProductsService) DeleteDataset(ctx context.Context, id uuid.UUID) (string, error) {
+func (s *dataProductsService) DeleteDataset(ctx context.Context, user *service.User, id uuid.UUID) (string, error) {
 	const op errs.Op = "dataProductsService.DeleteDataset"
 
 	ds, err := s.dataProductStorage.GetDataset(ctx, id)
@@ -271,7 +266,7 @@ func (s *dataProductsService) DeleteDataset(ctx context.Context, id uuid.UUID) (
 		return "", errs.E(op, err)
 	}
 
-	if err := ensureUserInGroup(ctx, dp.Owner.Group); err != nil {
+	if err := ensureUserInGroup(user, dp.Owner.Group); err != nil {
 		return "", errs.E(op, err)
 	}
 
@@ -283,7 +278,7 @@ func (s *dataProductsService) DeleteDataset(ctx context.Context, id uuid.UUID) (
 	return dp.ID.String(), nil
 }
 
-func (s *dataProductsService) UpdateDataset(ctx context.Context, id uuid.UUID, input service.UpdateDatasetDto) (string, error) {
+func (s *dataProductsService) UpdateDataset(ctx context.Context, user *service.User, id uuid.UUID, input service.UpdateDatasetDto) (string, error) {
 	const op errs.Op = "dataProductsService.UpdateDataset"
 
 	ds, err := s.dataProductStorage.GetDataset(ctx, id)
@@ -300,7 +295,7 @@ func (s *dataProductsService) UpdateDataset(ctx context.Context, id uuid.UUID, i
 		return "", errs.E(op, err)
 	}
 
-	if err := ensureUserInGroup(ctx, dp.Owner.Group); err != nil {
+	if err := ensureUserInGroup(user, dp.Owner.Group); err != nil {
 		return "", errs.E(op, err)
 	}
 
@@ -318,7 +313,7 @@ func (s *dataProductsService) UpdateDataset(ctx context.Context, id uuid.UUID, i
 			return "", errs.E(op, err)
 		}
 
-		if err := ensureUserInGroup(ctx, dp2.Owner.Group); err != nil {
+		if err := ensureUserInGroup(user, dp2.Owner.Group); err != nil {
 			return "", errs.E(op, err)
 		}
 

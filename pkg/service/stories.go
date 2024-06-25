@@ -32,10 +32,10 @@ type StoryAPI interface {
 
 type StoryService interface {
 	GetStory(ctx context.Context, id uuid.UUID) (*Story, error)
-	CreateStory(ctx context.Context, newStory *NewStory, files []*UploadFile) (*Story, error)
-	CreateStoryWithTeamAndProductArea(ctx context.Context, newStory *NewStory) (*Story, error)
-	DeleteStory(ctx context.Context, id uuid.UUID) (*Story, error)
-	UpdateStory(ctx context.Context, id uuid.UUID, input UpdateStoryDto) (*Story, error)
+	CreateStory(ctx context.Context, creatorEmail string, newStory *NewStory, files []*UploadFile) (*Story, error)
+	CreateStoryWithTeamAndProductArea(ctx context.Context, creatorEmail string, newStory *NewStory) (*Story, error)
+	DeleteStory(ctx context.Context, user *User, id uuid.UUID) (*Story, error)
+	UpdateStory(ctx context.Context, user *User, id uuid.UUID, input UpdateStoryDto) (*Story, error)
 	GetObject(ctx context.Context, path string) (*storage.ObjectAttrs, []byte, error)
 	RecreateStoryFiles(ctx context.Context, id uuid.UUID, files []*UploadFile) error
 	AppendStoryFiles(ctx context.Context, id uuid.UUID, files []*UploadFile) error

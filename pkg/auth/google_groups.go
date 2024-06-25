@@ -3,7 +3,8 @@ package auth
 import (
 	"context"
 	"fmt"
-	"io/ioutil"
+	"github.com/navikt/nada-backend/pkg/service"
+	"os"
 	"strings"
 
 	"github.com/sirupsen/logrus"
@@ -24,7 +25,7 @@ func NewGoogleGroups(ctx context.Context, credentailFile, subject string, log *l
 			mock: true,
 		}, nil
 	}
-	jsonCredentials, err := ioutil.ReadFile(credentailFile)
+	jsonCredentials, err := os.ReadFile(credentailFile)
 	if err != nil {
 		return nil, fmt.Errorf("unable to read service account key file %s", err)
 	}
@@ -52,26 +53,17 @@ func NewGoogleGroups(ctx context.Context, credentailFile, subject string, log *l
 	}, nil
 }
 
-func (g *GoogleGroupClient) Groups(ctx context.Context, email *string) (Groups, error) {
-	if g.mock {
-		return Groups{
-			Group{Name: "All users", Email: "all-users@nav.no"},
-			Group{Name: "Dataplattform", Email: "nada@nav.no"},
-			Group{Name: "nada", Email: "nada@nav.no"},
-			Group{Name: "nais-team-nyteam", Email: "nais-team-nyteam@nav.no"},
-		}, nil
-	}
-
+func (g *GoogleGroupClient) Groups(ctx context.Context, email *string) (service.Groups, error) {
 	groupListCall := g.service.Groups.List().Customer(`my_customer`)
 	if email != nil {
 		groupListCall = g.service.Groups.List().UserKey(*email)
 	}
 
-	var groups Groups
+	var groups service.Groups
 
 	err := groupListCall.Pages(ctx, func(g *admin.Groups) error {
 		for _, grp := range g.Groups {
-			groups = append(groups, Group{
+			groups = append(groups, service.Group{
 				Name:  grp.Name,
 				Email: grp.Email,
 			})

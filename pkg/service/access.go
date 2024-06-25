@@ -10,11 +10,11 @@ import (
 type AccessStorage interface {
 	CreateAccessRequestForDataset(ctx context.Context, datasetID uuid.UUID, pollyDocumentationID uuid.NullUUID, subject, owner string, expires *time.Time) (*AccessRequest, error)
 	DeleteAccessRequest(ctx context.Context, accessRequestID uuid.UUID) error
-	DenyAccessRequest(ctx context.Context, accessRequestID uuid.UUID, reason *string) error
+	DenyAccessRequest(ctx context.Context, user *User, accessRequestID uuid.UUID, reason *string) error
 	GetAccessRequest(ctx context.Context, accessRequestID uuid.UUID) (*AccessRequest, error)
 	GetAccessToDataset(ctx context.Context, id uuid.UUID) (*Access, error)
 	GetUnrevokedExpiredAccess(ctx context.Context) ([]*Access, error)
-	GrantAccessToDatasetAndApproveRequest(ctx context.Context, datasetID uuid.UUID, subject string, accessRequestID uuid.UUID, expires *time.Time) error
+	GrantAccessToDatasetAndApproveRequest(ctx context.Context, user *User, datasetID uuid.UUID, subject string, accessRequestID uuid.UUID, expires *time.Time) error
 	GrantAccessToDatasetAndRenew(ctx context.Context, datasetID uuid.UUID, expires *time.Time, subject, granter string) error
 	ListAccessRequestsForDataset(ctx context.Context, datasetID uuid.UUID) ([]*AccessRequest, error)
 	ListAccessRequestsForOwner(ctx context.Context, owner []string) ([]*AccessRequest, error)
@@ -25,13 +25,13 @@ type AccessStorage interface {
 
 type AccessService interface {
 	GetAccessRequests(ctx context.Context, datasetID uuid.UUID) (*AccessRequestsWrapper, error)
-	CreateAccessRequest(ctx context.Context, input NewAccessRequestDTO) error
-	DeleteAccessRequest(ctx context.Context, accessRequestID uuid.UUID) error
+	CreateAccessRequest(ctx context.Context, user *User, input NewAccessRequestDTO) error
+	DeleteAccessRequest(ctx context.Context, user *User, accessRequestID uuid.UUID) error
 	UpdateAccessRequest(ctx context.Context, input UpdateAccessRequestDTO) error
-	ApproveAccessRequest(ctx context.Context, accessRequestID uuid.UUID) error
-	DenyAccessRequest(ctx context.Context, accessRequestID uuid.UUID, reason *string) error
-	RevokeAccessToDataset(ctx context.Context, id uuid.UUID, gcpProjectID string) error
-	GrantAccessToDataset(ctx context.Context, input GrantAccessData, gcpProjectID string) error
+	ApproveAccessRequest(ctx context.Context, user *User, accessRequestID uuid.UUID) error
+	DenyAccessRequest(ctx context.Context, user *User, accessRequestID uuid.UUID, reason *string) error
+	RevokeAccessToDataset(ctx context.Context, user *User, id uuid.UUID, gcpProjectID string) error
+	GrantAccessToDataset(ctx context.Context, user *User, input GrantAccessData, gcpProjectID string) error
 }
 
 type Access struct {

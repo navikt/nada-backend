@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"github.com/google/uuid"
-	"github.com/navikt/nada-backend/pkg/auth"
 	"github.com/navikt/nada-backend/pkg/errs"
 	"github.com/navikt/nada-backend/pkg/service"
 	"strings"
@@ -47,11 +46,10 @@ func (s *accessService) GetAccessRequests(ctx context.Context, datasetID uuid.UU
 	}, nil
 }
 
-func (s *accessService) CreateAccessRequest(ctx context.Context, input service.NewAccessRequestDTO) error {
+func (s *accessService) CreateAccessRequest(ctx context.Context, user *service.User, input service.NewAccessRequestDTO) error {
 	const op errs.Op = "accessService.CreateAccessRequest"
 
-	// FIXME: move up the call chain
-	user := auth.GetUser(ctx)
+	// FIXME: Can we stop with the joining and splitting of user, group, email, etc.
 	subj := user.Email
 	if input.Subject != nil {
 		subj = *input.Subject
@@ -92,7 +90,7 @@ func (s *accessService) CreateAccessRequest(ctx context.Context, input service.N
 	return nil
 }
 
-func (s *accessService) DeleteAccessRequest(ctx context.Context, accessRequestID uuid.UUID) error {
+func (s *accessService) DeleteAccessRequest(ctx context.Context, user *service.User, accessRequestID uuid.UUID) error {
 	const op errs.Op = "accessService.DeleteAccessRequest"
 
 	accessRequest, err := s.accessStorage.GetAccessRequest(ctx, accessRequestID)
@@ -106,7 +104,7 @@ func (s *accessService) DeleteAccessRequest(ctx context.Context, accessRequestID
 	}
 	owner := splits[1]
 
-	if err := ensureOwner(ctx, owner); err != nil {
+	if err := ensureOwner(user, owner); err != nil {
 		return errs.E(op, err)
 	}
 
@@ -119,6 +117,8 @@ func (s *accessService) DeleteAccessRequest(ctx context.Context, accessRequestID
 
 func (s *accessService) UpdateAccessRequest(ctx context.Context, input service.UpdateAccessRequestDTO) error {
 	const op errs.Op = "accessService.UpdateAccessRequest"
+
+	// FIXME: Should we allow updating without checking the owner?
 
 	if input.Polly != nil {
 		if input.Polly.ID == nil {
@@ -139,7 +139,7 @@ func (s *accessService) UpdateAccessRequest(ctx context.Context, input service.U
 	return nil
 }
 
-func (s *accessService) ApproveAccessRequest(ctx context.Context, accessRequestID uuid.UUID) error {
+func (s *accessService) ApproveAccessRequest(ctx context.Context, user *service.User, accessRequestID uuid.UUID) error {
 	const op errs.Op = "accessService.ApproveAccessRequest"
 
 	ar, err := s.accessStorage.GetAccessRequest(ctx, accessRequestID)
@@ -162,7 +162,7 @@ func (s *accessService) ApproveAccessRequest(ctx context.Context, accessRequestI
 		return errs.E(op, err)
 	}
 
-	err = ensureUserInGroup(ctx, dp.Owner.Group)
+	err = ensureUserInGroup(user, dp.Owner.Group)
 	if err != nil {
 		return errs.E(op, err)
 	}
@@ -178,6 +178,7 @@ func (s *accessService) ApproveAccessRequest(ctx context.Context, accessRequestI
 
 	err = s.accessStorage.GrantAccessToDatasetAndApproveRequest(
 		ctx,
+		user,
 		ds.ID,
 		subjWithType,
 		ar.ID,
@@ -190,7 +191,7 @@ func (s *accessService) ApproveAccessRequest(ctx context.Context, accessRequestI
 	return nil
 }
 
-func (s *accessService) DenyAccessRequest(ctx context.Context, accessRequestID uuid.UUID, reason *string) error {
+func (s *accessService) DenyAccessRequest(ctx context.Context, user *service.User, accessRequestID uuid.UUID, reason *string) error {
 	const op errs.Op = "accessService.DenyAccessRequest"
 
 	ar, err := s.accessStorage.GetAccessRequest(ctx, accessRequestID)
@@ -208,12 +209,12 @@ func (s *accessService) DenyAccessRequest(ctx context.Context, accessRequestID u
 		return errs.E(op, err)
 	}
 
-	err = ensureUserInGroup(ctx, dp.Owner.Group)
+	err = ensureUserInGroup(user, dp.Owner.Group)
 	if err != nil {
 		return errs.E(op, err)
 	}
 
-	err = s.accessStorage.DenyAccessRequest(ctx, accessRequestID, reason)
+	err = s.accessStorage.DenyAccessRequest(ctx, user, accessRequestID, reason)
 	if err != nil {
 		return errs.E(op, err)
 	}
@@ -221,7 +222,7 @@ func (s *accessService) DenyAccessRequest(ctx context.Context, accessRequestID u
 	return nil
 }
 
-func (s *accessService) RevokeAccessToDataset(ctx context.Context, accessID uuid.UUID, gcpProjectID string) error {
+func (s *accessService) RevokeAccessToDataset(ctx context.Context, user *service.User, accessID uuid.UUID, gcpProjectID string) error {
 	const op errs.Op = "accessService.RevokeAccessToDataset"
 
 	access, err := s.accessStorage.GetAccessToDataset(ctx, accessID)
@@ -244,9 +245,7 @@ func (s *accessService) RevokeAccessToDataset(ctx context.Context, accessID uuid
 		return errs.E(op, err)
 	}
 
-	// FIXME: move this up the call chain
-	user := auth.GetUser(ctx)
-	err = ensureUserInGroup(ctx, dp.Owner.Group)
+	err = ensureUserInGroup(user, dp.Owner.Group)
 	if err != nil && !strings.EqualFold("user:"+user.Email, access.Subject) {
 		return errs.E(op, err)
 	}
@@ -290,7 +289,7 @@ func makeJoinableViewName(projectID, datasetID, tableID string) string {
 	return fmt.Sprintf("%v_%v", projectID, tableID)
 }
 
-func (s *accessService) GrantAccessToDataset(ctx context.Context, input service.GrantAccessData, gcpProjectID string) error {
+func (s *accessService) GrantAccessToDataset(ctx context.Context, user *service.User, input service.GrantAccessData, gcpProjectID string) error {
 	const op errs.Op = "accessService.GrantAccessToDataset"
 
 	// FIXME: move this up the call chain
@@ -298,8 +297,6 @@ func (s *accessService) GrantAccessToDataset(ctx context.Context, input service.
 		return errs.E(errs.InvalidRequest, op, fmt.Errorf("expires is in the past"))
 	}
 
-	// FIXME: move this up the call chain
-	user := auth.GetUser(ctx)
 	subj := user.Email
 	if input.Subject != nil {
 		subj = *input.Subject
@@ -314,7 +311,7 @@ func (s *accessService) GrantAccessToDataset(ctx context.Context, input service.
 		return errs.E(op, err)
 	}
 
-	if err := ensureUserInGroup(ctx, dp.Owner.Group); err != nil {
+	if err := ensureUserInGroup(user, dp.Owner.Group); err != nil {
 		return errs.E(op, err)
 	}
 
@@ -360,10 +357,8 @@ func (s *accessService) GrantAccessToDataset(ctx context.Context, input service.
 	return nil
 }
 
-func ensureOwner(ctx context.Context, owner string) error {
+func ensureOwner(user *service.User, owner string) error {
 	const op errs.Op = "ensureOwner"
-	// FIXME: move this up the call chain
-	user := auth.GetUser(ctx)
 
 	if user != nil && (user.GoogleGroups.Contains(owner) || owner == user.Email) {
 		return nil

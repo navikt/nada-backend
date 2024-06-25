@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"context"
+	"github.com/navikt/nada-backend/pkg/auth"
 	"github.com/navikt/nada-backend/pkg/service"
 	"github.com/navikt/nada-backend/pkg/service/core/transport"
 	"net/http"
@@ -16,7 +17,9 @@ func (h *keywordsHandler) GetKeywordsListSortedByPopularity(ctx context.Context,
 }
 
 func (h *keywordsHandler) UpdateKeywords(ctx context.Context, _ *http.Request, input service.UpdateKeywordsDto) (*transport.Empty, error) {
-	err := h.keywordsService.UpdateKeywords(ctx, input)
+	user := auth.GetUser(ctx)
+
+	err := h.keywordsService.UpdateKeywords(ctx, user, input)
 	if err != nil {
 		return nil, err
 	}
