@@ -196,7 +196,7 @@ func dataproductsWithDatasetAndAccessRequestsForGranterFromSQL(dprrows []gensql.
 			})
 		}
 	}
-	ars, err := accessRequestsFromSQL(arrows)
+	ars, err := From(DatasetAccessRequests(arrows))
 	if err != nil {
 		return nil, nil, errs.E(errs.Internal, op, err)
 	}

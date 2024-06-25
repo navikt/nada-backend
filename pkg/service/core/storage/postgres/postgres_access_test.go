@@ -1,88 +1,138 @@
 package postgres_test
 
 import (
-	"context"
 	"fmt"
 	"github.com/google/uuid"
 	"github.com/navikt/nada-backend/pkg/database/gensql"
 	"github.com/navikt/nada-backend/pkg/errs"
 	"github.com/navikt/nada-backend/pkg/service"
 	"github.com/navikt/nada-backend/pkg/service/core/storage/postgres"
-	"github.com/navikt/nada-backend/pkg/service/core/storage/postgres/mock"
 	"github.com/stretchr/testify/assert"
 	"testing"
 )
 
-func TestAccessStorage_ListAccessRequestsForOwner(t *testing.T) {
+func TestDatasetAccessRequest_To(t *testing.T) {
+	t.Parallel()
+
 	testCases := []struct {
 		name           string
-		owner          []string
-		mockReturn     []gensql.DatasetAccessRequest
-		mockReturnErr  error
-		expectedResult []*service.AccessRequest
+		input          gensql.DatasetAccessRequest
+		expectedResult *service.AccessRequest
 		expectedErr    error
 	}{
 		{
-			name:  "Happy path",
-			owner: []string{"owner1", "owner2"},
-			mockReturn: []gensql.DatasetAccessRequest{
-				{
-					ID:        uuid.MustParse("14726B25-FACE-47C7-AC55-782799362E58"),
-					DatasetID: uuid.MustParse("14726B25-FACE-47C7-AC55-782799362E58"),
-					Subject:   "type:subject1",
-					Owner:     "owner1",
-					Status:    "pending",
-				},
+			name: "Happy path",
+			input: gensql.DatasetAccessRequest{
+				ID:        uuid.MustParse("14726B25-FACE-47C7-AC55-782799362E58"),
+				DatasetID: uuid.MustParse("14726B25-FACE-47C7-AC55-782799362E58"),
+				Subject:   "user:subject1",
+				Owner:     "owner1",
+				Status:    "pending",
 			},
-			mockReturnErr: nil,
-			expectedResult: []*service.AccessRequest{
-				{
-					ID:          uuid.MustParse("14726B25-FACE-47C7-AC55-782799362E58"),
-					DatasetID:   uuid.MustParse("14726B25-FACE-47C7-AC55-782799362E58"),
-					Subject:     "subject1",
-					SubjectType: "type",
-					Owner:       "owner1",
-					Status:      "pending",
-				},
+			expectedResult: &service.AccessRequest{
+				ID:          uuid.MustParse("14726B25-FACE-47C7-AC55-782799362E58"),
+				DatasetID:   uuid.MustParse("14726B25-FACE-47C7-AC55-782799362E58"),
+				Subject:     "subject1",
+				SubjectType: "user",
+				Owner:       "owner1",
+				Status:      "pending",
 			},
 			expectedErr: nil,
 		},
 		{
-			name:           "No access requests",
-			owner:          []string{"owner1", "owner2"},
-			mockReturn:     nil,
-			mockReturnErr:  nil,
+			name: "Error parsing subject",
+			input: gensql.DatasetAccessRequest{
+				ID:        uuid.MustParse("14726B25-FACE-47C7-AC55-782799362E58"),
+				DatasetID: uuid.MustParse("14726B25-FACE-47C7-AC55-782799362E58"),
+				Subject:   "subject1",
+				Owner:     "owner1",
+				Status:    "pending",
+			},
 			expectedResult: nil,
-			expectedErr:    nil,
+			expectedErr:    errs.E(errs.Internal, errs.Op("DatasetAccessRequest.To"), fmt.Errorf("subject1 is not a valid subject, expected [subject_type:subject]")),
 		},
 		{
-			name:           "Error fetching access requests",
-			owner:          []string{"owner1", "owner2"},
-			mockReturn:     nil,
-			mockReturnErr:  fmt.Errorf("error fetching access requests"),
+			name: "Invalid subject type",
+			input: gensql.DatasetAccessRequest{
+				ID:        uuid.MustParse("14726B25-FACE-47C7-AC55-782799362E58"),
+				DatasetID: uuid.MustParse("14726B25-FACE-47C7-AC55-782799362E58"),
+				Subject:   "invalid_type:subject1",
+				Owner:     "owner1",
+				Status:    "pending",
+			},
 			expectedResult: nil,
-			expectedErr:    errs.E(errs.Database, errs.Op("accessStorage.ListAccessRequestsForOwner"), errs.Parameter("owner"), fmt.Errorf("error fetching access requests")),
+			expectedErr:    errs.E(errs.Internal, errs.Op("DatasetAccessRequest.To"), fmt.Errorf("invalid_type is not a valid subject type, expected one of [service_account, user, group]")),
 		},
 	}
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			ctx := context.Background()
+			t.Parallel()
 
-			// Set up the mock
-			mockQueries := new(mock.AccessQueriesMock)
-			mockTransacter := new(mock.MockTransacter)
-			mockFn := mock.AccessQueriesWithTxFn(mockQueries, mockTransacter, nil)
-			mockQueries.On("ListAccessRequestsForOwner", ctx, tc.owner).Return(tc.mockReturn, tc.mockReturnErr)
+			got, err := postgres.DatasetAccessRequest(tc.input).To()
 
-			// Call the method
-			storage := postgres.NewAccessStorage(mockQueries, mockFn)
-			result, err := storage.ListAccessRequestsForOwner(ctx, tc.owner)
-
-			// Check the results
-			assert.Equal(t, tc.expectedResult, result)
+			assert.Equal(t, tc.expectedResult, got)
 			assert.Equal(t, tc.expectedErr, err)
-			mockQueries.AssertExpectations(t)
+		})
+	}
+}
+
+func TestDatasetAccessRequests_To(t *testing.T) {
+	t.Parallel()
+
+	testCases := []struct {
+		name           string
+		input          []gensql.DatasetAccessRequest
+		expectedResult []*service.AccessRequest
+		expectedErr    error
+	}{
+		{
+			name: "Happy path",
+			input: []gensql.DatasetAccessRequest{
+				{
+					ID:        uuid.MustParse("14726B25-FACE-47C7-AC55-782799362E58"),
+					DatasetID: uuid.MustParse("14726B25-FACE-47C7-AC55-782799362E58"),
+					Subject:   "user:subject1",
+					Owner:     "owner1",
+					Status:    "pending",
+				},
+				{
+					ID:        uuid.MustParse("14726B25-FACE-47C7-AC55-782799362E58"),
+					DatasetID: uuid.MustParse("14726B25-FACE-47C7-AC55-782799362E58"),
+					Subject:   "user:subject2",
+					Owner:     "owner2",
+					Status:    "pending",
+				},
+			},
+			expectedResult: []*service.AccessRequest{
+				{
+					ID:          uuid.MustParse("14726B25-FACE-47C7-AC55-782799362E58"),
+					DatasetID:   uuid.MustParse("14726B25-FACE-47C7-AC55-782799362E58"),
+					Subject:     "subject1",
+					SubjectType: "user",
+					Owner:       "owner1",
+					Status:      "pending",
+				},
+				{
+					ID:          uuid.MustParse("14726B25-FACE-47C7-AC55-782799362E58"),
+					DatasetID:   uuid.MustParse("14726B25-FACE-47C7-AC55-782799362E58"),
+					Subject:     "subject2",
+					SubjectType: "user",
+					Owner:       "owner2",
+					Status:      "pending",
+				},
+			},
+			expectedErr: nil,
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+
+			got, err := postgres.DatasetAccessRequests(tc.input).To()
+			assert.Equal(t, tc.expectedResult, got)
+			assert.Equal(t, tc.expectedErr, err)
 		})
 	}
 }
