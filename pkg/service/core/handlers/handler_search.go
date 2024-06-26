@@ -8,11 +8,11 @@ import (
 	"strings"
 )
 
-type searchHandler struct {
+type SearchHandler struct {
 	service service.SearchService
 }
 
-func (h *searchHandler) Search(ctx context.Context, r *http.Request, _ any) (*service.SearchResult, error) {
+func (h *SearchHandler) Search(ctx context.Context, r *http.Request, _ any) (*service.SearchResult, error) {
 	searchOptions, err := parseSearchOptionsFromRequest(r)
 	if err != nil {
 		return nil, nil
@@ -77,6 +77,6 @@ func parseSearchOptionsFromRequest(r *http.Request) (*service.SearchOptions, err
 	return &options, nil
 }
 
-func NewSearchHandler(service service.SearchService) *searchHandler {
-	return &searchHandler{service: service}
+func NewSearchHandler(service service.SearchService) *SearchHandler {
+	return &SearchHandler{service: service}
 }

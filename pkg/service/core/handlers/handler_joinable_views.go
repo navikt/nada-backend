@@ -11,12 +11,12 @@ import (
 	"net/http"
 )
 
-type joinableViewsHandler struct {
+type JoinableViewsHandler struct {
 	service service.JoinableViewsService
 }
 
 // FIXME: return something other than a string
-func (h *joinableViewsHandler) CreateJoinableViews(ctx context.Context, _ *http.Request, in service.NewJoinableViews) (string, error) {
+func (h *JoinableViewsHandler) CreateJoinableViews(ctx context.Context, _ *http.Request, in service.NewJoinableViews) (string, error) {
 	user := auth.GetUser(ctx)
 
 	id, err := h.service.CreateJoinableViews(ctx, user, in)
@@ -27,7 +27,7 @@ func (h *joinableViewsHandler) CreateJoinableViews(ctx context.Context, _ *http.
 	return id, nil
 }
 
-func (h *joinableViewsHandler) GetJoinableViewsForUser(ctx context.Context, _ *http.Request, _ any) ([]service.JoinableView, error) {
+func (h *JoinableViewsHandler) GetJoinableViewsForUser(ctx context.Context, _ *http.Request, _ any) ([]service.JoinableView, error) {
 	user := auth.GetUser(ctx)
 
 	views, err := h.service.GetJoinableViewsForUser(ctx, user)
@@ -38,8 +38,8 @@ func (h *joinableViewsHandler) GetJoinableViewsForUser(ctx context.Context, _ *h
 	return views, nil
 }
 
-func (h *joinableViewsHandler) GetJoinableView(ctx context.Context, _ *http.Request, _ any) (*service.JoinableViewWithDatasource, error) {
-	const op errs.Op = "joinableViewsHandler.GetJoinableView"
+func (h *JoinableViewsHandler) GetJoinableView(ctx context.Context, _ *http.Request, _ any) (*service.JoinableViewWithDatasource, error) {
+	const op errs.Op = "JoinableViewsHandler.GetJoinableView"
 
 	id, err := uuid.Parse(chi.URLParamFromCtx(ctx, "id"))
 	if err != nil {
@@ -56,6 +56,6 @@ func (h *joinableViewsHandler) GetJoinableView(ctx context.Context, _ *http.Requ
 	return view, nil
 }
 
-func NewJoinableViewsHandler(service service.JoinableViewsService) *joinableViewsHandler {
-	return &joinableViewsHandler{service: service}
+func NewJoinableViewsHandler(service service.JoinableViewsService) *JoinableViewsHandler {
+	return &JoinableViewsHandler{service: service}
 }

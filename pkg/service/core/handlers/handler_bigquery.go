@@ -7,11 +7,11 @@ import (
 	"net/http"
 )
 
-type bigQueryHandler struct {
+type BigQueryHandler struct {
 	service service.BigQueryService
 }
 
-func (h *bigQueryHandler) GetBigQueryColumns(ctx context.Context, r *http.Request, _ any) (*service.BQColumns, error) {
+func (h *BigQueryHandler) GetBigQueryColumns(ctx context.Context, r *http.Request, _ any) (*service.BQColumns, error) {
 	projectID := r.URL.Query().Get("projectId")
 	datasetID := r.URL.Query().Get("datasetId")
 	tableID := r.URL.Query().Get("tableId")
@@ -19,20 +19,20 @@ func (h *bigQueryHandler) GetBigQueryColumns(ctx context.Context, r *http.Reques
 	return h.service.GetBigQueryColumns(ctx, projectID, datasetID, tableID)
 }
 
-func (h *bigQueryHandler) GetBigQueryTables(ctx context.Context, r *http.Request, _ any) (*service.BQTables, error) {
+func (h *BigQueryHandler) GetBigQueryTables(ctx context.Context, r *http.Request, _ any) (*service.BQTables, error) {
 	projectID := r.URL.Query().Get("projectId")
 	datasetID := r.URL.Query().Get("datasetId")
 
 	return h.service.GetBigQueryTables(ctx, projectID, datasetID)
 }
 
-func (h *bigQueryHandler) GetBigQueryDatasets(ctx context.Context, r *http.Request, _ any) (*service.BQDatasets, error) {
+func (h *BigQueryHandler) GetBigQueryDatasets(ctx context.Context, r *http.Request, _ any) (*service.BQDatasets, error) {
 	projectID := r.URL.Query().Get("projectId")
 
 	return h.service.GetBigQueryDatasets(ctx, projectID)
 }
 
-func (h *bigQueryHandler) SyncBigQueryTables(ctx context.Context, _ *http.Request, _ any) (*transport.Empty, error) {
+func (h *BigQueryHandler) SyncBigQueryTables(ctx context.Context, _ *http.Request, _ any) (*transport.Empty, error) {
 	err := h.service.SyncBigQueryTables(ctx)
 	if err != nil {
 		return nil, err
@@ -41,6 +41,6 @@ func (h *bigQueryHandler) SyncBigQueryTables(ctx context.Context, _ *http.Reques
 	return &transport.Empty{}, nil
 }
 
-func NewBigQueryHandler(service service.BigQueryService) *bigQueryHandler {
-	return &bigQueryHandler{service: service}
+func NewBigQueryHandler(service service.BigQueryService) *BigQueryHandler {
+	return &BigQueryHandler{service: service}
 }

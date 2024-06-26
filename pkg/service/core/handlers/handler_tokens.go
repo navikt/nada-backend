@@ -11,12 +11,12 @@ import (
 	"strings"
 )
 
-type tokenHandler struct {
+type TokenHandler struct {
 	tokenService   service.TokenService
 	teamTokenCreds string
 }
 
-func (h *tokenHandler) RotateNadaToken(ctx context.Context, r *http.Request, _ any) (*transport.Empty, error) {
+func (h *TokenHandler) RotateNadaToken(ctx context.Context, r *http.Request, _ any) (*transport.Empty, error) {
 	user := auth.GetUser(ctx)
 
 	err := h.tokenService.RotateNadaToken(ctx, user, r.URL.Query().Get("team"))
@@ -27,7 +27,7 @@ func (h *tokenHandler) RotateNadaToken(ctx context.Context, r *http.Request, _ a
 	return &transport.Empty{}, nil
 }
 
-func (h *tokenHandler) GetAllTeamTokens(w http.ResponseWriter, r *http.Request) {
+func (h *TokenHandler) GetAllTeamTokens(w http.ResponseWriter, r *http.Request) {
 	authHeader := r.Header.Get("Authorization")
 	authHeaderParts := strings.Split(authHeader, " ")
 	if len(authHeaderParts) != 2 {
@@ -58,8 +58,8 @@ func (h *tokenHandler) GetAllTeamTokens(w http.ResponseWriter, r *http.Request) 
 	w.Write(payloadBytes)
 }
 
-func NewTokenHandler(tokenService service.TokenService) *tokenHandler {
-	return &tokenHandler{
+func NewTokenHandler(tokenService service.TokenService) *TokenHandler {
+	return &TokenHandler{
 		tokenService: tokenService,
 	}
 }

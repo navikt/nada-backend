@@ -9,16 +9,16 @@ import (
 	"net/http"
 )
 
-type productAreasHandler struct {
+type ProductAreasHandler struct {
 	service service.ProductAreaService
 }
 
-func (h *productAreasHandler) GetProductAreas(ctx context.Context, _ *http.Request, _ any) (*service.ProductAreasDto, error) {
+func (h *ProductAreasHandler) GetProductAreas(ctx context.Context, _ *http.Request, _ any) (*service.ProductAreasDto, error) {
 	return h.service.GetProductAreas(ctx)
 }
 
-func (h *productAreasHandler) GetProductAreaWithAssets(ctx context.Context, r *http.Request, _ any) (*service.ProductAreaWithAssets, error) {
-	const op errs.Op = "productAreasHandler.GetProductAreaWithAssets"
+func (h *ProductAreasHandler) GetProductAreaWithAssets(ctx context.Context, r *http.Request, _ any) (*service.ProductAreaWithAssets, error) {
+	const op errs.Op = "ProductAreasHandler.GetProductAreaWithAssets"
 
 	id, err := uuid.Parse(r.URL.Query().Get("id"))
 	if err != nil {
@@ -28,6 +28,6 @@ func (h *productAreasHandler) GetProductAreaWithAssets(ctx context.Context, r *h
 	return h.service.GetProductAreaWithAssets(ctx, id)
 }
 
-func NewProductAreasHandler(service service.ProductAreaService) *productAreasHandler {
-	return &productAreasHandler{service: service}
+func NewProductAreasHandler(service service.ProductAreaService) *ProductAreasHandler {
+	return &ProductAreasHandler{service: service}
 }

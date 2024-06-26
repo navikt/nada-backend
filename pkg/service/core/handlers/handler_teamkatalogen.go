@@ -6,14 +6,14 @@ import (
 	"net/http"
 )
 
-type teamkatalogenHandler struct {
+type TeamkatalogenHandler struct {
 	teamKatalogenService service.TeamKatalogenService
 }
 
-func (h *teamkatalogenHandler) SearchTeamKatalogen(ctx context.Context, r *http.Request, _ any) ([]service.TeamkatalogenResult, error) {
+func (h *TeamkatalogenHandler) SearchTeamKatalogen(ctx context.Context, r *http.Request, _ any) ([]service.TeamkatalogenResult, error) {
 	return h.teamKatalogenService.SearchTeamKatalogen(ctx, r.URL.Query()["gcpGroups"])
 }
 
-func NewTeamKatalogenHandler(s service.TeamKatalogenService) *teamkatalogenHandler {
-	return &teamkatalogenHandler{teamKatalogenService: s}
+func NewTeamKatalogenHandler(s service.TeamKatalogenService) *TeamkatalogenHandler {
+	return &TeamkatalogenHandler{teamKatalogenService: s}
 }

@@ -2,11 +2,13 @@ package main
 
 import (
 	"context"
+	"github.com/go-chi/chi"
 	"github.com/navikt/nada-backend/pkg/amplitude"
 	"github.com/navikt/nada-backend/pkg/bq"
 	"github.com/navikt/nada-backend/pkg/service/core"
 	apiclients "github.com/navikt/nada-backend/pkg/service/core/api"
 	"github.com/navikt/nada-backend/pkg/service/core/handlers"
+	"github.com/navikt/nada-backend/pkg/service/core/routes"
 	"github.com/navikt/nada-backend/pkg/service/core/storage"
 	"github.com/rs/zerolog"
 	"net"
@@ -170,24 +172,34 @@ func main() {
 		cfg,
 	)
 
-	endpoints := handlers.NewEndpoints(
-		h,
-		zlog,
-	)
-
 	log.Infof("Listening on %s:%s", cfg.Server.Address, cfg.Server.Port)
 	auth.Init(repo.GetDB())
-	srv := api.New(
-		endpoints,
-		h,
-		httpAPI,
-		authenticatorMiddleware,
-		prom(repo.Metrics()...),
+
+	router := chi.NewRouter()
+
+	routes.Add(router,
+		routes.NewInsightProductRoutes(routes.NewInsightProductEndpoints(zlog, h.InsightProductHandler), authenticatorMiddleware),
+		routes.NewAccessRoutes(routes.NewAccessEndpoints(zlog, h.AccessHandler), authenticatorMiddleware),
+		routes.NewBigQueryRoutes(routes.NewBigQueryEndpoints(zlog, h.BigQueryHandler)),
+		routes.NewDataProductsRoutes(routes.NewDataProductsEndpoints(zlog, h.DataProductsHandler), authenticatorMiddleware),
+		routes.NewJoinableViewsRoutes(routes.NewJoinableViewsEndpoints(zlog, h.JoinableViewsHandler), authenticatorMiddleware),
+		routes.NewKeywordRoutes(routes.NewKeywordEndpoints(zlog, h.KeywordsHandler), authenticatorMiddleware),
+		routes.NewMetabaseRoutes(routes.NewMetabaseEndpoints(zlog, h.MetabaseHandler), authenticatorMiddleware),
+		routes.NewPollyRoutes(routes.NewPollyEndpoints(zlog, h.PollyHandler)),
+		routes.NewProductAreaRoutes(routes.NewProductAreaEndpoints(zlog, h.ProductAreasHandler), authenticatorMiddleware),
+		routes.NewSearchRoutes(routes.NewSearchEndpoints(zlog, h.SearchHandler)),
+		routes.NewSlackRoutes(routes.NewSlackEndpoints(zlog, h.SlackHandler)),
+		routes.NewStoryRoutes(routes.NewStoryEndpoints(zlog, h.StoryHandler), authenticatorMiddleware),
+		routes.NewTeamkatalogenRoutes(routes.NewTeamkatalogenEndpoints(zlog, h.TeamKatalogenHandler)),
+		routes.NewTokensRoutes(routes.NewTokensEndpoints(zlog, h.TokenHandler), authenticatorMiddleware),
+		routes.NewMetricsRoutes(routes.NewMetricsEndpoints(prom(repo.Metrics()...))),
+		routes.NewUserRoutes(routes.NewUserEndpoints(zlog, h.UserHandler), authenticatorMiddleware),
+		routes.NewAuthRoutes(routes.NewAuthEndpoints(httpAPI)),
 	)
 
 	server := http.Server{
 		Addr:    net.JoinHostPort(cfg.Server.Address, cfg.Server.Port),
-		Handler: srv,
+		Handler: router,
 	}
 
 	go access_ensurer.NewEnsurer(

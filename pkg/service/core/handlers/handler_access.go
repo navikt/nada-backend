@@ -12,14 +12,14 @@ import (
 	"net/http"
 )
 
-type accessHandler struct {
+type AccessHandler struct {
 	accessService   service.AccessService
 	metabaseService service.MetabaseService
 	gcpProjectID    string
 }
 
-func (h *accessHandler) RevokeAccessToDataset(ctx context.Context, r *http.Request, _ any) (*transport.Empty, error) {
-	const op errs.Op = "accessHandler.RevokeAccessToDataset"
+func (h *AccessHandler) RevokeAccessToDataset(ctx context.Context, r *http.Request, _ any) (*transport.Empty, error) {
+	const op errs.Op = "AccessHandler.RevokeAccessToDataset"
 
 	id, err := uuid.Parse(r.URL.Query().Get("id"))
 	if err != nil {
@@ -41,7 +41,7 @@ func (h *accessHandler) RevokeAccessToDataset(ctx context.Context, r *http.Reque
 	return &transport.Empty{}, nil
 }
 
-func (h *accessHandler) GrantAccessToDataset(ctx context.Context, _ *http.Request, in service.GrantAccessData) (*transport.Empty, error) {
+func (h *AccessHandler) GrantAccessToDataset(ctx context.Context, _ *http.Request, in service.GrantAccessData) (*transport.Empty, error) {
 	user := auth.GetUser(ctx)
 
 	err := h.accessService.GrantAccessToDataset(ctx, user, in, h.gcpProjectID)
@@ -57,8 +57,8 @@ func (h *accessHandler) GrantAccessToDataset(ctx context.Context, _ *http.Reques
 	return &transport.Empty{}, nil
 }
 
-func (h *accessHandler) GetAccessRequests(ctx context.Context, r *http.Request, _ interface{}) (*service.AccessRequestsWrapper, error) {
-	op := "accessHandler.GetAccessRequests"
+func (h *AccessHandler) GetAccessRequests(ctx context.Context, r *http.Request, _ interface{}) (*service.AccessRequestsWrapper, error) {
+	op := "AccessHandler.GetAccessRequests"
 
 	id, err := uuid.Parse(r.URL.Query().Get("datasetId"))
 	if err != nil {
@@ -73,8 +73,8 @@ func (h *accessHandler) GetAccessRequests(ctx context.Context, r *http.Request, 
 	return access, nil
 }
 
-func (h *accessHandler) ProcessAccessRequest(ctx context.Context, r *http.Request, _ any) (*transport.Empty, error) {
-	const op errs.Op = "accessHandler.ProcessAccessRequest"
+func (h *AccessHandler) ProcessAccessRequest(ctx context.Context, r *http.Request, _ any) (*transport.Empty, error) {
+	const op errs.Op = "AccessHandler.ProcessAccessRequest"
 
 	id, err := uuid.Parse(chi.URLParamFromCtx(ctx, "id"))
 	if err != nil {
@@ -96,7 +96,7 @@ func (h *accessHandler) ProcessAccessRequest(ctx context.Context, r *http.Reques
 	}
 }
 
-func (h *accessHandler) NewAccessRequest(ctx context.Context, _ *http.Request, in service.NewAccessRequestDTO) (*transport.Empty, error) {
+func (h *AccessHandler) NewAccessRequest(ctx context.Context, _ *http.Request, in service.NewAccessRequestDTO) (*transport.Empty, error) {
 	user := auth.GetUser(ctx)
 
 	err := h.accessService.CreateAccessRequest(ctx, user, in)
@@ -107,8 +107,8 @@ func (h *accessHandler) NewAccessRequest(ctx context.Context, _ *http.Request, i
 	return &transport.Empty{}, nil
 }
 
-func (h *accessHandler) DeleteAccessRequest(ctx context.Context, _ *http.Request, _ any) (*transport.Empty, error) {
-	const op errs.Op = "accessHandler.DeleteAccessRequest"
+func (h *AccessHandler) DeleteAccessRequest(ctx context.Context, _ *http.Request, _ any) (*transport.Empty, error) {
+	const op errs.Op = "AccessHandler.DeleteAccessRequest"
 
 	id, err := uuid.Parse(chi.URLParamFromCtx(ctx, "id"))
 	if err != nil {
@@ -125,7 +125,7 @@ func (h *accessHandler) DeleteAccessRequest(ctx context.Context, _ *http.Request
 	return &transport.Empty{}, nil
 }
 
-func (h *accessHandler) UpdateAccessRequest(ctx context.Context, _ *http.Request, in service.UpdateAccessRequestDTO) (*transport.Empty, error) {
+func (h *AccessHandler) UpdateAccessRequest(ctx context.Context, _ *http.Request, in service.UpdateAccessRequestDTO) (*transport.Empty, error) {
 	// FIXME: should we verify the user here
 
 	err := h.accessService.UpdateAccessRequest(ctx, in)
@@ -140,8 +140,8 @@ func NewAccessHandler(
 	service service.AccessService,
 	metabaseService service.MetabaseService,
 	gcpProjectID string,
-) *accessHandler {
-	return &accessHandler{
+) *AccessHandler {
+	return &AccessHandler{
 		accessService:   service,
 		metabaseService: metabaseService,
 		gcpProjectID:    gcpProjectID,

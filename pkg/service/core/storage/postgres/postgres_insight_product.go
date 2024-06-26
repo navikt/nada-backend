@@ -31,7 +31,11 @@ func (s *insightProductStorage) DeleteInsightProduct(ctx context.Context, id uui
 func (s *insightProductStorage) CreateInsightProduct(ctx context.Context, creator string, input service.NewInsightProduct) (*service.InsightProduct, error) {
 	const op errs.Op = "insightProductStorage.CreateInsightProduct"
 
-	insightProductSQL, err := s.db.Querier.CreateInsightProduct(ctx, gensql.CreateInsightProductParams{
+	if input.Keywords == nil {
+		input.Keywords = []string{}
+	}
+
+	raw, err := s.db.Querier.CreateInsightProduct(ctx, gensql.CreateInsightProductParams{
 		Name:             input.Name,
 		Creator:          creator,
 		Description:      ptrToNullString(input.Description),
@@ -50,13 +54,18 @@ func (s *insightProductStorage) CreateInsightProduct(ctx context.Context, creato
 		return nil, errs.E(errs.Database, op, err)
 	}
 
-	return s.GetInsightProductWithTeamkatalogen(ctx, insightProductSQL.ID)
+	ip, err := s.GetInsightProductWithTeamkatalogen(ctx, raw.ID)
+	if err != nil {
+		return nil, errs.E(op, err)
+	}
+
+	return ip, nil
 }
 
 func (s *insightProductStorage) UpdateInsightProduct(ctx context.Context, id uuid.UUID, input service.UpdateInsightProductDto) (*service.InsightProduct, error) {
 	const op errs.Op = "insightProductStorage.UpdateInsightProduct"
 
-	dbProduct, err := s.db.Querier.UpdateInsightProduct(ctx, gensql.UpdateInsightProductParams{
+	raw, err := s.db.Querier.UpdateInsightProduct(ctx, gensql.UpdateInsightProductParams{
 		ID:               id,
 		Name:             input.Name,
 		Description:      ptrToNullString(&input.Description),
@@ -74,12 +83,12 @@ func (s *insightProductStorage) UpdateInsightProduct(ctx context.Context, id uui
 		return nil, errs.E(errs.Database, op, err)
 	}
 
-	p, err := s.GetInsightProductWithTeamkatalogen(ctx, dbProduct.ID)
+	ip, err := s.GetInsightProductWithTeamkatalogen(ctx, raw.ID)
 	if err != nil {
-		return nil, errs.E(errs.Database, op, err)
+		return nil, errs.E(op, err)
 	}
 
-	return p, nil
+	return ip, nil
 }
 
 func (s *insightProductStorage) GetInsightProductWithTeamkatalogen(ctx context.Context, id uuid.UUID) (*service.InsightProduct, error) {

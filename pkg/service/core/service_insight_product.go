@@ -57,12 +57,12 @@ func (s *insightProductService) UpdateInsightProduct(ctx context.Context, user *
 func (s *insightProductService) CreateInsightProduct(ctx context.Context, user *service.User, input service.NewInsightProduct) (*service.InsightProduct, error) {
 	const op errs.Op = "insightProductService.CreateInsightProduct"
 
-	productSQL, err := s.insightProductStorage.CreateInsightProduct(ctx, user.Email, input)
+	ip, err := s.insightProductStorage.CreateInsightProduct(ctx, user.Email, input)
 	if err != nil {
 		return nil, errs.E(op, errs.UserName(user.Email), err)
 	}
 
-	return productSQL, nil
+	return ip, nil
 }
 
 func (s *insightProductService) GetInsightProduct(ctx context.Context, id uuid.UUID) (*service.InsightProduct, error) {

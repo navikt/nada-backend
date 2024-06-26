@@ -7,16 +7,16 @@ import (
 	"net/http"
 )
 
-type userHandler struct {
+type UserHandler struct {
 	service service.UserService
 }
 
-func (h *userHandler) GetUserData(ctx context.Context, _ *http.Request, _ any) (*service.UserInfo, error) {
+func (h *UserHandler) GetUserData(ctx context.Context, _ *http.Request, _ any) (*service.UserInfo, error) {
 	user := auth.GetUser(ctx)
 
 	return h.service.GetUserData(ctx, user)
 }
 
-func NewUserHandler(service service.UserService) *userHandler {
-	return &userHandler{service: service}
+func NewUserHandler(service service.UserService) *UserHandler {
+	return &UserHandler{service: service}
 }

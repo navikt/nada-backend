@@ -11,12 +11,12 @@ import (
 	"net/http"
 )
 
-type dataProductsHandler struct {
+type DataProductsHandler struct {
 	service service.DataProductsService
 }
 
-func (h *dataProductsHandler) GetDataProduct(ctx context.Context, _ *http.Request, _ any) (*service.DataproductWithDataset, error) {
-	const op errs.Op = "dataProductsHandler.GetDataProduct"
+func (h *DataProductsHandler) GetDataProduct(ctx context.Context, _ *http.Request, _ any) (*service.DataproductWithDataset, error) {
+	const op errs.Op = "DataProductsHandler.GetDataProduct"
 
 	id, err := uuid.Parse(chi.URLParamFromCtx(ctx, "id"))
 	if err != nil {
@@ -31,7 +31,7 @@ func (h *dataProductsHandler) GetDataProduct(ctx context.Context, _ *http.Reques
 	return dp, nil
 }
 
-func (h *dataProductsHandler) CreateDataProduct(ctx context.Context, _ *http.Request, in service.NewDataproduct) (*service.DataproductMinimal, error) {
+func (h *DataProductsHandler) CreateDataProduct(ctx context.Context, _ *http.Request, in service.NewDataproduct) (*service.DataproductMinimal, error) {
 	user := auth.GetUser(ctx)
 
 	dp, err := h.service.CreateDataproduct(ctx, user, in)
@@ -42,8 +42,8 @@ func (h *dataProductsHandler) CreateDataProduct(ctx context.Context, _ *http.Req
 	return dp, nil
 }
 
-func (h *dataProductsHandler) DeleteDataProduct(ctx context.Context, _ *http.Request, _ interface{}) (*transport.Empty, error) {
-	const op errs.Op = "dataProductsHandler.DeleteDataProduct"
+func (h *DataProductsHandler) DeleteDataProduct(ctx context.Context, _ *http.Request, _ interface{}) (*transport.Empty, error) {
+	const op errs.Op = "DataProductsHandler.DeleteDataProduct"
 
 	id, err := uuid.Parse(chi.URLParamFromCtx(ctx, "id"))
 	if err != nil {
@@ -61,8 +61,8 @@ func (h *dataProductsHandler) DeleteDataProduct(ctx context.Context, _ *http.Req
 	return &transport.Empty{}, nil
 }
 
-func (h *dataProductsHandler) UpdateDataProduct(ctx context.Context, _ *http.Request, in service.UpdateDataproductDto) (*service.DataproductMinimal, error) {
-	const op errs.Op = "dataProductsHandler.UpdateDataProduct"
+func (h *DataProductsHandler) UpdateDataProduct(ctx context.Context, _ *http.Request, in service.UpdateDataproductDto) (*service.DataproductMinimal, error) {
+	const op errs.Op = "DataProductsHandler.UpdateDataProduct"
 
 	id, err := uuid.Parse(chi.URLParamFromCtx(ctx, "id"))
 	if err != nil {
@@ -79,7 +79,7 @@ func (h *dataProductsHandler) UpdateDataProduct(ctx context.Context, _ *http.Req
 	return dp, nil
 }
 
-func (h *dataProductsHandler) GetDatasetsMinimal(ctx context.Context, _ *http.Request, _ interface{}) ([]*service.DatasetMinimal, error) {
+func (h *DataProductsHandler) GetDatasetsMinimal(ctx context.Context, _ *http.Request, _ interface{}) ([]*service.DatasetMinimal, error) {
 	datasets, err := h.service.GetDatasetsMinimal(ctx)
 	if err != nil {
 		return nil, err
@@ -88,8 +88,8 @@ func (h *dataProductsHandler) GetDatasetsMinimal(ctx context.Context, _ *http.Re
 	return datasets, nil
 }
 
-func (h *dataProductsHandler) GetDataset(ctx context.Context, _ *http.Request, _ interface{}) (*service.Dataset, error) {
-	const op errs.Op = "dataProductsHandler.GetDataset"
+func (h *DataProductsHandler) GetDataset(ctx context.Context, _ *http.Request, _ interface{}) (*service.Dataset, error) {
+	const op errs.Op = "DataProductsHandler.GetDataset"
 
 	id, err := uuid.Parse(chi.URLParamFromCtx(ctx, "id"))
 	if err != nil {
@@ -104,7 +104,7 @@ func (h *dataProductsHandler) GetDataset(ctx context.Context, _ *http.Request, _
 	return dataset, nil
 }
 
-func (h *dataProductsHandler) CreateDataset(ctx context.Context, _ *http.Request, in service.NewDataset) (*string, error) {
+func (h *DataProductsHandler) CreateDataset(ctx context.Context, _ *http.Request, in service.NewDataset) (*string, error) {
 	user := auth.GetUser(ctx)
 
 	datasetSlug, err := h.service.CreateDataset(ctx, user, in)
@@ -116,8 +116,8 @@ func (h *dataProductsHandler) CreateDataset(ctx context.Context, _ *http.Request
 	return datasetSlug, nil
 }
 
-func (h *dataProductsHandler) UpdateDataset(ctx context.Context, _ *http.Request, in service.UpdateDatasetDto) (string, error) {
-	const op errs.Op = "dataProductsHandler.UpdateDataset"
+func (h *DataProductsHandler) UpdateDataset(ctx context.Context, _ *http.Request, in service.UpdateDatasetDto) (string, error) {
+	const op errs.Op = "DataProductsHandler.UpdateDataset"
 
 	id, err := uuid.Parse(chi.URLParamFromCtx(ctx, "id"))
 	if err != nil {
@@ -134,8 +134,8 @@ func (h *dataProductsHandler) UpdateDataset(ctx context.Context, _ *http.Request
 	return dataset, nil
 }
 
-func (h *dataProductsHandler) DeleteDataset(ctx context.Context, _ *http.Request, _ interface{}) (*transport.Empty, error) {
-	const op errs.Op = "dataProductsHandler.DeleteDataset"
+func (h *DataProductsHandler) DeleteDataset(ctx context.Context, _ *http.Request, _ interface{}) (*transport.Empty, error) {
+	const op errs.Op = "DataProductsHandler.DeleteDataset"
 
 	id, err := uuid.Parse(chi.URLParamFromCtx(ctx, "id"))
 	if err != nil {
@@ -152,7 +152,7 @@ func (h *dataProductsHandler) DeleteDataset(ctx context.Context, _ *http.Request
 	return &transport.Empty{}, nil
 }
 
-func (h *dataProductsHandler) GetAccessiblePseudoDatasetsForUser(ctx context.Context, _ *http.Request, _ interface{}) ([]*service.PseudoDataset, error) {
+func (h *DataProductsHandler) GetAccessiblePseudoDatasetsForUser(ctx context.Context, _ *http.Request, _ interface{}) ([]*service.PseudoDataset, error) {
 	user := auth.GetUser(ctx)
 
 	datasets, err := h.service.GetAccessiblePseudoDatasetsForUser(ctx, user)
@@ -163,8 +163,8 @@ func (h *dataProductsHandler) GetAccessiblePseudoDatasetsForUser(ctx context.Con
 	return datasets, nil
 }
 
-func NewDataProductsHandler(s service.DataProductsService) *dataProductsHandler {
-	return &dataProductsHandler{
+func NewDataProductsHandler(s service.DataProductsService) *DataProductsHandler {
+	return &DataProductsHandler{
 		service: s,
 	}
 }

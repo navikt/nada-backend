@@ -11,12 +11,12 @@ import (
 	"net/http"
 )
 
-type metabaseHandler struct {
+type MetabaseHandler struct {
 	service service.MetabaseService
 }
 
-func (h *metabaseHandler) MapDataset(ctx context.Context, _ *http.Request, in service.DatasetMap) (*service.Dataset, error) {
-	const op errs.Op = "metabaseHandler.MapDataset"
+func (h *MetabaseHandler) MapDataset(ctx context.Context, _ *http.Request, in service.DatasetMap) (*service.Dataset, error) {
+	const op errs.Op = "MetabaseHandler.MapDataset"
 
 	id, err := uuid.Parse(chi.URLParamFromCtx(ctx, "id"))
 	if err != nil {
@@ -33,8 +33,8 @@ func (h *metabaseHandler) MapDataset(ctx context.Context, _ *http.Request, in se
 	return dataset, nil
 }
 
-func NewMetabaseHandler(service service.MetabaseService) *metabaseHandler {
-	return &metabaseHandler{
+func NewMetabaseHandler(service service.MetabaseService) *MetabaseHandler {
+	return &MetabaseHandler{
 		service: service,
 	}
 }

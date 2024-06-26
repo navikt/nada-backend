@@ -18,8 +18,6 @@ import (
 	"golang.org/x/oauth2"
 )
 
-var log *logrus.Logger
-
 const (
 	tokenLength   = 32
 	sessionLength = 7 * time.Hour

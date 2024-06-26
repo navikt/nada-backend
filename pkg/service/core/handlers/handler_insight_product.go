@@ -10,12 +10,12 @@ import (
 	"net/http"
 )
 
-type insightProductHandler struct {
+type InsightProductHandler struct {
 	service service.InsightProductService
 }
 
-func (h *insightProductHandler) GetInsightProduct(ctx context.Context, _ *http.Request, _ any) (*service.InsightProduct, error) {
-	const op errs.Op = "insightProductHandler.GetInsightProduct"
+func (h *InsightProductHandler) GetInsightProduct(ctx context.Context, _ *http.Request, _ any) (*service.InsightProduct, error) {
+	const op errs.Op = "InsightProductHandler.GetInsightProduct"
 
 	id, err := uuid.Parse(chi.URLParamFromCtx(ctx, "id"))
 	if err != nil {
@@ -24,25 +24,32 @@ func (h *insightProductHandler) GetInsightProduct(ctx context.Context, _ *http.R
 
 	insightProduct, err := h.service.GetInsightProduct(ctx, id)
 	if err != nil {
-		return nil, err
+		return nil, errs.E(op, err)
 	}
 
 	return insightProduct, nil
 }
 
-func (h *insightProductHandler) CreateInsightProduct(ctx context.Context, _ *http.Request, in service.NewInsightProduct) (*service.InsightProduct, error) {
+func (h *InsightProductHandler) CreateInsightProduct(ctx context.Context, _ *http.Request, in service.NewInsightProduct) (*service.InsightProduct, error) {
+	const op errs.Op = "InsightProductHandler.CreateInsightProduct"
+
 	user := auth.GetUser(ctx)
+
+	err := user.Validate()
+	if err != nil {
+		return nil, errs.E(errs.InvalidRequest, op, err)
+	}
 
 	insightProduct, err := h.service.CreateInsightProduct(ctx, user, in)
 	if err != nil {
-		return nil, err
+		return nil, errs.E(op, err)
 	}
 
 	return insightProduct, nil
 }
 
-func (h *insightProductHandler) UpdateInsightProduct(ctx context.Context, _ *http.Request, in service.UpdateInsightProductDto) (*service.InsightProduct, error) {
-	const op errs.Op = "insightProductHandler.UpdateInsightProduct"
+func (h *InsightProductHandler) UpdateInsightProduct(ctx context.Context, _ *http.Request, in service.UpdateInsightProductDto) (*service.InsightProduct, error) {
+	const op errs.Op = "InsightProductHandler.UpdateInsightProduct"
 
 	id, err := uuid.Parse(chi.URLParamFromCtx(ctx, "id"))
 	if err != nil {
@@ -59,8 +66,8 @@ func (h *insightProductHandler) UpdateInsightProduct(ctx context.Context, _ *htt
 	return insightProduct, nil
 }
 
-func (h *insightProductHandler) DeleteInsightProduct(ctx context.Context, _ *http.Request, _ any) (*service.InsightProduct, error) {
-	const op errs.Op = "insightProductHandler.DeleteInsightProduct"
+func (h *InsightProductHandler) DeleteInsightProduct(ctx context.Context, _ *http.Request, _ any) (*service.InsightProduct, error) {
+	const op errs.Op = "InsightProductHandler.DeleteInsightProduct"
 
 	id, err := uuid.Parse(chi.URLParamFromCtx(ctx, "id"))
 	if err != nil {
@@ -77,8 +84,8 @@ func (h *insightProductHandler) DeleteInsightProduct(ctx context.Context, _ *htt
 	return deleted, nil
 }
 
-func NewInsightProductHandler(service service.InsightProductService) *insightProductHandler {
-	return &insightProductHandler{
+func NewInsightProductHandler(service service.InsightProductService) *InsightProductHandler {
+	return &InsightProductHandler{
 		service: service,
 	}
 }

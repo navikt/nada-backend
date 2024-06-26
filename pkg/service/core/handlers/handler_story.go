@@ -27,14 +27,14 @@ const (
 	maxMemoryMultipartForm = 32 << 20 // 32 MB
 )
 
-type storyHandler struct {
+type StoryHandler struct {
 	storyService    service.StoryService
 	tokenService    service.TokenService
 	amplitudeClient amplitude.Amplitude
 }
 
-func (h *storyHandler) DeleteStory(ctx context.Context, _ *http.Request, _ any) (*service.Story, error) {
-	const op errs.Op = "storyHandler.DeleteStory"
+func (h *StoryHandler) DeleteStory(ctx context.Context, _ *http.Request, _ any) (*service.Story, error) {
+	const op errs.Op = "StoryHandler.DeleteStory"
 
 	id, err := uuid.Parse(chi.URLParamFromCtx(ctx, "id"))
 	if err != nil {
@@ -51,8 +51,8 @@ func (h *storyHandler) DeleteStory(ctx context.Context, _ *http.Request, _ any) 
 	return story, nil
 }
 
-func (h *storyHandler) UpdateStory(ctx context.Context, _ *http.Request, in service.UpdateStoryDto) (*service.Story, error) {
-	const op errs.Op = "storyHandler.UpdateStory"
+func (h *StoryHandler) UpdateStory(ctx context.Context, _ *http.Request, in service.UpdateStoryDto) (*service.Story, error) {
+	const op errs.Op = "StoryHandler.UpdateStory"
 
 	id, err := uuid.Parse(chi.URLParamFromCtx(ctx, "id"))
 	if err != nil {
@@ -69,7 +69,7 @@ func (h *storyHandler) UpdateStory(ctx context.Context, _ *http.Request, in serv
 	return story, nil
 }
 
-func (h *storyHandler) CreateStory(ctx context.Context, r *http.Request, _ any) (*service.Story, error) {
+func (h *StoryHandler) CreateStory(ctx context.Context, r *http.Request, _ any) (*service.Story, error) {
 	newStory, files, err := parseStoryFilesForm(ctx, r)
 	if err != nil {
 		return nil, err
@@ -85,8 +85,8 @@ func (h *storyHandler) CreateStory(ctx context.Context, r *http.Request, _ any) 
 	return story, nil
 }
 
-func (h *storyHandler) GetStoryMetadata(ctx context.Context, _ *http.Request, _ any) (*service.Story, error) {
-	const op errs.Op = "storyHandler.GetStoryMetadata"
+func (h *StoryHandler) GetStoryMetadata(ctx context.Context, _ *http.Request, _ any) (*service.Story, error) {
+	const op errs.Op = "StoryHandler.GetStoryMetadata"
 
 	id, err := uuid.Parse(chi.URLParamFromCtx(ctx, "id"))
 	if err != nil {
@@ -101,7 +101,7 @@ func (h *storyHandler) GetStoryMetadata(ctx context.Context, _ *http.Request, _ 
 	return story, nil
 }
 
-func (h *storyHandler) GetGCSObject(w http.ResponseWriter, r *http.Request) {
+func (h *StoryHandler) GetGCSObject(w http.ResponseWriter, r *http.Request) {
 	pathParts := strings.Split(r.URL.Path, "/")
 	objPath := strings.Join(pathParts[2:], "/")
 
@@ -125,7 +125,7 @@ func (h *storyHandler) GetGCSObject(w http.ResponseWriter, r *http.Request) {
 	_, _ = w.Write(objBytes)
 }
 
-func (h *storyHandler) CreateStoryHTTP(w http.ResponseWriter, r *http.Request) {
+func (h *StoryHandler) CreateStoryHTTP(w http.ResponseWriter, r *http.Request) {
 	team := r.Context().Value("team").(string)
 
 	bodyBytes, err := io.ReadAll(r.Body)
@@ -165,7 +165,7 @@ func (h *storyHandler) CreateStoryHTTP(w http.ResponseWriter, r *http.Request) {
 	w.Write(retBytes)
 }
 
-func (h *storyHandler) UpdateStoryHTTP(w http.ResponseWriter, r *http.Request) {
+func (h *StoryHandler) UpdateStoryHTTP(w http.ResponseWriter, r *http.Request) {
 	qID, err := getIDFromPath(r, idURLPosUpdate)
 	if err != nil {
 		log.WithError(err).Errorf("getting story id from url path")
@@ -187,7 +187,7 @@ func (h *storyHandler) UpdateStoryHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func (h *storyHandler) AppendStoryHTTP(w http.ResponseWriter, r *http.Request) {
+func (h *StoryHandler) AppendStoryHTTP(w http.ResponseWriter, r *http.Request) {
 	qID, err := getIDFromPath(r, idURLPosUpdate)
 	if err != nil {
 		log.WithError(err).Errorf("getting story id from url path")
@@ -197,7 +197,7 @@ func (h *storyHandler) AppendStoryHTTP(w http.ResponseWriter, r *http.Request) {
 }
 
 // FIXME: take a closer look at this, maybe we can do it a bit differently
-func StoryHTTPMiddleware(h *storyHandler) func(http.Handler) http.Handler {
+func StoryHTTPMiddleware(h *StoryHandler) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			switch r.Method {
@@ -214,7 +214,7 @@ func StoryHTTPMiddleware(h *storyHandler) func(http.Handler) http.Handler {
 	}
 }
 
-func (h *storyHandler) updateStoryHTTP(w http.ResponseWriter, r *http.Request, next http.Handler) {
+func (h *StoryHandler) updateStoryHTTP(w http.ResponseWriter, r *http.Request, next http.Handler) {
 	qID, err := getIDFromPath(r, idURLPosUpdate)
 	if err != nil {
 		writeError(w, http.StatusBadRequest, fmt.Errorf("invalid story id %v", qID))
@@ -266,7 +266,7 @@ func isAuthorized(token, dbToken string) bool {
 	return token == dbToken
 }
 
-func (h *storyHandler) createStoryHTTP(w http.ResponseWriter, r *http.Request, next http.Handler) {
+func (h *StoryHandler) createStoryHTTP(w http.ResponseWriter, r *http.Request, next http.Handler) {
 	authHeader := r.Header.Get("Authorization")
 	token, err := getTokenFromHeader(authHeader)
 	if err != nil {
@@ -302,7 +302,7 @@ func getTokenFromHeader(authHeader string) (uuid.UUID, error) {
 	return token, nil
 }
 
-func (h *storyHandler) RedirectStoryHTTP(w http.ResponseWriter, r *http.Request) {
+func (h *StoryHandler) RedirectStoryHTTP(w http.ResponseWriter, r *http.Request) {
 	pathParts := strings.Split(r.URL.Path, "/")
 	urlPathPrefix := strings.Join(pathParts[0:2], "/") + "/"
 	storyPath := strings.Join(pathParts[2:], "/")
@@ -317,7 +317,7 @@ func (h *storyHandler) RedirectStoryHTTP(w http.ResponseWriter, r *http.Request)
 	http.Redirect(w, r, objPath, http.StatusSeeOther)
 }
 
-func (h *storyHandler) getStoryHTTP(w http.ResponseWriter, r *http.Request, next http.Handler) {
+func (h *StoryHandler) getStoryHTTP(w http.ResponseWriter, r *http.Request, next http.Handler) {
 	regex, _ := regexp.Compile(`[\n]*\.[\n]*`) // check if object path has file extension
 	if !regex.MatchString(r.URL.Path) {
 		h.RedirectStoryHTTP(w, r)
@@ -333,7 +333,7 @@ func (h *storyHandler) getStoryHTTP(w http.ResponseWriter, r *http.Request, next
 	next.ServeHTTP(w, r)
 }
 
-func (h *storyHandler) publishAmplitudeEvent(ctx context.Context, path string) error {
+func (h *StoryHandler) publishAmplitudeEvent(ctx context.Context, path string) error {
 	id := strings.Split(path, "/")[2]
 
 	story, err := h.storyService.GetStory(ctx, uuid.MustParse(id))
@@ -463,8 +463,8 @@ func writeError(w http.ResponseWriter, status int, err error) {
 	w.Write(respBytes)
 }
 
-func NewStoryHandler(storyService service.StoryService, tokenService service.TokenService, amp amplitude.Amplitude) *storyHandler {
-	return &storyHandler{
+func NewStoryHandler(storyService service.StoryService, tokenService service.TokenService, amp amplitude.Amplitude) *StoryHandler {
+	return &StoryHandler{
 		storyService:    storyService,
 		tokenService:    tokenService,
 		amplitudeClient: amp,
