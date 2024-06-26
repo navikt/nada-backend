@@ -416,10 +416,16 @@ type dataModelPermission struct {
 	Schemas string `json:"schemas,omitempty"`
 }
 
+type downloadPermission struct {
+	Schemas string `json:"schemas,omitempty"`
+}
+
 type permissionGroup struct {
-	Data      permissions          `json:"data,omitempty"`
-	Details   string               `json:"details,omitempty"`
-	DataModel *dataModelPermission `json:"data-model,omitempty"`
+	ViewData      string               `json:"view-data,omitempty"`
+	CreateQueries string               `json:"create-queries,omitempty"`
+	Details       string               `json:"details,omitempty"`
+	Download      *downloadPermission  `json:"download,omitempty"`
+	DataModel     *dataModelPermission `json:"data-model,omitempty"`
 }
 
 func (c *metabaseAPI) RestrictAccessToDatabase(ctx context.Context, groupIDs []int, databaseID int) error {
@@ -444,8 +450,11 @@ func (c *metabaseAPI) RestrictAccessToDatabase(ctx context.Context, groupIDs []i
 			permissionGraph.Groups[grpSID] = map[string]permissionGroup{}
 		}
 		permissionGraph.Groups[grpSID][dbSID] = permissionGroup{
-			Data:      permissions{Native: "write", Schemas: "all"},
-			DataModel: &dataModelPermission{Schemas: "all"},
+			ViewData:      "unrestricted",
+			CreateQueries: "query-builder-and-native",
+			DataModel:     &dataModelPermission{Schemas: "all"},
+			Download:      &downloadPermission{Schemas: "full"},
+			Details:       "no",
 		}
 
 		grpSIDs = append(grpSIDs, grpSID)
@@ -458,7 +467,7 @@ func (c *metabaseAPI) RestrictAccessToDatabase(ctx context.Context, groupIDs []i
 		}
 		if !containsGroup(grpSIDs, gid) {
 			permission[dbSID] = permissionGroup{
-				Data: permissions{Native: "none", Schemas: "none"},
+				ViewData: "blocked",
 			}
 		}
 	}
@@ -488,8 +497,11 @@ func (c *metabaseAPI) OpenAccessToDatabase(ctx context.Context, databaseID int) 
 		if gid == "1" {
 			// All users group
 			permission[dbSID] = permissionGroup{
-				Data:      permissions{Native: "write", Schemas: "all"},
-				DataModel: &dataModelPermission{Schemas: "all"},
+				ViewData:      "unrestricted",
+				CreateQueries: "query-builder-and-native",
+				DataModel:     &dataModelPermission{Schemas: "all"},
+				Download:      &downloadPermission{Schemas: "full"},
+				Details:       "no",
 			}
 			break
 		}
