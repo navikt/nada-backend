@@ -2,6 +2,8 @@ package service
 
 import (
 	"context"
+	validation "github.com/go-ozzo/ozzo-validation/v4"
+	"github.com/go-ozzo/ozzo-validation/v4/is"
 	"time"
 )
 
@@ -16,6 +18,12 @@ type User struct {
 	GoogleGroups    Groups
 	AllGoogleGroups Groups
 	Expiry          time.Time `json:"expiry"`
+}
+
+func (u User) Validate() error {
+	return validation.ValidateStruct(&u,
+		validation.Field(&u.Email, validation.Required, is.Email),
+	)
 }
 
 type Group struct {

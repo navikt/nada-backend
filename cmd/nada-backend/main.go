@@ -49,8 +49,6 @@ const (
 func main() {
 	flag.Parse()
 
-	// zerolog.ErrorStackMarshaler = pkgerrors.MarshalStack
-
 	zlog := zerolog.New(os.Stdout).With().Timestamp().Logger()
 
 	log := logrus.StandardLogger()

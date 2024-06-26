@@ -118,6 +118,10 @@ func GetUser(ctx context.Context) *service.User {
 	return user.(*service.User)
 }
 
+func SetUser(ctx context.Context, user *service.User) context.Context {
+	return context.WithValue(ctx, ContextUserKey, user)
+}
+
 type SessionRetriever interface {
 	GetSession(ctx context.Context, token string) (*Session, error)
 }
