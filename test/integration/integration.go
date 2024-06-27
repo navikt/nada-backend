@@ -110,6 +110,7 @@ func (c *containers) RunPostgres(cfg *PostgresConfig) *PostgresConfig {
 	log.Println("Postgres is configured with url: ", cfg.ConnectionURL())
 
 	c.pool.MaxWait = 120 * time.Second
+	c.resources = append(c.resources, resource)
 
 	if err = c.pool.Retry(func() error {
 		db, err = sql.Open("postgres", cfg.ConnectionURL())
@@ -121,8 +122,6 @@ func (c *containers) RunPostgres(cfg *PostgresConfig) *PostgresConfig {
 	}); err != nil {
 		c.t.Fatalf("could not connect to postgres: %s", err)
 	}
-
-	c.resources = append(c.resources, resource)
 
 	return cfg
 }
@@ -205,6 +204,7 @@ func (c *containers) RunMetabase(cfg *MetabaseConfig) *MetabaseConfig {
 	log.Println("Metabase is configured with url: ", cfg.ConnectionURL())
 
 	c.pool.MaxWait = 2 * time.Minute
+	c.resources = append(c.resources, resource)
 
 	// Exponential backoff-retry to connect to Metabase instance
 	if err := c.pool.Retry(func() error {
@@ -326,7 +326,10 @@ func (r *testRunner) HasStatusCode(code int) TestRunnerEnder {
 
 func (r *testRunner) Expect(expect, into any, opts ...cmp.Option) {
 	Unmarshal(r.t, r.response.Body, into)
-	cmp.Equal(expect, into, opts...)
+	diff := cmp.Diff(expect, into, opts...)
+	if diff != "" {
+		r.t.Fatalf("unexpected response: %s", diff)
+	}
 }
 
 func (r *testRunner) Value(into any) {

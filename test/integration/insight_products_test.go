@@ -4,13 +4,12 @@ import (
 	"github.com/go-chi/chi"
 	"github.com/google/go-cmp/cmp/cmpopts"
 	"github.com/google/uuid"
-	"github.com/navikt/nada-backend/pkg/config/v2"
 	"github.com/navikt/nada-backend/pkg/database"
 	"github.com/navikt/nada-backend/pkg/service"
 	"github.com/navikt/nada-backend/pkg/service/core"
 	"github.com/navikt/nada-backend/pkg/service/core/handlers"
 	"github.com/navikt/nada-backend/pkg/service/core/routes"
-	"github.com/navikt/nada-backend/pkg/service/core/storage"
+	"github.com/navikt/nada-backend/pkg/service/core/storage/postgres"
 	"github.com/rs/zerolog"
 	log "github.com/sirupsen/logrus"
 	"github.com/stretchr/testify/assert"
@@ -21,7 +20,6 @@ import (
 	"time"
 )
 
-// FIXME: turn into table test
 func TestInsightProduct(t *testing.T) {
 	c := NewContainers(t)
 	defer c.Cleanup()
@@ -39,8 +37,8 @@ func TestInsightProduct(t *testing.T) {
 	r := chi.NewRouter()
 
 	{
-		stores := storage.NewStores(repo, config.Config{})
-		s := core.NewInsightProductService(stores.InsightProductStorage)
+		store := postgres.NewInsightProductStorage(repo)
+		s := core.NewInsightProductService(store)
 		h := handlers.NewInsightProductHandler(s)
 		e := routes.NewInsightProductEndpoints(zerolog.New(os.Stdout), h)
 		// This should be configurable per test
@@ -77,7 +75,7 @@ func TestInsightProduct(t *testing.T) {
 			Description:      "This is my new insight product",
 			Type:             "Metabase",
 			Link:             "https://example.com/something",
-			Keywords:         nil,
+			Keywords:         []string{},
 			Group:            "nada@nav.no",
 			TeamkatalogenURL: nil,
 			TeamID:           nil,

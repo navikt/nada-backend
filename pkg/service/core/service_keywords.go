@@ -10,6 +10,7 @@ var _ service.KeywordsService = &keywordsService{}
 
 type keywordsService struct {
 	keywordsStorage service.KeywordsStorage
+	adminGroup      string
 }
 
 func (k *keywordsService) GetKeywordsListSortedByPopularity(ctx context.Context) (*service.KeywordsList, error) {
@@ -26,8 +27,7 @@ func (k *keywordsService) GetKeywordsListSortedByPopularity(ctx context.Context)
 func (k *keywordsService) UpdateKeywords(ctx context.Context, user *service.User, input service.UpdateKeywordsDto) error {
 	const op errs.Op = "keywordsService.UpdateKeywords"
 
-	// FIXME: make this configurable
-	err := ensureUserInGroup(user, "nada@nav.no")
+	err := ensureUserInGroup(user, k.adminGroup)
 	if err != nil {
 		return errs.E(op, err)
 	}
@@ -40,6 +40,9 @@ func (k *keywordsService) UpdateKeywords(ctx context.Context, user *service.User
 	return nil
 }
 
-func NewKeywordsService(storage service.KeywordsStorage) *keywordsService {
-	return &keywordsService{keywordsStorage: storage}
+func NewKeywordsService(storage service.KeywordsStorage, adminGroup string) *keywordsService {
+	return &keywordsService{
+		keywordsStorage: storage,
+		adminGroup:      adminGroup,
+	}
 }

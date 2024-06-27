@@ -47,13 +47,14 @@ type Config struct {
 	NaisConsole               NaisConsole               `yaml:"nais_console"`
 	API                       API                       `yaml:"api"`
 
-	AllUsersGroup    string `yaml:"all_users_group"`
-	LoginPage        string `yaml:"login_page"`
-	AmplitudeAPIKey  string `yaml:"amplitude_api_key"`
-	LogLevel         string `yaml:"log_level"`
-	MockAuth         bool   `yaml:"mock_auth"`
-	SkipMetadataSync bool   `yaml:"skip_metadata_sync"`
-	Debug            bool   `yaml:"debug"`
+	KeywordsAdminGroup string `yaml:"keywords_admin_group"`
+	AllUsersGroup      string `yaml:"all_users_group"`
+	LoginPage          string `yaml:"login_page"`
+	AmplitudeAPIKey    string `yaml:"amplitude_api_key"`
+	LogLevel           string `yaml:"log_level"`
+	MockAuth           bool   `yaml:"mock_auth"`
+	SkipMetadataSync   bool   `yaml:"skip_metadata_sync"`
+	Debug              bool   `yaml:"debug"`
 }
 
 func (c Config) Validate() error {
@@ -76,6 +77,7 @@ func (c Config) Validate() error {
 		validation.Field(&c.CrossTeamPseudonymization, validation.Required),
 		validation.Field(&c.GCS, validation.Required),
 		validation.Field(&c.BigQuery, validation.Required),
+		validation.Field(&c.KeywordsAdminGroup, validation.Required),
 	)
 }
 

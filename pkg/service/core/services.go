@@ -72,6 +72,7 @@ func NewServices(
 		),
 		KeyWordService: NewKeywordsService(
 			stores.KeyWordStorage,
+			cfg.KeywordsAdminGroup,
 		),
 		MetaBaseService: NewMetabaseService(
 			cfg.Metabase.GCPProject,
