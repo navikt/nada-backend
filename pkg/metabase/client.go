@@ -28,6 +28,8 @@ type Client struct {
 	sessionID          string
 }
 
+const allUsersGroupID = 1
+
 func NewClient(url, username, password, oauth2ClientID, oauth2ClientSecret, oauth2TenantID string) *Client {
 	return &Client{
 		c:                  http.DefaultClient,
@@ -397,69 +399,24 @@ type permissionGroup struct {
 	DataModel     *dataModelPermission `json:"data-model,omitempty"`
 }
 
-func (c *Client) RestrictAccessToDatabase(ctx context.Context, groupIDs []int, databaseID int) error {
-	var permissionGraph struct {
-		Groups   map[string]map[string]permissionGroup `json:"groups"`
-		Revision int                                   `json:"revision"`
-	}
-
-	err := c.request(ctx, http.MethodGet, "/permissions/graph", nil, &permissionGraph)
-	if err != nil {
-		return err
-	}
-
-	dbSID := strconv.Itoa(databaseID)
-
-	grpSIDs := []string{}
-	for _, g := range groupIDs {
-		grpSID := strconv.Itoa(g)
-		if _, ok := permissionGraph.Groups[grpSID]; !ok {
-			permissionGraph.Groups[grpSID] = map[string]permissionGroup{}
-		}
-		permissionGraph.Groups[grpSID][dbSID] = permissionGroup{
-			ViewData:      "unrestricted",
-			CreateQueries: "query-builder-and-native",
-			DataModel:     &dataModelPermission{Schemas: "all"},
-			Download:      &downloadPermission{Schemas: "full"},
-			Details:       "no",
-		}
-
-		grpSIDs = append(grpSIDs, grpSID)
-	}
-
-	for gid, permission := range permissionGraph.Groups {
-		if gid == "2" {
-			// admin group
-			continue
-		}
-		if !containsGroup(grpSIDs, gid) {
-			permission[dbSID] = permissionGroup{
-				ViewData: "blocked",
-			}
-		}
-	}
-
-	if err := c.request(ctx, http.MethodPut, "/permissions/graph", permissionGraph, nil); err != nil {
-		return err
-	}
-
-	return nil
+func (c *Client) OpenAccessToDatabase(ctx context.Context, databaseID int) error {
+	return c.RestrictAccessToDatabase(ctx, allUsersGroupID, databaseID)
 }
 
-func (c *Client) OpenAccessToDatabase(ctx context.Context, databaseID int) error {
+func (c *Client) RestrictAccessToDatabase(ctx context.Context, groupID int, databaseID int) error {
 	var permissionGraph struct {
 		Groups   map[string]map[string]permissionGroup `json:"groups"`
 		Revision int                                   `json:"revision"`
 	}
 
-	err := c.request(ctx, http.MethodGet, "/permissions/graph", nil, &permissionGraph)
+	err := c.request(ctx, http.MethodGet, fmt.Sprintf("/permissions/graph/group/%v", groupID), nil, &permissionGraph)
 	if err != nil {
 		return err
 	}
 
 	dbSID := strconv.Itoa(databaseID)
 	for gid, permission := range permissionGraph.Groups {
-		if gid == "1" {
+		if gid == strconv.Itoa(groupID) {
 			// All users group
 			permission[dbSID] = permissionGroup{
 				ViewData:      "unrestricted",
@@ -472,11 +429,7 @@ func (c *Client) OpenAccessToDatabase(ctx context.Context, databaseID int) error
 		}
 	}
 
-	if err := c.request(ctx, http.MethodPut, "/permissions/graph", permissionGraph, nil); err != nil {
-		return err
-	}
-
-	return nil
+	return c.request(ctx, http.MethodPut, "/permissions/graph", permissionGraph, nil)
 }
 
 func (c *Client) DeletePermissionGroup(ctx context.Context, groupID int) error {
