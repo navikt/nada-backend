@@ -269,7 +269,7 @@ func (m *Metabase) create(ctx context.Context, ds dsWrapper) error {
 	}
 
 	if ds.MetabaseGroupID > 0 {
-		err := m.client.RestrictAccessToDatabase(ctx, []int{ds.MetabaseGroupID}, dbID)
+		err := m.client.RestrictAccessToDatabase(ctx, ds.MetabaseGroupID, dbID)
 		if err != nil {
 			return err
 		}
