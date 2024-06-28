@@ -60,7 +60,19 @@ func WithTx[T any](r *Repo) func() (T, Transacter, error) {
 
 func New(dbConnDSN string, maxIdleConn, maxOpenConn int, log *logrus.Entry) (*Repo, error) {
 	hooks := NewHooks()
-	sql.Register("psqlhooked", sqlhooks.Wrap(&pq.Driver{}, hooks))
+	drivers := sql.Drivers()
+
+	found := false
+	for _, d := range drivers {
+		if d == "psqlhooked" {
+			found = true
+			break
+		}
+	}
+
+	if !found {
+		sql.Register("psqlhooked", sqlhooks.Wrap(&pq.Driver{}, hooks))
+	}
 
 	db, err := sql.Open("psqlhooked", dbConnDSN)
 	if err != nil {

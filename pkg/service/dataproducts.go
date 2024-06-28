@@ -9,7 +9,7 @@ import (
 
 type DataProductsStorage interface {
 	CreateDataproduct(ctx context.Context, input NewDataproduct) (*DataproductMinimal, error)
-	CreateDataset(ctx context.Context, ds NewDataset, referenceDatasource *NewBigQuery, user *User) (*string, error)
+	CreateDataset(ctx context.Context, ds NewDataset, referenceDatasource *NewBigQuery, user *User) (*Dataset, error)
 	DeleteDataproduct(ctx context.Context, id uuid.UUID) error
 	DeleteDataset(ctx context.Context, id uuid.UUID) error
 	GetAccessibleDatasets(ctx context.Context, userGroups []string, requester string) (owned []*AccessibleDataset, granted []*AccessibleDataset, err error)
@@ -32,7 +32,7 @@ type DataProductsService interface {
 	CreateDataproduct(ctx context.Context, user *User, input NewDataproduct) (*DataproductMinimal, error)
 	UpdateDataproduct(ctx context.Context, user *User, id uuid.UUID, input UpdateDataproductDto) (*DataproductMinimal, error)
 	DeleteDataproduct(ctx context.Context, user *User, id uuid.UUID) (*DataproductWithDataset, error)
-	CreateDataset(ctx context.Context, user *User, input NewDataset) (*string, error)
+	CreateDataset(ctx context.Context, user *User, input NewDataset) (*Dataset, error)
 	DeleteDataset(ctx context.Context, user *User, id uuid.UUID) (string, error)
 	UpdateDataset(ctx context.Context, user *User, id uuid.UUID, input UpdateDatasetDto) (string, error)
 	GetDataset(ctx context.Context, id uuid.UUID) (*Dataset, error)

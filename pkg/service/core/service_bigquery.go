@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"github.com/navikt/nada-backend/pkg/errs"
 	"github.com/navikt/nada-backend/pkg/service"
+	"github.com/sanity-io/litter"
 	"google.golang.org/api/googleapi"
 	"net/http"
 	"time"
@@ -65,6 +66,7 @@ func (s *bigQueryService) UpdateMetadata(ctx context.Context, ds *service.BigQue
 	if err != nil {
 		return errs.E(op, err)
 	}
+	fmt.Println(litter.Sdump(metadata))
 
 	err = s.bigQueryStorage.UpdateBigqueryDatasourceSchema(ctx, ds.DatasetID, metadata)
 	if err != nil {

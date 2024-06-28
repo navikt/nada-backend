@@ -30,6 +30,7 @@ require (
 	github.com/prometheus/client_golang v1.19.1
 	github.com/qustavo/sqlhooks/v2 v2.1.0
 	github.com/rs/zerolog v1.33.0
+	github.com/sanity-io/litter v1.5.5
 	github.com/sebdah/goldie/v2 v2.5.3
 	github.com/sirupsen/logrus v1.9.3
 	github.com/slack-go/slack v0.13.0

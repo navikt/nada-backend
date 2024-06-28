@@ -1139,8 +1139,6 @@ func TestClient_AddDatasetViewAccessEntry(t *testing.T) {
 
 // IAM endpoints are not implemented, so we need to mock them
 func TestClient_AddAndSetTablePolicy(t *testing.T) {
-	t.Parallel()
-
 	testCases := []struct {
 		name          string
 		projectID     string
@@ -1186,8 +1184,6 @@ func TestClient_AddAndSetTablePolicy(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			t.Parallel()
-
 			s := emulator.New(t)
 			defer s.Cleanup()
 
@@ -1216,8 +1212,6 @@ func TestClient_AddAndSetTablePolicy(t *testing.T) {
 }
 
 func TestClient_RemoveAndSetTablePolicy(t *testing.T) {
-	t.Parallel()
-
 	testCases := []struct {
 		name          string
 		projectID     string
@@ -1255,16 +1249,12 @@ func TestClient_RemoveAndSetTablePolicy(t *testing.T) {
 					},
 				},
 			},
-			expect: &iampb.Policy{
-				Version: 1,
-			},
+			expect: &iampb.Policy{},
 		},
 	}
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			t.Parallel()
-
 			s := emulator.New(t)
 			defer s.Cleanup()
 

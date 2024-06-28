@@ -135,7 +135,7 @@ func (s *dataProductsService) DeleteDataproduct(ctx context.Context, user *servi
 	return dp, nil
 }
 
-func (s *dataProductsService) CreateDataset(ctx context.Context, user *service.User, input service.NewDataset) (*string, error) {
+func (s *dataProductsService) CreateDataset(ctx context.Context, user *service.User, input service.NewDataset) (*service.Dataset, error) {
 	const op errs.Op = "dataProductsService.CreateDataset"
 
 	dp, err := s.dataProductStorage.GetDataproduct(ctx, input.DataproductID)

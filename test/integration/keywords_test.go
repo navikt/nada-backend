@@ -65,11 +65,12 @@ func TestKeywords(t *testing.T) {
 	t.Run("Update keywords", func(t *testing.T) {
 
 		NewTester(t, server).
-			Post("/api/keywords", &service.UpdateKeywordsDto{
+			Post(&service.UpdateKeywordsDto{
 				ObsoleteKeywords: []string{"keyword1"},
 				ReplacedKeywords: []string{"keyword2"},
 				NewText:          []string{"keyword2_replaced"},
-			}).HasStatusCode(http.StatusNoContent)
+			}, "/api/keywords").
+			HasStatusCode(http.StatusNoContent)
 	})
 
 	t.Run("Get keywords", func(t *testing.T) {

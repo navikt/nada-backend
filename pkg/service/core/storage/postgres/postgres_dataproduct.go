@@ -311,7 +311,7 @@ func (s *dataProductStorage) UpdateDataset(ctx context.Context, id uuid.UUID, in
 	return res.ID.String(), nil
 }
 
-func (s *dataProductStorage) CreateDataset(ctx context.Context, ds service.NewDataset, referenceDatasource *service.NewBigQuery, user *service.User) (*string, error) {
+func (s *dataProductStorage) CreateDataset(ctx context.Context, ds service.NewDataset, referenceDatasource *service.NewBigQuery, user *service.User) (*service.Dataset, error) {
 	const op errs.Op = "dataProductStorage.CreateDataset"
 
 	tx, err := s.db.GetDB().Begin()
@@ -436,7 +436,12 @@ func (s *dataProductStorage) CreateDataset(ctx context.Context, ds service.NewDa
 		return nil, errs.E(errs.Database, op, err)
 	}
 
-	return &created.Slug, nil
+	ret, err := s.GetDataset(ctx, created.ID)
+	if err != nil {
+		return nil, errs.E(op, err)
+	}
+
+	return ret, nil
 }
 
 func (s *dataProductStorage) DeleteDataproduct(ctx context.Context, id uuid.UUID) error {

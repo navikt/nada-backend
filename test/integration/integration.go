@@ -6,7 +6,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/google/go-cmp/cmp"
-	_ "github.com/lib/pq"
 	"github.com/navikt/nada-backend/pkg/auth"
 	"github.com/navikt/nada-backend/pkg/service"
 	"github.com/ory/dockertest/v3"
@@ -17,6 +16,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"os"
+	"strings"
 	"testing"
 	"time"
 )
@@ -294,10 +294,10 @@ func Unmarshal(t *testing.T, r io.Reader, v interface{}) {
 }
 
 type TestRunner interface {
-	Post(path string, input any) TestRunnerStatus
-	Get(path string) TestRunnerStatus
-	Put(path string, input any) TestRunnerStatus
-	Delete(path string) TestRunnerStatus
+	Post(input any, path string, params ...string) TestRunnerStatus
+	Get(path string, params ...string) TestRunnerStatus
+	Put(input any, path string, params ...string) TestRunnerStatus
+	Delete(path string, params ...string) TestRunnerStatus
 }
 
 type TestRunnerStatus interface {
@@ -336,30 +336,54 @@ func (r *testRunner) Value(into any) {
 	Unmarshal(r.t, r.response.Body, into)
 }
 
-func (r *testRunner) Get(path string) TestRunnerStatus {
-	r.response = SendRequest(r.t, http.MethodGet, r.s.URL+path, nil)
+func (r *testRunner) parseQueryParams(params ...string) string {
+	if len(params) == 0 {
+		return ""
+	}
+
+	if len(params)%2 != 0 {
+		r.t.Fatalf("invalid number of query parameters")
+	}
+
+	var p []string
+	for i := 0; i < len(params); i += 2 {
+		p = append(p, fmt.Sprintf("%s=%s", params[i], params[i+1]))
+	}
+
+	return "?" + strings.Join(p, "&")
+}
+
+func (r *testRunner) buildURL(path string, params ...string) string {
+	return fmt.Sprintf("%s%s%s", r.s.URL, path, r.parseQueryParams(params...))
+}
+
+func (r *testRunner) Get(path string, params ...string) TestRunnerStatus {
+	url := r.buildURL(path, params...)
+	r.response = SendRequest(r.t, http.MethodGet, url, nil)
 
 	return r
 }
 
-func (r *testRunner) Put(path string, input any) TestRunnerStatus {
-	r.response = SendRequest(r.t, http.MethodPut, r.s.URL+path, bytes.NewReader(Marshal(r.t, input)))
+func (r *testRunner) Put(input any, path string, params ...string) TestRunnerStatus {
+	url := r.buildURL(path, params...)
+	r.response = SendRequest(r.t, http.MethodPut, url, bytes.NewReader(Marshal(r.t, input)))
 
 	return r
 }
 
-func (r *testRunner) Delete(path string) TestRunnerStatus {
-	r.response = SendRequest(r.t, http.MethodDelete, r.s.URL+path, nil)
+func (r *testRunner) Delete(path string, params ...string) TestRunnerStatus {
+	url := r.buildURL(path, params...)
+	r.response = SendRequest(r.t, http.MethodDelete, url, nil)
 
 	return r
 }
 
-func (r *testRunner) Post(path string, input any) TestRunnerStatus {
-	r.response = SendRequest(r.t, http.MethodPost, r.s.URL+path, bytes.NewReader(Marshal(r.t, input)))
+func (r *testRunner) Post(input any, path string, params ...string) TestRunnerStatus {
+	url := r.buildURL(path, params...)
+	r.response = SendRequest(r.t, http.MethodPost, url, bytes.NewReader(Marshal(r.t, input)))
 
 	return r
 }
-
 func NewTester(t *testing.T, s *httptest.Server) *testRunner {
 	return &testRunner{
 		t: t,

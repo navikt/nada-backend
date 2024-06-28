@@ -107,13 +107,13 @@ func (h *DataProductsHandler) GetDataset(ctx context.Context, _ *http.Request, _
 func (h *DataProductsHandler) CreateDataset(ctx context.Context, _ *http.Request, in service.NewDataset) (*string, error) {
 	user := auth.GetUser(ctx)
 
-	datasetSlug, err := h.service.CreateDataset(ctx, user, in)
+	ds, err := h.service.CreateDataset(ctx, user, in)
 	if err != nil {
 		return nil, err
 	}
 
 	// FIXME: is it correct to just return the slug here?
-	return datasetSlug, nil
+	return &ds.Slug, nil
 }
 
 func (h *DataProductsHandler) UpdateDataset(ctx context.Context, _ *http.Request, in service.UpdateDatasetDto) (string, error) {

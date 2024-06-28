@@ -111,6 +111,14 @@ func (s *bigQueryStorage) GetBigqueryDatasources(ctx context.Context) ([]*servic
 			piiTags = string(bq.PiiTags.RawMessage)
 		}
 
+		schema := service.BigquerySchema{}
+		if bq.Schema.Valid {
+			err := json.Unmarshal(bq.Schema.RawMessage, &schema.Columns)
+			if err != nil {
+				return nil, errs.E(errs.Internal, op, err)
+			}
+		}
+
 		ret[i] = &service.BigQuery{
 			ID:            bq.ID,
 			DatasetID:     bq.DatasetID,
@@ -125,6 +133,7 @@ func (s *bigQueryStorage) GetBigqueryDatasources(ctx context.Context) ([]*servic
 			PiiTags:       &piiTags,
 			MissingSince:  &bq.MissingSince.Time,
 			PseudoColumns: bq.PseudoColumns,
+			Schema:        schema.Columns,
 		}
 	}
 
@@ -151,6 +160,14 @@ func (s *bigQueryStorage) GetBigqueryDatasource(ctx context.Context, datasetID u
 		piiTags = string(bq.PiiTags.RawMessage)
 	}
 
+	schema := service.BigquerySchema{}
+	if bq.Schema.Valid {
+		err := json.Unmarshal(bq.Schema.RawMessage, &schema.Columns)
+		if err != nil {
+			return nil, errs.E(errs.Internal, op, err)
+		}
+	}
+
 	return &service.BigQuery{
 		ID:            bq.ID,
 		DatasetID:     bq.DatasetID,
@@ -165,6 +182,7 @@ func (s *bigQueryStorage) GetBigqueryDatasource(ctx context.Context, datasetID u
 		PiiTags:       &piiTags,
 		MissingSince:  &bq.MissingSince.Time,
 		PseudoColumns: bq.PseudoColumns,
+		Schema:        schema.Columns,
 	}, nil
 }
 

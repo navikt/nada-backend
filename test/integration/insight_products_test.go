@@ -88,7 +88,7 @@ func TestInsightProduct(t *testing.T) {
 		got := &service.InsightProduct{}
 
 		NewTester(t, server).
-			Post("/api/insightProducts/new", insightProduct).
+			Post(insightProduct, "/api/insightProducts/new").
 			HasStatusCode(http.StatusOK).
 			Expect(expect, got, cmpopts.IgnoreFields(service.InsightProduct{}, "ID", "Created", "LastModified"))
 
@@ -113,7 +113,7 @@ func TestInsightProduct(t *testing.T) {
 
 		got := &service.InsightProduct{}
 
-		NewTester(t, server).Put("/api/insightProducts/"+ip.ID.String(), insightProduct).
+		NewTester(t, server).Put(insightProduct, "/api/insightProducts/"+ip.ID.String()).
 			HasStatusCode(http.StatusOK).
 			Value(got)
 
