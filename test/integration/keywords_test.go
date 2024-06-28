@@ -73,7 +73,7 @@ func TestKeywords(t *testing.T) {
 	})
 
 	t.Run("Get keywords", func(t *testing.T) {
-		into := &service.KeywordsList{}
+		got := &service.KeywordsList{}
 
 		expect := &service.KeywordsList{
 			KeywordItems: []service.KeywordItem{
@@ -91,6 +91,6 @@ func TestKeywords(t *testing.T) {
 		NewTester(t, server).
 			Get("/api/keywords").
 			HasStatusCode(http.StatusOK).
-			Expect(expect, into)
+			Expect(expect, got)
 	})
 }

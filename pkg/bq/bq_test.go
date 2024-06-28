@@ -1,6 +1,7 @@
 package bq_test
 
 import (
+	"cloud.google.com/go/iam/apiv1/iampb"
 	"context"
 	"fmt"
 	validation "github.com/go-ozzo/ozzo-validation/v4"
@@ -9,89 +10,14 @@ import (
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-cmp/cmp/cmpopts"
 	"github.com/navikt/nada-backend/pkg/bq"
+	"github.com/navikt/nada-backend/pkg/bq/emulator"
+	"github.com/rs/zerolog"
 	"github.com/stretchr/testify/assert"
 	"os"
 	"path/filepath"
 	"testing"
 	"time"
 )
-
-type CleanupFn func()
-
-func NewBigQueryEmulator(id string, project server.Source, t *testing.T) (string, CleanupFn) {
-	bqServer, err := server.New(server.TempStorage)
-	if err != nil {
-		t.Fatalf("creating bigquery emulator: %v", err)
-	}
-
-	err = bqServer.Load(project)
-	if err != nil {
-		t.Fatalf("initializing bigquery emulator: %v", err)
-	}
-
-	if err := bqServer.SetProject(id); err != nil {
-		t.Fatalf("setting project: %v", err)
-	}
-	testServer := bqServer.TestServer()
-
-	return testServer.URL, func() {
-		testServer.Close()
-	}
-}
-
-func project(id string, datasets ...*types.Dataset) server.Source {
-	p := &types.Project{
-		ID: id,
-	}
-
-	for _, dataset := range datasets {
-		p.Datasets = append(p.Datasets, dataset)
-	}
-
-	return server.StructSource(p)
-}
-
-func dataset(id string, tables ...*types.Table) *types.Dataset {
-	return &types.Dataset{
-		ID:     id,
-		Tables: tables,
-	}
-}
-
-func table(id string, columns ...*types.Column) *types.Table {
-	return &types.Table{
-		ID:      id,
-		Columns: columns,
-	}
-}
-
-func columnNullable(name string) *types.Column {
-	return &types.Column{
-		Name: name,
-		Type: types.STRING,
-		Mode: types.NullableMode,
-	}
-}
-
-func columnRequired(name string) *types.Column {
-	return &types.Column{
-		Name: name,
-		Type: types.STRING,
-		Mode: types.RequiredMode,
-	}
-}
-
-func columnRepeated(name string) *types.Column {
-	return &types.Column{
-		Name: name,
-		Type: types.STRING,
-		Mode: types.RepeatedMode,
-	}
-}
-
-func projectWithDatasetAndTable(projectID, datasetID, tableID string, columns ...*types.Column) server.Source {
-	return project(projectID, dataset(datasetID, table(tableID, columns...)))
-}
 
 func TestClient_GetDataset(t *testing.T) {
 	t.Parallel()
@@ -100,7 +26,7 @@ func TestClient_GetDataset(t *testing.T) {
 		name      string
 		projectID string
 		datasetID string
-		project   server.Source
+		schema    *emulator.Dataset
 		expect    any
 		expectErr bool
 	}{
@@ -108,9 +34,13 @@ func TestClient_GetDataset(t *testing.T) {
 			name:      "success",
 			projectID: "test-project",
 			datasetID: "test-dataset",
-			project: projectWithDatasetAndTable("test-project", "test-dataset", "test-table",
-				columnNullable("test-column"),
-			),
+			schema: &emulator.Dataset{
+				DatasetID: "test-dataset",
+				TableID:   "test-table",
+				Columns: []*types.Column{
+					emulator.ColumnNullable("test-column"),
+				},
+			},
 			expect: &bq.Dataset{
 				ProjectID: "test-project",
 				DatasetID: "test-dataset",
@@ -120,7 +50,6 @@ func TestClient_GetDataset(t *testing.T) {
 			name:      "not found",
 			projectID: "test-project",
 			datasetID: "test-dataset",
-			project:   project("test-project"),
 			expect:    bq.ErrNotExist,
 			expectErr: true,
 		},
@@ -130,10 +59,12 @@ func TestClient_GetDataset(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
 
-			url, cleanup := NewBigQueryEmulator(tc.projectID, tc.project, t)
-			defer cleanup()
+			s := emulator.New(t)
+			defer s.Cleanup()
 
-			c := bq.NewClient(url, false)
+			s.WithProject(tc.projectID, tc.schema)
+
+			c := bq.NewClient(s.Endpoint(), false)
 
 			got, err := c.GetDataset(context.Background(), tc.projectID, tc.datasetID)
 			if tc.expectErr {
@@ -155,16 +86,20 @@ func TestClient_GetDatasets(t *testing.T) {
 	testCases := []struct {
 		name      string
 		projectID string
-		project   server.Source
+		schema    *emulator.Dataset
 		expect    any
 		expectErr bool
 	}{
 		{
 			name:      "success",
 			projectID: "test-project",
-			project: projectWithDatasetAndTable("test-project", "test-dataset", "test-table",
-				columnNullable("test-column"),
-			),
+			schema: &emulator.Dataset{
+				DatasetID: "test-dataset",
+				TableID:   "test-table",
+				Columns: []*types.Column{
+					emulator.ColumnNullable("test-column"),
+				},
+			},
 			expect: []*bq.Dataset{
 				{
 					ProjectID: "test-project",
@@ -176,7 +111,6 @@ func TestClient_GetDatasets(t *testing.T) {
 		{
 			name:      "no datasets",
 			projectID: "test-project",
-			project:   project("test-project", []*types.Dataset{}...),
 			expect:    []*bq.Dataset{},
 			expectErr: false,
 		},
@@ -186,10 +120,12 @@ func TestClient_GetDatasets(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
 
-			url, cleanup := NewBigQueryEmulator(tc.projectID, tc.project, t)
-			defer cleanup()
+			s := emulator.New(t)
+			defer s.Cleanup()
 
-			c := bq.NewClient(url, false)
+			s.WithProject(tc.projectID, tc.schema)
+
+			c := bq.NewClient(s.Endpoint(), false)
 
 			got, err := c.GetDatasets(context.Background(), tc.projectID)
 			if tc.expectErr {
@@ -212,7 +148,7 @@ func TestClient_GetTables(t *testing.T) {
 		name      string
 		projectID string
 		datasetID string
-		project   server.Source
+		schema    *emulator.Dataset
 		expect    any
 		expectErr bool
 	}{
@@ -220,11 +156,15 @@ func TestClient_GetTables(t *testing.T) {
 			name:      "success",
 			projectID: "test-project",
 			datasetID: "test-dataset",
-			project: projectWithDatasetAndTable("test-project", "test-dataset", "test-table",
-				columnNullable("test-column"),
-				columnRequired("test-column-required"),
-				columnRepeated("test-column-repeated"),
-			),
+			schema: &emulator.Dataset{
+				DatasetID: "test-dataset",
+				TableID:   "test-table",
+				Columns: []*types.Column{
+					emulator.ColumnNullable("test-column"),
+					emulator.ColumnRequired("test-column-required"),
+					emulator.ColumnRepeated("test-column-repeated"),
+				},
+			},
 			expect: []*bq.Table{
 				{
 					ProjectID:   "test-project",
@@ -262,10 +202,12 @@ func TestClient_GetTables(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
 
-			url, cleanup := NewBigQueryEmulator(tc.projectID, tc.project, t)
-			defer cleanup()
+			s := emulator.New(t)
+			defer s.Cleanup()
 
-			c := bq.NewClient(url, false)
+			s.WithProject(tc.projectID, tc.schema)
+
+			c := bq.NewClient(s.Endpoint(), false)
 
 			got, err := c.GetTables(context.Background(), tc.projectID, tc.datasetID)
 			if tc.expectErr {
@@ -275,12 +217,13 @@ func TestClient_GetTables(t *testing.T) {
 			} else {
 				assert.NoError(t, err)
 				assert.NotNil(t, got)
-				cmp.Equal(
+				diff := cmp.Diff(
 					tc.expect,
 					got,
 					cmpopts.IgnoreFields(bq.Table{}, "LastModified", "Created", "Expires"),
 					cmpopts.IgnoreUnexported(bq.Table{}),
 				)
+				assert.Empty(t, diff)
 			}
 		})
 	}
@@ -294,7 +237,7 @@ func TestClient_GetTable(t *testing.T) {
 		projectID string
 		datasetID string
 		tableID   string
-		project   server.Source
+		schema    *emulator.Dataset
 		expect    any
 		expectErr bool
 	}{
@@ -303,11 +246,15 @@ func TestClient_GetTable(t *testing.T) {
 			projectID: "test-project",
 			datasetID: "test-dataset",
 			tableID:   "test-table",
-			project: projectWithDatasetAndTable("test-project", "test-dataset", "test-table",
-				columnNullable("test-column"),
-				columnRequired("test-column-required"),
-				columnRepeated("test-column-repeated"),
-			),
+			schema: &emulator.Dataset{
+				DatasetID: "test-dataset",
+				TableID:   "test-table",
+				Columns: []*types.Column{
+					emulator.ColumnNullable("test-column"),
+					emulator.ColumnRequired("test-column-required"),
+					emulator.ColumnRepeated("test-column-repeated"),
+				},
+			},
 			expect: &bq.Table{
 				ProjectID: "test-project",
 				DatasetID: "test-dataset",
@@ -340,7 +287,6 @@ func TestClient_GetTable(t *testing.T) {
 			projectID: "test-project",
 			datasetID: "test-dataset",
 			tableID:   "test-table",
-			project:   project("test-project"),
 			expect:    bq.ErrNotExist,
 			expectErr: true,
 		},
@@ -350,10 +296,12 @@ func TestClient_GetTable(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
 
-			url, cleanup := NewBigQueryEmulator(tc.projectID, tc.project, t)
-			defer cleanup()
+			s := emulator.New(t)
+			defer s.Cleanup()
 
-			c := bq.NewClient(url, false)
+			s.WithProject(tc.projectID, tc.schema)
+
+			c := bq.NewClient(s.Endpoint(), false)
 
 			got, err := c.GetTable(context.Background(), tc.projectID, tc.datasetID, tc.tableID)
 			if tc.expectErr {
@@ -362,12 +310,13 @@ func TestClient_GetTable(t *testing.T) {
 				assert.Equal(t, tc.expect, err)
 			} else {
 				assert.NoError(t, err)
-				cmp.Equal(
+				diff := cmp.Diff(
 					tc.expect,
 					got,
 					cmpopts.IgnoreFields(bq.Table{}, "LastModified", "Created", "Expires"),
 					cmpopts.IgnoreUnexported(bq.Table{}),
 				)
+				assert.Empty(t, diff)
 			}
 		})
 	}
@@ -380,7 +329,7 @@ func TestClient_CreateDataset(t *testing.T) {
 		name      string
 		projectID string
 		datasetID string
-		project   server.Source
+		schema    *emulator.Dataset
 		expect    any
 		expectErr bool
 	}{
@@ -388,7 +337,6 @@ func TestClient_CreateDataset(t *testing.T) {
 			name:      "success",
 			projectID: "test-project",
 			datasetID: "test-dataset",
-			project:   project("test-project", []*types.Dataset{}...),
 			expect: []*bq.Dataset{
 				{
 					ProjectID: "test-project",
@@ -417,10 +365,12 @@ func TestClient_CreateDataset(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
 
-			url, cleanup := NewBigQueryEmulator(tc.projectID, project(tc.projectID), t)
-			defer cleanup()
+			s := emulator.New(t)
+			defer s.Cleanup()
 
-			c := bq.NewClient(url, false)
+			s.WithProject(tc.projectID, tc.schema)
+
+			c := bq.NewClient(s.Endpoint(), false)
 
 			err := c.CreateDataset(context.Background(), tc.projectID, tc.datasetID, "europe-north1")
 			if tc.expectErr {
@@ -443,7 +393,7 @@ func TestClient_CreateDatasetIfNotExists(t *testing.T) {
 		name      string
 		projectID string
 		datasetID string
-		project   server.Source
+		schema    *emulator.Dataset
 		expect    any
 		expectErr bool
 	}{
@@ -451,7 +401,6 @@ func TestClient_CreateDatasetIfNotExists(t *testing.T) {
 			name:      "success",
 			projectID: "test-project",
 			datasetID: "test-dataset",
-			project:   project("test-project", []*types.Dataset{}...),
 			expect: []*bq.Dataset{
 				{
 					ProjectID: "test-project",
@@ -483,10 +432,12 @@ func TestClient_CreateDatasetIfNotExists(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
 
-			url, cleanup := NewBigQueryEmulator(tc.projectID, tc.project, t)
-			defer cleanup()
+			s := emulator.New(t)
+			defer s.Cleanup()
 
-			c := bq.NewClient(url, false)
+			s.WithProject(tc.projectID, tc.schema)
+
+			c := bq.NewClient(s.Endpoint(), false)
 
 			err := c.CreateDatasetIfNotExists(context.Background(), tc.projectID, tc.datasetID, "europe-north1")
 			if tc.expectErr {
@@ -624,34 +575,51 @@ func TestClient_CreateTable(t *testing.T) {
 
 	testCases := []struct {
 		name      string
+		projectID string
 		table     *bq.Table
-		project   server.Source
+		schema    *emulator.Dataset
 		expect    any
 		expectErr bool
 	}{
 		{
-			name: "success",
+			name:      "success",
+			projectID: "test-project",
 			table: &bq.Table{
 				ProjectID: "test-project",
 				DatasetID: "test-dataset",
 				TableID:   "test-table",
 				Location:  "europe-north1",
 			},
-			project: project("test-project", dataset("test-dataset")),
+			schema: &emulator.Dataset{
+				DatasetID: "test-dataset",
+			},
+			expect: []*bq.Table{
+				{
+					ProjectID: "test-project",
+					DatasetID: "test-dataset",
+					TableID:   "test-table",
+					Type:      bq.RegularTable,
+				},
+			},
 		},
 		{
-			name: "already exists",
+			name:      "already exists",
+			projectID: "test-project",
 			table: &bq.Table{
 				ProjectID: "test-project",
 				DatasetID: "test-dataset",
 				TableID:   "test-table",
 				Location:  "europe-north1",
 			},
-			project: projectWithDatasetAndTable("test-project", "test-dataset", "test-table",
-				columnNullable("test-column"),
-				columnRequired("test-column-required"),
-				columnRepeated("test-column-repeated"),
-			),
+			schema: &emulator.Dataset{
+				DatasetID: "test-dataset",
+				TableID:   "test-table",
+				Columns: []*types.Column{
+					emulator.ColumnNullable("test-column"),
+					emulator.ColumnRequired("test-column-required"),
+					emulator.ColumnRepeated("test-column-repeated"),
+				},
+			},
 			expect:    bq.ErrExist,
 			expectErr: true,
 		},
@@ -661,10 +629,12 @@ func TestClient_CreateTable(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
 
-			url, cleanup := NewBigQueryEmulator(tc.table.ProjectID, tc.project, t)
-			defer cleanup()
+			s := emulator.New(t)
+			defer s.Cleanup()
 
-			c := bq.NewClient(url, false)
+			s.WithProject(tc.projectID, tc.schema)
+
+			c := bq.NewClient(s.Endpoint(), false)
 
 			err := c.CreateTable(context.Background(), tc.table)
 			if tc.expectErr {
@@ -674,12 +644,13 @@ func TestClient_CreateTable(t *testing.T) {
 				got, err := c.GetTables(context.Background(), tc.table.ProjectID, tc.table.DatasetID)
 				assert.NoError(t, err)
 				assert.NotNil(t, got)
-				cmp.Equal(
+				diff := cmp.Diff(
 					tc.expect,
 					got,
 					cmpopts.IgnoreFields(bq.Table{}, "LastModified", "Created", "Expires"),
 					cmpopts.IgnoreUnexported(bq.Table{}),
 				)
+				assert.Empty(t, diff)
 			}
 		})
 	}
@@ -690,13 +661,15 @@ func TestClient_CreateTableOrUpdate(t *testing.T) {
 
 	testCases := []struct {
 		name      string
+		projectID string
 		table     *bq.Table
-		project   server.Source
+		schema    *emulator.Dataset
 		expect    any
 		expectErr bool
 	}{
 		{
-			name: "it works when table doesn't exist",
+			name:      "it works when table doesn't exist",
+			projectID: "test-project",
 			table: &bq.Table{
 				ProjectID: "test-project",
 				DatasetID: "test-dataset",
@@ -710,12 +683,16 @@ func TestClient_CreateTableOrUpdate(t *testing.T) {
 					},
 				},
 			},
-			project: project("test-project", dataset("test-dataset")),
+			schema: &emulator.Dataset{
+				DatasetID: "test-dataset",
+			},
 			expect: &bq.Table{
 				ProjectID: "test-project",
 				DatasetID: "test-dataset",
 				TableID:   "test-table",
-				Location:  "europe-north1",
+				// bq-emulator ignores storing location so it's ""
+				Location: "",
+				Type:     bq.RegularTable,
 				Schema: []*bq.Column{
 					{
 						Name: "test-column",
@@ -726,7 +703,8 @@ func TestClient_CreateTableOrUpdate(t *testing.T) {
 			},
 		},
 		{
-			name: "it works when table exists and schema is the same",
+			name:      "it works when table exists and schema is the same",
+			projectID: "test-project",
 			table: &bq.Table{
 				ProjectID: "test-project",
 				DatasetID: "test-dataset",
@@ -740,14 +718,20 @@ func TestClient_CreateTableOrUpdate(t *testing.T) {
 					},
 				},
 			},
-			project: projectWithDatasetAndTable("test-project", "test-dataset", "test-table",
-				columnNullable("test-column"),
-			),
+			schema: &emulator.Dataset{
+				DatasetID: "test-dataset",
+				TableID:   "test-table",
+				Columns: []*types.Column{
+					emulator.ColumnNullable("test-column"),
+				},
+			},
 			expect: &bq.Table{
 				ProjectID: "test-project",
 				DatasetID: "test-dataset",
 				TableID:   "test-table",
-				Location:  "europe-north1",
+				// We can't change the location after creating
+				// and it was ""
+				Location: "",
 				Schema: []*bq.Column{
 					{
 						Name: "test-column",
@@ -758,7 +742,8 @@ func TestClient_CreateTableOrUpdate(t *testing.T) {
 			},
 		},
 		{
-			name: "it works when table exists and we update the schema",
+			name:      "it works when table exists and we update the schema",
+			projectID: "test-project",
 			table: &bq.Table{
 				ProjectID: "test-project",
 				DatasetID: "test-dataset",
@@ -772,15 +757,21 @@ func TestClient_CreateTableOrUpdate(t *testing.T) {
 					},
 				},
 			},
-			project: projectWithDatasetAndTable("test-project", "test-dataset", "test-table",
-				columnNullable("test-column"),
-				columnRequired("test-column-to-be-removed"),
-			),
+			schema: &emulator.Dataset{
+				DatasetID: "test-dataset",
+				TableID:   "test-table",
+				Columns: []*types.Column{
+					emulator.ColumnNullable("test-column"),
+					emulator.ColumnRequired("test-column-to-be-removed"),
+				},
+			},
 			expect: &bq.Table{
 				ProjectID: "test-project",
 				DatasetID: "test-dataset",
 				TableID:   "test-table",
-				Location:  "europe-north1",
+				// We can't change the location after creating
+				// and it was ""
+				Location: "",
 				Schema: []*bq.Column{
 					{
 						Name: "test-column",
@@ -796,10 +787,12 @@ func TestClient_CreateTableOrUpdate(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
 
-			url, cleanup := NewBigQueryEmulator(tc.table.ProjectID, tc.project, t)
-			defer cleanup()
+			s := emulator.New(t)
+			defer s.Cleanup()
 
-			c := bq.NewClient(url, false)
+			s.WithProject(tc.projectID, tc.schema)
+
+			c := bq.NewClient(s.Endpoint(), false)
 
 			got, err := c.CreateTableOrUpdate(context.Background(), tc.table)
 			if tc.expectErr {
@@ -807,12 +800,13 @@ func TestClient_CreateTableOrUpdate(t *testing.T) {
 			} else {
 				assert.NoError(t, err)
 				assert.NotNil(t, got)
-				cmp.Equal(
+				diff := cmp.Diff(
 					tc.expect,
 					got,
 					cmpopts.IgnoreFields(bq.Table{}, "LastModified", "Created", "Expires"),
 					cmpopts.IgnoreUnexported(bq.Table{}),
 				)
+				assert.Empty(t, diff)
 			}
 		})
 	}
@@ -826,37 +820,43 @@ func TestClient_DeleteDataset(t *testing.T) {
 		projectID     string
 		datasetID     string
 		deleteContent bool
-		project       server.Source
+		schema        *emulator.Dataset
 		expectErr     bool
 	}{
 		{
 			name:      "deletes dataset that exists",
 			projectID: "test-project",
 			datasetID: "test-dataset",
-			project: projectWithDatasetAndTable("test-project", "test-dataset", "test-table",
-				columnNullable("test-column"),
-			),
+			schema: &emulator.Dataset{
+				DatasetID: "test-dataset",
+				TableID:   "test-table",
+				Columns: []*types.Column{
+					emulator.ColumnNullable("test-column"),
+				},
+			},
 		},
 		{
 			name:      "does not error while deleting non-existent dataset",
 			projectID: "test-project",
 			datasetID: "test-dataset",
-			project:   project("test-project"),
 		},
 		{
 			name:      "can also delete using with delete content",
 			projectID: "test-project",
 			datasetID: "test-dataset",
-			project: projectWithDatasetAndTable("test-project", "test-dataset", "test-table",
-				columnNullable("test-column"),
-			),
+			schema: &emulator.Dataset{
+				DatasetID: "test-dataset",
+				TableID:   "test-table",
+				Columns: []*types.Column{
+					emulator.ColumnNullable("test-column"),
+				},
+			},
 			deleteContent: true,
 		},
 		{
 			name:          "does not error while deleting non-existent dataset with delete content",
 			projectID:     "test-project",
 			datasetID:     "test-dataset",
-			project:       project("test-project"),
 			deleteContent: true,
 		},
 	}
@@ -865,10 +865,12 @@ func TestClient_DeleteDataset(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
 
-			url, cleanup := NewBigQueryEmulator(tc.projectID, tc.project, t)
-			defer cleanup()
+			s := emulator.New(t)
+			defer s.Cleanup()
 
-			c := bq.NewClient(url, false)
+			s.WithProject(tc.projectID, tc.schema)
+
+			c := bq.NewClient(s.Endpoint(), false)
 
 			err := c.DeleteDataset(context.Background(), tc.projectID, tc.datasetID, tc.deleteContent)
 			if tc.expectErr {
@@ -892,7 +894,7 @@ func TestClient_DeleteTable(t *testing.T) {
 		projectID string
 		datasetID string
 		tableID   string
-		project   server.Source
+		schema    *emulator.Dataset
 		expectErr bool
 	}{
 		{
@@ -900,16 +902,22 @@ func TestClient_DeleteTable(t *testing.T) {
 			projectID: "test-project",
 			datasetID: "test-dataset",
 			tableID:   "test-table",
-			project: projectWithDatasetAndTable("test-project", "test-dataset", "test-table",
-				columnNullable("test-column"),
-			),
+			schema: &emulator.Dataset{
+				DatasetID: "test-dataset",
+				TableID:   "test-table",
+				Columns: []*types.Column{
+					emulator.ColumnNullable("test-column"),
+				},
+			},
 		},
 		{
 			name:      "does not error while deleting non-existent table",
 			projectID: "test-project",
 			datasetID: "test-dataset",
 			tableID:   "test-table",
-			project:   project("test-project", dataset("test-dataset")),
+			schema: &emulator.Dataset{
+				DatasetID: "test-dataset",
+			},
 		},
 	}
 
@@ -917,10 +925,12 @@ func TestClient_DeleteTable(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
 
-			url, cleanup := NewBigQueryEmulator(tc.projectID, tc.project, t)
-			defer cleanup()
+			s := emulator.New(t)
+			defer s.Cleanup()
 
-			c := bq.NewClient(url, false)
+			s.WithProject(tc.projectID, tc.schema)
+
+			c := bq.NewClient(s.Endpoint(), false)
 
 			err := c.DeleteTable(context.Background(), tc.projectID, tc.datasetID, tc.tableID)
 			if tc.expectErr {
@@ -1003,10 +1013,12 @@ func TestClient_QueryAndWait(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
 
-			url, cleanup := NewBigQueryEmulator(tc.projectID, tc.project, t)
-			defer cleanup()
+			s := emulator.New(t)
+			defer s.Cleanup()
 
-			c := bq.NewClient(url, false)
+			s.WithSource(tc.projectID, tc.project)
+
+			c := bq.NewClient(s.Endpoint(), false)
 
 			got, err := c.QueryAndWait(context.Background(), tc.projectID, tc.query)
 			if tc.expectErr {
@@ -1016,7 +1028,8 @@ func TestClient_QueryAndWait(t *testing.T) {
 			} else {
 				assert.NoError(t, err)
 				assert.NotNil(t, got)
-				cmp.Equal(tc.expect, got, cmpopts.IgnoreFields(bq.JobStatistics{}, "CreationTime", "StartTime", "EndTime"))
+				diff := cmp.Diff(tc.expect, got, cmpopts.IgnoreFields(bq.JobStatistics{}, "CreationTime", "StartTime", "EndTime"))
+				assert.Empty(t, diff)
 			}
 		})
 	}
@@ -1030,7 +1043,7 @@ func TestClient_AddDatasetRoleAccessEntry(t *testing.T) {
 		name      string
 		projectID string
 		datasetID string
-		project   server.Source
+		schema    *emulator.Dataset
 		input     *bq.AccessEntry
 		expect    any
 		expectErr bool
@@ -1044,7 +1057,9 @@ func TestClient_AddDatasetRoleAccessEntry(t *testing.T) {
 				Entity:     "bob@example.com",
 				EntityType: bq.UserEmailEntity,
 			},
-			project: project("test-project", dataset("test-dataset")),
+			schema: &emulator.Dataset{
+				DatasetID: "test-dataset",
+			},
 		},
 	}
 
@@ -1052,10 +1067,12 @@ func TestClient_AddDatasetRoleAccessEntry(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
 
-			url, cleanup := NewBigQueryEmulator(tc.projectID, tc.project, t)
-			defer cleanup()
+			s := emulator.New(t)
+			defer s.Cleanup()
 
-			c := bq.NewClient(url, false)
+			s.WithProject(tc.projectID, tc.schema)
+
+			c := bq.NewClient(s.Endpoint(), false)
 
 			err := c.AddDatasetRoleAccessEntry(context.Background(), tc.projectID, tc.datasetID, tc.input)
 			if tc.expectErr {
@@ -1076,7 +1093,7 @@ func TestClient_AddDatasetViewAccessEntry(t *testing.T) {
 		projectID string
 		datasetID string
 		input     *bq.View
-		project   server.Source
+		schema    *emulator.Dataset
 		expect    any
 		expectErr bool
 	}{
@@ -1089,9 +1106,13 @@ func TestClient_AddDatasetViewAccessEntry(t *testing.T) {
 				DatasetID: "test-dataset",
 				TableID:   "test-table",
 			},
-			project: projectWithDatasetAndTable("test-project", "test-dataset", "test-table",
-				columnNullable("test-column"),
-			),
+			schema: &emulator.Dataset{
+				DatasetID: "test-dataset",
+				TableID:   "test-table",
+				Columns: []*types.Column{
+					emulator.ColumnNullable("test-column"),
+				},
+			},
 		},
 	}
 
@@ -1099,10 +1120,12 @@ func TestClient_AddDatasetViewAccessEntry(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
 
-			url, cleanup := NewBigQueryEmulator(tc.projectID, tc.project, t)
-			defer cleanup()
+			s := emulator.New(t)
+			defer s.Cleanup()
 
-			c := bq.NewClient(url, false)
+			s.WithProject(tc.projectID, tc.schema)
+
+			c := bq.NewClient(s.Endpoint(), false)
 
 			err := c.AddDatasetViewAccessEntry(context.Background(), tc.projectID, tc.datasetID, tc.input)
 			if tc.expectErr {
@@ -1114,46 +1137,158 @@ func TestClient_AddDatasetViewAccessEntry(t *testing.T) {
 	}
 }
 
-// IAM endpoints are not implemented, so these tests will fail
-// func TestClient_AddAndSetTablePolicy(t *testing.T) {
-// 	t.Parallel()
-//
-// 	testCases := []struct {
-// 		name      string
-// 		projectID string
-// 		datasetID string
-// 		tableID   string
-// 		role      string
-// 		member    string
-// 		project   server.Source
-// 	}{
-// 		{
-// 			name: "success",
-// 			project: projectWithDatasetAndTable("test-project", "test-dataset", "test-table",
-// 				columnNullable("test-column"),
-// 			),
-// 			projectID: "test-project",
-// 			datasetID: "test-dataset",
-// 			tableID:   "test-table",
-// 			role:      bq.BigQueryDataViewerRole.String(),
-// 			member:    "bob@example.com",
-// 		},
-// 	}
-//
-// 	for _, tc := range testCases {
-// 		t.Run(tc.name, func(t *testing.T) {
-// 			t.Parallel()
-//
-// 			url, cleanup := NewBigQueryEmulator(tc.projectID, tc.project, t)
-// 			defer cleanup()
-//
-// 			c := bq.NewClient(url, false)
-//
-// 			ctx := context.Background()
-// 			ctx, _ = context.WithDeadline(ctx, time.Now().Add(1*time.Second))
-//
-// 			err := c.AddAndSetTablePolicy(ctx, tc.projectID, tc.datasetID, tc.tableID, tc.role, tc.member)
-// 			assert.NoError(t, err)
-// 		})
-// 	}
-// }
+// IAM endpoints are not implemented, so we need to mock them
+func TestClient_AddAndSetTablePolicy(t *testing.T) {
+	t.Parallel()
+
+	testCases := []struct {
+		name          string
+		projectID     string
+		datasetID     string
+		tableID       string
+		role          string
+		member        string
+		schema        *emulator.Dataset
+		currentPolicy *iampb.Policy
+		expect        any
+		expectErr     bool
+	}{
+		{
+			name: "success",
+			schema: &emulator.Dataset{
+				DatasetID: "test-dataset",
+				TableID:   "test-table",
+				Columns: []*types.Column{
+					emulator.ColumnNullable("test-column"),
+				},
+			},
+			projectID: "test-project",
+			datasetID: "test-dataset",
+			tableID:   "test-table",
+			role:      bq.BigQueryDataViewerRole.String(),
+			member:    "bob@example.com",
+			currentPolicy: &iampb.Policy{
+				Version: 1,
+			},
+			expect: &iampb.Policy{
+				Version: 1,
+				Bindings: []*iampb.Binding{
+					{
+						Role: bq.BigQueryDataViewerRole.String(),
+						Members: []string{
+							"bob@example.com",
+						},
+					},
+				},
+			},
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+
+			s := emulator.New(t)
+			defer s.Cleanup()
+
+			s.WithProject(tc.projectID, tc.schema)
+
+			log := zerolog.New(os.Stdout)
+
+			got := &iampb.SetIamPolicyRequest{}
+			// We need to enable the mock interceptor, since the IAM endpoints are not implemented
+			s.EnableMock(false, log,
+				emulator.DatasetTableIAMPolicyGetMock(log, tc.currentPolicy),
+				emulator.DatasetTableIAMPolicySetMock(log, got),
+			)
+
+			c := bq.NewClient(s.Endpoint(), false)
+
+			ctx := context.Background()
+			ctx, _ = context.WithDeadline(ctx, time.Now().Add(1*time.Second))
+
+			err := c.AddAndSetTablePolicy(ctx, tc.projectID, tc.datasetID, tc.tableID, tc.role, tc.member)
+			assert.NoError(t, err)
+			diff := cmp.Diff(tc.expect, got.Policy, cmpopts.IgnoreUnexported(iampb.Policy{}), cmpopts.IgnoreUnexported(iampb.Binding{}))
+			assert.Empty(t, diff)
+		})
+	}
+}
+
+func TestClient_RemoveAndSetTablePolicy(t *testing.T) {
+	t.Parallel()
+
+	testCases := []struct {
+		name          string
+		projectID     string
+		datasetID     string
+		tableID       string
+		role          string
+		member        string
+		schema        *emulator.Dataset
+		currentPolicy *iampb.Policy
+		expect        any
+		expectErr     bool
+	}{
+		{
+			name: "success",
+			schema: &emulator.Dataset{
+				DatasetID: "test-dataset",
+				TableID:   "test-table",
+				Columns: []*types.Column{
+					emulator.ColumnNullable("test-column"),
+				},
+			},
+			projectID: "test-project",
+			datasetID: "test-dataset",
+			tableID:   "test-table",
+			role:      bq.BigQueryDataViewerRole.String(),
+			member:    "bob@example.com",
+			currentPolicy: &iampb.Policy{
+				Version: 1,
+				Bindings: []*iampb.Binding{
+					{
+						Role: bq.BigQueryDataViewerRole.String(),
+						Members: []string{
+							"bob@example.com",
+						},
+					},
+				},
+			},
+			expect: &iampb.Policy{
+				Version: 1,
+			},
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+
+			s := emulator.New(t)
+			defer s.Cleanup()
+
+			s.WithProject(tc.projectID, tc.schema)
+
+			got := &iampb.SetIamPolicyRequest{}
+
+			log := zerolog.New(os.Stdout)
+
+			// We need to enable the mock interceptor, since the IAM endpoints are not implemented
+			s.EnableMock(false, log,
+				emulator.DatasetTableIAMPolicyGetMock(log, tc.currentPolicy),
+				emulator.DatasetTableIAMPolicySetMock(log, got),
+			)
+
+			c := bq.NewClient(s.Endpoint(), false)
+
+			ctx := context.Background()
+			ctx, _ = context.WithDeadline(ctx, time.Now().Add(1*time.Second))
+
+			err := c.RemoveAndSetTablePolicy(ctx, tc.projectID, tc.datasetID, tc.tableID, tc.role, tc.member)
+			assert.NoError(t, err)
+			diff := cmp.Diff(tc.expect, got.Policy, cmpopts.IgnoreUnexported(iampb.Policy{}), cmpopts.IgnoreUnexported(iampb.Binding{}))
+			assert.Empty(t, diff)
+		})
+	}
+}
