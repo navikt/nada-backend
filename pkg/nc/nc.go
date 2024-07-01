@@ -21,25 +21,33 @@ type Client struct {
 }
 
 type Team struct {
-	Slug         string `json:"slug"`
-	Environments []struct {
-		Name         string `json:"name"`
-		GcpProjectID string `json:"gcpProjectID"`
-	} `json:"environments"`
+	Slug         string        `json:"slug"`
+	Environments []Environment `json:"environments"`
+}
+
+type Environment struct {
+	Name         string `json:"name"`
+	GcpProjectID string `json:"gcpProjectID"`
+}
+
+type Response struct {
+	Data Data `json:"data"`
+}
+
+type Data struct {
+	Teams Teams `json:"teams"`
+}
+
+type Teams struct {
+	Nodes    []Team   `json:"nodes"`
+	PageInfo PageInfo `json:"pageInfo"`
+}
+
+type PageInfo struct {
+	HasNextPage bool `json:"hasNextPage"`
 }
 
 func (c *Client) GetTeamGoogleProjects(ctx context.Context) (map[string]string, error) {
-	type response struct {
-		Data struct {
-			Teams struct {
-				Nodes    []Team `json:"nodes"`
-				PageInfo struct {
-					HasNextPage bool `json:"hasNextPage"`
-				} `json:"pageInfo"`
-			} `json:"teams"`
-		} `json:"data"`
-	}
-
 	gqlQuery := `
 		query GCPTeams($limit: Int, $offset: Int){
 			teams(limit: $limit, offset: $offset) {
@@ -71,7 +79,8 @@ func (c *Client) GetTeamGoogleProjects(ctx context.Context) (map[string]string, 
 	var mapping = map[string]string{}
 
 	for {
-		r := response{}
+		r := Response{}
+
 		err := c.sendRequestAndDeserialize(ctx, http.MethodPost, "/query", payload, &r)
 		if err != nil {
 			return nil, fmt.Errorf("fetching team google projects: %w", err)
