@@ -24,5 +24,7 @@ func (t *teamkatalogenService) SearchTeamKatalogen(ctx context.Context, gcpGroup
 }
 
 func NewTeamKatalogenService(api service.TeamKatalogenAPI) *teamkatalogenService {
-	return &teamkatalogenService{teamKatalogenAPI: api}
+	return &teamkatalogenService{
+		teamKatalogenAPI: api,
+	}
 }

@@ -5,11 +5,13 @@ import (
 	"github.com/go-chi/chi"
 	"github.com/navikt/nada-backend/pkg/amplitude"
 	"github.com/navikt/nada-backend/pkg/bq"
+	"github.com/navikt/nada-backend/pkg/cache"
 	"github.com/navikt/nada-backend/pkg/service/core"
 	apiclients "github.com/navikt/nada-backend/pkg/service/core/api"
 	"github.com/navikt/nada-backend/pkg/service/core/handlers"
 	"github.com/navikt/nada-backend/pkg/service/core/routes"
 	"github.com/navikt/nada-backend/pkg/service/core/storage"
+	"github.com/navikt/nada-backend/pkg/tk"
 	"github.com/rs/zerolog"
 	"net"
 	"net/http"
@@ -24,7 +26,6 @@ import (
 	"github.com/navikt/nada-backend/pkg/auth"
 	"github.com/navikt/nada-backend/pkg/config/v2"
 	"github.com/navikt/nada-backend/pkg/database"
-	"github.com/navikt/nada-backend/pkg/httpwithcache"
 	"github.com/navikt/nada-backend/pkg/metabase"
 	"github.com/navikt/nada-backend/pkg/teamkatalogen"
 	"github.com/navikt/nada-backend/pkg/teamprojectsupdater"
@@ -88,7 +89,14 @@ func main() {
 		log.WithError(err).Fatal("setting up database")
 	}
 
-	httpwithcache.SetDatabase(repo.GetDB())
+	httpClient := &http.Client{
+		Timeout: 10 * time.Second,
+	}
+
+	tkFetcher := tk.New(cfg.TeamsCatalogue.APIURL, httpClient)
+
+	// FIXME: make this configurable
+	cacher := cache.New(2*time.Hour, repo.GetDB(), zlog)
 
 	// FIXME: rewrite this thing
 	teamProjectsUpdater := teamprojectsupdater.NewTeamProjectsUpdater(
@@ -104,7 +112,7 @@ func main() {
 	bqClient := bq.NewClient(cfg.BigQuery.Endpoint, true)
 
 	stores := storage.NewStores(repo, cfg)
-	apiClients := apiclients.NewClients(bqClient, cfg, log.WithField("subsystem", "api_clients"))
+	apiClients := apiclients.NewClients(cacher, tkFetcher, bqClient, cfg, log.WithField("subsystem", "api_clients"))
 	services, err := core.NewServices(cfg, stores, apiClients, teamProjectsUpdater.TeamProjectsMapping)
 	if err != nil {
 		log.WithError(err).Fatal("setting up services")
@@ -128,7 +136,6 @@ func main() {
 	)
 
 	teamcatalogue := teamkatalogen.New(
-		cfg.TeamsCatalogue.APIURL,
 		apiClients.TeamKatalogenAPI,
 		stores.ProductAreaStorage,
 		log,

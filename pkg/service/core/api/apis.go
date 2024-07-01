@@ -2,11 +2,14 @@ package api
 
 import (
 	"github.com/navikt/nada-backend/pkg/bq"
+	"github.com/navikt/nada-backend/pkg/cache"
 	"github.com/navikt/nada-backend/pkg/config/v2"
 	"github.com/navikt/nada-backend/pkg/service"
 	"github.com/navikt/nada-backend/pkg/service/core/api/gcp"
 	httpapi "github.com/navikt/nada-backend/pkg/service/core/api/http"
 	slackapi "github.com/navikt/nada-backend/pkg/service/core/api/slack"
+	"github.com/navikt/nada-backend/pkg/service/core/cache/postgres"
+	"github.com/navikt/nada-backend/pkg/tk"
 	"github.com/sirupsen/logrus"
 )
 
@@ -21,10 +24,15 @@ type Clients struct {
 }
 
 func NewClients(
+	cache cache.Cacher,
+	fetcher tk.Fetcher,
 	bqClient bq.Operations,
 	cfg config.Config,
 	log *logrus.Entry,
 ) *Clients {
+	tkAPI := httpapi.NewTeamKatalogenAPI(fetcher)
+	tkAPICacher := postgres.NewTeamKatalogenCache(tkAPI, cache)
+
 	return &Clients{
 		BigQueryAPI: gcp.NewBigQueryAPI(
 			cfg.BigQuery.CentralGCPProject,
@@ -50,9 +58,7 @@ func NewClients(
 			cfg.TreatmentCatalogue.APIURL,
 			cfg.TreatmentCatalogue.PurposeURL,
 		),
-		TeamKatalogenAPI: httpapi.NewTeamKatalogenAPI(
-			cfg.TeamsCatalogue.APIURL,
-		),
+		TeamKatalogenAPI: tkAPICacher,
 		SlackAPI: slackapi.NewSlackAPI(
 			cfg.Slack.WebhookURL,
 			cfg.Server.Hostname,

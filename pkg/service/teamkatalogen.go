@@ -9,7 +9,6 @@ type TeamKatalogenAPI interface {
 	GetTeam(ctx context.Context, teamID uuid.UUID) (*TeamkatalogenTeam, error)
 	GetTeamCatalogURL(teamID uuid.UUID) string
 	GetTeamsInProductArea(ctx context.Context, paID uuid.UUID) ([]*TeamkatalogenTeam, error)
-	GetProductArea(ctx context.Context, paID uuid.UUID) (*TeamkatalogenProductArea, error)
 	GetProductAreas(ctx context.Context) ([]*TeamkatalogenProductArea, error)
 	Search(ctx context.Context, gcpGroups []string) ([]TeamkatalogenResult, error)
 }

@@ -3,26 +3,21 @@ package teamkatalogen
 import (
 	"context"
 	"github.com/navikt/nada-backend/pkg/service"
-	"net/http"
 	"time"
 
 	"github.com/sirupsen/logrus"
 )
 
 type teamkatalogen struct {
-	client  *http.Client
 	api     service.TeamKatalogenAPI
 	storage service.ProductAreaStorage
-	url     string
 	log     *logrus.Logger
 }
 
-func New(url string, api service.TeamKatalogenAPI, storage service.ProductAreaStorage, log *logrus.Logger) *teamkatalogen {
+func New(api service.TeamKatalogenAPI, storage service.ProductAreaStorage, log *logrus.Logger) *teamkatalogen {
 	tk := &teamkatalogen{
-		client:  http.DefaultClient,
 		api:     api,
 		storage: storage,
-		url:     url,
 		log:     log,
 	}
 
