@@ -72,9 +72,9 @@ func (e *emulator) EnableMock(debugRequest bool, log zerolog.Logger, mocks ...*E
 				}
 
 				fmt.Println(string(request))
-
-				next.ServeHTTP(w, r)
 			}
+
+			next.ServeHTTP(w, r)
 		})
 	}
 

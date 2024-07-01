@@ -1249,7 +1249,7 @@ func TestClient_RemoveAndSetTablePolicy(t *testing.T) {
 					},
 				},
 			},
-			expect: &iampb.Policy{},
+			expect: &iampb.Policy{Version: 1},
 		},
 	}
 
