@@ -20,8 +20,6 @@ func NewTeamkatalogenEndpoints(log zerolog.Logger, h *handlers.TeamkatalogenHand
 
 func NewTeamkatalogenRoutes(endpoints *TeamkatalogenEndpoints) AddRoutesFn {
 	return func(router chi.Router) {
-		router.Route("/api/teamkatalogen", func(r chi.Router) {
-			r.Get("/", endpoints.SearchTeamKatalogen)
-		})
+		router.Get("/api/teamkatalogen", endpoints.SearchTeamKatalogen)
 	}
 }

@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"github.com/google/uuid"
 	"github.com/navikt/nada-backend/pkg/cache"
+	"github.com/navikt/nada-backend/pkg/errs"
 	"github.com/navikt/nada-backend/pkg/service"
 )
 
@@ -16,6 +17,8 @@ type teamKatalogenCache struct {
 }
 
 func (t teamKatalogenCache) GetTeam(ctx context.Context, teamID uuid.UUID) (*service.TeamkatalogenTeam, error) {
+	const op errs.Op = "teamKatalogenCache.GetTeam"
+
 	key := fmt.Sprintf("teamkatalogen:team:%s", teamID.String())
 
 	team := &service.TeamkatalogenTeam{}
@@ -26,7 +29,7 @@ func (t teamKatalogenCache) GetTeam(ctx context.Context, teamID uuid.UUID) (*ser
 
 	team, err := t.api.GetTeam(ctx, teamID)
 	if err != nil {
-		return nil, err
+		return nil, errs.E(op, err)
 	}
 
 	t.cache.Set(key, team)
@@ -39,6 +42,8 @@ func (t teamKatalogenCache) GetTeamCatalogURL(teamID uuid.UUID) string {
 }
 
 func (t teamKatalogenCache) GetTeamsInProductArea(ctx context.Context, paID uuid.UUID) ([]*service.TeamkatalogenTeam, error) {
+	const op errs.Op = "teamKatalogenCache.GetTeamsInProductArea"
+
 	key := fmt.Sprintf("teamkatalogen:teams:pa:%s", paID.String())
 
 	teams := []*service.TeamkatalogenTeam{}
@@ -49,7 +54,7 @@ func (t teamKatalogenCache) GetTeamsInProductArea(ctx context.Context, paID uuid
 
 	teams, err := t.api.GetTeamsInProductArea(ctx, paID)
 	if err != nil {
-		return nil, err
+		return nil, errs.E(op, err)
 	}
 
 	t.cache.Set(key, teams)
@@ -58,6 +63,8 @@ func (t teamKatalogenCache) GetTeamsInProductArea(ctx context.Context, paID uuid
 }
 
 func (t teamKatalogenCache) GetProductAreas(ctx context.Context) ([]*service.TeamkatalogenProductArea, error) {
+	const op errs.Op = "teamKatalogenCache.GetProductAreas"
+
 	key := "teamkatalogen:productareas"
 
 	pas := []*service.TeamkatalogenProductArea{}
@@ -68,7 +75,7 @@ func (t teamKatalogenCache) GetProductAreas(ctx context.Context) ([]*service.Tea
 
 	pas, err := t.api.GetProductAreas(ctx)
 	if err != nil {
-		return nil, err
+		return nil, errs.E(op, err)
 	}
 
 	t.cache.Set(key, pas)
@@ -77,6 +84,8 @@ func (t teamKatalogenCache) GetProductAreas(ctx context.Context) ([]*service.Tea
 }
 
 func (t teamKatalogenCache) Search(ctx context.Context, gcpGroups []string) ([]service.TeamkatalogenResult, error) {
+	const op = "teamKatalogenCache.Search"
+
 	key := fmt.Sprintf("teamkatalogen:search:%v", gcpGroups)
 
 	results := []service.TeamkatalogenResult{}
@@ -87,7 +96,7 @@ func (t teamKatalogenCache) Search(ctx context.Context, gcpGroups []string) ([]s
 
 	results, err := t.api.Search(ctx, gcpGroups)
 	if err != nil {
-		return results, err
+		return results, errs.E(op, err)
 	}
 
 	t.cache.Set(key, results)

@@ -1,7 +1,6 @@
 package integration
 
 import (
-	"github.com/go-chi/chi"
 	"github.com/google/go-cmp/cmp/cmpopts"
 	"github.com/google/uuid"
 	"github.com/navikt/nada-backend/pkg/database"
@@ -34,13 +33,14 @@ func TestInsightProduct(t *testing.T) {
 	)
 	assert.NoError(t, err)
 
-	r := chi.NewRouter()
+	zlog := zerolog.New(os.Stdout)
+	r := TestRouter(zlog)
 
 	{
 		store := postgres.NewInsightProductStorage(repo)
 		s := core.NewInsightProductService(store)
 		h := handlers.NewInsightProductHandler(s)
-		e := routes.NewInsightProductEndpoints(zerolog.New(os.Stdout), h)
+		e := routes.NewInsightProductEndpoints(zlog, h)
 		// This should be configurable per test
 		f := routes.NewInsightProductRoutes(e, injectUser(&service.User{
 			Email: "bob.the.builder@example.com",

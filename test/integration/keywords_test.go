@@ -2,7 +2,6 @@ package integration
 
 import (
 	"context"
-	"github.com/go-chi/chi"
 	"github.com/navikt/nada-backend/pkg/database"
 	"github.com/navikt/nada-backend/pkg/service"
 	"github.com/navikt/nada-backend/pkg/service/core"
@@ -32,7 +31,8 @@ func TestKeywords(t *testing.T) {
 	)
 	assert.NoError(t, err)
 
-	r := chi.NewRouter()
+	zlog := zerolog.New(os.Stdout)
+	r := TestRouter(zlog)
 
 	storyStorage := postgres.NewStoryStorage(repo)
 	_, err = storyStorage.CreateStory(context.Background(), "bob@example.com", &service.NewStory{
@@ -46,7 +46,7 @@ func TestKeywords(t *testing.T) {
 		store := postgres.NewKeywordsStorage(repo)
 		s := core.NewKeywordsService(store, "nada@nav.no")
 		h := handlers.NewKeywordsHandler(s)
-		e := routes.NewKeywordEndpoints(zerolog.New(os.Stdout), h)
+		e := routes.NewKeywordEndpoints(zlog, h)
 		f := routes.NewKeywordRoutes(e, injectUser(&service.User{
 			Email: "bob@example.com",
 			GoogleGroups: []service.Group{

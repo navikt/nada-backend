@@ -5,16 +5,19 @@ import (
 	"database/sql"
 	"encoding/json"
 	"fmt"
+	"github.com/go-chi/chi"
 	"github.com/google/go-cmp/cmp"
 	"github.com/navikt/nada-backend/pkg/auth"
 	"github.com/navikt/nada-backend/pkg/service"
 	"github.com/ory/dockertest/v3"
 	"github.com/ory/dockertest/v3/docker"
+	"github.com/rs/zerolog"
 	log "github.com/sirupsen/logrus"
 	"io"
 	"math/rand"
 	"net/http"
 	"net/http/httptest"
+	"net/http/httputil"
 	"os"
 	"strings"
 	"testing"
@@ -301,6 +304,7 @@ type TestRunner interface {
 }
 
 type TestRunnerStatus interface {
+	Debug(out io.Writer) TestRunnerStatus
 	HasStatusCode(code int) TestRunnerEnder
 }
 
@@ -317,26 +321,60 @@ type testRunner struct {
 }
 
 func (r *testRunner) HasStatusCode(code int) TestRunnerEnder {
+	r.t.Helper()
+
 	if r.response.StatusCode != code {
-		r.t.Fatalf("expected status code %d, got %d", code, r.response.StatusCode)
+		r.t.Errorf("expected status code %d, got %d", code, r.response.StatusCode)
+	}
+
+	return r
+}
+
+func (r *testRunner) Debug(out io.Writer) TestRunnerStatus {
+	r.t.Helper()
+
+	data, err := httputil.DumpRequest(r.response.Request, true)
+	if err != nil {
+		r.t.Fatalf("dumping request: %s", err)
+	}
+
+	_, err = io.Copy(out, bytes.NewReader(data))
+	if err != nil {
+		r.t.Fatalf("writing request: %s", err)
+	}
+
+	data, err = httputil.DumpResponse(r.response, true)
+	if err != nil {
+		r.t.Fatalf("dumping response: %s", err)
+	}
+
+	_, err = io.Copy(out, bytes.NewReader(data))
+	if err != nil {
+		r.t.Fatalf("writing response: %s", err)
 	}
 
 	return r
 }
 
 func (r *testRunner) Expect(expect, into any, opts ...cmp.Option) {
+	r.t.Helper()
+
 	Unmarshal(r.t, r.response.Body, into)
 	diff := cmp.Diff(expect, into, opts...)
 	if diff != "" {
-		r.t.Fatalf("unexpected response: %s", diff)
+		r.t.Errorf("unexpected response: %s", diff)
 	}
 }
 
 func (r *testRunner) Value(into any) {
+	r.t.Helper()
+
 	Unmarshal(r.t, r.response.Body, into)
 }
 
 func (r *testRunner) parseQueryParams(params ...string) string {
+	r.t.Helper()
+
 	if len(params) == 0 {
 		return ""
 	}
@@ -358,6 +396,8 @@ func (r *testRunner) buildURL(path string, params ...string) string {
 }
 
 func (r *testRunner) Get(path string, params ...string) TestRunnerStatus {
+	r.t.Helper()
+
 	url := r.buildURL(path, params...)
 	r.response = SendRequest(r.t, http.MethodGet, url, nil)
 
@@ -365,6 +405,8 @@ func (r *testRunner) Get(path string, params ...string) TestRunnerStatus {
 }
 
 func (r *testRunner) Put(input any, path string, params ...string) TestRunnerStatus {
+	r.t.Helper()
+
 	url := r.buildURL(path, params...)
 	r.response = SendRequest(r.t, http.MethodPut, url, bytes.NewReader(Marshal(r.t, input)))
 
@@ -372,6 +414,8 @@ func (r *testRunner) Put(input any, path string, params ...string) TestRunnerSta
 }
 
 func (r *testRunner) Delete(path string, params ...string) TestRunnerStatus {
+	r.t.Helper()
+
 	url := r.buildURL(path, params...)
 	r.response = SendRequest(r.t, http.MethodDelete, url, nil)
 
@@ -379,11 +423,14 @@ func (r *testRunner) Delete(path string, params ...string) TestRunnerStatus {
 }
 
 func (r *testRunner) Post(input any, path string, params ...string) TestRunnerStatus {
+	r.t.Helper()
+
 	url := r.buildURL(path, params...)
 	r.response = SendRequest(r.t, http.MethodPost, url, bytes.NewReader(Marshal(r.t, input)))
 
 	return r
 }
+
 func NewTester(t *testing.T, s *httptest.Server) *testRunner {
 	return &testRunner{
 		t: t,
@@ -417,4 +464,14 @@ func injectUser(user *service.User) func(handler http.Handler) http.Handler {
 			handler.ServeHTTP(w, r.WithContext(auth.SetUser(r.Context(), user)))
 		})
 	}
+}
+
+func TestRouter(log zerolog.Logger) chi.Router {
+	r := chi.NewRouter()
+	r.NotFound(func(w http.ResponseWriter, r *http.Request) {
+		log.Error().Str("method", r.Method).Str("path", r.URL.Path).Msg("not found")
+		w.WriteHeader(http.StatusNotFound)
+	})
+
+	return r
 }

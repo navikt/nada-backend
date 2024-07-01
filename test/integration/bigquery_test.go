@@ -2,7 +2,6 @@ package integration
 
 import (
 	"context"
-	"github.com/go-chi/chi"
 	"github.com/goccy/bigquery-emulator/types"
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-cmp/cmp/cmpopts"
@@ -63,13 +62,14 @@ func TestBigQuery(t *testing.T) {
 
 	stores := storage.NewStores(repo, config.Config{})
 
-	r := chi.NewRouter()
+	zlog := zerolog.New(os.Stdout)
+	r := TestRouter(zlog)
 
 	{
 		a := gcp.NewBigQueryAPI(gcpProject, gcpLocation, "pseudo-test-dataset", bqClient)
 		s := core.NewBigQueryService(stores.BigQueryStorage, a, stores.DataProductsStorage)
 		h := handlers.NewBigQueryHandler(s)
-		e := routes.NewBigQueryEndpoints(zerolog.New(os.Stdout), h)
+		e := routes.NewBigQueryEndpoints(zlog, h)
 		f := routes.NewBigQueryRoutes(e)
 
 		// Register routes

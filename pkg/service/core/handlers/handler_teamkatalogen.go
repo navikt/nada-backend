@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"context"
+	"github.com/navikt/nada-backend/pkg/errs"
 	"github.com/navikt/nada-backend/pkg/service"
 	"net/http"
 )
@@ -11,7 +12,16 @@ type TeamkatalogenHandler struct {
 }
 
 func (h *TeamkatalogenHandler) SearchTeamKatalogen(ctx context.Context, r *http.Request, _ any) ([]service.TeamkatalogenResult, error) {
-	return h.teamKatalogenService.SearchTeamKatalogen(ctx, r.URL.Query()["gcpGroups"])
+	const op errs.Op = "TeamkatalogenHandler.SearchTeamKatalogen"
+
+	groups := r.URL.Query()["gcpGroups"]
+
+	teams, err := h.teamKatalogenService.SearchTeamKatalogen(ctx, groups)
+	if err != nil {
+		return nil, errs.E(op, err)
+	}
+
+	return teams, nil
 }
 
 func NewTeamKatalogenHandler(s service.TeamKatalogenService) *TeamkatalogenHandler {

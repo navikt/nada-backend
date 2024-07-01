@@ -4,6 +4,7 @@ import (
 	"context"
 	"github.com/navikt/nada-backend/pkg/errs"
 	"github.com/navikt/nada-backend/pkg/service"
+	"sort"
 )
 
 var _ service.TeamKatalogenService = &teamkatalogenService{}
@@ -15,12 +16,16 @@ type teamkatalogenService struct {
 func (t *teamkatalogenService) SearchTeamKatalogen(ctx context.Context, gcpGroups []string) ([]service.TeamkatalogenResult, error) {
 	const op = "teamkatalogenService.SearchTeamKatalogen"
 
-	res, err := t.teamKatalogenAPI.Search(ctx, gcpGroups)
+	teams, err := t.teamKatalogenAPI.Search(ctx, gcpGroups)
 	if err != nil {
 		return nil, errs.E(op, err)
 	}
 
-	return res, nil
+	sort.Slice(teams, func(i, j int) bool {
+		return teams[i].TeamID < teams[j].TeamID
+	})
+
+	return teams, nil
 }
 
 func NewTeamKatalogenService(api service.TeamKatalogenAPI) *teamkatalogenService {

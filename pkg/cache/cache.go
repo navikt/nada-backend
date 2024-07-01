@@ -3,7 +3,9 @@ package cache
 import (
 	"database/sql"
 	"encoding/json"
+	"errors"
 	"github.com/rs/zerolog"
+	"sync/atomic"
 	"time"
 )
 
@@ -14,6 +16,8 @@ type Cacher interface {
 
 	// Set will serialize the provided data and store it in our cache
 	Set(key, val any)
+
+	Stats() Statistics
 }
 
 type Result struct {
@@ -22,19 +26,35 @@ type Result struct {
 	LastTried      time.Time
 }
 
+type Statistics struct {
+	TotalRequests int
+	TotalHits     int
+	TotalMisses   int
+}
+
 type Client struct {
 	expiresAfter time.Duration
 	db           *sql.DB
 	log          zerolog.Logger
+
+	requests *int32
+	hits     *int32
 }
 
 func (c *Client) Get(key string, into any) bool {
+	atomic.AddInt32(c.requests, 1)
+
 	res := &Result{}
 
 	err := c.db.QueryRow(`SELECT response_body, created_at, last_tried_update_at FROM http_cache WHERE endpoint = $1`, key).
 		Scan(&res.CachedResponse, &res.LastCached, &res.LastTried)
 	if err != nil {
-		c.log.Info().Err(err).Msgf("cache miss on: %s", key)
+		if errors.Is(err, sql.ErrNoRows) {
+			c.log.Info().Msgf("cache miss on: %s", key)
+			return false
+		}
+
+		c.log.Info().Err(err).Msgf("fetching cached value: %s", key)
 		return false
 	}
 
@@ -49,6 +69,7 @@ func (c *Client) Get(key string, into any) bool {
 		return false
 	}
 
+	atomic.AddInt32(c.hits, 1)
 	return true
 }
 
@@ -69,10 +90,23 @@ func (c *Client) Set(key, val any) {
 	return
 }
 
+func (c *Client) Stats() Statistics {
+	requests := atomic.LoadInt32(c.requests)
+	hits := atomic.LoadInt32(c.hits)
+
+	return Statistics{
+		TotalRequests: int(requests),
+		TotalHits:     int(hits),
+		TotalMisses:   int(requests - hits),
+	}
+}
+
 func New(expiresAfter time.Duration, db *sql.DB, log zerolog.Logger) *Client {
 	return &Client{
 		expiresAfter: expiresAfter,
 		db:           db,
 		log:          log,
+		hits:         new(int32),
+		requests:     new(int32),
 	}
 }
