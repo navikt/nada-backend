@@ -16,7 +16,7 @@ type dataProductsService struct {
 	dataProductStorage service.DataProductsStorage
 	bigQueryStorage    service.BigQueryStorage
 	bigQueryAPI        service.BigQueryAPI
-	gcpProjects        *auth.TeamProjectsMapping
+	naisConsoleStorage service.NaisConsoleStorage
 	allUsersGroup      string
 }
 
@@ -192,7 +192,7 @@ func (s *dataProductsService) CreateDataset(ctx context.Context, user *service.U
 func (s *dataProductsService) prepareBigQueryHandlePseudoView(ctx context.Context, ds service.NewDataset, viewBQ *service.NewBigQuery, group string) (service.NewDataset, error) {
 	const op errs.Op = "dataProductsService.prepareBigQueryHandlePseudoView"
 
-	if err := s.ensureGroupOwnsGCPProject(group, ds.BigQuery.ProjectID); err != nil {
+	if err := s.ensureGroupOwnsGCPProject(ctx, group, ds.BigQuery.ProjectID); err != nil {
 		return service.NewDataset{}, errs.E(op, err)
 	}
 
@@ -215,11 +215,11 @@ func (s *dataProductsService) prepareBigQueryHandlePseudoView(ctx context.Contex
 	return ds, nil
 }
 
-func (s *dataProductsService) ensureGroupOwnsGCPProject(group, projectID string) error {
+func (s *dataProductsService) ensureGroupOwnsGCPProject(ctx context.Context, group, projectID string) error {
 	const op errs.Op = "dataProductsService.ensureGroupOwnsGCPProject"
 
-	groupProject, ok := s.gcpProjects.Get(auth.TrimNaisTeamPrefix(group))
-	if !ok {
+	groupProject, err := s.naisConsoleStorage.GetTeamProject(ctx, auth.TrimNaisTeamPrefix(group))
+	if err != nil {
 		return errs.E(errs.Unauthorized, op, fmt.Errorf("group %s does not own the GCP project %s", group, projectID))
 	}
 
@@ -360,14 +360,14 @@ func NewDataProductsService(
 	dataProductStorage service.DataProductsStorage,
 	bigQueryStorage service.BigQueryStorage,
 	bigQueryAPI service.BigQueryAPI,
-	gcpProjects *auth.TeamProjectsMapping,
+	naisConsoleStorage service.NaisConsoleStorage,
 	allUsersGroup string,
 ) *dataProductsService {
 	return &dataProductsService{
 		dataProductStorage: dataProductStorage,
 		bigQueryStorage:    bigQueryStorage,
 		bigQueryAPI:        bigQueryAPI,
-		gcpProjects:        gcpProjects,
+		naisConsoleStorage: naisConsoleStorage,
 		allUsersGroup:      allUsersGroup,
 	}
 }

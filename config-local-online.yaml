@@ -81,6 +81,7 @@ nais_console:
   api_url: https://console.nav.cloud.nais.io
 api:
   auth_token: 1234
+nais_cluster_name: dev-gcp
 keywords_admin_group: nada@nav.no
 all_users_group: group:all-users@nav.no
 login_page: http://localhost:3000/

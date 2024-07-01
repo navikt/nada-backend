@@ -18,7 +18,7 @@ type userService struct {
 	storyStorage          service.StoryStorage
 	dataProductStorage    service.DataProductsStorage
 	insightProductStorage service.InsightProductStorage
-	teamProjectsMapping   *auth.TeamProjectsMapping
+	naisConsoleStorage    service.NaisConsoleStorage
 }
 
 func (s *userService) GetUserData(ctx context.Context, user *service.User) (*service.UserInfo, error) {
@@ -44,8 +44,9 @@ func (s *userService) GetUserData(ctx context.Context, user *service.User) (*ser
 	}
 
 	for _, grp := range user.GoogleGroups {
-		proj, ok := s.teamProjectsMapping.Get(auth.TrimNaisTeamPrefix(grp.Email))
-		if !ok {
+		proj, err := s.naisConsoleStorage.GetTeamProject(ctx, auth.TrimNaisTeamPrefix(grp.Email))
+		if err != nil {
+			// FIXME: log the error message?
 			continue
 		}
 
@@ -131,7 +132,7 @@ func NewUserService(
 	storyStorage service.StoryStorage,
 	dataProductStorage service.DataProductsStorage,
 	insightProductStorage service.InsightProductStorage,
-	teamProjectsMapping *auth.TeamProjectsMapping,
+	naisConsoleStorage service.NaisConsoleStorage,
 ) *userService {
 	return &userService{
 		accessStorage:         accessStorage,
@@ -139,6 +140,6 @@ func NewUserService(
 		storyStorage:          storyStorage,
 		dataProductStorage:    dataProductStorage,
 		insightProductStorage: insightProductStorage,
-		teamProjectsMapping:   teamProjectsMapping,
+		naisConsoleStorage:    naisConsoleStorage,
 	}
 }

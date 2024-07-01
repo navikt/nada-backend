@@ -6,6 +6,7 @@ import (
 	"github.com/navikt/nada-backend/pkg/amplitude"
 	"github.com/navikt/nada-backend/pkg/bq"
 	"github.com/navikt/nada-backend/pkg/cache"
+	"github.com/navikt/nada-backend/pkg/nc"
 	"github.com/navikt/nada-backend/pkg/service/core"
 	apiclients "github.com/navikt/nada-backend/pkg/service/core/api"
 	"github.com/navikt/nada-backend/pkg/service/core/handlers"
@@ -94,29 +95,26 @@ func main() {
 	}
 
 	tkFetcher := tk.New(cfg.TeamsCatalogue.APIURL, httpClient)
+	ncFetcher := nc.New(cfg.NaisConsole.APIURL, cfg.NaisConsole.APIKey, cfg.NaisClusterName, httpClient)
 
 	// FIXME: make this configurable
 	cacher := cache.New(2*time.Hour, repo.GetDB(), zlog)
-
-	// FIXME: rewrite this thing
-	teamProjectsUpdater := teamprojectsupdater.NewTeamProjectsUpdater(
-		ctx,
-		cfg.NaisConsole.APIURL,
-		cfg.NaisConsole.APIKey,
-		http.DefaultClient,
-		repo,
-	)
-	go teamProjectsUpdater.Run(ctx, TeamProjectsUpdateFrequency)
 
 	// FIXME: make authentication configurable
 	bqClient := bq.NewClient(cfg.BigQuery.Endpoint, true)
 
 	stores := storage.NewStores(repo, cfg)
-	apiClients := apiclients.NewClients(cacher, tkFetcher, bqClient, cfg, log.WithField("subsystem", "api_clients"))
-	services, err := core.NewServices(cfg, stores, apiClients, teamProjectsUpdater.TeamProjectsMapping)
+	apiClients := apiclients.NewClients(cacher, tkFetcher, ncFetcher, bqClient, cfg, log.WithField("subsystem", "api_clients"))
+	services, err := core.NewServices(cfg, stores, apiClients)
 	if err != nil {
 		log.WithError(err).Fatal("setting up services")
 	}
+
+	teamProjectsUpdater := teamprojectsupdater.New(
+		services.NaisConsoleService,
+		zlog,
+	)
+	go teamProjectsUpdater.Run(ctx, TeamProjectsUpdateFrequency)
 
 	googleGroups, err := auth.NewGoogleGroups(
 		ctx,

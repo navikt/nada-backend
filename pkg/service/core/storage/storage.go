@@ -21,6 +21,7 @@ type Stores struct {
 	StoryStorage             service.StoryStorage
 	ThirdPartyMappingStorage service.ThirdPartyMappingStorage
 	TokenStorage             service.TokenStorage
+	NaisConsoleStorage       service.NaisConsoleStorage
 }
 
 func NewStores(
@@ -41,5 +42,6 @@ func NewStores(
 		StoryStorage:             postgres.NewStoryStorage(db),
 		ThirdPartyMappingStorage: postgres.NewThirdPartyMappingStorage(db),
 		TokenStorage:             postgres.NewTokenStorage(db),
+		NaisConsoleStorage:       postgres.NewNaisConsoleStorage(db),
 	}
 }

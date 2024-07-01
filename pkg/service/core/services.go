@@ -1,7 +1,6 @@
 package core
 
 import (
-	"github.com/navikt/nada-backend/pkg/auth"
 	"github.com/navikt/nada-backend/pkg/config/v2"
 	"github.com/navikt/nada-backend/pkg/service"
 	"github.com/navikt/nada-backend/pkg/service/core/api"
@@ -24,13 +23,13 @@ type Services struct {
 	TeamKatalogenService  service.TeamKatalogenService
 	TokenService          service.TokenService
 	UserService           service.UserService
+	NaisConsoleService    service.NaisConsoleService
 }
 
 func NewServices(
 	cfg config.Config,
 	stores *storage.Stores,
 	clients *api.Clients,
-	teamMappings *auth.TeamProjectsMapping,
 ) (*Services, error) {
 	// FIXME: not sure about this..
 	mbSa, mbSaEmail, err := cfg.Metabase.LoadFromCredentialsPath()
@@ -57,7 +56,7 @@ func NewServices(
 			stores.DataProductsStorage,
 			stores.BigQueryStorage,
 			clients.BigQueryAPI,
-			teamMappings,
+			stores.NaisConsoleStorage,
 			cfg.AllUsersGroup,
 		),
 		InsightProductService: NewInsightProductService(
@@ -123,7 +122,11 @@ func NewServices(
 			stores.StoryStorage,
 			stores.DataProductsStorage,
 			stores.InsightProductStorage,
-			teamMappings,
+			stores.NaisConsoleStorage,
+		),
+		NaisConsoleService: NewNaisConsoleService(
+			stores.NaisConsoleStorage,
+			clients.NaisConsoleAPI,
 		),
 	}, nil
 }

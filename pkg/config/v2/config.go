@@ -47,6 +47,7 @@ type Config struct {
 	NaisConsole               NaisConsole               `yaml:"nais_console"`
 	API                       API                       `yaml:"api"`
 
+	NaisClusterName    string `yaml:"nais_cluster_name"`
 	KeywordsAdminGroup string `yaml:"keywords_admin_group"`
 	AllUsersGroup      string `yaml:"all_users_group"`
 	LoginPage          string `yaml:"login_page"`
@@ -78,6 +79,7 @@ func (c Config) Validate() error {
 		validation.Field(&c.GCS, validation.Required),
 		validation.Field(&c.BigQuery, validation.Required),
 		validation.Field(&c.KeywordsAdminGroup, validation.Required),
+		validation.Field(&c.NaisClusterName, validation.Required),
 	)
 }
 
@@ -458,6 +460,7 @@ func NewDefaultEnvBinder() *EnvBinder {
 		"AZURE_APP_CLIENT_SECRET":                  "oauth.client_secret",
 		"AZURE_APP_TENANT_ID":                      "oauth.tenant_id",
 		"NAIS_DATABASE_NADA_BACKEND_NADA_PASSWORD": "postgres.password",
+		"NAIS_CLUSTER_NAME":                        "nais_cluster_name",
 		"GCP_TEAM_PROJECT_ID":                      "metabase.gcp_project",
 	})
 }

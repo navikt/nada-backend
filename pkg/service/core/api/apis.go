@@ -4,6 +4,7 @@ import (
 	"github.com/navikt/nada-backend/pkg/bq"
 	"github.com/navikt/nada-backend/pkg/cache"
 	"github.com/navikt/nada-backend/pkg/config/v2"
+	"github.com/navikt/nada-backend/pkg/nc"
 	"github.com/navikt/nada-backend/pkg/service"
 	"github.com/navikt/nada-backend/pkg/service/core/api/gcp"
 	httpapi "github.com/navikt/nada-backend/pkg/service/core/api/http"
@@ -21,16 +22,18 @@ type Clients struct {
 	PollyAPI          service.PollyAPI
 	TeamKatalogenAPI  service.TeamKatalogenAPI
 	SlackAPI          service.SlackAPI
+	NaisConsoleAPI    service.NaisConsoleAPI
 }
 
 func NewClients(
 	cache cache.Cacher,
-	fetcher tk.Fetcher,
+	tkFetcher tk.Fetcher,
+	ncFetcher nc.Fetcher,
 	bqClient bq.Operations,
 	cfg config.Config,
 	log *logrus.Entry,
 ) *Clients {
-	tkAPI := httpapi.NewTeamKatalogenAPI(fetcher)
+	tkAPI := httpapi.NewTeamKatalogenAPI(tkFetcher)
 	tkAPICacher := postgres.NewTeamKatalogenCache(tkAPI, cache)
 
 	return &Clients{
@@ -63,6 +66,9 @@ func NewClients(
 			cfg.Slack.WebhookURL,
 			cfg.Server.Hostname,
 			cfg.Slack.Token,
+		),
+		NaisConsoleAPI: httpapi.NewNaisConsoleAPI(
+			ncFetcher,
 		),
 	}
 }
