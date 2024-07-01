@@ -43,6 +43,8 @@ func (t *TeamProjectsUpdater) Run(ctx context.Context, startupDelay, frequency t
 		}
 	}
 
+	t.log.Info().Msg("initial update done")
+
 	for {
 		select {
 		case <-ticker.C:
