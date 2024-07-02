@@ -13,7 +13,7 @@ import (
 	"testing"
 )
 
-type emulator struct {
+type Emulator struct {
 	handler    http.Handler
 	testServer *server.TestServer
 	emulator   *server.Server
@@ -56,7 +56,7 @@ func ColumnRepeated(name string) *types.Column {
 	}
 }
 
-func (e *emulator) EnableMock(debugRequest bool, log zerolog.Logger, mocks ...*EndpointMock) {
+func (e *Emulator) EnableMock(debugRequest bool, log zerolog.Logger, mocks ...*EndpointMock) {
 	log.Info().Msg("Enabling mocks")
 
 	handler := e.emulator.Handler
@@ -102,15 +102,15 @@ func (e *emulator) EnableMock(debugRequest bool, log zerolog.Logger, mocks ...*E
 	e.testServer = e.emulator.TestServer()
 }
 
-func (e *emulator) Cleanup() {
+func (e *Emulator) Cleanup() {
 	e.testServer.Close()
 }
 
-func (e *emulator) Endpoint() string {
+func (e *Emulator) Endpoint() string {
 	return e.testServer.URL
 }
 
-func (e *emulator) WithProject(projectID string, datasets ...*Dataset) {
+func (e *Emulator) WithProject(projectID string, datasets ...*Dataset) {
 	p := &types.Project{
 		ID: projectID,
 	}
@@ -142,7 +142,7 @@ func (e *emulator) WithProject(projectID string, datasets ...*Dataset) {
 	e.WithSource(p.ID, server.StructSource(p))
 }
 
-func (e *emulator) WithSource(projectID string, source server.Source) {
+func (e *Emulator) WithSource(projectID string, source server.Source) {
 	err := e.emulator.Load(source)
 	if err != nil {
 		e.t.Fatalf("initializing bigquery emulator: %v", err)
@@ -155,13 +155,13 @@ func (e *emulator) WithSource(projectID string, source server.Source) {
 	e.testServer = e.emulator.TestServer()
 }
 
-func New(t *testing.T) *emulator {
+func New(t *testing.T) *Emulator {
 	s, err := server.New(server.TempStorage)
 	if err != nil {
 		t.Fatalf("creating bigquery emulator: %v", err)
 	}
 
-	return &emulator{
+	return &Emulator{
 		t:        t,
 		emulator: s,
 	}
