@@ -5,12 +5,12 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/navikt/nada-backend/pkg/service"
+	"github.com/rs/zerolog"
 	"net/http"
 	"net/url"
 	"strings"
 	"time"
 
-	log "github.com/sirupsen/logrus"
 	"golang.org/x/oauth2/endpoints"
 )
 
@@ -24,6 +24,7 @@ type AzureGroupClient struct {
 	OAuthClientID     string
 	OAuthClientSecret string
 	OAuthTenantID     string
+	log               zerolog.Logger
 }
 
 type TokenResponse struct {
@@ -40,12 +41,13 @@ type MemberOfGroup struct {
 	GroupTypes  []string `json:"groupTypes"`
 }
 
-func NewAzureGroups(client *http.Client, clientID, clientSecret, tenantID string) *AzureGroupClient {
+func NewAzureGroups(client *http.Client, clientID, clientSecret, tenantID string, log zerolog.Logger) *AzureGroupClient {
 	return &AzureGroupClient{
 		Client:            client,
 		OAuthClientID:     clientID,
 		OAuthClientSecret: clientSecret,
 		OAuthTenantID:     tenantID,
+		log:               log,
 	}
 }
 
@@ -110,7 +112,7 @@ func (a *AzureGroupClient) getBearerTokenOnBehalfOfUser(ctx context.Context, tok
 		return "", fmt.Errorf("decoding response: %w", err)
 	}
 
-	log.Debug("Successfully retrieved on-behalf-of token")
+	a.log.Debug().Msg("Successfully retrieved on-behalf-of token")
 	return tokenResponse.AccessToken, nil
 }
 

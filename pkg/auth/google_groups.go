@@ -7,24 +7,15 @@ import (
 	"os"
 	"strings"
 
-	"github.com/sirupsen/logrus"
 	"golang.org/x/oauth2/google"
 	admin "google.golang.org/api/admin/directory/v1"
 )
 
 type GoogleGroupClient struct {
 	service *admin.Service
-	mock    bool
-	log     *logrus.Entry
 }
 
-func NewGoogleGroups(ctx context.Context, credentailFile, subject string, log *logrus.Entry) (*GoogleGroupClient, error) {
-	if credentailFile == "" && subject == "" {
-		log.Warn("Credential file and subject empty, running GoogleGroups with mock data")
-		return &GoogleGroupClient{
-			mock: true,
-		}, nil
-	}
+func NewGoogleGroups(ctx context.Context, credentailFile, subject string) (*GoogleGroupClient, error) {
 	jsonCredentials, err := os.ReadFile(credentailFile)
 	if err != nil {
 		return nil, fmt.Errorf("unable to read service account key file %s", err)
@@ -49,7 +40,6 @@ func NewGoogleGroups(ctx context.Context, credentailFile, subject string, log *l
 
 	return &GoogleGroupClient{
 		service: service,
-		log:     log,
 	}, nil
 }
 

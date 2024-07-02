@@ -5,12 +5,12 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
+	"github.com/rs/zerolog"
+	"io"
 	"net/http"
 	"time"
 
 	"github.com/google/uuid"
-	"github.com/sirupsen/logrus"
 )
 
 type Amplitude interface {
@@ -36,19 +36,19 @@ type amplitudeBody struct {
 	Events []event `json:"events"`
 }
 
-type AmplitudeClient struct {
-	log    *logrus.Entry
+type Client struct {
+	log    zerolog.Logger
 	apiKey string
 }
 
-func New(apiKey string, log *logrus.Entry) *AmplitudeClient {
-	return &AmplitudeClient{
+func New(apiKey string, log zerolog.Logger) *Client {
+	return &Client{
 		log:    log,
 		apiKey: apiKey,
 	}
 }
 
-func (a *AmplitudeClient) PublishEvent(ctx context.Context, title string) error {
+func (a *Client) PublishEvent(ctx context.Context, title string) error {
 	ctxWithTimeout, cancel := context.WithTimeout(ctx, 1*time.Second)
 	defer cancel()
 
@@ -84,7 +84,7 @@ func (a *AmplitudeClient) PublishEvent(ctx context.Context, title string) error 
 		return err
 	}
 
-	respBodyBytes, err := ioutil.ReadAll(r.Body)
+	respBodyBytes, err := io.ReadAll(r.Body)
 	if err != nil {
 		return err
 	}

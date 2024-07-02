@@ -2,10 +2,10 @@ package metabase
 
 import (
 	"context"
+	"github.com/rs/zerolog"
 	"time"
 
 	"github.com/navikt/nada-backend/pkg/service"
-	"github.com/sirupsen/logrus"
 )
 
 type Synchronizer struct {
@@ -18,7 +18,7 @@ func New(service service.MetabaseService) *Synchronizer {
 	}
 }
 
-func (s *Synchronizer) Run(ctx context.Context, frequency time.Duration, log *logrus.Entry) {
+func (s *Synchronizer) Run(ctx context.Context, frequency time.Duration, log zerolog.Logger) {
 	ticker := time.NewTicker(frequency)
 	defer ticker.Stop()
 	for {
@@ -26,11 +26,11 @@ func (s *Synchronizer) Run(ctx context.Context, frequency time.Duration, log *lo
 		case <-ctx.Done():
 			return
 		case <-ticker.C:
-			log.Info("running metabase synchronizer")
+			log.Info().Msg("running metabase synchronizer")
 
 			err := s.service.SyncAllTablesVisibility(ctx)
 			if err != nil {
-				log.WithError(err).Error("metabase synchronizer")
+				log.Error().Err(err).Msg("")
 			}
 		}
 	}

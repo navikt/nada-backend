@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"github.com/coreos/go-oidc/v3/oidc"
 	"github.com/navikt/nada-backend/pkg/database/gensql"
+	"github.com/rs/zerolog"
 	"golang.org/x/oauth2"
 )
 
@@ -55,8 +56,21 @@ func (a *Azure) Verify(ctx context.Context, rawIDToken string) (*oidc.IDToken, e
 	return a.provider.Verifier(&oidc.Config{ClientID: a.clientID}).Verify(ctx, rawIDToken)
 }
 
-func (a *Azure) Middleware(keyDiscoveryURL string, azureGroups *AzureGroupClient, googleGroups *GoogleGroupClient, db *sql.DB) MiddlewareHandler {
-	return newMiddleware(keyDiscoveryURL, a.provider.Verifier(&oidc.Config{ClientID: a.clientID}), azureGroups, googleGroups, gensql.New(db)).handle
+func (a *Azure) Middleware(
+	keyDiscoveryURL string,
+	azureGroups *AzureGroupClient,
+	googleGroups *GoogleGroupClient,
+	db *sql.DB,
+	log zerolog.Logger,
+) MiddlewareHandler {
+	return newMiddleware(
+		keyDiscoveryURL,
+		a.provider.Verifier(&oidc.Config{ClientID: a.clientID}),
+		azureGroups,
+		googleGroups,
+		gensql.New(db),
+		log,
+	).handle
 }
 
 // func (a *Google) Groups(client *http.Client) *GoogleGroups {

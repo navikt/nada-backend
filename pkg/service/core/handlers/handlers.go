@@ -4,6 +4,7 @@ import (
 	"github.com/navikt/nada-backend/pkg/amplitude"
 	"github.com/navikt/nada-backend/pkg/config/v2"
 	"github.com/navikt/nada-backend/pkg/service/core"
+	"github.com/rs/zerolog"
 )
 
 type Handlers struct {
@@ -28,10 +29,11 @@ func NewHandlers(
 	s *core.Services,
 	amplitude amplitude.Amplitude,
 	cfg config.Config,
+	log zerolog.Logger,
 ) *Handlers {
 	return &Handlers{
-		StoryHandler:          NewStoryHandler(s.StoryService, s.TokenService, amplitude),
-		TokenHandler:          NewTokenHandler(s.TokenService),
+		StoryHandler:          NewStoryHandler(s.StoryService, s.TokenService, amplitude, log),
+		TokenHandler:          NewTokenHandler(s.TokenService, log),
 		DataProductsHandler:   NewDataProductsHandler(s.DataProductService),
 		MetabaseHandler:       NewMetabaseHandler(s.MetaBaseService),
 		AccessHandler:         NewAccessHandler(s.AccessService, s.MetaBaseService, cfg.Metabase.GCPProject),

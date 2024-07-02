@@ -3,59 +3,63 @@ package teamkatalogen
 import (
 	"context"
 	"github.com/navikt/nada-backend/pkg/service"
+	"github.com/rs/zerolog"
 	"time"
-
-	"github.com/sirupsen/logrus"
 )
 
-type teamkatalogen struct {
+type Syncer struct {
 	api     service.TeamKatalogenAPI
 	storage service.ProductAreaStorage
-	log     *logrus.Logger
+	log     zerolog.Logger
 }
 
-func New(api service.TeamKatalogenAPI, storage service.ProductAreaStorage, log *logrus.Logger) *teamkatalogen {
-	tk := &teamkatalogen{
+func New(api service.TeamKatalogenAPI, storage service.ProductAreaStorage, log zerolog.Logger) *Syncer {
+	tk := &Syncer{
 		api:     api,
 		storage: storage,
 		log:     log,
 	}
 
-	tk.RunSyncer()
-
 	return tk
 }
 
-func (t *teamkatalogen) RunSyncer() {
-	go func() {
-		t.log.Info("Starting Team Katalogen syncer")
-		for {
-			t.syncTeamkatalogen()
-			// FIXME: make this configurable, and use time.Ticker
-			time.Sleep(1 * time.Hour)
+func (s *Syncer) Run(ctx context.Context, frequency time.Duration) {
+	s.log.Info().Msg("Starting Team Katalogen syncer")
+
+	ticker := time.NewTicker(frequency)
+
+	s.RunOnce()
+
+	for {
+		select {
+		case <-ctx.Done():
+			return
+		case <-ticker.C:
+			s.RunOnce()
 		}
-	}()
+	}
 }
 
-func (t *teamkatalogen) syncTeamkatalogen() {
-	t.log.Info("Syncing Team Katalogen data...")
-	pas, err := t.api.GetProductAreas(context.Background())
+func (s *Syncer) RunOnce() {
+	s.log.Info().Msg("Syncing Team Katalogen data...")
+
+	pas, err := s.api.GetProductAreas(context.Background())
 	if err != nil {
-		t.log.WithError(err).Error("Failed to get product areas from Team Katalogen")
+		s.log.Error().Err(err).Msg("getting product areas from Team Katalogen")
 		return
 	}
 
 	if len(pas) == 0 {
-		t.log.Error("No product areas found in Team Katalogen")
+		s.log.Info().Msg("No product areas found in Team Katalogen")
 		return
 	}
 
 	var allTeams []*service.TeamkatalogenTeam
 
 	for _, pa := range pas {
-		teams, err := t.api.GetTeamsInProductArea(context.Background(), pa.ID)
+		teams, err := s.api.GetTeamsInProductArea(context.Background(), pa.ID)
 		if err != nil {
-			t.log.WithError(err).Error("Failed to get teams in product area from Team Katalogen")
+			s.log.Error().Err(err).Msg("getting teams in product area from Team Katalogen")
 			return
 		}
 		allTeams = append(allTeams, teams...)
@@ -78,11 +82,11 @@ func (t *teamkatalogen) syncTeamkatalogen() {
 		}
 	}
 
-	err = t.storage.UpsertProductAreaAndTeam(context.Background(), inputProductAreas, inputTeams)
+	err = s.storage.UpsertProductAreaAndTeam(context.Background(), inputProductAreas, inputTeams)
 	if err != nil {
-		t.log.WithError(err).Error("Failed to upsert product areas and teams")
+		s.log.Error().Err(err).Msg("upsert product areas and teams")
 		return
 	}
 
-	t.log.Info("Done syncing Team Katalogen data")
+	s.log.Info().Msg("done syncing Team Katalogen data")
 }

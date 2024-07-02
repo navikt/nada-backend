@@ -31,7 +31,6 @@ import (
 	"github.com/navikt/nada-backend/pkg/config/v2"
 	"github.com/navikt/nada-backend/pkg/database"
 	"github.com/prometheus/client_golang/prometheus"
-	"github.com/sirupsen/logrus"
 	flag "github.com/spf13/pflag"
 )
 
@@ -47,6 +46,7 @@ const (
 	TeamProjectDelay            = 10 * time.Second
 	AccessEnsurerFrequency      = 5 * time.Minute
 	MetabaseUpdateFrequency     = 1 * time.Hour
+	TeamKatalogenFrequency      = 1 * time.Hour
 )
 
 func main() {
@@ -54,29 +54,28 @@ func main() {
 
 	zlog := zerolog.New(os.Stdout).With().Timestamp().Logger()
 
-	log := logrus.StandardLogger()
-	log.SetFormatter(&logrus.JSONFormatter{})
-
 	fileParts, err := config.ProcessConfigPath(*configFilePath)
 	if err != nil {
-		log.WithError(err).Fatal("processing config path")
+		zlog.Fatal().Err(err).Msg("processing config path")
 	}
 
 	cfg, err := config.NewFileSystemLoader().Load(fileParts.FileName, fileParts.Path, "NADA", config.NewDefaultEnvBinder())
 	if err != nil {
-		log.WithError(err).Fatal("loading config")
+		zlog.Fatal().Err(err).Msg("loading config")
 	}
 
 	err = cfg.Validate()
 	if err != nil {
-		log.WithError(err).Fatal("validating config")
+		zlog.Fatal().Err(err).Msg("validating config")
 	}
 
-	l, err := logrus.ParseLevel(cfg.LogLevel)
+	level, err := zerolog.ParseLevel(cfg.LogLevel)
 	if err != nil {
-		log.Fatal(err)
+		level = zerolog.InfoLevel
 	}
-	log.SetLevel(l)
+
+	zerolog.SetGlobalLevel(level)
+	zlog = zlog.Level(level)
 
 	ctx, cancel := signal.NotifyContext(context.Background(), syscall.SIGHUP, syscall.SIGINT, syscall.SIGTERM, syscall.SIGQUIT)
 	defer cancel()
@@ -85,10 +84,9 @@ func main() {
 		cfg.Postgres.ConnectionString(),
 		cfg.Postgres.Configuration.MaxIdleConnections,
 		cfg.Postgres.Configuration.MaxOpenConnections,
-		log.WithField("subsystem", "repo"),
 	)
 	if err != nil {
-		log.WithError(err).Fatal("setting up database")
+		zlog.Fatal().Err(err).Msg("setting up database")
 	}
 
 	httpClient := &http.Client{
@@ -99,21 +97,28 @@ func main() {
 	ncFetcher := nc.New(cfg.NaisConsole.APIURL, cfg.NaisConsole.APIKey, cfg.NaisClusterName, httpClient)
 
 	// FIXME: make this configurable
-	cacher := cache.New(2*time.Hour, repo.GetDB(), zlog)
+	cacher := cache.New(2*time.Hour, repo.GetDB(), zlog.With().Str("subsystem", "cache").Logger())
 
 	// FIXME: make authentication configurable
 	bqClient := bq.NewClient(cfg.BigQuery.Endpoint, true)
 
-	stores := storage.NewStores(repo, cfg)
-	apiClients := apiclients.NewClients(cacher, tkFetcher, ncFetcher, bqClient, cfg, log.WithField("subsystem", "api_clients"))
+	stores := storage.NewStores(repo, cfg, zlog.With().Str("subsystem", "stores").Logger())
+	apiClients := apiclients.NewClients(
+		cacher,
+		tkFetcher,
+		ncFetcher,
+		bqClient,
+		cfg,
+		zlog.With().Str("subsystem", "api_clients").Logger(),
+	)
 	services, err := core.NewServices(cfg, stores, apiClients)
 	if err != nil {
-		log.WithError(err).Fatal("setting up services")
+		zlog.Fatal().Err(err).Msg("setting up services")
 	}
 
 	teamProjectsUpdater := teamprojectsupdater.New(
 		services.NaisConsoleService,
-		zlog,
+		zlog.With().Str("subsystem", "teamprojectsupdater").Logger(),
 	)
 	go teamProjectsUpdater.Run(ctx, TeamProjectDelay, TeamProjectsUpdateFrequency)
 
@@ -121,31 +126,31 @@ func main() {
 		ctx,
 		cfg.GoogleGroups.CredentialsFile,
 		cfg.GoogleGroups.ImpersonationSubject,
-		log.WithField("subsystem", "googlegroups"),
 	)
 	if err != nil {
-		log.Fatal(err)
+		zlog.Fatal().Err(err).Msg("setting up google groups")
 	}
 
 	metabaseSynchronizer := metabase.New(services.MetaBaseService)
 	go metabaseSynchronizer.Run(
 		ctx,
 		MetabaseUpdateFrequency,
-		log.WithField("subsystem", "metabase"),
+		zlog.With().Str("subsystem", "metabase_sync").Logger(),
 	)
 
 	teamcatalogue := teamkatalogen.New(
 		apiClients.TeamKatalogenAPI,
 		stores.ProductAreaStorage,
-		log,
+		zlog.With().Str("subsystem", "teamkatalogen_sync").Logger(),
 	)
-	go teamcatalogue.RunSyncer()
+	go teamcatalogue.Run(ctx, TeamKatalogenFrequency)
 
 	azureGroups := auth.NewAzureGroups(
 		http.DefaultClient,
 		cfg.Oauth.ClientID,
 		cfg.Oauth.ClientSecret,
 		cfg.Oauth.TenantID,
+		zlog.With().Str("subsystem", "azure_groups").Logger(),
 	)
 
 	aauth := auth.NewAzure(
@@ -160,7 +165,7 @@ func main() {
 		aauth.RedirectURL,
 		cfg.LoginPage,
 		cfg.Cookies,
-		log.WithField("subsystem", "api"),
+		zlog.With().Str("subsystem", "api").Logger(),
 	)
 
 	authenticatorMiddleware := aauth.Middleware(
@@ -168,15 +173,20 @@ func main() {
 		azureGroups,
 		googleGroups,
 		repo.GetDB(),
+		zlog.With().Str("subsystem", "auth").Logger(),
 	)
 
 	h := handlers.NewHandlers(
 		services,
-		amplitude.New(cfg.AmplitudeAPIKey, log.WithField("subsystem", "amplitude")),
+		amplitude.New(
+			cfg.AmplitudeAPIKey,
+			zlog.With().Str("subsystem", "amplitude").Logger(),
+		),
 		cfg,
+		zlog.With().Str("subsystem", "handlers").Logger(),
 	)
 
-	log.Infof("Listening on %s:%s", cfg.Server.Address, cfg.Server.Port)
+	zlog.Info().Msgf("listening on %s:%s", cfg.Server.Address, cfg.Server.Port)
 	auth.Init(repo.GetDB())
 
 	router := chi.NewRouter()
@@ -217,12 +227,12 @@ func main() {
 		apiClients.BigQueryAPI,
 		services.BigQueryService,
 		services.JoinableViewService,
-		log.WithField("subsystem", "accessensurer"),
+		zlog.With().Str("subsystem", "accessensurer").Logger(),
 	).Run(ctx, AccessEnsurerFrequency)
 
 	go func() {
 		if err := server.ListenAndServe(); err != nil {
-			log.Fatal(err)
+			zlog.Fatal().Err(err).Msg("ListenAndServe")
 		}
 	}()
 	<-ctx.Done()
@@ -230,7 +240,7 @@ func main() {
 	shutdownCtx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 	if err := server.Shutdown(shutdownCtx); err != nil {
-		log.WithError(err).Warn("Shutdown error")
+		zlog.Warn().Err(err).Msg("Shutdown error")
 	}
 }
 

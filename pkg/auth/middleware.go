@@ -9,6 +9,7 @@ import (
 	"errors"
 	"fmt"
 	"github.com/navikt/nada-backend/pkg/service"
+	"github.com/rs/zerolog"
 	"io"
 	"net/http"
 	"strings"
@@ -17,7 +18,6 @@ import (
 	"github.com/coreos/go-oidc/v3/oidc"
 	"github.com/golang-jwt/jwt/v4"
 	"github.com/navikt/nada-backend/pkg/database/gensql"
-	log "github.com/sirupsen/logrus"
 )
 
 type MiddlewareHandler func(http.Handler) http.Handler
@@ -39,14 +39,14 @@ type Key struct {
 	X5c []EncodedCertificate `json:"x5c"`
 }
 
-func FetchCertificates(discoveryURL string) (map[string]CertificateList, error) {
-	log.Infof("Discover Microsoft signing certificates from %s", discoveryURL)
+func FetchCertificates(discoveryURL string, log zerolog.Logger) (map[string]CertificateList, error) {
+	log.Info().Msgf("Discover Microsoft signing certificates from %s", discoveryURL)
 	azureKeyDiscovery, err := DiscoverURL(discoveryURL)
 	if err != nil {
 		return nil, err
 	}
 
-	log.Infof("Decoding certificates for %d keys", len(azureKeyDiscovery.Keys))
+	log.Info().Msgf("Decoding certificates for %d keys", len(azureKeyDiscovery.Keys))
 	azureCertificates, err := azureKeyDiscovery.Map()
 	if err != nil {
 		return nil, err
@@ -133,9 +133,17 @@ type Middleware struct {
 	azureGroups     *AzureGroupClient
 	googleGroups    *GoogleGroupClient
 	queries         *gensql.Queries
+	log             zerolog.Logger
 }
 
-func newMiddleware(keyDiscoveryURL string, tokenVerifier *oidc.IDTokenVerifier, azureGroups *AzureGroupClient, googleGroups *GoogleGroupClient, querier *gensql.Queries) *Middleware {
+func newMiddleware(
+	keyDiscoveryURL string,
+	tokenVerifier *oidc.IDTokenVerifier,
+	azureGroups *AzureGroupClient,
+	googleGroups *GoogleGroupClient,
+	querier *gensql.Queries,
+	log zerolog.Logger,
+) *Middleware {
 	return &Middleware{
 		keyDiscoveryURL: keyDiscoveryURL,
 		tokenVerifier:   tokenVerifier,
@@ -145,6 +153,7 @@ func newMiddleware(keyDiscoveryURL string, tokenVerifier *oidc.IDTokenVerifier, 
 			cache: map[string]groupsCacheValue{},
 		},
 		queries: querier,
+		log:     log,
 	}
 }
 
@@ -153,9 +162,9 @@ func (m *Middleware) Handler(next http.Handler) http.Handler {
 }
 
 func (m *Middleware) handle(next http.Handler) http.Handler {
-	certificates, err := FetchCertificates(m.keyDiscoveryURL)
+	certificates, err := FetchCertificates(m.keyDiscoveryURL, m.log)
 	if err != nil {
-		log.Fatalf("Fetching signing certificates from IDP: %v", err)
+		m.log.Fatal().Err(err).Msg("fetching signing certificates from IDP")
 	}
 
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -179,7 +188,7 @@ func (m *Middleware) handle(next http.Handler) http.Handler {
 			}
 
 			if err := m.addGroupsToUser(ctx, sess.AccessToken, user); err != nil {
-				log.WithError(err).Error("Unable to add groups")
+				m.log.Error().Err(err).Msg("Unable to add groups")
 				w.Header().Add("Content-Type", "application/json")
 				http.Error(w, `{"error": "Unable fetch users groups."}`, http.StatusInternalServerError)
 				return

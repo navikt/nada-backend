@@ -12,7 +12,6 @@ import (
 	"github.com/ory/dockertest/v3"
 	"github.com/ory/dockertest/v3/docker"
 	"github.com/rs/zerolog"
-	log "github.com/sirupsen/logrus"
 	"io"
 	"math/rand"
 	"net/http"
@@ -46,6 +45,7 @@ type CleanupFn func()
 
 type containers struct {
 	t         *testing.T
+	log       zerolog.Logger
 	pool      *dockertest.Pool
 	network   *dockertest.Network
 	resources []*dockertest.Resource
@@ -55,13 +55,13 @@ type containers struct {
 func (c *containers) Cleanup() {
 	for _, r := range c.resources {
 		if err := c.pool.Purge(r); err != nil {
-			log.Warnf("purging resources: %s", err)
+			c.log.Warn().Err(err).Msg("purging resources")
 		}
 	}
 
 	err := c.network.Close()
 	if err != nil {
-		log.Warnf("closing network: %s", err)
+		c.log.Warn().Err(err).Msg("closing network")
 	}
 }
 
@@ -110,7 +110,7 @@ func (c *containers) RunPostgres(cfg *PostgresConfig) *PostgresConfig {
 	}
 
 	cfg.HostPort = resource.GetHostPort("5432/tcp")
-	log.Println("Postgres is configured with url: ", cfg.ConnectionURL())
+	c.log.Info().Msgf("Postgres is configured with url: %s", cfg.ConnectionURL())
 
 	c.pool.MaxWait = 120 * time.Second
 	c.resources = append(c.resources, resource)
@@ -204,7 +204,7 @@ func (c *containers) RunMetabase(cfg *MetabaseConfig) *MetabaseConfig {
 	}
 
 	cfg.HostPort = resource.GetHostPort("3000/tcp")
-	log.Println("Metabase is configured with url: ", cfg.ConnectionURL())
+	c.log.Info().Msgf("Metabase is configured with url: %s", cfg.ConnectionURL())
 
 	c.pool.MaxWait = 2 * time.Minute
 	c.resources = append(c.resources, resource)
@@ -247,7 +247,7 @@ func (c *containers) RunMetabase(cfg *MetabaseConfig) *MetabaseConfig {
 	return cfg
 }
 
-func NewContainers(t *testing.T) *containers {
+func NewContainers(t *testing.T, log zerolog.Logger) *containers {
 	pool, err := dockertest.NewPool("")
 	if err != nil {
 		t.Fatalf("connecting to Docker: %s", err)
@@ -262,12 +262,15 @@ func NewContainers(t *testing.T) *containers {
 
 	network, err := pool.CreateNetwork(networkName)
 	if err != nil {
-		log.Fatalf("Could not create network: %s", err)
+		log.Fatal().Err(err).Msg("creating network")
 	}
 
 	return &containers{
-		pool:    pool,
-		network: network,
+		t:         t,
+		log:       log,
+		pool:      pool,
+		network:   network,
+		resources: nil,
 	}
 }
 

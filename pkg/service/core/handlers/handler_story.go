@@ -12,7 +12,7 @@ import (
 	"github.com/navikt/nada-backend/pkg/auth"
 	"github.com/navikt/nada-backend/pkg/errs"
 	"github.com/navikt/nada-backend/pkg/service"
-	log "github.com/sirupsen/logrus"
+	"github.com/rs/zerolog"
 	"io"
 	"mime"
 	"net/http"
@@ -31,6 +31,7 @@ type StoryHandler struct {
 	storyService    service.StoryService
 	tokenService    service.TokenService
 	amplitudeClient amplitude.Amplitude
+	log             zerolog.Logger
 }
 
 func (h *StoryHandler) DeleteStory(ctx context.Context, _ *http.Request, _ any) (*service.Story, error) {
@@ -130,14 +131,14 @@ func (h *StoryHandler) CreateStoryHTTP(w http.ResponseWriter, r *http.Request) {
 
 	bodyBytes, err := io.ReadAll(r.Body)
 	if err != nil {
-		log.WithError(err).Errorf("reading body")
+		h.log.Error().Err(err).Msg("reading body")
 		writeError(w, http.StatusBadRequest, fmt.Errorf("error reading body"))
 		return
 	}
 
 	newStory := service.NewStory{}
 	if err := json.Unmarshal(bodyBytes, &newStory); err != nil {
-		log.WithError(err).Errorf("unmarshalling request body")
+		h.log.Error().Err(err).Msg("unmarshalling request body")
 		writeError(w, http.StatusBadRequest, fmt.Errorf("error unmarshalling request body"))
 		return
 	}
@@ -149,14 +150,14 @@ func (h *StoryHandler) CreateStoryHTTP(w http.ResponseWriter, r *http.Request) {
 
 	story, err := h.storyService.CreateStoryWithTeamAndProductArea(r.Context(), team, &newStory)
 	if err != nil {
-		log.WithError(err).Errorf("creating story")
+		h.log.Error().Err(err).Msg("creating story")
 		writeError(w, http.StatusInternalServerError, fmt.Errorf("error creating story"))
 		return
 	}
 
 	retBytes, err := json.Marshal(story)
 	if err != nil {
-		log.WithError(err).Errorf("marshalling response json after creating story")
+		h.log.Error().Err(err).Msg("marshalling response json after creating story")
 		writeError(w, http.StatusInternalServerError, fmt.Errorf("error creating story"))
 		return
 	}
@@ -168,21 +169,21 @@ func (h *StoryHandler) CreateStoryHTTP(w http.ResponseWriter, r *http.Request) {
 func (h *StoryHandler) UpdateStoryHTTP(w http.ResponseWriter, r *http.Request) {
 	qID, err := getIDFromPath(r, idURLPosUpdate)
 	if err != nil {
-		log.WithError(err).Errorf("getting story id from url path")
+		h.log.Error().Err(err).Msg("getting story id from url path")
 		writeError(w, http.StatusBadRequest, fmt.Errorf("invalid story id %v", qID))
 		return
 	}
 
 	files, err := filesFromRequest(r)
 	if err != nil {
-		log.WithError(err).Errorf("reading files from request")
+		h.log.Error().Err(err).Msg("reading files from request")
 		writeError(w, http.StatusBadRequest, fmt.Errorf("invalid request form"))
 		return
 	}
 
 	err = h.storyService.RecreateStoryFiles(r.Context(), qID, files)
 	if err != nil {
-		log.WithError(err).Errorf("uploading file")
+		h.log.Error().Err(err).Msg("recreating story files")
 		writeError(w, http.StatusInternalServerError, fmt.Errorf("internal server error"))
 	}
 }
@@ -190,7 +191,7 @@ func (h *StoryHandler) UpdateStoryHTTP(w http.ResponseWriter, r *http.Request) {
 func (h *StoryHandler) AppendStoryHTTP(w http.ResponseWriter, r *http.Request) {
 	qID, err := getIDFromPath(r, idURLPosUpdate)
 	if err != nil {
-		log.WithError(err).Errorf("getting story id from url path")
+		h.log.Error().Err(err).Msg("getting story id from url path")
 		writeError(w, http.StatusBadRequest, fmt.Errorf("invalid story id %v", qID))
 		return
 	}
@@ -235,7 +236,7 @@ func (h *StoryHandler) updateStoryHTTP(w http.ResponseWriter, r *http.Request, n
 			return
 		}
 
-		log.WithError(apiErr).Errorf("reading story id %v", qID)
+		h.log.Error().Err(apiErr).Msgf("reading story: %s", qID)
 		writeError(w, http.StatusInternalServerError, fmt.Errorf("internal server error"))
 		return
 	}
@@ -244,12 +245,12 @@ func (h *StoryHandler) updateStoryHTTP(w http.ResponseWriter, r *http.Request, n
 	dbToken, err := h.tokenService.GetTeamFromNadaToken(r.Context(), auth.TrimNaisTeamPrefix(group))
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
-			log.Errorf("no nada token found for team %v, story id %v", story.Group, qID)
+			h.log.Error().Err(err).Msgf("no nada token found for team %v, story id %v", story.Group, qID)
 			writeError(w, http.StatusInternalServerError, fmt.Errorf("internal server error"))
 			return
 		}
 
-		log.WithError(err).Errorf("reading nada token for group %v, story id %v", story.Group, qID)
+		h.log.Error().Err(err).Msgf("reading nada token for group %v, story id %v", story.Group, qID)
 		writeError(w, http.StatusInternalServerError, fmt.Errorf("internal server error"))
 		return
 	}
@@ -326,7 +327,7 @@ func (h *StoryHandler) getStoryHTTP(w http.ResponseWriter, r *http.Request, next
 
 	if strings.HasSuffix(r.URL.Path, ".html") {
 		if err := h.publishAmplitudeEvent(r.Context(), r.URL.Path); err != nil {
-			log.WithError(err).Info("Failed to publish amplitude event")
+			h.log.Error().Err(err).Msg("publishing amplitude event")
 		}
 	}
 
@@ -453,20 +454,18 @@ func writeError(w http.ResponseWriter, status int, err error) {
 		"statusCode": strconv.Itoa(status),
 		"message":    err.Error(),
 	}
-	respBytes, err := json.Marshal(resp)
-	if err != nil {
-		log.WithError(err).Errorf("marshalling error response")
-	}
+	respBytes, _ := json.Marshal(resp)
 
 	w.WriteHeader(status)
 	w.Header().Set("Content-Type", "application/json")
 	w.Write(respBytes)
 }
 
-func NewStoryHandler(storyService service.StoryService, tokenService service.TokenService, amp amplitude.Amplitude) *StoryHandler {
+func NewStoryHandler(storyService service.StoryService, tokenService service.TokenService, amp amplitude.Amplitude, log zerolog.Logger) *StoryHandler {
 	return &StoryHandler{
 		storyService:    storyService,
 		tokenService:    tokenService,
 		amplitudeClient: amp,
+		log:             log,
 	}
 }

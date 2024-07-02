@@ -7,6 +7,7 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"github.com/navikt/nada-backend/pkg/config/v2"
+	"github.com/rs/zerolog"
 	"net/http"
 	"strings"
 	"time"
@@ -14,7 +15,6 @@ import (
 	"github.com/coreos/go-oidc/v3/oidc"
 	"github.com/google/uuid"
 	"github.com/navikt/nada-backend/pkg/auth"
-	"github.com/sirupsen/logrus"
 	"golang.org/x/oauth2"
 )
 
@@ -34,10 +34,10 @@ type HTTP struct {
 	callbackURL  string
 	loginPage    string
 	cookies      config.Cookies
-	log          *logrus.Entry
+	log          zerolog.Logger
 }
 
-func NewHTTP(oauth2Config OAuth2, callbackURL string, loginPage string, cookies config.Cookies, log *logrus.Entry) HTTP {
+func NewHTTP(oauth2Config OAuth2, callbackURL string, loginPage string, cookies config.Cookies, log zerolog.Logger) HTTP {
 	return HTTP{
 		oauth2Config: oauth2Config,
 		callbackURL:  callbackURL,
@@ -112,7 +112,7 @@ func (h HTTP) Callback(w http.ResponseWriter, r *http.Request) {
 
 	oauthCookie, err := r.Cookie(h.cookies.OauthState.Name)
 	if err != nil {
-		h.log.Errorf("Missing oauth state cookie: %v", err)
+		h.log.Error().Err(err).Msgf("missing oauth state cookie")
 		http.Redirect(w, r, h.loginPage+"?error=invalid-state", http.StatusFound)
 		return
 	}
@@ -121,14 +121,14 @@ func (h HTTP) Callback(w http.ResponseWriter, r *http.Request) {
 
 	state := r.URL.Query().Get("state")
 	if state != oauthCookie.Value {
-		h.log.Info("Incoming state does not match local state")
+		h.log.Info().Msg("incoming state does not match local state")
 		http.Redirect(w, r, h.loginPage+"?error=invalid-state", http.StatusFound)
 		return
 	}
 
 	tokens, err := h.oauth2Config.Exchange(r.Context(), code)
 	if err != nil {
-		h.log.Errorf("Exchanging authorization code for tokens: %v", err)
+		h.log.Error().Err(err).Msg("exchanging authorization code for tokens")
 		message := "Internal error: oauth2"
 		if strings.HasPrefix(r.Host, "localhost") {
 			message = "oauth2 error, try:\n$gcloud auth login --update-adc\n$make env\nbefore running backend"
@@ -139,7 +139,7 @@ func (h HTTP) Callback(w http.ResponseWriter, r *http.Request) {
 
 	rawIDToken, ok := tokens.Extra("id_token").(string)
 	if !ok {
-		h.log.Info("Missing id_token")
+		h.log.Info().Msg("missing id_token")
 		http.Redirect(w, r, h.loginPage+"?error=unauthenticated", http.StatusFound)
 		return
 	}
@@ -147,7 +147,7 @@ func (h HTTP) Callback(w http.ResponseWriter, r *http.Request) {
 	// Parse and verify ID Token payload.
 	_, err = h.oauth2Config.Verify(r.Context(), rawIDToken)
 	if err != nil {
-		h.log.Info("Invalid id_token")
+		h.log.Error().Err(err).Msg("invalid id_token")
 		http.Redirect(w, r, h.loginPage+"?error=unauthenticated", http.StatusFound)
 		return
 	}
@@ -160,19 +160,19 @@ func (h HTTP) Callback(w http.ResponseWriter, r *http.Request) {
 
 	b, err := base64.RawStdEncoding.DecodeString(strings.Split(tokens.AccessToken, ".")[1])
 	if err != nil {
-		h.log.WithError(err).Error("Unable decode access token")
+		h.log.Error().Err(err).Msg("decoding access token")
 		http.Redirect(w, r, h.loginPage+"?error=unauthenticated", http.StatusFound)
 		return
 	}
 
 	if err := json.Unmarshal(b, session); err != nil {
-		h.log.WithError(err).Error("Unable unmarshalling token")
+		h.log.Error().Err(err).Msg("unmarshalling token")
 		http.Redirect(w, r, h.loginPage+"?error=unauthenticated", http.StatusFound)
 		return
 	}
 
 	if err := auth.CreateSession(r.Context(), session); err != nil {
-		h.log.WithError(err).Error("Unable to store session")
+		h.log.Error().Err(err).Msg("creating session")
 		http.Redirect(w, r, h.loginPage+"?error=unauthenticated", http.StatusFound)
 		return
 	}

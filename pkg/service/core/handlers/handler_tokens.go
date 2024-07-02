@@ -6,7 +6,7 @@ import (
 	"github.com/navikt/nada-backend/pkg/auth"
 	"github.com/navikt/nada-backend/pkg/service"
 	"github.com/navikt/nada-backend/pkg/service/core/transport"
-	log "github.com/sirupsen/logrus"
+	"github.com/rs/zerolog"
 	"net/http"
 	"strings"
 )
@@ -14,6 +14,7 @@ import (
 type TokenHandler struct {
 	tokenService   service.TokenService
 	teamTokenCreds string
+	log            zerolog.Logger
 }
 
 func (h *TokenHandler) RotateNadaToken(ctx context.Context, r *http.Request, _ any) (*transport.Empty, error) {
@@ -42,14 +43,14 @@ func (h *TokenHandler) GetAllTeamTokens(w http.ResponseWriter, r *http.Request) 
 
 	tokenTeamMap, err := h.tokenService.GetNadaTokens(r.Context())
 	if err != nil {
-		log.WithError(err).Error("getting nada tokens")
+		h.log.Error().Err(err).Msg("getting nada tokens")
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
 
 	payloadBytes, err := json.Marshal(tokenTeamMap)
 	if err != nil {
-		log.WithError(err).Error("marshalling nada token map reponse")
+		h.log.Error().Err(err).Msg("marshalling nada token map reponse")
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
@@ -58,8 +59,9 @@ func (h *TokenHandler) GetAllTeamTokens(w http.ResponseWriter, r *http.Request) 
 	w.Write(payloadBytes)
 }
 
-func NewTokenHandler(tokenService service.TokenService) *TokenHandler {
+func NewTokenHandler(tokenService service.TokenService, log zerolog.Logger) *TokenHandler {
 	return &TokenHandler{
 		tokenService: tokenService,
+		log:          log,
 	}
 }

@@ -9,10 +9,8 @@ import (
 	"time"
 
 	"github.com/lib/pq"
-	"github.com/prometheus/client_golang/prometheus"
-	"github.com/sirupsen/logrus"
-
 	"github.com/navikt/nada-backend/pkg/database/gensql"
+	"github.com/prometheus/client_golang/prometheus"
 	// Pin version of sqlc and goose for cli
 	"github.com/pressly/goose/v3"
 	"github.com/qustavo/sqlhooks/v2"
@@ -26,7 +24,6 @@ type Repo struct {
 	Querier Querier
 	queries *gensql.Queries
 	db      *sql.DB
-	log     *logrus.Entry
 	hooks   *Hooks
 }
 
@@ -58,7 +55,7 @@ func WithTx[T any](r *Repo) func() (T, Transacter, error) {
 	}
 }
 
-func New(dbConnDSN string, maxIdleConn, maxOpenConn int, log *logrus.Entry) (*Repo, error) {
+func New(dbConnDSN string, maxIdleConn, maxOpenConn int) (*Repo, error) {
 	hooks := NewHooks()
 	drivers := sql.Drivers()
 
@@ -92,7 +89,6 @@ func New(dbConnDSN string, maxIdleConn, maxOpenConn int, log *logrus.Entry) (*Re
 		Querier: queries,
 		queries: queries,
 		db:      db,
-		log:     log,
 		hooks:   hooks,
 	}, nil
 }
@@ -129,12 +125,12 @@ func NewHooks() *Hooks {
 type ctxKey string
 
 // Before hook will print the query with it's args and return the context with the timestamp
-func (h *Hooks) Before(ctx context.Context, query string, args ...interface{}) (context.Context, error) {
+func (h *Hooks) Before(ctx context.Context, _ string, _ ...interface{}) (context.Context, error) {
 	return context.WithValue(ctx, ctxKey("begin"), time.Now()), nil
 }
 
 // After hook will get the timestamp registered on the Before hook and print the elapsed time
-func (h *Hooks) After(ctx context.Context, query string, args ...interface{}) (context.Context, error) {
+func (h *Hooks) After(ctx context.Context, query string, _ ...interface{}) (context.Context, error) {
 	begin := ctx.Value(ctxKey("begin")).(time.Time)
 
 	name := nameFromQuery(query)
@@ -153,6 +149,6 @@ func nameFromQuery(q string) string {
 	return "Unknown"
 }
 
-func (repo *Repo) GetDB() *sql.DB {
-	return repo.db
+func (r *Repo) GetDB() *sql.DB {
+	return r.db
 }

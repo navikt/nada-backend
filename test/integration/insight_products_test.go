@@ -10,7 +10,6 @@ import (
 	"github.com/navikt/nada-backend/pkg/service/core/routes"
 	"github.com/navikt/nada-backend/pkg/service/core/storage/postgres"
 	"github.com/rs/zerolog"
-	log "github.com/sirupsen/logrus"
 	"github.com/stretchr/testify/assert"
 	"net/http"
 	"net/http/httptest"
@@ -20,7 +19,8 @@ import (
 )
 
 func TestInsightProduct(t *testing.T) {
-	c := NewContainers(t)
+	log := zerolog.New(os.Stdout)
+	c := NewContainers(t, log)
 	defer c.Cleanup()
 
 	pgCfg := c.RunPostgres(NewPostgresConfig())
@@ -29,7 +29,6 @@ func TestInsightProduct(t *testing.T) {
 		pgCfg.ConnectionURL(),
 		10,
 		10,
-		log.WithField("subsystem", "repo"),
 	)
 	assert.NoError(t, err)
 

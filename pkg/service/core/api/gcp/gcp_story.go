@@ -7,7 +7,7 @@ import (
 	"fmt"
 	"github.com/navikt/nada-backend/pkg/errs"
 	"github.com/navikt/nada-backend/pkg/service"
-	"github.com/sirupsen/logrus"
+	"github.com/rs/zerolog"
 	"google.golang.org/api/iterator"
 	"google.golang.org/api/option"
 	"io"
@@ -18,7 +18,7 @@ import (
 var _ service.StoryAPI = &storyAPI{}
 
 type storyAPI struct {
-	log        *logrus.Entry
+	log        zerolog.Logger
 	bucketName string
 	endpoint   string
 }
@@ -169,14 +169,14 @@ func (s *storyAPI) WriteFilesToBucket(ctx context.Context, storyID string, files
 		gcsPath := storyID + "/" + file.Path
 		err = s.WriteFileToBucket(ctx, gcsPath, file.Data)
 		if err != nil {
-			s.log.WithError(err).Errorf("writing story file: " + gcsPath)
+			s.log.Error().Err(err).Msg("writing story file: " + gcsPath)
 			break
 		}
 	}
 	if err != nil && cleanupOnFailure {
 		ed := s.DeleteStoryFolder(ctx, storyID)
 		if ed != nil {
-			s.log.WithError(ed).Errorf("deleting story folder on cleanup: " + storyID)
+			s.log.Error().Err(ed).Msg("deleting story folder on cleanup: " + storyID)
 		}
 	}
 
@@ -284,7 +284,7 @@ func (s *storyAPI) newClient(ctx context.Context) (*storage.Client, error) {
 	return client, nil
 }
 
-func NewStoryAPI(endpoint, bucketName string, log *logrus.Entry) *storyAPI {
+func NewStoryAPI(endpoint, bucketName string, log zerolog.Logger) *storyAPI {
 	return &storyAPI{
 		log:        log,
 		bucketName: bucketName,

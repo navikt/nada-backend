@@ -5,6 +5,7 @@ import (
 	"github.com/navikt/nada-backend/pkg/database"
 	"github.com/navikt/nada-backend/pkg/service"
 	"github.com/navikt/nada-backend/pkg/service/core/storage/postgres"
+	"github.com/rs/zerolog"
 )
 
 type Stores struct {
@@ -27,11 +28,12 @@ type Stores struct {
 func NewStores(
 	db *database.Repo,
 	cfg config.Config,
+	log zerolog.Logger,
 ) *Stores {
 	return &Stores{
 		AccessStorage:            postgres.NewAccessStorage(db.Querier, database.WithTx[postgres.AccessQueries](db)),
 		BigQueryStorage:          postgres.NewBigQueryStorage(db),
-		DataProductsStorage:      postgres.NewDataProductStorage(cfg.Metabase.DatabasesBaseURL, db),
+		DataProductsStorage:      postgres.NewDataProductStorage(cfg.Metabase.DatabasesBaseURL, db, log),
 		InsightProductStorage:    postgres.NewInsightProductStorage(db),
 		JoinableViewsStorage:     postgres.NewJoinableViewStorage(db),
 		KeyWordStorage:           postgres.NewKeywordsStorage(db),

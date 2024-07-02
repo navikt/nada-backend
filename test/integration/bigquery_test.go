@@ -16,7 +16,6 @@ import (
 	"github.com/navikt/nada-backend/pkg/service/core/routes"
 	"github.com/navikt/nada-backend/pkg/service/core/storage"
 	"github.com/rs/zerolog"
-	log "github.com/sirupsen/logrus"
 	"github.com/stretchr/testify/assert"
 	"net/http"
 	"net/http/httptest"
@@ -25,7 +24,8 @@ import (
 )
 
 func TestBigQuery(t *testing.T) {
-	c := NewContainers(t)
+	log := zerolog.New(os.Stdout)
+	c := NewContainers(t, log)
 	defer c.Cleanup()
 
 	pgCfg := c.RunPostgres(NewPostgresConfig())
@@ -34,7 +34,6 @@ func TestBigQuery(t *testing.T) {
 		pgCfg.ConnectionURL(),
 		10,
 		10,
-		log.WithField("subsystem", "repo"),
 	)
 	assert.NoError(t, err)
 
@@ -60,7 +59,7 @@ func TestBigQuery(t *testing.T) {
 	em.WithProject(gcpProject, datasets...)
 	bqClient := bq.NewClient(em.Endpoint(), false)
 
-	stores := storage.NewStores(repo, config.Config{})
+	stores := storage.NewStores(repo, config.Config{}, log)
 
 	zlog := zerolog.New(os.Stdout)
 	r := TestRouter(zlog)

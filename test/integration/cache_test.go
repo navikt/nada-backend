@@ -4,7 +4,6 @@ import (
 	"github.com/navikt/nada-backend/pkg/cache"
 	"github.com/navikt/nada-backend/pkg/database"
 	"github.com/rs/zerolog"
-	log "github.com/sirupsen/logrus"
 	"github.com/stretchr/testify/assert"
 	"os"
 	"testing"
@@ -17,7 +16,9 @@ type CacheTest struct {
 }
 
 func TestCache(t *testing.T) {
-	c := NewContainers(t)
+	log := zerolog.New(os.Stdout)
+
+	c := NewContainers(t, log)
 	defer c.Cleanup()
 
 	pgCfg := c.RunPostgres(NewPostgresConfig())
@@ -26,7 +27,6 @@ func TestCache(t *testing.T) {
 		pgCfg.ConnectionURL(),
 		10,
 		10,
-		log.WithField("subsystem", "repo"),
 	)
 	assert.NoError(t, err)
 

@@ -11,7 +11,7 @@ import (
 	"github.com/navikt/nada-backend/pkg/database/gensql"
 	"github.com/navikt/nada-backend/pkg/errs"
 	"github.com/navikt/nada-backend/pkg/service"
-	log "github.com/sirupsen/logrus"
+	"github.com/rs/zerolog"
 	"github.com/sqlc-dev/pqtype"
 )
 
@@ -20,6 +20,7 @@ var _ service.DataProductsStorage = &dataProductStorage{}
 type dataProductStorage struct {
 	databasesBaseURL string
 	db               *database.Repo
+	log              zerolog.Logger
 }
 
 func (s *dataProductStorage) GetDataproductKeywords(ctx context.Context, dpid uuid.UUID) ([]string, error) {
@@ -426,8 +427,7 @@ func (s *dataProductStorage) CreateDataset(ctx context.Context, ds service.NewDa
 	for _, keyword := range ds.Keywords {
 		err = querier.CreateTagIfNotExist(ctx, keyword)
 		if err != nil {
-			// FIXME: receive the log
-			log.WithError(err).Warn("failed to create tag when creating dataset in database")
+			s.log.Warn().Err(err).Msg("failed to create tag when creating dataset in database")
 		}
 	}
 
@@ -829,9 +829,10 @@ func dataproductFromSQL(dp *gensql.DataproductWithTeamkatalogenView) *service.Da
 	}
 }
 
-func NewDataProductStorage(databasesBaseURL string, db *database.Repo) *dataProductStorage {
+func NewDataProductStorage(databasesBaseURL string, db *database.Repo, log zerolog.Logger) *dataProductStorage {
 	return &dataProductStorage{
 		db:               db,
 		databasesBaseURL: databasesBaseURL,
+		log:              log,
 	}
 }

@@ -11,7 +11,7 @@ import (
 	slackapi "github.com/navikt/nada-backend/pkg/service/core/api/slack"
 	"github.com/navikt/nada-backend/pkg/service/core/cache/postgres"
 	"github.com/navikt/nada-backend/pkg/tk"
-	"github.com/sirupsen/logrus"
+	"github.com/rs/zerolog"
 )
 
 type Clients struct {
@@ -31,7 +31,7 @@ func NewClients(
 	ncFetcher nc.Fetcher,
 	bqClient bq.Operations,
 	cfg config.Config,
-	log *logrus.Entry,
+	log zerolog.Logger,
 ) *Clients {
 	tkAPI := httpapi.NewTeamKatalogenAPI(tkFetcher)
 	tkAPICacher := postgres.NewTeamKatalogenCache(tkAPI, cache)
