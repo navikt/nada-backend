@@ -44,7 +44,7 @@ var promErrs = prometheus.NewCounterVec(prometheus.CounterOpts{
 
 const (
 	TeamProjectsUpdateFrequency = 60 * time.Minute
-	TeamProjectDelay            = 60 * time.Second
+	TeamProjectDelay            = 10 * time.Second
 	AccessEnsurerFrequency      = 5 * time.Minute
 	MetabaseUpdateFrequency     = 1 * time.Hour
 )

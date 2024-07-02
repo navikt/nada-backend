@@ -68,17 +68,17 @@ func (c *Client) GetTeamGoogleProjects(ctx context.Context) (map[string]string, 
 	const limit = 100
 	offset := 0
 
-	payload := map[string]any{
-		"query": gqlQuery,
-		"variables": map[string]any{
-			"limit":  limit,
-			"offset": offset,
-		},
-	}
-
 	var mapping = map[string]string{}
 
 	for {
+		payload := map[string]any{
+			"query": gqlQuery,
+			"variables": map[string]any{
+				"limit":  limit,
+				"offset": offset,
+			},
+		}
+
 		r := Response{}
 
 		err := c.sendRequestAndDeserialize(ctx, http.MethodPost, "/query", payload, &r)
