@@ -4,7 +4,7 @@ import (
 	"bytes"
 	"context"
 	"fmt"
-	"github.com/navikt/nada-backend/pkg/teamprojectsupdater"
+	"github.com/navikt/nada-backend/pkg/syncers/teamprojectsupdater"
 	"github.com/rs/zerolog"
 	"github.com/stretchr/testify/assert"
 	"testing"
