@@ -200,7 +200,7 @@ func main() {
 		routes.NewKeywordRoutes(routes.NewKeywordEndpoints(zlog, h.KeywordsHandler), authenticatorMiddleware),
 		routes.NewMetabaseRoutes(routes.NewMetabaseEndpoints(zlog, h.MetabaseHandler), authenticatorMiddleware),
 		routes.NewPollyRoutes(routes.NewPollyEndpoints(zlog, h.PollyHandler)),
-		routes.NewProductAreaRoutes(routes.NewProductAreaEndpoints(zlog, h.ProductAreasHandler), authenticatorMiddleware),
+		routes.NewProductAreaRoutes(routes.NewProductAreaEndpoints(zlog, h.ProductAreasHandler)),
 		routes.NewSearchRoutes(routes.NewSearchEndpoints(zlog, h.SearchHandler)),
 		routes.NewSlackRoutes(routes.NewSlackEndpoints(zlog, h.SlackHandler)),
 		routes.NewStoryRoutes(routes.NewStoryEndpoints(zlog, h.StoryHandler), authenticatorMiddleware),

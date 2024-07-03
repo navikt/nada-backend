@@ -14,7 +14,14 @@ type ProductAreasHandler struct {
 }
 
 func (h *ProductAreasHandler) GetProductAreas(ctx context.Context, _ *http.Request, _ any) (*service.ProductAreasDto, error) {
-	return h.service.GetProductAreas(ctx)
+	const op errs.Op = "ProductAreasHandler.GetProductAreas"
+
+	p, err := h.service.GetProductAreas(ctx)
+	if err != nil {
+		return nil, errs.E(op, err)
+	}
+
+	return p, nil
 }
 
 func (h *ProductAreasHandler) GetProductAreaWithAssets(ctx context.Context, r *http.Request, _ any) (*service.ProductAreaWithAssets, error) {

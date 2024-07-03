@@ -20,7 +20,7 @@ func NewProductAreaEndpoints(log zerolog.Logger, h *handlers.ProductAreasHandler
 	}
 }
 
-func NewProductAreaRoutes(endpoints *ProductAreaEndpoints, auth func(http.Handler) http.Handler) AddRoutesFn {
+func NewProductAreaRoutes(endpoints *ProductAreaEndpoints) AddRoutesFn {
 	return func(router chi.Router) {
 		router.Route("/api/productareas", func(r chi.Router) {
 			r.Get("/", endpoints.GetProductAreas)
