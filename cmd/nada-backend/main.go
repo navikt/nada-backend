@@ -3,9 +3,9 @@ package main
 import (
 	"context"
 	"github.com/go-chi/chi"
-	"github.com/navikt/nada-backend/pkg/amplitude"
 	"github.com/navikt/nada-backend/pkg/bq"
 	"github.com/navikt/nada-backend/pkg/cache"
+	"github.com/navikt/nada-backend/pkg/cs"
 	"github.com/navikt/nada-backend/pkg/nc"
 	"github.com/navikt/nada-backend/pkg/service/core"
 	apiclients "github.com/navikt/nada-backend/pkg/service/core/api"
@@ -102,12 +102,18 @@ func main() {
 	// FIXME: make authentication configurable
 	bqClient := bq.NewClient(cfg.BigQuery.Endpoint, true)
 
+	csClient, err := cs.New(ctx, cfg.GCS.StoryBucketName)
+	if err != nil {
+		zlog.Fatal().Err(err).Msg("setting up cloud storage")
+	}
+
 	stores := storage.NewStores(repo, cfg, zlog.With().Str("subsystem", "stores").Logger())
 	apiClients := apiclients.NewClients(
 		cacher,
 		tkFetcher,
 		ncFetcher,
 		bqClient,
+		csClient,
 		cfg,
 		zlog.With().Str("subsystem", "api_clients").Logger(),
 	)
@@ -176,12 +182,9 @@ func main() {
 		zlog.With().Str("subsystem", "auth").Logger(),
 	)
 
+	// FIXME: hook up amplitude again, but as a middleware
 	h := handlers.NewHandlers(
 		services,
-		amplitude.New(
-			cfg.AmplitudeAPIKey,
-			zlog.With().Str("subsystem", "amplitude").Logger(),
-		),
 		cfg,
 		zlog.With().Str("subsystem", "handlers").Logger(),
 	)
@@ -203,7 +206,7 @@ func main() {
 		routes.NewProductAreaRoutes(routes.NewProductAreaEndpoints(zlog, h.ProductAreasHandler)),
 		routes.NewSearchRoutes(routes.NewSearchEndpoints(zlog, h.SearchHandler)),
 		routes.NewSlackRoutes(routes.NewSlackEndpoints(zlog, h.SlackHandler)),
-		routes.NewStoryRoutes(routes.NewStoryEndpoints(zlog, h.StoryHandler), authenticatorMiddleware),
+		routes.NewStoryRoutes(routes.NewStoryEndpoints(zlog, h.StoryHandler), authenticatorMiddleware, h.StoryHandler.NadaTokenMiddleware),
 		routes.NewTeamkatalogenRoutes(routes.NewTeamkatalogenEndpoints(zlog, h.TeamKatalogenHandler)),
 		routes.NewTokensRoutes(routes.NewTokensEndpoints(zlog, h.TokenHandler), authenticatorMiddleware),
 		routes.NewMetricsRoutes(routes.NewMetricsEndpoints(prom(repo.Metrics()...))),

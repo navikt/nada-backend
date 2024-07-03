@@ -229,39 +229,37 @@ func (h *StoryHandler) AppendStoryFiles(ctx context.Context, r *http.Request, _ 
 	return &transport.Empty{}, nil
 }
 
-func (h *StoryHandler) NadaTokenMiddleware() func(handler http.Handler) http.Handler {
+func (h *StoryHandler) NadaTokenMiddleware(next http.Handler) http.Handler {
 	const op errs.Op = "StoryHandler.NadaTokenMiddleware"
 
-	return func(next http.Handler) http.Handler {
-		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			token := r.Header.Get("Authorization")
-			splitToken := strings.Split(token, "Bearer ")
-			token = splitToken[1]
-			if len(token) == 0 {
-				errs.HTTPErrorResponse(w, h.log, errs.E(errs.Unauthenticated, op, errs.Parameter("nada_token"), fmt.Errorf("no token provided")))
-			}
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		token := r.Header.Get("Authorization")
+		splitToken := strings.Split(token, "Bearer ")
+		token = splitToken[1]
+		if len(token) == 0 {
+			errs.HTTPErrorResponse(w, h.log, errs.E(errs.Unauthenticated, op, errs.Parameter("nada_token"), fmt.Errorf("no token provided")))
+		}
 
-			valid, err := h.tokenService.ValidateToken(r.Context(), token)
-			if err != nil {
-				errs.HTTPErrorResponse(w, h.log, errs.E(errs.Internal, op, err))
-			}
+		valid, err := h.tokenService.ValidateToken(r.Context(), token)
+		if err != nil {
+			errs.HTTPErrorResponse(w, h.log, errs.E(errs.Internal, op, err))
+		}
 
-			if !valid {
-				errs.HTTPErrorResponse(w, h.log, errs.E(errs.Unauthenticated, op, errs.Parameter("nada_token"), fmt.Errorf("invalid nada token")))
-			}
+		if !valid {
+			errs.HTTPErrorResponse(w, h.log, errs.E(errs.Unauthenticated, op, errs.Parameter("nada_token"), fmt.Errorf("invalid nada token")))
+		}
 
-			team, err := h.tokenService.GetTeamFromNadaToken(r.Context(), token)
-			if err != nil {
-				errs.HTTPErrorResponse(w, h.log, errs.E(errs.Unauthorized, op, err))
-			}
+		team, err := h.tokenService.GetTeamFromNadaToken(r.Context(), token)
+		if err != nil {
+			errs.HTTPErrorResponse(w, h.log, errs.E(errs.Unauthorized, op, err))
+		}
 
-			ctx := context.WithValue(r.Context(), ContextKeyTeam, team)
-			ctx = context.WithValue(ctx, ContextKeyTeamEmail, team+"@nav.no")
-			ctx = context.WithValue(ctx, ContextKeyNadaToken, token)
+		ctx := context.WithValue(r.Context(), ContextKeyTeam, team)
+		ctx = context.WithValue(ctx, ContextKeyTeamEmail, team+"@nav.no")
+		ctx = context.WithValue(ctx, ContextKeyNadaToken, token)
 
-			next.ServeHTTP(w, r.WithContext(ctx))
-		})
-	}
+		next.ServeHTTP(w, r.WithContext(ctx))
+	})
 }
 
 // FIXME: move into a separate file, make it testable
