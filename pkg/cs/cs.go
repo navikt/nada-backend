@@ -15,6 +15,10 @@ var ErrObjectNotExist = errors.New("object does not exist")
 var ErrBucketNotExist = errors.New("bucket does not exist")
 
 type Operations interface {
+	DeleteObjects(ctx context.Context, q *Query) (int, error)
+	WriteObject(ctx context.Context, name string, data []byte, attrs *Attributes) error
+	GetObjects(ctx context.Context, q *Query) ([]*Object, error)
+	GetObjectWithData(ctx context.Context, name string) (*ObjectWithData, error)
 }
 
 type Client struct {
@@ -44,13 +48,15 @@ type Query struct {
 	Prefix string
 }
 
-func (c *Client) DeleteObjects(ctx context.Context, q *Query) error {
+func (c *Client) DeleteObjects(ctx context.Context, q *Query) (int, error) {
 	var query *storage.Query
 	if q != nil {
 		query = &storage.Query{
 			Prefix: q.Prefix,
 		}
 	}
+
+	n := 0
 
 	it := c.client.Bucket(c.bucket).Objects(ctx, query)
 	for {
@@ -61,18 +67,20 @@ func (c *Client) DeleteObjects(ctx context.Context, q *Query) error {
 			}
 
 			if errors.Is(err, storage.ErrBucketNotExist) {
-				return ErrBucketNotExist
+				return 0, ErrBucketNotExist
 			}
 
-			return fmt.Errorf("iterating objects: %w", err)
+			return 0, fmt.Errorf("iterating objects: %w", err)
 		}
 
 		if err := c.client.Bucket(c.bucket).Object(obj.Name).Delete(ctx); err != nil {
-			return fmt.Errorf("deleting object: %w", err)
+			return 0, fmt.Errorf("deleting object: %w", err)
 		}
+
+		n++
 	}
 
-	return nil
+	return n, nil
 }
 
 func (c *Client) WriteObject(ctx context.Context, name string, data []byte, attrs *Attributes) error {

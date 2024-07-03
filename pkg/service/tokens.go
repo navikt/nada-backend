@@ -17,6 +17,7 @@ type TokenService interface {
 	GetTeamFromNadaToken(ctx context.Context, token string) (string, error)
 	GetNadaTokenForTeam(ctx context.Context, team string) (string, error)
 	GetNadaTokens(ctx context.Context) (map[string]string, error)
+	ValidateToken(ctx context.Context, token string) (bool, error)
 }
 
 type NadaToken struct {

@@ -19,6 +19,7 @@ func TestClient_DeleteObjects(t *testing.T) {
 		query          *cs.Query
 		expectErr      bool
 		expect         any
+		count          int
 	}{
 		{
 			name:   "delete objects with prefix",
@@ -47,6 +48,7 @@ func TestClient_DeleteObjects(t *testing.T) {
 			expect: []string{
 				"not/in/prefix/file2.txt",
 			},
+			count: 2,
 		},
 		{
 			name:   "delete objects with no prefix",
@@ -66,6 +68,7 @@ func TestClient_DeleteObjects(t *testing.T) {
 				},
 			},
 			expect: []string{},
+			count:  2,
 		},
 		{
 			name:      "no such bucket",
@@ -82,13 +85,14 @@ func TestClient_DeleteObjects(t *testing.T) {
 
 			client := cs.NewFromClient(tc.bucket, e.Client())
 
-			err := client.DeleteObjects(context.Background(), tc.query)
+			n, err := client.DeleteObjects(context.Background(), tc.query)
 			if tc.expectErr {
 				assert.Error(t, err)
 			} else {
 				assert.NoError(t, err)
 				got := e.ListObjectNames(tc.bucket)
 				assert.Equal(t, tc.expect, got)
+				assert.Equal(t, tc.count, n)
 			}
 		})
 	}

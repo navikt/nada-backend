@@ -2,9 +2,6 @@ package handlers
 
 import (
 	"context"
-	"database/sql"
-	"encoding/json"
-	"errors"
 	"fmt"
 	"github.com/go-chi/chi"
 	"github.com/google/uuid"
@@ -12,19 +9,19 @@ import (
 	"github.com/navikt/nada-backend/pkg/auth"
 	"github.com/navikt/nada-backend/pkg/errs"
 	"github.com/navikt/nada-backend/pkg/service"
+	"github.com/navikt/nada-backend/pkg/service/core/transport"
 	"github.com/rs/zerolog"
 	"io"
 	"mime"
 	"net/http"
-	"regexp"
-	"strconv"
+	"path/filepath"
 	"strings"
 )
 
 const (
-	idURLPosUpdate         = 3
-	idURLPosGet            = 2
-	maxMemoryMultipartForm = 32 << 20 // 32 MB
+	ContextKeyTeam      = "team"
+	ContextKeyTeamEmail = "team_email"
+	ContextKeyNadaToken = "nada_token"
 )
 
 type StoryHandler struct {
@@ -70,8 +67,15 @@ func (h *StoryHandler) UpdateStory(ctx context.Context, _ *http.Request, in serv
 	return story, nil
 }
 
-func (h *StoryHandler) CreateStory(ctx context.Context, r *http.Request, _ any) (*service.Story, error) {
-	newStory, files, err := parseStoryFilesForm(ctx, r)
+func (h *StoryHandler) CreateStory(ctx context.Context, r *http.Request, newStory *service.NewStory) (*service.Story, error) {
+	const op errs.Op = "StoryHandler.CreateStory"
+
+	err := newStory.Validate()
+	if err != nil {
+		return nil, errs.E(errs.InvalidRequest, op, err)
+	}
+
+	files, err := filesFromRequest(r)
 	if err != nil {
 		return nil, err
 	}
@@ -86,8 +90,8 @@ func (h *StoryHandler) CreateStory(ctx context.Context, r *http.Request, _ any) 
 	return story, nil
 }
 
-func (h *StoryHandler) GetStoryMetadata(ctx context.Context, _ *http.Request, _ any) (*service.Story, error) {
-	const op errs.Op = "StoryHandler.GetStoryMetadata"
+func (h *StoryHandler) GetStory(ctx context.Context, _ *http.Request, _ any) (*service.Story, error) {
+	const op errs.Op = "StoryHandler.GetStory"
 
 	id, err := uuid.Parse(chi.URLParamFromCtx(ctx, "id"))
 	if err != nil {
@@ -102,253 +106,165 @@ func (h *StoryHandler) GetStoryMetadata(ctx context.Context, _ *http.Request, _ 
 	return story, nil
 }
 
-func (h *StoryHandler) GetGCSObject(w http.ResponseWriter, r *http.Request) {
+func (h *StoryHandler) GetIndex(ctx context.Context, r *http.Request, _ any) (*transport.Redirect, error) {
+	const op errs.Op = "StoryHandler.GetIndex"
+
+	id, err := uuid.Parse(chi.URLParamFromCtx(ctx, "id"))
+	if err != nil {
+		return nil, errs.E(errs.InvalidRequest, op, fmt.Errorf("parsing id: %w", err))
+	}
+
+	index, err := h.storyService.GetIndexHtmlPath(ctx, id.String())
+	if err != nil {
+		return nil, errs.E(op, err)
+	}
+
+	return transport.NewRedirect(index, r), nil
+}
+
+func (h *StoryHandler) GetObject(ctx context.Context, r *http.Request, _ any) (*transport.ByteWriter, error) {
+	const op errs.Op = "StoryHandler.GetObject"
+
 	pathParts := strings.Split(r.URL.Path, "/")
 	objPath := strings.Join(pathParts[2:], "/")
 
-	attr, objBytes, err := h.storyService.GetObject(r.Context(), objPath)
+	obj, err := h.storyService.GetObject(ctx, objPath)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
-	if strings.HasSuffix(objPath, ".js") {
-		w.Header().Add("content-type", "text/javascript")
-	} else if strings.HasSuffix(objPath, ".css") {
-		w.Header().Add("content-type", "text/css")
-	} else {
-		w.Header().Add("content-type", attr.ContentType)
+		return nil, errs.E(op, err)
 	}
 
-	w.Header().Add("content-length", strconv.Itoa(int(attr.Size)))
-	w.Header().Add("content-encoding", attr.ContentEncoding)
+	contentType := ""
+	switch filepath.Ext(obj.Name) {
+	case ".html":
+		contentType = "text/html"
+	case ".js":
+		contentType = "text/javascript"
+	case ".css":
+		contentType = "text/css"
+	default:
+		contentType = obj.Attrs.ContentType
+	}
 
-	// FIXME: is this correct?
-	_, _ = w.Write(objBytes)
+	return transport.NewByteWriter(contentType, obj.Attrs.ContentEncoding, obj.Data), nil
 }
 
-func (h *StoryHandler) CreateStoryHTTP(w http.ResponseWriter, r *http.Request) {
-	team := r.Context().Value("team").(string)
+func (h *StoryHandler) CreateStoryForTeam(ctx context.Context, r *http.Request, newStory *service.NewStory) (*service.Story, error) {
+	const op errs.Op = "StoryHandler.CreateStoryForTeam"
 
-	bodyBytes, err := io.ReadAll(r.Body)
-	if err != nil {
-		h.log.Error().Err(err).Msg("reading body")
-		writeError(w, http.StatusBadRequest, fmt.Errorf("error reading body"))
-		return
+	raw := r.Context().Value(ContextKeyTeamEmail)
+	teamEmail, ok := raw.(string)
+	if !ok {
+		return nil, errs.E(errs.Internal, op, fmt.Errorf("team not found in context"))
 	}
 
-	newStory := service.NewStory{}
-	if err := json.Unmarshal(bodyBytes, &newStory); err != nil {
-		h.log.Error().Err(err).Msg("unmarshalling request body")
-		writeError(w, http.StatusBadRequest, fmt.Errorf("error unmarshalling request body"))
-		return
-	}
-
-	newStory.Group = team
+	newStory.Group = teamEmail
 	if newStory.Keywords == nil {
 		newStory.Keywords = []string{}
 	}
 
-	story, err := h.storyService.CreateStoryWithTeamAndProductArea(r.Context(), team, &newStory)
+	err := newStory.Validate()
 	if err != nil {
-		h.log.Error().Err(err).Msg("creating story")
-		writeError(w, http.StatusInternalServerError, fmt.Errorf("error creating story"))
-		return
+		return nil, errs.E(errs.InvalidRequest, op, err)
 	}
 
-	retBytes, err := json.Marshal(story)
+	story, err := h.storyService.CreateStoryWithTeamAndProductArea(ctx, teamEmail, newStory)
 	if err != nil {
-		h.log.Error().Err(err).Msg("marshalling response json after creating story")
-		writeError(w, http.StatusInternalServerError, fmt.Errorf("error creating story"))
-		return
+		return nil, errs.E(op, err)
 	}
 
-	w.Header().Add("content-type", "application/json")
-	w.Write(retBytes)
+	return story, nil
 }
 
-func (h *StoryHandler) UpdateStoryHTTP(w http.ResponseWriter, r *http.Request) {
-	qID, err := getIDFromPath(r, idURLPosUpdate)
+func (h *StoryHandler) RecreateStoryFiles(ctx context.Context, r *http.Request, _ any) (*transport.Empty, error) {
+	const op errs.Op = "StoryHandler.RecreateStoryFiles"
+
+	id, err := uuid.Parse(chi.URLParamFromCtx(ctx, "id"))
 	if err != nil {
-		h.log.Error().Err(err).Msg("getting story id from url path")
-		writeError(w, http.StatusBadRequest, fmt.Errorf("invalid story id %v", qID))
-		return
+		return nil, errs.E(errs.InvalidRequest, op, errs.Parameter("id"), fmt.Errorf("parsing id: %w", err))
 	}
 
 	files, err := filesFromRequest(r)
 	if err != nil {
-		h.log.Error().Err(err).Msg("reading files from request")
-		writeError(w, http.StatusBadRequest, fmt.Errorf("invalid request form"))
-		return
+		return nil, errs.E(errs.InvalidRequest, op, errs.Parameter("files"), err)
 	}
 
-	err = h.storyService.RecreateStoryFiles(r.Context(), qID, files)
-	if err != nil {
-		h.log.Error().Err(err).Msg("recreating story files")
-		writeError(w, http.StatusInternalServerError, fmt.Errorf("internal server error"))
+	raw := r.Context().Value(ContextKeyTeamEmail)
+	teamEmail, ok := raw.(string)
+	if !ok {
+		return nil, errs.E(errs.Internal, op, fmt.Errorf("team not found in context"))
 	}
+
+	err = h.storyService.RecreateStoryFiles(ctx, id, teamEmail, files)
+	if err != nil {
+		return nil, errs.E(op, err)
+	}
+
+	return &transport.Empty{}, nil
 }
 
-func (h *StoryHandler) AppendStoryHTTP(w http.ResponseWriter, r *http.Request) {
-	qID, err := getIDFromPath(r, idURLPosUpdate)
+func (h *StoryHandler) AppendStoryFiles(ctx context.Context, r *http.Request, _ any) (*transport.Empty, error) {
+	const op errs.Op = "StoryHandler.AppendStoryFiles"
+
+	id, err := uuid.Parse(chi.URLParamFromCtx(ctx, "id"))
 	if err != nil {
-		h.log.Error().Err(err).Msg("getting story id from url path")
-		writeError(w, http.StatusBadRequest, fmt.Errorf("invalid story id %v", qID))
-		return
+		return nil, errs.E(errs.InvalidRequest, op, errs.Parameter("id"), fmt.Errorf("parsing id: %w", err))
 	}
+
+	files, err := filesFromRequest(r)
+	if err != nil {
+		return nil, errs.E(errs.InvalidRequest, op, errs.Parameter("files"), err)
+	}
+
+	raw := r.Context().Value(ContextKeyTeamEmail)
+	teamEmail, ok := raw.(string)
+	if !ok {
+		return nil, errs.E(errs.Internal, op, fmt.Errorf("team not found in context"))
+	}
+
+	err = h.storyService.AppendStoryFiles(ctx, id, teamEmail, files)
+	if err != nil {
+		return nil, errs.E(op, err)
+	}
+
+	return &transport.Empty{}, nil
 }
 
-// FIXME: take a closer look at this, maybe we can do it a bit differently
-func StoryHTTPMiddleware(h *StoryHandler) func(http.Handler) http.Handler {
+func (h *StoryHandler) NadaTokenMiddleware() func(handler http.Handler) http.Handler {
+	const op errs.Op = "StoryHandler.NadaTokenMiddleware"
+
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			switch r.Method {
-			case http.MethodGet:
-				h.getStoryHTTP(w, r, next)
-			case http.MethodPost:
-				h.createStoryHTTP(w, r, next)
-			case http.MethodPut:
-				fallthrough
-			case http.MethodPatch:
-				h.updateStoryHTTP(w, r, next)
+			token := r.Header.Get("Authorization")
+			splitToken := strings.Split(token, "Bearer ")
+			token = splitToken[1]
+			if len(token) == 0 {
+				errs.HTTPErrorResponse(w, h.log, errs.E(errs.Unauthenticated, op, errs.Parameter("nada_token"), fmt.Errorf("no token provided")))
 			}
+
+			valid, err := h.tokenService.ValidateToken(r.Context(), token)
+			if err != nil {
+				errs.HTTPErrorResponse(w, h.log, errs.E(errs.Internal, op, err))
+			}
+
+			if !valid {
+				errs.HTTPErrorResponse(w, h.log, errs.E(errs.Unauthenticated, op, errs.Parameter("nada_token"), fmt.Errorf("invalid nada token")))
+			}
+
+			team, err := h.tokenService.GetTeamFromNadaToken(r.Context(), token)
+			if err != nil {
+				errs.HTTPErrorResponse(w, h.log, errs.E(errs.Unauthorized, op, err))
+			}
+
+			ctx := context.WithValue(r.Context(), ContextKeyTeam, team)
+			ctx = context.WithValue(ctx, ContextKeyTeamEmail, team+"@nav.no")
+			ctx = context.WithValue(ctx, ContextKeyNadaToken, token)
+
+			next.ServeHTTP(w, r.WithContext(ctx))
 		})
 	}
 }
 
-func (h *StoryHandler) updateStoryHTTP(w http.ResponseWriter, r *http.Request, next http.Handler) {
-	qID, err := getIDFromPath(r, idURLPosUpdate)
-	if err != nil {
-		writeError(w, http.StatusBadRequest, fmt.Errorf("invalid story id %v", qID))
-		return
-	}
-
-	authHeader := r.Header.Get("Authorization")
-	token, err := getTokenFromHeader(authHeader)
-	if err != nil {
-		writeError(w, http.StatusForbidden, err)
-		return
-	}
-
-	story, apiErr := h.storyService.GetStory(r.Context(), qID)
-	if apiErr != nil {
-		if errors.Is(apiErr, sql.ErrNoRows) {
-			writeError(w, http.StatusNotFound, fmt.Errorf("story id %v does not exist", qID))
-			return
-		}
-
-		h.log.Error().Err(apiErr).Msgf("reading story: %s", qID)
-		writeError(w, http.StatusInternalServerError, fmt.Errorf("internal server error"))
-		return
-	}
-
-	group := strings.Split(story.Group, "@")[0]
-	dbToken, err := h.tokenService.GetTeamFromNadaToken(r.Context(), auth.TrimNaisTeamPrefix(group))
-	if err != nil {
-		if errors.Is(err, sql.ErrNoRows) {
-			h.log.Error().Err(err).Msgf("no nada token found for team %v, story id %v", story.Group, qID)
-			writeError(w, http.StatusInternalServerError, fmt.Errorf("internal server error"))
-			return
-		}
-
-		h.log.Error().Err(err).Msgf("reading nada token for group %v, story id %v", story.Group, qID)
-		writeError(w, http.StatusInternalServerError, fmt.Errorf("internal server error"))
-		return
-	}
-
-	if !isAuthorized(token.String(), dbToken) {
-		writeError(w, http.StatusUnauthorized, fmt.Errorf("unauthorized to update story %v", qID))
-		return
-	}
-
-	next.ServeHTTP(w, r)
-}
-
-func isAuthorized(token, dbToken string) bool {
-	return token == dbToken
-}
-
-func (h *StoryHandler) createStoryHTTP(w http.ResponseWriter, r *http.Request, next http.Handler) {
-	authHeader := r.Header.Get("Authorization")
-	token, err := getTokenFromHeader(authHeader)
-	if err != nil {
-		writeError(w, http.StatusForbidden, err)
-		return
-	}
-
-	team, err := h.tokenService.GetTeamFromNadaToken(r.Context(), token.String())
-	if err != nil {
-		if errors.Is(err, sql.ErrNoRows) {
-			writeError(w, http.StatusForbidden, errors.New("no nada teams correspond to the team token provided with the request"))
-		} else {
-			writeError(w, http.StatusForbidden, err)
-		}
-		return
-	}
-
-	ctx := context.WithValue(r.Context(), "team", team+"@nav.no")
-	next.ServeHTTP(w, r.WithContext(ctx))
-}
-
-func getTokenFromHeader(authHeader string) (uuid.UUID, error) {
-	parts := strings.Split(authHeader, " ")
-	if len(parts) != 2 {
-		return uuid.UUID{}, errors.New("token not provided")
-	}
-
-	token, err := uuid.Parse(parts[1])
-	if err != nil {
-		return uuid.UUID{}, fmt.Errorf("invalid token format")
-	}
-
-	return token, nil
-}
-
-func (h *StoryHandler) RedirectStoryHTTP(w http.ResponseWriter, r *http.Request) {
-	pathParts := strings.Split(r.URL.Path, "/")
-	urlPathPrefix := strings.Join(pathParts[0:2], "/") + "/"
-	storyPath := strings.Join(pathParts[2:], "/")
-
-	objPath, err := h.storyService.GetIndexHtmlPath(r.Context(), storyPath)
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusNotFound)
-		return
-	}
-
-	r.URL.Path = urlPathPrefix
-	http.Redirect(w, r, objPath, http.StatusSeeOther)
-}
-
-func (h *StoryHandler) getStoryHTTP(w http.ResponseWriter, r *http.Request, next http.Handler) {
-	regex, _ := regexp.Compile(`[\n]*\.[\n]*`) // check if object path has file extension
-	if !regex.MatchString(r.URL.Path) {
-		h.RedirectStoryHTTP(w, r)
-		return
-	}
-
-	if strings.HasSuffix(r.URL.Path, ".html") {
-		if err := h.publishAmplitudeEvent(r.Context(), r.URL.Path); err != nil {
-			h.log.Error().Err(err).Msg("publishing amplitude event")
-		}
-	}
-
-	next.ServeHTTP(w, r)
-}
-
-func (h *StoryHandler) publishAmplitudeEvent(ctx context.Context, path string) error {
-	id := strings.Split(path, "/")[2]
-
-	story, err := h.storyService.GetStory(ctx, uuid.MustParse(id))
-	if err != nil {
-		return err
-	}
-
-	if err := h.amplitudeClient.PublishEvent(ctx, story.Name); err != nil {
-		return err
-	}
-
-	return nil
-}
-
+// FIXME: move into a separate file, make it testable
 func filesFromRequest(r *http.Request) ([]*service.UploadFile, error) {
 	reader, err := r.MultipartReader()
 	if err != nil {
@@ -394,78 +310,10 @@ func filesFromRequest(r *http.Request) ([]*service.UploadFile, error) {
 	return files, nil
 }
 
-func parseStoryFilesForm(_ context.Context, r *http.Request) (*service.NewStory, []*service.UploadFile, error) {
-	err := r.ParseMultipartForm(50 << 20) // Limit your max input length!
-	if err != nil {
-		return nil, nil, err
-	}
-
-	newStory := &service.NewStory{}
-	err = json.Unmarshal([]byte(r.FormValue("story")), newStory)
-	if err != nil {
-		return nil, nil, err
-	}
-
-	files := make([]*service.UploadFile, 0)
-	for i := 0; ; i++ {
-		pathKey := fmt.Sprintf("files[%d][path]", i)
-		fileKey := fmt.Sprintf("files[%d][file]", i)
-		path := r.FormValue(pathKey)
-		if path == "" {
-			break
-		}
-
-		file, _, err := r.FormFile(fileKey)
-		if err != nil {
-			return nil, nil, err
-		}
-		defer file.Close()
-
-		data, err := io.ReadAll(file)
-		if err != nil {
-			return nil, nil, err
-		}
-
-		files = append(files, &service.UploadFile{
-			Path: path,
-			Data: data,
-		})
-	}
-
-	return newStory, files, nil
-}
-
-func getIDFromPath(r *http.Request, idPos int) (uuid.UUID, error) {
-	parts := strings.Split(r.URL.Path, "/")
-	if idPos > len(parts)-1 {
-		return uuid.UUID{}, fmt.Errorf("unable to extract id from url path")
-	}
-
-	id, err := uuid.Parse(parts[idPos])
-	if err != nil {
-		return uuid.UUID{}, err
-	}
-
-	return id, nil
-}
-
-func writeError(w http.ResponseWriter, status int, err error) {
-	resp := map[string]string{
-		"statusCode": strconv.Itoa(status),
-		"message":    err.Error(),
-	}
-	respBytes, _ := json.Marshal(resp)
-
-	w.WriteHeader(status)
-	w.Header().Set("Content-Type", "application/json")
-	w.Write(respBytes)
-}
-
-func NewStoryHandler(storyService service.StoryService, tokenService service.TokenService, amp amplitude.Amplitude, log zerolog.Logger) *StoryHandler {
+func NewStoryHandler(storyService service.StoryService, tokenService service.TokenService, log zerolog.Logger) *StoryHandler {
 	return &StoryHandler{
-		storyService:    storyService,
-		tokenService:    tokenService,
-		amplitudeClient: amp,
-		log:             log,
+		storyService: storyService,
+		tokenService: tokenService,
+		log:          log,
 	}
 }

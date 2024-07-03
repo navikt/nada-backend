@@ -1,7 +1,6 @@
 package core
 
 import (
-	"cloud.google.com/go/storage"
 	"context"
 	"fmt"
 	"github.com/google/uuid"
@@ -28,10 +27,19 @@ func (s *storyService) GetIndexHtmlPath(ctx context.Context, prefix string) (str
 	return index, nil
 }
 
-func (s *storyService) AppendStoryFiles(ctx context.Context, id uuid.UUID, files []*service.UploadFile) error {
+func (s *storyService) AppendStoryFiles(ctx context.Context, id uuid.UUID, creatorEmail string, files []*service.UploadFile) error {
 	const op = "storyService.AppendStoryFiles"
 
-	err := s.storyAPI.WriteFilesToBucket(ctx, id.String(), files, false)
+	story, err := s.storyStorage.GetStory(ctx, id)
+	if err != nil {
+		return errs.E(op, err)
+	}
+
+	if story.Group != creatorEmail {
+		return errs.E(errs.Unauthorized, op, errs.UserName(creatorEmail), fmt.Errorf("user not in the group of the data story: %s", story.Group))
+	}
+
+	err = s.storyAPI.WriteFilesToBucket(ctx, id.String(), files, false)
 	if err != nil {
 		return errs.E(op, err)
 	}
@@ -39,10 +47,19 @@ func (s *storyService) AppendStoryFiles(ctx context.Context, id uuid.UUID, files
 	return nil
 }
 
-func (s *storyService) RecreateStoryFiles(ctx context.Context, id uuid.UUID, files []*service.UploadFile) error {
+func (s *storyService) RecreateStoryFiles(ctx context.Context, id uuid.UUID, creatorEmail string, files []*service.UploadFile) error {
 	const op = "storyService.RecreateStoryFiles"
 
-	err := s.storyAPI.DeleteObjectsWithPrefix(ctx, id.String())
+	story, err := s.storyStorage.GetStory(ctx, id)
+	if err != nil {
+		return errs.E(op, err)
+	}
+
+	if story.Group != creatorEmail {
+		return errs.E(errs.Unauthorized, op, errs.UserName(creatorEmail), fmt.Errorf("user not in the group of the data story: %s", story.Group))
+	}
+
+	_, err = s.storyAPI.DeleteObjectsWithPrefix(ctx, id.String())
 	if err != nil {
 		return errs.E(op, err)
 	}
@@ -77,15 +94,15 @@ func (s *storyService) CreateStoryWithTeamAndProductArea(ctx context.Context, cr
 	return story, nil
 }
 
-func (s *storyService) GetObject(ctx context.Context, path string) (*storage.ObjectAttrs, []byte, error) {
+func (s *storyService) GetObject(ctx context.Context, path string) (*service.ObjectWithData, error) {
 	const op = "storyService.GetObject"
 
-	attrs, data, err := s.storyAPI.GetObject(ctx, path)
+	obj, err := s.storyAPI.GetObject(ctx, path)
 	if err != nil {
-		return nil, nil, errs.E(op, err)
+		return nil, errs.E(op, err)
 	}
 
-	return attrs, data, nil
+	return obj, nil
 }
 
 func (s *storyService) CreateStory(ctx context.Context, creatorEmail string, newStory *service.NewStory, files []*service.UploadFile) (*service.Story, error) {

@@ -1,163 +1,90 @@
 package gcp
 
 import (
-	"cloud.google.com/go/storage"
 	"context"
 	"errors"
 	"fmt"
+	"github.com/navikt/nada-backend/pkg/cs"
 	"github.com/navikt/nada-backend/pkg/errs"
 	"github.com/navikt/nada-backend/pkg/service"
 	"github.com/rs/zerolog"
-	"google.golang.org/api/iterator"
-	"google.golang.org/api/option"
-	"io"
-	"mime/multipart"
+	"sort"
 	"strings"
 )
 
 var _ service.StoryAPI = &storyAPI{}
 
 type storyAPI struct {
-	log        zerolog.Logger
-	bucketName string
-	endpoint   string
+	log zerolog.Logger
+	ops cs.Operations
 }
 
 func (s *storyAPI) GetIndexHtmlPath(ctx context.Context, prefix string) (string, error) {
 	const op errs.Op = "gcp.GetIndexHtmlPath"
 
-	client, err := s.newClient(ctx)
-	if err != nil {
-		return "", errs.E(op, err)
-	}
-	defer client.Close()
-
 	prefix, _ = strings.CutSuffix(prefix, "/")
 
-	_, err = client.Bucket(s.bucketName).Object(prefix + "/index.html").NewReader(ctx)
-	if err == nil {
-		return prefix + "/index.html", nil
-	}
-
-	objs := client.Bucket(s.bucketName).Objects(ctx, &storage.Query{Prefix: prefix + "/"})
-	index, err := s.findIndexPage(prefix, objs)
+	objs, err := s.ops.GetObjects(ctx, &cs.Query{Prefix: prefix + "/"})
 	if err != nil {
-		return "", errs.E(op, err)
+		return "", errs.E(errs.IO, op, err)
 	}
 
-	return index, nil
-}
+	sort.Slice(objs, func(i, j int) bool {
+		return objs[i].Name < objs[j].Name
+	})
 
-func (s *storyAPI) findIndexPage(qID string, objs *storage.ObjectIterator) (string, error) {
-	const op errs.Op = "gcp.findIndexPage"
-
-	page := ""
-	for {
-		o, err := objs.Next()
-		if errors.Is(err, iterator.Done) {
-			if page == "" {
-				return "", errs.E(errs.InvalidRequest, op, fmt.Errorf("could not find html for id %v", qID))
-			}
-
-			// FIXME: is this correct?
-			return page, nil
-		}
-		if err != nil {
-			return "", errs.E(errs.IO, op, err)
-		}
-
-		if strings.HasSuffix(strings.ToLower(o.Name), "/index.html") {
-			return o.Name, nil
-		} else if strings.HasSuffix(strings.ToLower(o.Name), ".html") {
-			page = o.Name
+	var candidates []string
+	for _, obj := range objs {
+		if strings.HasSuffix(strings.ToLower(obj.Name), "/index.html") {
+			return obj.Name, nil
+		} else if strings.HasSuffix(strings.ToLower(obj.Name), ".html") {
+			candidates = append(candidates, obj.Name)
 		}
 	}
+
+	if len(candidates) == 0 {
+		return "", errs.E(errs.NotExist, op, fmt.Errorf("no index.html found in %v", prefix))
+	}
+
+	return candidates[0], nil
 }
 
-func (s *storyAPI) GetObject(ctx context.Context, path string) (*storage.ObjectAttrs, []byte, error) {
+func (s *storyAPI) GetObject(ctx context.Context, path string) (*service.ObjectWithData, error) {
 	const op errs.Op = "gcp.GetObject"
 
-	client, err := s.newClient(ctx)
+	obj, err := s.ops.GetObjectWithData(ctx, path)
 	if err != nil {
-		return nil, nil, errs.E(op, err)
-	}
-	defer client.Close()
+		if errors.Is(err, cs.ErrObjectNotExist) {
+			return nil, errs.E(errs.NotExist, op, fmt.Errorf("object %v does not exist", path))
+		}
 
-	obj := client.Bucket(s.bucketName).Object(path)
-	reader, err := obj.NewReader(ctx)
-	if err != nil {
-		return nil, nil, errs.E(errs.IO, op, err)
+		return nil, errs.E(errs.IO, op, err)
 	}
 
-	datab, err := io.ReadAll(reader)
-	if err != nil {
-		return nil, nil, errs.E(errs.IO, op, err)
-	}
-
-	attr, err := obj.Attrs(ctx)
-	if err != nil {
-		return nil, nil, errs.E(errs.IO, op, err)
-	}
-
-	return attr, datab, nil
+	return &service.ObjectWithData{
+		Object: &service.Object{
+			Name:   obj.Name,
+			Bucket: obj.Bucket,
+			Attrs: service.Attributes{
+				ContentType:     obj.Attrs.ContentType,
+				ContentEncoding: obj.Attrs.ContentEncoding,
+				Size:            obj.Attrs.Size,
+				SizeStr:         obj.Attrs.SizeStr,
+			},
+		},
+		Data: obj.Data,
+	}, nil
 }
 
-func (s *storyAPI) UploadFile(ctx context.Context, name string, file multipart.File) error {
-	const op errs.Op = "gcp.UploadFile"
-
-	client, err := s.newClient(ctx)
-	if err != nil {
-		return errs.E(op, err)
-	}
-	defer client.Close()
-
-	datab, err := io.ReadAll(file)
-	if err != nil {
-		return errs.E(errs.IO, op, err)
-	}
-
-	writer := client.Bucket(s.bucketName).Object(name).NewWriter(ctx)
-	_, err = writer.Write(datab)
-	if err != nil {
-		return errs.E(errs.IO, op, err)
-	}
-
-	if err = writer.Close(); err != nil {
-		return errs.E(errs.IO, op, err)
-	}
-
-	return nil
-}
-
-func (s *storyAPI) DeleteObjectsWithPrefix(ctx context.Context, prefix string) error {
+func (s *storyAPI) DeleteObjectsWithPrefix(ctx context.Context, prefix string) (int, error) {
 	const op errs.Op = "gcp.DeleteObjectsWithPrefix"
 
-	client, err := s.newClient(ctx)
+	n, err := s.ops.DeleteObjects(ctx, &cs.Query{Prefix: prefix})
 	if err != nil {
-		return errs.E(op, err)
-	}
-	defer client.Close()
-
-	bucket := client.Bucket(s.bucketName)
-	query := &storage.Query{Prefix: prefix}
-	it := bucket.Objects(ctx, query)
-
-	for {
-		attrs, err := it.Next()
-		if errors.Is(err, iterator.Done) {
-			break
-		}
-		if err != nil {
-			return errs.E(errs.IO, op, err)
-		}
-
-		obj := bucket.Object(attrs.Name)
-		if err := obj.Delete(ctx); err != nil {
-			return errs.E(errs.IO, op, err)
-		}
+		return 0, errs.E(errs.IO, op, err)
 	}
 
-	return nil
+	return n, nil
 }
 
 func (s *storyAPI) WriteFilesToBucket(ctx context.Context, storyID string, files []*service.UploadFile, cleanupOnFailure bool) error {
@@ -190,31 +117,7 @@ func (s *storyAPI) WriteFilesToBucket(ctx context.Context, storyID string, files
 func (s *storyAPI) WriteFileToBucket(ctx context.Context, gcsPath string, data []byte) error {
 	const op errs.Op = "gcp.WriteFileToBucket"
 
-	client, err := s.newClient(ctx)
-	if err != nil {
-		return errs.E(op, err)
-	}
-	defer client.Close()
-
-	// Create a new GCP bucket handle
-	bucket := client.Bucket(s.bucketName)
-
-	// Create a new GCP object handle
-	object := bucket.Object(gcsPath)
-
-	// Create a new GCP object writer
-	writer := object.NewWriter(ctx)
-
-	// Write the file contents to the GCP object
-	if _, err = writer.Write(data); err != nil {
-		return errs.E(errs.IO, op, err)
-	}
-
-	if err = writer.Close(); err != nil {
-		return errs.E(errs.IO, op, err)
-	}
-
-	_, err = object.Attrs(ctx)
+	err := s.ops.WriteObject(ctx, gcsPath, data, nil)
 	if err != nil {
 		return errs.E(errs.IO, op, err)
 	}
@@ -226,68 +129,24 @@ func (s *storyAPI) DeleteStoryFolder(ctx context.Context, storyID string) error 
 	const op errs.Op = "gcp.DeleteStoryFolder"
 
 	if len(storyID) == 0 {
-		return fmt.Errorf("try to delete files in GCP with invalid story id")
+		return errs.E(errs.InvalidRequest, op, fmt.Errorf("story id %s is empty", storyID))
 	}
 
-	client, err := s.newClient(ctx)
+	n, err := s.DeleteObjectsWithPrefix(ctx, storyID+"/")
 	if err != nil {
 		return errs.E(op, err)
 	}
-	defer client.Close()
 
-	// Get a handle to the bucket.
-	bucket := client.Bucket(s.bucketName)
-
-	fit := bucket.Objects(ctx, &storage.Query{
-		Prefix: storyID + "/",
-	})
-
-	var deletedFiles []string
-	for {
-		f, err := fit.Next()
-		if errors.Is(err, iterator.Done) {
-			break
-		}
-		if err != nil {
-			return errs.E(errs.IO, op, err)
-		}
-
-		err = bucket.Object(f.Name).Delete(ctx)
-		if err != nil {
-			return errs.E(errs.IO, op, err)
-		}
-
-		deletedFiles = append(deletedFiles, f.Name)
-	}
-
-	if len(deletedFiles) == 0 {
+	// FIXME: Is this right?
+	if n == 0 {
 		return errs.E(errs.NotExist, op, fmt.Errorf("no files found for story id %v", storyID))
 	}
 
 	return nil
 }
 
-func (s *storyAPI) newClient(ctx context.Context) (*storage.Client, error) {
-	const op errs.Op = "gcp.newClient"
-
-	var options []option.ClientOption
-
-	if s.endpoint != "" {
-		options = append(options, option.WithEndpoint(s.endpoint))
-	}
-
-	client, err := storage.NewClient(ctx, options...)
-	if err != nil {
-		return nil, errs.E(errs.IO, op, err)
-	}
-
-	return client, nil
-}
-
-func NewStoryAPI(endpoint, bucketName string, log zerolog.Logger) *storyAPI {
+func NewStoryAPI(ops cs.Operations, log zerolog.Logger) *storyAPI {
 	return &storyAPI{
-		log:        log,
-		bucketName: bucketName,
-		endpoint:   endpoint,
+		log: log,
 	}
 }

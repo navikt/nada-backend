@@ -13,17 +13,15 @@ import (
 	"testing"
 )
 
-type Tester interface {
-	Invocations() int
-	Reset()
-}
-
 type TestData struct {
 	ID string `json:"id,omitempty"`
 }
 
 type testSimpleHandler struct {
 	invocations int
+	Data        []byte
+	NewURL      string
+	Request     *http.Request
 }
 
 func (h *testSimpleHandler) Reset() {
@@ -64,64 +62,113 @@ func (h *testSimpleHandler) ParamFromContext(ctx context.Context, _ *http.Reques
 	}, nil
 }
 
+func (h *testSimpleHandler) ByteWriterEncoder(_ context.Context, _ *http.Request, _ any) (*ByteWriter, error) {
+	h.invocations++
+
+	return NewByteWriter("text/plain", "utf-8", h.Data), nil
+}
+
+func (h *testSimpleHandler) RedirectEncoder(_ context.Context, r *http.Request, _ any) (*Redirect, error) {
+	h.invocations++
+
+	return NewRedirect(h.NewURL, r), nil
+}
+
+func (h *testSimpleHandler) Receiver(_ context.Context, _ *http.Request, _ any) (*TestData, error) {
+	h.invocations++
+
+	return &TestData{
+		ID: "I was redirected",
+	}, nil
+}
+
 func TestHandlerFor(t *testing.T) {
 
-	simple := &testSimpleHandler{}
+	simple := &testSimpleHandler{
+		Data:   []byte("test"),
+		NewURL: "/receiver",
+	}
+
 	logger := zerolog.New(os.Stdout)
 
 	testCases := []struct {
 		name    string
 		desc    string
-		handler http.HandlerFunc
-		path    string
-		store   Tester
+		routes  map[string]http.HandlerFunc
 		request *http.Request
 		status  int
+		count   int
 	}{
 		{
-			name:    "handler-for-json-response",
-			desc:    "Invokes the handler and returns the response as JSON, expecting the result to be empty {}",
-			store:   simple,
-			path:    "/test",
-			handler: For(simple.Simple).Build(logger),
+			name: "handler-for-json-response",
+			desc: "Invokes the handler and returns the response as JSON, expecting the result to be empty {}",
+			routes: map[string]http.HandlerFunc{
+				"/test": For(simple.Simple).Build(logger),
+			},
 			request: httptest.NewRequest(http.MethodGet, "/test", nil),
 			status:  http.StatusOK,
+			count:   1,
 		},
 		{
-			name:    "handler-for-json-request-response",
-			desc:    "Invokes the handler, parses the request from JSON and returns the response as JSON, expect it to work",
-			store:   simple,
-			path:    "/test",
-			handler: For(simple.Simple).RequestFromJSON().Build(logger),
+			name: "handler-for-json-request-response",
+			desc: "Invokes the handler, parses the request from JSON and returns the response as JSON, expect it to work",
+			routes: map[string]http.HandlerFunc{
+				"/test": For(simple.Simple).RequestFromJSON().Build(logger),
+			},
 			request: httptest.NewRequest(http.MethodGet, "/test", strings.NewReader(`{"id": "test"}`)),
 			status:  http.StatusOK,
+			count:   1,
 		},
 		{
-			name:    "handler-for-json-request-response-no-input",
-			desc:    "Invokes the handler, parses the request from JSON and returns the response as JSON, expect it to work",
-			store:   simple,
-			path:    "/test",
-			handler: For(simple.SimpleNoInput).Build(logger),
+			name: "handler-for-json-request-response-no-input",
+			desc: "Invokes the handler, parses the request from JSON and returns the response as JSON, expect it to work",
+			routes: map[string]http.HandlerFunc{
+				"/test": For(simple.SimpleNoInput).Build(logger),
+			},
 			request: httptest.NewRequest(http.MethodGet, "/test", nil),
 			status:  http.StatusOK,
+			count:   1,
 		},
 		{
-			name:    "handler-for-json-request-response-no-output",
-			desc:    "Invokes the handler, parses the request from JSON and returns the response as JSON, expect it to work",
-			store:   simple,
-			path:    "/test",
-			handler: For(simple.SimpleNoOutput).Build(logger),
+			name: "handler-for-json-request-response-no-output",
+			desc: "Invokes the handler, parses the request from JSON and returns the response as JSON, expect it to work",
+			routes: map[string]http.HandlerFunc{
+				"/test": For(simple.SimpleNoOutput).Build(logger),
+			},
 			request: httptest.NewRequest(http.MethodGet, "/test", strings.NewReader(`{"id": "test"}`)),
 			status:  http.StatusNoContent,
+			count:   1,
 		},
 		{
-			name:    "handler-for-param-from-context",
-			desc:    "Invokes the handler and expects the parameter to be taken from the context",
-			store:   simple,
-			path:    "/test/{id}",
-			handler: For(simple.ParamFromContext).Build(logger),
+			name: "handler-for-param-from-context",
+			desc: "Invokes the handler and expects the parameter to be taken from the context",
+			routes: map[string]http.HandlerFunc{
+				"/test/{id}": For(simple.ParamFromContext).Build(logger),
+			},
 			request: httptest.NewRequest(http.MethodGet, "/test/123", nil),
 			status:  http.StatusOK,
+			count:   1,
+		},
+		{
+			name: "handler-for-bytewriter-encoder",
+			desc: "Invokes the handler and expects the custom encoder to be used",
+			routes: map[string]http.HandlerFunc{
+				"/whatever": For(simple.ByteWriterEncoder).Build(logger),
+			},
+			request: httptest.NewRequest(http.MethodGet, "/whatever", nil),
+			status:  http.StatusOK,
+			count:   1,
+		},
+		{
+			name: "handler-for-redirect-encoder",
+			desc: "Invokes the handler and expects the custom encoder to be used",
+			routes: map[string]http.HandlerFunc{
+				"/whatever": For(simple.RedirectEncoder).Build(logger),
+				"/receiver": For(simple.Receiver).Build(logger),
+			},
+			request: httptest.NewRequest(http.MethodGet, "/whatever", nil),
+			status:  http.StatusSeeOther,
+			count:   2,
 		},
 	}
 
@@ -130,13 +177,19 @@ func TestHandlerFor(t *testing.T) {
 			rr := httptest.NewRecorder()
 
 			r := chi.NewRouter()
-			r.Get(tc.path, tc.handler)
+			for path, handler := range tc.routes {
+				r.Get(path, handler)
+			}
 
 			r.ServeHTTP(rr, tc.request)
 
+			if rr.Code == http.StatusSeeOther {
+				r.ServeHTTP(rr, httptest.NewRequest(http.MethodGet, rr.Header().Get("Location"), nil))
+			}
+
 			assert.Equal(t, tc.status, rr.Code)
-			assert.Equal(t, 1, tc.store.Invocations())
-			defer tc.store.Reset()
+			assert.Equal(t, tc.count, simple.Invocations())
+			defer simple.Reset()
 
 			g := goldie.New(t)
 			g.Assert(t, tc.name, rr.Body.Bytes())

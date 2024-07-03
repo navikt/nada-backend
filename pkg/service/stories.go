@@ -1,9 +1,8 @@
 package service
 
 import (
-	"cloud.google.com/go/storage"
 	"context"
-	"mime/multipart"
+	validation "github.com/go-ozzo/ozzo-validation/v4"
 	"time"
 
 	"github.com/google/uuid"
@@ -25,9 +24,8 @@ type StoryAPI interface {
 	WriteFileToBucket(ctx context.Context, gcsPath string, data []byte) error
 	DeleteStoryFolder(ctx context.Context, storyID string) error
 	GetIndexHtmlPath(ctx context.Context, prefix string) (string, error)
-	GetObject(ctx context.Context, path string) (*storage.ObjectAttrs, []byte, error)
-	UploadFile(ctx context.Context, name string, file multipart.File) error
-	DeleteObjectsWithPrefix(ctx context.Context, prefix string) error
+	GetObject(ctx context.Context, path string) (*ObjectWithData, error)
+	DeleteObjectsWithPrefix(ctx context.Context, prefix string) (int, error)
 }
 
 type StoryService interface {
@@ -36,9 +34,9 @@ type StoryService interface {
 	CreateStoryWithTeamAndProductArea(ctx context.Context, creatorEmail string, newStory *NewStory) (*Story, error)
 	DeleteStory(ctx context.Context, user *User, id uuid.UUID) (*Story, error)
 	UpdateStory(ctx context.Context, user *User, id uuid.UUID, input UpdateStoryDto) (*Story, error)
-	GetObject(ctx context.Context, path string) (*storage.ObjectAttrs, []byte, error)
-	RecreateStoryFiles(ctx context.Context, id uuid.UUID, files []*UploadFile) error
-	AppendStoryFiles(ctx context.Context, id uuid.UUID, files []*UploadFile) error
+	GetObject(ctx context.Context, path string) (*ObjectWithData, error)
+	RecreateStoryFiles(ctx context.Context, id uuid.UUID, creatorEmail string, files []*UploadFile) error
+	AppendStoryFiles(ctx context.Context, id uuid.UUID, creatorEmail string, files []*UploadFile) error
 	GetIndexHtmlPath(ctx context.Context, prefix string) (string, error)
 }
 
@@ -95,6 +93,13 @@ type NewStory struct {
 	Group string `json:"group"`
 }
 
+func (s NewStory) Validate() error {
+	return validation.ValidateStruct(&s,
+		validation.Field(&s.Name, validation.Required),
+		validation.Field(&s.Group, validation.Required),
+	)
+}
+
 type UpdateStoryDto struct {
 	Name             string   `json:"name"`
 	Description      string   `json:"description"`
@@ -103,4 +108,22 @@ type UpdateStoryDto struct {
 	ProductAreaID    *string  `json:"productAreaID"`
 	TeamID           *string  `json:"teamID"`
 	Group            string   `json:"group"`
+}
+
+type Object struct {
+	Name   string
+	Bucket string
+	Attrs  Attributes
+}
+
+type Attributes struct {
+	ContentType     string
+	ContentEncoding string
+	Size            int64
+	SizeStr         string
+}
+
+type ObjectWithData struct {
+	*Object
+	Data []byte
 }

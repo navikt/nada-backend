@@ -1,21 +1,25 @@
 //go:build integration_test
 
-package e2etests
+package integration
 
 import (
-	"bytes"
-	"context"
-	"github.com/navikt/nada-backend/pkg/database/gensql"
+	"github.com/navikt/nada-backend/pkg/amplitude"
+	"github.com/navikt/nada-backend/pkg/database"
 	"github.com/navikt/nada-backend/pkg/service"
-	"io/ioutil"
-	"mime/multipart"
-	"net/http"
+	"github.com/navikt/nada-backend/pkg/service/core"
+	"github.com/navikt/nada-backend/pkg/service/core/api/gcp"
+	httpapi "github.com/navikt/nada-backend/pkg/service/core/api/http"
+	"github.com/navikt/nada-backend/pkg/service/core/handlers"
+	"github.com/navikt/nada-backend/pkg/service/core/routes"
+	"github.com/navikt/nada-backend/pkg/service/core/storage/postgres"
+	"github.com/navikt/nada-backend/pkg/tk"
+	"github.com/rs/zerolog"
+	"github.com/stretchr/testify/assert"
+	"os"
 	"testing"
+	"time"
 
-	"cloud.google.com/go/storage"
 	"github.com/google/uuid"
-	"golang.org/x/xerrors"
-	"google.golang.org/api/googleapi"
 )
 
 const (

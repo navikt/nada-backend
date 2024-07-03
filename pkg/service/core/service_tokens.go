@@ -13,6 +13,23 @@ type tokenService struct {
 	tokenStorage service.TokenStorage
 }
 
+func (s *tokenService) ValidateToken(ctx context.Context, token string) (bool, error) {
+	const op errs.Op = "tokenService.ValidateToken"
+
+	tokens, err := s.GetNadaTokens(ctx)
+	if err != nil {
+		return false, errs.E(op, err)
+	}
+
+	for _, t := range tokens {
+		if t == token {
+			return true, nil
+		}
+	}
+
+	return false, nil
+}
+
 func (s *tokenService) GetNadaTokens(ctx context.Context) (map[string]string, error) {
 	const op errs.Op = "tokenService.GetNadaTokens"
 

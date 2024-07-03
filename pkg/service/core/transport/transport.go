@@ -12,21 +12,15 @@ import (
 	"github.com/navikt/nada-backend/pkg/errs"
 	"github.com/rs/zerolog"
 	"net/http"
+	"strconv"
 )
 
 type StatusCoder interface {
 	StatusCode() int
 }
 
-type Validator interface {
-	Validate() error
-}
-
-// Empty provides a convenience struct for returning an empty response
-type Empty struct{}
-
-func (e *Empty) StatusCode() int {
-	return http.StatusNoContent
+type Encoder interface {
+	Encode(w http.ResponseWriter) error
 }
 
 // DecoderFunc is a function that decodes a request into a struct
@@ -100,26 +94,82 @@ func (h *Transport[In, Out]) Build(logger zerolog.Logger) http.HandlerFunc {
 			}
 		}
 
-		if v, ok := any(in).(Validator); ok {
-			err := v.Validate()
-			if err != nil {
-				errs.HTTPErrorResponse(w, logger, errs.E(errs.Validation, err))
-				return
-			}
-		}
-
 		out, err := h.targetFn(r.Context(), r, in)
 		if err != nil {
 			errs.HTTPErrorResponse(w, logger, err)
 			return
 		}
 
-		// We always encode the response as JSON, you can use Empty{} or build
-		// a custom reponse struct if needed
+		// If the output implements the Encoder interface, use it
+		if v, ok := any(out).(Encoder); ok {
+			err := v.Encode(w)
+			if err != nil {
+				errs.HTTPErrorResponse(w, logger, errs.E(errs.Internal, err))
+				return
+			}
+
+			return
+		}
+
+		// By default, we always encode the response as JSON, you can use
+		// the Encoder or StatusCoder interfaces to customize the response
 		err = h.encode(w, out)
 		if err != nil {
 			errs.HTTPErrorResponse(w, logger, errs.E(errs.Internal, err))
 			return
 		}
+	}
+}
+
+type Redirect struct {
+	newURL string
+	r      *http.Request
+}
+
+func (r *Redirect) Encode(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "")
+	http.Redirect(w, r.r, r.newURL, http.StatusSeeOther)
+	return nil
+}
+
+func NewRedirect(newURL string, r *http.Request) *Redirect {
+	return &Redirect{
+		newURL: newURL,
+		r:      r,
+	}
+}
+
+// Empty provides a convenience struct for returning an empty response
+type Empty struct{}
+
+func (e *Empty) StatusCode() int {
+	return http.StatusNoContent
+}
+
+// ByteWriter provides a convenience struct for returning a byte slice as a response
+type ByteWriter struct {
+	data            []byte
+	contentType     string
+	contentEncoding string
+}
+
+func (b *ByteWriter) Encode(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", b.contentType)
+	w.Header().Set("Content-Encoding", b.contentEncoding)
+	w.Header().Set("Content-Length", strconv.Itoa(len(b.data)))
+
+	_, err := w.Write(b.data)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func NewByteWriter(typ, encoding string, data []byte) *ByteWriter {
+	return &ByteWriter{
+		data:            data,
+		contentType:     typ,
+		contentEncoding: encoding,
 	}
 }
