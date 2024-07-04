@@ -7,6 +7,7 @@ import (
 	"github.com/navikt/nada-backend/pkg/database/gensql"
 	"github.com/navikt/nada-backend/pkg/errs"
 	"github.com/navikt/nada-backend/pkg/service"
+	"strings"
 )
 
 var _ service.NaisConsoleStorage = &naisConsoleStorage{}
@@ -67,6 +68,10 @@ func (s *naisConsoleStorage) UpdateAllTeamProjects(ctx context.Context, teams ma
 
 func (s *naisConsoleStorage) GetTeamProject(ctx context.Context, naisTeam string) (string, error) {
 	const op errs.Op = "naisConsoleStorage.GetTeamProject"
+
+	if strings.Contains(naisTeam, "@") {
+		naisTeam = strings.Split(naisTeam, "@")[0]
+	}
 
 	teamProjects, err := s.GetAllTeamProjects(ctx)
 	if err != nil {

@@ -3,6 +3,7 @@ package service
 import (
 	"context"
 	validation "github.com/go-ozzo/ozzo-validation/v4"
+	"io"
 	"time"
 
 	"github.com/google/uuid"
@@ -21,7 +22,7 @@ type StoryStorage interface {
 
 type StoryAPI interface {
 	WriteFilesToBucket(ctx context.Context, storyID string, files []*UploadFile, cleanupOnFailure bool) error
-	WriteFileToBucket(ctx context.Context, gcsPath string, data []byte) error
+	WriteFileToBucket(ctx context.Context, pathPrefix string, file *UploadFile) error
 	DeleteStoryFolder(ctx context.Context, storyID string) error
 	GetIndexHtmlPath(ctx context.Context, prefix string) (string, error)
 	GetObject(ctx context.Context, path string) (*ObjectWithData, error)
@@ -44,7 +45,7 @@ type UploadFile struct {
 	// path of the file uploaded
 	Path string `json:"path"`
 	// file data
-	Data []byte `json:"file"`
+	ReadCloser io.ReadCloser
 }
 
 // Story contains the metadata and content of data stories.

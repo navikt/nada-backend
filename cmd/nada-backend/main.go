@@ -117,7 +117,7 @@ func main() {
 		cfg,
 		zlog.With().Str("subsystem", "api_clients").Logger(),
 	)
-	services, err := core.NewServices(cfg, stores, apiClients)
+	services, err := core.NewServices(cfg, stores, apiClients, zlog.With().Str("subsystem", "services").Logger())
 	if err != nil {
 		zlog.Fatal().Err(err).Msg("setting up services")
 	}
@@ -193,6 +193,10 @@ func main() {
 	auth.Init(repo.GetDB())
 
 	router := chi.NewRouter()
+	router.NotFound(func(w http.ResponseWriter, r *http.Request) {
+		zlog.Warn().Str("method", r.Method).Str("path", r.URL.Path).Msg("not found")
+		w.WriteHeader(http.StatusNotFound)
+	})
 
 	routes.Add(router,
 		routes.NewInsightProductRoutes(routes.NewInsightProductEndpoints(zlog, h.InsightProductHandler), authenticatorMiddleware),

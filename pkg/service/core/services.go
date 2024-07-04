@@ -5,6 +5,7 @@ import (
 	"github.com/navikt/nada-backend/pkg/service"
 	"github.com/navikt/nada-backend/pkg/service/core/api"
 	"github.com/navikt/nada-backend/pkg/service/core/storage"
+	"github.com/rs/zerolog"
 )
 
 type Services struct {
@@ -30,6 +31,7 @@ func NewServices(
 	cfg config.Config,
 	stores *storage.Stores,
 	clients *api.Clients,
+	log zerolog.Logger,
 ) (*Services, error) {
 	// FIXME: not sure about this..
 	mbSa, mbSaEmail, err := cfg.Metabase.LoadFromCredentialsPath()
@@ -123,6 +125,7 @@ func NewServices(
 			stores.DataProductsStorage,
 			stores.InsightProductStorage,
 			stores.NaisConsoleStorage,
+			log,
 		),
 		NaisConsoleService: NewNaisConsoleService(
 			stores.NaisConsoleStorage,

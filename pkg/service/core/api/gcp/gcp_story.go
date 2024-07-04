@@ -8,6 +8,7 @@ import (
 	"github.com/navikt/nada-backend/pkg/errs"
 	"github.com/navikt/nada-backend/pkg/service"
 	"github.com/rs/zerolog"
+	"path"
 	"sort"
 	"strings"
 )
@@ -93,10 +94,9 @@ func (s *storyAPI) WriteFilesToBucket(ctx context.Context, storyID string, files
 	var err error
 
 	for _, file := range files {
-		gcsPath := storyID + "/" + file.Path
-		err = s.WriteFileToBucket(ctx, gcsPath, file.Data)
+		err = s.WriteFileToBucket(ctx, storyID, file)
 		if err != nil {
-			s.log.Error().Err(err).Msg("writing story file: " + gcsPath)
+			s.log.Error().Err(err).Msg("writing story file: " + path.Join(storyID, file.Path))
 			break
 		}
 	}
@@ -114,10 +114,10 @@ func (s *storyAPI) WriteFilesToBucket(ctx context.Context, storyID string, files
 	return nil
 }
 
-func (s *storyAPI) WriteFileToBucket(ctx context.Context, gcsPath string, data []byte) error {
+func (s *storyAPI) WriteFileToBucket(ctx context.Context, pathPrefix string, file *service.UploadFile) error {
 	const op errs.Op = "gcp.WriteFileToBucket"
 
-	err := s.ops.WriteObject(ctx, gcsPath, data, nil)
+	err := s.ops.WriteObject(ctx, path.Join(pathPrefix, file.Path), file.ReadCloser, nil)
 	if err != nil {
 		return errs.E(errs.IO, op, err)
 	}
@@ -148,5 +148,6 @@ func (s *storyAPI) DeleteStoryFolder(ctx context.Context, storyID string) error 
 func NewStoryAPI(ops cs.Operations, log zerolog.Logger) *storyAPI {
 	return &storyAPI{
 		log: log,
+		ops: ops,
 	}
 }

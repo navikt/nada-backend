@@ -21,13 +21,9 @@ func (s *tokenService) ValidateToken(ctx context.Context, token string) (bool, e
 		return false, errs.E(op, err)
 	}
 
-	for _, t := range tokens {
-		if t == token {
-			return true, nil
-		}
-	}
+	_, hasKey := tokens[token]
 
-	return false, nil
+	return hasKey, nil
 }
 
 func (s *tokenService) GetNadaTokens(ctx context.Context) (map[string]string, error) {

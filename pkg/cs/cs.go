@@ -16,7 +16,7 @@ var ErrBucketNotExist = errors.New("bucket does not exist")
 
 type Operations interface {
 	DeleteObjects(ctx context.Context, q *Query) (int, error)
-	WriteObject(ctx context.Context, name string, data []byte, attrs *Attributes) error
+	WriteObject(ctx context.Context, name string, data io.ReadCloser, attrs *Attributes) error
 	GetObjects(ctx context.Context, q *Query) ([]*Object, error)
 	GetObjectWithData(ctx context.Context, name string) (*ObjectWithData, error)
 }
@@ -83,7 +83,7 @@ func (c *Client) DeleteObjects(ctx context.Context, q *Query) (int, error) {
 	return n, nil
 }
 
-func (c *Client) WriteObject(ctx context.Context, name string, data []byte, attrs *Attributes) error {
+func (c *Client) WriteObject(ctx context.Context, name string, data io.ReadCloser, attrs *Attributes) error {
 	obj := c.client.Bucket(c.bucket).Object(name)
 
 	w := obj.NewWriter(ctx)
@@ -97,8 +97,19 @@ func (c *Client) WriteObject(ctx context.Context, name string, data []byte, attr
 		w.ContentEncoding = attrs.ContentEncoding
 	}
 
-	if _, err := w.Write(data); err != nil {
+	_, err := io.Copy(w, data)
+	if err != nil {
 		return fmt.Errorf("writing object: %w", err)
+	}
+
+	err = data.Close()
+	if err != nil {
+		return fmt.Errorf("closing data reader: %w", err)
+	}
+
+	err = w.Close()
+	if err != nil {
+		return fmt.Errorf("closing writer: %w", err)
 	}
 
 	return nil

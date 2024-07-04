@@ -7,6 +7,7 @@ import (
 	"github.com/navikt/nada-backend/pkg/auth"
 	"github.com/navikt/nada-backend/pkg/errs"
 	"github.com/navikt/nada-backend/pkg/service"
+	"github.com/rs/zerolog"
 	"strings"
 )
 
@@ -19,6 +20,7 @@ type userService struct {
 	dataProductStorage    service.DataProductsStorage
 	insightProductStorage service.InsightProductStorage
 	naisConsoleStorage    service.NaisConsoleStorage
+	log                   zerolog.Logger
 }
 
 func (s *userService) GetUserData(ctx context.Context, user *service.User) (*service.UserInfo, error) {
@@ -46,7 +48,7 @@ func (s *userService) GetUserData(ctx context.Context, user *service.User) (*ser
 	for _, grp := range user.GoogleGroups {
 		proj, err := s.naisConsoleStorage.GetTeamProject(ctx, auth.TrimNaisTeamPrefix(grp.Email))
 		if err != nil {
-			// FIXME: log the error message?
+			s.log.Error().Err(err).Msg("getting team project")
 			continue
 		}
 
@@ -133,6 +135,7 @@ func NewUserService(
 	dataProductStorage service.DataProductsStorage,
 	insightProductStorage service.InsightProductStorage,
 	naisConsoleStorage service.NaisConsoleStorage,
+	log zerolog.Logger,
 ) *userService {
 	return &userService{
 		accessStorage:         accessStorage,
@@ -141,5 +144,6 @@ func NewUserService(
 		dataProductStorage:    dataProductStorage,
 		insightProductStorage: insightProductStorage,
 		naisConsoleStorage:    naisConsoleStorage,
+		log:                   log,
 	}
 }

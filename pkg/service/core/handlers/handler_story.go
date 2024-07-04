@@ -9,10 +9,9 @@ import (
 	"github.com/navikt/nada-backend/pkg/auth"
 	"github.com/navikt/nada-backend/pkg/errs"
 	"github.com/navikt/nada-backend/pkg/service"
+	"github.com/navikt/nada-backend/pkg/service/core/parser"
 	"github.com/navikt/nada-backend/pkg/service/core/transport"
 	"github.com/rs/zerolog"
-	"io"
-	"mime"
 	"net/http"
 	"path/filepath"
 	"strings"
@@ -67,22 +66,44 @@ func (h *StoryHandler) UpdateStory(ctx context.Context, _ *http.Request, in serv
 	return story, nil
 }
 
-func (h *StoryHandler) CreateStory(ctx context.Context, r *http.Request, newStory *service.NewStory) (*service.Story, error) {
+func (h *StoryHandler) CreateStory(ctx context.Context, r *http.Request, _ any) (*service.Story, error) {
 	const op errs.Op = "StoryHandler.CreateStory"
 
-	err := newStory.Validate()
+	p, err := parser.MultipartFormFromRequest(r)
 	if err != nil {
 		return nil, errs.E(errs.InvalidRequest, op, err)
 	}
 
-	files, err := filesFromRequest(r)
+	err = p.Process([]string{"nada-backend-new-story"})
 	if err != nil {
-		return nil, err
+		return nil, errs.E(errs.InvalidRequest, op, err)
+	}
+
+	newStory := &service.NewStory{}
+
+	err = p.DeserializedObject("nada-backend-new-story", newStory)
+	if err != nil {
+		return nil, errs.E(errs.InvalidRequest, op, err)
+	}
+
+	err = newStory.Validate()
+	if err != nil {
+		return nil, errs.E(errs.InvalidRequest, op, err)
+	}
+
+	files := p.Files()
+
+	uploadFiles := make([]*service.UploadFile, len(files))
+	for i, file := range files {
+		uploadFiles[i] = &service.UploadFile{
+			Path:       file.Path,
+			ReadCloser: file.Reader,
+		}
 	}
 
 	user := auth.GetUser(ctx)
 
-	story, err := h.storyService.CreateStory(ctx, user.Email, newStory, files)
+	story, err := h.storyService.CreateStory(ctx, user.Email, newStory, uploadFiles)
 	if err != nil {
 		return nil, err
 	}
@@ -183,9 +204,24 @@ func (h *StoryHandler) RecreateStoryFiles(ctx context.Context, r *http.Request, 
 		return nil, errs.E(errs.InvalidRequest, op, errs.Parameter("id"), fmt.Errorf("parsing id: %w", err))
 	}
 
-	files, err := filesFromRequest(r)
+	p, err := parser.MultipartFormFromRequest(r)
 	if err != nil {
-		return nil, errs.E(errs.InvalidRequest, op, errs.Parameter("files"), err)
+		return nil, errs.E(errs.InvalidRequest, op, err)
+	}
+
+	err = p.Process(nil)
+	if err != nil {
+		return nil, errs.E(errs.InvalidRequest, op, err)
+	}
+
+	files := p.Files()
+
+	uploadedFiles := make([]*service.UploadFile, len(files))
+	for i, file := range files {
+		uploadedFiles[i] = &service.UploadFile{
+			Path:       file.Path,
+			ReadCloser: file.Reader,
+		}
 	}
 
 	raw := r.Context().Value(ContextKeyTeamEmail)
@@ -194,7 +230,7 @@ func (h *StoryHandler) RecreateStoryFiles(ctx context.Context, r *http.Request, 
 		return nil, errs.E(errs.Internal, op, fmt.Errorf("team not found in context"))
 	}
 
-	err = h.storyService.RecreateStoryFiles(ctx, id, teamEmail, files)
+	err = h.storyService.RecreateStoryFiles(ctx, id, teamEmail, uploadedFiles)
 	if err != nil {
 		return nil, errs.E(op, err)
 	}
@@ -210,9 +246,24 @@ func (h *StoryHandler) AppendStoryFiles(ctx context.Context, r *http.Request, _ 
 		return nil, errs.E(errs.InvalidRequest, op, errs.Parameter("id"), fmt.Errorf("parsing id: %w", err))
 	}
 
-	files, err := filesFromRequest(r)
+	p, err := parser.MultipartFormFromRequest(r)
 	if err != nil {
-		return nil, errs.E(errs.InvalidRequest, op, errs.Parameter("files"), err)
+		return nil, errs.E(errs.InvalidRequest, op, err)
+	}
+
+	err = p.Process(nil)
+	if err != nil {
+		return nil, errs.E(errs.InvalidRequest, op, err)
+	}
+
+	files := p.Files()
+
+	uploadedFiles := make([]*service.UploadFile, len(files))
+	for i, file := range files {
+		uploadedFiles[i] = &service.UploadFile{
+			Path:       file.Path,
+			ReadCloser: file.Reader,
+		}
 	}
 
 	raw := r.Context().Value(ContextKeyTeamEmail)
@@ -221,7 +272,7 @@ func (h *StoryHandler) AppendStoryFiles(ctx context.Context, r *http.Request, _ 
 		return nil, errs.E(errs.Internal, op, fmt.Errorf("team not found in context"))
 	}
 
-	err = h.storyService.AppendStoryFiles(ctx, id, teamEmail, files)
+	err = h.storyService.AppendStoryFiles(ctx, id, teamEmail, uploadedFiles)
 	if err != nil {
 		return nil, errs.E(op, err)
 	}
@@ -260,52 +311,6 @@ func (h *StoryHandler) NadaTokenMiddleware(next http.Handler) http.Handler {
 
 		next.ServeHTTP(w, r.WithContext(ctx))
 	})
-}
-
-// FIXME: move into a separate file, make it testable
-func filesFromRequest(r *http.Request) ([]*service.UploadFile, error) {
-	reader, err := r.MultipartReader()
-	if err != nil {
-		return nil, fmt.Errorf("creating multipart reader: %w", err)
-	}
-
-	var files []*service.UploadFile
-	for {
-		part, err := reader.NextPart()
-		if err == io.EOF {
-			break
-		}
-		if err != nil {
-			return nil, fmt.Errorf("reading next part: %w", err)
-		}
-
-		if part.FileName() == "" {
-			continue
-		}
-
-		data, err := io.ReadAll(part)
-		if err != nil {
-			return nil, fmt.Errorf("reading part data: %w", err)
-		}
-
-		fileFullPath := part.FileName()
-
-		// try to extract full path from content-disposition header
-		_, params, err := mime.ParseMediaType(part.Header.Get("Content-Disposition"))
-		if err == nil {
-			pathInCDHeader := params["name"]
-			if pathInCDHeader != "" {
-				fileFullPath = pathInCDHeader
-			}
-		}
-
-		files = append(files, &service.UploadFile{
-			Path: fileFullPath,
-			Data: data,
-		})
-	}
-
-	return files, nil
 }
 
 func NewStoryHandler(storyService service.StoryService, tokenService service.TokenService, log zerolog.Logger) *StoryHandler {

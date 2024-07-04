@@ -28,7 +28,7 @@ func NewStoryEndpoints(log zerolog.Logger, h *handlers.StoryHandler) *StoryEndpo
 		RecreateStoryFiles: transport.For(h.RecreateStoryFiles).Build(log),
 		AppendStoryFiles:   transport.For(h.AppendStoryFiles).Build(log),
 		GetStory:           transport.For(h.GetStory).Build(log),
-		CreateStory:        transport.For(h.CreateStory).RequestFromJSON().Build(log),
+		CreateStory:        transport.For(h.CreateStory).Build(log),
 		UpdateStory:        transport.For(h.UpdateStory).RequestFromJSON().Build(log),
 		DeleteStory:        transport.For(h.DeleteStory).Build(log),
 	}
@@ -42,7 +42,7 @@ func NewStoryRoutes(
 	return func(router chi.Router) {
 		// Endpoints used programmatically, which rely on the Nada team token,
 		// except for GetObject which returns the story itself
-		router.Route(`/{story|quarto}/`, func(r chi.Router) {
+		router.Route(`/{story|quarto}`, func(r chi.Router) {
 			r.Get("/{id}", endpoints.GetIndex)
 			r.Get("/{id}/*", endpoints.GetObject)
 			r.With(nadaToken).Post("/create", endpoints.CreateStoryForTeam)
