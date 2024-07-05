@@ -307,6 +307,7 @@ type TestRunner interface {
 	Get(path string, params ...string) TestRunnerStatus
 	Put(input any, path string, params ...string) TestRunnerStatus
 	Delete(path string, params ...string) TestRunnerStatus
+	Headers(headers map[string]string) TestRunner
 	Send(r *http.Request) TestRunnerStatus
 }
 
@@ -316,6 +317,7 @@ type TestRunnerStatus interface {
 }
 
 type TestRunnerEnder interface {
+	Body() string
 	Value(into any)
 	Expect(expect, into any, opts ...cmp.Option)
 }
@@ -324,6 +326,7 @@ type testRunner struct {
 	t *testing.T
 	s *httptest.Server
 
+	headers  map[string]string
 	response *http.Response
 }
 
@@ -379,6 +382,17 @@ func (r *testRunner) Value(into any) {
 	Unmarshal(r.t, r.response.Body, into)
 }
 
+func (r *testRunner) Body() string {
+	r.t.Helper()
+
+	data, err := io.ReadAll(r.response.Body)
+	if err != nil {
+		r.t.Fatalf("reading body: %s", err)
+	}
+
+	return string(data)
+}
+
 func (r *testRunner) parseQueryParams(params ...string) string {
 	r.t.Helper()
 
@@ -415,11 +429,19 @@ func (r *testRunner) Send(req *http.Request) TestRunnerStatus {
 	return r
 }
 
+func (r *testRunner) Headers(headers map[string]string) TestRunner {
+	r.t.Helper()
+
+	r.headers = headers
+
+	return r
+}
+
 func (r *testRunner) Get(path string, params ...string) TestRunnerStatus {
 	r.t.Helper()
 
 	url := r.buildURL(path, params...)
-	r.response = SendRequest(r.t, http.MethodGet, url, nil)
+	r.response = SendRequest(r.t, http.MethodGet, url, nil, r.headers)
 
 	return r
 }
@@ -428,7 +450,7 @@ func (r *testRunner) Put(input any, path string, params ...string) TestRunnerSta
 	r.t.Helper()
 
 	url := r.buildURL(path, params...)
-	r.response = SendRequest(r.t, http.MethodPut, url, bytes.NewReader(Marshal(r.t, input)))
+	r.response = SendRequest(r.t, http.MethodPut, url, bytes.NewReader(Marshal(r.t, input)), r.headers)
 
 	return r
 }
@@ -437,7 +459,7 @@ func (r *testRunner) Delete(path string, params ...string) TestRunnerStatus {
 	r.t.Helper()
 
 	url := r.buildURL(path, params...)
-	r.response = SendRequest(r.t, http.MethodDelete, url, nil)
+	r.response = SendRequest(r.t, http.MethodDelete, url, nil, r.headers)
 
 	return r
 }
@@ -446,24 +468,29 @@ func (r *testRunner) Post(input any, path string, params ...string) TestRunnerSt
 	r.t.Helper()
 
 	url := r.buildURL(path, params...)
-	r.response = SendRequest(r.t, http.MethodPost, url, bytes.NewReader(Marshal(r.t, input)))
+	r.response = SendRequest(r.t, http.MethodPost, url, bytes.NewReader(Marshal(r.t, input)), r.headers)
 
 	return r
 }
 
 func NewTester(t *testing.T, s *httptest.Server) *testRunner {
 	return &testRunner{
-		t: t,
-		s: s,
+		t:       t,
+		s:       s,
+		headers: map[string]string{},
 	}
 }
 
-func SendRequest(t *testing.T, method, url string, body io.Reader) *http.Response {
+func SendRequest(t *testing.T, method, url string, body io.Reader, headers map[string]string) *http.Response {
 	t.Helper()
 
 	req, err := http.NewRequest(method, url, body)
 	if err != nil {
 		t.Fatalf("creating request: %s", err)
+	}
+
+	for k, v := range headers {
+		req.Header.Set(k, v)
 	}
 
 	resp, err := http.DefaultClient.Do(req)
@@ -496,7 +523,7 @@ func TestRouter(log zerolog.Logger) chi.Router {
 	return r
 }
 
-func CreateMultipartFormRequest(t *testing.T, method, path string, files map[string]string, objects map[string]string) *http.Request {
+func CreateMultipartFormRequest(t *testing.T, method, path string, files map[string]string, objects map[string]string, headers map[string]string) *http.Request {
 	var b bytes.Buffer
 	writer := multipart.NewWriter(&b)
 
@@ -519,6 +546,10 @@ func CreateMultipartFormRequest(t *testing.T, method, path string, files map[str
 	req, err := http.NewRequest(method, path, &b)
 	assert.NoError(t, err)
 	req.Header.Set("Content-Type", writer.FormDataContentType())
+
+	for k, v := range headers {
+		req.Header.Set(k, v)
+	}
 
 	return req
 }

@@ -3,7 +3,6 @@ package bq_test
 import (
 	"cloud.google.com/go/iam/apiv1/iampb"
 	"context"
-	"fmt"
 	validation "github.com/go-ozzo/ozzo-validation/v4"
 	"github.com/goccy/bigquery-emulator/server"
 	"github.com/goccy/bigquery-emulator/types"
@@ -479,7 +478,6 @@ func TestDatasetNameWithRandomPostfix(t *testing.T) {
 
 			got := bq.DatasetNameWithRandomPostfix(tc.dataset)
 			assert.Contains(t, got, tc.expected)
-			fmt.Println(got)
 		})
 	}
 }

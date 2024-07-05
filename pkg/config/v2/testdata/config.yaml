@@ -77,6 +77,9 @@ nais_console:
     api_url: http://localhost:8080/api
 api:
     auth_token: fake_token
+email_suffix: '@nav.no'
+nais_cluster_name: dev-gcp
+keywords_admin_group: nada@nav.no
 all_users_group: group:all-users@nav.no
 login_page: http://localhost:8080/
 amplitude_api_key: fake_key

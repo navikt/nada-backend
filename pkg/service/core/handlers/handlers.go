@@ -30,7 +30,7 @@ func NewHandlers(
 	log zerolog.Logger,
 ) *Handlers {
 	return &Handlers{
-		StoryHandler:          NewStoryHandler(s.StoryService, s.TokenService, log),
+		StoryHandler:          NewStoryHandler(cfg.EmailSuffix, s.StoryService, s.TokenService, log),
 		TokenHandler:          NewTokenHandler(s.TokenService, log),
 		DataProductsHandler:   NewDataProductsHandler(s.DataProductService),
 		MetabaseHandler:       NewMetabaseHandler(s.MetaBaseService),

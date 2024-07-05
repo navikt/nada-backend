@@ -3,7 +3,6 @@ package emulator
 import (
 	"cloud.google.com/go/iam/apiv1/iampb"
 	"encoding/json"
-	"fmt"
 	"github.com/go-chi/chi"
 	"github.com/goccy/bigquery-emulator/server"
 	"github.com/goccy/bigquery-emulator/types"
@@ -71,7 +70,7 @@ func (e *Emulator) EnableMock(debugRequest bool, log zerolog.Logger, mocks ...*E
 					log.Error().Err(err).Msg("Failed to dump request")
 				}
 
-				fmt.Println(string(request))
+				log.Info().Msgf("request: \n%s", string(request))
 			}
 
 			next.ServeHTTP(w, r)
@@ -91,7 +90,8 @@ func (e *Emulator) EnableMock(debugRequest bool, log zerolog.Logger, mocks ...*E
 			if err != nil {
 				log.Error().Err(err).Msg("Failed to dump request")
 			}
-			fmt.Println(string(request))
+
+			log.Info().Msgf("request: \n%s", string(request))
 		}
 
 		handler.ServeHTTP(w, r)

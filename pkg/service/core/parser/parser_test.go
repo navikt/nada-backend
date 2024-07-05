@@ -164,3 +164,80 @@ func TestMultipartForm_DeserializedObject(t *testing.T) {
 		})
 	}
 }
+
+func requestWithHeaders(headers map[string]string) *http.Request {
+	req := httptest.NewRequest("GET", "/test", nil)
+	for k, v := range headers {
+		req.Header.Set(k, v)
+	}
+
+	return req
+}
+
+func TestBearerTokenFromRequest(t *testing.T) {
+	testCases := []struct {
+		name      string
+		header    string
+		headers   map[string]string
+		expect    string
+		expectErr bool
+	}{
+		{
+			name:   "bearer token",
+			header: parser.HeaderAuthorization,
+			headers: map[string]string{
+				parser.HeaderAuthorization: "Bearer mysecrettoken",
+			},
+			expect: "mysecrettoken",
+		},
+		{
+			name:      "no header",
+			header:    "",
+			headers:   map[string]string{},
+			expect:    "missing '' header",
+			expectErr: true,
+		},
+		{
+			name:   "wrong header",
+			header: "X-Auth",
+			headers: map[string]string{
+				parser.HeaderAuthorization: "Bearer mysenretoken",
+			},
+			expect:    "missing 'X-Auth' header",
+			expectErr: true,
+		},
+		{
+			name:   "invalid token format",
+			header: parser.HeaderAuthorization,
+			headers: map[string]string{
+				parser.HeaderAuthorization: "Bearer",
+			},
+			expect:    "invalid token format, expected 'Bearer <token>'",
+			expectErr: true,
+		},
+		{
+			name:   "empty token",
+			header: parser.HeaderAuthorization,
+			headers: map[string]string{
+				parser.HeaderAuthorization: "Bearer ",
+			},
+			expect:    "empty bearer token",
+			expectErr: true,
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			req := requestWithHeaders(tc.headers)
+			token, err := parser.BearerTokenFromRequest(tc.header, req)
+			if tc.expectErr {
+				assert.Error(t, err)
+				assert.Equal(t, tc.expect, err.Error())
+				assert.Empty(t, token)
+			} else {
+				assert.NoError(t, err)
+				assert.Equal(t, tc.expect, token)
+			}
+		})
+	}
+}

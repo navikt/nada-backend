@@ -29,6 +29,7 @@ type StoryHandler struct {
 	tokenService    service.TokenService
 	amplitudeClient amplitude.Amplitude
 	log             zerolog.Logger
+	emailSuffix     string
 }
 
 func (h *StoryHandler) DeleteStory(ctx context.Context, _ *http.Request, _ any) (*service.Story, error) {
@@ -284,40 +285,59 @@ func (h *StoryHandler) AppendStoryFiles(ctx context.Context, r *http.Request, _ 
 func (h *StoryHandler) NadaTokenMiddleware(next http.Handler) http.Handler {
 	const op errs.Op = "StoryHandler.NadaTokenMiddleware"
 
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		token := r.Header.Get("Authorization")
-		splitToken := strings.Split(token, "Bearer ")
-		token = splitToken[1]
-		if len(token) == 0 {
-			errs.HTTPErrorResponse(w, h.log, errs.E(errs.Unauthenticated, op, errs.Parameter("nada_token"), fmt.Errorf("no token provided")))
+	type Data struct {
+		team  string
+		token string
+		email string
+	}
+
+	fn := func(r *http.Request) (*Data, error) {
+		token, err := parser.BearerTokenFromRequest(parser.HeaderAuthorization, r)
+		if err != nil {
+			return nil, errs.E(errs.Unauthenticated, op, errs.Parameter("nada_token"), err)
 		}
 
 		valid, err := h.tokenService.ValidateToken(r.Context(), token)
 		if err != nil {
-			errs.HTTPErrorResponse(w, h.log, errs.E(errs.Internal, op, err))
+			return nil, errs.E(errs.Internal, op, err)
 		}
 
 		if !valid {
-			errs.HTTPErrorResponse(w, h.log, errs.E(errs.Unauthenticated, op, errs.Parameter("nada_token"), fmt.Errorf("invalid nada token")))
+			return nil, errs.E(errs.Unauthorized, op, errs.Parameter("nada_token"), fmt.Errorf("token not valid"))
 		}
 
 		team, err := h.tokenService.GetTeamFromNadaToken(r.Context(), token)
 		if err != nil {
-			errs.HTTPErrorResponse(w, h.log, errs.E(errs.Unauthorized, op, err))
+			return nil, errs.E(errs.Unauthorized, op, err)
 		}
 
-		ctx := context.WithValue(r.Context(), ContextKeyTeam, team)
-		ctx = context.WithValue(ctx, ContextKeyTeamEmail, team+"@nav.no")
-		ctx = context.WithValue(ctx, ContextKeyNadaToken, token)
+		return &Data{
+			team:  team,
+			token: token,
+			email: fmt.Sprintf("%s%s", team, h.emailSuffix),
+		}, nil
+	}
+
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		d, err := fn(r)
+		if err != nil {
+			errs.HTTPErrorResponse(w, h.log, err)
+			return
+		}
+
+		ctx := context.WithValue(r.Context(), ContextKeyTeam, d.team)
+		ctx = context.WithValue(ctx, ContextKeyTeamEmail, d.email)
+		ctx = context.WithValue(ctx, ContextKeyNadaToken, d.token)
 
 		next.ServeHTTP(w, r.WithContext(ctx))
 	})
 }
 
-func NewStoryHandler(storyService service.StoryService, tokenService service.TokenService, log zerolog.Logger) *StoryHandler {
+func NewStoryHandler(emailSuffix string, storyService service.StoryService, tokenService service.TokenService, log zerolog.Logger) *StoryHandler {
 	return &StoryHandler{
 		storyService: storyService,
 		tokenService: tokenService,
 		log:          log,
+		emailSuffix:  emailSuffix,
 	}
 }

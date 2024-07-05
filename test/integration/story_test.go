@@ -3,6 +3,8 @@
 package integration
 
 import (
+	"context"
+	"fmt"
 	"github.com/google/go-cmp/cmp/cmpopts"
 	"github.com/google/uuid"
 	"github.com/navikt/nada-backend/pkg/cs"
@@ -47,6 +49,7 @@ func TestStory(t *testing.T) {
 	team1 := uuid.MustParse("00000000-0000-1111-0000-000000000000")
 	team2 := uuid.MustParse("00000000-0000-2222-0000-000000000000")
 	team3 := uuid.MustParse("00000000-0000-3333-0000-000000000000")
+	nada := uuid.MustParse("00000000-0000-4444-0000-000000000000")
 
 	pas := []*tk.ProductArea{
 		{
@@ -79,6 +82,13 @@ func TestStory(t *testing.T) {
 			NaisTeams:     []string{"team3"},
 			ProductAreaID: pa2,
 		},
+		{
+			ID:            nada,
+			Name:          "nada",
+			Description:   "Nada team",
+			NaisTeams:     []string{"nada"},
+			ProductAreaID: pa1,
+		},
 	}
 
 	staticFetcher := tk.NewStatic("http://example.com", pas, teams)
@@ -101,13 +111,21 @@ func TestStory(t *testing.T) {
 		AllGoogleGroups: nil,
 	}
 
+	naisConsoleStorage := postgres.NewNaisConsoleStorage(repo)
+	err = naisConsoleStorage.UpdateAllTeamProjects(context.Background(), map[string]string{
+		"nada": "gcp-project-team1",
+	})
+	assert.NoError(t, err)
+
+	tokenStorage := postgres.NewTokenStorage(repo)
+
 	{
 		teamKatalogenAPI := httpapi.NewTeamKatalogenAPI(staticFetcher)
 		cs := cs.NewFromClient("nada-backend-stories", e.Client())
 		storyAPI := gcp.NewStoryAPI(cs, log)
-		tokenService := core.NewTokenService(postgres.NewTokenStorage(repo))
+		tokenService := core.NewTokenService(tokenStorage)
 		storyService := core.NewStoryService(postgres.NewStoryStorage(repo), teamKatalogenAPI, storyAPI)
-		h := handlers.NewStoryHandler(storyService, tokenService, log)
+		h := handlers.NewStoryHandler("@nav.no", storyService, tokenService, log)
 		e := routes.NewStoryEndpoints(log, h)
 		f := routes.NewStoryRoutes(e, injectUser(user), h.NadaTokenMiddleware)
 		f(router)
@@ -123,7 +141,7 @@ func TestStory(t *testing.T) {
 			Description:   strToStrPtr("This is my story, and it is pretty bad"),
 			Keywords:      []string{"story", "bad"},
 			ProductAreaID: &pa1,
-			TeamID:        &team1,
+			TeamID:        &nada,
 			Group:         "nada@nav.no",
 		}
 
@@ -133,7 +151,7 @@ func TestStory(t *testing.T) {
 			Description:      "This is my story, and it is pretty bad",
 			Keywords:         []string{"story", "bad"},
 			TeamkatalogenURL: nil,
-			TeamID:           &team1,
+			TeamID:           &nada,
 			Group:            "nada@nav.no",
 			// FIXME: can't set these from CreateStory, should they be?
 			// TeamName:         strToStrPtr("Team1"),
@@ -147,10 +165,164 @@ func TestStory(t *testing.T) {
 			"nada-backend-new-story": string(Marshal(t, newStory)),
 		}
 
-		req := CreateMultipartFormRequest(t, http.MethodPost, server.URL+"/api/stories/new", files, objects)
+		req := CreateMultipartFormRequest(t, http.MethodPost, server.URL+"/api/stories/new", files, objects, nil)
 
 		NewTester(t, server).Send(req).
 			HasStatusCode(http.StatusOK).
 			Expect(expect, story, cmpopts.IgnoreFields(service.Story{}, "ID", "Created", "LastModified"))
+	})
+
+	t.Run("Update story with oauth", func(t *testing.T) {
+		update := &service.UpdateStoryDto{
+			Name:             story.Name,
+			Description:      "This is a better description",
+			Keywords:         story.Keywords,
+			TeamkatalogenURL: story.TeamkatalogenURL,
+			ProductAreaID:    strToStrPtr(pa1.String()),
+			TeamID:           strToStrPtr(nada.String()),
+			Group:            story.Group,
+		}
+
+		story.Description = update.Description
+
+		got := &service.Story{}
+
+		NewTester(t, server).
+			Put(update, "/api/stories/"+story.ID.String()).
+			HasStatusCode(http.StatusOK).
+			Expect(story, got, cmpopts.IgnoreFields(service.Story{}, "LastModified"))
+
+		story = got
+	})
+
+	t.Run("Get story with oauth", func(t *testing.T) {
+		got := &service.Story{}
+
+		NewTester(t, server).
+			Get("/api/stories/"+story.ID.String()).
+			HasStatusCode(http.StatusOK).
+			Expect(story, got)
+	})
+
+	t.Run("Get index", func(t *testing.T) {
+		data := NewTester(t, server).
+			Get("/story/" + story.ID.String()).
+			HasStatusCode(http.StatusOK).
+			Body()
+
+		assert.Equal(t, defaultHtml, data)
+	})
+
+	t.Run("Delete story with oauth", func(t *testing.T) {
+		NewTester(t, server).
+			Delete("/api/stories/" + story.ID.String()).
+			HasStatusCode(http.StatusOK)
+	})
+
+	t.Run("Get story with oauth after delete", func(t *testing.T) {
+		NewTester(t, server).
+			Get("/api/stories/" + story.ID.String()).
+			HasStatusCode(http.StatusNotFound)
+	})
+
+	token, err := tokenStorage.GetNadaToken(context.Background(), "nada")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	t.Run("Create story without token", func(t *testing.T) {
+		NewTester(t, server).
+			Post(&service.NewStory{}, "/story/create").
+			HasStatusCode(http.StatusUnauthorized)
+	})
+
+	t.Run("Create story for team with token", func(t *testing.T) {
+		newStory := &service.NewStory{
+			Name:          "My new story",
+			Description:   strToStrPtr("This is my story, and it is pretty bad"),
+			Keywords:      []string{"story", "bad"},
+			ProductAreaID: &pa1,
+			TeamID:        &nada,
+			Group:         "nada@nav.no",
+		}
+
+		expect := &service.Story{
+			Name:             "My new story",
+			Creator:          "nada@nav.no",
+			Description:      "This is my story, and it is pretty bad",
+			Keywords:         []string{"story", "bad"},
+			TeamkatalogenURL: strToStrPtr("http://example.com/team/00000000-0000-4444-0000-000000000000"),
+			TeamID:           &nada,
+			Group:            "nada@nav.no",
+			// FIXME: can't set these from CreateStory, should they be?
+			// TeamName:         strToStrPtr("Team1"),
+			// ProductAreaName:  "Product area 1",
+		}
+
+		NewTester(t, server).
+			Headers(map[string]string{"Authorization": fmt.Sprintf("Bearer %s", token)}).
+			Post(newStory, "/story/create").
+			HasStatusCode(http.StatusOK).
+			Expect(expect, story, cmpopts.IgnoreFields(service.Story{}, "ID", "Created", "LastModified"))
+	})
+
+	t.Run("Recreate story files with token", func(t *testing.T) {
+		files := map[string]string{
+			"index.html":                   defaultHtml,
+			"subpage/index.html":           "<html><h1>Subpage</h1></html>",
+			"subsubsubpage/something.html": "<html><h1>Subsubsubpage</h1></html>",
+		}
+
+		req := CreateMultipartFormRequest(
+			t,
+			http.MethodPut,
+			server.URL+"/story/update/"+story.ID.String(),
+			files,
+			nil,
+			map[string]string{
+				"Authorization": fmt.Sprintf("Bearer %s", token),
+			},
+		)
+
+		NewTester(t, server).
+			Send(req).
+			HasStatusCode(http.StatusNoContent)
+
+		for path, content := range files {
+			got := NewTester(t, server).
+				Get("/story/" + story.ID.String() + "/" + path).
+				HasStatusCode(http.StatusOK).
+				Body()
+
+			assert.Equal(t, content, got)
+		}
+	})
+
+	t.Run("Append story files with token", func(t *testing.T) {
+		files := map[string]string{
+			"newpage/test.html": "<html><h1>New page</h1></html>",
+		}
+
+		req := CreateMultipartFormRequest(
+			t,
+			http.MethodPatch,
+			server.URL+"/story/update/"+story.ID.String(),
+			files,
+			nil,
+			map[string]string{
+				"Authorization": fmt.Sprintf("Bearer %s", token),
+			},
+		)
+
+		NewTester(t, server).
+			Send(req).
+			HasStatusCode(http.StatusNoContent)
+
+		got := NewTester(t, server).
+			Get("/story/" + story.ID.String() + "/newpage/test.html").
+			HasStatusCode(http.StatusOK).
+			Body()
+
+		assert.Equal(t, "<html><h1>New page</h1></html>", got)
 	})
 }

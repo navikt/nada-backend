@@ -115,13 +115,16 @@ func newFakeConfig() config.Config {
 		API: config.API{
 			AuthToken: "fake_token",
 		},
-		AllUsersGroup:    "group:all-users@nav.no",
-		LoginPage:        "http://localhost:8080/",
-		AmplitudeAPIKey:  "fake_key",
-		LogLevel:         "info",
-		MockAuth:         false,
-		SkipMetadataSync: false,
-		Debug:            false,
+		EmailSuffix:        "@nav.no",
+		NaisClusterName:    "dev-gcp",
+		KeywordsAdminGroup: "nada@nav.no",
+		AllUsersGroup:      "group:all-users@nav.no",
+		LoginPage:          "http://localhost:8080/",
+		AmplitudeAPIKey:    "fake_key",
+		LogLevel:           "info",
+		MockAuth:           false,
+		SkipMetadataSync:   false,
+		Debug:              false,
 	}
 }
 

@@ -13,6 +13,7 @@ import (
 )
 
 const (
+	HeaderAuthorization          = "Authorization"
 	HeaderContentType            = "Content-Type"
 	ContentTypeMultipartFormData = "multipart/form-data"
 )
@@ -176,4 +177,26 @@ func MultipartFormFromRequest(r *http.Request) (*MultipartForm, error) {
 		r:       r,
 		objects: map[string]*Object{},
 	}, nil
+}
+
+func BearerTokenFromRequest(header string, r *http.Request) (string, error) {
+	input := r.Header.Get(header)
+	if len(input) == 0 {
+		return "", fmt.Errorf("missing '%s' header", header)
+	}
+
+	parts := strings.SplitN(input, " ", 2)
+	if len(parts) != 2 {
+		return "", fmt.Errorf("invalid token format, expected 'Bearer <token>'")
+	}
+
+	if strings.TrimSpace(strings.ToLower(parts[0])) != "bearer" {
+		return "", fmt.Errorf("invalid token format, expected 'Bearer <token>'")
+	}
+
+	if strings.TrimSpace(parts[1]) == "" {
+		return "", fmt.Errorf("empty bearer token")
+	}
+
+	return parts[1], nil
 }

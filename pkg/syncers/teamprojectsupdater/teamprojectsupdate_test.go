@@ -56,7 +56,6 @@ func TestTeamProjectsUpdater_Run(t *testing.T) {
 
 			assert.GreaterOrEqual(t, tc.expectAtLeast, m.Invocation)
 			assert.Contains(t, buf.String(), tc.contains)
-			fmt.Println("logs: ", buf.String())
 		})
 	}
 }

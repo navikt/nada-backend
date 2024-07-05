@@ -47,6 +47,7 @@ type Config struct {
 	NaisConsole               NaisConsole               `yaml:"nais_console"`
 	API                       API                       `yaml:"api"`
 
+	EmailSuffix        string `yaml:"email_suffix"`
 	NaisClusterName    string `yaml:"nais_cluster_name"`
 	KeywordsAdminGroup string `yaml:"keywords_admin_group"`
 	AllUsersGroup      string `yaml:"all_users_group"`
@@ -80,6 +81,7 @@ func (c Config) Validate() error {
 		validation.Field(&c.BigQuery, validation.Required),
 		validation.Field(&c.KeywordsAdminGroup, validation.Required),
 		validation.Field(&c.NaisClusterName, validation.Required),
+		validation.Field(&c.EmailSuffix, validation.Required),
 	)
 }
 

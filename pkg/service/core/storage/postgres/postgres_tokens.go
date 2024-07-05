@@ -21,7 +21,7 @@ func (s *tokenStorage) GetNadaToken(ctx context.Context, team string) (string, e
 	token, err := s.db.Querier.GetNadaToken(ctx, team)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
-			return "", errs.E(errs.NotExist, op, err)
+			return "", errs.E(errs.NotExist, op, errs.Parameter("team"), errs.UserName(team), err)
 		}
 
 		return "", errs.E(errs.Database, op, err)
