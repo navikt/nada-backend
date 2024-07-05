@@ -18,17 +18,53 @@ type storyStorage struct {
 	db *database.Repo
 }
 
+type StoryWithTeamkatalogenView gensql.StoryWithTeamkatalogenView
+
+func (s StoryWithTeamkatalogenView) To() (*service.Story, error) {
+	return &service.Story{
+		ID:               s.ID,
+		Name:             s.Name,
+		Creator:          s.Creator,
+		Created:          s.Created,
+		LastModified:     &s.LastModified,
+		Keywords:         s.Keywords,
+		TeamID:           nullStringToUUIDPtr(s.TeamID),
+		TeamkatalogenURL: nullStringToPtr(s.TeamkatalogenUrl),
+		Description:      s.Description,
+		Group:            s.Group,
+		TeamName:         nullStringToPtr(s.TeamName),
+		ProductAreaName:  nullStringToString(s.PaName),
+	}, nil
+}
+
+type StoryWithTeamkatalogenViewList []gensql.StoryWithTeamkatalogenView
+
+func (s StoryWithTeamkatalogenViewList) To() ([]*service.Story, error) {
+	stories := make([]*service.Story, len(s))
+
+	for i, r := range s {
+		st, err := From(StoryWithTeamkatalogenView(r))
+		if err != nil {
+			return nil, err
+		}
+
+		stories[i] = st
+	}
+
+	return stories, nil
+}
+
 func (s *storyStorage) GetStoriesByTeamID(ctx context.Context, teamIDs []uuid.UUID) ([]*service.Story, error) {
 	const op errs.Op = "storyStorage.GetStoriesByTeamID"
 
-	sqlStories, err := s.db.Querier.GetStoriesByProductArea(ctx, uuidListToStringList(teamIDs))
+	raw, err := s.db.Querier.GetStoriesByProductArea(ctx, uuidListToStringList(teamIDs))
 	if err != nil {
 		return nil, errs.E(errs.Database, op, err)
 	}
 
-	stories := make([]*service.Story, len(sqlStories))
-	for idx, s := range sqlStories {
-		stories[idx] = storyFromSQL(&s)
+	stories, err := From(StoryWithTeamkatalogenViewList(raw))
+	if err != nil {
+		return nil, errs.E(errs.Internal, op, err)
 	}
 
 	return stories, nil
@@ -91,11 +127,11 @@ func (s *storyStorage) DeleteStory(ctx context.Context, id uuid.UUID) error {
 func (s *storyStorage) CreateStory(ctx context.Context, creator string, newStory *service.NewStory) (*service.Story, error) {
 	const op errs.Op = "storyStorage.CreateStory"
 
-	var storySQL gensql.Story
+	var story gensql.Story
 	var err error
 
 	if newStory.ID == nil {
-		storySQL, err = s.db.Querier.CreateStory(ctx, gensql.CreateStoryParams{
+		story, err = s.db.Querier.CreateStory(ctx, gensql.CreateStoryParams{
 			Name:             newStory.Name,
 			Creator:          creator,
 			Description:      ptrToString(newStory.Description),
@@ -105,7 +141,7 @@ func (s *storyStorage) CreateStory(ctx context.Context, creator string, newStory
 			OwnerGroup:       newStory.Group,
 		})
 	} else {
-		storySQL, err = s.db.Querier.CreateStoryWithID(ctx, gensql.CreateStoryWithIDParams{
+		story, err = s.db.Querier.CreateStoryWithID(ctx, gensql.CreateStoryWithIDParams{
 			ID:               *newStory.ID,
 			Name:             newStory.Name,
 			Creator:          creator,
@@ -120,7 +156,7 @@ func (s *storyStorage) CreateStory(ctx context.Context, creator string, newStory
 		return nil, errs.E(errs.Database, op, err)
 	}
 
-	st, err := s.GetStory(ctx, storySQL.ID)
+	st, err := s.GetStory(ctx, story.ID)
 	if err != nil {
 		return nil, errs.E(op, err)
 	}
@@ -140,56 +176,39 @@ func (s *storyStorage) GetStory(ctx context.Context, id uuid.UUID) (*service.Sto
 		return nil, errs.E(errs.NotExist, op, fmt.Errorf("story with id %s not found", id))
 	}
 
-	return &stories[0], nil
+	return stories[0], nil
 }
 
-func (s *storyStorage) GetStoriesWithTeamkatalogenByIDs(ctx context.Context, ids []uuid.UUID) ([]service.Story, error) {
+func (s *storyStorage) GetStoriesWithTeamkatalogenByIDs(ctx context.Context, ids []uuid.UUID) ([]*service.Story, error) {
 	const op errs.Op = "storyStorage.GetStoriesWithTeamkatalogenByIDs"
 
-	dbStories, err := s.db.Querier.GetStoriesWithTeamkatalogenByIDs(ctx, ids)
+	raw, err := s.db.Querier.GetStoriesWithTeamkatalogenByIDs(ctx, ids)
 	if err != nil {
 		return nil, errs.E(errs.Database, op, err)
 	}
 
-	stories := make([]service.Story, len(dbStories))
-	for i, story := range dbStories {
-		stories[i] = *storyFromSQL(&story)
+	stories, err := From(StoryWithTeamkatalogenViewList(raw))
+	if err != nil {
+		return nil, errs.E(errs.Internal, op, err)
 	}
 
 	return stories, nil
 }
 
-func (s *storyStorage) GetStoriesWithTeamkatalogenByGroups(ctx context.Context, groups []string) ([]service.Story, error) {
+func (s *storyStorage) GetStoriesWithTeamkatalogenByGroups(ctx context.Context, groups []string) ([]*service.Story, error) {
 	const op errs.Op = "storyStorage.GetStoriesWithTeamkatalogenByGroups"
 
-	dbStories, err := s.db.Querier.GetStoriesWithTeamkatalogenByGroups(ctx, groups)
+	raw, err := s.db.Querier.GetStoriesWithTeamkatalogenByGroups(ctx, groups)
 	if err != nil {
 		return nil, errs.E(errs.Database, op, err)
 	}
 
-	stories := make([]service.Story, len(dbStories))
-	for i, story := range dbStories {
-		stories[i] = *storyFromSQL(&story)
+	stories, err := From(StoryWithTeamkatalogenViewList(raw))
+	if err != nil {
+		return nil, errs.E(errs.Internal, op, err)
 	}
 
 	return stories, nil
-}
-
-func storyFromSQL(story *gensql.StoryWithTeamkatalogenView) *service.Story {
-	return &service.Story{
-		ID:               story.ID,
-		Name:             story.Name,
-		Creator:          story.Creator,
-		Created:          story.Created,
-		LastModified:     &story.LastModified,
-		Keywords:         story.Keywords,
-		TeamID:           nullStringToUUIDPtr(story.TeamID),
-		TeamkatalogenURL: nullStringToPtr(story.TeamkatalogenUrl),
-		Description:      story.Description,
-		Group:            story.Group,
-		TeamName:         nullStringToPtr(story.TeamName),
-		ProductAreaName:  nullStringToString(story.PaName),
-	}
 }
 
 func NewStoryStorage(db *database.Repo) *storyStorage {

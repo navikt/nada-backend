@@ -100,7 +100,7 @@ type UserInfo struct {
 	Accessable AccessibleDatasets `json:"accessable"`
 
 	// stories is the stories owned by the user's group
-	Stories []Story `json:"stories"`
+	Stories []*Story `json:"stories"`
 
 	// insight products is the insight products owned by the user's group
 	InsightProducts []InsightProduct `json:"insightProducts"`

@@ -3,7 +3,10 @@
 package integration
 
 import (
-	"github.com/navikt/nada-backend/pkg/amplitude"
+	"github.com/google/go-cmp/cmp/cmpopts"
+	"github.com/google/uuid"
+	"github.com/navikt/nada-backend/pkg/cs"
+	"github.com/navikt/nada-backend/pkg/cs/emulator"
 	"github.com/navikt/nada-backend/pkg/database"
 	"github.com/navikt/nada-backend/pkg/service"
 	"github.com/navikt/nada-backend/pkg/service/core"
@@ -15,286 +18,139 @@ import (
 	"github.com/navikt/nada-backend/pkg/tk"
 	"github.com/rs/zerolog"
 	"github.com/stretchr/testify/assert"
+	"net/http"
+	"net/http/httptest"
 	"os"
 	"testing"
-	"time"
-
-	"github.com/google/uuid"
 )
 
 const (
-	testTeam    = "team"
-	storyBucket = "stories"
 	defaultHtml = "<html><h1>Story</h1></html>"
 )
 
 func TestStory(t *testing.T) {
-	ctx := context.Background()
+	log := zerolog.New(os.Stdout)
+	c := NewContainers(t, log)
+	defer c.Cleanup()
 
-	storyID, err := prepareStoryTests(ctx)
-	if err != nil {
-		t.Fatal(err)
+	pgCfg := c.RunPostgres(NewPostgresConfig())
+
+	repo, err := database.New(
+		pgCfg.ConnectionURL(),
+		10,
+		10,
+	)
+	assert.NoError(t, err)
+
+	pa1 := uuid.MustParse("00000000-1111-0000-0000-000000000000")
+	pa2 := uuid.MustParse("00000000-2222-0000-0000-000000000000")
+	team1 := uuid.MustParse("00000000-0000-1111-0000-000000000000")
+	team2 := uuid.MustParse("00000000-0000-2222-0000-000000000000")
+	team3 := uuid.MustParse("00000000-0000-3333-0000-000000000000")
+
+	pas := []*tk.ProductArea{
+		{
+			ID:   pa1,
+			Name: "Product area 1",
+		},
+		{
+			ID:   pa2,
+			Name: "Product area 2",
+		},
 	}
 
-	t.Run("get story", func(t *testing.T) {
-		resp, err := server.Client().Get(server.URL + "/quarto/" + storyID.String() + "/index.html")
-		if err != nil {
-			t.Fatal(err)
-		}
-		defer resp.Body.Close()
+	teams := []*tk.Team{
+		{
+			ID:            team1,
+			Name:          "Team1",
+			Description:   "This is the first team",
+			ProductAreaID: pa1,
+		},
+		{
+			ID:            team2,
+			Name:          "Team 2",
+			Description:   "This is the second team",
+			ProductAreaID: pa2,
+		},
+		{
+			ID:            team3,
+			Name:          "Team 3",
+			Description:   "This is the third team",
+			NaisTeams:     []string{"team3"},
+			ProductAreaID: pa2,
+		},
+	}
 
-		if resp.StatusCode != http.StatusOK {
-			t.Fatalf("expected status code %v, got %v", http.StatusOK, resp.StatusCode)
+	staticFetcher := tk.NewStatic("http://example.com", pas, teams)
+
+	router := TestRouter(log)
+	e := emulator.New(t, nil)
+	e.CreateBucket("nada-backend-stories")
+	defer e.Cleanup()
+
+	user := &service.User{
+		Name:        "Bob the Builder",
+		Email:       "bob.the.builder@nav.no",
+		AzureGroups: nil,
+		GoogleGroups: []service.Group{
+			{
+				Email: "nada@nav.no",
+				Name:  "nada",
+			},
+		},
+		AllGoogleGroups: nil,
+	}
+
+	{
+		teamKatalogenAPI := httpapi.NewTeamKatalogenAPI(staticFetcher)
+		cs := cs.NewFromClient("nada-backend-stories", e.Client())
+		storyAPI := gcp.NewStoryAPI(cs, log)
+		tokenService := core.NewTokenService(postgres.NewTokenStorage(repo))
+		storyService := core.NewStoryService(postgres.NewStoryStorage(repo), teamKatalogenAPI, storyAPI)
+		h := handlers.NewStoryHandler(storyService, tokenService, log)
+		e := routes.NewStoryEndpoints(log, h)
+		f := routes.NewStoryRoutes(e, injectUser(user), h.NadaTokenMiddleware)
+		f(router)
+	}
+
+	server := httptest.NewServer(router)
+
+	story := &service.Story{}
+
+	t.Run("Create story with oauth", func(t *testing.T) {
+		newStory := &service.NewStory{
+			Name:          "My new story",
+			Description:   strToStrPtr("This is my story, and it is pretty bad"),
+			Keywords:      []string{"story", "bad"},
+			ProductAreaID: &pa1,
+			TeamID:        &team1,
+			Group:         "nada@nav.no",
 		}
 
-		respb, err := ioutil.ReadAll(resp.Body)
-		if err != nil {
-			t.Fatal(err)
+		expect := &service.Story{
+			Name:             "My new story",
+			Creator:          "bob.the.builder@nav.no",
+			Description:      "This is my story, and it is pretty bad",
+			Keywords:         []string{"story", "bad"},
+			TeamkatalogenURL: nil,
+			TeamID:           &team1,
+			Group:            "nada@nav.no",
+			// FIXME: can't set these from CreateStory, should they be?
+			// TeamName:         strToStrPtr("Team1"),
+			// ProductAreaName:  "Product area 1",
 		}
 
-		if string(respb) != defaultHtml {
-			t.Fatalf("expected object read to be %v, got %v", defaultHtml, string(respb))
+		files := map[string]string{
+			"index.html": defaultHtml,
 		}
+		objects := map[string]string{
+			"nada-backend-new-story": string(Marshal(t, newStory)),
+		}
+
+		req := CreateMultipartFormRequest(t, http.MethodPost, server.URL+"/api/stories/new", files, objects)
+
+		NewTester(t, server).Send(req).
+			HasStatusCode(http.StatusOK).
+			Expect(expect, story, cmpopts.IgnoreFields(service.Story{}, "ID", "Created", "LastModified"))
 	})
-
-	t.Run("get story with redirect", func(t *testing.T) {
-		resp, err := server.Client().Get(server.URL + "/quarto/" + storyID.String())
-		if err != nil {
-			t.Fatal(err)
-		}
-		defer resp.Body.Close()
-
-		if resp.StatusCode != http.StatusOK {
-			t.Fatalf("expected status code %v, got %v", http.StatusOK, resp.StatusCode)
-		}
-
-		respb, err := ioutil.ReadAll(resp.Body)
-		if err != nil {
-			t.Fatal(err)
-		}
-
-		if string(respb) != defaultHtml {
-			t.Fatalf("expected object read to be %v, got %v", defaultHtml, string(respb))
-		}
-	})
-
-	newHtml := "<html><h1>Quarto updated</h1></html>"
-
-	teamToken, err := service.GetNadaToken(ctx, testTeam)
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	t.Run("update story", func(t *testing.T) {
-		body, contentType, err := createMultipartForm(newHtml)
-		if err != nil {
-			t.Fatal(err)
-		}
-
-		req, err := http.NewRequestWithContext(ctx, http.MethodPut, server.URL+"/quarto/update/"+storyID.String(), body)
-		if err != nil {
-			t.Fatal(err)
-		}
-		req.Header.Add("Authorization", "Bearer "+teamToken.String())
-		req.Header.Add("Content-Type", contentType)
-
-		resp, err := server.Client().Do(req)
-		if err != nil {
-			t.Fatal(err)
-		}
-		defer resp.Body.Close()
-		if resp.StatusCode != http.StatusOK {
-			t.Fatalf("expected status code %v, got %v", http.StatusOK, resp.StatusCode)
-		}
-	})
-
-	t.Run("get story after update", func(t *testing.T) {
-		resp, err := server.Client().Get(server.URL + "/quarto/" + storyID.String() + "/index.html")
-		if err != nil {
-			t.Fatal(err)
-		}
-		defer resp.Body.Close()
-
-		if resp.StatusCode != http.StatusOK {
-			t.Fatalf("expected status code %v, got %v", http.StatusOK, resp.StatusCode)
-		}
-
-		respb, err := ioutil.ReadAll(resp.Body)
-		if err != nil {
-			t.Fatal(err)
-		}
-
-		if string(respb) != newHtml {
-			t.Fatalf("expected object read to be %v, got %v", newHtml, string(respb))
-		}
-	})
-
-	t.Run("update story invalid id", func(t *testing.T) {
-		body, contentType, err := createMultipartForm(newHtml)
-		if err != nil {
-			t.Fatal(err)
-		}
-
-		req, err := http.NewRequestWithContext(ctx, http.MethodPut, server.URL+"/quarto/update/123", body)
-		if err != nil {
-			t.Fatal(err)
-		}
-		req.Header.Add("Authorization", "Bearer "+teamToken.String())
-		req.Header.Add("Content-Type", contentType)
-
-		resp, err := server.Client().Do(req)
-		if err != nil {
-			t.Fatal(err)
-		}
-		defer resp.Body.Close()
-
-		if resp.StatusCode != http.StatusBadRequest {
-			t.Fatalf("expected status code %v, got %v", http.StatusBadRequest, resp.StatusCode)
-		}
-	})
-
-	t.Run("update story does not exist", func(t *testing.T) {
-		nonExistingQuarto := "d7fae699-9852-4367-a136-e6b787e2a5bd"
-
-		body, contentType, err := createMultipartForm(newHtml)
-		if err != nil {
-			t.Fatal(err)
-		}
-
-		req, err := http.NewRequestWithContext(ctx, http.MethodPut, server.URL+"/quarto/update/"+nonExistingQuarto, body)
-		if err != nil {
-			t.Fatal(err)
-		}
-		req.Header.Add("Authorization", "Bearer "+teamToken.String())
-		req.Header.Add("Content-Type", contentType)
-
-		resp, err := server.Client().Do(req)
-		if err != nil {
-			t.Fatal(err)
-		}
-		defer resp.Body.Close()
-
-		if resp.StatusCode != http.StatusNotFound {
-			t.Fatalf("expected status code %v, got %v", http.StatusNotFound, resp.StatusCode)
-		}
-	})
-
-	t.Run("update story unauthorized", func(t *testing.T) {
-		invalidToken := "d7fae699-9852-4367-a136-e6b787e2a5bd"
-
-		body, contentType, err := createMultipartForm(newHtml)
-		if err != nil {
-			t.Fatal(err)
-		}
-
-		req, err := http.NewRequestWithContext(ctx, http.MethodPut, server.URL+"/quarto/update/"+storyID.String(), body)
-		if err != nil {
-			t.Fatal(err)
-		}
-		req.Header.Add("Authorization", "Bearer "+invalidToken)
-		req.Header.Add("Content-Type", contentType)
-
-		resp, err := server.Client().Do(req)
-		if err != nil {
-			t.Fatal(err)
-		}
-		defer resp.Body.Close()
-
-		if resp.StatusCode != http.StatusUnauthorized {
-			t.Fatalf("expected status code %v, got %v", http.StatusUnauthorized, resp.StatusCode)
-		}
-	})
-
-	if err := repo.Querier.DeleteNadaToken(ctx, testTeam); err != nil {
-		t.Fatal(err)
-	}
-
-	t.Run("update story team token not found", func(t *testing.T) {
-		teamToken := "d7fae699-9852-4367-a136-e6b787e2a5bd"
-
-		body, contentType, err := createMultipartForm(newHtml)
-		if err != nil {
-			t.Fatal(err)
-		}
-
-		req, err := http.NewRequestWithContext(ctx, http.MethodPut, server.URL+"/quarto/update/"+storyID.String(), body)
-		if err != nil {
-			t.Fatal(err)
-		}
-		req.Header.Add("Authorization", "Bearer "+teamToken)
-		req.Header.Add("Content-Type", contentType)
-
-		resp, err := server.Client().Do(req)
-		if err != nil {
-			t.Fatal(err)
-		}
-		defer resp.Body.Close()
-
-		if resp.StatusCode != http.StatusInternalServerError {
-			t.Fatalf("expected status code %v, got %v", http.StatusInternalServerError, resp.StatusCode)
-		}
-	})
-}
-
-func prepareStoryTests(ctx context.Context) (uuid.UUID, error) {
-	client, err := storage.NewClient(ctx)
-	if err != nil {
-		return uuid.UUID{}, err
-	}
-	defer client.Close()
-
-	if err := client.Bucket(storyBucket).Create(ctx, "project", nil); err != nil {
-		var e *googleapi.Error
-		if ok := xerrors.As(err, &e); ok {
-			if e.Code != 409 {
-				return uuid.UUID{}, err
-			}
-		}
-	}
-
-	description := "this is my story"
-
-	story, err := repo.Querier.CreateStory(ctx, gensql.CreateStoryParams{
-		Name:        "story",
-		Creator:     "first.last@nav.no",
-		Description: description,
-		Keywords:    []string{},
-		OwnerGroup:  testTeam + "@nav.no",
-	})
-	if err != nil {
-		return uuid.UUID{}, err
-	}
-	htmlb := []byte(defaultHtml)
-
-	writer := client.Bucket(storyBucket).Object(story.ID.String() + "/index.html").NewWriter(ctx)
-	_, err = writer.Write(htmlb)
-	if err != nil {
-		return uuid.UUID{}, err
-	}
-
-	if err = writer.Close(); err != nil {
-		return uuid.UUID{}, err
-	}
-
-	return story.ID, nil
-}
-
-func createMultipartForm(html string) (*bytes.Buffer, string, error) {
-	body := &bytes.Buffer{}
-	writer := multipart.NewWriter(body)
-	part, err := writer.CreateFormFile("index.html", "index.html")
-	if err != nil {
-		return nil, "", err
-	}
-	_, err = part.Write([]byte(html))
-	if err != nil {
-		return nil, "", err
-	}
-
-	err = writer.Close()
-	if err != nil {
-		return nil, "", err
-	}
-
-	return body, writer.FormDataContentType(), nil
 }

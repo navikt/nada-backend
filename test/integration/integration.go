@@ -12,12 +12,15 @@ import (
 	"github.com/ory/dockertest/v3"
 	"github.com/ory/dockertest/v3/docker"
 	"github.com/rs/zerolog"
+	"github.com/stretchr/testify/assert"
 	"io"
 	"math/rand"
+	"mime/multipart"
 	"net/http"
 	"net/http/httptest"
 	"net/http/httputil"
 	"os"
+	"path/filepath"
 	"strings"
 	"testing"
 	"time"
@@ -304,6 +307,7 @@ type TestRunner interface {
 	Get(path string, params ...string) TestRunnerStatus
 	Put(input any, path string, params ...string) TestRunnerStatus
 	Delete(path string, params ...string) TestRunnerStatus
+	Send(r *http.Request) TestRunnerStatus
 }
 
 type TestRunnerStatus interface {
@@ -398,6 +402,19 @@ func (r *testRunner) buildURL(path string, params ...string) string {
 	return fmt.Sprintf("%s%s%s", r.s.URL, path, r.parseQueryParams(params...))
 }
 
+func (r *testRunner) Send(req *http.Request) TestRunnerStatus {
+	r.t.Helper()
+
+	response, err := http.DefaultClient.Do(req)
+	if err != nil {
+		r.t.Fatalf("sending request: %s", err)
+	}
+
+	r.response = response
+
+	return r
+}
+
 func (r *testRunner) Get(path string, params ...string) TestRunnerStatus {
 	r.t.Helper()
 
@@ -477,4 +494,31 @@ func TestRouter(log zerolog.Logger) chi.Router {
 	})
 
 	return r
+}
+
+func CreateMultipartFormRequest(t *testing.T, method, path string, files map[string]string, objects map[string]string) *http.Request {
+	var b bytes.Buffer
+	writer := multipart.NewWriter(&b)
+
+	for path, data := range files {
+		part, err := writer.CreateFormFile(path, filepath.Base(path))
+		assert.NoError(t, err)
+		_, err = part.Write([]byte(data))
+		assert.NoError(t, err)
+	}
+
+	for name, data := range objects {
+		part, err := writer.CreateFormField(name)
+		assert.NoError(t, err)
+		_, err = part.Write([]byte(data))
+		assert.NoError(t, err)
+	}
+
+	writer.Close()
+
+	req, err := http.NewRequest(method, path, &b)
+	assert.NoError(t, err)
+	req.Header.Set("Content-Type", writer.FormDataContentType())
+
+	return req
 }

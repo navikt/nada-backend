@@ -10,8 +10,8 @@ import (
 )
 
 type StoryStorage interface {
-	GetStoriesWithTeamkatalogenByGroups(ctx context.Context, groups []string) ([]Story, error)
-	GetStoriesWithTeamkatalogenByIDs(ctx context.Context, ids []uuid.UUID) ([]Story, error)
+	GetStoriesWithTeamkatalogenByGroups(ctx context.Context, groups []string) ([]*Story, error)
+	GetStoriesWithTeamkatalogenByIDs(ctx context.Context, ids []uuid.UUID) ([]*Story, error)
 	GetStoriesNumberByTeam(ctx context.Context, teamID uuid.UUID) (int64, error)
 	GetStoriesByTeamID(ctx context.Context, teamIDs []uuid.UUID) ([]*Story, error)
 	GetStory(ctx context.Context, id uuid.UUID) (*Story, error)

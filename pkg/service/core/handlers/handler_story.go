@@ -21,6 +21,7 @@ const (
 	ContextKeyTeam      = "team"
 	ContextKeyTeamEmail = "team_email"
 	ContextKeyNadaToken = "nada_token"
+	FormNameNewStory    = "nada-backend-new-story"
 )
 
 type StoryHandler struct {
@@ -74,14 +75,14 @@ func (h *StoryHandler) CreateStory(ctx context.Context, r *http.Request, _ any) 
 		return nil, errs.E(errs.InvalidRequest, op, err)
 	}
 
-	err = p.Process([]string{"nada-backend-new-story"})
+	err = p.Process([]string{FormNameNewStory})
 	if err != nil {
 		return nil, errs.E(errs.InvalidRequest, op, err)
 	}
 
 	newStory := &service.NewStory{}
 
-	err = p.DeserializedObject("nada-backend-new-story", newStory)
+	err = p.DeserializedObject(FormNameNewStory, newStory)
 	if err != nil {
 		return nil, errs.E(errs.InvalidRequest, op, err)
 	}

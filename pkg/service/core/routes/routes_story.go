@@ -40,11 +40,11 @@ func NewStoryRoutes(
 	nadaToken func(http.Handler) http.Handler,
 ) AddRoutesFn {
 	return func(router chi.Router) {
-		// Endpoints used programmatically, which rely on the Nada team token,
-		// except for GetObject which returns the story itself
 		router.Route(`/{story|quarto}`, func(r chi.Router) {
 			r.Get("/{id}", endpoints.GetIndex)
 			r.Get("/{id}/*", endpoints.GetObject)
+
+			// Endpoints used programmatically, which rely on the Nada team token
 			r.With(nadaToken).Post("/create", endpoints.CreateStoryForTeam)
 			r.With(nadaToken).Put("/update/{id}", endpoints.RecreateStoryFiles)
 			r.With(nadaToken).Patch("/update/{id}", endpoints.AppendStoryFiles)
