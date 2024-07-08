@@ -10,9 +10,9 @@ require (
 	cloud.google.com/go/bigquery v1.61.0
 	cloud.google.com/go/iam v1.1.8
 	cloud.google.com/go/storage v1.41.0
-	github.com/99designs/gqlgen-contrib v0.1.1-0.20200601100547-7a955d321bbd
 	github.com/btcsuite/btcutil v1.0.2
 	github.com/coreos/go-oidc/v3 v3.10.0
+	github.com/docker/cli v26.1.3+incompatible
 	github.com/fsouza/fake-gcs-server v1.49.2
 	github.com/gilcrest/diygoapi v0.53.0
 	github.com/go-chi/chi v4.1.2+incompatible
@@ -50,7 +50,6 @@ require (
 	cloud.google.com/go/compute/metadata v0.3.0 // indirect
 	cloud.google.com/go/pubsub v1.38.0 // indirect
 	dario.cat/mergo v1.0.0 // indirect
-	github.com/99designs/gqlgen v0.17.47 // indirect
 	github.com/Azure/go-ansiterm v0.0.0-20230124172434-306776ec8161 // indirect
 	github.com/DataDog/go-hll v1.0.2 // indirect
 	github.com/Microsoft/go-winio v0.6.2 // indirect
@@ -67,7 +66,6 @@ require (
 	github.com/davecgh/go-spew v1.1.2-0.20180830191138-d8f796af33cc // indirect
 	github.com/dgryski/go-farm v0.0.0-20200201041132-a6ae2369ad13 // indirect
 	github.com/dlclark/regexp2 v1.7.0 // indirect
-	github.com/docker/cli v26.1.3+incompatible // indirect
 	github.com/docker/docker v26.1.3+incompatible // indirect
 	github.com/docker/go-connections v0.5.0 // indirect
 	github.com/docker/go-units v0.5.0 // indirect
@@ -133,14 +131,12 @@ require (
 	github.com/sergi/go-diff v1.3.1 // indirect
 	github.com/sethvargo/go-retry v0.2.4 // indirect
 	github.com/sirupsen/logrus v1.9.3 // indirect
-	github.com/sosodev/duration v1.3.1 // indirect
 	github.com/sourcegraph/conc v0.3.0 // indirect
 	github.com/spaolacci/murmur3 v0.0.0-20180118202830-f09979ecbc72 // indirect
 	github.com/spf13/afero v1.11.0 // indirect
 	github.com/spf13/cast v1.6.0 // indirect
 	github.com/stretchr/objx v0.5.2 // indirect
 	github.com/subosito/gotenv v1.6.0 // indirect
-	github.com/vektah/gqlparser/v2 v2.5.12 // indirect
 	github.com/xeipuuv/gojsonpointer v0.0.0-20190905194746-02993c407bfb // indirect
 	github.com/xeipuuv/gojsonreference v0.0.0-20180127040603-bd5ef7bd5415 // indirect
 	github.com/xeipuuv/gojsonschema v1.2.0 // indirect

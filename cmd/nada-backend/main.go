@@ -25,7 +25,6 @@ import (
 	"syscall"
 	"time"
 
-	graphProm "github.com/99designs/gqlgen-contrib/prometheus"
 	"github.com/navikt/nada-backend/pkg/api"
 	"github.com/navikt/nada-backend/pkg/auth"
 	"github.com/navikt/nada-backend/pkg/config/v2"
@@ -258,7 +257,6 @@ func main() {
 
 func prom(cols ...prometheus.Collector) *prometheus.Registry {
 	r := prometheus.NewRegistry()
-	graphProm.RegisterOn(r)
 	r.MustRegister(promErrs)
 	r.MustRegister(prometheus.NewGoCollector())
 	r.MustRegister(cols...)

@@ -1,7 +1,0 @@
-extend type Query {
-    "searches slack public channels to validate the channel name"
-    IsValidSlackChannel(
-        "name is the channel name."
-        name: String!
-    ): Boolean! @authenticated
-}
