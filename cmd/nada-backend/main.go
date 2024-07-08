@@ -218,6 +218,11 @@ func main() {
 		routes.NewAuthRoutes(routes.NewAuthEndpoints(httpAPI)),
 	)
 
+	err = routes.Print(router, os.Stdout)
+	if err != nil {
+		zlog.Fatal().Err(err).Msg("printing routes")
+	}
+
 	server := http.Server{
 		Addr:    net.JoinHostPort(cfg.Server.Address, cfg.Server.Port),
 		Handler: router,
