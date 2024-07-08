@@ -2,9 +2,8 @@
 
 nada-backend is the API behind the "NAV Data" website. 
 
-It serves a GraphQL API for managing dataproducts, and provides functionality for self-service access to the actual data source.
-
-
+It serves a REST-API for managing data products, and provides functionality for self-service access to the data 
+source.
 
 ## Running locally with tendrils into Google (as a Nada-member)
 
@@ -15,7 +14,6 @@ We require the login to be done in two steps now, apparently.
 ```bash
 gcloud auth login --update-adc
 ```
-
 
 Ensure that your `.env` file is populated with data.
 Ignore this step if there's already some data that looks right.
@@ -68,3 +66,34 @@ METABASE_USERNAME
 SLACK_URL
 ```
 
+## Architecture
+
+```mermaid
+flowchart TD
+    %% Define the layers
+    Transport["Transport (e.g., HTTP)"] --> Router["Router (METHOD /path)"]
+    Router --> Endpoint["Encoding and decoding (JSON)"]
+    Endpoint --> Handler["Handler (e.g., Request Handlers)"]
+    Handler --> Service1["Service1 (e.g., Data Processing Service)"]
+    Handler --> Service2["Service2 (e.g., Authentication Service)"]
+    Handler --> ServiceN["ServiceN"]
+    Service1 --> Model1["Model1 (e.g., Big Query Model)"]
+    Service2 --> Model2["Model2 (e.g., Data accesss)"]
+    ServiceN --> ModelN["ModelN (e.g., Metabase)"]
+    Service1 --> Storage1["Storage1 (e.g., PostgreSQL)"]
+    Service2 --> Storage2["Storage2 (e.g., MongoDB)"]
+    Service2 --> StorageN["StorageN"]
+    Service1 --> API1["External API 1 (e.g., GCP Big Query API)"]
+    Service2 --> API2["External API 2 (e.g., Metabase API)"]
+    ServiceN --> APIN
+
+%% Styling classes
+classDef service fill:#f9f,stroke:#333,stroke-width:2px;
+class Service1,Service2,ServiceN service;
+classDef model fill:#bbf,stroke:#333,stroke-width:2px;
+class Model1,Model2,ModelN model;
+classDef storage fill:#ffb,stroke:#333,stroke-width:2px;
+class Storage1,Storage2,StorageN storage;
+classDef api fill:#bfb,stroke:#333,stroke-width:2px;
+class API1,API2,APIN api;
+```

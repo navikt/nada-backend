@@ -18,10 +18,6 @@ test:
 	go test ./... -count=1
 .PHONY: test
 
-integration-test:
-	go test ./... -count=1 -tags=integration_test
-.PHONY: integration-test
-
 env:
 	@echo "Re-creating .env file..."
 	@echo "NADA_OAUTH_CLIENT_ID=$(shell kubectl get --context=dev-gcp --namespace=nada `kubectl get secret --context=dev-gcp --namespace=nada --sort-by='{.metadata.creationTimestamp}' -l app=nada-backend,type=azurerator.nais.io -o name | tail -1` -o jsonpath='{.data.AZURE_APP_CLIENT_ID}' | base64 -d)" > .env
@@ -47,21 +43,18 @@ metabase-sa:
 	$(shell kubectl get --context=dev-gcp --namespace=nada secret/metabase-google-sa -o json | jq -r '.data."meta_creds.json"' | base64 -d > test-metabase-sa.json)
 .PHONY: test-sa
 
-local-with-auth: | env test-sa metabase-sa docker-build-metabase
+setup-metabase:
+	./resources/scripts/configure_metabase.sh
+
+local-with-auth: | env test-sa metabase-sa docker-build-metabase docker-compose-up setup-metabase
 	@echo "Sourcing environment variables..."
 	set -a && source ./.env && set +a && \
 		STORAGE_EMULATOR_HOST=http://localhost:8082/storage/v1/ go run ./cmd/nada-backend --config ./config-local-online.yaml
 .PHONY: local-with-auth
 
 docker-compose-up:
-	@echo "Starting dependencies with docker-compose..."
-	docker-compose up -d
-
-local:
-	@echo "Sourcing environment variables and starting nada-backend..."
-	set -a && source ./.env && set +a && \
-		STORAGE_EMULATOR_HOST=http://localhost:8082/storage/v1/ go run ./cmd/nada-backend --config ./config-local.yaml
-.PHONY: local
+	@echo "Starting dependencies with docker compose..."
+	docker compose up -d
 
 migrate:
 	go run github.com/pressly/goose/v3/cmd/goose -dir ./pkg/database/migrations postgres "user=nada-backend dbname=nada sslmode=disable password=postgres" up

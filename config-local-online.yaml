@@ -4,8 +4,8 @@ oauth:
   tenant_id: # Loaded from env var AZURE_TENANT_ID
   redirect_url: http://localhost:8080/api/oauth2/callback
 metabase:
-  username: paul.bernhard.beskow@nav.no
-  password: supersecret1
+  username: nada@nav.no
+  password: superdupersecret1
   api_url: http://localhost:8083/api
   credentials_path: ./test-metabase-sa.json
   gcp_project: nada-dev-db2e
