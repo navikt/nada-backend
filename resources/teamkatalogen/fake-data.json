@@ -1,0 +1,24 @@
+{
+  "teams": {
+    "content": [
+      {
+        "id": "478F5B20-8831-4F75-B231-737FE97A7C18",
+        "name": "nada",
+        "description": "the nada team",
+        "naisTeams": [
+          "nada"
+        ],
+        "productAreaId": "CF18A061-8291-400F-8AF6-4381403878C6"
+      }
+    ]
+  },
+  "product_areas": {
+    "content": [
+      {
+        "id": "CF18A061-8291-400F-8AF6-4381403878C6",
+        "name": "the platform area",
+        "areaType": "platform"
+      }
+    ]
+  }
+}
