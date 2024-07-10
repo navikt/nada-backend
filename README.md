@@ -1,9 +1,6 @@
-# nada-backend
+# Data management API for NAV
 
-nada-backend is the API behind the "NAV Data" website. 
-
-It serves a REST-API for managing data products, and provides functionality for self-service access to the data 
-source.
+It serves a REST-API for managing data products, and provides functionality for self-service access to the data source.
 
 ## Getting started with local development
 
@@ -22,21 +19,42 @@ gcloud auth login --update-adc
 4. Run som build commands
 
 ```bash
-# Build all the nada-backend binaries
+# Build all binaries
 $ make build
 
-# Start nada-backend with only local resources
-$ make local-deps # Builds and runs dependencies in the foreground
-$ make local # Builds and runs nada-backend
+# Run the tests
+$ make test
 ```
 
-5. (Optional): Start the [nada-frontend](https://github.com/navikt/nada-frontend/?tab=readme-ov-file#development)
+## Run with fully local resources
 
-6. (Optional): Take a look at the [locally running Metabase](http://localhost:8083), the username is: `nada@nav.no`, 
+With this configuration all dependencies run as containers, as can be seen in `docker-compose.yaml`:
+- Google BigQuery using [bigquery-emulator](https://github.com/goccy/bigquery-emulator), with additional mocks for the 
+  IAM Policy 
+  endpoints
+- Google Cloud Storage using [fake-gcs-server](https://github.com/fsouza/fake-gcs-server)
+- [Metabase](https://github.com/metabase/metabase) with a [patch](resources/metabase/001-bigquery-cloud-sdk-no-auth.patch) for enabling use of bigquery-emulator
+- Fake API servers for `teamkatalogen` and `naisconsole`
+
+1. Start the dependencies
+```bash
+# Builds and runs dependencies in the foreground
+$ make local-deps 
+```
+
+2. Start the backend
+```bash
+ # Builds and runs nada-backend using config-local.yaml
+$ make local
+```
+
+**Note:** building the big query emulator requires quite a bit of memory, so if you see something like `clang++:
+signal: killed` you need to increase the amount of memory you allocate to your container run-time.
+
+3. (Optional): Start the [nada-frontend](https://github.com/navikt/nada-frontend/?tab=readme-ov-file#development)
+
+4. (Optional): Take a look at the [locally running Metabase](http://localhost:8083), the username is: `nada@nav.no`,
    and password is: `superdupersecret1`
-
-### Fully local development
-
 
 ## Deployment
 The application needs two GCP service accounts which are mounted in at runtime from two secrets in Google Secret Manager. These are:

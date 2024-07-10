@@ -11,7 +11,7 @@ SQLC_VERSION ?= "v1.23.0"
 # overwritten. If this is done, it is
 # only recommended to change the BUILD_DIR
 # option.
-BUILD_DIR     := build
+BUILD_DIR     := build-output
 RELEASE_DIR   := $(BUILD_DIR)/release
 
 $(BUILD_DIR):

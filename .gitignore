@@ -8,4 +8,4 @@ hack/.ipynb_checkpoints/
 *.json
 .tool-versions
 .local/
-/build
+/build-output
