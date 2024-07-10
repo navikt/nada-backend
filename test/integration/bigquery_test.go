@@ -54,7 +54,7 @@ func TestBigQuery(t *testing.T) {
 		},
 	}
 
-	em := emulator.New(t)
+	em := emulator.New(log)
 
 	em.WithProject(gcpProject, datasets...)
 	bqClient := bq.NewClient(em.Endpoint(), false)

@@ -5,11 +5,28 @@ LDFLAGS := -X github.com/navikt/nada-backend/backend/version.Revision=$(shell gi
 APP = nada-backend
 SQLC_VERSION ?= "v1.23.0"
 
-# Get the currently used golang install path (in GOPATH/bin, unless GOBIN is set)
-ifeq (,$(shell go env GOBIN))
-	GOBIN=$(shell go env GOPATH)/bin
-else
-	GOBIN=$(shell go env GOBIN)
+# Directories
+#
+# All of the following directories can be
+# overwritten. If this is done, it is
+# only recommended to change the BUILD_DIR
+# option.
+BUILD_DIR     := build
+RELEASE_DIR   := $(BUILD_DIR)/release
+
+$(BUILD_DIR):
+	-mkdir $(BUILD_DIR)
+
+$(RELEASE_DIR): | $(BUILD_DIR)
+	-mkdir $(RELEASE_DIR)
+
+GOPATH  := $(shell go env GOPATH)
+GOCACHE := $(shell go env GOCACHE)
+GOBIN   ?= $(GOPATH)/bin
+
+GO := $(shell command -v go 2> /dev/null)
+ifndef GO
+$(error go is required, please install)
 endif
 
 -include .env
@@ -17,6 +34,17 @@ endif
 test:
 	go test ./... -count=1
 .PHONY: test
+
+build: $(RELEASE_DIR)
+	@echo "Building cmd applications..."
+	@CGO_ENABLED=1 CXX=clang++ CC=clang go mod tidy
+	@for d in cmd/*; do \
+		app=$$(basename $$d); \
+		echo "Building $$app..."; \
+		CGO_ENABLED=1 CXX=clang++ CC=clang $(GO) build -o $(RELEASE_DIR)/$$app ./$$d; \
+	done
+	@echo "Build complete. Binaries are located in $(RELEASE_DIR)"
+.PHONY: build
 
 env:
 	@echo "Re-creating .env file..."
@@ -52,6 +80,19 @@ local-with-auth: | env test-sa metabase-sa docker-build-metabase docker-compose-
 		STORAGE_EMULATOR_HOST=http://localhost:8082/storage/v1/ go run ./cmd/nada-backend --config ./config-local-online.yaml
 .PHONY: local-with-auth
 
+local: | env test-sa  setup-metabase
+	@echo "Sourcing environment variables..."
+	set -a && source ./.env && set +a && \
+		GOOGLE_CLOUD_PROJECT=test STORAGE_EMULATOR_HOST=http://localhost:8082/storage/v1/ go run ./cmd/nada-backend --config ./config-local.yaml
+.PHONY: local
+
+local-deps: | docker-build-metabase-local-bq docker-build-apps docker-compose-up-fg
+.PHONY: local-deps
+
+docker-compose-up-fg:
+	@echo "Starting dependencies with docker compose..."
+	docker compose up
+
 docker-compose-up:
 	@echo "Starting dependencies with docker compose..."
 	docker compose up -d
@@ -73,7 +114,14 @@ linux-build:
 
 docker-build-metabase:
 	@echo "Building metabase docker image..."
-	docker image build -t metabase-nada-backend:latest -f Dockerfile.metabase .
+	docker image build -t metabase-nada-backend:latest -f Dockerfile-metabase-orig .
+
+docker-build-metabase-local-bq:
+	@echo "Building metabase docker image with local BigQuery..."
+	docker image build -t metabase-nada-backend:latest -f Dockerfile-metabase-local .
+
+docker-build-apps:
+	docker image build -t nada-apps:latest -f Dockerfile-build .
 
 docker-build:
 	docker image build -t ghcr.io/navikt/$(APP):$(VERSION) -t ghcr.io/navikt/$(APP):latest .

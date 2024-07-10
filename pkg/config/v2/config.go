@@ -158,9 +158,10 @@ type Metabase struct {
 	Password string `yaml:"password"`
 	APIURL   string `yaml:"api_url"`
 	// GCPProject where metabase will create service accounts
-	GCPProject       string `yaml:"gcp_project"`
-	CredentialsPath  string `yaml:"credentials_path"`
-	DatabasesBaseURL string `yaml:"databases_base_url"`
+	GCPProject       string                   `yaml:"gcp_project"`
+	CredentialsPath  string                   `yaml:"credentials_path"`
+	DatabasesBaseURL string                   `yaml:"databases_base_url"`
+	BigQueryDatabase MetabaseBigQueryDatabase `yaml:"big_query_database"`
 }
 
 func (m Metabase) Validate() error {
@@ -170,6 +171,19 @@ func (m Metabase) Validate() error {
 		validation.Field(&m.GCPProject, validation.Required),
 		validation.Field(&m.APIURL, validation.Required, is.URL),
 		validation.Field(&m.DatabasesBaseURL, validation.Required, is.URL),
+		validation.Field(&m.CredentialsPath, validation.Required),
+		validation.Field(&m.BigQueryDatabase),
+	)
+}
+
+type MetabaseBigQueryDatabase struct {
+	Endpoint   string `yaml:"endpoint"`
+	EnableAuth bool   `yaml:"enable_auth"`
+}
+
+func (m MetabaseBigQueryDatabase) Validate() error {
+	return validation.ValidateStruct(&m,
+		validation.Field(&m.Endpoint, is.URL),
 	)
 }
 
@@ -302,7 +316,8 @@ func (g GCS) Validate() error {
 }
 
 type BigQuery struct {
-	Endpoint string `yaml:"endpoint"`
+	Endpoint   string `yaml:"endpoint"`
+	EnableAuth bool   `yaml:"enable_auth"`
 	// TeamProjectPseudoViewsDatasetName is the name of the dataset in the team's
 	// own gcp project that contains the pseudo views.
 	TeamProjectPseudoViewsDatasetName string `yaml:"team_project_pseudo_views_dataset_name"`

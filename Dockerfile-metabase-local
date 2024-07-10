@@ -1,0 +1,46 @@
+# Based on: https://github.com/metabase/metabase/blob/master/Dockerfile
+FROM node:18-bullseye AS builder
+
+ARG MB_EDITION=ee
+
+WORKDIR /home/node
+
+RUN apt-get update && apt-get upgrade -y && apt-get install openjdk-17-jre openjdk-17-jdk curl git -y \
+    && curl -O https://download.clojure.org/install/linux-install-1.11.1.1262.sh \
+    && chmod +x linux-install-1.11.1.1262.sh \
+    && ./linux-install-1.11.1.1262.sh
+
+RUN git clone --depth 1 https://github.com/metabase/metabase.git
+
+WORKDIR /home/node/metabase
+
+COPY ./resources/metabase/001-bigquery-cloud-sdk-no-auth.patch .
+
+RUN git apply 001-bigquery-cloud-sdk-no-auth.patch
+
+RUN git config --global --add safe.directory /home/node
+
+RUN INTERACTIVE=false CI=true bin/build-driver.sh bigquery-cloud-sdk :edition $MB_EDITION
+
+ADD https://downloads.metabase.com/enterprise/latest/metabase.jar .
+
+# Overwrite the default driver with the one we built
+# - https://discourse.metabase.com/t/stop-metabase-from-overwriting-drivers/22739
+#RUN mkdir extracted
+#RUN unzip metabase.jar -d extracted
+
+# Copy the custom-built bigquery-cloud-sdk.metabase-driver.jar into the extracted directory
+# Assuming the custom driver is in the same directory as the Dockerfile, adjust the path as necessary
+RUN jar uf metabase.jar -C ./resources modules/bigquery-cloud-sdk.metabase-driver.jar
+#RUN cp ./resources/modules/bigquery-cloud-sdk.metabase-driver.jar ./extracted/modules/bigquery-cloud-sdk.metabase-driver.jar
+
+# Repackage metabase.jar
+#RUN jar -cfm metabase.jar -C extracted .
+
+FROM openjdk:17 AS runner
+
+WORKDIR /usr/src/metabase
+COPY --from=builder /home/node/metabase/metabase.jar /usr/src/metabase/metabase.jar
+EXPOSE 3000
+
+CMD ["java", "-jar", "metabase.jar"]

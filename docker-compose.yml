@@ -50,6 +50,59 @@ services:
       timeout: 5s
       retries: 5
 
+  bq:
+    image: nada-apps:latest
+    container_name: bq
+    hostname: bq
+    volumes:
+      - ${PWD}/resources/metabase/data.yaml:/opt/metabase/data.yaml
+    ports:
+      - "8084:8080"
+    networks:
+      - metanet1
+    command:
+      - /app/bin/bq
+      - -project
+      - test
+      - -port
+      - "8080"
+      - -data
+      - /opt/metabase/data.yaml
+
+  tk:
+    image: nada-apps:latest
+    container_name: tk
+    hostname: tk
+    volumes:
+      - ${PWD}/resources/teamkatalogen/fake-data.json:/opt/teamkatalogen/fake-data.json
+    ports:
+      - "8085:8080"
+    networks:
+      - metanet1
+    command:
+      - /app/bin/tk
+      - -port
+      - "8080"
+      - -data
+      - /opt/teamkatalogen/fake-data.json
+
+  nc:
+    image: nada-apps:latest
+    container_name: nc
+    hostname: nc
+    volumes:
+      - ${PWD}/resources/naisconsole/fake-response.json:/opt/naisconsole/fake-response.json
+    ports:
+      - "8086:8080"
+    networks:
+      - metanet1
+    command:
+      - /app/bin/nc
+      - -port
+      - "8080"
+      - -data
+      - /opt/naisconsole/fake-response.json
+
 volumes:
   metabase-data:
 

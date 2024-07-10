@@ -1,0 +1,98 @@
+oauth:
+  client_id: # Loaded from env var AZURE_CLIENT_ID
+  client_secret: # Loaded from env var AZURE_CLIENT_SECRET
+  tenant_id: # Loaded from env var AZURE_TENANT_ID
+  redirect_url: http://localhost:8080/api/oauth2/callback
+metabase:
+  username: nada@nav.no
+  password: superdupersecret1
+  api_url: http://localhost:8083/api
+  credentials_path: ./resources/metabase/fake/fake-metabase-sa.json
+  gcp_project: test
+  databases_base_url: http://localhost:8083/browse/databases
+  big_query_database:
+    enable_auth: false
+    endpoint: http://bq:8084 # This is the name of the service in the docker-compose.yml
+cross_team_pseudonymization:
+  gcp_project_id: test
+  gcp_region: europe-north1
+gcs:
+  story_bucket_name: nada-quarto-storage-dev
+  central_gcp_project: test
+big_query:
+  team_project_pseudo_views_dataset_name: markedsplassen_pseudo
+  gcp_region: europe-north1
+  central_gcp_project: test
+  enable_auth: false
+  endpoint: http://localhost:8084
+slack:
+  webhook_url: # Loaded from env var NADA_SLACK_WEBHOOK_URL
+  token: # Loaded from env var NADA_SLACK_TOKEN
+server:
+  hostname: localhost
+  address: 127.0.0.1
+  port: 8080
+postgres:
+  host: localhost
+  port: 5432
+  user_name: nada-backend
+  password: postgres
+  database_name: nada
+  ssl_mode: disable
+  configuration:
+    max_open_connections: 5
+    max_idle_connections: 3
+teams_catalogue:
+  api_url: http://localhost:8085
+treatment_catalogue:
+  api_url: https://polly.intern.dev.nav.no/process
+  purpose_url: https://behandlingskatalog.intern.dev.nav.no/process/purpose
+google_groups:
+  impersonation_subject: johnny.horvi@nav.no
+  credentials_file: ./test-sa.json
+gcp:
+  gcs:
+    endpoint: http://localhost:8082
+    story_bucket_name: nada-quarto-storage-dev
+  big_query:
+    team_project_pseudo_views_dataset_name: markedsplassen_pseudo_local
+cookies:
+  redirect:
+    name: redirecturi
+    max_age: 3600
+    path: /
+    domain: localhost
+    same_site: Lax
+    secure: false
+    http_only: true
+  oauth_state:
+    name: oauthstate
+    max_age: 3600
+    path: /
+    domain: localhost
+    same_site: Lax
+    secure: false
+    http_only: true
+  session:
+    name: nada_session
+    max_age: 86400
+    path: /
+    domain: localhost
+    same_site: Lax
+    secure: false
+    http_only: true
+nais_console:
+  api_key: verymuchfake
+  api_url: http://localhost:8086
+api:
+  auth_token: 1234
+email_suffix: '@nav.no'
+nais_cluster_name: test-gcp
+keywords_admin_group: nada@nav.no
+all_users_group: group:all-users@nav.no
+login_page: http://localhost:3000/
+amplitude_api_key: # Loaded from env var NADA_AMPLITUDE_API_KEY
+skip_metadata_sync: false
+mock_auth: false
+debug: false
+log_level: debug

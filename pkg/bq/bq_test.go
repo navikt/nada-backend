@@ -58,10 +58,11 @@ func TestClient_GetDataset(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
 
-			s := emulator.New(t)
+			s := emulator.New(zerolog.New(os.Stdout))
 			defer s.Cleanup()
 
 			s.WithProject(tc.projectID, tc.schema)
+			s.TestServer()
 
 			c := bq.NewClient(s.Endpoint(), false)
 
@@ -119,10 +120,11 @@ func TestClient_GetDatasets(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
 
-			s := emulator.New(t)
+			s := emulator.New(zerolog.New(os.Stdout))
 			defer s.Cleanup()
 
 			s.WithProject(tc.projectID, tc.schema)
+			s.TestServer()
 
 			c := bq.NewClient(s.Endpoint(), false)
 
@@ -201,10 +203,11 @@ func TestClient_GetTables(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
 
-			s := emulator.New(t)
+			s := emulator.New(zerolog.New(os.Stdout))
 			defer s.Cleanup()
 
 			s.WithProject(tc.projectID, tc.schema)
+			s.TestServer()
 
 			c := bq.NewClient(s.Endpoint(), false)
 
@@ -295,10 +298,11 @@ func TestClient_GetTable(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
 
-			s := emulator.New(t)
+			s := emulator.New(zerolog.New(os.Stdout))
 			defer s.Cleanup()
 
 			s.WithProject(tc.projectID, tc.schema)
+			s.TestServer()
 
 			c := bq.NewClient(s.Endpoint(), false)
 
@@ -364,10 +368,11 @@ func TestClient_CreateDataset(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
 
-			s := emulator.New(t)
+			s := emulator.New(zerolog.New(os.Stdout))
 			defer s.Cleanup()
 
 			s.WithProject(tc.projectID, tc.schema)
+			s.TestServer()
 
 			c := bq.NewClient(s.Endpoint(), false)
 
@@ -431,10 +436,11 @@ func TestClient_CreateDatasetIfNotExists(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
 
-			s := emulator.New(t)
+			s := emulator.New(zerolog.New(os.Stdout))
 			defer s.Cleanup()
 
 			s.WithProject(tc.projectID, tc.schema)
+			s.TestServer()
 
 			c := bq.NewClient(s.Endpoint(), false)
 
@@ -627,10 +633,11 @@ func TestClient_CreateTable(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
 
-			s := emulator.New(t)
+			s := emulator.New(zerolog.New(os.Stdout))
 			defer s.Cleanup()
 
 			s.WithProject(tc.projectID, tc.schema)
+			s.TestServer()
 
 			c := bq.NewClient(s.Endpoint(), false)
 
@@ -785,10 +792,11 @@ func TestClient_CreateTableOrUpdate(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
 
-			s := emulator.New(t)
+			s := emulator.New(zerolog.New(os.Stdout))
 			defer s.Cleanup()
 
 			s.WithProject(tc.projectID, tc.schema)
+			s.TestServer()
 
 			c := bq.NewClient(s.Endpoint(), false)
 
@@ -863,10 +871,11 @@ func TestClient_DeleteDataset(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
 
-			s := emulator.New(t)
+			s := emulator.New(zerolog.New(os.Stdout))
 			defer s.Cleanup()
 
 			s.WithProject(tc.projectID, tc.schema)
+			s.TestServer()
 
 			c := bq.NewClient(s.Endpoint(), false)
 
@@ -923,10 +932,11 @@ func TestClient_DeleteTable(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
 
-			s := emulator.New(t)
+			s := emulator.New(zerolog.New(os.Stdout))
 			defer s.Cleanup()
 
 			s.WithProject(tc.projectID, tc.schema)
+			s.TestServer()
 
 			c := bq.NewClient(s.Endpoint(), false)
 
@@ -1011,10 +1021,11 @@ func TestClient_QueryAndWait(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
 
-			s := emulator.New(t)
+			s := emulator.New(zerolog.New(os.Stdout))
 			defer s.Cleanup()
 
 			s.WithSource(tc.projectID, tc.project)
+			s.TestServer()
 
 			c := bq.NewClient(s.Endpoint(), false)
 
@@ -1065,10 +1076,11 @@ func TestClient_AddDatasetRoleAccessEntry(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
 
-			s := emulator.New(t)
+			s := emulator.New(zerolog.New(os.Stdout))
 			defer s.Cleanup()
 
 			s.WithProject(tc.projectID, tc.schema)
+			s.TestServer()
 
 			c := bq.NewClient(s.Endpoint(), false)
 
@@ -1118,10 +1130,11 @@ func TestClient_AddDatasetViewAccessEntry(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
 
-			s := emulator.New(t)
+			s := emulator.New(zerolog.New(os.Stdout))
 			defer s.Cleanup()
 
 			s.WithProject(tc.projectID, tc.schema)
+			s.TestServer()
 
 			c := bq.NewClient(s.Endpoint(), false)
 
@@ -1182,7 +1195,7 @@ func TestClient_AddAndSetTablePolicy(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			s := emulator.New(t)
+			s := emulator.New(zerolog.New(os.Stdout))
 			defer s.Cleanup()
 
 			s.WithProject(tc.projectID, tc.schema)
@@ -1192,9 +1205,11 @@ func TestClient_AddAndSetTablePolicy(t *testing.T) {
 			got := &iampb.SetIamPolicyRequest{}
 			// We need to enable the mock interceptor, since the IAM endpoints are not implemented
 			s.EnableMock(false, log,
-				emulator.DatasetTableIAMPolicyGetMock(log, tc.currentPolicy),
-				emulator.DatasetTableIAMPolicySetMock(log, got),
+				emulator.DatasetTableIAMPolicyGetMock(tc.projectID, tc.datasetID, tc.tableID, log, tc.currentPolicy),
+				emulator.DatasetTableIAMPolicySetMock(tc.projectID, tc.datasetID, tc.tableID, log, got),
 			)
+
+			s.TestServer()
 
 			c := bq.NewClient(s.Endpoint(), false)
 
@@ -1253,7 +1268,7 @@ func TestClient_RemoveAndSetTablePolicy(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			s := emulator.New(t)
+			s := emulator.New(zerolog.New(os.Stdout))
 			defer s.Cleanup()
 
 			s.WithProject(tc.projectID, tc.schema)
@@ -1264,9 +1279,11 @@ func TestClient_RemoveAndSetTablePolicy(t *testing.T) {
 
 			// We need to enable the mock interceptor, since the IAM endpoints are not implemented
 			s.EnableMock(false, log,
-				emulator.DatasetTableIAMPolicyGetMock(log, tc.currentPolicy),
-				emulator.DatasetTableIAMPolicySetMock(log, got),
+				emulator.DatasetTableIAMPolicyGetMock(tc.projectID, tc.datasetID, tc.tableID, log, tc.currentPolicy),
+				emulator.DatasetTableIAMPolicySetMock(tc.projectID, tc.datasetID, tc.tableID, log, got),
 			)
+
+			s.TestServer()
 
 			c := bq.NewClient(s.Endpoint(), false)
 

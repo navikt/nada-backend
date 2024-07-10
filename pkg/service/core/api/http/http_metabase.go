@@ -30,6 +30,8 @@ type metabaseAPI struct {
 	oauth2TenantID     string
 	expiry             time.Time
 	sessionID          string
+	enableAuth         bool
+	endpoint           string
 }
 
 var _ service.MetabaseAPI = &metabaseAPI{}
@@ -181,6 +183,8 @@ type Details struct {
 	ServiceAccountJSON string `json:"service-account-json"`
 	NadaID             string `json:"nada-id"`
 	SAEmail            string `json:"sa-email"`
+	Endpoint           string `json:"endpoint,omitempty"`
+	EnableAuth         *bool  `json:"enable-auth,omitempty"`
 }
 
 func (c *metabaseAPI) CreateDatabase(ctx context.Context, team, name, saJSON, saEmail string, ds *service.BigQuery) (int, error) {
@@ -195,14 +199,21 @@ func (c *metabaseAPI) CreateDatabase(ctx context.Context, team, name, saJSON, sa
 		return dbID, nil
 	}
 
+	enableAuth := &c.enableAuth
+	if !c.enableAuth {
+		enableAuth = nil
+	}
+
 	db := NewDatabase{
 		Name: strings.Split(team, "@")[0] + ": " + name,
 		Details: Details{
 			DatasetID:          ds.Dataset,
-			NadaID:             ds.DatasetID.String(),
 			ProjectID:          ds.ProjectID,
 			ServiceAccountJSON: saJSON,
+			NadaID:             ds.DatasetID.String(),
 			SAEmail:            saEmail,
+			Endpoint:           c.endpoint,
+			EnableAuth:         enableAuth,
 		},
 		Engine:         "bigquery-cloud-sdk",
 		IsFullSync:     true,
@@ -740,7 +751,7 @@ func dbExists(dbs []service.MetabaseDatabase, nadaID string) (int, bool) {
 	return 0, false
 }
 
-func NewMetabaseHTTP(url, username, password, oauth2ClientID, oauth2ClientSecret, oauth2TenantID string) *metabaseAPI {
+func NewMetabaseHTTP(url, username, password, oauth2ClientID, oauth2ClientSecret, oauth2TenantID, endpoint string, enableAuth bool) *metabaseAPI {
 	return &metabaseAPI{
 		c:                  http.DefaultClient,
 		url:                url,
@@ -749,5 +760,7 @@ func NewMetabaseHTTP(url, username, password, oauth2ClientID, oauth2ClientSecret
 		oauth2ClientID:     oauth2ClientID,
 		oauth2ClientSecret: oauth2ClientSecret,
 		oauth2TenantID:     oauth2TenantID,
+		endpoint:           endpoint,
+		enableAuth:         enableAuth,
 	}
 }

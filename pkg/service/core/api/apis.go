@@ -57,6 +57,8 @@ func NewClients(
 			cfg.Oauth.ClientID,
 			cfg.Oauth.ClientSecret,
 			cfg.Oauth.TenantID,
+			cfg.Metabase.BigQueryDatabase.Endpoint,
+			cfg.Metabase.BigQueryDatabase.EnableAuth,
 		),
 		PollyAPI: httpapi.NewPollyAPI(
 			cfg.TreatmentCatalogue.APIURL,

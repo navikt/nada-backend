@@ -46,6 +46,7 @@ const (
 	AccessEnsurerFrequency      = 5 * time.Minute
 	MetabaseUpdateFrequency     = 1 * time.Hour
 	TeamKatalogenFrequency      = 1 * time.Hour
+	CacheFrequency              = 2 * time.Hour
 )
 
 func main() {
@@ -95,11 +96,9 @@ func main() {
 	tkFetcher := tk.New(cfg.TeamsCatalogue.APIURL, httpClient)
 	ncFetcher := nc.New(cfg.NaisConsole.APIURL, cfg.NaisConsole.APIKey, cfg.NaisClusterName, httpClient)
 
-	// FIXME: make this configurable
-	cacher := cache.New(2*time.Hour, repo.GetDB(), zlog.With().Str("subsystem", "cache").Logger())
+	cacher := cache.New(CacheFrequency, repo.GetDB(), zlog.With().Str("subsystem", "cache").Logger())
 
-	// FIXME: make authentication configurable
-	bqClient := bq.NewClient(cfg.BigQuery.Endpoint, true)
+	bqClient := bq.NewClient(cfg.BigQuery.Endpoint, cfg.BigQuery.EnableAuth)
 
 	csClient, err := cs.New(ctx, cfg.GCS.StoryBucketName)
 	if err != nil {

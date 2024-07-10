@@ -1,6 +1,6 @@
 module github.com/navikt/nada-backend
 
-go 1.22.4
+go 1.22.5
 
 replace sourcegraph.com/sourcegraph/appdash => github.com/sourcegraph/appdash v0.0.0-20211028080628-e2786a622600
 
@@ -19,6 +19,7 @@ require (
 	github.com/go-chi/cors v1.2.1
 	github.com/go-ozzo/ozzo-validation/v4 v4.3.0
 	github.com/goccy/bigquery-emulator v0.6.2
+	github.com/goccy/go-yaml v1.11.0
 	github.com/golang-jwt/jwt/v4 v4.5.0
 	github.com/google/go-cmp v0.6.0
 	github.com/google/uuid v1.6.0
@@ -81,7 +82,6 @@ require (
 	github.com/go-playground/validator/v10 v10.11.0 // indirect
 	github.com/go-sourcemap/sourcemap v2.1.3+incompatible // indirect
 	github.com/goccy/go-json v0.10.3 // indirect
-	github.com/goccy/go-yaml v1.11.0 // indirect
 	github.com/goccy/go-zetasql v0.5.5 // indirect
 	github.com/goccy/go-zetasqlite v0.19.2 // indirect
 	github.com/gogo/protobuf v1.3.2 // indirect

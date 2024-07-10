@@ -1,0 +1,95 @@
+diff --git a/modules/drivers/bigquery-cloud-sdk/resources/metabase-plugin.yaml b/modules/drivers/bigquery-cloud-sdk/resources/metabase-plugin.yaml
+index bc5be48d86..56e101980a 100644
+--- a/modules/drivers/bigquery-cloud-sdk/resources/metabase-plugin.yaml
++++ b/modules/drivers/bigquery-cloud-sdk/resources/metabase-plugin.yaml
+@@ -14,6 +14,17 @@ driver:
+       helper-text: Project ID to be used for authentication. You can omit this field if you are only querying datasets owned by your organization.
+       required: false
+       placeholder: 1w08oDRKPrOqBt06yxY8uiCz2sSvOp3u
++    - name: endpoint
++      display-name: Endpoint (override)
++      helper-text: The endpoint to use for the BigQuery API. You can omit this field if you are using the default endpoint. (Ref. https://cloud.google.com/bigquery/docs/reference/rest#service-endpoint)
++      required: false
++      type: text
++      default: https://bigquery.googleapis.com
++    - name: enable-auth
++      display-name: Whether to enable authentication with Google Cloud SDK.
++      required: false
++      type: boolean
++      default: true
+     - name: service-account-json
+       display-name: Service account JSON file
+       helper-text: This JSON file contains the credentials Metabase needs to read and query your dataset.
+diff --git a/modules/drivers/bigquery-cloud-sdk/src/metabase/driver/bigquery_cloud_sdk.clj b/modules/drivers/bigquery-cloud-sdk/src/metabase/driver/bigquery_cloud_sdk.clj
+index 1f5d573112..903ad3adcb 100644
+--- a/modules/drivers/bigquery-cloud-sdk/src/metabase/driver/bigquery_cloud_sdk.clj
++++ b/modules/drivers/bigquery-cloud-sdk/src/metabase/driver/bigquery_cloud_sdk.clj
+@@ -53,18 +53,24 @@
+ 
+ (mu/defn ^:private database-details->client
+   ^BigQuery [details :- :map]
+-  (let [creds   (bigquery.common/database-details->service-account-credential details)
+-        bq-bldr (doto (BigQueryOptions/newBuilder)
+-                  (.setCredentials (.createScoped creds bigquery-scopes)))]
+-    (.. bq-bldr build getService)))
+-
++  (let [enable-auth (get details :enable-auth true)  ;; Default to true if not specified
++        endpoint (get details :endpoint "https://bigquery.googleapis.com")
++        bq-bldr (BigQueryOptions/newBuilder)]
++    (-> bq-bldr
++      (cond->
++        (true? enable-auth) (.setCredentials (.createScoped (bigquery.common/database-details->service-account-credential details) bigquery-scopes))
++        (false? enable-auth) (.setCredentials (bigquery.common/get-no-credentials))
++      )
++      (.setHost endpoint)
++      (.build)
++      (.getService))))
+ ;;; +----------------------------------------------------------------------------------------------------------------+
+ ;;; |                                                      Sync                                                      |
+ ;;; +----------------------------------------------------------------------------------------------------------------+
+ 
+ (defn- list-datasets
+   "Fetch all datasets given database `details`, applying dataset filters if specified."
+-  [{:keys [project-id dataset-filters-type dataset-filters-patterns] :as details}]
++  [{:keys [project-id dataset-filters-type dataset-filters-patterns enable-auth endpoint] :as details}]
+   (let [client (database-details->client details)
+         project-id (or project-id (bigquery.common/database-details->credential-project-id details))
+         datasets (.listDatasets client project-id (u/varargs BigQuery$DatasetListOption))
+@@ -110,7 +116,7 @@
+   (u/varargs BigQuery$TableOption))
+ 
+ (mu/defn ^:private get-table :- (lib.schema.common/instance-of-class Table)
+-  (^Table [{{:keys [project-id]} :details, :as database} dataset-id table-id]
++  (^Table [{{:keys [project-id, enable-auth, endpoint]} :details, :as database} dataset-id table-id]
+    (get-table (database-details->client (:details database)) project-id dataset-id table-id))
+ 
+   (^Table [^BigQuery client :- (lib.schema.common/instance-of-class BigQuery)
+diff --git a/modules/drivers/bigquery-cloud-sdk/src/metabase/driver/bigquery_cloud_sdk/common.clj b/modules/drivers/bigquery-cloud-sdk/src/metabase/driver/bigquery_cloud_sdk/common.clj
+index ee6b4396b5..5057799c85 100644
+--- a/modules/drivers/bigquery-cloud-sdk/src/metabase/driver/bigquery_cloud_sdk/common.clj
++++ b/modules/drivers/bigquery-cloud-sdk/src/metabase/driver/bigquery_cloud_sdk/common.clj
+@@ -7,8 +7,9 @@
+    #_{:clj-kondo/ignore [:discouraged-namespace]}
+    [toucan2.core :as t2])
+   (:import
+-   (com.google.auth.oauth2 ServiceAccountCredentials)
+-   (java.io ByteArrayInputStream)))
++    (com.google.auth.oauth2 ServiceAccountCredentials)
++    (com.google.cloud NoCredentials)
++    (java.io ByteArrayInputStream)))
+ 
+ (set! *warn-on-reflection* true)
+ 
+@@ -20,6 +21,12 @@
+   this dynamic var to the JVM TZ rather than UTC"
+   "UTC")
+ 
++(mu/defn get-no-credentials
++  "Returns a `NoCredentials` instance."
++  {:added "0.50.0"}
++  ^NoCredentials []
++  (NoCredentials/getInstance))
++
+ (mu/defn service-account-json->service-account-credential
+   "Returns a `ServiceAccountCredentials` (not scoped) for the given `service-account-json` (String)."
+   {:added "0.42.0"}

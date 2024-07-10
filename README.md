@@ -5,46 +5,38 @@ nada-backend is the API behind the "NAV Data" website.
 It serves a REST-API for managing data products, and provides functionality for self-service access to the data 
 source.
 
-## Running locally with tendrils into Google (as a Nada-member)
+## Getting started with local development
 
-First ensure that you're authenticated with Google.
-This assumes that you have `gcloud` installed, and that [Google Cloud Platform has been enabled in myapps](https://doc.nais.io/basics/access/#google-cloud-platform-gcp).
+1. Install required dependencies
 
-We require the login to be done in two steps now, apparently.
+- https://clang.llvm.org
+- https://docs.docker.com/engine/install/
+- https://cloud.google.com/sdk/gcloud
+- https://kubernetes.io/docs/tasks/tools/#kubectl
+
+2. Configure `gcloud` so you can [access Nais clusters](https://doc.nais.io/operate/how-to/command-line-access/#google-cloud-platform-gcp)  
+3. Login to GCP
 ```bash
 gcloud auth login --update-adc
 ```
-
-Ensure that your `.env` file is populated with data.
-Ignore this step if there's already some data that looks right.
-
-
-This assumes that `kubectl` is installed and set up with [`KUBECONFIGS`](https://doc.nais.io/basics/access/#install-kubectl), and that [naisdevice](https://doc.nais.io/device/) is installed and running.
-This pulls secret data from a Kubernetes cluster and puts it into your `.env` file. 
-```bash
-make env
-```
-
-And ensure that `test-sa.json` exists and has contents.
-Ignore this step if the file exists with data.
+4. Run som build commands
 
 ```bash
-make test-sa
+# Build all the nada-backend binaries
+$ make build
+
+# Start nada-backend with only local resources
+$ make local-deps # Builds and runs dependencies in the foreground
+$ make local # Builds and runs nada-backend
 ```
 
-Start the local database
-```bash
-docker-compose up
-```
-Appending a `-d` flag in the above command detaches the process once the database stuff is running.
+5. (Optional): Start the [nada-frontend](https://github.com/navikt/nada-frontend/?tab=readme-ov-file#development)
 
+6. (Optional): Take a look at the [locally running Metabase](http://localhost:8083), the username is: `nada@nav.no`, 
+   and password is: `superdupersecret1`
 
-Then start the backend!
-```bash
-make local-with-auth
-```
+### Fully local development
 
-Now you can head over to the nada-frontend repository and learn how to start the frontend.
 
 ## Deployment
 The application needs two GCP service accounts which are mounted in at runtime from two secrets in Google Secret Manager. These are:

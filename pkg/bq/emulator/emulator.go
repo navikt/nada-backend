@@ -1,22 +1,27 @@
 package emulator
 
 import (
+	"bytes"
 	"cloud.google.com/go/iam/apiv1/iampb"
+	"context"
 	"encoding/json"
+	"errors"
+	"fmt"
 	"github.com/go-chi/chi"
 	"github.com/goccy/bigquery-emulator/server"
 	"github.com/goccy/bigquery-emulator/types"
+	"github.com/goccy/go-yaml"
 	"github.com/rs/zerolog"
 	"net/http"
 	"net/http/httputil"
-	"testing"
+	"os"
 )
 
 type Emulator struct {
 	handler    http.Handler
 	testServer *server.TestServer
 	emulator   *server.Server
-	t          *testing.T
+	log        zerolog.Logger
 }
 
 type EndpointMock struct {
@@ -98,8 +103,6 @@ func (e *Emulator) EnableMock(debugRequest bool, log zerolog.Logger, mocks ...*E
 	})
 
 	e.emulator.Handler = router
-	e.testServer.Close()
-	e.testServer = e.emulator.TestServer()
 }
 
 func (e *Emulator) Cleanup() {
@@ -145,29 +148,76 @@ func (e *Emulator) WithProject(projectID string, datasets ...*Dataset) {
 func (e *Emulator) WithSource(projectID string, source server.Source) {
 	err := e.emulator.Load(source)
 	if err != nil {
-		e.t.Fatalf("initializing bigquery emulator: %v", err)
+		e.log.Fatal().Err(err).Msg("initializing bigquery emulator")
 	}
 
 	if err := e.emulator.SetProject(projectID); err != nil {
-		e.t.Fatalf("setting project: %v", err)
+		e.log.Fatal().Err(err).Msg("setting project")
 	}
+}
 
+func (e *Emulator) TestServer() {
 	e.testServer = e.emulator.TestServer()
 }
 
-func New(t *testing.T) *Emulator {
+func (e *Emulator) Serve(ctx context.Context, httpPort, grpcPort string) error {
+	err := e.emulator.Serve(
+		ctx,
+		fmt.Sprintf("0.0.0.0:%s", httpPort),
+		fmt.Sprintf("0.0.0.0:%s", grpcPort),
+	)
+	if err != nil {
+		return fmt.Errorf("starting server: %w", err)
+	}
+
+	return nil
+}
+
+func New(log zerolog.Logger) *Emulator {
 	s, err := server.New(server.TempStorage)
 	if err != nil {
-		t.Fatalf("creating bigquery emulator: %v", err)
+		log.Fatal().Err(err).Msg("creating bigquery emulator")
 	}
 
 	return &Emulator{
-		t:        t,
 		emulator: s,
+		log:      log,
 	}
 }
 
-func DatasetTableIAMPolicyGetMock(log zerolog.Logger, policy *iampb.Policy) *EndpointMock {
+func PolicyMocksFromDataYAML(path string, log zerolog.Logger) ([]*EndpointMock, error) {
+	content, err := os.ReadFile(path)
+	if err != nil {
+		return nil, err
+	}
+
+	var v struct {
+		Projects []*types.Project `yaml:"projects" validate:"required"`
+	}
+
+	dec := yaml.NewDecoder(
+		bytes.NewBuffer(content),
+		yaml.Strict(),
+	)
+
+	if err := dec.Decode(&v); err != nil {
+		return nil, errors.New(yaml.FormatError(err, false, true))
+	}
+
+	var mocks []*EndpointMock
+	for _, project := range v.Projects {
+		for _, dataset := range project.Datasets {
+			for _, table := range dataset.Tables {
+				mocks = append(mocks, DatasetTableIAMPolicyGetMock(project.ID, dataset.ID, table.ID, log, &iampb.Policy{}))
+				mocks = append(mocks, DatasetTableIAMPolicySetMock(project.ID, dataset.ID, table.ID, log, &iampb.SetIamPolicyRequest{}))
+			}
+		}
+	}
+
+	return mocks, nil
+}
+
+func DatasetTableIAMPolicyGetMock(project, dataset, table string, log zerolog.Logger, policy *iampb.Policy) *EndpointMock {
 	handlerFn := func(w http.ResponseWriter, r *http.Request) {
 		err := json.NewEncoder(w).Encode(policy)
 		if err != nil {
@@ -178,12 +228,12 @@ func DatasetTableIAMPolicyGetMock(log zerolog.Logger, policy *iampb.Policy) *End
 
 	return &EndpointMock{
 		Method:  http.MethodPost,
-		Path:    "/projects/test-project/datasets/test-dataset/tables/test-table:getIamPolicy",
+		Path:    fmt.Sprintf("/projects/%s/datasets/%s/tables/%s:getIamPolicy", project, dataset, table),
 		Handler: handlerFn,
 	}
 }
 
-func DatasetTableIAMPolicySetMock(log zerolog.Logger, into *iampb.SetIamPolicyRequest) *EndpointMock {
+func DatasetTableIAMPolicySetMock(project, dataset, table string, log zerolog.Logger, into *iampb.SetIamPolicyRequest) *EndpointMock {
 	handlerFn := func(w http.ResponseWriter, r *http.Request) {
 		err := json.NewDecoder(r.Body).Decode(into)
 		if err != nil {
@@ -199,7 +249,7 @@ func DatasetTableIAMPolicySetMock(log zerolog.Logger, into *iampb.SetIamPolicyRe
 
 	return &EndpointMock{
 		Method:  http.MethodPost,
-		Path:    "/projects/test-project/datasets/test-dataset/tables/test-table:setIamPolicy",
+		Path:    fmt.Sprintf("/projects/%s/datasets/%s/tables/%s:setIamPolicy", project, dataset, table),
 		Handler: handlerFn,
 	}
 }
