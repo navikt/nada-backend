@@ -29,6 +29,12 @@ ifndef GO
 $(error go is required, please install)
 endif
 
+DOCKER_COMPOSE := $(shell if command -v docker-compose > /dev/null 2>&1; then echo "docker-compose"; elif command -v docker > /dev/null 2>&1 && docker compose version > /dev/null 2>&1; then echo "docker compose"; else echo ""; fi)
+
+ifndef DOCKER_COMPOSE
+$(error "Neither docker-compose nor docker compose command is available, please install Docker")
+endif
+
 -include .env
 
 test:
@@ -91,11 +97,11 @@ local-deps: | docker-build-metabase-local-bq docker-build-apps docker-compose-up
 
 docker-compose-up-fg:
 	@echo "Starting dependencies with docker compose..."
-	docker compose up
+	$(DOCKER_COMPOSE) up
 
 docker-compose-up:
 	@echo "Starting dependencies with docker compose..."
-	docker compose up -d
+	$(DOCKER_COMPOSE ) up -d
 
 migrate:
 	go run github.com/pressly/goose/v3/cmd/goose -dir ./pkg/database/migrations postgres "user=nada-backend dbname=nada sslmode=disable password=postgres" up
