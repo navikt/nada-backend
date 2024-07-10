@@ -7,16 +7,13 @@ ENV CXX=clang++
 
 WORKDIR /src
 COPY . .
-RUN go mod download
 RUN mkdir -p /app/bin
-#RUN go build -o /app/bin/bq -ldflags='-s -w -linkmode external -extldflags "-static"' ./cmd/bq/main.go
 RUN go build -o /app/bin/bq ./cmd/bq/main.go
 
 FROM golang:1.22-bookworm AS builder
 
 WORKDIR /src
 COPY . .
-RUN go mod download
 RUN mkdir -p /app/bin
 RUN go build -o /app/bin/nc ./cmd/nc/main.go
 RUN go build -o /app/bin/tk ./cmd/tk/main.go
