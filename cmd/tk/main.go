@@ -98,7 +98,7 @@ func main() {
 	r.Get("/team", h.GetTeams)
 	r.Get("/team/{id}", h.GetTeam)
 
-	log.Printf("Server starting on port %d...", *port)
+	log.Printf("Server starting on port %s...", *port)
 	err = http.ListenAndServe(":"+*port, r)
 	if err != nil {
 		log.Fatal().Err(err).Msg("starting server")

@@ -57,6 +57,7 @@ func TestBigQuery(t *testing.T) {
 	em := emulator.New(log)
 
 	em.WithProject(gcpProject, datasets...)
+	em.TestServer()
 	bqClient := bq.NewClient(em.Endpoint(), false)
 
 	stores := storage.NewStores(repo, config.Config{}, log)
