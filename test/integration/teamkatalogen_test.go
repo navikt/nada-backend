@@ -75,7 +75,7 @@ func TestTeamKatalogen(t *testing.T) {
 	router := TestRouter(zlog)
 
 	{
-		apiTk := httpapi.NewTeamKatalogenAPI(staticFetcher)
+		apiTk := httpapi.NewTeamKatalogenAPI(staticFetcher, log)
 		cacheTk := postgres.NewTeamKatalogenCache(apiTk, cacher)
 		s := core.NewTeamKatalogenService(cacheTk)
 		h := handlers.NewTeamKatalogenHandler(s)

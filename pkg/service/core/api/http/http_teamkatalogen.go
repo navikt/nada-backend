@@ -6,6 +6,8 @@ import (
 	"github.com/navikt/nada-backend/pkg/errs"
 	"github.com/navikt/nada-backend/pkg/service"
 	"github.com/navikt/nada-backend/pkg/tk"
+	"github.com/rs/zerolog"
+	"github.com/rs/zerolog/log"
 	"net/http"
 	"strings"
 )
@@ -16,6 +18,7 @@ type teamKatalogenAPI struct {
 	fetcher tk.Fetcher
 	client  *http.Client
 	url     string
+	log     zerolog.Logger
 }
 
 func (t *teamKatalogenAPI) GetProductAreas(ctx context.Context) ([]*service.TeamkatalogenProductArea, error) {
@@ -85,6 +88,8 @@ func (t *teamKatalogenAPI) Search(ctx context.Context, gcpGroups []string) ([]se
 		return nil, errs.E(errs.IO, op, err)
 	}
 
+	log.Info().Msgf("matching against groups %v", gcpGroups)
+
 	var ret []service.TeamkatalogenResult
 	for _, r := range teams.Content {
 		isMatch := false
@@ -97,6 +102,8 @@ func (t *teamKatalogenAPI) Search(ctx context.Context, gcpGroups []string) ([]se
 				break
 			}
 		}
+
+		log.Info().Msgf("team %s matched: %v", r.Name, isMatch)
 
 		if isMatch {
 			ret = append(ret, service.TeamkatalogenResult{
@@ -124,8 +131,9 @@ func ContainsAnyCaseInsensitive(s string, patterns []string) bool {
 	return false
 }
 
-func NewTeamKatalogenAPI(fetcher tk.Fetcher) *teamKatalogenAPI {
+func NewTeamKatalogenAPI(fetcher tk.Fetcher, log zerolog.Logger) *teamKatalogenAPI {
 	return &teamKatalogenAPI{
 		fetcher: fetcher,
+		log:     log,
 	}
 }

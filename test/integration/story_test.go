@@ -118,7 +118,7 @@ func TestStory(t *testing.T) {
 	tokenStorage := postgres.NewTokenStorage(repo)
 
 	{
-		teamKatalogenAPI := httpapi.NewTeamKatalogenAPI(staticFetcher)
+		teamKatalogenAPI := httpapi.NewTeamKatalogenAPI(staticFetcher, log)
 		cs := cs.NewFromClient("nada-backend-stories", e.Client())
 		storyAPI := gcp.NewStoryAPI(cs, log)
 		tokenService := core.NewTokenService(tokenStorage)

@@ -35,7 +35,7 @@ func NewClients(
 	cfg config.Config,
 	log zerolog.Logger,
 ) *Clients {
-	tkAPI := httpapi.NewTeamKatalogenAPI(tkFetcher)
+	tkAPI := httpapi.NewTeamKatalogenAPI(tkFetcher, log)
 	tkAPICacher := postgres.NewTeamKatalogenCache(tkAPI, cache)
 
 	return &Clients{
