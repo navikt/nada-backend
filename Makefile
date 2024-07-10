@@ -32,7 +32,7 @@ endif
 -include .env
 
 test:
-	go test ./... -count=1
+	CGO_ENABLED=1 CXX=clang++ CC=clang CXXFLAGS=-Wno-everything go test ./... -count=1
 .PHONY: test
 
 build: $(RELEASE_DIR)
@@ -41,7 +41,7 @@ build: $(RELEASE_DIR)
 	@for d in cmd/*; do \
 		app=$$(basename $$d); \
 		echo "Building $$app..."; \
-		CGO_ENABLED=1 CXX=clang++ CC=clang $(GO) build -o $(RELEASE_DIR)/$$app ./$$d; \
+		CGO_ENABLED=1 CXX=clang++ CC=clang CGO_CXXFLAGS=-Wno-everything CGO_LDFLAGS=-Wno-everything $(GO) build -o $(RELEASE_DIR)/$$app ./$$d; \
 	done
 	@echo "Build complete. Binaries are located in $(RELEASE_DIR)"
 .PHONY: build
