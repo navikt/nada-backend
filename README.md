@@ -36,6 +36,10 @@ With this configuration all dependencies run as containers, as can be seen in `d
 - [Metabase](https://github.com/metabase/metabase) with a [patch](resources/metabase/001-bigquery-cloud-sdk-no-auth.patch) for enabling use of bigquery-emulator
 - Fake API servers for `teamkatalogen` and `naisconsole`
 
+There are still a couple of services missing, though much functionality should work without this:
+- Fetching of Google Groups
+- Creating Google Cloud Service Accounts
+
 1. Start the dependencies
 ```bash
 # Builds and runs dependencies in the foreground
