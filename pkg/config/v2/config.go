@@ -47,16 +47,17 @@ type Config struct {
 	NaisConsole               NaisConsole               `yaml:"nais_console"`
 	API                       API                       `yaml:"api"`
 
-	EmailSuffix        string `yaml:"email_suffix"`
-	NaisClusterName    string `yaml:"nais_cluster_name"`
-	KeywordsAdminGroup string `yaml:"keywords_admin_group"`
-	AllUsersGroup      string `yaml:"all_users_group"`
-	LoginPage          string `yaml:"login_page"`
-	AmplitudeAPIKey    string `yaml:"amplitude_api_key"`
-	LogLevel           string `yaml:"log_level"`
-	MockAuth           bool   `yaml:"mock_auth"`
-	SkipMetadataSync   bool   `yaml:"skip_metadata_sync"`
-	Debug              bool   `yaml:"debug"`
+	EmailSuffix          string `yaml:"email_suffix"`
+	NaisClusterName      string `yaml:"nais_cluster_name"`
+	KeywordsAdminGroup   string `yaml:"keywords_admin_group"`
+	AllUsersGroup        string `yaml:"all_users_group"`
+	LoginPage            string `yaml:"login_page"`
+	AmplitudeAPIKey      string `yaml:"amplitude_api_key"`
+	LogLevel             string `yaml:"log_level"`
+	CacheDurationSeconds int    `yaml:"cache_duration_seconds"`
+	MockAuth             bool   `yaml:"mock_auth"`
+	SkipMetadataSync     bool   `yaml:"skip_metadata_sync"`
+	Debug                bool   `yaml:"debug"`
 }
 
 func (c Config) Validate() error {

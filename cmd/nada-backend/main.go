@@ -46,7 +46,6 @@ const (
 	AccessEnsurerFrequency      = 5 * time.Minute
 	MetabaseUpdateFrequency     = 1 * time.Hour
 	TeamKatalogenFrequency      = 1 * time.Hour
-	CacheFrequency              = 2 * time.Hour
 )
 
 func main() {
@@ -96,7 +95,7 @@ func main() {
 	tkFetcher := tk.New(cfg.TeamsCatalogue.APIURL, httpClient)
 	ncFetcher := nc.New(cfg.NaisConsole.APIURL, cfg.NaisConsole.APIKey, cfg.NaisClusterName, httpClient)
 
-	cacher := cache.New(CacheFrequency, repo.GetDB(), zlog.With().Str("subsystem", "cache").Logger())
+	cacher := cache.New(time.Duration(cfg.CacheDurationSeconds)*time.Second, repo.GetDB(), zlog.With().Str("subsystem", "cache").Logger())
 
 	bqClient := bq.NewClient(cfg.BigQuery.Endpoint, cfg.BigQuery.EnableAuth)
 
