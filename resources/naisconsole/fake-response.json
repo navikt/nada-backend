@@ -10,6 +10,15 @@
               "gcpProjectID": "test"
             }
           ]
+        },
+        {
+          "slug": "nada",
+          "environments": [
+            {
+              "name": "test-gcp",
+              "gcpProjectID": "test"
+            }
+          ]
         }
       ],
       "pageInfo": {
