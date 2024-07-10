@@ -55,7 +55,7 @@ services:
     container_name: bq
     hostname: bq
     volumes:
-      - ${PWD}/resources/metabase/data.yaml:/opt/metabase/data.yaml
+      - ${PWD}/resources/metabase:/opt/metabase/
     ports:
       - "8084:8080"
     networks:
@@ -74,7 +74,7 @@ services:
     container_name: tk
     hostname: tk
     volumes:
-      - ${PWD}/resources/teamkatalogen/fake-data.json:/opt/teamkatalogen/fake-data.json
+      - ${PWD}/resources/teamkatalogen:/opt/teamkatalogen
     ports:
       - "8085:8080"
     networks:
@@ -91,7 +91,7 @@ services:
     container_name: nc
     hostname: nc
     volumes:
-      - ${PWD}/resources/naisconsole/fake-response.json:/opt/naisconsole/fake-response.json
+      - ${PWD}/resources/naisconsole:/opt/naisconsole
     ports:
       - "8086:8080"
     networks:
