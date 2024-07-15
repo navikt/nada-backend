@@ -90,7 +90,7 @@ func (m *Metabase) run(ctx context.Context) {
 			log.WithError(err).Error("getting bigquery datasource for dataset")
 		}
 		if err := m.SyncTableVisibility(ctx, db, *bq); err != nil {
-			log.WithError(err).Warning("hiding other tables")
+			log.WithError(err).Warningf("hiding other tables for database %v", db.DatabaseID)
 		}
 	}
 }
