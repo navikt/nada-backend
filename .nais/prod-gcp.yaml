@@ -99,6 +99,7 @@ spec:
         - host: console.nav.cloud.nais.io
         - host: amplitude.nav.no
         - host: slack.com
+        - host: hooks.slack.com
 ---
 apiVersion: networking.k8s.io/v1
 kind: Ingress
