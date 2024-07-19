@@ -132,7 +132,7 @@ func GetProductAreaWithAssets(ctx context.Context, id string) (*ProductAreaWithA
 	for _, dp := range dataproducts {
 		for idx, team := range productArea.Teams {
 			if dp.Owner.TeamID != nil && team.ID == *dp.Owner.TeamID {
-				productArea.Teams[idx].Dataproducts = append(productArea.Teams[idx].Dataproducts, *dp)
+				productArea.Teams[idx].Dataproducts = append(productArea.Teams[idx].Dataproducts, dp)
 			}
 		}
 	}
@@ -166,8 +166,8 @@ func GetProductAreaWithAssets(ctx context.Context, id string) (*ProductAreaWithA
 	return productArea, nil
 }
 
-func dataproductFromSQL(dp *gensql.DataproductWithTeamkatalogenView) *Dataproduct {
-	return &Dataproduct{
+func dataproductFromSQL(dp gensql.DataproductWithTeamkatalogenView) Dataproduct {
+	return Dataproduct{
 		ID:          dp.ID,
 		Name:        dp.Name,
 		Description: &dp.Description.String,
@@ -186,18 +186,18 @@ func dataproductFromSQL(dp *gensql.DataproductWithTeamkatalogenView) *Dataproduc
 	}
 }
 
-func getDataproductsByTeamID(ctx context.Context, teamIDs []string) ([]*Dataproduct, *APIError) {
+func getDataproductsByTeamID(ctx context.Context, teamIDs []string) ([]Dataproduct, *APIError) {
 	sqlDP, err := queries.GetDataproductsByProductArea(ctx, teamIDs)
 	if err == sql.ErrNoRows {
-		return []*Dataproduct{}, nil
+		return []Dataproduct{}, nil
 	}
 	if err != nil {
 		return nil, DBErrorToAPIError(err, "getDataproductsByTeamID(): failed to get dataproducts")
 	}
 
-	dps := make([]*Dataproduct, len(sqlDP))
+	dps := make([]Dataproduct, len(sqlDP))
 	for idx, dp := range sqlDP {
-		dps[idx] = dataproductFromSQL(&dp)
+		dps[idx] = dataproductFromSQL(dp)
 		keywords, err := queries.GetDataproductKeywords(ctx, dps[idx].ID)
 		if err != nil && err != sql.ErrNoRows {
 			return nil, DBErrorToAPIError(err, "getDataproductsByTeamID(): failed to get keywords")
