@@ -8,7 +8,7 @@ replace sourcegraph.com/sourcegraph/appdash-data => github.com/sourcegraph/appda
 
 require (
 	cloud.google.com/go/bigquery v1.61.0
-	cloud.google.com/go/iam v1.1.11
+	cloud.google.com/go/iam v1.1.12
 	cloud.google.com/go/storage v1.43.0
 	github.com/99designs/gqlgen v0.17.49
 	github.com/99designs/gqlgen-contrib v0.1.1-0.20200601100547-7a955d321bbd
@@ -63,7 +63,7 @@ require (
 	github.com/google/s2a-go v0.1.7 // indirect
 	github.com/google/shlex v0.0.0-20191202100458-e7afc7fbc510 // indirect
 	github.com/googleapis/enterprise-certificate-proxy v0.3.2 // indirect
-	github.com/googleapis/gax-go/v2 v2.12.5 // indirect
+	github.com/googleapis/gax-go/v2 v2.13.0 // indirect
 	github.com/gorilla/websocket v1.5.0 // indirect
 	github.com/imdario/mergo v0.3.16 // indirect
 	github.com/klauspost/compress v1.17.2 // indirect
@@ -103,7 +103,7 @@ require (
 	golang.org/x/time v0.5.0 // indirect
 	golang.org/x/tools v0.22.0 // indirect
 	google.golang.org/genproto v0.0.0-20240722135656-d784300faade // indirect
-	google.golang.org/genproto/googleapis/api v0.0.0-20240701130421-f6361c86f094 // indirect
+	google.golang.org/genproto/googleapis/api v0.0.0-20240722135656-d784300faade // indirect
 	google.golang.org/genproto/googleapis/rpc v0.0.0-20240722135656-d784300faade // indirect
 	google.golang.org/grpc v1.64.1 // indirect
 	google.golang.org/protobuf v1.34.2 // indirect
