@@ -7,7 +7,7 @@ replace sourcegraph.com/sourcegraph/appdash => github.com/sourcegraph/appdash v0
 replace sourcegraph.com/sourcegraph/appdash-data => github.com/sourcegraph/appdash-data v0.0.0-20151005221446-73f23eafcf67
 
 require (
-	cloud.google.com/go/bigquery v1.61.0
+	cloud.google.com/go/bigquery v1.62.0
 	cloud.google.com/go/iam v1.1.12
 	cloud.google.com/go/storage v1.43.0
 	github.com/99designs/gqlgen v0.17.49
