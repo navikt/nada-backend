@@ -541,6 +541,7 @@ func GrantAccessToDataset(ctx context.Context, input GrantAccessData) *APIError 
 		return NewAPIError(http.StatusInternalServerError, err, "grantAccessToDataset(): failed to grant access")
 	}
 
+	eventManager.TriggerDatasetGrant(ctx, input.DatasetID, subjWithType)
 	return nil
 }
 
