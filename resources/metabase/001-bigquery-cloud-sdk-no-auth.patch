@@ -1,3 +1,15 @@
+From bec514ecc1f5fd502cd600d5d0725028775dac3f Mon Sep 17 00:00:00 2001
+From: "Paul B. Beskow" <paul@beskow.no>
+Date: Wed, 31 Jul 2024 10:12:15 +0200
+Subject: [PATCH] chore(bq): modify driver to allow for local bq
+
+---
+ .../resources/metabase-plugin.yaml            | 11 ++++++
+ .../metabase/driver/bigquery_cloud_sdk.clj    | 36 ++++++++++++++-----
+ .../driver/bigquery_cloud_sdk/common.clj      | 11 ++++--
+ package.json                                  |  4 ---
+ 4 files changed, 48 insertions(+), 14 deletions(-)
+
 diff --git a/modules/drivers/bigquery-cloud-sdk/resources/metabase-plugin.yaml b/modules/drivers/bigquery-cloud-sdk/resources/metabase-plugin.yaml
 index bc5be48d86..56e101980a 100644
 --- a/modules/drivers/bigquery-cloud-sdk/resources/metabase-plugin.yaml
@@ -21,12 +33,12 @@ index bc5be48d86..56e101980a 100644
        display-name: Service account JSON file
        helper-text: This JSON file contains the credentials Metabase needs to read and query your dataset.
 diff --git a/modules/drivers/bigquery-cloud-sdk/src/metabase/driver/bigquery_cloud_sdk.clj b/modules/drivers/bigquery-cloud-sdk/src/metabase/driver/bigquery_cloud_sdk.clj
-index 1f5d573112..903ad3adcb 100644
+index 05607292b6..249e7440b5 100644
 --- a/modules/drivers/bigquery-cloud-sdk/src/metabase/driver/bigquery_cloud_sdk.clj
 +++ b/modules/drivers/bigquery-cloud-sdk/src/metabase/driver/bigquery_cloud_sdk.clj
-@@ -53,18 +53,24 @@
+@@ -54,11 +54,22 @@
  
- (mu/defn ^:private database-details->client
+ (mu/defn- database-details->client
    ^BigQuery [details :- :map]
 -  (let [creds   (bigquery.common/database-details->service-account-credential details)
 -        bq-bldr (doto (BigQueryOptions/newBuilder)
@@ -35,32 +47,57 @@ index 1f5d573112..903ad3adcb 100644
 -
 +  (let [enable-auth (get details :enable-auth true)  ;; Default to true if not specified
 +        endpoint (get details :endpoint "https://bigquery.googleapis.com")
++        project-id (get details :project-id)
 +        bq-bldr (BigQueryOptions/newBuilder)]
++    (log/info "(client) Enable Auth:" enable-auth)
++    (log/info "(client) Endpoint:" endpoint)
++    (log/info "(client) Project ID:" project-id)
 +    (-> bq-bldr
 +      (cond->
 +        (true? enable-auth) (.setCredentials (.createScoped (bigquery.common/database-details->service-account-credential details) bigquery-scopes))
 +        (false? enable-auth) (.setCredentials (bigquery.common/get-no-credentials))
 +      )
 +      (.setHost endpoint)
++      (.setProjectId project-id)
 +      (.build)
 +      (.getService))))
  ;;; +----------------------------------------------------------------------------------------------------------------+
- ;;; |                                                      Sync                                                      |
+ ;;; |                                         Transducing Query Results                                              |
  ;;; +----------------------------------------------------------------------------------------------------------------+
+@@ -122,9 +133,11 @@
  
  (defn- list-datasets
    "Fetch all datasets given database `details`, applying dataset filters if specified."
 -  [{:keys [project-id dataset-filters-type dataset-filters-patterns] :as details}]
-+  [{:keys [project-id dataset-filters-type dataset-filters-patterns enable-auth endpoint] :as details}]
++  [details]
    (let [client (database-details->client details)
-         project-id (or project-id (bigquery.common/database-details->credential-project-id details))
+-        project-id (or project-id (bigquery.common/database-details->credential-project-id details))
++        project-id (or (get details :project-id) (bigquery.common/database-details->credential-project-id details))
++        dataset-filters-type (get details :dataset-filters-type)
++        dataset-filters-patterns (get details :dataset-filters-patterns)
          datasets (.listDatasets client project-id (u/varargs BigQuery$DatasetListOption))
-@@ -110,7 +116,7 @@
+         inclusion-patterns (when (= "inclusion" dataset-filters-type) dataset-filters-patterns)
+         exclusion-patterns (when (= "exclusion" dataset-filters-type) dataset-filters-patterns)]
+@@ -148,6 +161,13 @@
+ 
+ (defmethod driver/can-connect? :bigquery-cloud-sdk
+   [_ details]
++  ;; Debug output for endpoint and enable-auth
++  (let [endpoint (get details :endpoint "https://bigquery.googleapis.com")
++        enable-auth (get details :enable-auth true)
++        project-id (get details :project-id "n/a")]
++    (log/info "(can-connect) Endpoint:" endpoint)
++    (log/info "(can-connect) Enable Auth:" enable-auth)
++    (log/info "(can-connect) Project ID: " project-id))
+   ;; check whether we can connect by seeing whether listing datasets succeeds
+   (let [[success? datasets] (try [true (list-datasets details)]
+                                  (catch Exception e
+@@ -168,7 +188,7 @@
    (u/varargs BigQuery$TableOption))
  
- (mu/defn ^:private get-table :- (lib.schema.common/instance-of-class Table)
+ (mu/defn- get-table :- (lib.schema.common/instance-of-class Table)
 -  (^Table [{{:keys [project-id]} :details, :as database} dataset-id table-id]
-+  (^Table [{{:keys [project-id, enable-auth, endpoint]} :details, :as database} dataset-id table-id]
++  (^Table [{{:keys [project-id endpoint enable-auth]} :details, :as database} dataset-id table-id]
     (get-table (database-details->client (:details database)) project-id dataset-id table-id))
  
    (^Table [^BigQuery client :- (lib.schema.common/instance-of-class BigQuery)
@@ -93,3 +130,21 @@ index ee6b4396b5..5057799c85 100644
  (mu/defn service-account-json->service-account-credential
    "Returns a `ServiceAccountCredentials` (not scoped) for the given `service-account-json` (String)."
    {:added "0.42.0"}
+diff --git a/package.json b/package.json
+index 065b3f7a59..b4438cf3d5 100644
+--- a/package.json
++++ b/package.json
+@@ -424,10 +424,6 @@
+     ],
+     "e2e/test/scenarios/*/{*.(js|ts),!(helpers|shared)/*.(js|ts)}": [
+       "node e2e/validate-e2e-test-files.js"
+-    ],
+-    "**/*.{clj,cljc,cljs,bb}": [
+-      "clj-kondo --config ./.clj-kondo/config.edn --config-dir ./.clj-kondo --parallel --lint",
+-      "./bin/whitespace_lint_staged.sh"
+     ]
+   },
+   "browserslist": [
+-- 
+2.46.0
+

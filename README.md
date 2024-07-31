@@ -16,7 +16,8 @@ It serves a REST-API for managing data products, and provides functionality for 
 ```bash
 gcloud auth login --update-adc
 ```
-4. Run som build commands
+4. (Optional) If you are on mac with arm (m1, m2, m3, etc.), you might need to install rosetta: `softwareupdate --install-rosetta`
+5. Run som build commands
 
 ```bash
 # Build all binaries

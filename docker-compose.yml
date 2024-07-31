@@ -57,7 +57,7 @@ services:
     volumes:
       - ${PWD}/resources/metabase:/opt/metabase/
     ports:
-      - "8084:8080"
+      - "8084:8084"
     networks:
       - metanet1
     command:
@@ -65,7 +65,7 @@ services:
       - -project
       - test
       - -port
-      - "8080"
+      - "8084"
       - -data
       - /opt/metabase/data.yaml
 
