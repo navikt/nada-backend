@@ -9,10 +9,11 @@ package transport
 import (
 	"context"
 	"encoding/json"
-	"github.com/navikt/nada-backend/pkg/errs"
-	"github.com/rs/zerolog"
 	"net/http"
 	"strconv"
+
+	"github.com/navikt/nada-backend/pkg/errs"
+	"github.com/rs/zerolog"
 )
 
 type StatusCoder interface {

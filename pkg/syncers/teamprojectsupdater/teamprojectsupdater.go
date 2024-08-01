@@ -4,10 +4,11 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"time"
+
 	"github.com/navikt/nada-backend/pkg/leaderelection"
 	"github.com/navikt/nada-backend/pkg/service"
 	"github.com/rs/zerolog"
-	"time"
 )
 
 var ErrNotLeader = fmt.Errorf("not leader")

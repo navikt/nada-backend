@@ -5,6 +5,9 @@ import (
 	"encoding/base64"
 	"errors"
 	"fmt"
+	"net/http"
+	"strings"
+
 	"github.com/btcsuite/btcutil/base58"
 	"github.com/google/uuid"
 	"github.com/navikt/nada-backend/pkg/errs"
@@ -12,14 +15,11 @@ import (
 	"google.golang.org/api/cloudresourcemanager/v1"
 	"google.golang.org/api/googleapi"
 	"google.golang.org/api/iam/v1"
-	"net/http"
-	"strings"
 )
 
 var _ service.ServiceAccountAPI = &serviceAccountAPI{}
 
-type serviceAccountAPI struct {
-}
+type serviceAccountAPI struct{}
 
 func (a *serviceAccountAPI) DeleteServiceAccount(ctx context.Context, gcpProject, saEmail string) error {
 	const op errs.Op = "gcp.DeleteServiceAccount"

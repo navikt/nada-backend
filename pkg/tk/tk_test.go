@@ -3,12 +3,13 @@ package tk_test
 import (
 	"context"
 	"encoding/json"
-	"github.com/google/uuid"
-	"github.com/navikt/nada-backend/pkg/tk"
-	"github.com/stretchr/testify/assert"
 	"net/http"
 	"net/http/httptest"
 	"testing"
+
+	"github.com/google/uuid"
+	"github.com/navikt/nada-backend/pkg/tk"
+	"github.com/stretchr/testify/assert"
 )
 
 func TestClient_GetProductAreas(t *testing.T) {

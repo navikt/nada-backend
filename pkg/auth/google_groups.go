@@ -3,10 +3,11 @@ package auth
 import (
 	"context"
 	"fmt"
-	"github.com/navikt/nada-backend/pkg/service"
-	"google.golang.org/api/option"
 	"os"
 	"strings"
+
+	"github.com/navikt/nada-backend/pkg/service"
+	"google.golang.org/api/option"
 
 	"golang.org/x/oauth2/google"
 	admin "google.golang.org/api/admin/directory/v1"

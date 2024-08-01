@@ -3,6 +3,10 @@ package handlers
 import (
 	"context"
 	"fmt"
+	"net/http"
+	"path/filepath"
+	"strings"
+
 	"github.com/go-chi/chi"
 	"github.com/google/uuid"
 	"github.com/navikt/nada-backend/pkg/auth"
@@ -11,9 +15,6 @@ import (
 	"github.com/navikt/nada-backend/pkg/service/core/parser"
 	"github.com/navikt/nada-backend/pkg/service/core/transport"
 	"github.com/rs/zerolog"
-	"net/http"
-	"path/filepath"
-	"strings"
 )
 
 type ContextKeyType string

@@ -2,17 +2,21 @@
 package cs
 
 import (
-	"cloud.google.com/go/storage"
 	"context"
 	"errors"
 	"fmt"
-	"google.golang.org/api/iterator"
 	"io"
 	"strconv"
+
+	"cloud.google.com/go/storage"
+
+	"google.golang.org/api/iterator"
 )
 
-var ErrObjectNotExist = errors.New("object does not exist")
-var ErrBucketNotExist = errors.New("bucket does not exist")
+var (
+	ErrObjectNotExist = errors.New("object does not exist")
+	ErrBucketNotExist = errors.New("bucket does not exist")
+)
 
 type Operations interface {
 	DeleteObjects(ctx context.Context, q *Query) (int, error)
@@ -153,7 +157,6 @@ func (c *Client) GetObjects(ctx context.Context, q *Query) ([]*Object, error) {
 	}
 
 	return objects, nil
-
 }
 
 func (c *Client) GetObjectWithData(ctx context.Context, name string) (*ObjectWithData, error) {

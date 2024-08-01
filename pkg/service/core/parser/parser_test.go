@@ -2,14 +2,15 @@ package parser_test
 
 import (
 	"bytes"
-	"github.com/navikt/nada-backend/pkg/service/core/parser"
-	"github.com/stretchr/testify/assert"
 	"io"
 	"mime/multipart"
 	"net/http"
 	"net/http/httptest"
 	"path/filepath"
 	"testing"
+
+	"github.com/navikt/nada-backend/pkg/service/core/parser"
+	"github.com/stretchr/testify/assert"
 )
 
 func TestMultipartFormFromRequest(t *testing.T) {

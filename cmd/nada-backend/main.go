@@ -2,6 +2,13 @@ package main
 
 import (
 	"context"
+	"net"
+	"net/http"
+	"os"
+	"os/signal"
+	"syscall"
+	"time"
+
 	"github.com/go-chi/chi"
 	"github.com/navikt/nada-backend/pkg/bq"
 	"github.com/navikt/nada-backend/pkg/cache"
@@ -19,12 +26,6 @@ import (
 	"github.com/navikt/nada-backend/pkg/tk"
 	"github.com/prometheus/client_golang/prometheus/collectors"
 	"github.com/rs/zerolog"
-	"net"
-	"net/http"
-	"os"
-	"os/signal"
-	"syscall"
-	"time"
 
 	"github.com/navikt/nada-backend/pkg/api"
 	"github.com/navikt/nada-backend/pkg/auth"

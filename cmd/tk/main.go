@@ -3,12 +3,13 @@ package main
 import (
 	"encoding/json"
 	"flag"
-	"github.com/go-chi/chi"
-	"github.com/navikt/nada-backend/pkg/tk"
-	"github.com/rs/zerolog"
 	"net/http"
 	"net/http/httputil"
 	"os"
+
+	"github.com/go-chi/chi"
+	"github.com/navikt/nada-backend/pkg/tk"
+	"github.com/rs/zerolog"
 )
 
 var (

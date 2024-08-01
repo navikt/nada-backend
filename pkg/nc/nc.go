@@ -68,7 +68,7 @@ func (c *Client) GetTeamGoogleProjects(ctx context.Context) (map[string]string, 
 	const limit = 100
 	offset := 0
 
-	var mapping = map[string]string{}
+	mapping := map[string]string{}
 
 	for {
 		payload := map[string]any{

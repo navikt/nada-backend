@@ -2,12 +2,13 @@ package handlers
 
 import (
 	"context"
+	"net/http"
+
 	"github.com/go-chi/chi"
 	"github.com/google/uuid"
 	"github.com/navikt/nada-backend/pkg/auth"
 	"github.com/navikt/nada-backend/pkg/errs"
 	"github.com/navikt/nada-backend/pkg/service"
-	"net/http"
 )
 
 type InsightProductHandler struct {

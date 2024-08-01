@@ -2,8 +2,9 @@ package metabase
 
 import (
 	"context"
-	"github.com/rs/zerolog"
 	"time"
+
+	"github.com/rs/zerolog"
 
 	"github.com/navikt/nada-backend/pkg/service"
 )

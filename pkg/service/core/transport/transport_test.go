@@ -2,15 +2,16 @@ package transport
 
 import (
 	"context"
-	"github.com/go-chi/chi"
-	"github.com/rs/zerolog"
-	"github.com/sebdah/goldie/v2"
-	"github.com/stretchr/testify/assert"
 	"net/http"
 	"net/http/httptest"
 	"os"
 	"strings"
 	"testing"
+
+	"github.com/go-chi/chi"
+	"github.com/rs/zerolog"
+	"github.com/sebdah/goldie/v2"
+	"github.com/stretchr/testify/assert"
 )
 
 type TestData struct {
@@ -83,7 +84,6 @@ func (h *testSimpleHandler) Receiver(_ context.Context, _ *http.Request, _ any) 
 }
 
 func TestHandlerFor(t *testing.T) {
-
 	simple := &testSimpleHandler{
 		Data:   []byte("test"),
 		NewURL: "/receiver",

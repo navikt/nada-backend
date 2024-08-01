@@ -2,19 +2,21 @@ package emulator
 
 import (
 	"bytes"
-	"cloud.google.com/go/iam/apiv1/iampb"
 	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
+	"net/http"
+	"net/http/httputil"
+	"os"
+
+	"cloud.google.com/go/iam/apiv1/iampb"
+
 	"github.com/go-chi/chi"
 	"github.com/goccy/bigquery-emulator/server"
 	"github.com/goccy/bigquery-emulator/types"
 	"github.com/goccy/go-yaml"
 	"github.com/rs/zerolog"
-	"net/http"
-	"net/http/httputil"
-	"os"
 )
 
 type Emulator struct {

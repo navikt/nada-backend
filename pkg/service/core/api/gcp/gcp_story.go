@@ -4,13 +4,14 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"path"
+	"sort"
+	"strings"
+
 	"github.com/navikt/nada-backend/pkg/cs"
 	"github.com/navikt/nada-backend/pkg/errs"
 	"github.com/navikt/nada-backend/pkg/service"
 	"github.com/rs/zerolog"
-	"path"
-	"sort"
-	"strings"
 )
 
 var _ service.StoryAPI = &storyAPI{}

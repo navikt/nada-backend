@@ -3,6 +3,7 @@ package postgres
 import (
 	"context"
 	"fmt"
+
 	"github.com/google/uuid"
 	"github.com/navikt/nada-backend/pkg/cache"
 	"github.com/navikt/nada-backend/pkg/errs"

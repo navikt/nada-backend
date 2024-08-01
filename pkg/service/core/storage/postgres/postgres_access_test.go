@@ -2,13 +2,14 @@ package postgres_test
 
 import (
 	"fmt"
+	"testing"
+
 	"github.com/google/uuid"
 	"github.com/navikt/nada-backend/pkg/database/gensql"
 	"github.com/navikt/nada-backend/pkg/errs"
 	"github.com/navikt/nada-backend/pkg/service"
 	"github.com/navikt/nada-backend/pkg/service/core/storage/postgres"
 	"github.com/stretchr/testify/assert"
-	"testing"
 )
 
 func TestDatasetAccessRequest_To(t *testing.T) {

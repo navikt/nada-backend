@@ -2,11 +2,12 @@ package handlers
 
 import (
 	"context"
+	"net/http"
+
 	validation "github.com/go-ozzo/ozzo-validation/v4"
 	"github.com/navikt/nada-backend/pkg/errs"
 	"github.com/navikt/nada-backend/pkg/service"
 	"github.com/navikt/nada-backend/pkg/service/core/transport"
-	"net/http"
 )
 
 type BigQueryHandler struct {

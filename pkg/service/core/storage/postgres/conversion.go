@@ -2,10 +2,11 @@ package postgres
 
 import (
 	"database/sql"
-	"github.com/google/uuid"
 	"net/url"
 	"strings"
 	"time"
+
+	"github.com/google/uuid"
 )
 
 type Converter[O any] interface {

@@ -4,11 +4,12 @@ import (
 	"bytes"
 	"context"
 	"fmt"
+	"testing"
+	"time"
+
 	"github.com/navikt/nada-backend/pkg/syncers/teamprojectsupdater"
 	"github.com/rs/zerolog"
 	"github.com/stretchr/testify/assert"
-	"testing"
-	"time"
 )
 
 type naisConsoleServiceMock struct {

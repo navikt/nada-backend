@@ -6,11 +6,12 @@ import (
 	"encoding/base64"
 	"encoding/hex"
 	"encoding/json"
-	"github.com/navikt/nada-backend/pkg/config/v2"
-	"github.com/rs/zerolog"
 	"net/http"
 	"strings"
 	"time"
+
+	"github.com/navikt/nada-backend/pkg/config/v2"
+	"github.com/rs/zerolog"
 
 	"github.com/coreos/go-oidc/v3/oidc"
 	"github.com/google/uuid"

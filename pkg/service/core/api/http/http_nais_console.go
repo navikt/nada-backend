@@ -2,6 +2,7 @@ package http
 
 import (
 	"context"
+
 	"github.com/navikt/nada-backend/pkg/errs"
 	"github.com/navikt/nada-backend/pkg/nc"
 	"github.com/navikt/nada-backend/pkg/service"

@@ -6,7 +6,6 @@ import (
 )
 
 func TestMissingField(t *testing.T) {
-
 	mf := MissingField("foo")
 
 	tests := []struct {
@@ -27,7 +26,6 @@ func TestMissingField(t *testing.T) {
 }
 
 func TestInputUnwanted(t *testing.T) {
-
 	iuFoo := InputUnwanted("foo")
 	iuBar := InputUnwanted("bar")
 	err := E("not a InputUnwanted Error")

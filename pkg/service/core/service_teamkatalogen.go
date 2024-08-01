@@ -2,9 +2,10 @@ package core
 
 import (
 	"context"
+	"sort"
+
 	"github.com/navikt/nada-backend/pkg/errs"
 	"github.com/navikt/nada-backend/pkg/service"
-	"sort"
 )
 
 var _ service.TeamKatalogenService = &teamkatalogenService{}

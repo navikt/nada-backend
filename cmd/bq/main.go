@@ -3,17 +3,20 @@ package main
 import (
 	"context"
 	"flag"
-	"github.com/goccy/bigquery-emulator/server"
-	"github.com/navikt/nada-backend/pkg/bq/emulator"
-	"github.com/rs/zerolog"
 	"os"
 	"os/signal"
 	"syscall"
+
+	"github.com/goccy/bigquery-emulator/server"
+	"github.com/navikt/nada-backend/pkg/bq/emulator"
+	"github.com/rs/zerolog"
 )
 
-var projectID = flag.String("project", "test", "project id")
-var dataYAML = flag.String("data", "", "data yaml file")
-var port = flag.String("port", "8080", "port")
+var (
+	projectID = flag.String("project", "test", "project id")
+	dataYAML  = flag.String("data", "", "data yaml file")
+	port      = flag.String("port", "8080", "port")
+)
 
 func main() {
 	flag.Parse()

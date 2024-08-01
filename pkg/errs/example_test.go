@@ -6,10 +6,11 @@ package errs_test
 import (
 	"errors"
 	"fmt"
-	"github.com/gilcrest/diygoapi/logger"
-	"github.com/rs/zerolog"
 	"net/http/httptest"
 	"os"
+
+	"github.com/gilcrest/diygoapi/logger"
+	"github.com/rs/zerolog"
 
 	"github.com/gilcrest/diygoapi/errs"
 )
@@ -32,6 +33,7 @@ func ExampleError() {
 	// Nested error:
 	// network unreachable
 }
+
 func ExampleMatch() {
 	user := errs.UserName("joe@blow.com")
 	err := errors.New("network unreachable")
@@ -51,7 +53,6 @@ func ExampleMatch() {
 }
 
 func ExampleHTTPErrorResponse() {
-
 	w := httptest.NewRecorder()
 	l := logger.NewWithGCPHook(os.Stdout, zerolog.DebugLevel, false)
 

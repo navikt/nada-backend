@@ -2,12 +2,13 @@ package main
 
 import (
 	"flag"
-	"github.com/go-chi/chi"
-	"github.com/rs/zerolog"
 	"net/http"
 	"net/http/httputil"
 	"os"
 	"strconv"
+
+	"github.com/go-chi/chi"
+	"github.com/rs/zerolog"
 )
 
 var (

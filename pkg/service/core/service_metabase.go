@@ -4,13 +4,14 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"github.com/google/uuid"
-	"github.com/navikt/nada-backend/pkg/errs"
-	"github.com/navikt/nada-backend/pkg/service"
 	"io"
 	"net/http"
 	"strings"
 	"time"
+
+	"github.com/google/uuid"
+	"github.com/navikt/nada-backend/pkg/errs"
+	"github.com/navikt/nada-backend/pkg/service"
 )
 
 type metabaseService struct {

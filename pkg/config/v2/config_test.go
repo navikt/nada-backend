@@ -2,10 +2,11 @@ package config_test
 
 import (
 	"flag"
-	"github.com/navikt/nada-backend/pkg/config/v2"
 	"os"
 	"path/filepath"
 	"testing"
+
+	"github.com/navikt/nada-backend/pkg/config/v2"
 
 	"github.com/google/go-cmp/cmp"
 
@@ -88,7 +89,6 @@ func newFakeConfig() config.Config {
 				HttpOnly: true,
 			},
 			OauthState: config.CookieSettings{
-
 				Name:     "auth",
 				MaxAge:   3600,
 				Path:     "some/path",
@@ -98,7 +98,6 @@ func newFakeConfig() config.Config {
 				HttpOnly: true,
 			},
 			Session: config.CookieSettings{
-
 				Name:     "session",
 				MaxAge:   3600,
 				Path:     "some/path",

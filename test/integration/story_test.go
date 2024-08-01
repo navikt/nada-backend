@@ -3,6 +3,11 @@ package integration
 import (
 	"context"
 	"fmt"
+	"net/http"
+	"net/http/httptest"
+	"os"
+	"testing"
+
 	"github.com/google/go-cmp/cmp/cmpopts"
 	"github.com/google/uuid"
 	"github.com/navikt/nada-backend/pkg/cs"
@@ -18,10 +23,6 @@ import (
 	"github.com/navikt/nada-backend/pkg/tk"
 	"github.com/rs/zerolog"
 	"github.com/stretchr/testify/assert"
-	"net/http"
-	"net/http/httptest"
-	"os"
-	"testing"
 )
 
 const (

@@ -2,6 +2,7 @@ package mock
 
 import (
 	"context"
+
 	"github.com/google/uuid"
 	"github.com/navikt/nada-backend/pkg/database"
 	"github.com/navikt/nada-backend/pkg/database/gensql"

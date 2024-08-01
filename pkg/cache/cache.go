@@ -4,9 +4,10 @@ import (
 	"database/sql"
 	"encoding/json"
 	"errors"
-	"github.com/rs/zerolog"
 	"sync/atomic"
 	"time"
+
+	"github.com/rs/zerolog"
 )
 
 type Cacher interface {

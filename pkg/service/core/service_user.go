@@ -3,12 +3,13 @@ package core
 import (
 	"context"
 	"fmt"
+	"strings"
+
 	"github.com/google/uuid"
 	"github.com/navikt/nada-backend/pkg/auth"
 	"github.com/navikt/nada-backend/pkg/errs"
 	"github.com/navikt/nada-backend/pkg/service"
 	"github.com/rs/zerolog"
-	"strings"
 )
 
 var _ service.UserService = &userService{}

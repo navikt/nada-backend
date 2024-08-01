@@ -2,10 +2,11 @@ package handlers
 
 import (
 	"context"
+	"net/http"
+
 	"github.com/navikt/nada-backend/pkg/auth"
 	"github.com/navikt/nada-backend/pkg/service"
 	"github.com/navikt/nada-backend/pkg/service/core/transport"
-	"net/http"
 )
 
 type KeywordsHandler struct {

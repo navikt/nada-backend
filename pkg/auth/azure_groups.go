@@ -4,12 +4,13 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"github.com/navikt/nada-backend/pkg/service"
-	"github.com/rs/zerolog"
 	"net/http"
 	"net/url"
 	"strings"
 	"time"
+
+	"github.com/navikt/nada-backend/pkg/service"
+	"github.com/rs/zerolog"
 
 	"golang.org/x/oauth2/endpoints"
 )

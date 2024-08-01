@@ -1,19 +1,21 @@
 package bq
 
 import (
-	"cloud.google.com/go/bigquery"
-	"cloud.google.com/go/iam"
 	"context"
 	"errors"
 	"fmt"
+	"net/http"
+	"regexp"
+	"time"
+
+	"cloud.google.com/go/bigquery"
+	"cloud.google.com/go/iam"
+
 	validation "github.com/go-ozzo/ozzo-validation/v4"
 	"github.com/lithammer/shortuuid/v4"
 	"google.golang.org/api/googleapi"
 	"google.golang.org/api/iterator"
 	"google.golang.org/api/option"
-	"net/http"
-	"regexp"
-	"time"
 )
 
 var _ Operations = &Client{}
@@ -36,8 +38,10 @@ type Operations interface {
 	RemoveAndSetTablePolicy(ctx context.Context, projectID, datasetID, tableID, role, member string) error
 }
 
-var ErrExist = errors.New("already exists")
-var ErrNotExist = errors.New("not exists")
+var (
+	ErrExist    = errors.New("already exists")
+	ErrNotExist = errors.New("not exists")
+)
 
 type Client struct {
 	endpoint             string

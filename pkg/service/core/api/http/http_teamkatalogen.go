@@ -2,13 +2,14 @@ package http
 
 import (
 	"context"
+	"strings"
+
 	"github.com/google/uuid"
 	"github.com/navikt/nada-backend/pkg/errs"
 	"github.com/navikt/nada-backend/pkg/service"
 	"github.com/navikt/nada-backend/pkg/tk"
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
-	"strings"
 )
 
 var _ service.TeamKatalogenAPI = &teamKatalogenAPI{}

@@ -5,7 +5,6 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"github.com/navikt/nada-backend/pkg/errs"
 	"io"
 	"net/http"
 	"net/url"
@@ -13,6 +12,8 @@ import (
 	"strconv"
 	"strings"
 	"time"
+
+	"github.com/navikt/nada-backend/pkg/errs"
 
 	"github.com/navikt/nada-backend/pkg/service"
 )

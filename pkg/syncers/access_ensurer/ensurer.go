@@ -3,10 +3,11 @@ package access_ensurer
 import (
 	"context"
 	"fmt"
-	"github.com/navikt/nada-backend/pkg/auth"
-	"github.com/rs/zerolog"
 	"strings"
 	"time"
+
+	"github.com/navikt/nada-backend/pkg/auth"
+	"github.com/rs/zerolog"
 
 	"github.com/navikt/nada-backend/pkg/service"
 	"github.com/prometheus/client_golang/prometheus"

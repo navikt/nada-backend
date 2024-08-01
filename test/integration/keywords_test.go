@@ -2,6 +2,11 @@ package integration
 
 import (
 	"context"
+	"net/http"
+	"net/http/httptest"
+	"os"
+	"testing"
+
 	"github.com/navikt/nada-backend/pkg/database"
 	"github.com/navikt/nada-backend/pkg/service"
 	"github.com/navikt/nada-backend/pkg/service/core"
@@ -10,10 +15,6 @@ import (
 	"github.com/navikt/nada-backend/pkg/service/core/storage/postgres"
 	"github.com/rs/zerolog"
 	"github.com/stretchr/testify/assert"
-	"net/http"
-	"net/http/httptest"
-	"os"
-	"testing"
 )
 
 func TestKeywords(t *testing.T) {
@@ -63,7 +64,6 @@ func TestKeywords(t *testing.T) {
 	defer server.Close()
 
 	t.Run("Update keywords", func(t *testing.T) {
-
 		NewTester(t, server).
 			Post(&service.UpdateKeywordsDto{
 				ObsoleteKeywords: []string{"keyword1"},

@@ -2,11 +2,12 @@ package routes
 
 import (
 	"fmt"
+	"io"
+	"net/http"
+
 	"github.com/docker/cli/cli/command/formatter/tabwriter"
 	"github.com/go-chi/chi"
 	"github.com/go-chi/cors"
-	"io"
-	"net/http"
 )
 
 type AddRoutesFn func(router chi.Router)

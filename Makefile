@@ -17,12 +17,17 @@ STATICCHECK          ?= $(shell command -v staticcheck || echo "$(GOBIN)/staticc
 STATICCHECK_VERSION  := v0.4.6
 SQLC                 ?= $(shell command -v sqlc || echo "$(GOBIN)/sqlc")
 SQLC_VERSION         := v1.25.0
+GOFUMPT			     ?= $(shell command -v gofumpt || echo "$(GOBIN)/gofumpt")
+GOFUMPT_VERSION	     := v0.6.0
 
 $(SQLC):
 	$(call install-binary,sqlc,github.com/sqlc-dev/sqlc/cmd/sqlc@$(SQLC_VERSION))
 
 $(STATICCHECK):
 	$(call install-binary,staticcheck,honnef.co/go/tools/cmd/staticcheck@$(STATICCHECK_VERSION))
+
+$(GOFUMPT):
+	$(call install-binary,gofumpt,mvdan.cc/gofumpt@$(GOFUMPT_VERSION))
 
 # Directories
 #
@@ -159,3 +164,6 @@ docker-push:
 
 staticcheck: $(STATICCHECK)
 	$(STATICCHECK) ./...
+
+gofumpt: $(GOFUMPT)
+	$(GOFUMPT) -w .

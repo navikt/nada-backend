@@ -2,9 +2,10 @@ package handlers
 
 import (
 	"context"
+	"net/http"
+
 	"github.com/navikt/nada-backend/pkg/auth"
 	"github.com/navikt/nada-backend/pkg/service"
-	"net/http"
 )
 
 type UserHandler struct {

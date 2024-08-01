@@ -3,10 +3,11 @@ package handlers
 import (
 	"context"
 	"fmt"
+	"net/http"
+
 	"github.com/google/uuid"
 	"github.com/navikt/nada-backend/pkg/errs"
 	"github.com/navikt/nada-backend/pkg/service"
-	"net/http"
 )
 
 type ProductAreasHandler struct {

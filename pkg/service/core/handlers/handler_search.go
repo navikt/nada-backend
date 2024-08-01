@@ -2,10 +2,11 @@ package handlers
 
 import (
 	"context"
-	"github.com/navikt/nada-backend/pkg/service"
 	"net/http"
 	"strconv"
 	"strings"
+
+	"github.com/navikt/nada-backend/pkg/service"
 )
 
 type SearchHandler struct {
