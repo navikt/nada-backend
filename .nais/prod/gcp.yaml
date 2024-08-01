@@ -18,9 +18,9 @@ spec:
       tenant: nav.no
       allowAllUsers: true
   command:
-    - /app/nada-backend
+    - /home/nada/nada-backend
     - --config
-    - /app/config.yaml
+    - /home/nada/config.yaml
   replicas:
     min: 2
     max: 4
@@ -49,7 +49,7 @@ spec:
     - secret: nada-backend-secret
   filesFrom:
     - configMap: nada-backend-config
-      mountPath: /app/config.yaml
+      mountPath: /home/nada/config.yaml
     - secret: nada-backend-google-credentials
       mountPath: /var/run/secrets/google-credentials
     - secret: nada-backend-metabase-sa

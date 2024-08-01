@@ -1,14 +1,21 @@
-FROM golang:1.22-alpine as builder
-RUN apk add --no-cache git make
-WORKDIR /src
-COPY go.sum go.sum
-COPY go.mod go.mod
-RUN go mod download
-COPY . .
-RUN make test
-RUN make linux-build
+FROM busybox:1.36.1 as assets
 
-FROM alpine:3
-WORKDIR /app
-COPY --from=builder /src/nada-backend /app/nada-backend
-CMD ["/app/nada-backend"]
+RUN addgroup -g 1001 nada && \
+    adduser -u 1001 -G nada \
+            -h /home/nada -D nada && \
+    mkdir -p /home/nada/.config && \
+    chown -R nada:nada /home/nada
+
+COPY /nada-backend /nada-backend
+RUN chown nada:nada /nada-backend
+RUN chmod +x /nada-backend
+
+FROM gcr.io/distroless/static-debian11
+
+COPY --chown=nada:nada --from=assets /etc/passwd /etc/passwd
+COPY --chown=nada:nada --from=assets /home/nada /home/nada
+COPY --chown=nada:nada --from=assets /home/nada/.config /home/nada/.config
+COPY --chown=nada:nada --from=assets /nada-backend /home/nada/nada-backend
+
+WORKDIR /home/nada
+CMD ["/home/nada/nada-backend", "--config", "/home/nada/config.yaml"]
