@@ -19,6 +19,8 @@ SQLC                 ?= $(shell command -v sqlc || echo "$(GOBIN)/sqlc")
 SQLC_VERSION         := v1.25.0
 GOFUMPT			     ?= $(shell command -v gofumpt || echo "$(GOBIN)/gofumpt")
 GOFUMPT_VERSION	     := v0.6.0
+GOLANGCILINT         ?= $(shell command -v golangci-lint || echo "$(GOBIN)/golangci-lint")
+GOLANGCILINT_VERSION := v1.55.2
 
 $(SQLC):
 	$(call install-binary,sqlc,github.com/sqlc-dev/sqlc/cmd/sqlc@$(SQLC_VERSION))
@@ -28,6 +30,9 @@ $(STATICCHECK):
 
 $(GOFUMPT):
 	$(call install-binary,gofumpt,mvdan.cc/gofumpt@$(GOFUMPT_VERSION))
+
+$(GOLANGCILINT):
+	$(call install-binary,golangci-lint,github.com/golangci/golangci-lint/cmd/golangci-lint@$(GOLANGCILINT_VERSION))
 
 # Directories
 #
@@ -167,3 +172,10 @@ staticcheck: $(STATICCHECK)
 
 gofumpt: $(GOFUMPT)
 	$(GOFUMPT) -w .
+
+lint: $(GOLANGCILINT)
+	$(GOLANGCILINT) run
+.PHONY: lint
+
+check: | gofumpt lint staticcheck test
+.PHONY: check
