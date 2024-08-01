@@ -49,7 +49,7 @@ spec:
     - secret: nada-backend-secret
   filesFrom:
     - configmap: nada-backend-config
-      mountPath: /home/nada/config.yaml
+      mountPath: /home/nada
     - secret: nada-backend-google-credentials
       mountPath: /var/run/secrets/google-credentials
     - secret: nada-backend-metabase-sa
