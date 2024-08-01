@@ -21,7 +21,7 @@ spec:
   command:
     - /home/nada/nada-backend
     - --config
-    - /home/nada/config.yaml
+    - /home/nada/.config/config.yaml
   replicas:
     min: 2
     max: 4
@@ -51,7 +51,7 @@ spec:
     - secret: nada-backend-secret
   filesFrom:
     - configmap: nada-backend-config
-      mountPath: /home/nada
+      mountPath: /home/nada/.config
     - secret: nada-backend-google-credentials
       mountPath: /var/run/secrets/google-groups
     - secret: nada-backend-metabase-sa
