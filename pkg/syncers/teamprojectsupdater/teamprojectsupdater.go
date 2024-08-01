@@ -10,7 +10,7 @@ import (
 	"time"
 )
 
-var NotLeaderErr = fmt.Errorf("not leader")
+var ErrNotLeader = fmt.Errorf("not leader")
 
 type TeamProjectsUpdater struct {
 	service service.NaisConsoleService
@@ -36,7 +36,7 @@ func (t *TeamProjectsUpdater) Run(ctx context.Context, startupDelay, frequency t
 
 	err := t.RunOnce(ctx)
 	if err != nil {
-		if errors.Is(err, NotLeaderErr) {
+		if errors.Is(err, ErrNotLeader) {
 			t.log.Info().Msg("not leader, skipping update")
 		} else {
 			t.log.Error().Err(err).Msg("updating team projects")
@@ -52,7 +52,7 @@ func (t *TeamProjectsUpdater) Run(ctx context.Context, startupDelay, frequency t
 
 			err := t.RunOnce(ctx)
 			if err != nil {
-				if errors.Is(err, NotLeaderErr) {
+				if errors.Is(err, ErrNotLeader) {
 					t.log.Info().Msg("not leader, skipping update")
 					continue
 				}
@@ -74,7 +74,7 @@ func (t *TeamProjectsUpdater) RunOnce(ctx context.Context) error {
 	}
 
 	if !isLeader {
-		return NotLeaderErr
+		return ErrNotLeader
 	}
 
 	err = t.service.UpdateAllTeamProjects(ctx)

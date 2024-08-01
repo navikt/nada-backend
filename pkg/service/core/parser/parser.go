@@ -18,7 +18,7 @@ const (
 	ContentTypeMultipartFormData = "multipart/form-data"
 )
 
-var NotExist = errors.New("object not exist")
+var ErrNotExist = errors.New("object not exist")
 
 // Object represents a generic object in a multipart form
 type Object struct {
@@ -76,7 +76,7 @@ type MultipartForm struct {
 func (f *MultipartForm) DeserializedObject(name string, v interface{}) error {
 	o, ok := f.objects[name]
 	if !ok {
-		return NotExist
+		return ErrNotExist
 	}
 
 	return o.FromJSON(v)
@@ -85,7 +85,7 @@ func (f *MultipartForm) DeserializedObject(name string, v interface{}) error {
 func (f *MultipartForm) Object(name string) (*Object, error) {
 	o, ok := f.objects[name]
 	if !ok {
-		return nil, NotExist
+		return nil, ErrNotExist
 	}
 
 	return o, nil

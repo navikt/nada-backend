@@ -140,6 +140,7 @@ func TestBigQuery(t *testing.T) {
 			Name:  "My Data Product",
 			Group: "nada@nav.no",
 		})
+		assert.NoError(t, err)
 
 		ds, err := stores.DataProductsStorage.CreateDataset(context.Background(), service.NewDataset{
 			DataproductID: dp.ID,
@@ -163,6 +164,7 @@ func TestBigQuery(t *testing.T) {
 				TableType: "TABLE",
 			},
 		}, nil, user)
+		assert.NoError(t, err)
 
 		NewTester(t, server).Post(nil, "/api/bigquery/tables/sync").
 			HasStatusCode(http.StatusNoContent)

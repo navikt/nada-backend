@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"github.com/go-chi/chi"
 	"github.com/google/uuid"
-	"github.com/navikt/nada-backend/pkg/amplitude"
 	"github.com/navikt/nada-backend/pkg/auth"
 	"github.com/navikt/nada-backend/pkg/errs"
 	"github.com/navikt/nada-backend/pkg/service"
@@ -17,19 +16,20 @@ import (
 	"strings"
 )
 
+type ContextKeyType string
+
 const (
-	ContextKeyTeam      = "team"
-	ContextKeyTeamEmail = "team_email"
-	ContextKeyNadaToken = "nada_token"
-	FormNameNewStory    = "nada-backend-new-story"
+	ContextKeyTeam      ContextKeyType = "team"
+	ContextKeyTeamEmail ContextKeyType = "team_email"
+	ContextKeyNadaToken ContextKeyType = "nada_token"
+	FormNameNewStory                   = "nada-backend-new-story"
 )
 
 type StoryHandler struct {
-	storyService    service.StoryService
-	tokenService    service.TokenService
-	amplitudeClient amplitude.Amplitude
-	log             zerolog.Logger
-	emailSuffix     string
+	storyService service.StoryService
+	tokenService service.TokenService
+	log          zerolog.Logger
+	emailSuffix  string
 }
 
 func (h *StoryHandler) DeleteStory(ctx context.Context, _ *http.Request, _ any) (*service.Story, error) {

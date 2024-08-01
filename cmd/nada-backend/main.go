@@ -17,6 +17,7 @@ import (
 	"github.com/navikt/nada-backend/pkg/syncers/teamkatalogen"
 	"github.com/navikt/nada-backend/pkg/syncers/teamprojectsupdater"
 	"github.com/navikt/nada-backend/pkg/tk"
+	"github.com/prometheus/client_golang/prometheus/collectors"
 	"github.com/rs/zerolog"
 	"net"
 	"net/http"
@@ -256,7 +257,7 @@ func main() {
 func prom(cols ...prometheus.Collector) *prometheus.Registry {
 	r := prometheus.NewRegistry()
 	r.MustRegister(promErrs)
-	r.MustRegister(prometheus.NewGoCollector())
+	r.MustRegister(collectors.NewGoCollector())
 	r.MustRegister(cols...)
 
 	return r

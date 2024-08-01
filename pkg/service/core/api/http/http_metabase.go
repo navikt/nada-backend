@@ -418,11 +418,6 @@ func (c *metabaseAPI) AddPermissionGroupMember(ctx context.Context, groupID int,
 	return nil
 }
 
-type permissions struct {
-	Native  string `json:"native,omitempty"`
-	Schemas any    `json:"schemas,omitempty"`
-}
-
 type dataModelPermission struct {
 	Schemas string `json:"schemas,omitempty"`
 }

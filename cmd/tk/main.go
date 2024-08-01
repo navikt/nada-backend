@@ -52,6 +52,7 @@ func (h *Handlers) GetTeams(w http.ResponseWriter, r *http.Request) {
 		teams = nil
 		for _, team := range h.data.Teams.Content {
 			if team.ProductAreaID.String() == productArea {
+				teams = append(teams, team)
 			}
 		}
 	}
@@ -90,6 +91,9 @@ func main() {
 
 	data := &Data{}
 	err = json.Unmarshal(d, data)
+	if err != nil {
+		log.Fatal().Err(err).Msg("parsing JSON")
+	}
 
 	h := New(data, log)
 

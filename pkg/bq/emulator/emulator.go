@@ -18,7 +18,6 @@ import (
 )
 
 type Emulator struct {
-	handler    http.Handler
 	testServer *server.TestServer
 	emulator   *server.Server
 	log        zerolog.Logger
@@ -132,10 +131,7 @@ func (e *Emulator) WithProject(projectID string, datasets ...*Dataset) {
 				ID: ds.TableID,
 			}
 
-			for _, col := range ds.Columns {
-				t.Columns = append(t.Columns, col)
-			}
-
+			t.Columns = append(t.Columns, ds.Columns...)
 			d.Tables = append(d.Tables, t)
 		}
 

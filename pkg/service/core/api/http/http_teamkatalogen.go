@@ -8,7 +8,6 @@ import (
 	"github.com/navikt/nada-backend/pkg/tk"
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
-	"net/http"
 	"strings"
 )
 
@@ -16,8 +15,6 @@ var _ service.TeamKatalogenAPI = &teamKatalogenAPI{}
 
 type teamKatalogenAPI struct {
 	fetcher tk.Fetcher
-	client  *http.Client
-	url     string
 	log     zerolog.Logger
 }
 

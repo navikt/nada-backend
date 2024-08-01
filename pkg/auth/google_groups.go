@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"github.com/navikt/nada-backend/pkg/service"
+	"google.golang.org/api/option"
 	"os"
 	"strings"
 
@@ -29,7 +30,7 @@ func NewGoogleGroups(ctx context.Context, credentailFile, subject string) (*Goog
 	config.Subject = subject
 	client := config.Client(ctx)
 
-	service, err := admin.New(client)
+	s, err := admin.NewService(ctx, option.WithHTTPClient(client))
 	if err != nil {
 		return nil, fmt.Errorf("unable to retrieve Google Admin Client: %s", err)
 	}
@@ -39,7 +40,7 @@ func NewGoogleGroups(ctx context.Context, credentailFile, subject string) (*Goog
 	}
 
 	return &GoogleGroupClient{
-		service: service,
+		service: s,
 	}, nil
 }
 

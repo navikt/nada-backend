@@ -113,7 +113,7 @@ func TestMultipartForm_DeserializedObject(t *testing.T) {
 			name:      "no objects",
 			names:     []string{"not-exist"},
 			objects:   map[string]string{},
-			expect:    parser.NotExist,
+			expect:    parser.ErrNotExist,
 			expectErr: true,
 		},
 		{

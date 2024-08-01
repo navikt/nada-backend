@@ -175,8 +175,6 @@ type Dataset struct {
 	Description string
 
 	Access []*AccessEntry
-
-	etag string
 }
 
 type AccessEntry struct {
