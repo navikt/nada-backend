@@ -48,7 +48,7 @@ spec:
   envFrom:
     - secret: nada-backend-secret
   filesFrom:
-    - configMap: nada-backend-config
+    - configmap: nada-backend-config
       mountPath: /home/nada/config.yaml
     - secret: nada-backend-google-credentials
       mountPath: /var/run/secrets/google-credentials
