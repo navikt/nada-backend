@@ -10,7 +10,7 @@ COPY /nada-backend /nada-backend
 RUN chown nada:nada /nada-backend
 RUN chmod +x /nada-backend
 
-FROM gcr.io/distroless/static-debian11
+FROM --platform=linux/amd64 gcr.io/distroless/static-debian12
 
 COPY --chown=nada:nada --from=assets /etc/passwd /etc/passwd
 COPY --chown=nada:nada --from=assets /home/nada /home/nada

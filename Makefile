@@ -144,7 +144,7 @@ generate: generate-sql
 .PHONY: generate
 
 linux-build:
-	CGO_EMABLED=0 $(GO) build -a -installsuffix cgo -o $(APP) -ldflags '-extldflags "-static" -w -s $(LDFLAGS)' ./cmd/nada-backend
+	GOOS=linux GOARCH=amd64 CGO_EMABLED=0 $(GO) build -o $(APP) -ldflags '-extldflags "-static" -w -s $(LDFLAGS)' ./cmd/nada-backend/main.go
 .PHONY: linux-build
 
 docker-build-metabase:
