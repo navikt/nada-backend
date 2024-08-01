@@ -38,6 +38,12 @@ jobs:
           version: v1.55.2
 
   staticchecks:
+    env:
+      CGO_ENABLED: 1
+      CXX: clang++
+      CC: clang
+      CGO_CXXFLAGS: -Wno-everything
+      CGO_LDFLAGS: -Wno-everything
     permissions:
       contents: read
     runs-on: ubuntu-latest
