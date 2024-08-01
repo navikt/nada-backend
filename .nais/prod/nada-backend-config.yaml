@@ -40,7 +40,7 @@ data:
       user_name: nada-backend
       password: # Set through env var NAIS_DATABASE_NADA_BACKEND_NADA_PASSWORD
       database_name: nada
-      ssl_mode: prefer
+      ssl_mode: require
       configuration:
         max_open_connections: 5
         max_idle_connections: 3
