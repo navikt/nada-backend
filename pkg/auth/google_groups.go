@@ -29,9 +29,8 @@ func NewGoogleGroups(ctx context.Context, credentailFile, subject string) (*Goog
 	}
 
 	config.Subject = subject
-	client := config.Client(ctx)
 
-	s, err := admin.NewService(ctx, option.WithHTTPClient(client))
+	s, err := admin.NewService(ctx, option.WithTokenSource(config.TokenSource(ctx)))
 	if err != nil {
 		return nil, fmt.Errorf("unable to retrieve Google Admin Client: %s", err)
 	}
