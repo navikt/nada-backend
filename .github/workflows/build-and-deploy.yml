@@ -66,7 +66,11 @@ jobs:
       - uses: actions/setup-go@v5
         with:
           go-version: stable
-      - run: CGO_ENABLED=1 CXX=clang++ CC=clang CGO_CXXFLAGS=-Wno-everything CGO_LDFLAGS=-Wno-everything go test -v ./...
+      - run: CGO_ENABLED=1 CXX=clang++ CC=clang CGO_CXXFLAGS=-Wno-everything CGO_LDFLAGS=-Wno-everything go test -race -coverprofile=coverage.txt -covermode=atomic -v ./...
+      - name: Upload coverage reports to Codecov
+        uses: codecov/codecov-action@v4.0.1
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
 
   build:
     permissions:
