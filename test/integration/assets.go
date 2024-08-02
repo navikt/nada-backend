@@ -2,9 +2,10 @@ package integration
 
 import (
 	"context"
+	"testing"
+
 	"github.com/google/uuid"
 	"github.com/navikt/nada-backend/pkg/service"
-	"testing"
 )
 
 var (

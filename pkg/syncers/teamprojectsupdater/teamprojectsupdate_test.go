@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"fmt"
+	"sync"
 	"testing"
 	"time"
 
@@ -19,6 +20,33 @@ type naisConsoleServiceMock struct {
 
 func (n *naisConsoleServiceMock) UpdateAllTeamProjects(_ context.Context) error {
 	return n.Err
+}
+
+// Borrowed from: https://stackoverflow.com/a/36226525
+type Buffer struct {
+	b bytes.Buffer
+	m sync.Mutex
+}
+
+func (b *Buffer) Read(p []byte) (int, error) {
+	b.m.Lock()
+	defer b.m.Unlock()
+
+	return b.b.Read(p)
+}
+
+func (b *Buffer) Write(p []byte) (int, error) {
+	b.m.Lock()
+	defer b.m.Unlock()
+
+	return b.b.Write(p)
+}
+
+func (b *Buffer) String() string {
+	b.m.Lock()
+	defer b.m.Unlock()
+
+	return b.b.String()
 }
 
 func TestTeamProjectsUpdater_Run(t *testing.T) {
@@ -43,7 +71,7 @@ func TestTeamProjectsUpdater_Run(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			buf := &bytes.Buffer{}
+			buf := &Buffer{}
 
 			m := &naisConsoleServiceMock{Err: tc.err}
 
