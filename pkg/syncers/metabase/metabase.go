@@ -31,7 +31,7 @@ func (s *Synchronizer) Run(ctx context.Context, frequency time.Duration, log zer
 
 			err := s.service.SyncAllTablesVisibility(ctx)
 			if err != nil {
-				log.Error().Err(err).Msg("")
+				log.Error().Err(err).Msg("syncing all tables visibility")
 			}
 		}
 	}

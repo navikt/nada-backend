@@ -673,7 +673,7 @@ func (s *metabaseService) SyncAllTablesVisibility(ctx context.Context) error {
 		}
 
 		if err := s.SyncTableVisibility(ctx, db, *bq); err != nil {
-			return errs.E(op, err)
+			return errs.E(op, fmt.Errorf("syncing table visibility for database %v: %w", db.DatasetID, err))
 		}
 	}
 
