@@ -239,7 +239,7 @@ func (p Postgres) Validate() error {
 	return validation.ValidateStruct(&p,
 		validation.Field(&p.UserName, validation.Required),
 		validation.Field(&p.Password, validation.Required),
-		validation.Field(&p.Host, validation.Required, is.Host),
+		validation.Field(&p.Host, validation.Required, is.URL),
 		validation.Field(&p.Port, validation.Required, is.Port),
 		validation.Field(&p.DatabaseName, validation.Required),
 		validation.Field(&p.SSLMode, validation.Required, validation.In("disable", "allow", "prefer", "require")),

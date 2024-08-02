@@ -65,7 +65,7 @@ func newFakeConfig() config.Config {
 			Host:         "http://localhost",
 			Port:         "5432",
 			DatabaseName: "something",
-			SSLMode:      "disabled",
+			SSLMode:      "disable",
 			Configuration: config.PostgresConfiguration{
 				MaxIdleConnections: 10,
 				MaxOpenConnections: 5,
@@ -88,7 +88,7 @@ func newFakeConfig() config.Config {
 				MaxAge:   3600,
 				Path:     "some/path",
 				Domain:   "localhost",
-				SameSite: "lax",
+				SameSite: "Lax",
 				Secure:   false,
 				HttpOnly: true,
 			},
@@ -97,7 +97,7 @@ func newFakeConfig() config.Config {
 				MaxAge:   3600,
 				Path:     "some/path",
 				Domain:   "localhost",
-				SameSite: "lax",
+				SameSite: "Lax",
 				Secure:   false,
 				HttpOnly: true,
 			},
@@ -106,7 +106,7 @@ func newFakeConfig() config.Config {
 				MaxAge:   3600,
 				Path:     "some/path",
 				Domain:   "localhost",
-				SameSite: "lax",
+				SameSite: "Lax",
 				Secure:   false,
 				HttpOnly: true,
 			},
@@ -145,6 +145,47 @@ func updateGoldenFiles(t *testing.T, filePath string, cfg config.Config) []byte 
 	}
 
 	return data
+}
+
+func TestValidate(t *testing.T) {
+	t.Parallel()
+
+	testCases := []struct {
+		name      string
+		config    config.Config
+		expectErr bool
+	}{
+		{
+			name:      "Valid config",
+			config:    newFakeConfig(),
+			expectErr: false,
+		},
+		{
+			name: "Invalid config",
+			config: func() config.Config {
+				cfg := newFakeConfig()
+				cfg.Oauth.ClientID = ""
+
+				return cfg
+			}(),
+			expectErr: true,
+		},
+	}
+
+	for _, tc := range testCases {
+		tc := tc
+
+		t.Run(tc.name, func(t *testing.T) {
+			err := tc.config.Validate()
+			if err != nil && !tc.expectErr {
+				t.Errorf("unexpected error: %v", err)
+			}
+
+			if err == nil && tc.expectErr {
+				t.Errorf("expected error, got none")
+			}
+		})
+	}
 }
 
 func TestLoad(t *testing.T) {

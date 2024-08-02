@@ -39,7 +39,7 @@ postgres:
     host: http://localhost
     port: "5432"
     database_name: something
-    ssl_mode: disabled
+    ssl_mode: disable
     configuration:
         max_idle_connections: 10
         max_open_connections: 5
@@ -57,7 +57,7 @@ cookies:
         max_age: 3600
         path: some/path
         domain: localhost
-        same_site: lax
+        same_site: Lax
         secure: false
         http_only: true
     oauth_state:
@@ -65,7 +65,7 @@ cookies:
         max_age: 3600
         path: some/path
         domain: localhost
-        same_site: lax
+        same_site: Lax
         secure: false
         http_only: true
     session:
@@ -73,7 +73,7 @@ cookies:
         max_age: 3600
         path: some/path
         domain: localhost
-        same_site: lax
+        same_site: Lax
         secure: false
         http_only: true
 nais_console:
