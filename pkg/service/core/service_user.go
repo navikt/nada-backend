@@ -47,6 +47,11 @@ func (s *userService) GetUserData(ctx context.Context, user *service.User) (*ser
 	}
 
 	for _, grp := range user.GoogleGroups {
+		// Skip all-users group
+		if auth.TrimNaisTeamPrefix(grp.Email) == "all-users" {
+			continue
+		}
+
 		proj, err := s.naisConsoleStorage.GetTeamProject(ctx, auth.TrimNaisTeamPrefix(grp.Email))
 		if err != nil {
 			s.log.Error().Err(err).Msg("getting team project")
