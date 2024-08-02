@@ -10,6 +10,9 @@ metabase:
     gcp_project: some-gcp-project
     credentials_path: /some/path
     databases_base_url: http://localhost:3000
+    big_query_database:
+        api_endpoint_override: http://localhost:3000
+        disable_auth: true
 cross_team_pseudonymization:
     gcp_project_id: some-project
     gcp_region: eu-north1
@@ -19,6 +22,7 @@ gcs:
     central_gcp_project: central-project
 big_query:
     endpoint: http://localhost:7070
+    enable_auth: false
     team_project_pseudo_views_dataset_name: some-dataset
     gcp_region: eu-north1
     central_gcp_project: central-project
@@ -84,6 +88,6 @@ all_users_group: group:all-users@nav.no
 login_page: http://localhost:8080/
 amplitude_api_key: fake_key
 log_level: info
-mock_auth: false
-skip_metadata_sync: false
+cache_duration_seconds: 60
+team_projects_update_delay_seconds: 120
 debug: false

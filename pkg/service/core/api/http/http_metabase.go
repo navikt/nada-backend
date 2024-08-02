@@ -31,7 +31,7 @@ type metabaseAPI struct {
 	oauth2TenantID     string
 	expiry             time.Time
 	sessionID          string
-	enableAuth         bool
+	disableAuth        bool
 	endpoint           string
 }
 
@@ -200,9 +200,9 @@ func (c *metabaseAPI) CreateDatabase(ctx context.Context, team, name, saJSON, sa
 		return dbID, nil
 	}
 
-	enableAuth := &c.enableAuth
-	if !c.enableAuth {
-		enableAuth = nil
+	var enableAuth *bool = nil
+	if c.disableAuth {
+		enableAuth = new(bool) // false
 	}
 
 	db := NewDatabase{
@@ -757,6 +757,6 @@ func NewMetabaseHTTP(url, username, password, oauth2ClientID, oauth2ClientSecret
 		oauth2ClientSecret: oauth2ClientSecret,
 		oauth2TenantID:     oauth2TenantID,
 		endpoint:           endpoint,
-		enableAuth:         enableAuth,
+		disableAuth:        enableAuth,
 	}
 }

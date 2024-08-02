@@ -44,7 +44,6 @@ var promErrs = prometheus.NewCounterVec(prometheus.CounterOpts{
 
 const (
 	TeamProjectsUpdateFrequency = 60 * time.Minute
-	TeamProjectDelay            = 10 * time.Second
 	AccessEnsurerFrequency      = 5 * time.Minute
 	MetabaseUpdateFrequency     = 1 * time.Hour
 	TeamKatalogenFrequency      = 1 * time.Hour
@@ -125,7 +124,7 @@ func main() {
 		services.NaisConsoleService,
 		zlog.With().Str("subsystem", "teamprojectsupdater").Logger(),
 	)
-	go teamProjectsUpdater.Run(ctx, TeamProjectDelay, TeamProjectsUpdateFrequency)
+	go teamProjectsUpdater.Run(ctx, time.Duration(cfg.TeamProjectsUpdateDelaySeconds)*time.Second, TeamProjectsUpdateFrequency)
 
 	googleGroups, err := auth.NewGoogleGroups(
 		ctx,

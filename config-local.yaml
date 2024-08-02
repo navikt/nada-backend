@@ -11,8 +11,8 @@ metabase:
   gcp_project: test
   databases_base_url: http://localhost:8083/browse/databases
   big_query_database:
-    enable_auth: false
-    endpoint: http://bq:8084 # This is the name of the service in the docker-compose.yml
+    disable_auth: true
+    api_endpoint_override: http://bq:8084 # This is the name of the service in the docker-compose.yml
 cross_team_pseudonymization:
   gcp_project_id: test
   gcp_region: europe-north1
@@ -93,7 +93,6 @@ keywords_admin_group: nada@nav.no
 all_users_group: group:all-users@nav.no
 login_page: http://localhost:3000/
 amplitude_api_key: # Loaded from env var NADA_AMPLITUDE_API_KEY
-skip_metadata_sync: false
-mock_auth: false
+team_projects_update_delay_seconds: 10
 debug: false
 log_level: debug

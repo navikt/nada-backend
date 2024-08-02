@@ -30,6 +30,10 @@ func newFakeConfig() config.Config {
 			GCPProject:       "some-gcp-project",
 			CredentialsPath:  "/some/path",
 			DatabasesBaseURL: "http://localhost:3000",
+			BigQueryDatabase: config.MetabaseBigQueryDatabase{
+				APIEndpointOverride: "http://localhost:3000",
+				DisableAuth:         true,
+			},
 		},
 		CrossTeamPseudonymization: config.CrossTeamPseudonymization{
 			GCPProjectID: "some-project",
@@ -114,16 +118,16 @@ func newFakeConfig() config.Config {
 		API: config.API{
 			AuthToken: "fake_token",
 		},
-		EmailSuffix:        "@nav.no",
-		NaisClusterName:    "dev-gcp",
-		KeywordsAdminGroup: "nada@nav.no",
-		AllUsersGroup:      "group:all-users@nav.no",
-		LoginPage:          "http://localhost:8080/",
-		AmplitudeAPIKey:    "fake_key",
-		LogLevel:           "info",
-		MockAuth:           false,
-		SkipMetadataSync:   false,
-		Debug:              false,
+		EmailSuffix:                    "@nav.no",
+		NaisClusterName:                "dev-gcp",
+		KeywordsAdminGroup:             "nada@nav.no",
+		AllUsersGroup:                  "group:all-users@nav.no",
+		LoginPage:                      "http://localhost:8080/",
+		AmplitudeAPIKey:                "fake_key",
+		LogLevel:                       "info",
+		CacheDurationSeconds:           60,
+		TeamProjectsUpdateDelaySeconds: 120,
+		Debug:                          false,
 	}
 }
 
