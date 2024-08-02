@@ -46,7 +46,7 @@ func uuidToNullString(u uuid.UUID) sql.NullString {
 }
 
 func nullStringToUUIDPtr(ns sql.NullString) *uuid.UUID {
-	if !ns.Valid {
+	if !ns.Valid || ns.String == "" {
 		return nil
 	}
 
