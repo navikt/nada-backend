@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"github.com/rs/zerolog"
 	"io"
@@ -705,6 +706,10 @@ func (c *metabaseAPI) getAzureAccessToken(ctx context.Context) (string, error) {
 	req.Header.Set("Keep-Alive", "true")
 	res, err := c.c.Do(req)
 	if err != nil {
+		if errors.Is(err, context.Canceled) {
+			c.log.Error().Err(context.Cause(ctx)).Msg("context canceled")
+		}
+
 		return "", errs.E(errs.IO, op, err)
 	}
 	defer res.Body.Close()
