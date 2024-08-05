@@ -198,7 +198,9 @@ func main() {
 		zlog.Warn().Str("method", r.Method).Str("path", r.URL.Path).Msg("not found")
 		w.WriteHeader(http.StatusNotFound)
 	})
-	router.Use(middleware.RequestID, requestlogger.Middleware(
+
+	router.Use(middleware.RequestID)
+	router.Use(requestlogger.Middleware(
 		zlog.With().Str("subsystem", "requestlogger").Logger(),
 		"/internal/metrics",
 	))
