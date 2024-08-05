@@ -73,11 +73,3 @@ func (a *Azure) Middleware(
 		log,
 	).handle
 }
-
-// func (a *Google) Groups(client *http.Client) *GoogleGroups {
-// 	return NewGoogleGroups(client, a.clientID, a.clientSecret, a.tenantID)
-// }
-
-// func (a *Google) Middleware(teamsCache teamsCache) openapi.MiddlewareFunc {
-// 	return JWTValidatorMiddleware(a.KeyDiscoveryURL(), a.clientID, a.Groups(http.DefaultClient), teamsCache)
-// }
