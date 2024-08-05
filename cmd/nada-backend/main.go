@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"github.com/navikt/nada-backend/pkg/requestlogger"
 	"net"
 	"net/http"
 	"os"
@@ -195,6 +196,7 @@ func main() {
 		zlog.Warn().Str("method", r.Method).Str("path", r.URL.Path).Msg("not found")
 		w.WriteHeader(http.StatusNotFound)
 	})
+	router.Use(requestlogger.Middleware(zlog.With().Str("subsystem", "requestlogger").Logger()))
 
 	routes.Add(router,
 		routes.NewInsightProductRoutes(routes.NewInsightProductEndpoints(zlog, h.InsightProductHandler), authenticatorMiddleware),
