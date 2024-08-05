@@ -229,8 +229,11 @@ func main() {
 	}
 
 	server := http.Server{
-		Addr:    net.JoinHostPort(cfg.Server.Address, cfg.Server.Port),
-		Handler: router,
+		Addr:         net.JoinHostPort(cfg.Server.Address, cfg.Server.Port),
+		Handler:      router,
+		ReadTimeout:  30 * time.Second,
+		WriteTimeout: 30 * time.Second,
+		IdleTimeout:  120 * time.Second,
 	}
 
 	go access_ensurer.NewEnsurer(
