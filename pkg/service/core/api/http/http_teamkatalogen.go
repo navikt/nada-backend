@@ -101,8 +101,6 @@ func (t *teamKatalogenAPI) Search(ctx context.Context, gcpGroups []string) ([]se
 			}
 		}
 
-		log.Info().Msgf("team %s matched: %v", r.Name, isMatch)
-
 		if isMatch {
 			ret = append(ret, service.TeamkatalogenResult{
 				URL:           r.Links.UI,
