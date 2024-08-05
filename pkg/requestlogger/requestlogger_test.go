@@ -2,7 +2,7 @@ package requestlogger_test
 
 import (
 	"bytes"
-	"fmt"
+	md "github.com/go-chi/chi/middleware"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -29,9 +29,11 @@ type LogFormat struct {
 	URL       string    `json:"url"`
 	UserAgent string    `json:"user_agent"`
 	Message   string    `json:"message"`
+	RequestID string    `json:"request_id"`
 }
 
-func TestLoggerMiddleware_LogsIncomingRequest(t *testing.T) {
+// FIXME: what a horrible test I have written..
+func TestLoggerMiddleware(t *testing.T) {
 	testCases := []struct {
 		name       string
 		method     string
@@ -40,7 +42,7 @@ func TestLoggerMiddleware_LogsIncomingRequest(t *testing.T) {
 		userAgent  string
 		remoteAddr string
 		filters    []string
-		expect     *LogFormat
+		expect     []*LogFormat
 	}{
 		{
 			name:       "Should work",
@@ -49,17 +51,23 @@ func TestLoggerMiddleware_LogsIncomingRequest(t *testing.T) {
 			body:       nil,
 			userAgent:  "test-agent",
 			remoteAddr: "127.0.0.1:1234",
-			expect: &LogFormat{
-				Level:     "info",
-				BytesIn:   0,
-				BytesOut:  2,
-				Method:    http.MethodGet,
-				Proto:     "HTTP/1.1",
-				RemoteIP:  "127.0.0.1:1234",
-				Status:    http.StatusOK,
-				URL:       "/foo",
-				UserAgent: "test-agent",
-				Message:   "incoming_request",
+			expect: []*LogFormat{
+				{
+					Level:     "info",
+					BytesIn:   0,
+					Method:    http.MethodGet,
+					Proto:     "HTTP/1.1",
+					RemoteIP:  "127.0.0.1:1234",
+					URL:       "/foo",
+					UserAgent: "test-agent",
+					Message:   "incoming_request",
+				},
+				{
+					Level:    "info",
+					BytesOut: 2,
+					Status:   http.StatusOK,
+					Message:  "incoming_request",
+				},
 			},
 		},
 		{
@@ -86,10 +94,10 @@ func TestLoggerMiddleware_LogsIncomingRequest(t *testing.T) {
 			req.RemoteAddr = tc.remoteAddr
 			w := httptest.NewRecorder()
 
-			handler := middleware(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			handler := md.RequestID(middleware(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 				w.WriteHeader(http.StatusOK)
 				w.Write([]byte("OK"))
-			}))
+			})))
 
 			handler.ServeHTTP(w, req)
 
@@ -98,14 +106,19 @@ func TestLoggerMiddleware_LogsIncomingRequest(t *testing.T) {
 				return
 			}
 
-			got := &LogFormat{}
-			fmt.Println(buf.String())
-			err := json.Unmarshal(buf.Bytes(), got)
-			assert.NoError(t, err)
-			diff := cmp.Diff(tc.expect, got, cmpopts.IgnoreFields(LogFormat{}, "Time", "Latency"))
-			assert.Empty(t, diff)
-			assert.Greater(t, got.Latency, 0.0)
-			assert.GreaterOrEqual(t, got.Time.Unix(), time.Now().Unix())
+			lines := bytes.SplitN(buf.Bytes(), []byte("\n"), 2)
+			for i, line := range lines {
+				got := &LogFormat{}
+				err := json.Unmarshal(line, got)
+				assert.NoError(t, err)
+				diff := cmp.Diff(tc.expect[i], got, cmpopts.IgnoreFields(LogFormat{}, "Time", "Latency", "RequestID"))
+				assert.Empty(t, diff)
+				if i == 1 {
+					assert.Greater(t, got.Latency, 0.0)
+					assert.GreaterOrEqual(t, got.Time.Unix(), time.Now().Unix())
+				}
+				assert.NotEqual(t, "n/a", got.RequestID)
+			}
 		})
 	}
 }

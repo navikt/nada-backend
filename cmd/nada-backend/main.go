@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"github.com/go-chi/chi/middleware"
 	"net"
 	"net/http"
 	"os"
@@ -197,7 +198,7 @@ func main() {
 		zlog.Warn().Str("method", r.Method).Str("path", r.URL.Path).Msg("not found")
 		w.WriteHeader(http.StatusNotFound)
 	})
-	router.Use(requestlogger.Middleware(
+	router.Use(middleware.RequestID, requestlogger.Middleware(
 		zlog.With().Str("subsystem", "requestlogger").Logger(),
 		"/internal/metrics",
 	))
