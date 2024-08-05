@@ -39,6 +39,7 @@ func TestLoggerMiddleware_LogsIncomingRequest(t *testing.T) {
 		body       []byte
 		userAgent  string
 		remoteAddr string
+		filters    []string
 		expect     *LogFormat
 	}{
 		{
@@ -61,6 +62,16 @@ func TestLoggerMiddleware_LogsIncomingRequest(t *testing.T) {
 				Message:   "incoming_request",
 			},
 		},
+		{
+			name:       "Should work with filters",
+			method:     http.MethodGet,
+			target:     "http://example.com/to-be-filtered",
+			body:       nil,
+			userAgent:  "test-agent",
+			remoteAddr: "127.0.0.1:1234",
+			filters:    []string{"/to-be-filtered"},
+			expect:     nil,
+		},
 	}
 
 	for _, tc := range testCases {
@@ -68,7 +79,7 @@ func TestLoggerMiddleware_LogsIncomingRequest(t *testing.T) {
 			var buf bytes.Buffer
 
 			logger := zerolog.New(&buf)
-			middleware := requestlogger.Middleware(logger)
+			middleware := requestlogger.Middleware(logger, tc.filters...)
 
 			req := httptest.NewRequest(tc.method, tc.target, bytes.NewReader(tc.body))
 			req.Header.Set("User-Agent", tc.userAgent)
@@ -81,6 +92,11 @@ func TestLoggerMiddleware_LogsIncomingRequest(t *testing.T) {
 			}))
 
 			handler.ServeHTTP(w, req)
+
+			if tc.expect == nil {
+				assert.Empty(t, buf.String())
+				return
+			}
 
 			got := &LogFormat{}
 			fmt.Println(buf.String())

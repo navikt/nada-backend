@@ -9,9 +9,16 @@ import (
 	"github.com/rs/zerolog"
 )
 
-func Middleware(logger zerolog.Logger) func(next http.Handler) http.Handler {
+func Middleware(logger zerolog.Logger, pathFilters ...string) func(next http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		fn := func(w http.ResponseWriter, r *http.Request) {
+			for _, filter := range pathFilters {
+				if filter == r.URL.Path {
+					next.ServeHTTP(w, r)
+					return
+				}
+			}
+
 			log := logger.With().Logger()
 
 			ww := middleware.NewWrapResponseWriter(w, r.ProtoMajor)
