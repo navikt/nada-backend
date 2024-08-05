@@ -1,11 +1,12 @@
 package requestlogger
 
 import (
-	"github.com/go-chi/chi/middleware"
-	"github.com/rs/zerolog"
 	"net/http"
 	"strconv"
 	"time"
+
+	"github.com/go-chi/chi/middleware"
+	"github.com/rs/zerolog"
 )
 
 func Middleware(logger zerolog.Logger) func(next http.Handler) http.Handler {

@@ -3,16 +3,17 @@ package requestlogger_test
 import (
 	"bytes"
 	"fmt"
+	"net/http"
+	"net/http/httptest"
+	"testing"
+	"time"
+
 	"github.com/goccy/go-json"
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-cmp/cmp/cmpopts"
 	"github.com/navikt/nada-backend/pkg/requestlogger"
 	"github.com/rs/zerolog"
 	"github.com/stretchr/testify/assert"
-	"net/http"
-	"net/http/httptest"
-	"testing"
-	"time"
 )
 
 type LogFormat struct {
@@ -67,7 +68,7 @@ func TestLoggerMiddleware_LogsIncomingRequest(t *testing.T) {
 			var buf bytes.Buffer
 
 			logger := zerolog.New(&buf)
-			middleware := requestlogger.Middleware(&logger)
+			middleware := requestlogger.Middleware(logger)
 
 			req := httptest.NewRequest(tc.method, tc.target, bytes.NewReader(tc.body))
 			req.Header.Set("User-Agent", tc.userAgent)

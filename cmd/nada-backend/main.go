@@ -2,13 +2,14 @@ package main
 
 import (
 	"context"
-	"github.com/navikt/nada-backend/pkg/requestlogger"
 	"net"
 	"net/http"
 	"os"
 	"os/signal"
 	"syscall"
 	"time"
+
+	"github.com/navikt/nada-backend/pkg/requestlogger"
 
 	"github.com/go-chi/chi"
 	"github.com/navikt/nada-backend/pkg/bq"
