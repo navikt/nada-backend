@@ -5,6 +5,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"github.com/rs/zerolog"
 	"io"
 	"net/http"
 	"net/url"
@@ -33,6 +34,7 @@ type metabaseAPI struct {
 	sessionID          string
 	disableAuth        bool
 	endpoint           string
+	log                zerolog.Logger
 }
 
 var _ service.MetabaseAPI = &metabaseAPI{}
@@ -85,6 +87,9 @@ func (c *metabaseAPI) PerformRequest(ctx context.Context, method, path string, b
 	if err != nil {
 		return nil, errs.E(errs.IO, op, err)
 	}
+
+	deadline, hasDeadline := req.Context().Deadline()
+	c.log.Info().Msgf("deadline: %v, hasDeadline: %v", deadline, hasDeadline)
 
 	req.Header.Set("X-Metabase-Session", c.sessionID)
 	req.Header.Set("Content-Type", "application/json")
@@ -747,9 +752,11 @@ func dbExists(dbs []service.MetabaseDatabase, nadaID string) (int, bool) {
 	return 0, false
 }
 
-func NewMetabaseHTTP(url, username, password, oauth2ClientID, oauth2ClientSecret, oauth2TenantID, endpoint string, enableAuth bool) *metabaseAPI {
+func NewMetabaseHTTP(url, username, password, oauth2ClientID, oauth2ClientSecret, oauth2TenantID, endpoint string, enableAuth bool, log zerolog.Logger) *metabaseAPI {
 	return &metabaseAPI{
-		c:                  http.DefaultClient,
+		c: &http.Client{
+			Timeout: 90 * time.Second,
+		},
 		url:                url,
 		password:           password,
 		username:           username,
@@ -758,5 +765,6 @@ func NewMetabaseHTTP(url, username, password, oauth2ClientID, oauth2ClientSecret
 		oauth2TenantID:     oauth2TenantID,
 		endpoint:           endpoint,
 		disableAuth:        enableAuth,
+		log:                log,
 	}
 }
