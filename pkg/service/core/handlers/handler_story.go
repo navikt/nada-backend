@@ -42,10 +42,13 @@ func (h *StoryHandler) DeleteStory(ctx context.Context, _ *http.Request, _ any) 
 	}
 
 	user := auth.GetUser(ctx)
+	if user == nil {
+		return nil, errs.E(errs.Unauthenticated, op, errs.Str("no user in context"))
+	}
 
 	story, err := h.storyService.DeleteStory(ctx, user, id)
 	if err != nil {
-		return nil, err
+		return nil, errs.E(op, err)
 	}
 
 	return story, nil
@@ -60,10 +63,13 @@ func (h *StoryHandler) UpdateStory(ctx context.Context, _ *http.Request, in serv
 	}
 
 	user := auth.GetUser(ctx)
+	if user == nil {
+		return nil, errs.E(errs.Unauthenticated, op, errs.Str("no user in context"))
+	}
 
 	story, err := h.storyService.UpdateStory(ctx, user, id, in)
 	if err != nil {
-		return nil, err
+		return nil, errs.E(op, err)
 	}
 
 	return story, nil
@@ -71,6 +77,11 @@ func (h *StoryHandler) UpdateStory(ctx context.Context, _ *http.Request, in serv
 
 func (h *StoryHandler) CreateStory(ctx context.Context, r *http.Request, _ any) (*service.Story, error) {
 	const op errs.Op = "StoryHandler.CreateStory"
+
+	user := auth.GetUser(ctx)
+	if user == nil {
+		return nil, errs.E(errs.Unauthenticated, op, errs.Str("no user in context"))
+	}
 
 	p, err := parser.MultipartFormFromRequest(r)
 	if err != nil {
@@ -104,11 +115,9 @@ func (h *StoryHandler) CreateStory(ctx context.Context, r *http.Request, _ any) 
 		}
 	}
 
-	user := auth.GetUser(ctx)
-
 	story, err := h.storyService.CreateStory(ctx, user.Email, newStory, uploadFiles)
 	if err != nil {
-		return nil, err
+		return nil, errs.E(op, err)
 	}
 
 	return story, nil
@@ -124,7 +133,7 @@ func (h *StoryHandler) GetStory(ctx context.Context, _ *http.Request, _ any) (*s
 
 	story, err := h.storyService.GetStory(ctx, id)
 	if err != nil {
-		return nil, err
+		return nil, errs.E(op, err)
 	}
 
 	return story, nil

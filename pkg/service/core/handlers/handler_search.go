@@ -6,6 +6,8 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/navikt/nada-backend/pkg/errs"
+
 	"github.com/navikt/nada-backend/pkg/service"
 )
 
@@ -14,15 +16,24 @@ type SearchHandler struct {
 }
 
 func (h *SearchHandler) Search(ctx context.Context, r *http.Request, _ any) (*service.SearchResult, error) {
+	const op errs.Op = "SearchHandler.Search"
+
 	searchOptions, err := parseSearchOptionsFromRequest(r)
 	if err != nil {
-		return nil, nil
+		return nil, errs.E(op, err)
 	}
 
-	return h.service.Search(ctx, searchOptions)
+	result, err := h.service.Search(ctx, searchOptions)
+	if err != nil {
+		return nil, errs.E(op, err)
+	}
+
+	return result, nil
 }
 
 func parseSearchOptionsFromRequest(r *http.Request) (*service.SearchOptions, error) {
+	const op errs.Op = "parseSearchOptionsFromRequest"
+
 	query := r.URL.Query()
 
 	options := service.SearchOptions{}
@@ -61,8 +72,9 @@ func parseSearchOptionsFromRequest(r *http.Request) (*service.SearchOptions, err
 	if limit, ok := query["limit"]; ok && len(limit) > 0 {
 		limitVal, err := strconv.Atoi(limit[0])
 		if err != nil {
-			return nil, err // Handle or return an error appropriately
+			return nil, errs.E(errs.InvalidRequest, op, errs.Parameter("limit"), err)
 		}
+
 		options.Limit = &limitVal
 	}
 
@@ -70,8 +82,9 @@ func parseSearchOptionsFromRequest(r *http.Request) (*service.SearchOptions, err
 	if offset, ok := query["offset"]; ok && len(offset) > 0 {
 		offsetVal, err := strconv.Atoi(offset[0])
 		if err != nil {
-			return nil, err // Handle or return an error appropriately
+			return nil, errs.E(errs.InvalidRequest, op, errs.Parameter("offset"), err)
 		}
+
 		options.Offset = &offsetVal
 	}
 

@@ -6,6 +6,8 @@ import (
 	"net/http"
 	"strings"
 
+	"github.com/navikt/nada-backend/pkg/errs"
+
 	"github.com/navikt/nada-backend/pkg/auth"
 	"github.com/navikt/nada-backend/pkg/service"
 	"github.com/navikt/nada-backend/pkg/service/core/transport"
@@ -19,11 +21,16 @@ type TokenHandler struct {
 }
 
 func (h *TokenHandler) RotateNadaToken(ctx context.Context, r *http.Request, _ any) (*transport.Empty, error) {
+	const op errs.Op = "TokenHandler.RotateNadaToken"
+
 	user := auth.GetUser(ctx)
+	if user == nil {
+		return nil, errs.E(errs.Unauthenticated, op, errs.Str("no user in context"))
+	}
 
 	err := h.tokenService.RotateNadaToken(ctx, user, r.URL.Query().Get("team"))
 	if err != nil {
-		return nil, err
+		return nil, errs.E(op, err)
 	}
 
 	return &transport.Empty{}, nil

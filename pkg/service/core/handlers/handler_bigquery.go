@@ -42,7 +42,12 @@ func (h *BigQueryHandler) GetBigQueryColumns(ctx context.Context, r *http.Reques
 		return nil, errs.E(errs.InvalidRequest, op, err)
 	}
 
-	return h.service.GetBigQueryColumns(ctx, opts.ProjectID, opts.DatasetID, opts.TableID)
+	columns, err := h.service.GetBigQueryColumns(ctx, opts.ProjectID, opts.DatasetID, opts.TableID)
+	if err != nil {
+		return nil, errs.E(op, err)
+	}
+
+	return columns, nil
 }
 
 type getBigQueryTablesOpts struct {
@@ -70,7 +75,12 @@ func (h *BigQueryHandler) GetBigQueryTables(ctx context.Context, r *http.Request
 		return nil, errs.E(errs.InvalidRequest, op, err)
 	}
 
-	return h.service.GetBigQueryTables(ctx, opts.ProjectID, opts.DatasetID)
+	tables, err := h.service.GetBigQueryTables(ctx, opts.ProjectID, opts.DatasetID)
+	if err != nil {
+		return nil, errs.E(op, err)
+	}
+
+	return tables, nil
 }
 
 type getBigQueryDatasetsOpts struct {
@@ -95,13 +105,20 @@ func (h *BigQueryHandler) GetBigQueryDatasets(ctx context.Context, r *http.Reque
 		return nil, errs.E(errs.InvalidRequest, op, err)
 	}
 
-	return h.service.GetBigQueryDatasets(ctx, opts.ProjectID)
+	datasets, err := h.service.GetBigQueryDatasets(ctx, opts.ProjectID)
+	if err != nil {
+		return nil, errs.E(op, err)
+	}
+
+	return datasets, nil
 }
 
 func (h *BigQueryHandler) SyncBigQueryTables(ctx context.Context, _ *http.Request, _ any) (*transport.Empty, error) {
+	const op errs.Op = "BigQueryHandler.SyncBigQueryTables"
+
 	err := h.service.SyncBigQueryTables(ctx)
 	if err != nil {
-		return nil, err
+		return nil, errs.E(op, err)
 	}
 
 	return &transport.Empty{}, nil

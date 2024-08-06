@@ -26,18 +26,23 @@ func (h *DataProductsHandler) GetDataProduct(ctx context.Context, _ *http.Reques
 
 	dp, err := h.service.GetDataproduct(ctx, id)
 	if err != nil {
-		return nil, err
+		return nil, errs.E(op, err)
 	}
 
 	return dp, nil
 }
 
 func (h *DataProductsHandler) CreateDataProduct(ctx context.Context, _ *http.Request, in service.NewDataproduct) (*service.DataproductMinimal, error) {
+	const op errs.Op = "DataProductsHandler.CreateDataProduct"
+
 	user := auth.GetUser(ctx)
+	if user == nil {
+		return nil, errs.E(errs.Unauthenticated, op, errs.Str("no user in context"))
+	}
 
 	dp, err := h.service.CreateDataproduct(ctx, user, in)
 	if err != nil {
-		return nil, err
+		return nil, errs.E(op, err)
 	}
 
 	return dp, nil
@@ -52,10 +57,13 @@ func (h *DataProductsHandler) DeleteDataProduct(ctx context.Context, _ *http.Req
 	}
 
 	user := auth.GetUser(ctx)
+	if user == nil {
+		return nil, errs.E(errs.Unauthenticated, op, errs.Str("no user in context"))
+	}
 
 	_, err = h.service.DeleteDataproduct(ctx, user, id)
 	if err != nil {
-		return nil, err
+		return nil, errs.E(op, err)
 	}
 
 	// FIXME: it might be wrong to return empty, since the response is not empty
@@ -71,19 +79,24 @@ func (h *DataProductsHandler) UpdateDataProduct(ctx context.Context, _ *http.Req
 	}
 
 	user := auth.GetUser(ctx)
+	if user == nil {
+		return nil, errs.E(errs.Unauthenticated, op, errs.Str("no user in context"))
+	}
 
 	dp, err := h.service.UpdateDataproduct(ctx, user, id, in)
 	if err != nil {
-		return nil, err
+		return nil, errs.E(op, err)
 	}
 
 	return dp, nil
 }
 
 func (h *DataProductsHandler) GetDatasetsMinimal(ctx context.Context, _ *http.Request, _ interface{}) ([]*service.DatasetMinimal, error) {
+	const op errs.Op = "DataProductsHandler.GetDatasetsMinimal"
+
 	datasets, err := h.service.GetDatasetsMinimal(ctx)
 	if err != nil {
-		return nil, err
+		return nil, errs.E(op, err)
 	}
 
 	return datasets, nil
@@ -99,18 +112,23 @@ func (h *DataProductsHandler) GetDataset(ctx context.Context, _ *http.Request, _
 
 	dataset, err := h.service.GetDataset(ctx, id)
 	if err != nil {
-		return nil, err
+		return nil, errs.E(op, err)
 	}
 
 	return dataset, nil
 }
 
 func (h *DataProductsHandler) CreateDataset(ctx context.Context, _ *http.Request, in service.NewDataset) (*string, error) {
+	const op errs.Op = "DataProductsHandler.CreateDataset"
+
 	user := auth.GetUser(ctx)
+	if user == nil {
+		return nil, errs.E(errs.Unauthenticated, op, errs.Str("no user in context"))
+	}
 
 	ds, err := h.service.CreateDataset(ctx, user, in)
 	if err != nil {
-		return nil, err
+		return nil, errs.E(op, err)
 	}
 
 	// FIXME: is it correct to just return the slug here?
@@ -126,10 +144,13 @@ func (h *DataProductsHandler) UpdateDataset(ctx context.Context, _ *http.Request
 	}
 
 	user := auth.GetUser(ctx)
+	if user == nil {
+		return "", errs.E(errs.Unauthenticated, op, errs.Str("no user in context"))
+	}
 
 	dataset, err := h.service.UpdateDataset(ctx, user, id, in)
 	if err != nil {
-		return "", err
+		return "", errs.E(op, err)
 	}
 
 	return dataset, nil
@@ -144,21 +165,29 @@ func (h *DataProductsHandler) DeleteDataset(ctx context.Context, _ *http.Request
 	}
 
 	user := auth.GetUser(ctx)
+	if user == nil {
+		return nil, errs.E(errs.Unauthenticated, op, errs.Str("no user in context"))
+	}
 
 	_, err = h.service.DeleteDataset(ctx, user, id)
 	if err != nil {
-		return nil, err
+		return nil, errs.E(op, err)
 	}
 
 	return &transport.Empty{}, nil
 }
 
 func (h *DataProductsHandler) GetAccessiblePseudoDatasetsForUser(ctx context.Context, _ *http.Request, _ interface{}) ([]*service.PseudoDataset, error) {
+	const op errs.Op = "DataProductsHandler.GetAccessiblePseudoDatasetsForUser"
+
 	user := auth.GetUser(ctx)
+	if user == nil {
+		return nil, errs.E(errs.Unauthenticated, op, errs.Str("no user in context"))
+	}
 
 	datasets, err := h.service.GetAccessiblePseudoDatasetsForUser(ctx, user)
 	if err != nil {
-		return nil, err
+		return nil, errs.E(op, err)
 	}
 
 	return datasets, nil

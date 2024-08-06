@@ -28,31 +28,39 @@ func (h *AccessHandler) RevokeAccessToDataset(ctx context.Context, r *http.Reque
 	}
 
 	user := auth.GetUser(ctx)
+	if user == nil {
+		return nil, errs.E(errs.Unauthenticated, op, errs.Str("no user in context"))
+	}
 
 	err = h.metabaseService.RevokeMetabaseAccessFromAccessID(ctx, id)
 	if err != nil {
-		return nil, err
+		return nil, errs.E(op, err)
 	}
 
 	err = h.accessService.RevokeAccessToDataset(ctx, user, id, h.gcpProjectID)
 	if err != nil {
-		return nil, err
+		return nil, errs.E(op, err)
 	}
 
 	return &transport.Empty{}, nil
 }
 
 func (h *AccessHandler) GrantAccessToDataset(ctx context.Context, _ *http.Request, in service.GrantAccessData) (*transport.Empty, error) {
+	const op errs.Op = "AccessHandler.GrantAccessToDataset"
+
 	user := auth.GetUser(ctx)
+	if user == nil {
+		return nil, errs.E(errs.Unauthenticated, op, errs.Str("no user in context"))
+	}
 
 	err := h.accessService.GrantAccessToDataset(ctx, user, in, h.gcpProjectID)
 	if err != nil {
-		return nil, err
+		return nil, errs.E(op, err)
 	}
 
 	err = h.metabaseService.GrantMetabaseAccess(ctx, in.DatasetID, *in.Subject, *in.SubjectType)
 	if err != nil {
-		return nil, err
+		return nil, errs.E(op, err)
 	}
 
 	return &transport.Empty{}, nil
@@ -68,7 +76,7 @@ func (h *AccessHandler) GetAccessRequests(ctx context.Context, r *http.Request, 
 
 	access, err := h.accessService.GetAccessRequests(ctx, id)
 	if err != nil {
-		return nil, err
+		return nil, errs.E(op, err)
 	}
 
 	return access, nil
@@ -83,26 +91,44 @@ func (h *AccessHandler) ProcessAccessRequest(ctx context.Context, r *http.Reques
 	}
 
 	user := auth.GetUser(ctx)
+	if user == nil {
+		return nil, errs.E(errs.Unauthenticated, op, errs.Str("no user in context"))
+	}
 
 	reason := r.URL.Query().Get("reason")
 	action := r.URL.Query().Get("action")
 
 	switch action {
 	case "approve":
-		return &transport.Empty{}, h.accessService.ApproveAccessRequest(ctx, user, id)
+		err := h.accessService.ApproveAccessRequest(ctx, user, id)
+		if err != nil {
+			return nil, errs.E(op, err)
+		}
+
+		return &transport.Empty{}, nil
 	case "deny":
-		return &transport.Empty{}, h.accessService.DenyAccessRequest(ctx, user, id, &reason)
+		err := h.accessService.DenyAccessRequest(ctx, user, id, &reason)
+		if err != nil {
+			return nil, errs.E(op, err)
+		}
+
+		return &transport.Empty{}, nil
 	default:
-		return nil, fmt.Errorf("invalid action: %s", action)
+		return nil, errs.E(errs.InvalidRequest, op, fmt.Errorf("invalid action: %s", action))
 	}
 }
 
 func (h *AccessHandler) NewAccessRequest(ctx context.Context, _ *http.Request, in service.NewAccessRequestDTO) (*transport.Empty, error) {
+	const op errs.Op = "AccessHandler.NewAccessRequest"
+
 	user := auth.GetUser(ctx)
+	if user == nil {
+		return nil, errs.E(errs.Unauthenticated, op, errs.Str("no user in context"))
+	}
 
 	err := h.accessService.CreateAccessRequest(ctx, user, in)
 	if err != nil {
-		return nil, err
+		return nil, errs.E(op, err)
 	}
 
 	return &transport.Empty{}, nil
@@ -117,21 +143,25 @@ func (h *AccessHandler) DeleteAccessRequest(ctx context.Context, _ *http.Request
 	}
 
 	user := auth.GetUser(ctx)
+	if user == nil {
+		return nil, errs.E(errs.Unauthenticated, op, errs.Str("no user in context"))
+	}
 
 	err = h.accessService.DeleteAccessRequest(ctx, user, id)
 	if err != nil {
-		return nil, err
+		return nil, errs.E(op, err)
 	}
 
 	return &transport.Empty{}, nil
 }
 
 func (h *AccessHandler) UpdateAccessRequest(ctx context.Context, _ *http.Request, in service.UpdateAccessRequestDTO) (*transport.Empty, error) {
-	// FIXME: should we verify the user here
+	const op errs.Op = "AccessHandler.UpdateAccessRequest"
 
+	// FIXME: should we verify the user here
 	err := h.accessService.UpdateAccessRequest(ctx, in)
 	if err != nil {
-		return nil, err
+		return nil, errs.E(op, err)
 	}
 
 	return &transport.Empty{}, nil
