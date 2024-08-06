@@ -17,6 +17,8 @@ data:
       credentials_path: /var/run/secrets/metabase/meta_creds.json
       gcp_project: # Loaded from env var GCP_TEAM_PROJECT_ID
       databases_base_url: https://metabase.intern.dev.nav.no/browse/databases
+      mapping_deadline_sec: 600 # 10 minutes
+      mapping_frequency_sec: 600 # 10 minutes
     cross_team_pseudonymization:
       gcp_project_id: datamarkedsplassen-dev
       gcp_region: europe-north1

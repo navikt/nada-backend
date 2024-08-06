@@ -10,6 +10,8 @@ metabase:
   credentials_path: ./test-metabase-sa.json
   gcp_project: nada-dev-db2e
   databases_base_url: http://localhost:8083/browse/databases
+  mapping_deadline_sec: 600 # 10 minutes
+  mapping_frequency_sec: 600 # 10 minutes
 cross_team_pseudonymization:
   gcp_project_id: datamarkedsplassen-dev
   gcp_region: europe-north1

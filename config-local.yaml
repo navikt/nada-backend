@@ -10,6 +10,8 @@ metabase:
   credentials_path: ./resources/metabase/fake/fake-metabase-sa.json
   gcp_project: test
   databases_base_url: http://localhost:8083/browse/databases
+  mapping_deadline_sec: 600 # 10 minutes
+  mapping_frequency_sec: 600 # 10 minutes
   big_query_database:
     disable_auth: true
     api_endpoint_override: http://bq:8084 # This is the name of the service in the docker-compose.yml

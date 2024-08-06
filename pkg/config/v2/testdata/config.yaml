@@ -13,6 +13,8 @@ metabase:
     big_query_database:
         api_endpoint_override: http://localhost:3000
         disable_auth: true
+    mapping_deadline_sec: 600
+    mapping_frequency_sec: 600
 cross_team_pseudonymization:
     gcp_project_id: some-project
     gcp_region: eu-north1

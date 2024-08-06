@@ -164,6 +164,9 @@ type Metabase struct {
 	CredentialsPath  string                   `yaml:"credentials_path"`
 	DatabasesBaseURL string                   `yaml:"databases_base_url"`
 	BigQueryDatabase MetabaseBigQueryDatabase `yaml:"big_query_database"`
+
+	MappingDeadlineSec  int `yaml:"mapping_deadline_sec"`
+	MappingFrequencySec int `yaml:"mapping_frequency_sec"`
 }
 
 func (m Metabase) Validate() error {
@@ -174,6 +177,8 @@ func (m Metabase) Validate() error {
 		validation.Field(&m.APIURL, validation.Required, is.URL),
 		validation.Field(&m.DatabasesBaseURL, validation.Required, is.URL),
 		validation.Field(&m.CredentialsPath, validation.Required),
+		validation.Field(&m.MappingDeadlineSec, validation.Required),
+		validation.Field(&m.MappingFrequencySec, validation.Required),
 		validation.Field(&m.BigQueryDatabase),
 	)
 }

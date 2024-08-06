@@ -34,6 +34,8 @@ func newFakeConfig() config.Config {
 				APIEndpointOverride: "http://localhost:3000",
 				DisableAuth:         true,
 			},
+			MappingDeadlineSec:  600,
+			MappingFrequencySec: 600,
 		},
 		CrossTeamPseudonymization: config.CrossTeamPseudonymization{
 			GCPProjectID: "some-project",
