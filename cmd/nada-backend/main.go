@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"github.com/go-chi/chi/middleware"
+	"github.com/navikt/nada-backend/pkg/syncers/metabase_mapper"
 	"net"
 	"net/http"
 	"os"
@@ -145,6 +146,15 @@ func main() {
 		zlog.With().Str("subsystem", "metabase_sync").Logger(),
 	)
 
+	metabaseMapper := metabase_mapper.New(
+		services.MetaBaseService,
+		stores.ThirdPartyMappingStorage,
+		cfg.Metabase.MappingDeadlineSec,
+		cfg.Metabase.MappingFrequencySec,
+		zlog.With().Str("subsystem", "metabase_mapper").Logger(),
+	)
+	go metabaseMapper.Run(ctx)
+
 	teamcatalogue := teamkatalogen.New(
 		apiClients.TeamKatalogenAPI,
 		stores.ProductAreaStorage,
@@ -187,6 +197,7 @@ func main() {
 	h := handlers.NewHandlers(
 		services,
 		cfg,
+		metabaseMapper.Queue,
 		zlog.With().Str("subsystem", "handlers").Logger(),
 	)
 

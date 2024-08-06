@@ -50,7 +50,7 @@ func (h *AccessHandler) GrantAccessToDataset(ctx context.Context, _ *http.Reques
 		return nil, err
 	}
 
-	err = h.metabaseService.GrantMetabaseAccess(ctx, user, in.DatasetID, *in.Subject, *in.SubjectType)
+	err = h.metabaseService.GrantMetabaseAccess(ctx, in.DatasetID, *in.Subject, *in.SubjectType)
 	if err != nil {
 		return nil, err
 	}

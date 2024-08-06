@@ -2,6 +2,7 @@ package postgres
 
 import (
 	"context"
+	"github.com/navikt/nada-backend/pkg/service"
 
 	"github.com/google/uuid"
 	"github.com/navikt/nada-backend/pkg/database"
@@ -9,8 +10,21 @@ import (
 	"github.com/navikt/nada-backend/pkg/errs"
 )
 
+var _ service.ThirdPartyMappingStorage = &thirdPartyMappingStorage{}
+
 type thirdPartyMappingStorage struct {
 	db *database.Repo
+}
+
+func (s *thirdPartyMappingStorage) GetUnprocessedMetabaseDatasetMappings(ctx context.Context) ([]uuid.UUID, error) {
+	const op errs.Op = "thirdPartyMappingStorage.GetUnprocessedMetabaseDatasetMappings"
+
+	datasetIDs, err := s.db.Querier.GetUnprocessedMetabaseDatasetMappings(ctx)
+	if err != nil {
+		return nil, errs.E(errs.Database, op, err)
+	}
+
+	return datasetIDs, nil
 }
 
 func (s *thirdPartyMappingStorage) MapDataset(ctx context.Context, datasetID uuid.UUID, services []string) error {
