@@ -181,6 +181,12 @@ func (s *metabaseService) addMetabaseGroupMember(ctx context.Context, dsID uuid.
 
 	mbMetadata, err := s.metabaseStorage.GetMetadata(ctx, dsID, false)
 	if err != nil {
+		// If we don't have metadata for the dataset, it means that the dataset is not mapped to Metabase
+		// so no need to add the user to the group
+		if errs.KindIs(errs.NotExist, err) {
+			return nil
+		}
+
 		return errs.E(op, err)
 	}
 
