@@ -2,6 +2,7 @@ package metabase_mapper_test
 
 import (
 	"context"
+	"os"
 	"testing"
 	"time"
 
@@ -35,7 +36,7 @@ func (m *MockThirdPartyMappingStorage) GetUnprocessedMetabaseDatasetMappings(ctx
 }
 
 func TestMapperProcessesDatasetsFromQueue(t *testing.T) {
-	logger := zerolog.New(zerolog.ConsoleWriter{Out: nil})
+	logger := zerolog.New(zerolog.ConsoleWriter{Out: os.Stdout})
 	mockService := new(MockMetabaseService)
 	mockStorage := new(MockThirdPartyMappingStorage)
 	mapper := metabase_mapper.New(mockService, mockStorage, 10, 20, logger)
@@ -55,7 +56,7 @@ func TestMapperProcessesDatasetsFromQueue(t *testing.T) {
 }
 
 func TestMapperProcessesDatasetsFromStorage(t *testing.T) {
-	logger := zerolog.New(zerolog.ConsoleWriter{Out: nil})
+	logger := zerolog.New(zerolog.ConsoleWriter{Out: os.Stdout})
 	mockService := new(MockMetabaseService)
 	mockStorage := new(MockThirdPartyMappingStorage)
 	mapper := metabase_mapper.New(mockService, mockStorage, 10, 1, logger)
@@ -75,7 +76,7 @@ func TestMapperProcessesDatasetsFromStorage(t *testing.T) {
 }
 
 func TestMapperHandlesMappingError(t *testing.T) {
-	logger := zerolog.New(zerolog.ConsoleWriter{Out: nil})
+	logger := zerolog.New(zerolog.ConsoleWriter{Out: os.Stdout})
 	mockService := new(MockMetabaseService)
 	mockStorage := new(MockThirdPartyMappingStorage)
 	mapper := metabase_mapper.New(mockService, mockStorage, 10, 20, logger)
@@ -95,7 +96,7 @@ func TestMapperHandlesMappingError(t *testing.T) {
 }
 
 func TestMapperShutsDownGracefully(t *testing.T) {
-	logger := zerolog.New(zerolog.ConsoleWriter{Out: nil})
+	logger := zerolog.New(zerolog.ConsoleWriter{Out: os.Stdout})
 	mockService := new(MockMetabaseService)
 	mockStorage := new(MockThirdPartyMappingStorage)
 	mapper := metabase_mapper.New(mockService, mockStorage, 10, 1, logger)

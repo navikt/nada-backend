@@ -2,6 +2,7 @@ package metabase_mapper
 
 import (
 	"context"
+	"github.com/navikt/nada-backend/pkg/leaderelection"
 	"time"
 
 	"github.com/google/uuid"
@@ -36,11 +37,21 @@ func New(
 }
 
 func (m *Mapper) Run(ctx context.Context) {
-	log.Info().Msg("Starting metabase mapper")
+	m.log.Info().Msg("Starting metabase mapper")
 
 	for {
 		select {
 		case <-m.ticker.C:
+			isLeader, err := leaderelection.IsLeader()
+			if err != nil {
+				log.Error().Err(err).Msg("checking leader status")
+			}
+
+			if !isLeader {
+				m.log.Info().Msg("Not leader, skipping mapping")
+				continue
+			}
+
 			mappings, err := m.thirdPartyMappingStorage.GetUnprocessedMetabaseDatasetMappings(ctx)
 			if err != nil {
 				m.log.Error().Err(err).Msg("getting unprocessed metabase mappings")
@@ -52,7 +63,7 @@ func (m *Mapper) Run(ctx context.Context) {
 		case datasetID := <-m.Queue:
 			m.MapDataset(ctx, datasetID)
 		case <-ctx.Done():
-			log.Info().Msg("Shutting down metabase mapper")
+			m.log.Info().Msg("Shutting down metabase mapper")
 			return
 		}
 	}
@@ -61,7 +72,7 @@ func (m *Mapper) Run(ctx context.Context) {
 func (m *Mapper) MapDataset(ctx context.Context, datasetID uuid.UUID) {
 	deadline := time.Duration(m.mappingDeadlineSec) * time.Second
 
-	log.Info().Str("dataset_id", datasetID.String()).Float64("deadline_seconds", deadline.Seconds()).Msg("mapping dataset")
+	m.log.Info().Str("dataset_id", datasetID.String()).Float64("deadline_seconds", deadline.Seconds()).Msg("mapping dataset")
 
 	ctx, cancel := context.WithTimeout(ctx, time.Duration(m.mappingDeadlineSec)*time.Second)
 	defer cancel()
