@@ -8,7 +8,6 @@ import (
 	"github.com/google/uuid"
 	"github.com/navikt/nada-backend/pkg/service"
 	"github.com/rs/zerolog"
-	"github.com/rs/zerolog/log"
 )
 
 type Mapper struct {
@@ -44,7 +43,7 @@ func (m *Mapper) Run(ctx context.Context) {
 		case <-m.ticker.C:
 			isLeader, err := leaderelection.IsLeader()
 			if err != nil {
-				log.Error().Err(err).Msg("checking leader status")
+				m.log.Error().Err(err).Msg("checking leader status")
 			}
 
 			if !isLeader {
@@ -79,6 +78,6 @@ func (m *Mapper) MapDataset(ctx context.Context, datasetID uuid.UUID) {
 
 	err := m.metabaseService.MapDataset(ctx, datasetID, []string{service.MappingServiceMetabase})
 	if err != nil {
-		log.Error().Err(err).Msg("mapping dataset")
+		m.log.Error().Err(err).Msg("mapping dataset")
 	}
 }
