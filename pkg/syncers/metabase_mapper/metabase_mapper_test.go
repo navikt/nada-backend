@@ -2,9 +2,10 @@ package metabase_mapper_test
 
 import (
 	"context"
-	"github.com/navikt/nada-backend/pkg/service"
 	"testing"
 	"time"
+
+	"github.com/navikt/nada-backend/pkg/service"
 
 	"github.com/google/uuid"
 	"github.com/navikt/nada-backend/pkg/syncers/metabase_mapper"

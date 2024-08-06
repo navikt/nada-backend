@@ -2,11 +2,12 @@ package metabase_mapper
 
 import (
 	"context"
+	"time"
+
 	"github.com/google/uuid"
 	"github.com/navikt/nada-backend/pkg/service"
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
-	"time"
 )
 
 type Mapper struct {

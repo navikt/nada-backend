@@ -2,11 +2,12 @@ package requestlogger_test
 
 import (
 	"bytes"
-	md "github.com/go-chi/chi/middleware"
 	"net/http"
 	"net/http/httptest"
 	"testing"
 	"time"
+
+	md "github.com/go-chi/chi/middleware"
 
 	"github.com/goccy/go-json"
 	"github.com/google/go-cmp/cmp"

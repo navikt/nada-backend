@@ -2,14 +2,15 @@ package main
 
 import (
 	"context"
-	"github.com/go-chi/chi/middleware"
-	"github.com/navikt/nada-backend/pkg/syncers/metabase_mapper"
 	"net"
 	"net/http"
 	"os"
 	"os/signal"
 	"syscall"
 	"time"
+
+	"github.com/go-chi/chi/middleware"
+	"github.com/navikt/nada-backend/pkg/syncers/metabase_mapper"
 
 	"github.com/navikt/nada-backend/pkg/requestlogger"
 
