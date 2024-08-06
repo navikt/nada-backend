@@ -51,8 +51,9 @@ type MetabaseService interface {
 	RevokeMetabaseAccess(ctx context.Context, dsID uuid.UUID, subject string) error
 	RevokeMetabaseAccessFromAccessID(ctx context.Context, accessID uuid.UUID) error
 	DeleteDatabase(ctx context.Context, dsID uuid.UUID) error
-	GrantMetabaseAccess(ctx context.Context, user *User, dsID uuid.UUID, subject, subjectType string) error
-	MapDataset(ctx context.Context, user *User, datasetID uuid.UUID, services []string) (*Dataset, error)
+	GrantMetabaseAccess(ctx context.Context, dsID uuid.UUID, subject, subjectType string) error
+	CreateMappingRequest(ctx context.Context, user *User, datasetID uuid.UUID, services []string) error
+	MapDataset(ctx context.Context, datasetID uuid.UUID, services []string) error
 }
 
 type MetabaseField struct{}

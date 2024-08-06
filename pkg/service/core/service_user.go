@@ -3,12 +3,13 @@ package core
 import (
 	"context"
 	"fmt"
+	"strings"
+
 	"github.com/google/uuid"
 	"github.com/navikt/nada-backend/pkg/auth"
 	"github.com/navikt/nada-backend/pkg/errs"
 	"github.com/navikt/nada-backend/pkg/service"
 	"github.com/rs/zerolog"
-	"strings"
 )
 
 var _ service.UserService = &userService{}
@@ -46,6 +47,11 @@ func (s *userService) GetUserData(ctx context.Context, user *service.User) (*ser
 	}
 
 	for _, grp := range user.GoogleGroups {
+		// Skip all-users group
+		if auth.TrimNaisTeamPrefix(grp.Email) == "all-users" {
+			continue
+		}
+
 		proj, err := s.naisConsoleStorage.GetTeamProject(ctx, auth.TrimNaisTeamPrefix(grp.Email))
 		if err != nil {
 			s.log.Error().Err(err).Msg("getting team project")

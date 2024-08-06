@@ -3,12 +3,13 @@ package slack
 import (
 	"context"
 	"fmt"
+	"net/url"
+	"strings"
+
 	"github.com/google/uuid"
 	"github.com/navikt/nada-backend/pkg/errs"
 	"github.com/navikt/nada-backend/pkg/service"
 	slackapi "github.com/slack-go/slack"
-	"net/url"
-	"strings"
 )
 
 // FIXME: create an actual slack client
@@ -65,7 +66,6 @@ func (a *slackAPI) InformNewAccessRequest(ctx context.Context, subject string, d
 	_, _, _, err = a.api.SendMessage(*dp.Owner.TeamContact, slackapi.MsgOptionText(message, false))
 	if err != nil {
 		return errs.E(errs.IO, op, err)
-
 	}
 
 	return nil

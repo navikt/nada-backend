@@ -47,7 +47,7 @@ func NewClients(
 		),
 		StoryAPI: gcp.NewStoryAPI(
 			csClient,
-			log,
+			log.With().Str("component", "story").Logger(),
 		),
 		ServiceAccountAPI: gcp.NewServiceAccountAPI(),
 		MetaBaseAPI: httpapi.NewMetabaseHTTP(
@@ -57,8 +57,9 @@ func NewClients(
 			cfg.Oauth.ClientID,
 			cfg.Oauth.ClientSecret,
 			cfg.Oauth.TenantID,
-			cfg.Metabase.BigQueryDatabase.Endpoint,
-			cfg.Metabase.BigQueryDatabase.EnableAuth,
+			cfg.Metabase.BigQueryDatabase.APIEndpointOverride,
+			cfg.Metabase.BigQueryDatabase.DisableAuth,
+			log.With().Str("component", "metabase").Logger(),
 		),
 		PollyAPI: httpapi.NewPollyAPI(
 			cfg.TreatmentCatalogue.APIURL,

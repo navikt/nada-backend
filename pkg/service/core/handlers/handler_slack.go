@@ -3,8 +3,9 @@ package handlers
 import (
 	"context"
 	"fmt"
-	"github.com/navikt/nada-backend/pkg/service"
 	"net/http"
+
+	"github.com/navikt/nada-backend/pkg/service"
 )
 
 type SlackHandler struct {

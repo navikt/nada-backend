@@ -2,9 +2,10 @@ package teamkatalogen
 
 import (
 	"context"
+	"time"
+
 	"github.com/navikt/nada-backend/pkg/service"
 	"github.com/rs/zerolog"
-	"time"
 )
 
 type Syncer struct {

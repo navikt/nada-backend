@@ -4,13 +4,14 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"path"
+	"sort"
+	"strings"
+
 	"github.com/navikt/nada-backend/pkg/cs"
 	"github.com/navikt/nada-backend/pkg/errs"
 	"github.com/navikt/nada-backend/pkg/service"
 	"github.com/rs/zerolog"
-	"path"
-	"sort"
-	"strings"
 )
 
 var _ service.StoryAPI = &storyAPI{}
@@ -21,7 +22,7 @@ type storyAPI struct {
 }
 
 func (s *storyAPI) GetIndexHtmlPath(ctx context.Context, prefix string) (string, error) {
-	const op errs.Op = "gcp.GetIndexHtmlPath"
+	const op errs.Op = "storyAPI.GetIndexHtmlPath"
 
 	prefix, _ = strings.CutSuffix(prefix, "/")
 
@@ -51,7 +52,7 @@ func (s *storyAPI) GetIndexHtmlPath(ctx context.Context, prefix string) (string,
 }
 
 func (s *storyAPI) GetObject(ctx context.Context, path string) (*service.ObjectWithData, error) {
-	const op errs.Op = "gcp.GetObject"
+	const op errs.Op = "storyAPI.GetObject"
 
 	obj, err := s.ops.GetObjectWithData(ctx, path)
 	if err != nil {
@@ -78,7 +79,7 @@ func (s *storyAPI) GetObject(ctx context.Context, path string) (*service.ObjectW
 }
 
 func (s *storyAPI) DeleteObjectsWithPrefix(ctx context.Context, prefix string) (int, error) {
-	const op errs.Op = "gcp.DeleteObjectsWithPrefix"
+	const op errs.Op = "storyAPI.DeleteObjectsWithPrefix"
 
 	n, err := s.ops.DeleteObjects(ctx, &cs.Query{Prefix: prefix})
 	if err != nil {
@@ -89,7 +90,7 @@ func (s *storyAPI) DeleteObjectsWithPrefix(ctx context.Context, prefix string) (
 }
 
 func (s *storyAPI) WriteFilesToBucket(ctx context.Context, storyID string, files []*service.UploadFile, cleanupOnFailure bool) error {
-	const op errs.Op = "gcp.WriteFilesToBucket"
+	const op errs.Op = "storyAPI.WriteFilesToBucket"
 
 	var err error
 
@@ -115,7 +116,7 @@ func (s *storyAPI) WriteFilesToBucket(ctx context.Context, storyID string, files
 }
 
 func (s *storyAPI) WriteFileToBucket(ctx context.Context, pathPrefix string, file *service.UploadFile) error {
-	const op errs.Op = "gcp.WriteFileToBucket"
+	const op errs.Op = "storyAPI.WriteFileToBucket"
 
 	err := s.ops.WriteObject(ctx, path.Join(pathPrefix, file.Path), file.ReadCloser, nil)
 	if err != nil {
@@ -126,20 +127,15 @@ func (s *storyAPI) WriteFileToBucket(ctx context.Context, pathPrefix string, fil
 }
 
 func (s *storyAPI) DeleteStoryFolder(ctx context.Context, storyID string) error {
-	const op errs.Op = "gcp.DeleteStoryFolder"
+	const op errs.Op = "storyAPI.DeleteStoryFolder"
 
 	if len(storyID) == 0 {
 		return errs.E(errs.InvalidRequest, op, fmt.Errorf("story id %s is empty", storyID))
 	}
 
-	n, err := s.DeleteObjectsWithPrefix(ctx, storyID+"/")
+	_, err := s.DeleteObjectsWithPrefix(ctx, storyID+"/")
 	if err != nil {
 		return errs.E(op, err)
-	}
-
-	// FIXME: Is this right?
-	if n == 0 {
-		return errs.E(errs.NotExist, op, fmt.Errorf("no files found for story id %v", storyID))
 	}
 
 	return nil

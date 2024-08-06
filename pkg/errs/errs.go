@@ -12,9 +12,10 @@ package errs
 import (
 	"errors"
 	"fmt"
-	"github.com/rs/zerolog"
 	"runtime"
 	"sort"
+
+	"github.com/rs/zerolog"
 
 	pkgerrors "github.com/pkg/errors"
 )

@@ -3,11 +3,12 @@ package nc_test
 import (
 	"context"
 	"encoding/json"
-	"github.com/navikt/nada-backend/pkg/nc"
-	"github.com/stretchr/testify/assert"
 	"net/http"
 	"net/http/httptest"
 	"testing"
+
+	"github.com/navikt/nada-backend/pkg/nc"
+	"github.com/stretchr/testify/assert"
 )
 
 func TestClient_GetTeamGoogleProjects(t *testing.T) {

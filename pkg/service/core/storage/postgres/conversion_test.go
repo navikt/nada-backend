@@ -1,8 +1,9 @@
 package postgres_test
 
 import (
-	"github.com/navikt/nada-backend/pkg/service/core/storage/postgres"
 	"testing"
+
+	"github.com/navikt/nada-backend/pkg/service/core/storage/postgres"
 )
 
 type testFrom struct {

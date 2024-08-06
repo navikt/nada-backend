@@ -3,10 +3,13 @@ package handlers
 import (
 	"context"
 	"fmt"
+	"net/http"
+
+	"github.com/go-chi/chi"
+
 	"github.com/google/uuid"
 	"github.com/navikt/nada-backend/pkg/errs"
 	"github.com/navikt/nada-backend/pkg/service"
-	"net/http"
 )
 
 type ProductAreasHandler struct {
@@ -24,15 +27,20 @@ func (h *ProductAreasHandler) GetProductAreas(ctx context.Context, _ *http.Reque
 	return p, nil
 }
 
-func (h *ProductAreasHandler) GetProductAreaWithAssets(ctx context.Context, r *http.Request, _ any) (*service.ProductAreaWithAssets, error) {
+func (h *ProductAreasHandler) GetProductAreaWithAssets(ctx context.Context, _ *http.Request, _ any) (*service.ProductAreaWithAssets, error) {
 	const op errs.Op = "ProductAreasHandler.GetProductAreaWithAssets"
 
-	id, err := uuid.Parse(r.URL.Query().Get("id"))
+	id, err := uuid.Parse(chi.URLParamFromCtx(ctx, "id"))
 	if err != nil {
 		return nil, errs.E(errs.InvalidRequest, op, fmt.Errorf("parsing id: %w", err))
 	}
 
-	return h.service.GetProductAreaWithAssets(ctx, id)
+	pa, err := h.service.GetProductAreaWithAssets(ctx, id)
+	if err != nil {
+		return nil, errs.E(op, err)
+	}
+
+	return pa, nil
 }
 
 func NewProductAreasHandler(service service.ProductAreaService) *ProductAreasHandler {

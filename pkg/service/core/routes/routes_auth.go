@@ -1,9 +1,10 @@
 package routes
 
 import (
+	"net/http"
+
 	"github.com/go-chi/chi"
 	"github.com/navikt/nada-backend/pkg/api"
-	"net/http"
 )
 
 type AuthEndpoints struct {

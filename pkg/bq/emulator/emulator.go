@@ -2,23 +2,24 @@ package emulator
 
 import (
 	"bytes"
-	"cloud.google.com/go/iam/apiv1/iampb"
 	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
+	"net/http"
+	"net/http/httputil"
+	"os"
+
+	"cloud.google.com/go/iam/apiv1/iampb"
+
 	"github.com/go-chi/chi"
 	"github.com/goccy/bigquery-emulator/server"
 	"github.com/goccy/bigquery-emulator/types"
 	"github.com/goccy/go-yaml"
 	"github.com/rs/zerolog"
-	"net/http"
-	"net/http/httputil"
-	"os"
 )
 
 type Emulator struct {
-	handler    http.Handler
 	testServer *server.TestServer
 	emulator   *server.Server
 	log        zerolog.Logger
@@ -132,10 +133,7 @@ func (e *Emulator) WithProject(projectID string, datasets ...*Dataset) {
 				ID: ds.TableID,
 			}
 
-			for _, col := range ds.Columns {
-				t.Columns = append(t.Columns, col)
-			}
-
+			t.Columns = append(t.Columns, ds.Columns...)
 			d.Tables = append(d.Tables, t)
 		}
 

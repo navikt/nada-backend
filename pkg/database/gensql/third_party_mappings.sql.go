@@ -76,6 +76,38 @@ func (q *Queries) GetDatasetsByMapping(ctx context.Context, arg GetDatasetsByMap
 	return items, nil
 }
 
+const getUnprocessedMetabaseDatasetMappings = `-- name: GetUnprocessedMetabaseDatasetMappings :many
+SELECT dataset_id
+FROM third_party_mappings
+WHERE "dataset_id" NOT IN (
+    SELECT dataset_id FROM metabase_metadata
+)
+AND 'metabase' = ANY(services)
+`
+
+func (q *Queries) GetUnprocessedMetabaseDatasetMappings(ctx context.Context) ([]uuid.UUID, error) {
+	rows, err := q.db.QueryContext(ctx, getUnprocessedMetabaseDatasetMappings)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []uuid.UUID{}
+	for rows.Next() {
+		var dataset_id uuid.UUID
+		if err := rows.Scan(&dataset_id); err != nil {
+			return nil, err
+		}
+		items = append(items, dataset_id)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const mapDataset = `-- name: MapDataset :exec
 INSERT INTO third_party_mappings (
     "dataset_id",

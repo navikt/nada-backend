@@ -2,15 +2,16 @@ package transport
 
 import (
 	"context"
-	"github.com/go-chi/chi"
-	"github.com/rs/zerolog"
-	"github.com/sebdah/goldie/v2"
-	"github.com/stretchr/testify/assert"
 	"net/http"
 	"net/http/httptest"
 	"os"
 	"strings"
 	"testing"
+
+	"github.com/go-chi/chi"
+	"github.com/rs/zerolog"
+	"github.com/sebdah/goldie/v2"
+	"github.com/stretchr/testify/assert"
 )
 
 type TestData struct {
@@ -82,8 +83,13 @@ func (h *testSimpleHandler) Receiver(_ context.Context, _ *http.Request, _ any) 
 	}, nil
 }
 
-func TestHandlerFor(t *testing.T) {
+func (h *testSimpleHandler) Accepted(_ context.Context, _ *http.Request, _ any) (*Accepted, error) {
+	h.invocations++
 
+	return &Accepted{}, nil
+}
+
+func TestHandlerFor(t *testing.T) {
 	simple := &testSimpleHandler{
 		Data:   []byte("test"),
 		NewURL: "/receiver",
@@ -169,6 +175,16 @@ func TestHandlerFor(t *testing.T) {
 			request: httptest.NewRequest(http.MethodGet, "/whatever", nil),
 			status:  http.StatusSeeOther,
 			count:   2,
+		},
+		{
+			name: "handler-for-accepted-encoder",
+			desc: "Invokes the handler and expects the custom encoder to be used",
+			routes: map[string]http.HandlerFunc{
+				"/whatever": For(simple.Accepted).Build(logger),
+			},
+			request: httptest.NewRequest(http.MethodGet, "/whatever", nil),
+			status:  http.StatusAccepted,
+			count:   1,
 		},
 	}
 

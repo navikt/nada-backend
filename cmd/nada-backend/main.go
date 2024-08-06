@@ -2,6 +2,18 @@ package main
 
 import (
 	"context"
+	"net"
+	"net/http"
+	"os"
+	"os/signal"
+	"syscall"
+	"time"
+
+	"github.com/go-chi/chi/middleware"
+	"github.com/navikt/nada-backend/pkg/syncers/metabase_mapper"
+
+	"github.com/navikt/nada-backend/pkg/requestlogger"
+
 	"github.com/go-chi/chi"
 	"github.com/navikt/nada-backend/pkg/bq"
 	"github.com/navikt/nada-backend/pkg/cache"
@@ -17,13 +29,8 @@ import (
 	"github.com/navikt/nada-backend/pkg/syncers/teamkatalogen"
 	"github.com/navikt/nada-backend/pkg/syncers/teamprojectsupdater"
 	"github.com/navikt/nada-backend/pkg/tk"
+	"github.com/prometheus/client_golang/prometheus/collectors"
 	"github.com/rs/zerolog"
-	"net"
-	"net/http"
-	"os"
-	"os/signal"
-	"syscall"
-	"time"
 
 	"github.com/navikt/nada-backend/pkg/api"
 	"github.com/navikt/nada-backend/pkg/auth"
@@ -42,7 +49,6 @@ var promErrs = prometheus.NewCounterVec(prometheus.CounterOpts{
 
 const (
 	TeamProjectsUpdateFrequency = 60 * time.Minute
-	TeamProjectDelay            = 10 * time.Second
 	AccessEnsurerFrequency      = 5 * time.Minute
 	MetabaseUpdateFrequency     = 1 * time.Hour
 	TeamKatalogenFrequency      = 1 * time.Hour
@@ -123,7 +129,7 @@ func main() {
 		services.NaisConsoleService,
 		zlog.With().Str("subsystem", "teamprojectsupdater").Logger(),
 	)
-	go teamProjectsUpdater.Run(ctx, TeamProjectDelay, TeamProjectsUpdateFrequency)
+	go teamProjectsUpdater.Run(ctx, time.Duration(cfg.TeamProjectsUpdateDelaySeconds)*time.Second, TeamProjectsUpdateFrequency)
 
 	googleGroups, err := auth.NewGoogleGroups(
 		ctx,
@@ -140,6 +146,15 @@ func main() {
 		MetabaseUpdateFrequency,
 		zlog.With().Str("subsystem", "metabase_sync").Logger(),
 	)
+
+	metabaseMapper := metabase_mapper.New(
+		services.MetaBaseService,
+		stores.ThirdPartyMappingStorage,
+		cfg.Metabase.MappingDeadlineSec,
+		cfg.Metabase.MappingFrequencySec,
+		zlog.With().Str("subsystem", "metabase_mapper").Logger(),
+	)
+	go metabaseMapper.Run(ctx)
 
 	teamcatalogue := teamkatalogen.New(
 		apiClients.TeamKatalogenAPI,
@@ -183,6 +198,7 @@ func main() {
 	h := handlers.NewHandlers(
 		services,
 		cfg,
+		metabaseMapper.Queue,
 		zlog.With().Str("subsystem", "handlers").Logger(),
 	)
 
@@ -194,6 +210,12 @@ func main() {
 		zlog.Warn().Str("method", r.Method).Str("path", r.URL.Path).Msg("not found")
 		w.WriteHeader(http.StatusNotFound)
 	})
+
+	router.Use(middleware.RequestID)
+	router.Use(requestlogger.Middleware(
+		zlog.With().Str("subsystem", "requestlogger").Logger(),
+		"/internal/metrics",
+	))
 
 	routes.Add(router,
 		routes.NewInsightProductRoutes(routes.NewInsightProductEndpoints(zlog, h.InsightProductHandler), authenticatorMiddleware),
@@ -221,8 +243,11 @@ func main() {
 	}
 
 	server := http.Server{
-		Addr:    net.JoinHostPort(cfg.Server.Address, cfg.Server.Port),
-		Handler: router,
+		Addr:         net.JoinHostPort(cfg.Server.Address, cfg.Server.Port),
+		Handler:      router,
+		ReadTimeout:  30 * time.Second,
+		WriteTimeout: 30 * time.Second,
+		IdleTimeout:  120 * time.Second,
 	}
 
 	go access_ensurer.NewEnsurer(
@@ -256,7 +281,7 @@ func main() {
 func prom(cols ...prometheus.Collector) *prometheus.Registry {
 	r := prometheus.NewRegistry()
 	r.MustRegister(promErrs)
-	r.MustRegister(prometheus.NewGoCollector())
+	r.MustRegister(collectors.NewGoCollector())
 	r.MustRegister(cols...)
 
 	return r

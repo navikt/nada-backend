@@ -1,9 +1,10 @@
 package auth
 
 import (
-	"github.com/navikt/nada-backend/pkg/service"
 	"sync"
 	"time"
+
+	"github.com/navikt/nada-backend/pkg/service"
 )
 
 type groupsCacheValue struct {

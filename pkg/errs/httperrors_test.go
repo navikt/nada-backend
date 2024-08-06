@@ -47,7 +47,6 @@ func Test_httpErrorStatusCode(t *testing.T) {
 }
 
 func TestHTTPErrorResponse_StatusCode(t *testing.T) {
-
 	type args struct {
 		w   *httptest.ResponseRecorder
 		l   zerolog.Logger
@@ -81,7 +80,6 @@ func TestHTTPErrorResponse_StatusCode(t *testing.T) {
 }
 
 func TestHTTPErrorResponse_Body(t *testing.T) {
-
 	type args struct {
 		w   *httptest.ResponseRecorder
 		l   zerolog.Logger

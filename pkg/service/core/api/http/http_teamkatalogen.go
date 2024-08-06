@@ -2,22 +2,20 @@ package http
 
 import (
 	"context"
+	"strings"
+
 	"github.com/google/uuid"
 	"github.com/navikt/nada-backend/pkg/errs"
 	"github.com/navikt/nada-backend/pkg/service"
 	"github.com/navikt/nada-backend/pkg/tk"
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
-	"net/http"
-	"strings"
 )
 
 var _ service.TeamKatalogenAPI = &teamKatalogenAPI{}
 
 type teamKatalogenAPI struct {
 	fetcher tk.Fetcher
-	client  *http.Client
-	url     string
 	log     zerolog.Logger
 }
 
@@ -102,8 +100,6 @@ func (t *teamKatalogenAPI) Search(ctx context.Context, gcpGroups []string) ([]se
 				break
 			}
 		}
-
-		log.Info().Msgf("team %s matched: %v", r.Name, isMatch)
 
 		if isMatch {
 			ret = append(ret, service.TeamkatalogenResult{

@@ -1,5 +1,6 @@
-name: build and push
-on: 
+name: Build and deploy nada-backend
+
+on:
   push:
     branches:
       - '*'
@@ -19,14 +20,88 @@ permissions:
   id-token: write
 
 jobs:
-  build-and-push:
-    name: Build and push GAR
-    runs-on: ubuntu-20.04
+  golangci:
+    env:
+      CGO_ENABLED: 1
+      CXX: clang++
+      CC: clang
+      CGO_CXXFLAGS: -Wno-everything
+      CGO_LDFLAGS: -Wno-everything
+    permissions:
+      contents: read
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: golangci-lint
+        uses: golangci/golangci-lint-action@v6
+        with:
+          version: v1.55.2
+
+  staticchecks:
+    env:
+      CGO_ENABLED: 1
+      CXX: clang++
+      CC: clang
+      CGO_CXXFLAGS: -Wno-everything
+      CGO_LDFLAGS: -Wno-everything
+    permissions:
+      contents: read
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version: stable
+      - uses: dominikh/staticcheck-action@v1
+        with:
+          version: "latest"
+          install-go: false
+
+  tests:
+    permissions:
+      contents: read
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version: stable
+      - run: CGO_ENABLED=1 CXX=clang++ CC=clang CGO_CXXFLAGS=-Wno-everything CGO_LDFLAGS=-Wno-everything go test -race -coverprofile=coverage.txt -covermode=atomic -v ./...
+      - name: Upload coverage reports to Codecov
+        uses: codecov/codecov-action@v4.0.1
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+
+  build:
+    permissions:
+      contents: read
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version: stable
+      - run: make linux-build
+      - uses: actions/upload-artifact@v4
+        with:
+          name: nada-backend
+          path: nada-backend
+
+  push:
+    permissions:
+      contents: write
+      id-token: write
+    runs-on: ubuntu-latest
+    needs: [build,golangci,tests,staticchecks]
     if: github.actor != 'dependabot[bot]'
     outputs:
       image: ${{ steps.docker-build-push.outputs.image }}
     steps:
       - uses: actions/checkout@v4
+      - name: Download nada-backend binary
+        uses: actions/download-artifact@v4
+        with:
+          name: nada-backend
       - name: Push docker image to GAR
         uses: nais/docker-build-push@v0
         id: docker-build-push
@@ -34,11 +109,11 @@ jobs:
           team: nada
           identity_provider: ${{ secrets.NAIS_WORKLOAD_IDENTITY_PROVIDER }}
           project_id: ${{ vars.NAIS_MANAGEMENT_PROJECT_ID }}
-    
+
   deploy-dev:
     name: Deploy dev gcp
     runs-on: ubuntu-20.04
-    needs: [build-and-push]
+    needs: [push]
     if: github.actor != 'dependabot[bot]'
     steps:
       - uses: actions/checkout@v4
@@ -47,13 +122,13 @@ jobs:
         uses: nais/deploy/actions/deploy@v2
         env:
           CLUSTER: dev-gcp
-          RESOURCE: .nais/dev/gcp.yaml,.nais/dev/nada-backend-config.yaml
-          VAR: image=${{ needs.build-and-push.outputs.image }}
+          RESOURCE: .nais/dev/nada-backend-config.yaml,.nais/dev/gcp.yaml
+          VAR: image=${{ needs.push.outputs.image }}
 
   deploy-prod:
     name: Deploy prod gcp
     runs-on: ubuntu-20.04
-    needs: [build-and-push, deploy-dev]
+    needs: [push, deploy-dev]
     if: github.ref == 'refs/heads/main' && inputs.environment != 'dev'|| inputs.environment == 'prod'
     steps:
       - uses: actions/checkout@v4
@@ -61,5 +136,5 @@ jobs:
         uses: nais/deploy/actions/deploy@v2
         env:
           CLUSTER: prod-gcp
-          RESOURCE: .nais/prod/gcp.yaml,.nais/prod/nada-backend-config.yaml
-          VAR: image=${{ needs.build-and-push.outputs.image }}
+          RESOURCE: .nais/prod/nada-backend-config.yaml,.nais/prod/gcp.yaml
+          VAR: image=${{ needs.push.outputs.image }}

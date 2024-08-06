@@ -47,17 +47,16 @@ type Config struct {
 	NaisConsole               NaisConsole               `yaml:"nais_console"`
 	API                       API                       `yaml:"api"`
 
-	EmailSuffix          string `yaml:"email_suffix"`
-	NaisClusterName      string `yaml:"nais_cluster_name"`
-	KeywordsAdminGroup   string `yaml:"keywords_admin_group"`
-	AllUsersGroup        string `yaml:"all_users_group"`
-	LoginPage            string `yaml:"login_page"`
-	AmplitudeAPIKey      string `yaml:"amplitude_api_key"`
-	LogLevel             string `yaml:"log_level"`
-	CacheDurationSeconds int    `yaml:"cache_duration_seconds"`
-	MockAuth             bool   `yaml:"mock_auth"`
-	SkipMetadataSync     bool   `yaml:"skip_metadata_sync"`
-	Debug                bool   `yaml:"debug"`
+	EmailSuffix                    string `yaml:"email_suffix"`
+	NaisClusterName                string `yaml:"nais_cluster_name"`
+	KeywordsAdminGroup             string `yaml:"keywords_admin_group"`
+	AllUsersGroup                  string `yaml:"all_users_group"`
+	LoginPage                      string `yaml:"login_page"`
+	AmplitudeAPIKey                string `yaml:"amplitude_api_key"`
+	LogLevel                       string `yaml:"log_level"`
+	CacheDurationSeconds           int    `yaml:"cache_duration_seconds"`
+	TeamProjectsUpdateDelaySeconds int    `yaml:"team_projects_update_delay_seconds"`
+	Debug                          bool   `yaml:"debug"`
 }
 
 func (c Config) Validate() error {
@@ -83,6 +82,8 @@ func (c Config) Validate() error {
 		validation.Field(&c.KeywordsAdminGroup, validation.Required),
 		validation.Field(&c.NaisClusterName, validation.Required),
 		validation.Field(&c.EmailSuffix, validation.Required),
+		validation.Field(&c.CacheDurationSeconds, validation.Required),
+		validation.Field(&c.TeamProjectsUpdateDelaySeconds, validation.Required),
 	)
 }
 
@@ -163,6 +164,9 @@ type Metabase struct {
 	CredentialsPath  string                   `yaml:"credentials_path"`
 	DatabasesBaseURL string                   `yaml:"databases_base_url"`
 	BigQueryDatabase MetabaseBigQueryDatabase `yaml:"big_query_database"`
+
+	MappingDeadlineSec  int `yaml:"mapping_deadline_sec"`
+	MappingFrequencySec int `yaml:"mapping_frequency_sec"`
 }
 
 func (m Metabase) Validate() error {
@@ -173,18 +177,20 @@ func (m Metabase) Validate() error {
 		validation.Field(&m.APIURL, validation.Required, is.URL),
 		validation.Field(&m.DatabasesBaseURL, validation.Required, is.URL),
 		validation.Field(&m.CredentialsPath, validation.Required),
+		validation.Field(&m.MappingDeadlineSec, validation.Required),
+		validation.Field(&m.MappingFrequencySec, validation.Required),
 		validation.Field(&m.BigQueryDatabase),
 	)
 }
 
 type MetabaseBigQueryDatabase struct {
-	Endpoint   string `yaml:"endpoint"`
-	EnableAuth bool   `yaml:"enable_auth"`
+	APIEndpointOverride string `yaml:"api_endpoint_override"`
+	DisableAuth         bool   `yaml:"disable_auth"`
 }
 
 func (m MetabaseBigQueryDatabase) Validate() error {
 	return validation.ValidateStruct(&m,
-		validation.Field(&m.Endpoint, is.URL),
+		validation.Field(&m.APIEndpointOverride, is.URL),
 	)
 }
 
@@ -238,7 +244,7 @@ func (p Postgres) Validate() error {
 	return validation.ValidateStruct(&p,
 		validation.Field(&p.UserName, validation.Required),
 		validation.Field(&p.Password, validation.Required),
-		validation.Field(&p.Host, validation.Required, is.Host),
+		validation.Field(&p.Host, validation.Required, is.URL),
 		validation.Field(&p.Port, validation.Required, is.Port),
 		validation.Field(&p.DatabaseName, validation.Required),
 		validation.Field(&p.SSLMode, validation.Required, validation.In("disable", "allow", "prefer", "require")),

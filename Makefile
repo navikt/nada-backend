@@ -4,7 +4,35 @@ LAST_COMMIT = $(shell git --no-pager log -1 --pretty=%h)
 VERSION ?= $(DATE)-$(LAST_COMMIT)
 LDFLAGS := -X github.com/navikt/nada-backend/backend/version.Revision=$(shell git rev-parse --short HEAD) -X github.com/navikt/nada-backend/backend/version.Version=$(VERSION)
 APP = nada-backend
-SQLC_VERSION ?= "v1.23.0"
+
+# A template function for installing binaries
+define install-binary
+	 @if ! command -v $(1) &> /dev/null; then \
+		  echo "$(1) not found, installing..."; \
+		  go install $(2); \
+	 fi
+endef
+
+STATICCHECK          ?= $(shell command -v staticcheck || echo "$(GOBIN)/staticcheck")
+STATICCHECK_VERSION  := v0.4.6
+SQLC                 ?= $(shell command -v sqlc || echo "$(GOBIN)/sqlc")
+SQLC_VERSION         := v1.25.0
+GOFUMPT			     ?= $(shell command -v gofumpt || echo "$(GOBIN)/gofumpt")
+GOFUMPT_VERSION	     := v0.6.0
+GOLANGCILINT         ?= $(shell command -v golangci-lint || echo "$(GOBIN)/golangci-lint")
+GOLANGCILINT_VERSION := v1.55.2
+
+$(SQLC):
+	$(call install-binary,sqlc,github.com/sqlc-dev/sqlc/cmd/sqlc@$(SQLC_VERSION))
+
+$(STATICCHECK):
+	$(call install-binary,staticcheck,honnef.co/go/tools/cmd/staticcheck@$(STATICCHECK_VERSION))
+
+$(GOFUMPT):
+	$(call install-binary,gofumpt,mvdan.cc/gofumpt@$(GOFUMPT_VERSION))
+
+$(GOLANGCILINT):
+	$(call install-binary,golangci-lint,github.com/golangci/golangci-lint/cmd/golangci-lint@$(GOLANGCILINT_VERSION))
 
 # Directories
 #
@@ -39,12 +67,12 @@ endif
 -include .env
 
 test:
-	CGO_ENABLED=1 CXX=clang++ CC=clang CXXFLAGS=-Wno-everything go test ./... -count=1
+	CGO_ENABLED=1 CXX=clang++ CC=clang CXXFLAGS=-Wno-everything $(GO) test -race ./...
 .PHONY: test
 
 build: $(RELEASE_DIR)
 	@echo "Building cmd applications..."
-	@CGO_ENABLED=1 CXX=clang++ CC=clang go mod tidy
+	@CGO_ENABLED=1 CXX=clang++ CC=clang $(GO) mod tidy
 	@for d in cmd/*; do \
 		app=$$(basename $$d); \
 		echo "Building $$app..."; \
@@ -84,13 +112,13 @@ setup-metabase:
 local-with-auth: | env test-sa metabase-sa docker-build-metabase docker-compose-up setup-metabase
 	@echo "Sourcing environment variables..."
 	set -a && source ./.env && set +a && \
-		STORAGE_EMULATOR_HOST=http://localhost:8082/storage/v1/ go run ./cmd/nada-backend --config ./config-local-online.yaml
+		STORAGE_EMULATOR_HOST=http://localhost:8082/storage/v1/ $(GO) run ./cmd/nada-backend --config ./config-local-online.yaml
 .PHONY: local-with-auth
 
 local: | env test-sa  setup-metabase
 	@echo "Sourcing environment variables..."
 	set -a && source ./.env && set +a && \
-		GOOGLE_CLOUD_PROJECT=test STORAGE_EMULATOR_HOST=http://localhost:8082/storage/v1/ go run ./cmd/nada-backend --config ./config-local.yaml
+		GOOGLE_CLOUD_PROJECT=test STORAGE_EMULATOR_HOST=http://localhost:8082/storage/v1/ $(GO) run ./cmd/nada-backend --config ./config-local.yaml
 .PHONY: local
 
 local-deps: | docker-build-metabase-local-bq docker-build-apps docker-compose-up-fg
@@ -105,18 +133,18 @@ docker-compose-up:
 	$(DOCKER_COMPOSE ) up -d
 
 migrate:
-	go run github.com/pressly/goose/v3/cmd/goose -dir ./pkg/database/migrations postgres "user=nada-backend dbname=nada sslmode=disable password=postgres" up
+	$(GO) run github.com/pressly/goose/v3/cmd/goose -dir ./pkg/database/migrations postgres "user=nada-backend dbname=nada sslmode=disable password=postgres" up
 .PHONY: migrate
 
-generate-sql:
-	cd pkg && $(GOBIN)/sqlc generate
+generate-sql: $(SQLC)
+	cd pkg && $(SQLC) generate
 .PHONY: generate-sql
 
 generate: generate-sql
 .PHONY: generate
 
 linux-build:
-	go build -a -installsuffix cgo -o $(APP) -ldflags "-s $(LDFLAGS)" ./cmd/nada-backend
+	GOOS=linux GOARCH=amd64 CGO_EMABLED=0 $(GO) build -o $(APP) -ldflags '-linkmode "external" -extldflags "-static" -w -s $(LDFLAGS)' ./cmd/nada-backend/main.go
 .PHONY: linux-build
 
 docker-build-metabase:
@@ -139,6 +167,15 @@ docker-push:
 	docker image push ghcr.io/navikt/$(APP):latest
 .PHONY: docker-push
 
-install-sqlc:
-	go install github.com/sqlc-dev/sqlc/cmd/sqlc@$(SQLC_VERSION)
-.PHONY: install-sqlc
+staticcheck: $(STATICCHECK)
+	$(STATICCHECK) ./...
+
+gofumpt: $(GOFUMPT)
+	$(GOFUMPT) -w .
+
+lint: $(GOLANGCILINT)
+	$(GOLANGCILINT) run
+.PHONY: lint
+
+check: | gofumpt lint staticcheck test
+.PHONY: check

@@ -26,8 +26,7 @@ type kindTest struct {
 }
 
 func TestKind(t *testing.T) {
-
-	var kindTests = []kindTest{
+	kindTests := []kindTest{
 		// Non-Error errors.
 		{nil, NotExist, false},
 		{errors.New("not an *Error"), NotExist, false},

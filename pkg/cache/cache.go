@@ -4,9 +4,10 @@ import (
 	"database/sql"
 	"encoding/json"
 	"errors"
-	"github.com/rs/zerolog"
 	"sync/atomic"
 	"time"
+
+	"github.com/rs/zerolog"
 )
 
 type Cacher interface {
@@ -84,10 +85,7 @@ func (c *Client) Set(key, val any) {
 		VALUES ($1, $2, $3, $3) ON CONFLICT (endpoint) DO UPDATE SET response_body = $2, created_at= $3, last_tried_update_at = $3`, key, data, time.Now().UTC())
 	if err != nil {
 		c.log.Info().Err(err).Msgf("updating cache: %s", key)
-		return
 	}
-
-	return
 }
 
 func (c *Client) Stats() Statistics {

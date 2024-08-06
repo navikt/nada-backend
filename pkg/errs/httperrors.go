@@ -194,7 +194,6 @@ func unauthenticatedErrorResponse(w http.ResponseWriter, lgr zerolog.Logger, e *
 // unauthorizedErrorResponse responds with http status code 403 (Forbidden)
 // and an empty response body.
 func unauthorizedErrorResponse(w http.ResponseWriter, lgr zerolog.Logger, e *Error) {
-
 	if zerolog.ErrorStackMarshaler != nil {
 		err := TopError(e)
 

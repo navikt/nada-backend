@@ -2,10 +2,11 @@ package postgres
 
 import (
 	"database/sql"
-	"github.com/google/uuid"
 	"net/url"
 	"strings"
 	"time"
+
+	"github.com/google/uuid"
 )
 
 type Converter[O any] interface {
@@ -45,7 +46,7 @@ func uuidToNullString(u uuid.UUID) sql.NullString {
 }
 
 func nullStringToUUIDPtr(ns sql.NullString) *uuid.UUID {
-	if !ns.Valid {
+	if !ns.Valid || ns.String == "" {
 		return nil
 	}
 

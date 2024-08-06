@@ -3,9 +3,11 @@ package auth
 import (
 	"context"
 	"fmt"
-	"github.com/navikt/nada-backend/pkg/service"
 	"os"
 	"strings"
+
+	"github.com/navikt/nada-backend/pkg/service"
+	"google.golang.org/api/option"
 
 	"golang.org/x/oauth2/google"
 	admin "google.golang.org/api/admin/directory/v1"
@@ -27,9 +29,8 @@ func NewGoogleGroups(ctx context.Context, credentailFile, subject string) (*Goog
 	}
 
 	config.Subject = subject
-	client := config.Client(ctx)
 
-	service, err := admin.New(client)
+	s, err := admin.NewService(ctx, option.WithTokenSource(config.TokenSource(ctx)))
 	if err != nil {
 		return nil, fmt.Errorf("unable to retrieve Google Admin Client: %s", err)
 	}
@@ -39,7 +40,7 @@ func NewGoogleGroups(ctx context.Context, credentailFile, subject string) (*Goog
 	}
 
 	return &GoogleGroupClient{
-		service: service,
+		service: s,
 	}, nil
 }
 

@@ -3,12 +3,13 @@ package main
 import (
 	"encoding/json"
 	"flag"
-	"github.com/go-chi/chi"
-	"github.com/navikt/nada-backend/pkg/tk"
-	"github.com/rs/zerolog"
 	"net/http"
 	"net/http/httputil"
 	"os"
+
+	"github.com/go-chi/chi"
+	"github.com/navikt/nada-backend/pkg/tk"
+	"github.com/rs/zerolog"
 )
 
 var (
@@ -52,6 +53,7 @@ func (h *Handlers) GetTeams(w http.ResponseWriter, r *http.Request) {
 		teams = nil
 		for _, team := range h.data.Teams.Content {
 			if team.ProductAreaID.String() == productArea {
+				teams = append(teams, team)
 			}
 		}
 	}
@@ -90,6 +92,9 @@ func main() {
 
 	data := &Data{}
 	err = json.Unmarshal(d, data)
+	if err != nil {
+		log.Fatal().Err(err).Msg("parsing JSON")
+	}
 
 	h := New(data, log)
 

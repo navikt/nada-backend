@@ -3,14 +3,15 @@ package cs_test
 import (
 	"bytes"
 	"context"
+	"io"
+	"testing"
+
 	"github.com/fsouza/fake-gcs-server/fakestorage"
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-cmp/cmp/cmpopts"
 	"github.com/navikt/nada-backend/pkg/cs"
 	"github.com/navikt/nada-backend/pkg/cs/emulator"
 	"github.com/stretchr/testify/assert"
-	"io"
-	"testing"
 )
 
 func TestClient_DeleteObjects(t *testing.T) {
@@ -301,7 +302,6 @@ func TestClient_GetObjects(t *testing.T) {
 				assert.Empty(t, diff)
 			}
 		})
-
 	}
 }
 

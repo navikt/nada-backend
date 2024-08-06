@@ -9,10 +9,11 @@ package transport
 import (
 	"context"
 	"encoding/json"
-	"github.com/navikt/nada-backend/pkg/errs"
-	"github.com/rs/zerolog"
 	"net/http"
 	"strconv"
+
+	"github.com/navikt/nada-backend/pkg/errs"
+	"github.com/rs/zerolog"
 )
 
 type StatusCoder interface {
@@ -172,4 +173,10 @@ func NewByteWriter(typ, encoding string, data []byte) *ByteWriter {
 		contentType:     typ,
 		contentEncoding: encoding,
 	}
+}
+
+type Accepted struct{}
+
+func (a *Accepted) StatusCode() int {
+	return http.StatusAccepted
 }

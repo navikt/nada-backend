@@ -2,6 +2,7 @@ package service
 
 import (
 	"context"
+
 	"github.com/google/uuid"
 )
 
@@ -36,6 +37,7 @@ type Team struct {
 	InsightProductsNumber int `json:"insightProductsNumber"`
 }
 
+// FIXME: we need to simplify these structs, there is too much duplication
 type ProductAreasDto struct {
 	ProductAreas []*ProductArea `json:"productAreas"`
 }

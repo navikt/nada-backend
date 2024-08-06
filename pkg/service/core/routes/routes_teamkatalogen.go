@@ -1,11 +1,12 @@
 package routes
 
 import (
+	"net/http"
+
 	"github.com/go-chi/chi"
 	"github.com/navikt/nada-backend/pkg/service/core/handlers"
 	"github.com/navikt/nada-backend/pkg/service/core/transport"
 	"github.com/rs/zerolog"
-	"net/http"
 )
 
 type TeamkatalogenEndpoints struct {

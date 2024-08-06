@@ -10,6 +10,11 @@ metabase:
     gcp_project: some-gcp-project
     credentials_path: /some/path
     databases_base_url: http://localhost:3000
+    big_query_database:
+        api_endpoint_override: http://localhost:3000
+        disable_auth: true
+    mapping_deadline_sec: 600
+    mapping_frequency_sec: 600
 cross_team_pseudonymization:
     gcp_project_id: some-project
     gcp_region: eu-north1
@@ -19,6 +24,7 @@ gcs:
     central_gcp_project: central-project
 big_query:
     endpoint: http://localhost:7070
+    enable_auth: false
     team_project_pseudo_views_dataset_name: some-dataset
     gcp_region: eu-north1
     central_gcp_project: central-project
@@ -35,7 +41,7 @@ postgres:
     host: http://localhost
     port: "5432"
     database_name: something
-    ssl_mode: disabled
+    ssl_mode: disable
     configuration:
         max_idle_connections: 10
         max_open_connections: 5
@@ -53,7 +59,7 @@ cookies:
         max_age: 3600
         path: some/path
         domain: localhost
-        same_site: lax
+        same_site: Lax
         secure: false
         http_only: true
     oauth_state:
@@ -61,7 +67,7 @@ cookies:
         max_age: 3600
         path: some/path
         domain: localhost
-        same_site: lax
+        same_site: Lax
         secure: false
         http_only: true
     session:
@@ -69,7 +75,7 @@ cookies:
         max_age: 3600
         path: some/path
         domain: localhost
-        same_site: lax
+        same_site: Lax
         secure: false
         http_only: true
 nais_console:
@@ -84,6 +90,6 @@ all_users_group: group:all-users@nav.no
 login_page: http://localhost:8080/
 amplitude_api_key: fake_key
 log_level: info
-mock_auth: false
-skip_metadata_sync: false
+cache_duration_seconds: 60
+team_projects_update_delay_seconds: 120
 debug: false

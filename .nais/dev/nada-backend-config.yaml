@@ -2,6 +2,7 @@ kind: ConfigMap
 apiVersion: v1
 metadata:
   name: nada-backend-config
+  namespace: nada
 data:
   config.yaml: |
     oauth:
@@ -16,6 +17,8 @@ data:
       credentials_path: /var/run/secrets/metabase/meta_creds.json
       gcp_project: # Loaded from env var GCP_TEAM_PROJECT_ID
       databases_base_url: https://metabase.intern.dev.nav.no/browse/databases
+      mapping_deadline_sec: 600 # 10 minutes
+      mapping_frequency_sec: 600 # 10 minutes
     cross_team_pseudonymization:
       gcp_project_id: datamarkedsplassen-dev
       gcp_region: europe-north1
@@ -26,6 +29,7 @@ data:
       team_project_pseudo_views_dataset_name: markedsplassen_pseudo
       gcp_region: europe-north1
       central_gcp_project: datamarkedsplassen-dev
+      enable_auth: true
     slack:
       webhook_url: # Loaded from env var NADA_SLACK_WEBHOOK_URL
       token: # Loaded from env var NADA_SLACK_TOKEN
@@ -39,7 +43,7 @@ data:
       user_name: nada-backend
       password: # Set through env var NAIS_DATABASE_NADA_BACKEND_NADA_PASSWORD
       database_name: nada
-      ssl_mode: prefer
+      ssl_mode: disable
       configuration:
         max_open_connections: 5
         max_idle_connections: 3
@@ -86,8 +90,7 @@ data:
     all_users_group: group:all-users@nav.no
     login_page: https://data.ansatt.dev.nav.no/
     amplitude_api_key: # Loaded from env var NADA_AMPLITUDE_API_KEY
-    skip_metadata_sync: false
     cache_duration_seconds: 7200
-    mock_auth: false
+    team_projects_update_delay_seconds: 120
     debug: false
     log_level: info

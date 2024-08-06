@@ -4,8 +4,8 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
-	"github.com/navikt/nada-backend/pkg/errs"
 	"io"
 	"net/http"
 	"net/url"
@@ -13,6 +13,10 @@ import (
 	"strconv"
 	"strings"
 	"time"
+
+	"github.com/rs/zerolog"
+
+	"github.com/navikt/nada-backend/pkg/errs"
 
 	"github.com/navikt/nada-backend/pkg/service"
 )
@@ -30,8 +34,9 @@ type metabaseAPI struct {
 	oauth2TenantID     string
 	expiry             time.Time
 	sessionID          string
-	enableAuth         bool
+	disableAuth        bool
 	endpoint           string
+	log                zerolog.Logger
 }
 
 var _ service.MetabaseAPI = &metabaseAPI{}
@@ -84,6 +89,9 @@ func (c *metabaseAPI) PerformRequest(ctx context.Context, method, path string, b
 	if err != nil {
 		return nil, errs.E(errs.IO, op, err)
 	}
+
+	deadline, hasDeadline := req.Context().Deadline()
+	c.log.Info().Msgf("deadline: %v, hasDeadline: %v", deadline, hasDeadline)
 
 	req.Header.Set("X-Metabase-Session", c.sessionID)
 	req.Header.Set("Content-Type", "application/json")
@@ -199,9 +207,9 @@ func (c *metabaseAPI) CreateDatabase(ctx context.Context, team, name, saJSON, sa
 		return dbID, nil
 	}
 
-	enableAuth := &c.enableAuth
-	if !c.enableAuth {
-		enableAuth = nil
+	var enableAuth *bool = nil
+	if c.disableAuth {
+		enableAuth = new(bool) // false
 	}
 
 	db := NewDatabase{
@@ -416,11 +424,6 @@ func (c *metabaseAPI) AddPermissionGroupMember(ctx context.Context, groupID int,
 	}
 
 	return nil
-}
-
-type permissions struct {
-	Native  string `json:"native,omitempty"`
-	Schemas any    `json:"schemas,omitempty"`
 }
 
 type dataModelPermission struct {
@@ -704,6 +707,10 @@ func (c *metabaseAPI) getAzureAccessToken(ctx context.Context) (string, error) {
 	req.Header.Set("Keep-Alive", "true")
 	res, err := c.c.Do(req)
 	if err != nil {
+		if errors.Is(err, context.Canceled) {
+			c.log.Error().Err(context.Cause(ctx)).Msg("context canceled")
+		}
+
 		return "", errs.E(errs.IO, op, err)
 	}
 	defer res.Body.Close()
@@ -751,9 +758,11 @@ func dbExists(dbs []service.MetabaseDatabase, nadaID string) (int, bool) {
 	return 0, false
 }
 
-func NewMetabaseHTTP(url, username, password, oauth2ClientID, oauth2ClientSecret, oauth2TenantID, endpoint string, enableAuth bool) *metabaseAPI {
+func NewMetabaseHTTP(url, username, password, oauth2ClientID, oauth2ClientSecret, oauth2TenantID, endpoint string, enableAuth bool, log zerolog.Logger) *metabaseAPI {
 	return &metabaseAPI{
-		c:                  http.DefaultClient,
+		c: &http.Client{
+			Timeout: 90 * time.Second,
+		},
 		url:                url,
 		password:           password,
 		username:           username,
@@ -761,6 +770,7 @@ func NewMetabaseHTTP(url, username, password, oauth2ClientID, oauth2ClientSecret
 		oauth2ClientSecret: oauth2ClientSecret,
 		oauth2TenantID:     oauth2TenantID,
 		endpoint:           endpoint,
-		enableAuth:         enableAuth,
+		disableAuth:        enableAuth,
+		log:                log,
 	}
 }

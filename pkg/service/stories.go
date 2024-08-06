@@ -2,9 +2,10 @@ package service
 
 import (
 	"context"
-	validation "github.com/go-ozzo/ozzo-validation/v4"
 	"io"
 	"time"
+
+	validation "github.com/go-ozzo/ozzo-validation/v4"
 
 	"github.com/google/uuid"
 )

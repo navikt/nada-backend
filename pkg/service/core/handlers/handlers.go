@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"github.com/google/uuid"
 	"github.com/navikt/nada-backend/pkg/config/v2"
 	"github.com/navikt/nada-backend/pkg/service/core"
 	"github.com/rs/zerolog"
@@ -27,13 +28,14 @@ type Handlers struct {
 func NewHandlers(
 	s *core.Services,
 	cfg config.Config,
+	mappingQueue chan uuid.UUID,
 	log zerolog.Logger,
 ) *Handlers {
 	return &Handlers{
 		StoryHandler:          NewStoryHandler(cfg.EmailSuffix, s.StoryService, s.TokenService, log),
 		TokenHandler:          NewTokenHandler(s.TokenService, log),
 		DataProductsHandler:   NewDataProductsHandler(s.DataProductService),
-		MetabaseHandler:       NewMetabaseHandler(s.MetaBaseService),
+		MetabaseHandler:       NewMetabaseHandler(s.MetaBaseService, mappingQueue),
 		AccessHandler:         NewAccessHandler(s.AccessService, s.MetaBaseService, cfg.Metabase.GCPProject),
 		ProductAreasHandler:   NewProductAreasHandler(s.ProductAreaService),
 		BigQueryHandler:       NewBigQueryHandler(s.BigQueryService),

@@ -1,13 +1,14 @@
 package integration
 
 import (
+	"os"
+	"testing"
+	"time"
+
 	"github.com/navikt/nada-backend/pkg/cache"
 	"github.com/navikt/nada-backend/pkg/database"
 	"github.com/rs/zerolog"
 	"github.com/stretchr/testify/assert"
-	"os"
-	"testing"
-	"time"
 )
 
 type CacheTest struct {

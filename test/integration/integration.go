@@ -5,14 +5,6 @@ import (
 	"database/sql"
 	"encoding/json"
 	"fmt"
-	"github.com/go-chi/chi"
-	"github.com/google/go-cmp/cmp"
-	"github.com/navikt/nada-backend/pkg/auth"
-	"github.com/navikt/nada-backend/pkg/service"
-	"github.com/ory/dockertest/v3"
-	"github.com/ory/dockertest/v3/docker"
-	"github.com/rs/zerolog"
-	"github.com/stretchr/testify/assert"
 	"io"
 	"math/rand"
 	"mime/multipart"
@@ -24,6 +16,15 @@ import (
 	"strings"
 	"testing"
 	"time"
+
+	"github.com/go-chi/chi"
+	"github.com/google/go-cmp/cmp"
+	"github.com/navikt/nada-backend/pkg/auth"
+	"github.com/navikt/nada-backend/pkg/service"
+	"github.com/ory/dockertest/v3"
+	"github.com/ory/dockertest/v3/docker"
+	"github.com/rs/zerolog"
+	"github.com/stretchr/testify/assert"
 )
 
 type metabaseSetupBody struct {
@@ -172,7 +173,6 @@ func (m *MetabaseConfig) SetupBody(token string) *metabaseSetupBody {
 			SiteName:      m.SiteName,
 		},
 	}
-
 }
 
 func NewMetabaseConfig() *MetabaseConfig {

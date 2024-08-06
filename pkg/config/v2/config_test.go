@@ -2,10 +2,11 @@ package config_test
 
 import (
 	"flag"
-	"github.com/navikt/nada-backend/pkg/config/v2"
 	"os"
 	"path/filepath"
 	"testing"
+
+	"github.com/navikt/nada-backend/pkg/config/v2"
 
 	"github.com/google/go-cmp/cmp"
 
@@ -29,6 +30,12 @@ func newFakeConfig() config.Config {
 			GCPProject:       "some-gcp-project",
 			CredentialsPath:  "/some/path",
 			DatabasesBaseURL: "http://localhost:3000",
+			BigQueryDatabase: config.MetabaseBigQueryDatabase{
+				APIEndpointOverride: "http://localhost:3000",
+				DisableAuth:         true,
+			},
+			MappingDeadlineSec:  600,
+			MappingFrequencySec: 600,
 		},
 		CrossTeamPseudonymization: config.CrossTeamPseudonymization{
 			GCPProjectID: "some-project",
@@ -60,7 +67,7 @@ func newFakeConfig() config.Config {
 			Host:         "http://localhost",
 			Port:         "5432",
 			DatabaseName: "something",
-			SSLMode:      "disabled",
+			SSLMode:      "disable",
 			Configuration: config.PostgresConfiguration{
 				MaxIdleConnections: 10,
 				MaxOpenConnections: 5,
@@ -83,27 +90,25 @@ func newFakeConfig() config.Config {
 				MaxAge:   3600,
 				Path:     "some/path",
 				Domain:   "localhost",
-				SameSite: "lax",
+				SameSite: "Lax",
 				Secure:   false,
 				HttpOnly: true,
 			},
 			OauthState: config.CookieSettings{
-
 				Name:     "auth",
 				MaxAge:   3600,
 				Path:     "some/path",
 				Domain:   "localhost",
-				SameSite: "lax",
+				SameSite: "Lax",
 				Secure:   false,
 				HttpOnly: true,
 			},
 			Session: config.CookieSettings{
-
 				Name:     "session",
 				MaxAge:   3600,
 				Path:     "some/path",
 				Domain:   "localhost",
-				SameSite: "lax",
+				SameSite: "Lax",
 				Secure:   false,
 				HttpOnly: true,
 			},
@@ -115,16 +120,16 @@ func newFakeConfig() config.Config {
 		API: config.API{
 			AuthToken: "fake_token",
 		},
-		EmailSuffix:        "@nav.no",
-		NaisClusterName:    "dev-gcp",
-		KeywordsAdminGroup: "nada@nav.no",
-		AllUsersGroup:      "group:all-users@nav.no",
-		LoginPage:          "http://localhost:8080/",
-		AmplitudeAPIKey:    "fake_key",
-		LogLevel:           "info",
-		MockAuth:           false,
-		SkipMetadataSync:   false,
-		Debug:              false,
+		EmailSuffix:                    "@nav.no",
+		NaisClusterName:                "dev-gcp",
+		KeywordsAdminGroup:             "nada@nav.no",
+		AllUsersGroup:                  "group:all-users@nav.no",
+		LoginPage:                      "http://localhost:8080/",
+		AmplitudeAPIKey:                "fake_key",
+		LogLevel:                       "info",
+		CacheDurationSeconds:           60,
+		TeamProjectsUpdateDelaySeconds: 120,
+		Debug:                          false,
 	}
 }
 
@@ -142,6 +147,47 @@ func updateGoldenFiles(t *testing.T, filePath string, cfg config.Config) []byte 
 	}
 
 	return data
+}
+
+func TestValidate(t *testing.T) {
+	t.Parallel()
+
+	testCases := []struct {
+		name      string
+		config    config.Config
+		expectErr bool
+	}{
+		{
+			name:      "Valid config",
+			config:    newFakeConfig(),
+			expectErr: false,
+		},
+		{
+			name: "Invalid config",
+			config: func() config.Config {
+				cfg := newFakeConfig()
+				cfg.Oauth.ClientID = ""
+
+				return cfg
+			}(),
+			expectErr: true,
+		},
+	}
+
+	for _, tc := range testCases {
+		tc := tc
+
+		t.Run(tc.name, func(t *testing.T) {
+			err := tc.config.Validate()
+			if err != nil && !tc.expectErr {
+				t.Errorf("unexpected error: %v", err)
+			}
+
+			if err == nil && tc.expectErr {
+				t.Errorf("expected error, got none")
+			}
+		})
+	}
 }
 
 func TestLoad(t *testing.T) {

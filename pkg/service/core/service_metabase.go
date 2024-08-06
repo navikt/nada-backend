@@ -4,14 +4,17 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"github.com/google/uuid"
-	"github.com/navikt/nada-backend/pkg/errs"
-	"github.com/navikt/nada-backend/pkg/service"
 	"io"
 	"net/http"
 	"strings"
 	"time"
+
+	"github.com/google/uuid"
+	"github.com/navikt/nada-backend/pkg/errs"
+	"github.com/navikt/nada-backend/pkg/service"
 )
+
+var _ service.MetabaseService = &metabaseService{}
 
 type metabaseService struct {
 	gcpProject          string
@@ -30,38 +33,42 @@ type metabaseService struct {
 	accessStorage            service.AccessStorage
 }
 
-var _ service.MetabaseService = &metabaseService{}
-
-func (s *metabaseService) MapDataset(ctx context.Context, user *service.User, datasetID uuid.UUID, services []string) (*service.Dataset, error) {
-	const op errs.Op = "metabaseService.MapDataset"
+func (s *metabaseService) CreateMappingRequest(ctx context.Context, user *service.User, datasetID uuid.UUID, services []string) error {
+	const op errs.Op = "metabaseService.CreateMappingRequest"
 
 	ds, err := s.dataproductStorage.GetDataset(ctx, datasetID)
 	if err != nil {
-		return nil, errs.E(op, err)
+		return errs.E(op, err)
 	}
 
 	dp, err := s.dataproductStorage.GetDataproduct(ctx, ds.DataproductID)
 	if err != nil {
-		return nil, errs.E(op, err)
+		return errs.E(op, err)
 	}
 
 	if err := ensureUserInGroup(user, dp.Owner.Group); err != nil {
-		return nil, errs.E(op, err)
+		return errs.E(op, err)
 	}
 
 	err = s.thirdPartyMappingStorage.MapDataset(ctx, datasetID, services)
 	if err != nil {
-		return nil, errs.E(op, err)
+		return errs.E(op, err)
 	}
+
+	return nil
+}
+
+func (s *metabaseService) MapDataset(ctx context.Context, datasetID uuid.UUID, services []string) error {
+	const op errs.Op = "metabaseService.MapDataset"
 
 	mapMetabase := false
 	for _, svc := range services {
 		if svc == service.MappingServiceMetabase {
 			mapMetabase = true
 
-			err := s.addDatasetMapping(ctx, user, datasetID)
+			err := s.addDatasetMapping(ctx, datasetID)
 			if err != nil {
-				return nil, errs.E(op, err)
+				return errs.E(op, err)
 			}
 
 			break
@@ -69,16 +76,16 @@ func (s *metabaseService) MapDataset(ctx context.Context, user *service.User, da
 	}
 
 	if !mapMetabase {
-		err = s.DeleteDatabase(ctx, datasetID)
+		err := s.DeleteDatabase(ctx, datasetID)
 		if err != nil {
-			return nil, errs.E(op, err)
+			return errs.E(op, err)
 		}
 	}
 
-	return ds, nil
+	return nil
 }
 
-func (s *metabaseService) addDatasetMapping(ctx context.Context, user *service.User, dsID uuid.UUID) error {
+func (s *metabaseService) addDatasetMapping(ctx context.Context, dsID uuid.UUID) error {
 	const op errs.Op = "metabaseService.addDatasetMapping"
 
 	accesses, err := s.accessStorage.ListActiveAccessToDataset(ctx, dsID)
@@ -87,7 +94,7 @@ func (s *metabaseService) addDatasetMapping(ctx context.Context, user *service.U
 	}
 
 	if s.containsAllUsers(accesses) {
-		err := s.addAllUsersDataset(ctx, user, dsID)
+		err := s.addAllUsersDataset(ctx, dsID)
 		if err != nil {
 			return errs.E(op, err)
 		}
@@ -95,7 +102,7 @@ func (s *metabaseService) addDatasetMapping(ctx context.Context, user *service.U
 		return nil
 	}
 
-	err = s.addRestrictedDatasetMapping(ctx, user, dsID)
+	err = s.addRestrictedDatasetMapping(ctx, dsID)
 	if err != nil {
 		return errs.E(op, err)
 	}
@@ -113,7 +120,7 @@ func (s *metabaseService) containsAllUsers(accesses []*service.Access) bool {
 	return false
 }
 
-func (s *metabaseService) addRestrictedDatasetMapping(ctx context.Context, user *service.User, dsID uuid.UUID) error {
+func (s *metabaseService) addRestrictedDatasetMapping(ctx context.Context, dsID uuid.UUID) error {
 	const op errs.Op = "metabaseService.addRestrictedDatasetMapping"
 
 	mbMeta, err := s.metabaseStorage.GetMetadata(ctx, dsID, true)
@@ -123,7 +130,7 @@ func (s *metabaseService) addRestrictedDatasetMapping(ctx context.Context, user 
 			return errs.E(op, err)
 		}
 
-		if err := s.createRestricted(ctx, user, ds); err != nil {
+		if err := s.createRestricted(ctx, ds); err != nil {
 			return errs.E(op, err)
 		}
 	} else if err != nil {
@@ -180,6 +187,12 @@ func (s *metabaseService) addMetabaseGroupMember(ctx context.Context, dsID uuid.
 
 	mbMetadata, err := s.metabaseStorage.GetMetadata(ctx, dsID, false)
 	if err != nil {
+		// If we don't have metadata for the dataset, it means that the dataset is not mapped to Metabase
+		// so no need to add the user to the group
+		if errs.KindIs(errs.NotExist, err) {
+			return nil
+		}
+
 		return errs.E(op, err)
 	}
 
@@ -220,7 +233,7 @@ func (s *metabaseService) restore(ctx context.Context, datasetID uuid.UUID, mbMe
 	return nil
 }
 
-func (s *metabaseService) createRestricted(ctx context.Context, user *service.User, ds *service.Dataset) error {
+func (s *metabaseService) createRestricted(ctx context.Context, ds *service.Dataset) error {
 	const op errs.Op = "metabaseService.createRestricted"
 
 	groupID, err := s.metabaseAPI.CreatePermissionGroup(ctx, ds.Name)
@@ -238,7 +251,7 @@ func (s *metabaseService) createRestricted(ctx context.Context, user *service.Us
 		return errs.E(op, err)
 	}
 
-	err = s.create(ctx, user, dsWrapper{
+	err = s.create(ctx, dsWrapper{
 		Dataset:         ds,
 		Key:             string(key),
 		Email:           email,
@@ -262,11 +275,11 @@ func ensureUserInGroup(user *service.User, group string) error {
 	return nil
 }
 
-func (s *metabaseService) GrantMetabaseAccess(ctx context.Context, user *service.User, dsID uuid.UUID, subject, subjectType string) error {
+func (s *metabaseService) GrantMetabaseAccess(ctx context.Context, dsID uuid.UUID, subject, subjectType string) error {
 	const op errs.Op = "metabaseService.GrantMetabaseAccess"
 
 	if fmt.Sprintf("%s:%s", subjectType, subject) == s.groupAllUsers {
-		err := s.addAllUsersDataset(ctx, user, dsID)
+		err := s.addAllUsersDataset(ctx, dsID)
 		if err != nil {
 			return errs.E(op, err)
 		}
@@ -295,7 +308,7 @@ type dsWrapper struct {
 	CollectionID    int
 }
 
-func (s *metabaseService) addAllUsersDataset(ctx context.Context, user *service.User, dsID uuid.UUID) error {
+func (s *metabaseService) addAllUsersDataset(ctx context.Context, dsID uuid.UUID) error {
 	const op errs.Op = "metabaseService.addAllUsersDataset"
 
 	mbMetadata, err := s.metabaseStorage.GetMetadata(ctx, dsID, true)
@@ -306,7 +319,7 @@ func (s *metabaseService) addAllUsersDataset(ctx context.Context, user *service.
 				return errs.E(op, err)
 			}
 
-			err = s.create(ctx, user, dsWrapper{
+			err = s.create(ctx, dsWrapper{
 				Dataset: ds,
 				Key:     s.serviceAccount,
 				Email:   s.serviceAccountEmail,
@@ -353,7 +366,7 @@ func (s *metabaseService) addAllUsersDataset(ctx context.Context, user *service.
 	return nil
 }
 
-func (s *metabaseService) create(ctx context.Context, user *service.User, ds dsWrapper) error {
+func (s *metabaseService) create(ctx context.Context, ds dsWrapper) error {
 	const op errs.Op = "metabaseService.create"
 
 	datasource, err := s.bigqueryStorage.GetBigqueryDatasource(ctx, ds.Dataset.ID, false)
@@ -377,7 +390,7 @@ func (s *metabaseService) create(ctx context.Context, user *service.User, ds dsW
 	}
 
 	if err := s.waitForDatabase(ctx, dbID, datasource.Table); err != nil {
-		if err := s.cleanupOnCreateDatabaseError(ctx, user, dbID, ds); err != nil {
+		if err := s.cleanupOnCreateDatabaseError(ctx, dbID, ds); err != nil {
 			return errs.E(op, err)
 		}
 
@@ -438,7 +451,7 @@ func (s *metabaseService) waitForDatabase(ctx context.Context, dbID int, tableNa
 	return errs.E(errs.Internal, op, fmt.Errorf("unable to create database %v", tableName))
 }
 
-func (s *metabaseService) cleanupOnCreateDatabaseError(ctx context.Context, user *service.User, dbID int, ds dsWrapper) error {
+func (s *metabaseService) cleanupOnCreateDatabaseError(ctx context.Context, dbID int, ds dsWrapper) error {
 	const op errs.Op = "metabaseService.cleanupOnCreateDatabaseError"
 
 	dataset, err := s.dataproductStorage.GetDataset(ctx, ds.Dataset.ID)
@@ -471,7 +484,7 @@ func (s *metabaseService) cleanupOnCreateDatabaseError(ctx context.Context, user
 		}
 	}
 
-	_, err = s.MapDataset(ctx, user, ds.Dataset.ID, services)
+	err = s.MapDataset(ctx, ds.Dataset.ID, services)
 	if err != nil {
 		return errs.E(op, err)
 	}
@@ -672,7 +685,7 @@ func (s *metabaseService) SyncAllTablesVisibility(ctx context.Context) error {
 		}
 
 		if err := s.SyncTableVisibility(ctx, db, *bq); err != nil {
-			return errs.E(op, err)
+			return errs.E(op, fmt.Errorf("syncing table visibility for database %v: %w", db.DatasetID, err))
 		}
 	}
 

@@ -18,9 +18,9 @@ spec:
       tenant: nav.no
       allowAllUsers: true
   command:
-    - /app/nada-backend
+    - /home/nada/nada-backend
     - --config
-    - /app/config.yaml
+    - /home/nada/.config/config.yaml
   replicas:
     min: 2
     max: 4
@@ -48,8 +48,8 @@ spec:
   envFrom:
     - secret: nada-backend-secret
   filesFrom:
-    - configMap: nada-backend-config
-      mountPath: /app/config.yaml
+    - configmap: nada-backend-config
+      mountPath: /home/nada/.config
     - secret: nada-backend-google-credentials
       mountPath: /var/run/secrets/google-credentials
     - secret: nada-backend-metabase-sa
@@ -90,6 +90,7 @@ spec:
         - host: console.nav.cloud.nais.io
         - host: amplitude.nav.no
         - host: slack.com
+        - host: hooks.slack.com
 ---
 apiVersion: networking.k8s.io/v1
 kind: Ingress

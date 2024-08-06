@@ -2,6 +2,11 @@ package integration
 
 import (
 	"context"
+	"net/http"
+	"net/http/httptest"
+	"os"
+	"testing"
+
 	"github.com/goccy/bigquery-emulator/types"
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-cmp/cmp/cmpopts"
@@ -17,10 +22,6 @@ import (
 	"github.com/navikt/nada-backend/pkg/service/core/storage"
 	"github.com/rs/zerolog"
 	"github.com/stretchr/testify/assert"
-	"net/http"
-	"net/http/httptest"
-	"os"
-	"testing"
 )
 
 func TestBigQuery(t *testing.T) {
@@ -128,7 +129,6 @@ func TestBigQuery(t *testing.T) {
 		NewTester(t, server).Get("/api/bigquery/columns", "projectId", gcpProject, "datasetId", "test-dataset", "tableId", "test-table").
 			HasStatusCode(http.StatusOK).
 			Expect(expect, &service.BQColumns{})
-
 	})
 
 	t.Run("Sync tables", func(t *testing.T) {
@@ -140,6 +140,7 @@ func TestBigQuery(t *testing.T) {
 			Name:  "My Data Product",
 			Group: "nada@nav.no",
 		})
+		assert.NoError(t, err)
 
 		ds, err := stores.DataProductsStorage.CreateDataset(context.Background(), service.NewDataset{
 			DataproductID: dp.ID,
@@ -163,6 +164,7 @@ func TestBigQuery(t *testing.T) {
 				TableType: "TABLE",
 			},
 		}, nil, user)
+		assert.NoError(t, err)
 
 		NewTester(t, server).Post(nil, "/api/bigquery/tables/sync").
 			HasStatusCode(http.StatusNoContent)

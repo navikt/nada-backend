@@ -2,9 +2,10 @@ package service
 
 import (
 	"context"
+	"time"
+
 	validation "github.com/go-ozzo/ozzo-validation/v4"
 	"github.com/go-ozzo/ozzo-validation/v4/is"
-	"time"
 )
 
 type UserService interface {

@@ -2,6 +2,7 @@ package postgres
 
 import (
 	"context"
+
 	"github.com/navikt/nada-backend/pkg/database"
 	"github.com/navikt/nada-backend/pkg/database/gensql"
 	"github.com/navikt/nada-backend/pkg/errs"

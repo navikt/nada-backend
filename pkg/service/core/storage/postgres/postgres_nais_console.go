@@ -3,11 +3,12 @@ package postgres
 import (
 	"context"
 	"fmt"
+	"strings"
+
 	"github.com/navikt/nada-backend/pkg/database"
 	"github.com/navikt/nada-backend/pkg/database/gensql"
 	"github.com/navikt/nada-backend/pkg/errs"
 	"github.com/navikt/nada-backend/pkg/service"
-	"strings"
 )
 
 var _ service.NaisConsoleStorage = &naisConsoleStorage{}

@@ -1,6 +1,12 @@
 package integration
 
 import (
+	"net/http"
+	"net/http/httptest"
+	"os"
+	"testing"
+	"time"
+
 	"github.com/google/go-cmp/cmp/cmpopts"
 	"github.com/google/uuid"
 	"github.com/navikt/nada-backend/pkg/database"
@@ -11,11 +17,6 @@ import (
 	"github.com/navikt/nada-backend/pkg/service/core/storage/postgres"
 	"github.com/rs/zerolog"
 	"github.com/stretchr/testify/assert"
-	"net/http"
-	"net/http/httptest"
-	"os"
-	"testing"
-	"time"
 )
 
 func TestInsightProduct(t *testing.T) {

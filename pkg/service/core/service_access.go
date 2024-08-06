@@ -3,11 +3,12 @@ package core
 import (
 	"context"
 	"fmt"
+	"strings"
+	"time"
+
 	"github.com/google/uuid"
 	"github.com/navikt/nada-backend/pkg/errs"
 	"github.com/navikt/nada-backend/pkg/service"
-	"strings"
-	"time"
 )
 
 var _ service.AccessService = (*accessService)(nil)

@@ -1,8 +1,14 @@
 package bq_test
 
 import (
-	"cloud.google.com/go/iam/apiv1/iampb"
 	"context"
+	"os"
+	"path/filepath"
+	"testing"
+	"time"
+
+	"cloud.google.com/go/iam/apiv1/iampb"
+
 	validation "github.com/go-ozzo/ozzo-validation/v4"
 	"github.com/goccy/bigquery-emulator/server"
 	"github.com/goccy/bigquery-emulator/types"
@@ -12,10 +18,6 @@ import (
 	"github.com/navikt/nada-backend/pkg/bq/emulator"
 	"github.com/rs/zerolog"
 	"github.com/stretchr/testify/assert"
-	"os"
-	"path/filepath"
-	"testing"
-	"time"
 )
 
 func TestClient_GetDataset(t *testing.T) {
@@ -983,7 +985,7 @@ func TestClient_QueryAndWait(t *testing.T) {
 
 		testFilePath := filepath.Join(dir, "test.yaml")
 
-		err := os.WriteFile(testFilePath, []byte(data), 0644)
+		err := os.WriteFile(testFilePath, []byte(data), 0o644)
 		assert.NoError(t, err)
 
 		return testFilePath

@@ -1,11 +1,12 @@
 package routes
 
 import (
+	"net/http"
+
 	"github.com/go-chi/chi"
 	"github.com/navikt/nada-backend/pkg/service/core/handlers"
 	"github.com/navikt/nada-backend/pkg/service/core/transport"
 	"github.com/rs/zerolog"
-	"net/http"
 )
 
 type TokensEndpoints struct {
@@ -26,7 +27,7 @@ func NewTokensRoutes(endpoints *TokensEndpoints, auth func(http.Handler) http.Ha
 			r.Use(auth)
 			r.Put("/token", endpoints.RotateNadaToken)
 		})
-	
+
 		router.Get("/internal/teamtokens", endpoints.GetAllTeamTokens)
 	}
 }

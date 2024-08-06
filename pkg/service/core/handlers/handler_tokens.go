@@ -3,12 +3,13 @@ package handlers
 import (
 	"context"
 	"encoding/json"
+	"net/http"
+	"strings"
+
 	"github.com/navikt/nada-backend/pkg/auth"
 	"github.com/navikt/nada-backend/pkg/service"
 	"github.com/navikt/nada-backend/pkg/service/core/transport"
 	"github.com/rs/zerolog"
-	"net/http"
-	"strings"
 )
 
 type TokenHandler struct {

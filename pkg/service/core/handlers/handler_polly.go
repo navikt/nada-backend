@@ -2,8 +2,9 @@ package handlers
 
 import (
 	"context"
-	"github.com/navikt/nada-backend/pkg/service"
 	"net/http"
+
+	"github.com/navikt/nada-backend/pkg/service"
 )
 
 type PollyHandler struct {

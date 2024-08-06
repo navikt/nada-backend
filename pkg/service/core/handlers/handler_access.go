@@ -3,13 +3,14 @@ package handlers
 import (
 	"context"
 	"fmt"
+	"net/http"
+
 	"github.com/go-chi/chi"
 	"github.com/google/uuid"
 	"github.com/navikt/nada-backend/pkg/auth"
 	"github.com/navikt/nada-backend/pkg/errs"
 	"github.com/navikt/nada-backend/pkg/service"
 	"github.com/navikt/nada-backend/pkg/service/core/transport"
-	"net/http"
 )
 
 type AccessHandler struct {
@@ -49,7 +50,7 @@ func (h *AccessHandler) GrantAccessToDataset(ctx context.Context, _ *http.Reques
 		return nil, err
 	}
 
-	err = h.metabaseService.GrantMetabaseAccess(ctx, user, in.DatasetID, *in.Subject, *in.SubjectType)
+	err = h.metabaseService.GrantMetabaseAccess(ctx, in.DatasetID, *in.Subject, *in.SubjectType)
 	if err != nil {
 		return nil, err
 	}

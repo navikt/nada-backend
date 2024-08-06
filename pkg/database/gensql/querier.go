@@ -114,6 +114,7 @@ type Querier interface {
 	GetTeamFromNadaToken(ctx context.Context, token uuid.UUID) (string, error)
 	GetTeamProjects(ctx context.Context) ([]TeamProject, error)
 	GetTeamsInProductArea(ctx context.Context, productAreaID uuid.NullUUID) ([]TkTeam, error)
+	GetUnprocessedMetabaseDatasetMappings(ctx context.Context) ([]uuid.UUID, error)
 	GrantAccessToDataset(ctx context.Context, arg GrantAccessToDatasetParams) (DatasetAccess, error)
 	ListAccessRequestsForDataset(ctx context.Context, datasetID uuid.UUID) ([]DatasetAccessRequest, error)
 	ListAccessRequestsForOwner(ctx context.Context, owner []string) ([]DatasetAccessRequest, error)

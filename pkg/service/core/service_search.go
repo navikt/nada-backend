@@ -2,11 +2,12 @@ package core
 
 import (
 	"context"
+	"sort"
+	"time"
+
 	"github.com/google/uuid"
 	"github.com/navikt/nada-backend/pkg/errs"
 	"github.com/navikt/nada-backend/pkg/service"
-	"sort"
-	"time"
 )
 
 var _ service.SearchService = &searchService{}

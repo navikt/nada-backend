@@ -3,11 +3,12 @@ package http
 import (
 	"context"
 	"encoding/json"
-	"github.com/navikt/nada-backend/pkg/errs"
-	"github.com/navikt/nada-backend/pkg/service"
 	"io"
 	"net/http"
 	"time"
+
+	"github.com/navikt/nada-backend/pkg/errs"
+	"github.com/navikt/nada-backend/pkg/service"
 )
 
 var _ service.PollyAPI = &pollyAPI{}

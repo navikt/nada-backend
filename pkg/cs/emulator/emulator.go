@@ -1,10 +1,11 @@
 package emulator
 
 import (
-	"cloud.google.com/go/storage"
-	"github.com/fsouza/fake-gcs-server/fakestorage"
 	"net"
 	"testing"
+
+	"cloud.google.com/go/storage"
+	"github.com/fsouza/fake-gcs-server/fakestorage"
 )
 
 // GetFreePort asks the kernel for a free open port that is ready to use.
