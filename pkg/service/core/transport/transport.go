@@ -174,3 +174,10 @@ func NewByteWriter(typ, encoding string, data []byte) *ByteWriter {
 		contentEncoding: encoding,
 	}
 }
+
+type Accepted struct {
+}
+
+func (a *Accepted) StatusCode() int {
+	return http.StatusAccepted
+}

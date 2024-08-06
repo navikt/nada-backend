@@ -83,6 +83,12 @@ func (h *testSimpleHandler) Receiver(_ context.Context, _ *http.Request, _ any) 
 	}, nil
 }
 
+func (h *testSimpleHandler) Accepted(_ context.Context, _ *http.Request, _ any) (*Accepted, error) {
+	h.invocations++
+
+	return &Accepted{}, nil
+}
+
 func TestHandlerFor(t *testing.T) {
 	simple := &testSimpleHandler{
 		Data:   []byte("test"),
@@ -169,6 +175,16 @@ func TestHandlerFor(t *testing.T) {
 			request: httptest.NewRequest(http.MethodGet, "/whatever", nil),
 			status:  http.StatusSeeOther,
 			count:   2,
+		},
+		{
+			name: "handler-for-accepted-encoder",
+			desc: "Invokes the handler and expects the custom encoder to be used",
+			routes: map[string]http.HandlerFunc{
+				"/whatever": For(simple.Accepted).Build(logger),
+			},
+			request: httptest.NewRequest(http.MethodGet, "/whatever", nil),
+			status:  http.StatusAccepted,
+			count:   1,
 		},
 	}
 
