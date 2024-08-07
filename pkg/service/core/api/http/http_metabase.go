@@ -757,9 +757,8 @@ func dbExists(dbs []service.MetabaseDatabase, nadaID string) (int, bool) {
 
 func NewMetabaseHTTP(url, username, password, oauth2ClientID, oauth2ClientSecret, oauth2TenantID, endpoint string, enableAuth bool, log zerolog.Logger) *metabaseAPI {
 	return &metabaseAPI{
-		c: &http.Client{
-			Timeout: 90 * time.Second,
-		},
+		// FIXME: Should set a timeout here
+		c:                  &http.Client{},
 		url:                url,
 		password:           password,
 		username:           username,
