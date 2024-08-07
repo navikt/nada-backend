@@ -17,16 +17,6 @@ func From[I Converter[O], O any](i I) (O, error) {
 	return i.To()
 }
 
-func uuidListToStringList(uuids []uuid.UUID) []string {
-	strs := make([]string, len(uuids))
-
-	for i, u := range uuids {
-		strs[i] = u.String()
-	}
-
-	return strs
-}
-
 func uuidToNullUUID(u uuid.UUID) uuid.NullUUID {
 	return uuid.NullUUID{
 		UUID:  u,

@@ -266,11 +266,11 @@ func (q *Queries) GetStoriesByIDs(ctx context.Context, ids []uuid.UUID) ([]Story
 const getStoriesByProductArea = `-- name: GetStoriesByProductArea :many
 SELECT id, name, creator, created, last_modified, description, keywords, teamkatalogen_url, team_id, "group", team_name, pa_name
 FROM story_with_teamkatalogen_view
-WHERE team_id = ANY($1::text[])
+WHERE team_id = ANY($1::uuid[])
 ORDER BY last_modified DESC
 `
 
-func (q *Queries) GetStoriesByProductArea(ctx context.Context, teamID []string) ([]StoryWithTeamkatalogenView, error) {
+func (q *Queries) GetStoriesByProductArea(ctx context.Context, teamID []uuid.UUID) ([]StoryWithTeamkatalogenView, error) {
 	rows, err := q.db.QueryContext(ctx, getStoriesByProductArea, pq.Array(teamID))
 	if err != nil {
 		return nil, err

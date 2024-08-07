@@ -322,11 +322,11 @@ func (q *Queries) GetDataproductsByIDs(ctx context.Context, ids []uuid.UUID) ([]
 const getDataproductsByProductArea = `-- name: GetDataproductsByProductArea :many
 SELECT id, name, description, "group", created, last_modified, tsv_document, slug, teamkatalogen_url, team_contact, team_id, team_name, pa_name, pa_id
 FROM dataproduct_with_teamkatalogen_view
-WHERE team_id = ANY($1::text[])
+WHERE team_id = ANY($1::uuid[])
 ORDER BY created DESC
 `
 
-func (q *Queries) GetDataproductsByProductArea(ctx context.Context, teamID []string) ([]DataproductWithTeamkatalogenView, error) {
+func (q *Queries) GetDataproductsByProductArea(ctx context.Context, teamID []uuid.UUID) ([]DataproductWithTeamkatalogenView, error) {
 	rows, err := q.db.QueryContext(ctx, getDataproductsByProductArea, pq.Array(teamID))
 	if err != nil {
 		return nil, err

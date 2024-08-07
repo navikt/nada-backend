@@ -38,7 +38,7 @@ func (s *dataProductStorage) GetDataproductKeywords(ctx context.Context, dpid uu
 func (s *dataProductStorage) GetDataproductsByTeamID(ctx context.Context, teamIDs []uuid.UUID) ([]*service.Dataproduct, error) {
 	const op errs.Op = "dataProductStorage.GetDataproductsByTeamID"
 
-	raw, err := s.db.Querier.GetDataproductsByProductArea(ctx, uuidListToStringList(teamIDs))
+	raw, err := s.db.Querier.GetDataproductsByProductArea(ctx, teamIDs)
 	if err != nil {
 		return nil, errs.E(errs.Database, op, err)
 	}

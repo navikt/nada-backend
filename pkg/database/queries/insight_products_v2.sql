@@ -4,7 +4,7 @@ SELECT
 FROM
     insight_product_with_teamkatalogen_view
 WHERE
-    team_id = ANY(@team_id::text[])
+    team_id = ANY(@team_id::uuid[])
 ORDER BY
     last_modified DESC;
 

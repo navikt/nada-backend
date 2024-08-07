@@ -130,7 +130,7 @@ func (s *insightProductStorage) GetInsightProductsByGroups(ctx context.Context, 
 func (s *insightProductStorage) GetInsightProductsByTeamID(ctx context.Context, teamIDs []uuid.UUID) ([]*service.InsightProduct, error) {
 	const op errs.Op = "insightProductStorage.GetInsightProductsByTeamID"
 
-	raw, err := s.db.Querier.GetInsightProductsByProductArea(ctx, uuidListToStringList(teamIDs))
+	raw, err := s.db.Querier.GetInsightProductsByProductArea(ctx, teamIDs)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return nil, nil

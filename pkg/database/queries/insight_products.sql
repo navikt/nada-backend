@@ -46,7 +46,7 @@ SELECT
 FROM
     insight_product
 WHERE
-    id = ANY (@ids :: uuid [])
+    id = ANY (@id :: uuid [])
 ORDER BY
     last_modified DESC;
 

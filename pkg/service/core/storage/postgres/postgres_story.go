@@ -58,7 +58,7 @@ func (s StoryWithTeamkatalogenViewList) To() ([]*service.Story, error) {
 func (s *storyStorage) GetStoriesByTeamID(ctx context.Context, teamIDs []uuid.UUID) ([]*service.Story, error) {
 	const op errs.Op = "storyStorage.GetStoriesByTeamID"
 
-	raw, err := s.db.Querier.GetStoriesByProductArea(ctx, uuidListToStringList(teamIDs))
+	raw, err := s.db.Querier.GetStoriesByProductArea(ctx, teamIDs)
 	if err != nil {
 		return nil, errs.E(errs.Database, op, err)
 	}

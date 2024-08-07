@@ -230,8 +230,8 @@ ORDER BY
     last_modified DESC
 `
 
-func (q *Queries) GetInsightProductsByIDs(ctx context.Context, ids []uuid.UUID) ([]InsightProduct, error) {
-	rows, err := q.db.QueryContext(ctx, getInsightProductsByIDs, pq.Array(ids))
+func (q *Queries) GetInsightProductsByIDs(ctx context.Context, id []uuid.UUID) ([]InsightProduct, error) {
+	rows, err := q.db.QueryContext(ctx, getInsightProductsByIDs, pq.Array(id))
 	if err != nil {
 		return nil, err
 	}

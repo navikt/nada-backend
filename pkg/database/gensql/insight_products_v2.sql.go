@@ -102,12 +102,12 @@ SELECT
 FROM
     insight_product_with_teamkatalogen_view
 WHERE
-    team_id = ANY($1::text[])
+    team_id = ANY($1::uuid[])
 ORDER BY
     last_modified DESC
 `
 
-func (q *Queries) GetInsightProductsByProductArea(ctx context.Context, teamID []string) ([]InsightProductWithTeamkatalogenView, error) {
+func (q *Queries) GetInsightProductsByProductArea(ctx context.Context, teamID []uuid.UUID) ([]InsightProductWithTeamkatalogenView, error) {
 	rows, err := q.db.QueryContext(ctx, getInsightProductsByProductArea, pq.Array(teamID))
 	if err != nil {
 		return nil, err
