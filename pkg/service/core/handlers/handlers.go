@@ -1,9 +1,9 @@
 package handlers
 
 import (
-	"github.com/google/uuid"
 	"github.com/navikt/nada-backend/pkg/config/v2"
 	"github.com/navikt/nada-backend/pkg/service/core"
+	"github.com/navikt/nada-backend/pkg/syncers/metabase_mapper"
 	"github.com/rs/zerolog"
 )
 
@@ -28,7 +28,7 @@ type Handlers struct {
 func NewHandlers(
 	s *core.Services,
 	cfg config.Config,
-	mappingQueue chan uuid.UUID,
+	mappingQueue chan metabase_mapper.Work,
 	log zerolog.Logger,
 ) *Handlers {
 	return &Handlers{

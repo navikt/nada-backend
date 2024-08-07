@@ -30,7 +30,12 @@ type MockThirdPartyMappingStorage struct {
 	mock.Mock
 }
 
-func (m *MockThirdPartyMappingStorage) GetUnprocessedMetabaseDatasetMappings(ctx context.Context) ([]uuid.UUID, error) {
+func (m *MockThirdPartyMappingStorage) GetAddMetabaseDatasetMappings(ctx context.Context) ([]uuid.UUID, error) {
+	args := m.Called(ctx)
+	return args.Get(0).([]uuid.UUID), args.Error(1)
+}
+
+func (m *MockThirdPartyMappingStorage) GetRemoveMetabaseDatasetMappings(ctx context.Context) ([]uuid.UUID, error) {
 	args := m.Called(ctx)
 	return args.Get(0).([]uuid.UUID), args.Error(1)
 }
@@ -48,7 +53,9 @@ func TestMapperProcessesDatasetsFromQueue(t *testing.T) {
 	mockService.On("MapDataset", mock.Anything, datasetID, mock.Anything).Return(nil)
 
 	go mapper.Run(ctx)
-	mapper.Queue <- datasetID
+	mapper.Queue <- metabase_mapper.Work{
+		DatasetID: datasetID,
+	}
 
 	time.Sleep(2 * time.Second)
 
@@ -65,7 +72,8 @@ func TestMapperProcessesDatasetsFromStorage(t *testing.T) {
 	defer cancel()
 
 	datasetID := uuid.New()
-	mockStorage.On("GetUnprocessedMetabaseDatasetMappings", mock.Anything).Return([]uuid.UUID{datasetID}, nil)
+	mockStorage.On("GetAddMetabaseDatasetMappings", mock.Anything).Return([]uuid.UUID{datasetID}, nil)
+	mockStorage.On("GetRemoveMetabaseDatasetMappings", mock.Anything).Return([]uuid.UUID{}, nil)
 	mockService.On("MapDataset", mock.Anything, datasetID, mock.Anything).Return(nil)
 
 	go mapper.Run(ctx)
@@ -88,7 +96,9 @@ func TestMapperHandlesMappingError(t *testing.T) {
 	mockService.On("MapDataset", mock.Anything, datasetID, mock.Anything).Return(assert.AnError)
 
 	go mapper.Run(ctx)
-	mapper.Queue <- datasetID
+	mapper.Queue <- metabase_mapper.Work{
+		DatasetID: datasetID,
+	}
 
 	time.Sleep(2 * time.Second)
 

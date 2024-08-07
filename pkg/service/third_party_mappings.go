@@ -8,5 +8,6 @@ import (
 
 type ThirdPartyMappingStorage interface {
 	MapDataset(ctx context.Context, datasetID uuid.UUID, Services []string) error
-	GetUnprocessedMetabaseDatasetMappings(ctx context.Context) ([]uuid.UUID, error)
+	GetAddMetabaseDatasetMappings(ctx context.Context) ([]uuid.UUID, error)
+	GetRemoveMetabaseDatasetMappings(ctx context.Context) ([]uuid.UUID, error)
 }

@@ -90,9 +90,6 @@ func (c *metabaseAPI) PerformRequest(ctx context.Context, method, path string, b
 		return nil, errs.E(errs.IO, op, err)
 	}
 
-	deadline, hasDeadline := req.Context().Deadline()
-	c.log.Info().Msgf("deadline: %v, hasDeadline: %v", deadline, hasDeadline)
-
 	req.Header.Set("X-Metabase-Session", c.sessionID)
 	req.Header.Set("Content-Type", "application/json")
 

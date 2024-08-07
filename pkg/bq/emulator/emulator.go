@@ -1,12 +1,13 @@
 package emulator
 
 import (
-	"cloud.google.com/go/iam/apiv1/iampb"
 	"context"
 	"encoding/json"
 	"fmt"
 	"net/http"
 	"net/http/httputil"
+
+	"cloud.google.com/go/iam/apiv1/iampb"
 
 	"github.com/go-chi/chi"
 	"github.com/goccy/bigquery-emulator/server"

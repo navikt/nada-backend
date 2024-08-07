@@ -19,10 +19,18 @@ INNER JOIN datasets ON datasets.id = third_party_mappings.dataset_id
 WHERE @service::TEXT = ANY("services")
 LIMIT @lim OFFSET @offs;
 
--- name: GetUnprocessedMetabaseDatasetMappings :many
+-- name: GetAddMetabaseDatasetMappings :many
 SELECT dataset_id
 FROM third_party_mappings
 WHERE "dataset_id" NOT IN (
     SELECT dataset_id FROM metabase_metadata
 )
 AND 'metabase' = ANY(services);
+
+-- name: GetRemoveMetabaseDatasetMappings :many
+SELECT dataset_id
+FROM third_party_mappings
+WHERE "dataset_id" IN (
+    SELECT dataset_id FROM metabase_metadata
+)
+  AND NOT ('metabase' = ANY(services));

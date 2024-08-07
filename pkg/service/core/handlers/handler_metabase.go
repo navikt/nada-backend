@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"net/http"
 
+	"github.com/navikt/nada-backend/pkg/syncers/metabase_mapper"
+
 	"github.com/navikt/nada-backend/pkg/service/core/transport"
 
 	"github.com/go-chi/chi"
@@ -16,7 +18,7 @@ import (
 
 type MetabaseHandler struct {
 	service      service.MetabaseService
-	mappingQueue chan uuid.UUID
+	mappingQueue chan metabase_mapper.Work
 }
 
 func (h *MetabaseHandler) MapDataset(ctx context.Context, _ *http.Request, in service.DatasetMap) (*transport.Accepted, error) {
@@ -37,12 +39,15 @@ func (h *MetabaseHandler) MapDataset(ctx context.Context, _ *http.Request, in se
 		return nil, errs.E(op, err)
 	}
 
-	h.mappingQueue <- id
+	h.mappingQueue <- metabase_mapper.Work{
+		DatasetID: id,
+		Services:  in.Services,
+	}
 
 	return &transport.Accepted{}, nil
 }
 
-func NewMetabaseHandler(service service.MetabaseService, mappingQueue chan uuid.UUID) *MetabaseHandler {
+func NewMetabaseHandler(service service.MetabaseService, mappingQueue chan metabase_mapper.Work) *MetabaseHandler {
 	return &MetabaseHandler{
 		service:      service,
 		mappingQueue: mappingQueue,

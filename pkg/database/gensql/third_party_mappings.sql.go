@@ -12,6 +12,38 @@ import (
 	"github.com/lib/pq"
 )
 
+const getAddMetabaseDatasetMappings = `-- name: GetAddMetabaseDatasetMappings :many
+SELECT dataset_id
+FROM third_party_mappings
+WHERE "dataset_id" NOT IN (
+    SELECT dataset_id FROM metabase_metadata
+)
+AND 'metabase' = ANY(services)
+`
+
+func (q *Queries) GetAddMetabaseDatasetMappings(ctx context.Context) ([]uuid.UUID, error) {
+	rows, err := q.db.QueryContext(ctx, getAddMetabaseDatasetMappings)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []uuid.UUID{}
+	for rows.Next() {
+		var dataset_id uuid.UUID
+		if err := rows.Scan(&dataset_id); err != nil {
+			return nil, err
+		}
+		items = append(items, dataset_id)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const getDatasetMappings = `-- name: GetDatasetMappings :one
 SELECT services, dataset_id
 FROM third_party_mappings
@@ -76,17 +108,17 @@ func (q *Queries) GetDatasetsByMapping(ctx context.Context, arg GetDatasetsByMap
 	return items, nil
 }
 
-const getUnprocessedMetabaseDatasetMappings = `-- name: GetUnprocessedMetabaseDatasetMappings :many
+const getRemoveMetabaseDatasetMappings = `-- name: GetRemoveMetabaseDatasetMappings :many
 SELECT dataset_id
 FROM third_party_mappings
-WHERE "dataset_id" NOT IN (
+WHERE "dataset_id" IN (
     SELECT dataset_id FROM metabase_metadata
 )
-AND 'metabase' = ANY(services)
+  AND NOT ('metabase' = ANY(services))
 `
 
-func (q *Queries) GetUnprocessedMetabaseDatasetMappings(ctx context.Context) ([]uuid.UUID, error) {
-	rows, err := q.db.QueryContext(ctx, getUnprocessedMetabaseDatasetMappings)
+func (q *Queries) GetRemoveMetabaseDatasetMappings(ctx context.Context) ([]uuid.UUID, error) {
+	rows, err := q.db.QueryContext(ctx, getRemoveMetabaseDatasetMappings)
 	if err != nil {
 		return nil, err
 	}
