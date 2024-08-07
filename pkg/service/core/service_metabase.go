@@ -594,6 +594,15 @@ func (s *metabaseService) RevokeMetabaseAccessFromAccessID(ctx context.Context, 
 func (s *metabaseService) RevokeMetabaseAccess(ctx context.Context, dsID uuid.UUID, subject string) error {
 	const op errs.Op = "metabaseService.RevokeMetabaseAccess"
 
+	_, err := s.metabaseStorage.GetMetadata(ctx, dsID, false)
+	if err != nil {
+		if errs.KindIs(errs.NotExist, err) {
+			return nil
+		}
+
+		return errs.E(op, err)
+	}
+
 	if subject == s.groupAllUsers {
 		err := s.softDeleteDatabase(ctx, dsID)
 		if err != nil {
