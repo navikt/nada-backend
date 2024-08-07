@@ -48,25 +48,43 @@ func (a *serviceAccountAPI) DeleteServiceAccount(ctx context.Context, gcpProject
 	return nil
 }
 
-func (a *serviceAccountAPI) CreateServiceAccount(ctx context.Context, gcpProject string, ds *service.Dataset) ([]byte, string, error) {
-	const op errs.Op = "gcp.CreateServiceAccount"
+func (a *serviceAccountAPI) getOrCreateServiceAccount(ctx context.Context, gcpProject string, ds *service.Dataset) (*iam.ServiceAccount, error) {
+	const op errs.Op = "gcp.getOrCreateServiceAccount"
+
+	accountID := "nada-" + MarshalUUID(ds.ID)
+
+	iamService, err := iam.NewService(ctx)
+	if err != nil {
+		return nil, errs.E(errs.IO, op, err)
+	}
+
+	account, err := iamService.Projects.ServiceAccounts.Get("projects/" + gcpProject + "/serviceAccounts/" + accountID + "@" + gcpProject + ".iam.gserviceaccount.com").Do()
+	if err == nil {
+		return account, nil
+	}
 
 	request := &iam.CreateServiceAccountRequest{
-		AccountId: "nada-" + MarshalUUID(ds.ID),
+		AccountId: accountID,
 		ServiceAccount: &iam.ServiceAccount{
 			Description: "Metabase service account for dataset " + ds.ID.String(),
 			DisplayName: ds.Name,
 		},
 	}
 
-	iamService, err := iam.NewService(ctx)
+	account, err = iamService.Projects.ServiceAccounts.Create("projects/"+gcpProject, request).Do()
 	if err != nil {
-		return nil, "", errs.E(errs.IO, op, err)
+		return nil, errs.E(errs.IO, op, err)
 	}
 
-	account, err := iamService.Projects.ServiceAccounts.Create("projects/"+gcpProject, request).Do()
+	return account, nil
+}
+
+func (a *serviceAccountAPI) CreateServiceAccount(ctx context.Context, gcpProject string, ds *service.Dataset) ([]byte, string, error) {
+	const op errs.Op = "gcp.CreateServiceAccount"
+
+	account, err := a.getOrCreateServiceAccount(ctx, gcpProject, ds)
 	if err != nil {
-		return nil, "", errs.E(errs.IO, op, err)
+		return nil, "", errs.E(op, err)
 	}
 
 	crmService, err := cloudresourcemanager.NewService(ctx)
@@ -90,6 +108,11 @@ func (a *serviceAccountAPI) CreateServiceAccount(ctx context.Context, gcpProject
 	})
 
 	_, err = iamSetPolicyCall.Do()
+	if err != nil {
+		return nil, "", errs.E(errs.IO, op, err)
+	}
+
+	iamService, err := iam.NewService(ctx)
 	if err != nil {
 		return nil, "", errs.E(errs.IO, op, err)
 	}
