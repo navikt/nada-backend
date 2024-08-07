@@ -7,6 +7,8 @@ import (
 	"testing"
 	"time"
 
+	"github.com/stretchr/testify/require"
+
 	md "github.com/go-chi/chi/middleware"
 
 	"github.com/goccy/go-json"
@@ -19,67 +21,57 @@ import (
 
 type LogFormat struct {
 	Level     string    `json:"level"`
+	RequestID string    `json:"request_id"`
 	Time      time.Time `json:"time"`
 	BytesIn   int       `json:"bytes_in"`
 	BytesOut  int       `json:"bytes_out"`
 	Latency   float64   `json:"latency_ms"`
 	Method    string    `json:"method"`
-	Proto     string    `json:"proto"`
-	RemoteIP  string    `json:"remote_ip"`
-	Status    int       `json:"status"`
 	URL       string    `json:"url"`
-	UserAgent string    `json:"user_agent"`
+	Status    int       `json:"status"`
 	Message   string    `json:"message"`
-	RequestID string    `json:"request_id"`
+	Browser   string    `json:"browser"`
+	OS        string    `json:"os"`
+	Device    string    `json:"device"`
 }
 
-// FIXME: what a horrible test I have written..
 func TestLoggerMiddleware(t *testing.T) {
 	testCases := []struct {
-		name       string
-		method     string
-		target     string
-		body       []byte
-		userAgent  string
-		remoteAddr string
-		filters    []string
-		expect     []*LogFormat
+		name      string
+		method    string
+		target    string
+		body      []byte
+		userAgent string
+		filters   []string
+		expect    *LogFormat
 	}{
 		{
-			name:       "Should work",
-			method:     http.MethodGet,
-			target:     "http://example.com/foo",
-			body:       nil,
-			userAgent:  "test-agent",
-			remoteAddr: "127.0.0.1:1234",
-			expect: []*LogFormat{
-				{
-					Level:     "info",
-					BytesIn:   0,
-					Method:    http.MethodGet,
-					Proto:     "HTTP/1.1",
-					RemoteIP:  "127.0.0.1:1234",
-					URL:       "/foo",
-					UserAgent: "test-agent",
-					Message:   "incoming_request",
-				},
-				{
-					Level:    "info",
-					BytesOut: 2,
-					Status:   http.StatusOK,
-					Message:  "incoming_request",
-				},
+			name:      "Should work",
+			method:    http.MethodGet,
+			target:    "http://example.com/foo",
+			body:      nil,
+			userAgent: "Mozilla/5.0 (Windows NT 6.1; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/59.0.3071.115 Safari/537.36",
+			expect: &LogFormat{
+				Level:    "info",
+				BytesIn:  0,
+				BytesOut: 2,
+				Method:   http.MethodGet,
+				URL:      "/foo",
+				Status:   http.StatusOK,
+				Message:  "incoming_request",
+				Browser:  "Chrome",
+				OS:       "Windows",
+				Device:   "",
 			},
 		},
 		{
-			name:       "Should work with filters",
-			method:     http.MethodGet,
-			target:     "http://example.com/to-be-filtered",
-			body:       nil,
-			userAgent:  "test-agent",
-			remoteAddr: "127.0.0.1:1234",
-			filters:    []string{"/to-be-filtered"},
-			expect:     nil,
+			name:      "Should work with filters",
+			method:    http.MethodGet,
+			target:    "http://example.com/to-be-filtered",
+			body:      nil,
+			userAgent: "Mozilla/5.0 (Windows NT 6.1; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/59.0.3071.115 Safari/537.36",
+			filters:   []string{"/to-be-filtered"},
+			expect:    nil,
 		},
 	}
 
@@ -92,7 +84,6 @@ func TestLoggerMiddleware(t *testing.T) {
 
 			req := httptest.NewRequest(tc.method, tc.target, bytes.NewReader(tc.body))
 			req.Header.Set("User-Agent", tc.userAgent)
-			req.RemoteAddr = tc.remoteAddr
 			w := httptest.NewRecorder()
 
 			handler := md.RequestID(middleware(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -107,19 +98,15 @@ func TestLoggerMiddleware(t *testing.T) {
 				return
 			}
 
-			lines := bytes.SplitN(buf.Bytes(), []byte("\n"), 2)
-			for i, line := range lines {
-				got := &LogFormat{}
-				err := json.Unmarshal(line, got)
-				assert.NoError(t, err)
-				diff := cmp.Diff(tc.expect[i], got, cmpopts.IgnoreFields(LogFormat{}, "Time", "Latency", "RequestID"))
-				assert.Empty(t, diff)
-				if i == 1 {
-					assert.Greater(t, got.Latency, 0.0)
-					assert.GreaterOrEqual(t, got.Time.Unix(), time.Now().Unix())
-				}
-				assert.NotEqual(t, "n/a", got.RequestID)
-			}
+			got := &LogFormat{}
+			err := json.Unmarshal(buf.Bytes(), got)
+			require.NoError(t, err)
+
+			diff := cmp.Diff(tc.expect, got, cmpopts.IgnoreFields(LogFormat{}, "Time", "Latency", "RequestID"))
+			assert.Empty(t, diff)
+			assert.Greater(t, got.Latency, 0.0)
+			assert.GreaterOrEqual(t, got.Time.Unix(), time.Now().Unix())
+			assert.NotEqual(t, "n/a", got.RequestID)
 		})
 	}
 }

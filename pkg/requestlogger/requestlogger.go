@@ -5,11 +5,13 @@ import (
 	"strconv"
 	"time"
 
+	"github.com/mileusna/useragent"
+
 	"github.com/go-chi/chi/middleware"
 	"github.com/rs/zerolog"
 )
 
-func Middleware(logger zerolog.Logger, pathFilters ...string) func(next http.Handler) http.Handler {
+func Middleware(log zerolog.Logger, pathFilters ...string) func(next http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		fn := func(w http.ResponseWriter, r *http.Request) {
 			for _, filter := range pathFilters {
@@ -19,39 +21,35 @@ func Middleware(logger zerolog.Logger, pathFilters ...string) func(next http.Han
 				}
 			}
 
-			log := logger.With().Logger()
-
 			ww := middleware.NewWrapResponseWriter(w, r.ProtoMajor)
-
-			requestID := middleware.GetReqID(r.Context())
-			if requestID == "" {
-				requestID = "n/a"
-			}
-
-			bytesIn, err := strconv.Atoi(r.Header.Get("Content-Length"))
-			if err != nil {
-				bytesIn = 0
-			}
-
-			log.Info().Timestamp().Fields(map[string]interface{}{
-				"request_id": requestID,
-				"remote_ip":  r.RemoteAddr,
-				"url":        r.URL.Path,
-				"proto":      r.Proto,
-				"method":     r.Method,
-				"user_agent": r.Header.Get("User-Agent"),
-				"bytes_in":   bytesIn,
-			}).Msg("incoming_request")
 
 			t1 := time.Now()
 			defer func() {
 				t2 := time.Now()
 
+				ua := useragent.Parse(r.UserAgent())
+
+				requestID := middleware.GetReqID(r.Context())
+				if requestID == "" {
+					requestID = "n/a"
+				}
+
+				bytesIn, err := strconv.Atoi(r.Header.Get("Content-Length"))
+				if err != nil {
+					bytesIn = 0
+				}
+
 				log.Info().Timestamp().Fields(map[string]interface{}{
 					"request_id": requestID,
+					"method":     r.Method,
+					"url":        r.URL.Path,
 					"status":     ww.Status(),
-					"latency_ms": float64(t2.Sub(t1).Nanoseconds()) / 1000000.0,
+					"browser":    ua.Name,
+					"os":         ua.OS,
+					"device":     ua.Device,
+					"bytes_in":   bytesIn,
 					"bytes_out":  ww.BytesWritten(),
+					"latency_ms": float64(t2.Sub(t1).Nanoseconds()) / 1000000.0, //nolint: gomnd
 				}).Msg("incoming_request")
 			}()
 
