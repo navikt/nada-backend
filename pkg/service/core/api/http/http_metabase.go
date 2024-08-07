@@ -368,7 +368,7 @@ func (c *metabaseAPI) CreatePermissionGroup(ctx context.Context, name string) (i
 	group := service.MetabasePermissionGroup{}
 	payload := map[string]string{"name": name}
 	if err := c.request(ctx, http.MethodPost, "/permissions/group", payload, &group); err != nil {
-		return 0, errs.E(op, fmt.Errorf("creating group %s: %w", name, err))
+		return 0, errs.E(op, fmt.Errorf("creating group '%s': %w", name, err))
 	}
 
 	return group.ID, nil
