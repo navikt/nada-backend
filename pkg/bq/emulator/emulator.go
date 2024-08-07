@@ -1,21 +1,16 @@
 package emulator
 
 import (
-	"bytes"
+	"cloud.google.com/go/iam/apiv1/iampb"
 	"context"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"net/http"
 	"net/http/httputil"
-	"os"
-
-	"cloud.google.com/go/iam/apiv1/iampb"
 
 	"github.com/go-chi/chi"
 	"github.com/goccy/bigquery-emulator/server"
 	"github.com/goccy/bigquery-emulator/types"
-	"github.com/goccy/go-yaml"
 	"github.com/rs/zerolog"
 )
 
@@ -183,36 +178,77 @@ func New(log zerolog.Logger) *Emulator {
 	}
 }
 
-func PolicyMocksFromDataYAML(path string, log zerolog.Logger) ([]*EndpointMock, error) {
-	content, err := os.ReadFile(path)
-	if err != nil {
-		return nil, err
+type PolicyMock struct {
+	log      zerolog.Logger
+	policies map[string]*iampb.Policy
+}
+
+func NewPolicyMock(log zerolog.Logger) *PolicyMock {
+	return &PolicyMock{
+		log:      log,
+		policies: make(map[string]*iampb.Policy),
 	}
+}
 
-	var v struct {
-		Projects []*types.Project `yaml:"projects" validate:"required"`
+func (p *PolicyMock) Mocks() []*EndpointMock {
+	return []*EndpointMock{
+		{
+			Method:  http.MethodPost,
+			Path:    "/projects/{project}/datasets/{dataset}/tables/{table}:getIamPolicy",
+			Handler: p.GetPolicy(),
+		},
+		{
+			Method:  http.MethodPost,
+			Path:    "/projects/{project}/datasets/{dataset}/tables/{table}:setIamPolicy",
+			Handler: p.SetPolicy(),
+		},
 	}
+}
 
-	dec := yaml.NewDecoder(
-		bytes.NewBuffer(content),
-		yaml.Strict(),
-	)
+func (p *PolicyMock) GetPolicy() http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		project := chi.URLParam(r, "project")
+		dataset := chi.URLParam(r, "dataset")
+		table := chi.URLParam(r, "table")
 
-	if err := dec.Decode(&v); err != nil {
-		return nil, errors.New(yaml.FormatError(err, false, true))
-	}
+		key := fmt.Sprintf("%s/%s/%s", project, dataset, table)
 
-	var mocks []*EndpointMock
-	for _, project := range v.Projects {
-		for _, dataset := range project.Datasets {
-			for _, table := range dataset.Tables {
-				mocks = append(mocks, DatasetTableIAMPolicyGetMock(project.ID, dataset.ID, table.ID, log, &iampb.Policy{}))
-				mocks = append(mocks, DatasetTableIAMPolicySetMock(project.ID, dataset.ID, table.ID, log, &iampb.SetIamPolicyRequest{}))
-			}
+		policy := &iampb.Policy{}
+		_, hasKey := p.policies[key]
+		if hasKey {
+			policy = p.policies[key]
+		}
+
+		err := json.NewEncoder(w).Encode(policy)
+		if err != nil {
+			p.log.Error().Err(err).Msg("Failed to encode policy")
+			w.WriteHeader(http.StatusInternalServerError)
 		}
 	}
+}
 
-	return mocks, nil
+func (p *PolicyMock) SetPolicy() http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		project := chi.URLParam(r, "project")
+		dataset := chi.URLParam(r, "dataset")
+		table := chi.URLParam(r, "table")
+
+		policyRequest := &iampb.SetIamPolicyRequest{}
+
+		err := json.NewDecoder(r.Body).Decode(policyRequest)
+		if err != nil {
+			p.log.Error().Err(err).Msg("Failed to decode policy")
+			w.WriteHeader(http.StatusInternalServerError)
+			return
+		}
+
+		key := fmt.Sprintf("%s/%s/%s", project, dataset, table)
+		p.policies[key] = policyRequest.Policy
+
+		// If the header is StatusNoContent, the body is ignored by the google client
+		// otherwise it will try to parse the body
+		w.WriteHeader(http.StatusNoContent)
+	}
 }
 
 func DatasetTableIAMPolicyGetMock(project, dataset, table string, log zerolog.Logger, policy *iampb.Policy) *EndpointMock {

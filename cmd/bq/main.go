@@ -30,12 +30,9 @@ func main() {
 
 	e.WithSource(*projectID, server.YAMLSource(*dataYAML))
 
-	mocks, err := emulator.PolicyMocksFromDataYAML(*dataYAML, log)
-	if err != nil {
-		log.Fatal().Err(err).Msg("creating policy mocks")
-	}
+	policy := emulator.NewPolicyMock(log)
 
-	e.EnableMock(true, log, mocks...)
+	e.EnableMock(true, log, policy.Mocks()...)
 
 	log.Info().Msgf("Big query emulator started on %s", *port)
 
