@@ -410,7 +410,11 @@ func (m *Metabase) cleanupOnCreateDatabaseError(ctx context.Context, dbID int, d
 		}
 	}
 
-	_, apierr := service.MapDataset(ctx, ds.Dataset.ID.String(), services)
+	_, apierr := service.MapDataset(ctx, ds.Dataset.ID.String(),
+		service.DatasetMap{
+			Services: services,
+		},
+	)
 	return apierr
 }
 

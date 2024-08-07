@@ -445,6 +445,7 @@ func datasetFromSQL(dsrows []gensql.DatasetView) (*Dataset, *APIError) {
 				Datasource:        nil,
 				Pii:               PiiLevel(dsrow.Pii),
 				MetabaseDeletedAt: nullTimeToPtr(dsrow.MbDeletedAt),
+				Repo:              nullStringToPtr(dsrow.DsRepo),
 			}
 		}
 
@@ -611,7 +612,8 @@ func dataproductMinimalFromSQL(dp *gensql.Dataproduct) *DataproductMinimal {
 	}
 }
 
-func MapDataset(ctx context.Context, datasetID string, services []string) (*Dataset, *APIError) {
+func MapDataset(ctx context.Context, datasetID string, datasetMap DatasetMap) (*Dataset, *APIError) {
+	services := datasetMap.Services
 	ds, apierr := GetDataset(ctx, datasetID)
 	if apierr != nil {
 		return nil, apierr
@@ -648,6 +650,7 @@ func MapDataset(ctx context.Context, datasetID string, services []string) (*Data
 }
 
 func CreateDataset(ctx context.Context, input NewDataset) (*string, *APIError) {
+	fmt.Println("CreateDataset", input)
 	user := auth.GetUser(ctx)
 
 	dp, apierr := GetDataproduct(ctx, input.DataproductID.String())

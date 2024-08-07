@@ -29,34 +29,32 @@ type SearchResultRow struct {
 	Rank    float64    `json:"rank"`
 }
 
-type SearchOptions struct {
-	// Freetext search
-	Text string `json:"text"`
+func Search(ctx context.Context, // Freetext search
+	text string,
 	// Filter on keyword
-	Keywords []string `json:"keywords"`
+	keywords []string,
 	// Filter on group
-	Groups []string `json:"groups"`
+	groups []string,
 	//Filter on team_id
-	TeamIDs []string `json:"teamIDs"`
+	teamIDs []string,
 	// Filter on enabled services
-	Services []string `json:"services"`
+	services []string,
 	// Filter on types
-	Types []string `json:"types"`
-
-	Limit  *int `json:"limit"`
-	Offset *int `json:"offset"`
-}
-
-func Search(ctx context.Context, query *SearchOptions) (*SearchResult, *APIError) {
+	types []string,
+	limit int,
+	offset int) (*SearchResult, *APIError) {
+	if limit == 0 {
+		limit = 24
+	}
 	res, err := queries.Search(ctx, gensql.SearchParams{
-		Query:   query.Text,
-		Keyword: query.Keywords,
-		Grp:     query.Groups,
-		TeamID:  query.TeamIDs,
-		Service: query.Services,
-		Types:   query.Types,
-		Lim:     int32(ptrToIntDefault(query.Limit, 24)),
-		Offs:    int32(ptrToIntDefault(query.Offset, 0)),
+		Query:   text,
+		Keyword: keywords,
+		Grp:     groups,
+		TeamID:  teamIDs,
+		Service: services,
+		Types:   types,
+		Lim:     int32(limit),
+		Offs:    int32(offset),
 	})
 
 	if err != nil {

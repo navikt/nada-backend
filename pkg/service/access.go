@@ -152,6 +152,7 @@ func accessRequestStatusFromDB(sqlStatus gensql.AccessRequestStatusType) (Access
 }
 
 func GetAccessRequests(ctx context.Context, datasetID string) (*AccessRequestsWrapper, *APIError) {
+	fmt.Println(datasetID)
 	datasetUUID, err := uuid.Parse(datasetID)
 	if err != nil {
 		return nil, NewAPIError(http.StatusBadRequest, err, "invalid datasetID")
@@ -191,7 +192,7 @@ func getAccessRequest(ctx context.Context, accessRequestID string) (*AccessReque
 	return accessRequest, nil
 }
 
-func CreateAccessRequest(ctx context.Context, input NewAccessRequestDTO) *APIError {
+func CreateAccessRequest(ctx context.Context, input NewAccessRequestDTO) (string, *APIError) {
 	user := auth.GetUser(ctx)
 	subj := user.Email
 	if input.Subject != nil {
@@ -214,7 +215,7 @@ func CreateAccessRequest(ctx context.Context, input NewAccessRequestDTO) *APIErr
 	if input.Polly != nil {
 		dbPolly, err := createPollyDocumentation(ctx, *input.Polly)
 		if err != nil {
-			return NewAPIError(http.StatusInternalServerError, err, "createAccessRequest(): failed to create polly documentation")
+			return "", NewAPIError(http.StatusInternalServerError, err, "createAccessRequest(): failed to create polly documentation")
 		}
 
 		pollyID = uuid.NullUUID{UUID: dbPolly.ID, Valid: true}
@@ -222,10 +223,10 @@ func CreateAccessRequest(ctx context.Context, input NewAccessRequestDTO) *APIErr
 
 	accessRequest, err := dbCreateAccessRequestForDataset(ctx, input.DatasetID, pollyID, subjWithType, owner, input.Expires)
 	if err != nil {
-		return DBErrorToAPIError(err, "createAccessRequest(): failed to create access request")
+		return "", DBErrorToAPIError(err, "createAccessRequest(): failed to create access request")
 	}
 	sendNewAccessRequestSlackNotification(ctx, accessRequest)
-	return nil
+	return accessRequest.ID.String(), nil
 }
 
 func DeleteAccessRequest(ctx context.Context, accessRequestID string) *APIError {
@@ -281,6 +282,20 @@ func UpdateAccessRequest(ctx context.Context, input UpdateAccessRequestDTO) *API
 	if err != nil {
 		return DBErrorToAPIError(err, "updateAccessRequest(): failed to update access request")
 	}
+	return nil
+}
+
+func ProcessAccessRequest(ctx context.Context, accessRequestID string, action string, reason *string) *APIError {
+	if action != "approve" && action != "deny" {
+		return NewAPIError(http.StatusBadRequest, fmt.Errorf("invalid action %q", action), "processAccessRequest(): invalid action")
+	}
+
+	if action == "approve" {
+		return ApproveAccessRequest(ctx, accessRequestID)
+	} else if action == "deny" {
+		return DenyAccessRequest(ctx, accessRequestID, reason)
+	}
+
 	return nil
 }
 

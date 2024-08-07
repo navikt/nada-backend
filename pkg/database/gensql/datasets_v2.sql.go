@@ -152,7 +152,7 @@ func (q *Queries) GetAllDatasetsMinimal(ctx context.Context) ([]GetAllDatasetsMi
 
 const getDatasetComplete = `-- name: GetDatasetComplete :many
 SELECT
-  ds_id, ds_name, ds_description, ds_created, ds_last_modified, ds_slug, pii, ds_keywords, bq_id, bq_created, bq_last_modified, bq_expires, bq_description, bq_missing_since, pii_tags, bq_project, bq_dataset, bq_table_name, bq_table_type, pseudo_columns, bq_schema, ds_dp_id, mapping_services, access_id, access_subject, access_granter, access_expires, access_created, access_revoked, access_request_id, mb_database_id, mb_deleted_at
+  ds_id, ds_name, ds_description, ds_created, ds_last_modified, ds_slug, pii, ds_keywords, ds_repo, bq_id, bq_created, bq_last_modified, bq_expires, bq_description, bq_missing_since, pii_tags, bq_project, bq_dataset, bq_table_name, bq_table_type, pseudo_columns, bq_schema, ds_dp_id, mapping_services, access_id, access_subject, access_granter, access_expires, access_created, access_revoked, access_request_id, mb_database_id, mb_deleted_at
 FROM
   dataset_view
 WHERE
@@ -177,6 +177,7 @@ func (q *Queries) GetDatasetComplete(ctx context.Context, id uuid.UUID) ([]Datas
 			&i.DsSlug,
 			&i.Pii,
 			pq.Array(&i.DsKeywords),
+			&i.DsRepo,
 			&i.BqID,
 			&i.BqCreated,
 			&i.BqLastModified,
