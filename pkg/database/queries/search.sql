@@ -34,7 +34,7 @@ WHERE
 	)
 	AND (
 		CASE
-			WHEN array_length(@team_id::text[], 1) > 0 THEN "team_id" = ANY(@team_id)
+			WHEN array_length(@team_id::uuid[], 1) > 0 THEN "team_id" = ANY(@team_id)
 			ELSE TRUE
 		END
 	)

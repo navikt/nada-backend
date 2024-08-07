@@ -49,7 +49,7 @@ type SearchOptions struct {
 	// Filter on group
 	Groups []string `json:"groups"`
 	// Filter on team_id
-	TeamIDs []string `json:"teamIDs"`
+	TeamIDs []uuid.UUID `json:"teamIDs"`
 	// Filter on enabled services
 	Services []string `json:"services"`
 	// Filter on types

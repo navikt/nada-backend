@@ -48,7 +48,7 @@ WHERE
 	)
 	AND (
 		CASE
-			WHEN array_length($5::text[], 1) > 0 THEN "team_id" = ANY($5)
+			WHEN array_length($5::uuid[], 1) > 0 THEN "team_id" = ANY($5)
 			ELSE TRUE
 		END
 	)
@@ -67,7 +67,7 @@ type SearchParams struct {
 	Types   []string
 	Keyword []string
 	Grp     []string
-	TeamID  []string
+	TeamID  []uuid.UUID
 	Service []string
 	Offs    int32
 	Lim     int32

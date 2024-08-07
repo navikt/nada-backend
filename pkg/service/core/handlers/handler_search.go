@@ -6,6 +6,8 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/google/uuid"
+
 	"github.com/navikt/nada-backend/pkg/errs"
 
 	"github.com/navikt/nada-backend/pkg/service"
@@ -55,7 +57,15 @@ func parseSearchOptionsFromRequest(r *http.Request) (*service.SearchOptions, err
 
 	// Parse 'teamIDs' parameter
 	if teamIDs, ok := query["teamIDs"]; ok && len(teamIDs) > 0 {
-		options.TeamIDs = strings.Split(teamIDs[0], ",")
+		ids := strings.Split(teamIDs[0], ",")
+		for _, id := range ids {
+			teamID, err := uuid.Parse(id)
+			if err != nil {
+				return nil, errs.E(errs.InvalidRequest, op, errs.Parameter("teamIDs"), err)
+			}
+
+			options.TeamIDs = append(options.TeamIDs, teamID)
+		}
 	}
 
 	// Parse 'services' parameter
