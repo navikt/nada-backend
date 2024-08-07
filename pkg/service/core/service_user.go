@@ -48,7 +48,7 @@ func (s *userService) GetUserData(ctx context.Context, user *service.User) (*ser
 
 	for _, grp := range user.GoogleGroups {
 		// Skip all-users group
-		if auth.TrimNaisTeamPrefix(grp.Email) == "all-users" {
+		if auth.TrimNaisTeamPrefix(grp.Email) == "all-users@nav.no" {
 			continue
 		}
 

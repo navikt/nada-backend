@@ -5,6 +5,8 @@ import (
 	"strings"
 	"time"
 
+	"github.com/navikt/nada-backend/pkg/errs"
+
 	"github.com/navikt/nada-backend/pkg/leaderelection"
 
 	"github.com/google/uuid"
@@ -114,6 +116,13 @@ func (m *Mapper) MapDataset(ctx context.Context, datasetID uuid.UUID, services [
 
 	err := m.metabaseService.MapDataset(ctx, datasetID, services)
 	if err != nil {
-		m.log.Error().Err(err).Msg("mapping dataset")
+		m.log.Error().
+			Err(err).
+			Fields(map[string]interface{}{
+				"dataset_id": datasetID.String(),
+				"services":   services,
+				"stack":      errs.OpStack(err),
+			}).
+			Msg("mapping dataset")
 	}
 }
