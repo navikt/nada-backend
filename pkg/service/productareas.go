@@ -57,7 +57,7 @@ type TeamWithAssets struct {
 }
 
 type Dashboard struct {
-	ID  string
+	ID  uuid.UUID
 	Url string
 }
 

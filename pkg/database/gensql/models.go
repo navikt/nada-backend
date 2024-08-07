@@ -142,7 +142,7 @@ func (ns NullPiiLevel) Value() (driver.Value, error) {
 }
 
 type Dashboard struct {
-	ID  string
+	ID  uuid.UUID
 	Url string
 }
 
@@ -157,7 +157,7 @@ type Dataproduct struct {
 	Slug             string
 	TeamkatalogenUrl sql.NullString
 	TeamContact      sql.NullString
-	TeamID           sql.NullString
+	TeamID           uuid.NullUUID
 }
 
 type DataproductView struct {
@@ -170,7 +170,7 @@ type DataproductView struct {
 	DpSlug           string
 	TeamkatalogenUrl sql.NullString
 	TeamContact      sql.NullString
-	TeamID           sql.NullString
+	TeamID           uuid.NullUUID
 	TeamName         sql.NullString
 	PaName           sql.NullString
 	PaID             uuid.NullUUID
@@ -195,7 +195,7 @@ type DataproductWithTeamkatalogenView struct {
 	Slug             string
 	TeamkatalogenUrl sql.NullString
 	TeamContact      sql.NullString
-	TeamID           sql.NullString
+	TeamID           uuid.NullUUID
 	TeamName         sql.NullString
 	PaName           sql.NullString
 	PaID             uuid.NullUUID
@@ -319,7 +319,7 @@ type InsightProduct struct {
 	Keywords         []string
 	Group            string
 	TeamkatalogenUrl sql.NullString
-	TeamID           sql.NullString
+	TeamID           uuid.NullUUID
 }
 
 type InsightProductWithTeamkatalogenView struct {
@@ -335,7 +335,7 @@ type InsightProductWithTeamkatalogenView struct {
 	Keywords         []string
 	Group            string
 	TeamkatalogenUrl sql.NullString
-	TeamID           sql.NullString
+	TeamID           uuid.NullUUID
 	TeamName         sql.NullString
 	PaName           sql.NullString
 }
@@ -383,7 +383,7 @@ type Search struct {
 	Description  string
 	Keywords     interface{}
 	Group        string
-	TeamID       sql.NullString
+	TeamID       uuid.NullUUID
 	Created      time.Time
 	LastModified time.Time
 	TsvDocument  interface{}
@@ -408,7 +408,7 @@ type Story struct {
 	Description      string
 	Keywords         []string
 	TeamkatalogenUrl sql.NullString
-	TeamID           sql.NullString
+	TeamID           uuid.NullUUID
 	Group            string
 }
 
@@ -421,7 +421,7 @@ type StoryWithTeamkatalogenView struct {
 	Description      string
 	Keywords         []string
 	TeamkatalogenUrl sql.NullString
-	TeamID           sql.NullString
+	TeamID           uuid.NullUUID
 	Group            string
 	TeamName         sql.NullString
 	PaName           sql.NullString

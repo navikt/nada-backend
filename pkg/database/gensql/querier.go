@@ -6,7 +6,6 @@ package gensql
 
 import (
 	"context"
-	"database/sql"
 
 	"github.com/google/uuid"
 )
@@ -50,7 +49,7 @@ type Querier interface {
 	GetAllTeams(ctx context.Context) ([]TkTeam, error)
 	GetBigqueryDatasource(ctx context.Context, arg GetBigqueryDatasourceParams) (DatasourceBigquery, error)
 	GetBigqueryDatasources(ctx context.Context) ([]DatasourceBigquery, error)
-	GetDashboard(ctx context.Context, id string) (Dashboard, error)
+	GetDashboard(ctx context.Context, id uuid.UUID) (Dashboard, error)
 	GetDataproduct(ctx context.Context, id uuid.UUID) (Dataproduct, error)
 	GetDataproductKeywords(ctx context.Context, dpid uuid.UUID) ([]string, error)
 	GetDataproductWithDatasetsBasic(ctx context.Context, id uuid.UUID) ([]GetDataproductWithDatasetsBasicRow, error)
@@ -58,8 +57,8 @@ type Querier interface {
 	GetDataproductsByGroups(ctx context.Context, groups []string) ([]Dataproduct, error)
 	GetDataproductsByIDs(ctx context.Context, ids []uuid.UUID) ([]Dataproduct, error)
 	GetDataproductsByProductArea(ctx context.Context, teamID []string) ([]DataproductWithTeamkatalogenView, error)
-	GetDataproductsByTeam(ctx context.Context, teamID sql.NullString) ([]Dataproduct, error)
-	GetDataproductsNumberByTeam(ctx context.Context, teamID sql.NullString) (int64, error)
+	GetDataproductsByTeam(ctx context.Context, teamID uuid.NullUUID) ([]Dataproduct, error)
+	GetDataproductsNumberByTeam(ctx context.Context, teamID uuid.NullUUID) (int64, error)
 	GetDataproductsWithDatasets(ctx context.Context, arg GetDataproductsWithDatasetsParams) ([]GetDataproductsWithDatasetsRow, error)
 	GetDataproductsWithDatasetsAndAccessRequests(ctx context.Context, arg GetDataproductsWithDatasetsAndAccessRequestsParams) ([]GetDataproductsWithDatasetsAndAccessRequestsRow, error)
 	GetDataset(ctx context.Context, id uuid.UUID) (Dataset, error)
@@ -79,8 +78,8 @@ type Querier interface {
 	GetInsightProductsByGroups(ctx context.Context, groups []string) ([]InsightProductWithTeamkatalogenView, error)
 	GetInsightProductsByIDs(ctx context.Context, ids []uuid.UUID) ([]InsightProduct, error)
 	GetInsightProductsByProductArea(ctx context.Context, teamID []string) ([]InsightProductWithTeamkatalogenView, error)
-	GetInsightProductsByTeam(ctx context.Context, teamID sql.NullString) ([]InsightProduct, error)
-	GetInsightProductsNumberByTeam(ctx context.Context, teamID sql.NullString) (int64, error)
+	GetInsightProductsByTeam(ctx context.Context, teamID uuid.NullUUID) ([]InsightProduct, error)
+	GetInsightProductsNumberByTeam(ctx context.Context, teamID uuid.NullUUID) (int64, error)
 	GetJoinableViewWithDataset(ctx context.Context, id uuid.UUID) ([]GetJoinableViewWithDatasetRow, error)
 	GetJoinableViewsForOwner(ctx context.Context, owner string) ([]GetJoinableViewsForOwnerRow, error)
 	GetJoinableViewsForReferenceAndUser(ctx context.Context, arg GetJoinableViewsForReferenceAndUserParams) ([]GetJoinableViewsForReferenceAndUserRow, error)
@@ -103,8 +102,8 @@ type Querier interface {
 	GetStoriesByGroups(ctx context.Context, groups []string) ([]Story, error)
 	GetStoriesByIDs(ctx context.Context, ids []uuid.UUID) ([]Story, error)
 	GetStoriesByProductArea(ctx context.Context, teamID []string) ([]StoryWithTeamkatalogenView, error)
-	GetStoriesByTeam(ctx context.Context, teamID sql.NullString) ([]Story, error)
-	GetStoriesNumberByTeam(ctx context.Context, teamID sql.NullString) (int64, error)
+	GetStoriesByTeam(ctx context.Context, teamID uuid.NullUUID) ([]Story, error)
+	GetStoriesNumberByTeam(ctx context.Context, teamID uuid.NullUUID) (int64, error)
 	GetStoriesWithTeamkatalogenByGroups(ctx context.Context, groups []string) ([]StoryWithTeamkatalogenView, error)
 	GetStoriesWithTeamkatalogenByIDs(ctx context.Context, ids []uuid.UUID) ([]StoryWithTeamkatalogenView, error)
 	GetStory(ctx context.Context, id uuid.UUID) (Story, error)

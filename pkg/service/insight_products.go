@@ -55,35 +55,30 @@ type InsightProduct struct {
 }
 
 type UpdateInsightProductDto struct {
-	Name             string   `json:"name"`
-	Description      string   `json:"description"`
-	TypeArg          string   `json:"type"`
-	Link             string   `json:"link"`
-	Keywords         []string `json:"keywords"`
-	TeamkatalogenURL *string  `json:"teamkatalogenURL"`
-	ProductAreaID    *string  `json:"productAreaID"`
-	TeamID           *string  `json:"teamID"`
-	Group            string   `json:"group"`
+	Name             string     `json:"name"`
+	Description      string     `json:"description"`
+	TypeArg          string     `json:"type"`
+	Link             string     `json:"link"`
+	Keywords         []string   `json:"keywords"`
+	TeamkatalogenURL *string    `json:"teamkatalogenURL"`
+	ProductAreaID    *uuid.UUID `json:"productAreaID"`
+	TeamID           *uuid.UUID `json:"teamID"`
+	Group            string     `json:"group"`
 }
 
 // NewInsightProduct contains the metadata and content of insight products.
 type NewInsightProduct struct {
-	// name of the insight product.
-	Name string `json:"name"`
-	// description of the insight product.
-	Description *string `json:"description,omitempty"`
-	// type of the insight product.
-	Type string `json:"type"`
-	// link to the insight product.
-	Link string `json:"link"`
-	// keywords for the story used as tags.
-	Keywords []string `json:"keywords"`
-	// group is the owner group of the insight product
+	Name        string   `json:"name"`
+	Description *string  `json:"description,omitempty"`
+	Type        string   `json:"type"`
+	Link        string   `json:"link"`
+	Keywords    []string `json:"keywords"`
+	// Group is the owner group of the insight product
 	Group string `json:"group"`
-	// teamkatalogenURL of the creator
+	// TeamkatalogenURL of the creator
 	TeamkatalogenURL *string `json:"teamkatalogenURL,omitempty"`
 	// Id of the creator's product area.
-	ProductAreaID *string `json:"productAreaID,omitempty"`
+	ProductAreaID *uuid.UUID `json:"productAreaID,omitempty"`
 	// Id of the creator's team.
-	TeamID *string `json:"teamID,omitempty"`
+	TeamID *uuid.UUID `json:"teamID,omitempty"`
 }

@@ -65,7 +65,7 @@ func (s *dataProductStorage) GetDataproductsByTeamID(ctx context.Context, teamID
 func (s *dataProductStorage) GetDataproductsNumberByTeam(ctx context.Context, teamID uuid.UUID) (int64, error) {
 	const op errs.Op = "dataProductStorage.GetDataproductsNumberByTeam"
 
-	n, err := s.db.Querier.GetDataproductsNumberByTeam(ctx, uuidToNullString(teamID))
+	n, err := s.db.Querier.GetDataproductsNumberByTeam(ctx, uuidToNullUUID(teamID))
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return 0, nil
@@ -466,7 +466,7 @@ func (s *dataProductStorage) UpdateDataproduct(ctx context.Context, id uuid.UUID
 		OwnerTeamkatalogenUrl: ptrToNullString(input.TeamkatalogenURL),
 		TeamContact:           ptrToNullString(input.TeamContact),
 		Slug:                  slugify(input.Slug, input.Name),
-		TeamID:                ptrToNullString(input.TeamID),
+		TeamID:                uuidPtrToNullUUID(input.TeamID),
 	})
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
@@ -489,7 +489,7 @@ func (s *dataProductStorage) CreateDataproduct(ctx context.Context, input servic
 		OwnerTeamkatalogenUrl: ptrToNullString(input.TeamkatalogenURL),
 		Slug:                  slugify(input.Slug, input.Name),
 		TeamContact:           ptrToNullString(input.TeamContact),
-		TeamID:                ptrToNullString(input.TeamID),
+		TeamID:                uuidPtrToNullUUID(input.TeamID),
 	})
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
@@ -727,7 +727,7 @@ __loop_rows:
 					Group:            dprow.DpGroup,
 					TeamkatalogenURL: nullStringToPtr(dprow.TeamkatalogenUrl),
 					TeamContact:      nullStringToPtr(dprow.TeamContact),
-					TeamID:           nullStringToUUIDPtr(dprow.TeamID),
+					TeamID:           nullUUIDToUUIDPtr(dprow.TeamID),
 					ProductAreaID:    nullUUIDToUUIDPtr(dprow.PaID),
 				},
 			},
@@ -805,7 +805,7 @@ func dataproductMinimalFromSQL(dp *gensql.Dataproduct) *service.DataproductMinim
 			Group:            dp.Group,
 			TeamkatalogenURL: &dp.TeamkatalogenUrl.String,
 			TeamContact:      &dp.TeamContact.String,
-			TeamID:           nullStringToUUIDPtr(dp.TeamID),
+			TeamID:           nullUUIDToUUIDPtr(dp.TeamID),
 		},
 	}
 }
@@ -819,7 +819,7 @@ func dataproductFromSQL(dp *gensql.DataproductWithTeamkatalogenView) *service.Da
 			Group:            dp.Group,
 			TeamkatalogenURL: nullStringToPtr(dp.TeamkatalogenUrl),
 			TeamContact:      nullStringToPtr(dp.TeamContact),
-			TeamID:           nullStringToUUIDPtr(dp.TeamID),
+			TeamID:           nullUUIDToUUIDPtr(dp.TeamID),
 			ProductAreaID:    nullUUIDToUUIDPtr(dp.PaID),
 		},
 		Created:         dp.Created,

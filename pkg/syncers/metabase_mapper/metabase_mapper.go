@@ -2,8 +2,9 @@ package metabase_mapper
 
 import (
 	"context"
-	"github.com/navikt/nada-backend/pkg/leaderelection"
 	"time"
+
+	"github.com/navikt/nada-backend/pkg/leaderelection"
 
 	"github.com/google/uuid"
 	"github.com/navikt/nada-backend/pkg/service"

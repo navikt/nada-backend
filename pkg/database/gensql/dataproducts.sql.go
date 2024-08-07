@@ -38,7 +38,7 @@ type CreateDataproductParams struct {
 	OwnerTeamkatalogenUrl sql.NullString
 	Slug                  string
 	TeamContact           sql.NullString
-	TeamID                sql.NullString
+	TeamID                uuid.NullUUID
 }
 
 func (q *Queries) CreateDataproduct(ctx context.Context, arg CreateDataproductParams) (Dataproduct, error) {
@@ -371,7 +371,7 @@ WHERE team_id = $1
 ORDER BY created DESC
 `
 
-func (q *Queries) GetDataproductsByTeam(ctx context.Context, teamID sql.NullString) ([]Dataproduct, error) {
+func (q *Queries) GetDataproductsByTeam(ctx context.Context, teamID uuid.NullUUID) ([]Dataproduct, error) {
 	rows, err := q.db.QueryContext(ctx, getDataproductsByTeam, teamID)
 	if err != nil {
 		return nil, err
@@ -424,7 +424,7 @@ type UpdateDataproductParams struct {
 	Slug                  string
 	OwnerTeamkatalogenUrl sql.NullString
 	TeamContact           sql.NullString
-	TeamID                sql.NullString
+	TeamID                uuid.NullUUID
 	ID                    uuid.UUID
 }
 

@@ -62,8 +62,8 @@ func NewDataProductBiofuelProduction() service.NewDataproduct {
 		Name:          "Biofuel Production",
 		Description:   strToStrPtr("Using seagrass as a feedstock to create renewable biofuels"),
 		Group:         GroupNada,
-		ProductAreaID: strToStrPtr(ProductAreaOceanicID.String()),
-		TeamID:        strToStrPtr(TeamSeagrassID.String()),
+		ProductAreaID: &ProductAreaOceanicID,
+		TeamID:        &TeamSeagrassID,
 	}
 }
 
@@ -72,8 +72,8 @@ func NewDataProductAquacultureFeed() service.NewDataproduct {
 		Name:          "Aquaculture Feed",
 		Description:   strToStrPtr("Producing high-nutrient feed for aquaculture industries from processed seagrass"),
 		Group:         GroupNada,
-		ProductAreaID: strToStrPtr(ProductAreaOceanicID.String()),
-		TeamID:        strToStrPtr(TeamSeagrassID.String()),
+		ProductAreaID: &ProductAreaOceanicID,
+		TeamID:        &TeamSeagrassID,
 	}
 }
 
@@ -82,8 +82,8 @@ func NewDataProductReefMonitoring() service.NewDataproduct {
 		Name:          "Reef Monitoring Equipment",
 		Description:   strToStrPtr("Advanced sensors and monitoring devices for continuous assessment"),
 		Group:         GroupNada,
-		ProductAreaID: strToStrPtr(ProductAreaCostalID.String()),
-		TeamID:        strToStrPtr(TeamReefID.String()),
+		ProductAreaID: &ProductAreaCostalID,
+		TeamID:        &TeamReefID,
 	}
 }
 
@@ -92,8 +92,8 @@ func NewDataProductProtectiveBarriers() service.NewDataproduct {
 		Name:          "Protective Barriers",
 		Description:   strToStrPtr("Physical barriers to protect coral reefs from human activity"),
 		Group:         GroupNada,
-		ProductAreaID: strToStrPtr(ProductAreaCostalID.String()),
-		TeamID:        strToStrPtr(TeamReefID.String()),
+		ProductAreaID: &ProductAreaCostalID,
+		TeamID:        &TeamReefID,
 	}
 }
 

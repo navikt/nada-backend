@@ -49,7 +49,7 @@ type CreateInsightProductParams struct {
 	Keywords         []string
 	OwnerGroup       string
 	TeamkatalogenUrl sql.NullString
-	TeamID           sql.NullString
+	TeamID           uuid.NullUUID
 }
 
 func (q *Queries) CreateInsightProduct(ctx context.Context, arg CreateInsightProductParams) (InsightProduct, error) {
@@ -278,7 +278,7 @@ ORDER BY
     last_modified DESC
 `
 
-func (q *Queries) GetInsightProductsByTeam(ctx context.Context, teamID sql.NullString) ([]InsightProduct, error) {
+func (q *Queries) GetInsightProductsByTeam(ctx context.Context, teamID uuid.NullUUID) ([]InsightProduct, error) {
 	rows, err := q.db.QueryContext(ctx, getInsightProductsByTeam, teamID)
 	if err != nil {
 		return nil, err
@@ -324,7 +324,7 @@ WHERE
     team_id = $1
 `
 
-func (q *Queries) GetInsightProductsNumberByTeam(ctx context.Context, teamID sql.NullString) (int64, error) {
+func (q *Queries) GetInsightProductsNumberByTeam(ctx context.Context, teamID uuid.NullUUID) (int64, error) {
 	row := q.db.QueryRowContext(ctx, getInsightProductsNumberByTeam, teamID)
 	var count int64
 	err := row.Scan(&count)
@@ -355,7 +355,7 @@ type UpdateInsightProductParams struct {
 	Link             string
 	Keywords         []string
 	TeamkatalogenUrl sql.NullString
-	TeamID           sql.NullString
+	TeamID           uuid.NullUUID
 	ID               uuid.UUID
 }
 

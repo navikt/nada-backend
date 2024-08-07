@@ -58,7 +58,7 @@ type GetDataproductWithDatasetsBasicRow struct {
 	Slug                     string
 	TeamkatalogenUrl         sql.NullString
 	TeamContact              sql.NullString
-	TeamID                   sql.NullString
+	TeamID                   uuid.NullUUID
 	TeamName                 sql.NullString
 	PaName                   sql.NullString
 	PaID                     uuid.NullUUID
@@ -136,7 +136,7 @@ FROM dataproducts
 WHERE team_id = $1
 `
 
-func (q *Queries) GetDataproductsNumberByTeam(ctx context.Context, teamID sql.NullString) (int64, error) {
+func (q *Queries) GetDataproductsNumberByTeam(ctx context.Context, teamID uuid.NullUUID) (int64, error) {
 	row := q.db.QueryRowContext(ctx, getDataproductsNumberByTeam, teamID)
 	var count int64
 	err := row.Scan(&count)
@@ -166,7 +166,7 @@ type GetDataproductsWithDatasetsRow struct {
 	DpSlug           string
 	TeamkatalogenUrl sql.NullString
 	TeamContact      sql.NullString
-	TeamID           sql.NullString
+	TeamID           uuid.NullUUID
 	TeamName         sql.NullString
 	PaName           sql.NullString
 	PaID             uuid.NullUUID
@@ -254,7 +254,7 @@ type GetDataproductsWithDatasetsAndAccessRequestsRow struct {
 	DpSlug                  string
 	TeamkatalogenUrl        sql.NullString
 	TeamContact             sql.NullString
-	TeamID                  sql.NullString
+	TeamID                  uuid.NullUUID
 	TeamName                sql.NullString
 	PaName                  sql.NullString
 	PaID                    uuid.NullUUID

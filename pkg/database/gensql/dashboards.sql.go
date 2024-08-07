@@ -7,6 +7,8 @@ package gensql
 
 import (
 	"context"
+
+	"github.com/google/uuid"
 )
 
 const getDashboard = `-- name: GetDashboard :one
@@ -15,7 +17,7 @@ FROM "dashboards"
 WHERE id = $1
 `
 
-func (q *Queries) GetDashboard(ctx context.Context, id string) (Dashboard, error) {
+func (q *Queries) GetDashboard(ctx context.Context, id uuid.UUID) (Dashboard, error) {
 	row := q.db.QueryRowContext(ctx, getDashboard, id)
 	var i Dashboard
 	err := row.Scan(&i.ID, &i.Url)

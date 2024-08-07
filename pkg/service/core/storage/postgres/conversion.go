@@ -27,32 +27,11 @@ func uuidListToStringList(uuids []uuid.UUID) []string {
 	return strs
 }
 
-func uuidPtrToNullString(u *uuid.UUID) sql.NullString {
-	if u == nil {
-		return sql.NullString{}
+func uuidToNullUUID(u uuid.UUID) uuid.NullUUID {
+	return uuid.NullUUID{
+		UUID:  u,
+		Valid: true,
 	}
-
-	return sql.NullString{
-		String: u.String(),
-		Valid:  true,
-	}
-}
-
-func uuidToNullString(u uuid.UUID) sql.NullString {
-	return sql.NullString{
-		String: u.String(),
-		Valid:  true,
-	}
-}
-
-func nullStringToUUIDPtr(ns sql.NullString) *uuid.UUID {
-	if !ns.Valid || ns.String == "" {
-		return nil
-	}
-
-	v := uuid.MustParse(ns.String)
-
-	return &v
 }
 
 func ptrToIntDefault(v *int, def int) int {
@@ -123,6 +102,17 @@ func nullUUIDToUUIDPtr(nu uuid.NullUUID) *uuid.UUID {
 		return nil
 	}
 	return &nu.UUID
+}
+
+func uuidPtrToNullUUID(u *uuid.UUID) uuid.NullUUID {
+	if u == nil {
+		return uuid.NullUUID{}
+	}
+
+	return uuid.NullUUID{
+		UUID:  *u,
+		Valid: true,
+	}
 }
 
 func emailOfSubjectToLower(subjectWithType string) string {

@@ -177,8 +177,8 @@ func TestStory(t *testing.T) {
 			Description:      "This is a better description",
 			Keywords:         story.Keywords,
 			TeamkatalogenURL: story.TeamkatalogenURL,
-			ProductAreaID:    strToStrPtr(pa1.String()),
-			TeamID:           strToStrPtr(nada.String()),
+			ProductAreaID:    &pa1,
+			TeamID:           &nada,
 			Group:            story.Group,
 		}
 

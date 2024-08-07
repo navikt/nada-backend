@@ -64,7 +64,7 @@ func (s *productAreaStorage) UpsertProductAreaAndTeam(ctx context.Context, pas [
 func (s *productAreaStorage) GetDashboard(ctx context.Context, id uuid.UUID) (*service.Dashboard, error) {
 	const op errs.Op = "productAreaStorage.GetDashboard"
 
-	dashboard, err := s.db.Querier.GetDashboard(ctx, id.String())
+	dashboard, err := s.db.Querier.GetDashboard(ctx, id)
 	if err != nil && !errors.Is(err, sql.ErrNoRows) {
 		return nil, errs.E(errs.Database, op, err)
 	}

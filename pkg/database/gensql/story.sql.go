@@ -40,7 +40,7 @@ type CreateStoryParams struct {
 	Description      string
 	Keywords         []string
 	TeamkatalogenUrl sql.NullString
-	TeamID           sql.NullString
+	TeamID           uuid.NullUUID
 	OwnerGroup       string
 }
 
@@ -100,7 +100,7 @@ type CreateStoryWithIDParams struct {
 	Description      string
 	Keywords         []string
 	TeamkatalogenUrl sql.NullString
-	TeamID           sql.NullString
+	TeamID           uuid.NullUUID
 	OwnerGroup       string
 }
 
@@ -313,7 +313,7 @@ WHERE team_id = $1
 ORDER BY last_modified DESC
 `
 
-func (q *Queries) GetStoriesByTeam(ctx context.Context, teamID sql.NullString) ([]Story, error) {
+func (q *Queries) GetStoriesByTeam(ctx context.Context, teamID uuid.NullUUID) ([]Story, error) {
 	rows, err := q.db.QueryContext(ctx, getStoriesByTeam, teamID)
 	if err != nil {
 		return nil, err
@@ -353,7 +353,7 @@ FROM stories
 WHERE team_id = $1
 `
 
-func (q *Queries) GetStoriesNumberByTeam(ctx context.Context, teamID sql.NullString) (int64, error) {
+func (q *Queries) GetStoriesNumberByTeam(ctx context.Context, teamID uuid.NullUUID) (int64, error) {
 	row := q.db.QueryRowContext(ctx, getStoriesNumberByTeam, teamID)
 	var count int64
 	err := row.Scan(&count)
@@ -417,7 +417,7 @@ type UpdateStoryParams struct {
 	Description      string
 	Keywords         []string
 	TeamkatalogenUrl sql.NullString
-	TeamID           sql.NullString
+	TeamID           uuid.NullUUID
 	OwnerGroup       string
 	ID               uuid.UUID
 }

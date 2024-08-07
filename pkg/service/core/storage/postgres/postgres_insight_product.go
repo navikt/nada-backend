@@ -43,7 +43,7 @@ func (s *insightProductStorage) CreateInsightProduct(ctx context.Context, creato
 		Keywords:         input.Keywords,
 		OwnerGroup:       input.Group,
 		TeamkatalogenUrl: ptrToNullString(input.TeamkatalogenURL),
-		TeamID:           ptrToNullString(input.TeamID),
+		TeamID:           uuidPtrToNullUUID(input.TeamID),
 		Type:             input.Type,
 		Link:             input.Link,
 	})
@@ -72,7 +72,7 @@ func (s *insightProductStorage) UpdateInsightProduct(ctx context.Context, id uui
 		Description:      ptrToNullString(&input.Description),
 		Keywords:         input.Keywords,
 		TeamkatalogenUrl: ptrToNullString(input.TeamkatalogenURL),
-		TeamID:           ptrToNullString(input.TeamID),
+		TeamID:           uuidPtrToNullUUID(input.TeamID),
 		Type:             input.TypeArg,
 		Link:             input.Link,
 	})
@@ -150,7 +150,7 @@ func (s *insightProductStorage) GetInsightProductsByTeamID(ctx context.Context, 
 func (s *insightProductStorage) GetInsightProductsNumberByTeam(ctx context.Context, teamID uuid.UUID) (int64, error) {
 	const op errs.Op = "insightProductStorage.GetInsightProductsNumberByTeam"
 
-	n, err := s.db.Querier.GetInsightProductsNumberByTeam(ctx, uuidToNullString(teamID))
+	n, err := s.db.Querier.GetInsightProductsNumberByTeam(ctx, uuidToNullUUID(teamID))
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return 0, nil
@@ -172,7 +172,7 @@ func insightProductFromSQL(insightProductSQL *gensql.InsightProductWithTeamkatal
 		Type:             insightProductSQL.Type,
 		Keywords:         insightProductSQL.Keywords,
 		TeamkatalogenURL: nullStringToPtr(insightProductSQL.TeamkatalogenUrl),
-		TeamID:           nullStringToUUIDPtr(insightProductSQL.TeamID),
+		TeamID:           nullUUIDToUUIDPtr(insightProductSQL.TeamID),
 		Group:            insightProductSQL.Group,
 		Link:             insightProductSQL.Link,
 		TeamName:         nullStringToPtr(insightProductSQL.TeamName),

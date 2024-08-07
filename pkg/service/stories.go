@@ -103,13 +103,13 @@ func (s NewStory) Validate() error {
 }
 
 type UpdateStoryDto struct {
-	Name             string   `json:"name"`
-	Description      string   `json:"description"`
-	Keywords         []string `json:"keywords"`
-	TeamkatalogenURL *string  `json:"teamkatalogenURL"`
-	ProductAreaID    *string  `json:"productAreaID"`
-	TeamID           *string  `json:"teamID"`
-	Group            string   `json:"group"`
+	Name             string     `json:"name"`
+	Description      string     `json:"description"`
+	Keywords         []string   `json:"keywords"`
+	TeamkatalogenURL *string    `json:"teamkatalogenURL"`
+	ProductAreaID    *uuid.UUID `json:"productAreaID"`
+	TeamID           *uuid.UUID `json:"teamID"`
+	Group            string     `json:"group"`
 }
 
 type Object struct {

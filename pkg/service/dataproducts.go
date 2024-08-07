@@ -194,21 +194,21 @@ type NewDataproduct struct {
 	// The contact information of the team who owns the dataproduct, which can be slack channel, slack account, email, and so on.
 	TeamContact *string `json:"teamContact,omitempty"`
 	// Id of the team's product area.
-	ProductAreaID *string `json:"productAreaID,omitempty"`
+	ProductAreaID *uuid.UUID `json:"productAreaID,omitempty"`
 	// Id of the team.
-	TeamID *string `json:"teamID,omitempty"`
+	TeamID *uuid.UUID `json:"teamID,omitempty"`
 	Slug   *string
 }
 
 type UpdateDataproductDto struct {
-	Name             string   `json:"name"`
-	Description      *string  `json:"description"`
-	Slug             *string  `json:"slug"`
-	Pii              PiiLevel `json:"pii"`
-	TeamkatalogenURL *string  `json:"teamkatalogenURL"`
-	TeamContact      *string  `json:"teamContact"`
-	ProductAreaID    *string  `json:"productAreaID"`
-	TeamID           *string  `json:"teamID"`
+	Name             string     `json:"name"`
+	Description      *string    `json:"description"`
+	Slug             *string    `json:"slug"`
+	Pii              PiiLevel   `json:"pii"`
+	TeamkatalogenURL *string    `json:"teamkatalogenURL"`
+	TeamContact      *string    `json:"teamContact"`
+	ProductAreaID    *uuid.UUID `json:"productAreaID"`
+	TeamID           *uuid.UUID `json:"teamID"`
 }
 
 const (

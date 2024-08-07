@@ -29,7 +29,7 @@ func (s StoryWithTeamkatalogenView) To() (*service.Story, error) {
 		Created:          s.Created,
 		LastModified:     &s.LastModified,
 		Keywords:         s.Keywords,
-		TeamID:           nullStringToUUIDPtr(s.TeamID),
+		TeamID:           nullUUIDToUUIDPtr(s.TeamID),
 		TeamkatalogenURL: nullStringToPtr(s.TeamkatalogenUrl),
 		Description:      s.Description,
 		Group:            s.Group,
@@ -74,7 +74,7 @@ func (s *storyStorage) GetStoriesByTeamID(ctx context.Context, teamIDs []uuid.UU
 func (s *storyStorage) GetStoriesNumberByTeam(ctx context.Context, teamID uuid.UUID) (int64, error) {
 	const op errs.Op = "storyStorage.GetStoriesNumberByTeam"
 
-	n, err := s.db.Querier.GetStoriesNumberByTeam(ctx, uuidToNullString(teamID))
+	n, err := s.db.Querier.GetStoriesNumberByTeam(ctx, uuidToNullUUID(teamID))
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return 0, nil
@@ -95,7 +95,7 @@ func (s *storyStorage) UpdateStory(ctx context.Context, id uuid.UUID, input serv
 		Description:      input.Description,
 		Keywords:         input.Keywords,
 		TeamkatalogenUrl: ptrToNullString(input.TeamkatalogenURL),
-		TeamID:           ptrToNullString(input.TeamID),
+		TeamID:           uuidPtrToNullUUID(input.TeamID),
 		OwnerGroup:       input.Group,
 	})
 	if err != nil {
@@ -138,7 +138,7 @@ func (s *storyStorage) CreateStory(ctx context.Context, creator string, newStory
 			Description:      ptrToString(newStory.Description),
 			Keywords:         newStory.Keywords,
 			TeamkatalogenUrl: ptrToNullString(newStory.TeamkatalogenURL),
-			TeamID:           uuidPtrToNullString(newStory.TeamID),
+			TeamID:           uuidPtrToNullUUID(newStory.TeamID),
 			OwnerGroup:       newStory.Group,
 		})
 	} else {
@@ -149,7 +149,7 @@ func (s *storyStorage) CreateStory(ctx context.Context, creator string, newStory
 			Description:      ptrToString(newStory.Description),
 			Keywords:         newStory.Keywords,
 			TeamkatalogenUrl: ptrToNullString(newStory.TeamkatalogenURL),
-			TeamID:           uuidPtrToNullString(newStory.TeamID),
+			TeamID:           uuidPtrToNullUUID(newStory.TeamID),
 			OwnerGroup:       newStory.Group,
 		})
 	}
