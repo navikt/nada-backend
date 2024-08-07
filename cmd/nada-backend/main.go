@@ -57,7 +57,7 @@ const (
 func main() {
 	flag.Parse()
 
-	zlog := zerolog.New(os.Stdout).With().Timestamp().Logger()
+	zlog := zerolog.New(zerolog.NewConsoleWriter()).With().Timestamp().Logger()
 
 	fileParts, err := config.ProcessConfigPath(*configFilePath)
 	if err != nil {
