@@ -9,6 +9,7 @@ linters:
     - godox
     - godot
     - stylecheck
+    - nolintlint
 
     # Linters with dubious value
     - depguard
@@ -17,6 +18,8 @@ linters:
     - goerr113
     - gci
     - varnamelen
+    - wrapcheck
+    - lll
 
     # These linters find structures with uninitialized fields, which is useful under
     # certain conditions, but shouldn't be generally enabled.
