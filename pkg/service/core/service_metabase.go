@@ -755,15 +755,17 @@ func (s *metabaseService) SyncTableVisibility(ctx context.Context, mbMeta *servi
 		}
 	}
 
-	if len(excludedIDs) != 0 {
+	if len(excludedIDs) > 0 {
 		if err := s.metabaseAPI.HideTables(ctx, excludedIDs); err != nil {
 			return errs.E(op, err)
 		}
 	}
 
-	err = s.metabaseAPI.ShowTables(ctx, includedIDs)
-	if err != nil {
-		return errs.E(op, err)
+	if len(includedIDs) > 0 {
+		err = s.metabaseAPI.ShowTables(ctx, includedIDs)
+		if err != nil {
+			return errs.E(op, err)
+		}
 	}
 
 	return nil
