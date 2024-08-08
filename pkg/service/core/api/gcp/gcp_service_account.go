@@ -21,6 +21,27 @@ var _ service.ServiceAccountAPI = &serviceAccountAPI{}
 
 type serviceAccountAPI struct{}
 
+func (a *serviceAccountAPI) ListServiceAccounts(ctx context.Context, gcpProject string) ([]string, error) {
+	const op errs.Op = "gcp.ListServiceAccounts"
+
+	iamService, err := iam.NewService(ctx)
+	if err != nil {
+		return nil, errs.E(errs.IO, op, err)
+	}
+
+	accounts, err := iamService.Projects.ServiceAccounts.List("projects/" + gcpProject).Do()
+	if err != nil {
+		return nil, errs.E(errs.IO, op, err)
+	}
+
+	saEmails := make([]string, len(accounts.Accounts))
+	for _, account := range accounts.Accounts {
+		saEmails = append(saEmails, account.Email)
+	}
+
+	return saEmails, nil
+}
+
 func (a *serviceAccountAPI) DeleteServiceAccount(ctx context.Context, gcpProject, saEmail string) error {
 	const op errs.Op = "gcp.DeleteServiceAccount"
 
