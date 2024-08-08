@@ -740,7 +740,7 @@ func dbExists(dbs []service.MetabaseDatabase, nadaID string) (int, bool) {
 func NewMetabaseHTTP(url, username, password, oauth2ClientID, oauth2ClientSecret, oauth2TenantID, endpoint string, enableAuth bool, log zerolog.Logger) *metabaseAPI {
 	return &metabaseAPI{
 		c: &http.Client{
-			Timeout: time.Second * 120, //nolint:gomnd
+			Timeout: time.Second * 300, //nolint:gomnd
 		},
 		url:                url,
 		password:           password,
