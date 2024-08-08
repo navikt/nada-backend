@@ -368,16 +368,14 @@ func (c *metabaseAPI) MapSemanticType(ctx context.Context, fieldID int, semantic
 func (c *metabaseAPI) GetPermissionGroups(ctx context.Context) ([]service.MetabasePermissionGroup, error) {
 	const op errs.Op = "metabaseAPI.GetPermissionGroups"
 
-	groups := struct {
-		Data []service.MetabasePermissionGroup `json:"data"`
-	}{}
+	groups := []service.MetabasePermissionGroup{}
 
 	err := c.request(ctx, http.MethodGet, "/permissions/group", nil, &groups)
 	if err != nil {
 		return nil, errs.E(op, err)
 	}
 
-	return groups.Data, nil
+	return groups, nil
 }
 
 func (c *metabaseAPI) GetOrCreatePermissionGroup(ctx context.Context, name string) (int, error) {
