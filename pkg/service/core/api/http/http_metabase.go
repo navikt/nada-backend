@@ -490,14 +490,9 @@ func (c *metabaseAPI) RestrictAccessToDatabase(ctx context.Context, groupID int,
 		return errs.E(op, err)
 	}
 
-	groupData, hasGroup := permissionGraph.Groups[strconv.Itoa(groupID)]
+	_, hasGroup := permissionGraph.Groups[strconv.Itoa(groupID)]
 	if !hasGroup {
 		return errs.E(errs.IO, op, fmt.Errorf("group %d not found in permission graph", groupID))
-	}
-
-	_, hasDatabase := groupData[strconv.Itoa(databaseID)]
-	if !hasDatabase {
-		return errs.E(errs.IO, op, fmt.Errorf("database %d not found in permission graph", databaseID))
 	}
 
 	permissionGraph.Groups[strconv.Itoa(groupID)][strconv.Itoa(databaseID)] = permissionGroup{
