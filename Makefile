@@ -73,7 +73,10 @@ migrate:
 generate-sql:
 	cd pkg && $(GOBIN)/sqlc generate
 
-generate: generate-sql
+generate-typescript:
+	$(GOBIN)/tygo generate
+
+generate: generate-sql generate-typescript
 
 linux-build:
 	go build -a -installsuffix cgo -o $(APP) -ldflags "-s $(LDFLAGS)" ./cmd/nada-backend

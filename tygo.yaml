@@ -1,0 +1,11 @@
+packages:
+  - path: "github.com/navikt/nada-backend/pkg/service"
+    output_path: "../nada-frontend/lib/dto.ts"
+    include_files: 
+      - "dto.go"
+    type_mappings:
+      time.Time: "string /* RFC3339 */"
+      null.String: "null | string"
+      null.Bool: "null | boolean"
+      uuid.UUID: "string /* uuid */"
+      uuid.NullUUID: "null | string /* uuid */"
