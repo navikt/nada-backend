@@ -9,16 +9,13 @@ import (
 	"strings"
 	"time"
 
-	"github.com/dchest/uniuri"
+	"github.com/btcsuite/btcutil/base58"
+
 	"github.com/gosimple/slug"
 
 	"github.com/google/uuid"
 	"github.com/navikt/nada-backend/pkg/errs"
 	"github.com/navikt/nada-backend/pkg/service"
-)
-
-const (
-	permissionGroupNameRandomLength = 6
 )
 
 var _ service.MetabaseService = &metabaseService{}
@@ -240,12 +237,16 @@ func (s *metabaseService) restore(ctx context.Context, datasetID uuid.UUID, mbMe
 	return nil
 }
 
+func MarshalUUID(id uuid.UUID) string {
+	return strings.ToLower(base58.Encode(id[:]))
+}
+
 func (s *metabaseService) createRestricted(ctx context.Context, ds *service.Dataset) error {
 	const op errs.Op = "metabaseService.createRestricted"
 
-	uniqueName := slug.Make(fmt.Sprintf("%s-%s", ds.Name, uniuri.NewLen(permissionGroupNameRandomLength)))
+	permissionGroupName := slug.Make(fmt.Sprintf("%s-%s", ds.Name, MarshalUUID(ds.ID)))
 
-	groupID, err := s.metabaseAPI.CreatePermissionGroup(ctx, uniqueName)
+	groupID, err := s.metabaseAPI.CreatePermissionGroup(ctx, permissionGroupName)
 	if err != nil {
 		return errs.E(op, err)
 	}
