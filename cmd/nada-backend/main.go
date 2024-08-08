@@ -57,6 +57,12 @@ const (
 func main() {
 	flag.Parse()
 
+	loc, _ := time.LoadLocation("Europe/Oslo")
+
+	zerolog.TimestampFunc = func() time.Time {
+		return time.Now().UTC().In(loc)
+	}
+
 	zlog := zerolog.New(zerolog.NewConsoleWriter()).With().Timestamp().Logger()
 
 	fileParts, err := config.ProcessConfigPath(*configFilePath)
