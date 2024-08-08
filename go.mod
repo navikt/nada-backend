@@ -12,7 +12,6 @@ require (
 	cloud.google.com/go/storage v1.41.0
 	github.com/btcsuite/btcutil v1.0.2
 	github.com/coreos/go-oidc/v3 v3.10.0
-	github.com/dchest/uniuri v1.2.0
 	github.com/docker/cli v26.1.3+incompatible
 	github.com/fsouza/fake-gcs-server v1.49.2
 	github.com/gilcrest/diygoapi v0.53.0
@@ -70,7 +69,7 @@ require (
 	github.com/davecgh/go-spew v1.1.2-0.20180830191138-d8f796af33cc // indirect
 	github.com/dgryski/go-farm v0.0.0-20200201041132-a6ae2369ad13 // indirect
 	github.com/dlclark/regexp2 v1.7.0 // indirect
-	github.com/docker/docker v26.1.3+incompatible // indirect
+	github.com/docker/docker v26.1.4+incompatible // indirect
 	github.com/docker/go-connections v0.5.0 // indirect
 	github.com/docker/go-units v0.5.0 // indirect
 	github.com/dop251/goja v0.0.0-20221118162653-d4bf6fde1b86 // indirect
