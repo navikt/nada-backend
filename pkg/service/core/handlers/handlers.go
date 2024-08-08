@@ -33,7 +33,7 @@ func NewHandlers(
 ) *Handlers {
 	return &Handlers{
 		StoryHandler:          NewStoryHandler(cfg.EmailSuffix, s.StoryService, s.TokenService, log),
-		TokenHandler:          NewTokenHandler(s.TokenService, log),
+		TokenHandler:          NewTokenHandler(s.TokenService, cfg.API.AuthToken, log),
 		DataProductsHandler:   NewDataProductsHandler(s.DataProductService),
 		MetabaseHandler:       NewMetabaseHandler(s.MetaBaseService, mappingQueue),
 		AccessHandler:         NewAccessHandler(s.AccessService, s.MetaBaseService, cfg.Metabase.GCPProject),

@@ -15,9 +15,9 @@ import (
 )
 
 type TokenHandler struct {
-	tokenService   service.TokenService
-	teamTokenCreds string
-	log            zerolog.Logger
+	tokenService      service.TokenService
+	tokenForAPIAccess string
+	log               zerolog.Logger
 }
 
 func (h *TokenHandler) RotateNadaToken(ctx context.Context, r *http.Request, _ any) (*transport.Empty, error) {
@@ -44,7 +44,7 @@ func (h *TokenHandler) GetAllTeamTokens(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 
-	if authHeaderParts[1] != h.teamTokenCreds {
+	if authHeaderParts[1] != h.tokenForAPIAccess {
 		w.WriteHeader(http.StatusUnauthorized)
 		return
 	}
@@ -67,9 +67,10 @@ func (h *TokenHandler) GetAllTeamTokens(w http.ResponseWriter, r *http.Request) 
 	w.Write(payloadBytes)
 }
 
-func NewTokenHandler(tokenService service.TokenService, log zerolog.Logger) *TokenHandler {
+func NewTokenHandler(tokenService service.TokenService, tokenForAPIAccess string, log zerolog.Logger) *TokenHandler {
 	return &TokenHandler{
-		tokenService: tokenService,
-		log:          log,
+		tokenService:      tokenService,
+		tokenForAPIAccess: tokenForAPIAccess,
+		log:               log,
 	}
 }
