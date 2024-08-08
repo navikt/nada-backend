@@ -2,6 +2,7 @@ package requestlogger_test
 
 import (
 	"bytes"
+	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -26,12 +27,9 @@ type LogFormat struct {
 	BytesIn   int       `json:"bytes_in"`
 	BytesOut  int       `json:"bytes_out"`
 	Latency   float64   `json:"latency_ms"`
-	Method    string    `json:"method"`
-	URL       string    `json:"url"`
-	Status    int       `json:"status"`
+	Request   string    `json:"request"`
 	Message   string    `json:"message"`
 	Browser   string    `json:"browser"`
-	OS        string    `json:"os"`
 }
 
 func TestLoggerMiddleware(t *testing.T) {
@@ -54,12 +52,9 @@ func TestLoggerMiddleware(t *testing.T) {
 				Level:    "info",
 				BytesIn:  0,
 				BytesOut: 2,
-				Method:   http.MethodGet,
-				URL:      "/foo",
-				Status:   http.StatusOK,
+				Request:  "GET /foo (response_code: 200)",
 				Message:  "incoming_request",
-				Browser:  "Chrome",
-				OS:       "Windows",
+				Browser:  "Chrome (Windows)",
 			},
 		},
 		{
@@ -99,6 +94,8 @@ func TestLoggerMiddleware(t *testing.T) {
 			got := &LogFormat{}
 			err := json.Unmarshal(buf.Bytes(), got)
 			require.NoError(t, err)
+
+			fmt.Println(buf.String())
 
 			diff := cmp.Diff(tc.expect, got, cmpopts.IgnoreFields(LogFormat{}, "Time", "Latency", "RequestID"))
 			assert.Empty(t, diff)

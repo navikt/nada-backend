@@ -1,6 +1,7 @@
 package requestlogger
 
 import (
+	"fmt"
 	"net/http"
 	"strconv"
 	"time"
@@ -41,11 +42,8 @@ func Middleware(log zerolog.Logger, pathFilters ...string) func(next http.Handle
 
 				log.Info().Timestamp().Fields(map[string]interface{}{
 					"request_id": requestID,
-					"method":     r.Method,
-					"url":        r.URL.Path,
-					"status":     ww.Status(),
-					"browser":    ua.Name,
-					"os":         ua.OS,
+					"request":    fmt.Sprintf("%v %v (response_code: %v)", r.Method, r.URL.Path, ww.Status()),
+					"browser":    fmt.Sprintf("%v (%v)", ua.Name, ua.OS),
 					"bytes_in":   bytesIn,
 					"bytes_out":  ww.BytesWritten(),
 					"latency_ms": float64(t2.Sub(t1).Nanoseconds()) / 1000000.0, //nolint: gomnd
