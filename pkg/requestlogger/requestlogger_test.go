@@ -32,7 +32,6 @@ type LogFormat struct {
 	Message   string    `json:"message"`
 	Browser   string    `json:"browser"`
 	OS        string    `json:"os"`
-	Device    string    `json:"device"`
 }
 
 func TestLoggerMiddleware(t *testing.T) {
@@ -61,7 +60,6 @@ func TestLoggerMiddleware(t *testing.T) {
 				Message:  "incoming_request",
 				Browser:  "Chrome",
 				OS:       "Windows",
-				Device:   "",
 			},
 		},
 		{

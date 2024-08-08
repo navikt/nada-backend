@@ -46,7 +46,6 @@ func Middleware(log zerolog.Logger, pathFilters ...string) func(next http.Handle
 					"status":     ww.Status(),
 					"browser":    ua.Name,
 					"os":         ua.OS,
-					"device":     ua.Device,
 					"bytes_in":   bytesIn,
 					"bytes_out":  ww.BytesWritten(),
 					"latency_ms": float64(t2.Sub(t1).Nanoseconds()) / 1000000.0, //nolint: gomnd
