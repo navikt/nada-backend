@@ -23,6 +23,9 @@ import (
 
 // FIXME: consider moving some of these parts into its own package, so that we can
 // focus on the main logic of the service
+const (
+	metabaseAllUsersGroupID = 1
+)
 
 type metabaseAPI struct {
 	c                  *http.Client
@@ -476,7 +479,7 @@ type permissionGroup struct {
 	DataModel     *dataModelPermission `json:"data-model,omitempty"`
 }
 
-func (c *metabaseAPI) RestrictAccessToDatabase(ctx context.Context, groupIDs []int, databaseID int) error {
+func (c *metabaseAPI) RestrictAccessToDatabase(ctx context.Context, groupID int, databaseID int) error {
 	const op errs.Op = "metabaseAPI.RestrictAccessToDatabase"
 
 	var permissionGraph struct {
@@ -484,40 +487,27 @@ func (c *metabaseAPI) RestrictAccessToDatabase(ctx context.Context, groupIDs []i
 		Revision int                                   `json:"revision"`
 	}
 
-	err := c.request(ctx, http.MethodGet, "/permissions/graph", nil, &permissionGraph)
+	err := c.request(ctx, http.MethodGet, fmt.Sprintf("/permissions/graph/group/%d", groupID), nil, &permissionGraph)
 	if err != nil {
 		return errs.E(op, err)
 	}
 
-	dbSID := strconv.Itoa(databaseID)
-
-	var grpSIDs []string
-	for _, g := range groupIDs {
-		grpSID := strconv.Itoa(g)
-		if _, ok := permissionGraph.Groups[grpSID]; !ok {
-			permissionGraph.Groups[grpSID] = map[string]permissionGroup{}
-		}
-		permissionGraph.Groups[grpSID][dbSID] = permissionGroup{
-			ViewData:      "unrestricted",
-			CreateQueries: "query-builder-and-native",
-			DataModel:     &dataModelPermission{Schemas: "all"},
-			Download:      &downloadPermission{Schemas: "full"},
-			Details:       "no",
-		}
-
-		grpSIDs = append(grpSIDs, grpSID)
+	groupData, hasGroup := permissionGraph.Groups[strconv.Itoa(groupID)]
+	if !hasGroup {
+		return errs.E(errs.IO, op, fmt.Errorf("group %d not found in permission graph", groupID))
 	}
 
-	for gid, permission := range permissionGraph.Groups {
-		if gid == "2" {
-			// admin group
-			continue
-		}
-		if !containsGroup(grpSIDs, gid) {
-			permission[dbSID] = permissionGroup{
-				ViewData: "blocked",
-			}
-		}
+	_, hasDatabase := groupData[strconv.Itoa(databaseID)]
+	if !hasDatabase {
+		return errs.E(errs.IO, op, fmt.Errorf("database %d not found in permission graph", databaseID))
+	}
+
+	permissionGraph.Groups[strconv.Itoa(groupID)][strconv.Itoa(databaseID)] = permissionGroup{
+		ViewData:      "unrestricted",
+		CreateQueries: "query-builder-and-native",
+		DataModel:     &dataModelPermission{Schemas: "all"},
+		Download:      &downloadPermission{Schemas: "full"},
+		Details:       "no",
 	}
 
 	if err := c.request(ctx, http.MethodPut, "/permissions/graph", permissionGraph, nil); err != nil {
@@ -530,32 +520,8 @@ func (c *metabaseAPI) RestrictAccessToDatabase(ctx context.Context, groupIDs []i
 func (c *metabaseAPI) OpenAccessToDatabase(ctx context.Context, databaseID int) error {
 	const op errs.Op = "metabaseAPI.OpenAccessToDatabase"
 
-	var permissionGraph struct {
-		Groups   map[string]map[string]permissionGroup `json:"groups"`
-		Revision int                                   `json:"revision"`
-	}
-
-	err := c.request(ctx, http.MethodGet, "/permissions/graph", nil, &permissionGraph)
+	err := c.RestrictAccessToDatabase(ctx, metabaseAllUsersGroupID, databaseID)
 	if err != nil {
-		return errs.E(op, err)
-	}
-
-	dbSID := strconv.Itoa(databaseID)
-	for gid, permission := range permissionGraph.Groups {
-		if gid == "1" {
-			// All users group
-			permission[dbSID] = permissionGroup{
-				ViewData:      "unrestricted",
-				CreateQueries: "query-builder-and-native",
-				DataModel:     &dataModelPermission{Schemas: "all"},
-				Download:      &downloadPermission{Schemas: "full"},
-				Details:       "no",
-			}
-			break
-		}
-	}
-
-	if err := c.request(ctx, http.MethodPut, "/permissions/graph", permissionGraph, nil); err != nil {
 		return errs.E(op, err)
 	}
 
@@ -626,7 +592,7 @@ func (c *metabaseAPI) CreateCollection(ctx context.Context, name string) (int, e
 	return response.ID, nil
 }
 
-func (c *metabaseAPI) SetCollectionAccess(ctx context.Context, groupIDs []int, collectionID int) error {
+func (c *metabaseAPI) SetCollectionAccess(ctx context.Context, groupID int, collectionID int) error {
 	const op errs.Op = "metabaseAPI.SetCollectionAccess"
 
 	var cPermissions struct {
@@ -639,21 +605,17 @@ func (c *metabaseAPI) SetCollectionAccess(ctx context.Context, groupIDs []int, c
 		return errs.E(op, err)
 	}
 
-	sgids := make([]string, len(groupIDs))
-	for idx, groupID := range groupIDs {
-		sgids[idx] = strconv.Itoa(groupID)
+	group, hasGroup := cPermissions.Groups[strconv.Itoa(groupID)]
+	if !hasGroup {
+		return errs.E(errs.IO, op, fmt.Errorf("group %d not found in permission graph for collections", groupID))
 	}
 
-	scid := strconv.Itoa(collectionID)
-	for gid, permissions := range cPermissions.Groups {
-		if gid == "2" {
-			continue
-		} else if containsGroup(sgids, gid) {
-			permissions[scid] = "write"
-		} else {
-			permissions[scid] = "none"
-		}
+	_, hasCollection := group[strconv.Itoa(collectionID)]
+	if !hasCollection {
+		return errs.E(errs.IO, op, fmt.Errorf("collection %d not found in permission graph for group %d", collectionID, groupID))
 	}
+
+	cPermissions.Groups[strconv.Itoa(groupID)][strconv.Itoa(collectionID)] = "write"
 
 	err = c.request(ctx, http.MethodPut, "/collection/graph", cPermissions, nil)
 	if err != nil {
@@ -663,7 +625,7 @@ func (c *metabaseAPI) SetCollectionAccess(ctx context.Context, groupIDs []int, c
 	return nil
 }
 
-func (c *metabaseAPI) CreateCollectionWithAccess(ctx context.Context, groupIDs []int, name string) (int, error) {
+func (c *metabaseAPI) CreateCollectionWithAccess(ctx context.Context, groupID int, name string) (int, error) {
 	const op errs.Op = "metabaseAPI.CreateCollectionWithAccess"
 
 	cid, err := c.CreateCollection(ctx, name)
@@ -671,7 +633,7 @@ func (c *metabaseAPI) CreateCollectionWithAccess(ctx context.Context, groupIDs [
 		return 0, errs.E(op, err)
 	}
 
-	if err := c.SetCollectionAccess(ctx, groupIDs, cid); err != nil {
+	if err := c.SetCollectionAccess(ctx, groupID, cid); err != nil {
 		return cid, errs.E(op, err)
 	}
 
@@ -772,16 +734,6 @@ func getUserID(users []service.MetabaseUser, email string) (int, error) {
 	return -1, errs.E(errs.NotExist, op, fmt.Errorf("user %v does not exist in metabase", email))
 }
 
-func containsGroup(groups []string, group string) bool {
-	for _, g := range groups {
-		if g == group {
-			return true
-		}
-	}
-
-	return false
-}
-
 func dbExists(dbs []service.MetabaseDatabase, nadaID string) (int, bool) {
 	for _, db := range dbs {
 		if db.NadaID == nadaID {
@@ -794,8 +746,9 @@ func dbExists(dbs []service.MetabaseDatabase, nadaID string) (int, bool) {
 
 func NewMetabaseHTTP(url, username, password, oauth2ClientID, oauth2ClientSecret, oauth2TenantID, endpoint string, enableAuth bool, log zerolog.Logger) *metabaseAPI {
 	return &metabaseAPI{
-		// FIXME: Should set a timeout here
-		c:                  &http.Client{},
+		c: &http.Client{
+			Timeout: time.Second * 120, //nolint:gomnd
+		},
 		url:                url,
 		password:           password,
 		username:           username,

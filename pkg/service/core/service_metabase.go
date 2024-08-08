@@ -251,7 +251,7 @@ func (s *metabaseService) createRestricted(ctx context.Context, ds *service.Data
 		return errs.E(op, err)
 	}
 
-	colID, err := s.metabaseAPI.CreateCollectionWithAccess(ctx, []int{groupID}, ds.Name)
+	colID, err := s.metabaseAPI.CreateCollectionWithAccess(ctx, groupID, ds.Name)
 	if err != nil {
 		return errs.E(op, err)
 	}
@@ -420,7 +420,7 @@ func (s *metabaseService) create(ctx context.Context, ds dsWrapper) error {
 	}
 
 	if ds.MetabaseGroupID > 0 {
-		err := s.metabaseAPI.RestrictAccessToDatabase(ctx, []int{ds.MetabaseGroupID}, dbID)
+		err := s.metabaseAPI.RestrictAccessToDatabase(ctx, ds.MetabaseGroupID, dbID)
 		if err != nil {
 			return errs.E(op, err)
 		}

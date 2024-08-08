@@ -27,7 +27,7 @@ type MetabaseAPI interface {
 	ArchiveCollection(ctx context.Context, colID int) error
 	AutoMapSemanticTypes(ctx context.Context, dbID int) error
 	CreateCollection(ctx context.Context, name string) (int, error)
-	CreateCollectionWithAccess(ctx context.Context, groupIDs []int, name string) (int, error)
+	CreateCollectionWithAccess(ctx context.Context, groupID int, name string) (int, error)
 	CreateDatabase(ctx context.Context, team, name, saJSON, saEmail string, ds *BigQuery) (int, error)
 	GetPermissionGroups(ctx context.Context) ([]MetabasePermissionGroup, error)
 	GetOrCreatePermissionGroup(ctx context.Context, name string) (int, error)
@@ -41,8 +41,8 @@ type MetabaseAPI interface {
 	OpenAccessToDatabase(ctx context.Context, databaseID int) error
 	PerformRequest(ctx context.Context, method, path string, buffer io.ReadWriter) (*http.Response, error)
 	RemovePermissionGroupMember(ctx context.Context, memberID int) error
-	RestrictAccessToDatabase(ctx context.Context, groupIDs []int, databaseID int) error
-	SetCollectionAccess(ctx context.Context, groupIDs []int, collectionID int) error
+	RestrictAccessToDatabase(ctx context.Context, groupID int, databaseID int) error
+	SetCollectionAccess(ctx context.Context, groupID int, collectionID int) error
 	ShowTables(ctx context.Context, ids []int) error
 	Tables(ctx context.Context, dbID int) ([]MetabaseTable, error)
 }
