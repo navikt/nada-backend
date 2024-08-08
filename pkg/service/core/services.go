@@ -111,6 +111,7 @@ func NewServices(
 			stores.StoryStorage,
 			clients.TeamKatalogenAPI,
 			clients.StoryAPI,
+			cfg.StoryCreateIgnoreMissingTeam,
 		),
 		TeamKatalogenService: NewTeamKatalogenService(
 			clients.TeamKatalogenAPI,

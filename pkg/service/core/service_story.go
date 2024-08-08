@@ -12,9 +12,10 @@ import (
 var _ service.StoryService = &storyService{}
 
 type storyService struct {
-	storyStorage     service.StoryStorage
-	teamKatalogenAPI service.TeamKatalogenAPI
-	storyAPI         service.StoryAPI
+	storyStorage            service.StoryStorage
+	teamKatalogenAPI        service.TeamKatalogenAPI
+	storyAPI                service.StoryAPI
+	createIgnoreMissingTeam bool
 }
 
 func (s *storyService) GetIndexHtmlPath(ctx context.Context, prefix string) (string, error) {
@@ -80,11 +81,15 @@ func (s *storyService) CreateStoryWithTeamAndProductArea(ctx context.Context, cr
 		teamCatalogURL := s.teamKatalogenAPI.GetTeamCatalogURL(*newStory.TeamID)
 		team, err := s.teamKatalogenAPI.GetTeam(ctx, *newStory.TeamID)
 		if err != nil {
-			return nil, errs.E(op, err)
+			if !s.createIgnoreMissingTeam {
+				return nil, errs.E(op, err)
+			}
 		}
 
 		newStory.TeamkatalogenURL = &teamCatalogURL
-		newStory.ProductAreaID = &team.ProductAreaID
+		if team != nil {
+			newStory.ProductAreaID = &team.ProductAreaID
+		}
 	}
 
 	story, err := s.CreateStory(ctx, creatorEmail, newStory, nil)
@@ -186,10 +191,12 @@ func NewStoryService(
 	storyStorage service.StoryStorage,
 	teamKatalogenAPI service.TeamKatalogenAPI,
 	storyAPI service.StoryAPI,
+	createIgnoreMissingTeam bool,
 ) *storyService {
 	return &storyService{
-		storyStorage:     storyStorage,
-		teamKatalogenAPI: teamKatalogenAPI,
-		storyAPI:         storyAPI,
+		storyStorage:            storyStorage,
+		teamKatalogenAPI:        teamKatalogenAPI,
+		storyAPI:                storyAPI,
+		createIgnoreMissingTeam: createIgnoreMissingTeam,
 	}
 }

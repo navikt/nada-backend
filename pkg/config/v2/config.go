@@ -56,6 +56,7 @@ type Config struct {
 	LogLevel                       string `yaml:"log_level"`
 	CacheDurationSeconds           int    `yaml:"cache_duration_seconds"`
 	TeamProjectsUpdateDelaySeconds int    `yaml:"team_projects_update_delay_seconds"`
+	StoryCreateIgnoreMissingTeam   bool   `yaml:"story_create_ignore_missing_team"`
 	Debug                          bool   `yaml:"debug"`
 }
 

@@ -92,4 +92,5 @@ amplitude_api_key: fake_key
 log_level: info
 cache_duration_seconds: 60
 team_projects_update_delay_seconds: 120
+story_create_ignore_missing_team: false
 debug: false

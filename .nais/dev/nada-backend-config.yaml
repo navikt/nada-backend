@@ -93,4 +93,5 @@ data:
     cache_duration_seconds: 7200
     team_projects_update_delay_seconds: 120
     debug: false
+    story_create_ignore_missing_team: true
     log_level: info
