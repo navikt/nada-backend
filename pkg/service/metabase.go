@@ -29,6 +29,8 @@ type MetabaseAPI interface {
 	CreateCollection(ctx context.Context, name string) (int, error)
 	CreateCollectionWithAccess(ctx context.Context, groupIDs []int, name string) (int, error)
 	CreateDatabase(ctx context.Context, team, name, saJSON, saEmail string, ds *BigQuery) (int, error)
+	GetPermissionGroups(ctx context.Context) ([]MetabasePermissionGroup, error)
+	GetOrCreatePermissionGroup(ctx context.Context, name string) (int, error)
 	CreatePermissionGroup(ctx context.Context, name string) (int, error)
 	Databases(ctx context.Context) ([]MetabaseDatabase, error)
 	DeleteDatabase(ctx context.Context, id int) error

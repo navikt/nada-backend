@@ -362,6 +362,43 @@ func (c *metabaseAPI) MapSemanticType(ctx context.Context, fieldID int, semantic
 	return nil
 }
 
+func (c *metabaseAPI) GetPermissionGroups(ctx context.Context) ([]service.MetabasePermissionGroup, error) {
+	const op errs.Op = "metabaseAPI.GetPermissionGroups"
+
+	groups := struct {
+		Data []service.MetabasePermissionGroup `json:"data"`
+	}{}
+
+	err := c.request(ctx, http.MethodGet, "/permissions/group", nil, &groups)
+	if err != nil {
+		return nil, errs.E(op, err)
+	}
+
+	return groups.Data, nil
+}
+
+func (c *metabaseAPI) GetOrCreatePermissionGroup(ctx context.Context, name string) (int, error) {
+	const op errs.Op = "metabaseAPI.GetOrCreatePermissionGroup"
+
+	groups, err := c.GetPermissionGroups(ctx)
+	if err != nil {
+		return 0, errs.E(op, err)
+	}
+
+	for _, g := range groups {
+		if g.Name == name {
+			return g.ID, nil
+		}
+	}
+
+	gid, err := c.CreatePermissionGroup(ctx, name)
+	if err != nil {
+		return 0, errs.E(op, err)
+	}
+
+	return gid, nil
+}
+
 func (c *metabaseAPI) CreatePermissionGroup(ctx context.Context, name string) (int, error) {
 	const op errs.Op = "metabaseAPI.CreatePermissionGroup"
 

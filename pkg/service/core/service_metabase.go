@@ -246,7 +246,7 @@ func (s *metabaseService) createRestricted(ctx context.Context, ds *service.Data
 
 	permissionGroupName := slug.Make(fmt.Sprintf("%s-%s", ds.Name, MarshalUUID(ds.ID)))
 
-	groupID, err := s.metabaseAPI.CreatePermissionGroup(ctx, permissionGroupName)
+	groupID, err := s.metabaseAPI.GetOrCreatePermissionGroup(ctx, permissionGroupName)
 	if err != nil {
 		return errs.E(op, err)
 	}
