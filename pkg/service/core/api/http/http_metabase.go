@@ -9,7 +9,6 @@ import (
 	"io"
 	"net/http"
 	"net/url"
-	"os"
 	"strconv"
 	"strings"
 	"time"
@@ -66,11 +65,15 @@ func (c *metabaseAPI) request(ctx context.Context, method, path string, body int
 	}
 
 	if res.StatusCode > 299 {
-		_, err := io.Copy(os.Stdout, res.Body)
+		errorMesgBytes, err := io.ReadAll(res.Body)
 		if err != nil {
 			return errs.E(errs.IO, op, err)
 		}
-
+		c.log.Error().Fields(map[string]any{
+			"error_message": string(errorMesgBytes),
+			"method":        method,
+			"path":          path,
+		}).Msg("metabase_request")
 		return errs.E(errs.IO, op, fmt.Errorf("%v %v: non 2xx status code, got: %v", method, path, res.StatusCode))
 	}
 
