@@ -51,7 +51,7 @@ spec:
     - configmap: nada-backend-config
       mountPath: /home/nada/.config
     - secret: nada-backend-google-credentials
-      mountPath: /var/run/secrets/google-credentials
+      mountPath: /var/run/secrets/google-groups
     - secret: nada-backend-metabase-sa
       mountPath: /var/run/secrets/metabase
   gcp:
