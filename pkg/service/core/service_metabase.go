@@ -258,6 +258,11 @@ func (s *metabaseService) createRestricted(ctx context.Context, ds *service.Data
 
 	key, email, err := s.serviceAccountAPI.CreateServiceAccount(ctx, s.gcpProject, ds)
 	if err != nil {
+		archiveErr := s.metabaseAPI.ArchiveCollection(ctx, colID)
+		if archiveErr != nil {
+			return errs.E(op, fmt.Errorf("creating service account: %w, cleaning up collection: %w", err, archiveErr))
+		}
+
 		return errs.E(op, err)
 	}
 
@@ -269,6 +274,11 @@ func (s *metabaseService) createRestricted(ctx context.Context, ds *service.Data
 		CollectionID:    colID,
 	})
 	if err != nil {
+		archiveErr := s.metabaseAPI.ArchiveCollection(ctx, colID)
+		if archiveErr != nil {
+			return errs.E(op, fmt.Errorf("creating metabase database: %w, cleaning up collection: %w", err, archiveErr))
+		}
+
 		return errs.E(op, err)
 	}
 

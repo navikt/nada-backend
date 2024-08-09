@@ -133,16 +133,9 @@ func (a *serviceAccountAPI) CreateServiceAccount(ctx context.Context, gcpProject
 		return nil, "", errs.E(errs.IO, op, err)
 	}
 
-	iamService, err := iam.NewService(ctx)
+	key, err := a.getOrCreateServiceAccountKey(ctx, account.UniqueId)
 	if err != nil {
-		return nil, "", errs.E(errs.IO, op, err)
-	}
-
-	keyRequest := &iam.CreateServiceAccountKeyRequest{}
-
-	key, err := iamService.Projects.ServiceAccounts.Keys.Create("projects/-/serviceAccounts/"+account.UniqueId, keyRequest).Do()
-	if err != nil {
-		return nil, "", errs.E(errs.IO, op, err)
+		return nil, "", errs.E(op, err)
 	}
 
 	saJson, err := base64.StdEncoding.DecodeString(key.PrivateKeyData)
@@ -151,6 +144,33 @@ func (a *serviceAccountAPI) CreateServiceAccount(ctx context.Context, gcpProject
 	}
 
 	return saJson, account.Email, nil
+}
+
+func (a *serviceAccountAPI) getOrCreateServiceAccountKey(ctx context.Context, accountID string) (*iam.ServiceAccountKey, error) {
+	const op errs.Op = "gcp.getOrCreateServiceAccountKey"
+
+	iamService, err := iam.NewService(ctx)
+	if err != nil {
+		return nil, errs.E(errs.IO, op, err)
+	}
+
+	keys, err := iamService.Projects.ServiceAccounts.Keys.List("projects/-/serviceAccounts/" + accountID).Do()
+	if err != nil {
+		return nil, errs.E(errs.IO, op, err)
+	}
+
+	if len(keys.Keys) > 0 {
+		return keys.Keys[0], nil
+	}
+
+	keyRequest := &iam.CreateServiceAccountKeyRequest{}
+
+	key, err := iamService.Projects.ServiceAccounts.Keys.Create("projects/-/serviceAccounts/"+accountID, keyRequest).Do()
+	if err != nil {
+		return nil, errs.E(errs.IO, op, err)
+	}
+
+	return key, nil
 }
 
 func MarshalUUID(id uuid.UUID) string {
