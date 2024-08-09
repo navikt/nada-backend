@@ -133,7 +133,7 @@ func (a *serviceAccountAPI) CreateServiceAccount(ctx context.Context, gcpProject
 		return nil, "", errs.E(errs.IO, op, err)
 	}
 
-	key, err := a.getOrCreateServiceAccountKey(ctx, account.UniqueId)
+	key, err := a.recreateServiceAccountKey(ctx, account.UniqueId)
 	if err != nil {
 		return nil, "", errs.E(op, err)
 	}
@@ -146,8 +146,8 @@ func (a *serviceAccountAPI) CreateServiceAccount(ctx context.Context, gcpProject
 	return saJson, account.Email, nil
 }
 
-func (a *serviceAccountAPI) getOrCreateServiceAccountKey(ctx context.Context, accountID string) (*iam.ServiceAccountKey, error) {
-	const op errs.Op = "gcp.getOrCreateServiceAccountKey"
+func (a *serviceAccountAPI) recreateServiceAccountKey(ctx context.Context, accountID string) (*iam.ServiceAccountKey, error) {
+	const op errs.Op = "gcp.recreateServiceAccountKey"
 
 	iamService, err := iam.NewService(ctx)
 	if err != nil {
@@ -159,8 +159,11 @@ func (a *serviceAccountAPI) getOrCreateServiceAccountKey(ctx context.Context, ac
 		return nil, errs.E(errs.IO, op, err)
 	}
 
-	if len(keys.Keys) > 0 {
-		return keys.Keys[0], nil
+	for _, key := range keys.Keys {
+		_, err := iamService.Projects.ServiceAccounts.Keys.Delete("projects/-/serviceAccounts/" + accountID + "/keys/" + key.Name).Do()
+		if err != nil {
+			return nil, errs.E(errs.IO, op, err)
+		}
 	}
 
 	keyRequest := &iam.CreateServiceAccountKeyRequest{}
