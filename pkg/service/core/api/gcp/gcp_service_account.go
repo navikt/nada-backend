@@ -160,7 +160,7 @@ func (a *serviceAccountAPI) recreateServiceAccountKey(ctx context.Context, accou
 	}
 
 	for _, key := range keys.Keys {
-		_, err := iamService.Projects.ServiceAccounts.Keys.Delete("projects/-/serviceAccounts/" + accountID + "/keys/" + key.Name).Do()
+		_, err := iamService.Projects.ServiceAccounts.Keys.Delete(key.Name).Do()
 		if err != nil {
 			return nil, errs.E(errs.IO, op, err)
 		}
