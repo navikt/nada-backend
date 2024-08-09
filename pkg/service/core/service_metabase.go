@@ -251,7 +251,7 @@ func (s *metabaseService) createRestricted(ctx context.Context, ds *service.Data
 		return errs.E(op, err)
 	}
 
-	colID, err := s.metabaseAPI.CreateCollectionWithAccess(ctx, groupID, ds.Name)
+	colID, err := s.metabaseAPI.CreateCollectionWithAccess(ctx, groupID, fmt.Sprintf("%s %s", ds.Name, service.MetabaseRestrictedCollectionTag))
 	if err != nil {
 		return errs.E(op, err)
 	}

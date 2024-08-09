@@ -9,6 +9,10 @@ import (
 	"github.com/google/uuid"
 )
 
+const (
+	MetabaseRestrictedCollectionTag = "(tilgangsstyrt)"
+)
+
 type MetabaseStorage interface {
 	CreateMetadata(ctx context.Context, metadata *MetabaseMetadata) error
 	GetMetadata(ctx context.Context, datasetID uuid.UUID, includeDeleted bool) (*MetabaseMetadata, error)
@@ -45,6 +49,8 @@ type MetabaseAPI interface {
 	SetCollectionAccess(ctx context.Context, groupID int, collectionID int) error
 	ShowTables(ctx context.Context, ids []int) error
 	Tables(ctx context.Context, dbID int) ([]MetabaseTable, error)
+	GetCollections(ctx context.Context) ([]*MetabaseCollection, error)
+	UpdateCollection(ctx context.Context, collection *MetabaseCollection) error
 }
 
 type MetabaseService interface {
@@ -102,4 +108,12 @@ type MetabaseMetadata struct {
 	CollectionID      int
 	SAEmail           string
 	DeletedAt         *time.Time
+}
+
+// MetabaseCollection represents a subset of the metadata returned
+// for a Metabase collection
+type MetabaseCollection struct {
+	ID          int
+	Name        string
+	Description string
 }

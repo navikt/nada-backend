@@ -563,6 +563,54 @@ func (c *metabaseAPI) ArchiveCollection(ctx context.Context, colID int) error {
 	return nil
 }
 
+type Collection struct {
+	ID          *int   `json:"id,omitempty"`
+	Name        string `json:"name,omitempty"`
+	Description string `json:"description,omitempty"`
+}
+
+func (c *metabaseAPI) GetCollections(ctx context.Context) ([]*service.MetabaseCollection, error) {
+	const op errs.Op = "metabaseAPI.GetCollection"
+
+	var raw []Collection
+
+	if err := c.request(ctx, http.MethodGet, "/collection/graph", nil, &raw); err != nil {
+		return nil, errs.E(op, err)
+	}
+
+	var collections []*service.MetabaseCollection
+	for _, col := range raw {
+		var id int
+		if col.ID != nil {
+			id = *col.ID
+		}
+
+		collections = append(collections, &service.MetabaseCollection{
+			ID:          id,
+			Name:        col.Name,
+			Description: col.Description,
+		})
+	}
+
+	return collections, nil
+}
+
+func (c *metabaseAPI) UpdateCollection(ctx context.Context, collection *service.MetabaseCollection) error {
+	const op errs.Op = "metabaseAPI.UpdateCollection"
+
+	col := Collection{
+		Name:        collection.Name,
+		Description: collection.Description,
+	}
+
+	err := c.request(ctx, http.MethodPut, fmt.Sprintf("/collection/%d", collection.ID), col, nil)
+	if err != nil {
+		return errs.E(op, err)
+	}
+
+	return nil
+}
+
 func (c *metabaseAPI) CreateCollection(ctx context.Context, name string) (int, error) {
 	const op errs.Op = "metabaseAPI.CreateCollection"
 
