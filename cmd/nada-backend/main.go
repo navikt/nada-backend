@@ -109,7 +109,7 @@ func main() {
 
 	cacher := cache.New(time.Duration(cfg.CacheDurationSeconds)*time.Second, repo.GetDB(), zlog.With().Str("subsystem", "cache").Logger())
 
-	bqClient := bq.NewClient(cfg.BigQuery.Endpoint, cfg.BigQuery.EnableAuth)
+	bqClient := bq.NewClient(cfg.BigQuery.Endpoint, cfg.BigQuery.EnableAuth, zlog.With().Str("subsystem", "bq_client").Logger())
 
 	csClient, err := cs.New(ctx, cfg.GCS.StoryBucketName)
 	if err != nil {

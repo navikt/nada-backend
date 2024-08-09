@@ -8,6 +8,8 @@ import (
 	"regexp"
 	"time"
 
+	"github.com/rs/zerolog"
+
 	"cloud.google.com/go/bigquery"
 	"cloud.google.com/go/iam"
 
@@ -46,6 +48,7 @@ var (
 type Client struct {
 	endpoint             string
 	enableAuthentication bool
+	log                  zerolog.Logger
 }
 
 type TableType string
@@ -752,20 +755,44 @@ func (c *Client) AddDatasetRoleAccessEntry(ctx context.Context, projectID, datas
 		Entity:     input.Entity,
 	}
 
+	c.log.Info().Fields(map[string]interface{}{
+		"project":     projectID,
+		"dataset":     datasetID,
+		"entity_type": entityType,
+		"entity":      input.Entity,
+		"role":        string(input.Role),
+	}).Msg("adding_access")
+
 	// FIXME: should we check if the access entry already exists?
 
 	ds := client.Dataset(datasetID)
 
 	meta, err := ds.Metadata(ctx)
 	if err != nil {
-		return fmt.Errorf("getting dataset metadata %s: %w", datasetID, err)
+		return fmt.Errorf("getting dataset metadata %s.%s: %w", projectID, datasetID, err)
+	}
+
+	for _, a := range meta.Access {
+		if a.EntityType == entityType && a.Entity == input.Entity && a.Role == bigquery.AccessRole(input.Role) {
+			return nil
+		}
+	}
+
+	for _, a := range meta.Access {
+		c.log.Info().Fields(map[string]interface{}{
+			"project":     projectID,
+			"dataset":     datasetID,
+			"entity_type": a.EntityType,
+			"entity":      a.Entity,
+			"role":        string(a.Role),
+		}).Msg("existing_access")
 	}
 
 	_, err = ds.Update(ctx, bigquery.DatasetMetadataToUpdate{
 		Access: append(meta.Access, access),
 	}, meta.ETag)
 	if err != nil {
-		return fmt.Errorf("updating dataset %s: %w", datasetID, err)
+		return fmt.Errorf("updating dataset metadata %s.%s: %w", projectID, datasetID, err)
 	}
 
 	return nil
@@ -877,9 +904,10 @@ func (c *Client) clientFromProject(ctx context.Context, project string) (*bigque
 	return client, nil
 }
 
-func NewClient(endpoint string, enableAuthentication bool) *Client {
+func NewClient(endpoint string, enableAuthentication bool, log zerolog.Logger) *Client {
 	return &Client{
 		endpoint:             endpoint,
 		enableAuthentication: enableAuthentication,
+		log:                  log,
 	}
 }

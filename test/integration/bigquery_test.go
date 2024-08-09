@@ -59,7 +59,7 @@ func TestBigQuery(t *testing.T) {
 
 	em.WithProject(gcpProject, datasets...)
 	em.TestServer()
-	bqClient := bq.NewClient(em.Endpoint(), false)
+	bqClient := bq.NewClient(em.Endpoint(), false, zerolog.Nop())
 
 	stores := storage.NewStores(repo, config.Config{}, log)
 

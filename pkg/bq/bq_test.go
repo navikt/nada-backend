@@ -66,7 +66,7 @@ func TestClient_GetDataset(t *testing.T) {
 			s.WithProject(tc.projectID, tc.schema)
 			s.TestServer()
 
-			c := bq.NewClient(s.Endpoint(), false)
+			c := bq.NewClient(s.Endpoint(), false, zerolog.Nop())
 
 			got, err := c.GetDataset(context.Background(), tc.projectID, tc.datasetID)
 			if tc.expectErr {
@@ -128,7 +128,7 @@ func TestClient_GetDatasets(t *testing.T) {
 			s.WithProject(tc.projectID, tc.schema)
 			s.TestServer()
 
-			c := bq.NewClient(s.Endpoint(), false)
+			c := bq.NewClient(s.Endpoint(), false, zerolog.Nop())
 
 			got, err := c.GetDatasets(context.Background(), tc.projectID)
 			if tc.expectErr {
@@ -211,7 +211,7 @@ func TestClient_GetTables(t *testing.T) {
 			s.WithProject(tc.projectID, tc.schema)
 			s.TestServer()
 
-			c := bq.NewClient(s.Endpoint(), false)
+			c := bq.NewClient(s.Endpoint(), false, zerolog.Nop())
 
 			got, err := c.GetTables(context.Background(), tc.projectID, tc.datasetID)
 			if tc.expectErr {
@@ -306,7 +306,7 @@ func TestClient_GetTable(t *testing.T) {
 			s.WithProject(tc.projectID, tc.schema)
 			s.TestServer()
 
-			c := bq.NewClient(s.Endpoint(), false)
+			c := bq.NewClient(s.Endpoint(), false, zerolog.Nop())
 
 			got, err := c.GetTable(context.Background(), tc.projectID, tc.datasetID, tc.tableID)
 			if tc.expectErr {
@@ -376,7 +376,7 @@ func TestClient_CreateDataset(t *testing.T) {
 			s.WithProject(tc.projectID, tc.schema)
 			s.TestServer()
 
-			c := bq.NewClient(s.Endpoint(), false)
+			c := bq.NewClient(s.Endpoint(), false, zerolog.Nop())
 
 			err := c.CreateDataset(context.Background(), tc.projectID, tc.datasetID, "europe-north1")
 			if tc.expectErr {
@@ -444,7 +444,7 @@ func TestClient_CreateDatasetIfNotExists(t *testing.T) {
 			s.WithProject(tc.projectID, tc.schema)
 			s.TestServer()
 
-			c := bq.NewClient(s.Endpoint(), false)
+			c := bq.NewClient(s.Endpoint(), false, zerolog.Nop())
 
 			err := c.CreateDatasetIfNotExists(context.Background(), tc.projectID, tc.datasetID, "europe-north1")
 			if tc.expectErr {
@@ -641,7 +641,7 @@ func TestClient_CreateTable(t *testing.T) {
 			s.WithProject(tc.projectID, tc.schema)
 			s.TestServer()
 
-			c := bq.NewClient(s.Endpoint(), false)
+			c := bq.NewClient(s.Endpoint(), false, zerolog.Nop())
 
 			err := c.CreateTable(context.Background(), tc.table)
 			if tc.expectErr {
@@ -800,7 +800,7 @@ func TestClient_CreateTableOrUpdate(t *testing.T) {
 			s.WithProject(tc.projectID, tc.schema)
 			s.TestServer()
 
-			c := bq.NewClient(s.Endpoint(), false)
+			c := bq.NewClient(s.Endpoint(), false, zerolog.Nop())
 
 			got, err := c.CreateTableOrUpdate(context.Background(), tc.table)
 			if tc.expectErr {
@@ -879,7 +879,7 @@ func TestClient_DeleteDataset(t *testing.T) {
 			s.WithProject(tc.projectID, tc.schema)
 			s.TestServer()
 
-			c := bq.NewClient(s.Endpoint(), false)
+			c := bq.NewClient(s.Endpoint(), false, zerolog.Nop())
 
 			err := c.DeleteDataset(context.Background(), tc.projectID, tc.datasetID, tc.deleteContent)
 			if tc.expectErr {
@@ -940,7 +940,7 @@ func TestClient_DeleteTable(t *testing.T) {
 			s.WithProject(tc.projectID, tc.schema)
 			s.TestServer()
 
-			c := bq.NewClient(s.Endpoint(), false)
+			c := bq.NewClient(s.Endpoint(), false, zerolog.Nop())
 
 			err := c.DeleteTable(context.Background(), tc.projectID, tc.datasetID, tc.tableID)
 			if tc.expectErr {
@@ -1029,7 +1029,7 @@ func TestClient_QueryAndWait(t *testing.T) {
 			s.WithSource(tc.projectID, tc.project)
 			s.TestServer()
 
-			c := bq.NewClient(s.Endpoint(), false)
+			c := bq.NewClient(s.Endpoint(), false, zerolog.Nop())
 
 			got, err := c.QueryAndWait(context.Background(), tc.projectID, tc.query)
 			if tc.expectErr {
@@ -1084,7 +1084,7 @@ func TestClient_AddDatasetRoleAccessEntry(t *testing.T) {
 			s.WithProject(tc.projectID, tc.schema)
 			s.TestServer()
 
-			c := bq.NewClient(s.Endpoint(), false)
+			c := bq.NewClient(s.Endpoint(), false, zerolog.Nop())
 
 			err := c.AddDatasetRoleAccessEntry(context.Background(), tc.projectID, tc.datasetID, tc.input)
 			if tc.expectErr {
@@ -1138,7 +1138,7 @@ func TestClient_AddDatasetViewAccessEntry(t *testing.T) {
 			s.WithProject(tc.projectID, tc.schema)
 			s.TestServer()
 
-			c := bq.NewClient(s.Endpoint(), false)
+			c := bq.NewClient(s.Endpoint(), false, zerolog.Nop())
 
 			err := c.AddDatasetViewAccessEntry(context.Background(), tc.projectID, tc.datasetID, tc.input)
 			if tc.expectErr {
@@ -1213,7 +1213,7 @@ func TestClient_AddAndSetTablePolicy(t *testing.T) {
 
 			s.TestServer()
 
-			c := bq.NewClient(s.Endpoint(), false)
+			c := bq.NewClient(s.Endpoint(), false, zerolog.Nop())
 
 			ctx := context.Background()
 			ctx, _ = context.WithDeadline(ctx, time.Now().Add(1*time.Second))
@@ -1287,7 +1287,7 @@ func TestClient_RemoveAndSetTablePolicy(t *testing.T) {
 
 			s.TestServer()
 
-			c := bq.NewClient(s.Endpoint(), false)
+			c := bq.NewClient(s.Endpoint(), false, zerolog.Nop())
 
 			ctx := context.Background()
 			ctx, _ = context.WithDeadline(ctx, time.Now().Add(1*time.Second))

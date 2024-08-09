@@ -387,12 +387,12 @@ func (a *bigQueryAPI) Grant(ctx context.Context, projectID, datasetID, tableID, 
 		entry,
 	)
 	if err != nil {
-		return errs.E(errs.IO, op, err)
+		return errs.E(errs.IO, op, fmt.Errorf("adding dataset role access entry: %w", err))
 	}
 
 	err = a.client.AddAndSetTablePolicy(ctx, projectID, datasetID, tableID, bq.BigQueryDataViewerRole.String(), member)
 	if err != nil {
-		return errs.E(errs.IO, op, err)
+		return errs.E(errs.IO, op, fmt.Errorf("adding and setting table policy: %w", err))
 	}
 
 	return nil
