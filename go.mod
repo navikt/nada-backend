@@ -35,7 +35,7 @@ require (
 	github.com/qustavo/sqlhooks/v2 v2.1.0
 	github.com/rs/zerolog v1.33.0
 	github.com/sebdah/goldie/v2 v2.5.3
-	github.com/slack-go/slack v0.13.0
+	github.com/slack-go/slack v0.13.1
 	github.com/spf13/pflag v1.0.5
 	github.com/spf13/viper v1.19.0
 	github.com/sqlc-dev/pqtype v0.3.0
