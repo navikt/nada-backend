@@ -297,6 +297,48 @@ func TestStory(t *testing.T) {
 		}
 	})
 
+	t.Run("Recreate story files with token and nais-team prefix", func(t *testing.T) {
+		storage := postgres.NewStoryStorage(repo)
+
+		updateStory, err := storage.CreateStory(context.Background(), "nais-team-nada@nav.no", &service.NewStory{
+			Name:        "My update story",
+			Description: strToStrPtr("This is my update story, and it is pretty bad"),
+			Keywords:    []string{"story", "bad"},
+			Group:       "nais-team-nada@nav.no",
+		})
+		assert.NoError(t, err)
+
+		files := map[string]string{
+			"index.html":                   defaultHtml,
+			"subpage/index.html":           "<html><h1>Subpage</h1></html>",
+			"subsubsubpage/something.html": "<html><h1>Subsubsubpage</h1></html>",
+		}
+
+		req := CreateMultipartFormRequest(
+			t,
+			http.MethodPut,
+			server.URL+"/quarto/update/"+updateStory.ID.String(),
+			files,
+			nil,
+			map[string]string{
+				"Authorization": fmt.Sprintf("Bearer %s", token),
+			},
+		)
+
+		NewTester(t, server).
+			Send(req).
+			HasStatusCode(http.StatusNoContent)
+
+		for path, content := range files {
+			got := NewTester(t, server).
+				Get("/quarto/" + updateStory.ID.String() + "/" + path).
+				HasStatusCode(http.StatusOK).
+				Body()
+
+			assert.Equal(t, content, got)
+		}
+	})
+
 	t.Run("Append story files with token", func(t *testing.T) {
 		files := map[string]string{
 			"newpage/test.html": "<html><h1>New page</h1></html>",

@@ -13,6 +13,13 @@ define install-binary
 	 fi
 endef
 
+# Get the currently used golang install path (in GOPATH/bin, unless GOBIN is set)
+ifeq (,$(shell go env GOBIN))
+GOBIN=$(shell go env GOPATH)/bin
+else
+GOBIN=$(shell go env GOBIN)
+endif
+
 STATICCHECK          ?= $(shell command -v staticcheck || echo "$(GOBIN)/staticcheck")
 STATICCHECK_VERSION  := v0.4.6
 SQLC                 ?= $(shell command -v sqlc || echo "$(GOBIN)/sqlc")
