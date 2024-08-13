@@ -4,10 +4,11 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"github.com/google/uuid"
-	"github.com/navikt/nada-backend/pkg/syncers/metabase_collections"
 	"testing"
 	"time"
+
+	"github.com/google/uuid"
+	"github.com/navikt/nada-backend/pkg/syncers/metabase_collections"
 
 	"github.com/navikt/nada-backend/pkg/service"
 	"github.com/rs/zerolog"
