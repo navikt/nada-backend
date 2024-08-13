@@ -3,22 +3,23 @@ package metabase_collections
 import (
 	"context"
 	"fmt"
+	"strings"
+	"time"
+
 	"github.com/navikt/nada-backend/pkg/errs"
 	"github.com/navikt/nada-backend/pkg/service"
 	"github.com/rs/zerolog"
-	"strings"
-	"time"
 )
 
 type Syncer struct {
-	api             service.MetabaseAPI
-	storage         service.MetabaseStorage
-	log             zerolog.Logger
-	syncIntervalSec time.Duration
+	api          service.MetabaseAPI
+	storage      service.MetabaseStorage
+	log          zerolog.Logger
+	syncInterval time.Duration
 }
 
 func (s *Syncer) Run(ctx context.Context) {
-	ticker := time.NewTicker(s.syncIntervalSec)
+	ticker := time.NewTicker(s.syncInterval)
 
 	defer ticker.Stop()
 	for {
@@ -165,9 +166,9 @@ func (s *Syncer) AddRestrictedTagToCollections(ctx context.Context) error {
 
 func New(api service.MetabaseAPI, storage service.MetabaseStorage, syncIntervalSec int, log zerolog.Logger) *Syncer {
 	return &Syncer{
-		api:             api,
-		storage:         storage,
-		log:             log,
-		syncIntervalSec: time.Duration(syncIntervalSec) * time.Second,
+		api:          api,
+		storage:      storage,
+		log:          log,
+		syncInterval: time.Duration(syncIntervalSec) * time.Second,
 	}
 }
