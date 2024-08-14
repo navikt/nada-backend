@@ -120,6 +120,10 @@ func newFakeConfig() config.Config {
 		API: config.API{
 			AuthToken: "fake_token",
 		},
+		ServiceAccount: config.ServiceAccount{
+			EndpointOverride: "http://localhost:8086",
+			DisableAuth:      true,
+		},
 		EmailSuffix:                    "@nav.no",
 		NaisClusterName:                "dev-gcp",
 		KeywordsAdminGroup:             "nada@nav.no",
