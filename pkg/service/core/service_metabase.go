@@ -241,8 +241,37 @@ func MarshalUUID(id uuid.UUID) string {
 	return strings.ToLower(base58.Encode(id[:]))
 }
 
+func (s *metabaseService) getOrcreateServiceAccountWithKeyAndPolicy(ctx context.Context, ds *service.Dataset) (*service.ServiceAccountWithPrivateKey, error) {
+	const op errs.Op = "metabaseService.getOrcreateServiceAccountWithKeyAndPolicy"
+
+	accountID := fmt.Sprintf("nada-%s", MarshalUUID(ds.ID))
+
+	sa, err := s.serviceAccountAPI.EnsureServiceAccountWithKeyAndBinding(ctx, &service.ServiceAccountRequest{
+		ProjectID:   s.gcpProject,
+		AccountID:   accountID,
+		DisplayName: ds.Name,
+		Description: fmt.Sprintf("Metabase service account for dataset %s", ds.ID.String()),
+		Binding: &service.Binding{
+			Role: fmt.Sprintf("projects/%s/roles/nada.metabase", s.gcpProject),
+			Members: []string{
+				fmt.Sprintf("serviceAccount:%s@%s.iam.gserviceaccount.com", accountID, s.gcpProject),
+			},
+		},
+	})
+	if err != nil {
+		return nil, errs.E(op, err)
+	}
+
+	return sa, nil
+}
+
 func (s *metabaseService) createRestricted(ctx context.Context, ds *service.Dataset) error {
 	const op errs.Op = "metabaseService.createRestricted"
+
+	sa, err := s.getOrcreateServiceAccountWithKeyAndPolicy(ctx, ds)
+	if err != nil {
+		return err
+	}
 
 	permissionGroupName := slug.Make(fmt.Sprintf("%s-%s", ds.Name, MarshalUUID(ds.ID)))
 
@@ -256,20 +285,10 @@ func (s *metabaseService) createRestricted(ctx context.Context, ds *service.Data
 		return errs.E(op, err)
 	}
 
-	key, email, err := s.serviceAccountAPI.CreateServiceAccount(ctx, s.gcpProject, ds)
-	if err != nil {
-		archiveErr := s.metabaseAPI.ArchiveCollection(ctx, colID)
-		if archiveErr != nil {
-			return errs.E(op, fmt.Errorf("creating service account: %w, cleaning up collection: %w", err, archiveErr))
-		}
-
-		return errs.E(op, err)
-	}
-
 	err = s.create(ctx, dsWrapper{
 		Dataset:         ds,
-		Key:             string(key),
-		Email:           email,
+		Key:             string(sa.Key.PrivateKeyData),
+		Email:           sa.Email,
 		MetabaseGroupID: groupID,
 		CollectionID:    colID,
 	})
@@ -499,7 +518,7 @@ func (s *metabaseService) cleanupOnCreateDatabaseError(ctx context.Context, dbID
 			return errs.E(op, err)
 		}
 
-		if err := s.serviceAccountAPI.DeleteServiceAccount(ctx, s.gcpProject, ds.Email); err != nil {
+		if err := s.serviceAccountAPI.DeleteServiceAccountAndBindings(ctx, s.gcpProject, ds.Email); err != nil {
 			return errs.E(op, err)
 		}
 	}
@@ -570,7 +589,7 @@ func (s *metabaseService) deleteRestrictedDatabase(ctx context.Context, datasetI
 		return errs.E(op, err)
 	}
 
-	if err := s.serviceAccountAPI.DeleteServiceAccount(ctx, s.gcpProject, mbMeta.SAEmail); err != nil {
+	if err := s.serviceAccountAPI.DeleteServiceAccountAndBindings(ctx, s.gcpProject, mbMeta.SAEmail); err != nil {
 		return errs.E(op, err)
 	}
 

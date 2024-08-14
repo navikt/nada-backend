@@ -21,7 +21,9 @@ type Operations interface {
 	CreateServiceAccount(ctx context.Context, sa *ServiceAccountRequest) (*ServiceAccount, error)
 	DeleteServiceAccount(ctx context.Context, name string) error
 	ListServiceAccounts(ctx context.Context, project string) ([]*ServiceAccount, error)
-	AddProjectServiceAccountPolicyBinding(ctx context.Context, project string, binding *BindingRequest) error
+	AddProjectServiceAccountPolicyBinding(ctx context.Context, project string, binding *Binding) error
+	RemoveProjectServiceAccountPolicyBinding(ctx context.Context, project string, email string) error
+	ListProjectServiceAccountPolicyBindings(ctx context.Context, project, email string) ([]*Binding, error)
 	CreateServiceAccountKey(ctx context.Context, name string) (*ServiceAccountKeyWithPrivateKeyData, error)
 	DeleteServiceAccountKey(ctx context.Context, name string) error
 	ListServiceAccountKeys(ctx context.Context, name string) ([]*ServiceAccountKey, error)
@@ -39,7 +41,7 @@ type ServiceAccountKeyWithPrivateKeyData struct {
 	PrivateKeyData []byte
 }
 
-type BindingRequest struct {
+type Binding struct {
 	Role    string
 	Members []string
 }
@@ -74,6 +76,87 @@ var _ Operations = &Client{}
 type Client struct {
 	endpoint    string
 	disableAuth bool
+}
+
+func (c *Client) RemoveProjectServiceAccountPolicyBinding(ctx context.Context, project string, email string) error {
+	service, err := c.crmService(ctx)
+	if err != nil {
+		return err
+	}
+
+	policy, err := service.Projects.GetIamPolicy(project, &cloudresourcemanager.GetIamPolicyRequest{}).Do()
+	if err != nil {
+		var gerr *googleapi.Error
+		if errors.As(err, &gerr) && gerr.Code == http.StatusNotFound {
+			return fmt.Errorf("project %s: %w", project, ErrNotFound)
+		}
+
+		return fmt.Errorf("getting project %s policy: %w", project, err)
+	}
+
+	var bindings []*cloudresourcemanager.Binding
+
+	for _, binding := range policy.Bindings {
+		var members []string
+
+		for _, member := range binding.Members {
+			if member != "serviceAccount:"+email {
+				members = append(members, member)
+			}
+		}
+
+		if len(members) > 0 {
+			bindings = append(bindings, &cloudresourcemanager.Binding{
+				Role:    binding.Role,
+				Members: members,
+			})
+		}
+	}
+
+	policy.Bindings = bindings
+
+	_, err = service.Projects.SetIamPolicy(project, &cloudresourcemanager.SetIamPolicyRequest{
+		Policy: policy,
+	}).Do()
+	if err != nil {
+		return fmt.Errorf("setting project %s policy: %w", project, err)
+	}
+
+	return nil
+}
+
+func (c *Client) ListProjectServiceAccountPolicyBindings(ctx context.Context, project, email string) ([]*Binding, error) {
+	service, err := c.crmService(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	policy, err := service.Projects.GetIamPolicy(project, &cloudresourcemanager.GetIamPolicyRequest{}).Do()
+	if err != nil {
+		var gerr *googleapi.Error
+		if errors.As(err, &gerr) && gerr.Code == http.StatusNotFound {
+			return nil, fmt.Errorf("project %s: %w", project, ErrNotFound)
+		}
+
+		return nil, fmt.Errorf("getting project %s policy: %w", project, err)
+	}
+
+	var bindings []*Binding
+
+	for _, binding := range policy.Bindings {
+		for _, member := range binding.Members {
+			if member == "serviceAccount:"+email {
+				bindings = append(bindings, &Binding{
+					Role:    binding.Role,
+					Members: binding.Members,
+				})
+
+				break
+			}
+		}
+	}
+
+	return bindings, nil
 }
 
 func (c *Client) CreateServiceAccountKey(ctx context.Context, name string) (*ServiceAccountKeyWithPrivateKeyData, error) {
@@ -151,7 +234,7 @@ func (c *Client) ListServiceAccountKeys(ctx context.Context, name string) ([]*Se
 	return result, nil
 }
 
-func (c *Client) AddProjectServiceAccountPolicyBinding(ctx context.Context, project string, binding *BindingRequest) error {
+func (c *Client) AddProjectServiceAccountPolicyBinding(ctx context.Context, project string, binding *Binding) error {
 	service, err := c.crmService(ctx)
 	if err != nil {
 		return err
@@ -326,8 +409,12 @@ func NewClient(endpoint string, disableAuth bool) *Client {
 	}
 }
 
-func ServiceAccountName(project, accountID string) string {
+func ServiceAccountNameFromAccountID(project, accountID string) string {
 	return "projects/" + project + "/serviceAccounts/" + accountID + "@" + project + ".iam.gserviceaccount.com"
+}
+
+func ServiceAccountNameFromEmail(project, email string) string {
+	return "projects/" + project + "/serviceAccounts/" + email
 }
 
 func ServiceAccountKeyName(project, accountID, keyID string) string {
