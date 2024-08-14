@@ -9,6 +9,8 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/navikt/nada-backend/pkg/sa"
+
 	"github.com/go-chi/chi/middleware"
 	"github.com/navikt/nada-backend/pkg/syncers/metabase_mapper"
 
@@ -116,6 +118,8 @@ func main() {
 		zlog.Fatal().Err(err).Msg("setting up cloud storage")
 	}
 
+	saClient := sa.NewClient(cfg.ServiceAccount.EndpointOverride, cfg.ServiceAccount.DisableAuth)
+
 	stores := storage.NewStores(repo, cfg, zlog.With().Str("subsystem", "stores").Logger())
 	apiClients := apiclients.NewClients(
 		cacher,
@@ -123,6 +127,7 @@ func main() {
 		ncFetcher,
 		bqClient,
 		csClient,
+		saClient,
 		cfg,
 		zlog.With().Str("subsystem", "api_clients").Logger(),
 	)

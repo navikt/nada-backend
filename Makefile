@@ -74,7 +74,7 @@ endif
 -include .env
 
 test:
-	CGO_ENABLED=1 CXX=clang++ CC=clang CXXFLAGS=-Wno-everything $(GO) test -race ./...
+	CGO_ENABLED=1 CXX=clang++ CC=clang CGO_CXXFLAGS=-Wno-everything CGO_LDFLAGS=-Wno-everything $(GO) test -race ./...
 .PHONY: test
 
 build: $(RELEASE_DIR)

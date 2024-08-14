@@ -88,6 +88,9 @@ nais_console:
   api_url: http://localhost:8086
 api:
   auth_token: 1234
+service_account:
+  endpoint: http://localhost:8086
+  disable_auth: true
 email_suffix: '@nav.no'
 nais_cluster_name: test-gcp
 cache_duration_seconds: 60
