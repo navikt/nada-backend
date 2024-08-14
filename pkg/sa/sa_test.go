@@ -38,7 +38,7 @@ func TestClient_CreateServiceAccount(t *testing.T) {
 				Description: "Test Description",
 			},
 			expect: &sa.ServiceAccount{
-				Name:        sa.ServiceAccountName("test-project", "test-account"),
+				Name:        sa.ServiceAccountNameFromAccountID("test-project", "test-account"),
 				Email:       "test-account@test-project.iam.gserviceaccount.com",
 				DisplayName: "Test Account",
 				Description: "Test Description",
@@ -116,8 +116,8 @@ func TestClient_GetServiceAccount(t *testing.T) {
 			project: "test-project",
 			id:      "test-account",
 			fn: func(em *emulator.Emulator) {
-				em.SetServiceAccount(sa.ServiceAccountName("test-project", "test-account"), &iam.ServiceAccount{
-					Name:        sa.ServiceAccountName("test-project", "test-account"),
+				em.SetServiceAccount(sa.ServiceAccountNameFromAccountID("test-project", "test-account"), &iam.ServiceAccount{
+					Name:        sa.ServiceAccountNameFromAccountID("test-project", "test-account"),
 					Email:       "test-account@test-project.iam.gserviceaccount.com",
 					DisplayName: "Test Account",
 					Description: "Test Description",
@@ -126,7 +126,7 @@ func TestClient_GetServiceAccount(t *testing.T) {
 				})
 			},
 			expect: &sa.ServiceAccount{
-				Name:        sa.ServiceAccountName("test-project", "test-account"),
+				Name:        sa.ServiceAccountNameFromAccountID("test-project", "test-account"),
 				Email:       "test-account@test-project.iam.gserviceaccount.com",
 				DisplayName: "Test Account",
 				Description: "Test Description",
@@ -164,7 +164,7 @@ func TestClient_GetServiceAccount(t *testing.T) {
 				tc.fn(em)
 			}
 
-			got, err := client.GetServiceAccount(ctx, sa.ServiceAccountName(tc.project, tc.id))
+			got, err := client.GetServiceAccount(ctx, sa.ServiceAccountNameFromAccountID(tc.project, tc.id))
 
 			if len(tc.expectErr) > 0 {
 				require.Error(t, err)
@@ -194,8 +194,8 @@ func TestClient_DeleteServiceAccount(t *testing.T) {
 			project: "test-project",
 			id:      "test-account",
 			fn: func(em *emulator.Emulator) {
-				em.SetServiceAccount(sa.ServiceAccountName("test-project", "test-account"), &iam.ServiceAccount{
-					Name: sa.ServiceAccountName("test-project", "test-account"),
+				em.SetServiceAccount(sa.ServiceAccountNameFromAccountID("test-project", "test-account"), &iam.ServiceAccount{
+					Name: sa.ServiceAccountNameFromAccountID("test-project", "test-account"),
 				})
 			},
 		},
@@ -229,7 +229,7 @@ func TestClient_DeleteServiceAccount(t *testing.T) {
 				tc.fn(em)
 			}
 
-			err := client.DeleteServiceAccount(ctx, sa.ServiceAccountName(tc.project, tc.id))
+			err := client.DeleteServiceAccount(ctx, sa.ServiceAccountNameFromAccountID(tc.project, tc.id))
 
 			if len(tc.expectErr) > 0 {
 				require.Error(t, err)
@@ -261,16 +261,16 @@ func TestClient_ListServiceAccounts(t *testing.T) {
 			name:    "List valid accounts",
 			project: "test-project",
 			fn: func(em *emulator.Emulator) {
-				em.SetServiceAccount(sa.ServiceAccountName("test-project", "test-account"), &iam.ServiceAccount{
-					Name:        sa.ServiceAccountName("test-project", "test-account"),
+				em.SetServiceAccount(sa.ServiceAccountNameFromAccountID("test-project", "test-account"), &iam.ServiceAccount{
+					Name:        sa.ServiceAccountNameFromAccountID("test-project", "test-account"),
 					Email:       "test-account@test-project.iam.gserviceaccount.com",
 					DisplayName: "Test Account",
 					Description: "Test Description",
 					ProjectId:   "test-project",
 					UniqueId:    "1234567890",
 				})
-				em.SetServiceAccount(sa.ServiceAccountName("test-project", "test-account2"), &iam.ServiceAccount{
-					Name:        sa.ServiceAccountName("test-project", "test-account2"),
+				em.SetServiceAccount(sa.ServiceAccountNameFromAccountID("test-project", "test-account2"), &iam.ServiceAccount{
+					Name:        sa.ServiceAccountNameFromAccountID("test-project", "test-account2"),
 					Email:       "test-account2@test-project.iam.gserviceaccount.com",
 					DisplayName: "Test Account 2",
 					Description: "Test Description 2",
@@ -280,7 +280,7 @@ func TestClient_ListServiceAccounts(t *testing.T) {
 			},
 			expect: []*sa.ServiceAccount{
 				{
-					Name:        sa.ServiceAccountName("test-project", "test-account2"),
+					Name:        sa.ServiceAccountNameFromAccountID("test-project", "test-account2"),
 					Email:       "test-account2@test-project.iam.gserviceaccount.com",
 					DisplayName: "Test Account 2",
 					Description: "Test Description 2",
@@ -288,7 +288,7 @@ func TestClient_ListServiceAccounts(t *testing.T) {
 					UniqueId:    "1234567891",
 				},
 				{
-					Name:        sa.ServiceAccountName("test-project", "test-account"),
+					Name:        sa.ServiceAccountNameFromAccountID("test-project", "test-account"),
 					Email:       "test-account@test-project.iam.gserviceaccount.com",
 					DisplayName: "Test Account",
 					Description: "Test Description",
@@ -341,7 +341,7 @@ func TestClient_AddProjectServiceAccountPolicyBinding(t *testing.T) {
 	testCases := []struct {
 		name      string
 		project   string
-		binding   *sa.BindingRequest
+		binding   *sa.Binding
 		fn        func(*emulator.Emulator)
 		expectErr string
 		expect    *cloudresourcemanager.Policy
@@ -349,7 +349,7 @@ func TestClient_AddProjectServiceAccountPolicyBinding(t *testing.T) {
 		{
 			name:    "Add valid policy binding",
 			project: "test-project",
-			binding: &sa.BindingRequest{
+			binding: &sa.Binding{
 				Role:    "roles/editor",
 				Members: []string{"serviceAccount:test-account@test-project.iam.gserviceaccount.com"},
 			},
@@ -383,7 +383,7 @@ func TestClient_AddProjectServiceAccountPolicyBinding(t *testing.T) {
 		{
 			name:    "Add policy binding with failure",
 			project: "test-project",
-			binding: &sa.BindingRequest{
+			binding: &sa.Binding{
 				Role:    "roles/editor",
 				Members: []string{"serviceAccount:test-account@test-project.iam.gserviceaccount.com"},
 			},
@@ -437,8 +437,8 @@ func TestClient_CreateServiceAccountKey(t *testing.T) {
 			project: "test-project",
 			account: "test-account",
 			fn: func(em *emulator.Emulator) {
-				em.SetServiceAccount(sa.ServiceAccountName("test-project", "test-account"), &iam.ServiceAccount{
-					Name:  sa.ServiceAccountName("test-project", "test-account"),
+				em.SetServiceAccount(sa.ServiceAccountNameFromAccountID("test-project", "test-account"), &iam.ServiceAccount{
+					Name:  sa.ServiceAccountNameFromAccountID("test-project", "test-account"),
 					Email: "test-account@test-project.iam.gserviceaccount.com",
 				})
 			},
@@ -481,7 +481,7 @@ func TestClient_CreateServiceAccountKey(t *testing.T) {
 				tc.fn(em)
 			}
 
-			got, err := client.CreateServiceAccountKey(ctx, sa.ServiceAccountName(tc.project, tc.account))
+			got, err := client.CreateServiceAccountKey(ctx, sa.ServiceAccountNameFromAccountID(tc.project, tc.account))
 
 			if len(tc.expectErr) > 0 {
 				require.Error(t, err)
@@ -513,7 +513,7 @@ func TestClient_DeleteServiceAccountKey(t *testing.T) {
 			account: "test-account",
 			key:     "1",
 			fn: func(em *emulator.Emulator) {
-				em.SetServiceAccountKeys(sa.ServiceAccountName("test-project", "test-account"), []*iam.ServiceAccountKey{
+				em.SetServiceAccountKeys(sa.ServiceAccountNameFromAccountID("test-project", "test-account"), []*iam.ServiceAccountKey{
 					{
 						Name: sa.ServiceAccountKeyName("test-project", "test-account", "1"),
 					},
@@ -587,7 +587,7 @@ func TestClient_ListServiceAccountKeys(t *testing.T) {
 			project: "test-project",
 			account: "test-account",
 			fn: func(em *emulator.Emulator) {
-				em.SetServiceAccountKeys(sa.ServiceAccountName("test-project", "test-account"), []*iam.ServiceAccountKey{
+				em.SetServiceAccountKeys(sa.ServiceAccountNameFromAccountID("test-project", "test-account"), []*iam.ServiceAccountKey{
 					{
 						Name:         sa.ServiceAccountKeyName("test-project", "test-account", "1"),
 						KeyAlgorithm: "KEY_ALG_RSA_2048",
@@ -641,7 +641,7 @@ func TestClient_ListServiceAccountKeys(t *testing.T) {
 				tc.fn(em)
 			}
 
-			got, err := client.ListServiceAccountKeys(ctx, sa.ServiceAccountName(tc.project, tc.account))
+			got, err := client.ListServiceAccountKeys(ctx, sa.ServiceAccountNameFromAccountID(tc.project, tc.account))
 
 			if len(tc.expectErr) > 0 {
 				require.Error(t, err)
@@ -650,6 +650,210 @@ func TestClient_ListServiceAccountKeys(t *testing.T) {
 			} else {
 				require.NoError(t, err)
 				assert.Equal(t, tc.expect, got)
+			}
+		})
+	}
+}
+
+func TestClient_ListProjectServiceAccountPolicyBindings(t *testing.T) {
+	log := zerolog.New(zerolog.NewConsoleWriter())
+	em := emulator.New(log)
+
+	testCases := []struct {
+		name      string
+		project   string
+		email     string
+		fn        func(*emulator.Emulator)
+		expect    []*sa.Binding
+		expectErr string
+	}{
+		{
+			name:      "List bindings with no bindings",
+			project:   "test-project",
+			expectErr: "project test-project: not found",
+		},
+		{
+			name:    "List bindings with failure",
+			project: "test-project",
+			email:   "test-account@test-project.iam.gserviceaccount.com",
+			fn: func(em *emulator.Emulator) {
+				em.SetError(fmt.Errorf("oops"))
+			},
+			expectErr: "getting project test-project policy: googleapi: got HTTP response code 500 with body: oops\n",
+		},
+		{
+			name:    "List bindings with no matching bindings",
+			project: "test-project",
+			email:   "test-account@test-project.iam.gserviceaccount.com",
+			fn: func(em *emulator.Emulator) {
+				em.SetPolicy("test-project", &cloudresourcemanager.Policy{
+					Bindings: []*cloudresourcemanager.Binding{
+						{
+							Role:    "roles/owner",
+							Members: []string{"user:nada@nav.no"},
+						},
+					},
+				})
+			},
+			expect: []*sa.Binding(nil),
+		},
+		{
+			name:    "List valid bindings",
+			project: "test-project",
+			email:   "test-account@test-project.iam.gserviceaccount.com",
+			fn: func(em *emulator.Emulator) {
+				em.SetPolicy("test-project", &cloudresourcemanager.Policy{
+					Bindings: []*cloudresourcemanager.Binding{
+						{
+							Role:    "roles/owner",
+							Members: []string{"user:nada@nav.no"},
+						},
+						{
+							Role:    "roles/editor",
+							Members: []string{"serviceAccount:test-account@test-project.iam.gserviceaccount.com"},
+						},
+					},
+				})
+			},
+			expect: []*sa.Binding{
+				{
+					Role:    "roles/editor",
+					Members: []string{"serviceAccount:test-account@test-project.iam.gserviceaccount.com"},
+				},
+			},
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			url := em.Run()
+			defer em.Reset()
+
+			client := sa.NewClient(url, true)
+
+			ctx := context.Background()
+
+			if tc.fn != nil {
+				tc.fn(em)
+			}
+
+			got, err := client.ListProjectServiceAccountPolicyBindings(ctx, tc.project, tc.email)
+
+			if len(tc.expectErr) > 0 {
+				require.Error(t, err)
+				assert.Equal(t, tc.expectErr, err.Error())
+				assert.Nil(t, got)
+			} else {
+				require.NoError(t, err)
+				assert.Equal(t, tc.expect, got)
+			}
+		})
+	}
+}
+
+func TestClient_RemoveProjectServiceAccountPolicyBinding(t *testing.T) {
+	log := zerolog.New(zerolog.NewConsoleWriter())
+	em := emulator.New(log)
+
+	testCases := []struct {
+		name      string
+		project   string
+		email     string
+		fn        func(*emulator.Emulator)
+		expect    *cloudresourcemanager.Policy
+		expectErr string
+	}{
+		{
+			name:    "Remove valid binding",
+			project: "test-project",
+			email:   "test-account@test-project.iam.gserviceaccount.com",
+			fn: func(em *emulator.Emulator) {
+				em.SetPolicy("test-project", &cloudresourcemanager.Policy{
+					Bindings: []*cloudresourcemanager.Binding{
+						{
+							Role: "roles/owner",
+							Members: []string{
+								"user:nada@nav.no",
+								"serviceAccount:test-account@test-project.iam.gserviceaccount.com",
+							},
+						},
+						{
+							Role:    "roles/editor",
+							Members: []string{"serviceAccount:test-account@test-project.iam.gserviceaccount.com"},
+						},
+					},
+				})
+			},
+			expect: &cloudresourcemanager.Policy{
+				Bindings: []*cloudresourcemanager.Binding{
+					{
+						Role:    "roles/owner",
+						Members: []string{"user:nada@nav.no"},
+					},
+				},
+			},
+		},
+		{
+			name:    "Remove binding with failure",
+			project: "test-project",
+			email:   "test-account@test-project.iam.gserviceaccount.com",
+			fn: func(em *emulator.Emulator) {
+				em.SetError(fmt.Errorf("oops"))
+			},
+			expectErr: "getting project test-project policy: googleapi: got HTTP response code 500 with body: oops\n",
+		},
+		{
+			name:      "Remove binding with missing project",
+			project:   "test-project",
+			email:     "test-account@test-project.iam.gserviceaccount.com",
+			expectErr: "project test-project: not found",
+		},
+		{
+			name:    "Remove binding with missing binding",
+			project: "test-project",
+			email:   "test-account@test-project.iam.gserviceaccount.com",
+			fn: func(em *emulator.Emulator) {
+				em.SetPolicy("test-project", &cloudresourcemanager.Policy{
+					Bindings: []*cloudresourcemanager.Binding{
+						{
+							Role:    "roles/owner",
+							Members: []string{"user:nada@nav.no"},
+						},
+					},
+				})
+			},
+			expect: &cloudresourcemanager.Policy{
+				Bindings: []*cloudresourcemanager.Binding{
+					{
+						Role:    "roles/owner",
+						Members: []string{"user:nada@nav.no"},
+					},
+				},
+			},
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			url := em.Run()
+			defer em.Reset()
+
+			client := sa.NewClient(url, true)
+
+			ctx := context.Background()
+
+			if tc.fn != nil {
+				tc.fn(em)
+			}
+
+			err := client.RemoveProjectServiceAccountPolicyBinding(ctx, tc.project, tc.email)
+
+			if len(tc.expectErr) > 0 {
+				require.Error(t, err)
+				assert.Equal(t, tc.expectErr, err.Error())
+			} else {
+				require.NoError(t, err)
+				assert.Equal(t, tc.expect, em.GetPolicy(tc.project))
 			}
 		})
 	}
