@@ -149,6 +149,7 @@ FROM dataproduct_view dp
 LEFT JOIN datasource_bigquery dsrc ON dsrc.dataset_id = dp.ds_id
 WHERE (array_length($1::uuid[], 1) IS NULL OR dp_id = ANY ($1))
  AND (array_length($2::TEXT[], 1) IS NULL OR dp_group = ANY ($2))
+ORDER BY ds_name ASC
 `
 
 type GetDataproductsWithDatasetsParams struct {
