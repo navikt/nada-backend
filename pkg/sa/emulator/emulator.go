@@ -77,6 +77,14 @@ func (e *Emulator) Reset() {
 	e.server.Close()
 }
 
+func (e *Emulator) GetServiceAccounts() map[string]*iam.ServiceAccount {
+	return e.serviceAccounts
+}
+
+func (e *Emulator) GetServiceAccountKeys() map[string][]*iam.ServiceAccountKey {
+	return e.serviceAccountKeys
+}
+
 func (e *Emulator) SetServiceAccount(name string, sa *iam.ServiceAccount) {
 	e.serviceAccounts[name] = sa
 }

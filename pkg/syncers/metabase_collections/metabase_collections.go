@@ -42,18 +42,18 @@ func (s *Syncer) Run(ctx context.Context) {
 			}
 
 			for _, missing := range report.Missing {
-				s.log.Info().Fields(map[string]interface{}{
+				s.log.Warn().Fields(map[string]interface{}{
 					"dataset_id":    missing.DatasetID,
 					"collection_id": missing.CollectionID,
 					"database_id":   missing.DatabaseID,
-				}).Msg("collection_missing")
+				}).Msg("collection_not_in_metabase")
 			}
 
 			for _, dangling := range report.Dangling {
 				s.log.Info().Fields(map[string]interface{}{
 					"collection_id":   dangling.ID,
 					"collection_name": dangling.Name,
-				}).Msg("collection_dangling")
+				}).Msg("collection_not_in_database")
 			}
 		}
 	}

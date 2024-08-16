@@ -56,11 +56,9 @@ func NewClients(
 			cfg.Metabase.APIURL,
 			cfg.Metabase.Username,
 			cfg.Metabase.Password,
-			cfg.Oauth.ClientID,
-			cfg.Oauth.ClientSecret,
-			cfg.Oauth.TenantID,
 			cfg.Metabase.BigQueryDatabase.APIEndpointOverride,
 			cfg.Metabase.BigQueryDatabase.DisableAuth,
+			cfg.Debug,
 			log.With().Str("component", "metabase").Logger(),
 		),
 		PollyAPI: httpapi.NewPollyAPI(

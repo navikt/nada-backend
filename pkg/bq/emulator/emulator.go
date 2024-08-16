@@ -16,6 +16,7 @@ import (
 )
 
 type Emulator struct {
+	endoint    string
 	testServer *server.TestServer
 	emulator   *server.Server
 	log        zerolog.Logger
@@ -107,6 +108,10 @@ func (e *Emulator) Cleanup() {
 }
 
 func (e *Emulator) Endpoint() string {
+	if len(e.endoint) > 0 {
+		return e.endoint
+	}
+
 	return e.testServer.URL
 }
 
@@ -154,12 +159,10 @@ func (e *Emulator) TestServer() {
 	e.testServer = e.emulator.TestServer()
 }
 
-func (e *Emulator) Serve(ctx context.Context, httpPort, grpcPort string) error {
-	err := e.emulator.Serve(
-		ctx,
-		fmt.Sprintf("0.0.0.0:%s", httpPort),
-		fmt.Sprintf("0.0.0.0:%s", grpcPort),
-	)
+func (e *Emulator) Serve(ctx context.Context, httpAddr, grpcAddr string) error {
+	e.endoint = httpAddr
+
+	err := e.emulator.Serve(ctx, httpAddr, grpcAddr)
 	if err != nil {
 		return fmt.Errorf("starting server: %w", err)
 	}

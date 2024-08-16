@@ -4,6 +4,9 @@ import (
 	"context"
 	"testing"
 
+	"github.com/goccy/bigquery-emulator/types"
+	bigQueryEmulator "github.com/navikt/nada-backend/pkg/bq/emulator"
+
 	"github.com/google/uuid"
 	"github.com/navikt/nada-backend/pkg/service"
 )
@@ -21,7 +24,30 @@ var (
 	TeamReefID   = uuid.MustParse("00000000-0000-0000-0000-000000000004")
 	TeamReefName = "Reef"
 
-	GroupNada = "nada@nav.no"
+	NameNada      = "nada"
+	GroupNada     = "nada@nav.no"
+	NaisTeamNada  = "nada"
+	NameAllUsers  = "all-users"
+	GroupAllUsers = "all-users@nav.no"
+
+	Project       = "test-project"
+	Location      = "europe-north1"
+	PseudoDataSet = "pseudo-test-dataset"
+
+	TestUser = &service.User{
+		Name:  NameNada,
+		Email: GroupNada,
+		GoogleGroups: []service.Group{
+			{
+				Name:  NameNada,
+				Email: GroupNada,
+			},
+			{
+				Name:  NameAllUsers,
+				Email: GroupAllUsers,
+			},
+		},
+	}
 )
 
 func StorageCreateProductAreasAndTeams(t *testing.T, storage service.ProductAreaStorage) {
@@ -64,6 +90,41 @@ func NewDataProductBiofuelProduction() service.NewDataproduct {
 		Group:         GroupNada,
 		ProductAreaID: &ProductAreaOceanicID,
 		TeamID:        &TeamSeagrassID,
+	}
+}
+
+func NewDatasetBiofuelConsumptionRatesSchema() []*bigQueryEmulator.Dataset {
+	return []*bigQueryEmulator.Dataset{
+		{
+			DatasetID: "biofuel",
+			TableID:   "consumption_rates",
+			Columns: []*types.Column{
+				bigQueryEmulator.ColumnRequired("id"),
+				bigQueryEmulator.ColumnNullable("fuel_type"),
+				bigQueryEmulator.ColumnNullable("consumption_rate"),
+				bigQueryEmulator.ColumnNullable("unit"),
+			},
+		},
+		{
+			DatasetID: PseudoDataSet,
+		},
+	}
+}
+
+func NewDatasetBiofuelConsumptionRates(dataProductID uuid.UUID) service.NewDataset {
+	dataset := NewDatasetBiofuelConsumptionRatesSchema()[0]
+
+	return service.NewDataset{
+		DataproductID: dataProductID,
+		Name:          "Biofuel Consumption Rates",
+		Description:   strToStrPtr("Consumption rates of biofuels in the transportation sector"),
+		Keywords:      []string{"biofuel", "consumption", "rates"},
+		BigQuery: service.NewBigQuery{
+			ProjectID: Project,
+			Dataset:   dataset.DatasetID,
+			Table:     dataset.TableID,
+		},
+		Pii: service.PiiLevelNone,
 	}
 }
 

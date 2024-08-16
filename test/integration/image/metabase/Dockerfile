@@ -13,7 +13,7 @@ RUN apt-get update && apt-get upgrade -y && apt-get install openjdk-11-jdk curl 
 RUN curl -L https://github.com/metabase/metabase/archive/refs/tags/v1.50.19.tar.gz -o metabase.tar.gz \
     && tar -xzf metabase.tar.gz --strip-components=1
 
-COPY ./resources/metabase/001-bigquery-cloud-sdk-no-auth.patch .
+COPY 001-bigquery-cloud-sdk-no-auth.patch .
 
 RUN git apply 001-bigquery-cloud-sdk-no-auth.patch
 
