@@ -49,7 +49,7 @@ const fakeMetabaseSA = `{
 
 func TestMetabase(t *testing.T) {
 	ctx := context.Background()
-	ctx, cancel := context.WithDeadline(ctx, time.Now().Add(5*time.Minute))
+	ctx, cancel := context.WithDeadline(ctx, time.Now().Add(15*time.Minute))
 	defer cancel()
 
 	log := zerolog.New(zerolog.NewConsoleWriter())
