@@ -13,7 +13,7 @@ require (
 	github.com/btcsuite/btcutil v1.0.2
 	github.com/coreos/go-oidc/v3 v3.11.0
 	github.com/docker/cli v26.1.3+incompatible
-	github.com/fsouza/fake-gcs-server v1.49.2
+	github.com/fsouza/fake-gcs-server v1.49.3
 	github.com/gilcrest/diygoapi v0.53.0
 	github.com/go-chi/chi v4.1.2+incompatible
 	github.com/go-chi/cors v1.2.1
@@ -42,16 +42,16 @@ require (
 	github.com/sqlc-dev/sqlc v1.27.0
 	github.com/stretchr/testify v1.9.0
 	golang.org/x/oauth2 v0.22.0
-	google.golang.org/api v0.191.0
+	google.golang.org/api v0.192.0
 	gopkg.in/yaml.v3 v3.0.1
 )
 
 require (
 	cloud.google.com/go v0.115.0 // indirect
-	cloud.google.com/go/auth v0.8.0 // indirect
+	cloud.google.com/go/auth v0.8.1 // indirect
 	cloud.google.com/go/auth/oauth2adapt v0.2.3 // indirect
 	cloud.google.com/go/compute/metadata v0.5.0 // indirect
-	cloud.google.com/go/pubsub v1.40.0 // indirect
+	cloud.google.com/go/pubsub v1.41.0 // indirect
 	dario.cat/mergo v1.0.0 // indirect
 	github.com/Azure/go-ansiterm v0.0.0-20230124172434-306776ec8161 // indirect
 	github.com/DataDog/go-hll v1.0.2 // indirect
@@ -101,8 +101,8 @@ require (
 	github.com/gosimple/unidecode v1.0.1 // indirect
 	github.com/hashicorp/hcl v1.0.0 // indirect
 	github.com/klauspost/asmfmt v1.3.2 // indirect
-	github.com/klauspost/compress v1.17.8 // indirect
-	github.com/klauspost/cpuid/v2 v2.2.7 // indirect
+	github.com/klauspost/compress v1.17.9 // indirect
+	github.com/klauspost/cpuid/v2 v2.2.8 // indirect
 	github.com/leodido/go-urn v1.2.1 // indirect
 	github.com/linkedin/goavro/v2 v2.12.0 // indirect
 	github.com/magiconair/properties v1.8.7 // indirect
@@ -121,7 +121,7 @@ require (
 	github.com/opencontainers/runc v1.1.12 // indirect
 	github.com/pelletier/go-toml/v2 v2.2.2 // indirect
 	github.com/pierrec/lz4/v4 v4.1.18 // indirect
-	github.com/pkg/xattr v0.4.9 // indirect
+	github.com/pkg/xattr v0.4.10 // indirect
 	github.com/pmezard/go-difflib v1.0.1-0.20181226105442-5d4384ee4fb2 // indirect
 	github.com/prometheus/client_model v0.6.1 // indirect
 	github.com/prometheus/common v0.54.0 // indirect
