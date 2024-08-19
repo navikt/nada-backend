@@ -1,4 +1,4 @@
-FROM golang:1.22-bookworm AS bqbuilder
+FROM golang:1.23-bookworm AS bqbuilder
 
 RUN apt-get update && apt-get install -y --no-install-recommends clang
 
@@ -10,7 +10,7 @@ COPY . .
 RUN mkdir -p /app/bin
 RUN go build -o /app/bin/bq ./cmd/bq/main.go
 
-FROM golang:1.22-bookworm AS builder
+FROM golang:1.23-bookworm AS builder
 
 WORKDIR /src
 COPY . .
