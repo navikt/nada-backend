@@ -99,6 +99,8 @@ func TestMetabase(t *testing.T) {
 	zlog := zerolog.New(os.Stdout)
 	r := TestRouter(zlog)
 
+	bigQueryContainerHostPort := "http://host.docker.internal:" + bqHTTPPort
+
 	saapi := gcp.NewServiceAccountAPI(saClient)
 	bqapi := gcp.NewBigQueryAPI(Project, Location, PseudoDataSet, bqClient)
 	// FIXME: should we just add /api to the connectionurl returned
@@ -108,7 +110,7 @@ func TestMetabase(t *testing.T) {
 		mbCfg.Password,
 		// We want metabase to connect with the big query emulator
 		// running on the host
-		"http://host.docker.internal:"+bqHTTPPort,
+		bigQueryContainerHostPort,
 		true,
 		false,
 		log,

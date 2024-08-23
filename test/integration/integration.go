@@ -210,6 +210,9 @@ func (c *containers) RunMetabase(cfg *MetabaseConfig) *MetabaseConfig {
 		config.RestartPolicy = docker.RestartPolicy{
 			Name: "no",
 		}
+		config.ExtraHosts = []string{
+			"host.docker.internal:host-gateway",
+		}
 	})
 	if err != nil {
 		c.t.Fatalf("starting metabase container: %s", err)
@@ -288,7 +291,9 @@ func NewContainers(t *testing.T, log zerolog.Logger) *containers {
 
 	networkName := fmt.Sprintf("nada-integration-test-network-%d", rand.Intn(1000))
 
-	network, err := pool.CreateNetwork(networkName)
+	network, err := pool.CreateNetwork(networkName, func(config *docker.CreateNetworkOptions) {
+		config.Driver = "bridge"
+	})
 	if err != nil {
 		log.Fatal().Err(err).Msg("creating network")
 	}
