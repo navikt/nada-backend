@@ -80,6 +80,7 @@ jobs:
           password: ${{ steps.auth.outputs.access_token }}
 
       - name: Check if images exist
+        id: check-images
         run: make check-images
         continue-on-error: true
 
