@@ -86,7 +86,7 @@ endif
 
 -include .env
 
-test:
+test: | pull-all
 	METABASE_VERSION=$(METABASE_VERSION) CGO_ENABLED=1 CXX=clang++ CC=clang \
 		CGO_CXXFLAGS=-Wno-everything CGO_LDFLAGS=-Wno-everything \
 			go test -timeout 20m -race -coverprofile=coverage.txt -covermode=atomic -v ./...
@@ -160,7 +160,7 @@ run-online: | env test-sa metabase-sa docker-build-metabase docker-compose-up se
 		STORAGE_EMULATOR_HOST=http://localhost:8082/storage/v1/ $(GO) run ./cmd/nada-backend --config ./config-local-online.yaml
 .PHONY: run-online
 
-start-run-online-deps: | docker-login
+start-run-online-deps: | docker-login pull-all
 	@echo "Starting dependencies with docker compose... (online)"
 	@echo "Mocks version: $(MOCKS_VERSION)"
 	@echo "Metabase version: $(METABASE_VERSION)"
@@ -173,7 +173,7 @@ run: | start-run-deps env test-sa setup-metabase
 		GOOGLE_CLOUD_PROJECT=test STORAGE_EMULATOR_HOST=http://localhost:8082/storage/v1/ $(GO) run ./cmd/nada-backend --config ./config-local.yaml
 .PHONY: run
 
-start-run-deps: | docker-login
+start-run-deps: | docker-login pull-all
 	@echo "Starting dependencies with docker compose... (fully local)"
 	@echo "Mocks version: $(MOCKS_VERSION)"
 	@echo "Metabase version: $(METABASE_VERSION)"
@@ -187,6 +187,24 @@ docker-login:
 
 build-push-all: | build-all push-all
 .PHONY: build-push-all
+
+pull-all: | pull-metabase pull-metabase-patched pull-deps
+.PHONY: pull-all
+
+pull-metabase:
+	@echo "Pulling metabase docker image from registry..."
+	docker pull $(IMAGE_URL)/$(IMAGE_REPOSITORY)/metabase:$(METABASE_VERSION)
+.PHONY: pull-metabase
+
+pull-metabase-patched:
+	@echo "Pulling patched metabase docker image from registry..."
+	docker pull $(IMAGE_URL)/$(IMAGE_REPOSITORY)/metabase-patched:$(METABASE_VERSION)
+.PHONY: pull-metabase-patched
+
+pull-deps:
+	@echo "Pulling nada-backend mocks docker image from registry..."
+	docker pull $(IMAGE_URL)/$(IMAGE_REPOSITORY)/nada-backend-mocks:$(MOCKS_VERSION)
+.PHONY: pull-deps
 
 build-all: | build-metabase build-metabase-patched build-deps
 .PHONY: build-all

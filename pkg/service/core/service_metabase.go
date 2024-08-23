@@ -9,6 +9,10 @@ import (
 	"strings"
 	"time"
 
+	"github.com/rs/zerolog/log"
+
+	"github.com/rs/zerolog"
+
 	"github.com/btcsuite/btcutil/base58"
 
 	"github.com/gosimple/slug"
@@ -35,6 +39,8 @@ type metabaseService struct {
 	bigqueryStorage          service.BigQueryStorage
 	dataproductStorage       service.DataProductsStorage
 	accessStorage            service.AccessStorage
+
+	log zerolog.Logger
 }
 
 func (s *metabaseService) CreateMappingRequest(ctx context.Context, user *service.User, datasetID uuid.UUID, services []string) error {
@@ -333,7 +339,7 @@ func (s *metabaseService) GrantMetabaseAccess(ctx context.Context, dsID uuid.UUI
 			return errs.E(op, err)
 		}
 	default:
-		return errs.E(errs.InvalidRequest, op, fmt.Errorf("unsupported subject type %v for metabase access grant", subjectType))
+		log.Info().Msgf("Unsupported subject type %v for metabase access grant", subjectType)
 	}
 
 	return nil
@@ -849,6 +855,7 @@ func NewMetabaseService(
 	bqs service.BigQueryStorage,
 	dps service.DataProductsStorage,
 	as service.AccessStorage,
+	log zerolog.Logger,
 ) *metabaseService {
 	return &metabaseService{
 		gcpProject:               gcpProject,
@@ -863,5 +870,6 @@ func NewMetabaseService(
 		bigqueryStorage:          bqs,
 		dataproductStorage:       dps,
 		accessStorage:            as,
+		log:                      log,
 	}
 }
