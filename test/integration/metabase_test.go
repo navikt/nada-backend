@@ -127,6 +127,7 @@ func TestMetabase(t *testing.T) {
 		stores.BigQueryStorage,
 		stores.DataProductsStorage,
 		stores.AccessStorage,
+		zlog,
 	)
 
 	mapper := metabase_mapper.New(mbService, stores.ThirdPartyMappingStorage, 60, 60, log)

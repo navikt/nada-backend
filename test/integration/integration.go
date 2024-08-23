@@ -190,15 +190,21 @@ func NewMetabaseConfig() *MetabaseConfig {
 }
 
 func (c *containers) RunMetabase(cfg *MetabaseConfig) *MetabaseConfig {
+	metabaseVersion := os.Getenv("METABASE_VERSION")
+	if metabaseVersion == "" {
+		metabaseVersion = "v1.50.20"
+	}
+
 	resource, err := c.pool.RunWithOptions(&dockertest.RunOptions{
 		Repository: "europe-north1-docker.pkg.dev/nada-prod-6977/nada-north/metabase-patched",
-		Name:       os.Getenv("METABASE_VERSION"),
+		Tag:        metabaseVersion,
 		NetworkID:  c.network.Network.ID,
 		Env: []string{
 			"MB_DB_TYPE=h2",
 			"MB_ENABLE_PASSWORD_LOGIN=true",
 			fmt.Sprintf("MB_PREMIUM_EMBEDDING_TOKEN=%s", cfg.PremiumEmbeddingToken),
 		},
+		Platform: "linux/amd64",
 	}, func(config *docker.HostConfig) {
 		config.AutoRemove = true
 		config.RestartPolicy = docker.RestartPolicy{
