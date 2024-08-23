@@ -185,7 +185,7 @@ func (s *metabaseService) grantAccessesOnCreation(ctx context.Context, dsID uuid
 				return errs.E(op, err)
 			}
 		default:
-			return errs.E(errs.InvalidRequest, op, fmt.Errorf("unsupported subject type %v for metabase access grant", sType))
+			s.log.Info().Msgf("Unsupported subject type %v for metabase access grant", sType)
 		}
 	}
 
