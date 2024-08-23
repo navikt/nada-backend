@@ -81,7 +81,10 @@ jobs:
 
       - name: Check if images exist
         id: check-images
-        run: make check-images
+        run: |
+          set +e
+          make check-images
+          echo "exit_code=$?" >> $GITHUB_OUTPUT
         continue-on-error: true
 
       - name: Build and push all images
