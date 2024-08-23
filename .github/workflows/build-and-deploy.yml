@@ -99,6 +99,21 @@ jobs:
     - test-containers
     steps:
       - uses: actions/checkout@v4
+      - id: auth
+        name: Authenticate with Google Cloud
+        uses: google-github-actions/auth@v2
+        with:
+          token_format: access_token
+          workload_identity_provider: projects/1007056531311/locations/global/workloadIdentityPools/ci-nada-prod/providers/ci-nada-prod
+          service_account: ci-nada-images@nada-prod-6977.iam.gserviceaccount.com
+
+      - uses: docker/login-action@v3
+        name: Login to Google Artifact Registry
+        with:
+          registry: europe-north1-docker.pkg.dev
+          username: oauth2accesstoken
+          password: ${{ steps.auth.outputs.access_token }}
+      - run: make pull-all
       - uses: actions/setup-go@v5
         with:
           go-version-file: go.mod
