@@ -224,7 +224,7 @@ push-metabase-patched:
 
 push-deps:
 	@echo "Pushing nada-backend mocks docker image to registry..."
-	docker push $(IMAGE_URL)/$(IMAGE_REPOSITORY)/nada-backend-mocks:latest
+	docker push $(IMAGE_URL)/$(IMAGE_REPOSITORY)/nada-backend-mocks:$(MOCKS_VERSION)
 .PHONY: push-deps
 
 check-images:
