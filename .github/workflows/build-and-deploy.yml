@@ -81,6 +81,7 @@ jobs:
 
       - name: Check if images exist
         run: make check-images
+        continue-on-error: true
 
       - name: Build and push all images
         if: ${{ steps.check-images.outputs.exit_code != 0 }}
