@@ -57,16 +57,42 @@ jobs:
           version: "latest"
           install-go: false
 
+  test-containers:
+    permissions:
+      contents: read
+      id-token: write
+    runs-on: ubuntu-latest
+    steps:
+      - id: auth
+        name: Authenticate with Google Cloud
+        uses: google-github-actions/auth@v2
+        with:
+          token_format: access_token
+          workload_identity_provider: projects/1007056531311/locations/global/workloadIdentityPools/ci-nada-prod/providers/ci-nada-prod
+          service_account: ci-nada-images@nada-prod-6977.iam.gserviceaccount.com
+
+      - uses: docker/login-action@v3
+        name: Login to Google Artifact Registry
+        with:
+          registry: europe-north1-docker.pkg.dev
+          username: oauth2accesstoken
+          password: ${{ steps.auth.outputs.access_token }}
+
+      - name: Build and push all images
+        run: make build-push-all
+
   tests:
     permissions:
       contents: read
     runs-on: ubuntu-latest
+    needs:
+    - test-containers
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-go@v5
         with:
           go-version-file: go.mod
-      - run: CGO_ENABLED=1 CXX=clang++ CC=clang CGO_CXXFLAGS=-Wno-everything CGO_LDFLAGS=-Wno-everything go test -timeout 20m -race -coverprofile=coverage.txt -covermode=atomic -v ./...
+      - run: make test
       - name: Upload coverage reports to Codecov
         uses: codecov/codecov-action@v4.5.0
         with:
@@ -81,7 +107,7 @@ jobs:
       - uses: actions/setup-go@v5
         with:
           go-version-file: go.mod
-      - run: make linux-build
+      - run: make release
       - uses: actions/upload-artifact@v4
         with:
           name: nada-backend
@@ -92,7 +118,11 @@ jobs:
       contents: write
       id-token: write
     runs-on: ubuntu-latest
-    needs: [build,golangci,tests,staticchecks]
+    needs:
+    - build
+    - golangci
+    - tests
+    - staticchecks
     if: github.actor != 'dependabot[bot]'
     outputs:
       image: ${{ steps.docker-build-push.outputs.image }}
@@ -113,7 +143,8 @@ jobs:
   deploy-dev:
     name: Deploy dev gcp
     runs-on: ubuntu-20.04
-    needs: [push]
+    needs:
+    - push
     if: github.actor != 'dependabot[bot]'
     steps:
       - uses: actions/checkout@v4
@@ -128,7 +159,9 @@ jobs:
   deploy-prod:
     name: Deploy prod gcp
     runs-on: ubuntu-20.04
-    needs: [push, deploy-dev]
+    needs:
+    - push
+    - deploy-dev
     if: github.ref == 'refs/heads/main' && inputs.environment != 'dev'|| inputs.environment == 'prod'
     steps:
       - uses: actions/checkout@v4

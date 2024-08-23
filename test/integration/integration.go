@@ -190,9 +190,10 @@ func NewMetabaseConfig() *MetabaseConfig {
 }
 
 func (c *containers) RunMetabase(cfg *MetabaseConfig) *MetabaseConfig {
-	resource, err := c.pool.BuildAndRunWithOptions("./image/metabase/Dockerfile", &dockertest.RunOptions{
-		Name:      "metabase-patched",
-		NetworkID: c.network.Network.ID,
+	resource, err := c.pool.RunWithOptions(&dockertest.RunOptions{
+		Repository: "europe-north1-docker.pkg.dev/nada-prod-6977/nada-north/metabase-patched",
+		Name:       os.Getenv("METABASE_VERSION"),
+		NetworkID:  c.network.Network.ID,
 		Env: []string{
 			"MB_DB_TYPE=h2",
 			"MB_ENABLE_PASSWORD_LOGIN=true",
