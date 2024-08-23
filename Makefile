@@ -209,7 +209,7 @@ build-deps: build-metabase-patched
 		--file resources/images/nada-backend/Dockerfile-mocks .
 .PHONY: build-deps
 
-push-all: | docker-login build-all push-metabase push-metabase-patched push-deps
+push-all: | push-metabase push-metabase-patched push-deps
 .PHONY: push-all
 
 push-metabase:
@@ -226,3 +226,7 @@ push-deps:
 	@echo "Pushing nada-backend mocks docker image to registry..."
 	docker push $(IMAGE_URL)/$(IMAGE_REPOSITORY)/nada-backend-mocks:latest
 .PHONY: push-deps
+
+check-images:
+	@./resources/scripts/check_images.sh $(IMAGE_URL)/$(IMAGE_REPOSITORY) metabase:$(METABASE_VERSION) metabase-patched:$(METABASE_VERSION) nada-backend-mocks:$(MOCKS_VERSION)
+.PHONY: check-images
