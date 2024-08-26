@@ -168,6 +168,7 @@ jobs:
           team: nada
           identity_provider: ${{ secrets.NAIS_WORKLOAD_IDENTITY_PROVIDER }}
           project_id: ${{ vars.NAIS_MANAGEMENT_PROJECT_ID }}
+          dockerfile: ./resources/images/nada-backend/Dockerfile
 
   deploy-dev:
     name: Deploy dev gcp
