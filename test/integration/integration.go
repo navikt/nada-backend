@@ -195,11 +195,6 @@ func (c *containers) RunMetabase(cfg *MetabaseConfig) *MetabaseConfig {
 		metabaseVersion = "v1.50.20"
 	}
 
-	hostGatewayIP := "host-gateway"
-	if os.Getenv("CI") == "true" {
-		hostGatewayIP = "172.17.0.1"
-	}
-
 	resource, err := c.pool.RunWithOptions(&dockertest.RunOptions{
 		Repository: "europe-north1-docker.pkg.dev/nada-prod-6977/nada-north/metabase-patched",
 		Tag:        metabaseVersion,
@@ -214,9 +209,6 @@ func (c *containers) RunMetabase(cfg *MetabaseConfig) *MetabaseConfig {
 		config.AutoRemove = true
 		config.RestartPolicy = docker.RestartPolicy{
 			Name: "no",
-		}
-		config.ExtraHosts = []string{
-			"host.docker.internal:" + hostGatewayIP,
 		}
 	})
 	if err != nil {
