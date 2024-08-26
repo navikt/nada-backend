@@ -10,7 +10,6 @@ import (
 	"github.com/google/uuid"
 	"github.com/navikt/nada-backend/pkg/errs"
 	"github.com/navikt/nada-backend/pkg/service"
-	"github.com/rs/zerolog"
 )
 
 var _ service.AccessService = (*accessService)(nil)
@@ -24,7 +23,6 @@ type accessService struct {
 	bigQueryStorage     service.BigQueryStorage
 	joinableViewStorage service.JoinableViewsStorage
 	bigQueryAPI         service.BigQueryAPI
-	log                 zerolog.Logger
 }
 
 func (s *accessService) GetAccessRequests(ctx context.Context, datasetID uuid.UUID) (*service.AccessRequestsWrapper, error) {
