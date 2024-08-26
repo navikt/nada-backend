@@ -76,6 +76,9 @@ func TestMetabase(t *testing.T) {
 
 	bqHTTPPort := strconv.Itoa(GetFreePort(t))
 	bqHTTPAddr := fmt.Sprintf("127.0.0.1:%s", bqHTTPPort)
+	if len(os.Getenv("CI")) > 0 {
+		bqHTTPAddr = fmt.Sprintf("0.0.0.0:%s", bqHTTPPort)
+	}
 	bqGRPCAddr := fmt.Sprintf("127.0.0.1:%s", strconv.Itoa(GetFreePort(t)))
 	go func() {
 		_ = bqe.Serve(ctx, bqHTTPAddr, bqGRPCAddr)
