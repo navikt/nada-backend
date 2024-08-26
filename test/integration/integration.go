@@ -50,10 +50,9 @@ type metabasePrefs struct {
 type CleanupFn func()
 
 type containers struct {
-	t    *testing.T
-	log  zerolog.Logger
-	pool *dockertest.Pool
-	// network   *dockertest.Network
+	t         *testing.T
+	log       zerolog.Logger
+	pool      *dockertest.Pool
 	resources []*dockertest.Resource
 }
 
@@ -64,11 +63,6 @@ func (c *containers) Cleanup() {
 			c.log.Warn().Err(err).Msg("purging resources")
 		}
 	}
-
-	// err := c.network.Close()
-	// if err != nil {
-	// 	c.log.Warn().Err(err).Msg("closing network")
-	// }
 }
 
 type PostgresConfig struct {
@@ -104,7 +98,6 @@ func (c *containers) RunPostgres(cfg *PostgresConfig) *PostgresConfig {
 			fmt.Sprintf("POSTGRES_DB=%s", cfg.Database),
 			"listen_addresses = '*'",
 		},
-		// NetworkID: c.network.Network.ID,
 	}, func(config *docker.HostConfig) {
 		config.AutoRemove = true
 		config.RestartPolicy = docker.RestartPolicy{
@@ -197,7 +190,6 @@ func (c *containers) RunMetabase(cfg *MetabaseConfig) *MetabaseConfig {
 	resource, err := c.pool.RunWithOptions(&dockertest.RunOptions{
 		Repository: "europe-north1-docker.pkg.dev/nada-prod-6977/nada-north/metabase-patched",
 		Tag:        metabaseVersion,
-		// NetworkID:  c.network.Network.ID,
 		Env: []string{
 			"MB_DB_TYPE=h2",
 			"MB_ENABLE_PASSWORD_LOGIN=true",
@@ -285,20 +277,10 @@ func NewContainers(t *testing.T, log zerolog.Logger) *containers {
 		t.Fatalf("pinging Docker: %s", err)
 	}
 
-	// networkName := fmt.Sprintf("nada-integration-test-network-%d", rand.Intn(1000))
-	//
-	// network, err := pool.CreateNetwork(networkName, func(config *docker.CreateNetworkOptions) {
-	// 	config.Driver = "bridge"
-	// })
-	// if err != nil {
-	// 	log.Fatal().Err(err).Msg("creating network")
-	// }
-
 	return &containers{
-		t:    t,
-		log:  log,
-		pool: pool,
-		// network:   network,
+		t:         t,
+		log:       log,
+		pool:      pool,
 		resources: nil,
 	}
 }
