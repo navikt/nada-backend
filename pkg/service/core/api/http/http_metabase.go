@@ -241,6 +241,13 @@ func (c *metabaseAPI) CreateDatabase(ctx context.Context, team, name, saJSON, sa
 	}
 	err = c.request(ctx, http.MethodPost, "/database", db, &v)
 	if err != nil {
+		c.log.Debug().Fields(map[string]any{
+			"team":        team,
+			"name":        name,
+			"sa":          saEmail,
+			"endpoint":    c.endpoint,
+			"enable_auth": enableAuth,
+		}).Msg("creating_database")
 		return 0, errs.E(op, err)
 	}
 
