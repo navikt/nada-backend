@@ -153,7 +153,7 @@ func TestSyncer_AddRestrictedTagToCollections(t *testing.T) {
 				}, nil)
 				api.On("UpdateCollection", ctx, &service.MetabaseCollection{
 					ID:   1,
-					Name: "collection1 (tilgangsstyrt)",
+					Name: "collection1 🔐",
 				}).Return(nil)
 			},
 			setupStorage: func(storage *MockMetabaseStorage) {
@@ -170,7 +170,7 @@ func TestSyncer_AddRestrictedTagToCollections(t *testing.T) {
 				}, nil)
 				api.On("UpdateCollection", ctx, &service.MetabaseCollection{
 					ID:   1,
-					Name: "collection1 (tilgangsstyrt)",
+					Name: "collection1 🔐",
 				}).Return(errors.New("update error"))
 			},
 			setupStorage: func(storage *MockMetabaseStorage) {

@@ -211,7 +211,7 @@ func TestMetabase(t *testing.T) {
 
 		collections, err := mbapi.GetCollections(ctx)
 		assert.NoError(t, err)
-		assert.True(t, ContainsCollectionWithName(collections, "Biofuel Consumption Rates (tilgangsstyrt)"))
+		assert.True(t, ContainsCollectionWithName(collections, "Biofuel Consumption Rates 🔐"))
 
 		permissionGroups, err := mbapi.GetPermissionGroups(ctx)
 		assert.NoError(t, err)
@@ -229,7 +229,7 @@ func TestMetabase(t *testing.T) {
 		assert.Equal(t, projectPolicy.Bindings[1].Role, "projects/test-project/roles/nada.metabase")
 	})
 
-	t.Run("Removing (tilgangsstyrt) is added back", func(t *testing.T) {
+	t.Run("Removing 🔐 is added back", func(t *testing.T) {
 		mbmeta, err := stores.MetaBaseStorage.GetMetadata(ctx, fuelData.ID, false)
 		assert.NoError(t, err)
 
@@ -246,6 +246,6 @@ func TestMetabase(t *testing.T) {
 
 		collections, err := mbapi.GetCollections(ctx)
 		assert.NoError(t, err)
-		assert.True(t, ContainsCollectionWithName(collections, "My new collection name (tilgangsstyrt)"))
+		assert.True(t, ContainsCollectionWithName(collections, "My new collection name 🔐"))
 	})
 }

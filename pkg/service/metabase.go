@@ -10,7 +10,7 @@ import (
 )
 
 const (
-	MetabaseRestrictedCollectionTag = "(tilgangsstyrt)"
+	MetabaseRestrictedCollectionTag = "🔐"
 )
 
 type MetabaseStorage interface {
