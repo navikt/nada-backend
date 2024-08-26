@@ -92,6 +92,6 @@ data:
     amplitude_api_key: # Loaded from env var NADA_AMPLITUDE_API_KEY
     cache_duration_seconds: 7200
     team_projects_update_delay_seconds: 120
-    debug: false
+    debug: true
     story_create_ignore_missing_team: true
     log_level: info
