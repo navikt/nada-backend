@@ -14,7 +14,7 @@ type AccessStorage interface {
 	GetAccessRequest(ctx context.Context, accessRequestID uuid.UUID) (*AccessRequest, error)
 	GetAccessToDataset(ctx context.Context, id uuid.UUID) (*Access, error)
 	GetUnrevokedExpiredAccess(ctx context.Context) ([]*Access, error)
-	GrantAccessToDatasetAndApproveRequest(ctx context.Context, user *User, datasetID uuid.UUID, subject string, accessRequestID uuid.UUID, expires *time.Time) error
+	GrantAccessToDatasetAndApproveRequest(ctx context.Context, user *User, datasetID uuid.UUID, subject, accessRequestOwner string, accessRequestID uuid.UUID, expires *time.Time) error
 	GrantAccessToDatasetAndRenew(ctx context.Context, datasetID uuid.UUID, expires *time.Time, subject, owner, granter string) error
 	ListAccessRequestsForDataset(ctx context.Context, datasetID uuid.UUID) ([]*AccessRequest, error)
 	ListAccessRequestsForOwner(ctx context.Context, owner []string) ([]*AccessRequest, error)

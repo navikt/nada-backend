@@ -226,6 +226,7 @@ func (s *accessService) ApproveAccessRequest(ctx context.Context, user *service.
 		user,
 		ds.ID,
 		subjWithType,
+		ar.Owner,
 		ar.ID,
 		ar.Expires,
 	)

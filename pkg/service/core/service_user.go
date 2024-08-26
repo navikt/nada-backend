@@ -80,14 +80,15 @@ func (s *userService) GetUserData(ctx context.Context, user *service.User) (*ser
 
 	userData.AccessRequestsAsGranter = dar
 
-	owned, granted, err := s.dataProductStorage.GetAccessibleDatasets(ctx, userData.GoogleGroups.Emails(), "user:"+strings.ToLower(user.Email))
+	owned, granted, serviceAccountGranted, err := s.dataProductStorage.GetAccessibleDatasets(ctx, userData.GoogleGroups.Emails(), "user:"+strings.ToLower(user.Email))
 	if err != nil {
 		return nil, errs.E(op, err)
 	}
 
 	userData.Accessable = service.AccessibleDatasets{
-		Owned:   owned,
-		Granted: granted,
+		Owned:                 owned,
+		Granted:               granted,
+		ServiceAccountGranted: serviceAccountGranted,
 	}
 
 	dbStories, err := s.storyStorage.GetStoriesWithTeamkatalogenByGroups(ctx, user.GoogleGroups.Emails())
@@ -106,9 +107,9 @@ func (s *userService) GetUserData(ctx context.Context, user *service.User) (*ser
 		userData.InsightProducts = append(userData.InsightProducts, *p)
 	}
 
-	groups := []string{"user:" + strings.ToLower(user.Email)}
+	groups := []string{strings.ToLower(user.Email)}
 	for _, g := range user.GoogleGroups {
-		groups = append(groups, "group:"+strings.ToLower(g.Email))
+		groups = append(groups, strings.ToLower(g.Email))
 	}
 
 	accessRequestSQLs, err := s.accessStorage.ListAccessRequestsForOwner(ctx, groups)

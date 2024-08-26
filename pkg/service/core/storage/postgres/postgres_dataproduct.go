@@ -77,7 +77,7 @@ func (s *dataProductStorage) GetDataproductsNumberByTeam(ctx context.Context, te
 	return n, nil
 }
 
-func (s *dataProductStorage) GetAccessibleDatasets(ctx context.Context, userGroups []string, requester string) (owned []*service.AccessibleDataset, granted []*service.AccessibleDataset, err error) {
+func (s *dataProductStorage) GetAccessibleDatasets(ctx context.Context, userGroups []string, requester string) (owned []*service.AccessibleDataset, granted []*service.AccessibleDataset, serviceAccountGranted []*service.AccessibleDataset, err error) {
 	const op errs.Op = "dataProductStorage.GetAccessibleDatasets"
 
 	datasetsSQL, err := s.db.Querier.GetAccessibleDatasets(ctx, gensql.GetAccessibleDatasetsParams{
@@ -85,7 +85,7 @@ func (s *dataProductStorage) GetAccessibleDatasets(ctx context.Context, userGrou
 		Requester: requester,
 	})
 	if err != nil {
-		return nil, nil, errs.E(errs.Database, op, err)
+		return nil, nil, nil, errs.E(errs.Database, op, err)
 	}
 
 	for _, d := range datasetsSQL {
@@ -94,6 +94,33 @@ func (s *dataProductStorage) GetAccessibleDatasets(ctx context.Context, userGrou
 		} else {
 			granted = append(granted, accessibleDatasetFromSql(&d))
 		}
+	}
+
+	serviceAccountAccessible, err := s.db.Querier.GetAccessibleDatasetsByOwnedServiceAccounts(ctx, gensql.GetAccessibleDatasetsByOwnedServiceAccountsParams{
+		Requester: requester,
+		Groups:    userGroups,
+	})
+	if err != nil {
+		return nil, nil, nil, errs.E(errs.Database, op, err)
+	}
+
+	for _, d := range serviceAccountAccessible {
+		serviceAccountGranted = append(serviceAccountGranted, &service.AccessibleDataset{
+			Dataset: service.Dataset{
+				ID:            d.ID,
+				Name:          d.Name,
+				DataproductID: d.DataproductID,
+				Keywords:      d.Keywords,
+				Slug:          d.Slug,
+				Description:   nullStringToPtr(d.Description),
+				Created:       d.Created,
+				LastModified:  d.LastModified,
+			},
+			Group:           nullStringToString(d.Group),
+			DpSlug:          *nullStringToPtr(d.DpSlug),
+			DataproductName: nullStringToString(d.DpName),
+			Subject:         nullStringToPtr(d.Subject),
+		})
 	}
 
 	return
