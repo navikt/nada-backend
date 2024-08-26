@@ -100,6 +100,9 @@ func TestMetabase(t *testing.T) {
 	r := TestRouter(zlog)
 
 	bigQueryContainerHostPort := "http://host.docker.internal:" + bqHTTPPort
+	if len(os.Getenv("CI")) > 0 {
+		bigQueryContainerHostPort = "http://172.17.0.1:" + bqHTTPPort
+	}
 
 	saapi := gcp.NewServiceAccountAPI(saClient)
 	bqapi := gcp.NewBigQueryAPI(Project, Location, PseudoDataSet, bqClient)
