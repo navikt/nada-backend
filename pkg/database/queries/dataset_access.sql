@@ -1,11 +1,13 @@
 -- name: GrantAccessToDataset :one
 INSERT INTO dataset_access (dataset_id,
                             "subject",
+                            "owner",
                             granter,
                             expires,
                             access_request_id)
 VALUES (@dataset_id,
         @subject,
+        @owner,
         LOWER(@granter),
         @expires,
         @access_request_id)

@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/btcsuite/btcutil/base58"
+	"github.com/rs/zerolog"
 
 	"github.com/gosimple/slug"
 
@@ -35,6 +36,8 @@ type metabaseService struct {
 	bigqueryStorage          service.BigQueryStorage
 	dataproductStorage       service.DataProductsStorage
 	accessStorage            service.AccessStorage
+
+	log zerolog.Logger
 }
 
 func (s *metabaseService) CreateMappingRequest(ctx context.Context, user *service.User, datasetID uuid.UUID, services []string) error {
@@ -179,7 +182,7 @@ func (s *metabaseService) grantAccessesOnCreation(ctx context.Context, dsID uuid
 				return errs.E(op, err)
 			}
 		default:
-			return errs.E(errs.InvalidRequest, op, fmt.Errorf("unsupported subject type %v for metabase access grant", sType))
+			s.log.Info().Msgf("unsupported subject type %v for metabase access grant", sType)
 		}
 	}
 
@@ -314,7 +317,7 @@ func (s *metabaseService) GrantMetabaseAccess(ctx context.Context, dsID uuid.UUI
 			return errs.E(op, err)
 		}
 	default:
-		return errs.E(errs.InvalidRequest, op, fmt.Errorf("unsupported subject type %v for metabase access grant", subjectType))
+		s.log.Info().Msgf("unsupported subject type %v for metabase access grant", subjectType)
 	}
 
 	return nil
@@ -533,7 +536,7 @@ func (s *metabaseService) DeleteDatabase(ctx context.Context, dsID uuid.UUID) er
 		return nil
 	}
 
-	err = s.deleteAllUsersDatabase(ctx, dsID, mbMeta)
+	err = s.deleteAllUsersDatabase(ctx, mbMeta)
 	if err != nil {
 		return errs.E(op, err)
 	}
@@ -541,7 +544,7 @@ func (s *metabaseService) DeleteDatabase(ctx context.Context, dsID uuid.UUID) er
 	return nil
 }
 
-func (s *metabaseService) deleteAllUsersDatabase(ctx context.Context, datasetID uuid.UUID, mbMeta *service.MetabaseMetadata) error {
+func (s *metabaseService) deleteAllUsersDatabase(ctx context.Context, mbMeta *service.MetabaseMetadata) error {
 	const op errs.Op = "metabaseService.deleteAllUsersDatabase"
 
 	err := s.metabaseAPI.DeleteDatabase(ctx, mbMeta.DatabaseID)
@@ -830,6 +833,7 @@ func NewMetabaseService(
 	bqs service.BigQueryStorage,
 	dps service.DataProductsStorage,
 	as service.AccessStorage,
+	log zerolog.Logger,
 ) *metabaseService {
 	return &metabaseService{
 		gcpProject:               gcpProject,
@@ -844,5 +848,6 @@ func NewMetabaseService(
 		bigqueryStorage:          bqs,
 		dataproductStorage:       dps,
 		accessStorage:            as,
+		log:                      log,
 	}
 }

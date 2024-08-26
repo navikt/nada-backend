@@ -68,7 +68,6 @@ func NewClients(
 		TeamKatalogenAPI: tkAPICacher,
 		SlackAPI: slackapi.NewSlackAPI(
 			cfg.Slack.WebhookURL,
-			cfg.Server.Hostname,
 			cfg.Slack.Token,
 		),
 		NaisConsoleAPI: httpapi.NewNaisConsoleAPI(

@@ -67,10 +67,11 @@ type Dataset struct {
 
 type AccessibleDataset struct {
 	Dataset
-	DataproductName string `json:"dataproductName"`
-	Slug            string `json:"slug"`
-	DpSlug          string `json:"dpSlug"`
-	Group           string `json:"group"`
+	DataproductName string  `json:"dataproductName"`
+	Slug            string  `json:"slug"`
+	DpSlug          string  `json:"dpSlug"`
+	Group           string  `json:"group"`
+	Subject         *string `json:subject"`
 }
 
 type AccessibleDatasets struct {

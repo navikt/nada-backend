@@ -114,6 +114,7 @@ func accessibleDatasetFromSql(d *gensql.GetAccessibleDatasetsRow) *service.Acces
 		Group:           nullStringToString(d.Group),
 		DpSlug:          *nullStringToPtr(d.DpSlug),
 		DataproductName: nullStringToString(d.DpName),
+		Subject:         nullStringToPtr(d.Subject),
 	}
 }
 
