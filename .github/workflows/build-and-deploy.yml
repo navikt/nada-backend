@@ -3,7 +3,7 @@ name: Build and deploy nada-backend
 on:
   push:
     branches:
-      - '*'
+      - 'main'
   workflow_dispatch:
     inputs:
       environment:
