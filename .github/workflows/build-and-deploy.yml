@@ -117,7 +117,7 @@ jobs:
           registry: europe-north1-docker.pkg.dev
           username: oauth2accesstoken
           password: ${{ steps.auth.outputs.access_token }}
-      - run: make pull-all
+      - run: make pull-deps pull-metabase-patched
       - uses: actions/setup-go@v5
         with:
           go-version-file: go.mod
