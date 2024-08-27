@@ -14,6 +14,7 @@ WHERE
 
 -- name: GetAccessibleDatasets :many
 SELECT
+  DISTINCT ON (ds.id)
   ds.*,
   dsa.subject AS "subject",
   dsa.owner AS "access_owner",
@@ -38,6 +39,7 @@ WHERE
     OR expires IS NULL
   )
 ORDER BY
+  ds.id,
   ds.last_modified DESC;
 
 -- name: GetAccessibleDatasetsByOwnedServiceAccounts :many
@@ -54,8 +56,10 @@ FROM
   LEFT JOIN dataset_access dsa ON dsa.dataset_id = ds.id
 WHERE
   SPLIT_PART("subject", ':', 1) = 'serviceAccount'
-  AND dsa.owner = @requester
-  OR dsa.owner = ANY(@groups::TEXT[])
+  AND (
+    dsa.owner = @requester
+    OR dsa.owner = ANY(@groups::TEXT[])
+  )  
   AND revoked IS NULL
   AND (
     expires > NOW()

@@ -100,9 +100,6 @@ type UserInfo struct {
 	// accessable is a list of datasets which the user has either owns or has explicit access to.
 	Accessable AccessibleDatasets `json:"accessable"`
 
-	// accessable is a list of datasets which the user has either owns or has explicit access to.
-	ServiceAccountAccessable []*AccessibleDataset `json:"serviceAccountAccessable"`
-
 	// stories is the stories owned by the user's group
 	Stories []*Story `json:"stories"`
 

@@ -16,6 +16,7 @@ import (
 
 const getAccessibleDatasets = `-- name: GetAccessibleDatasets :many
 SELECT
+  DISTINCT ON (ds.id)
   ds.id, ds.name, ds.description, ds.pii, ds.created, ds.last_modified, ds.type, ds.tsv_document, ds.slug, ds.repo, ds.keywords, ds.dataproduct_id, ds.anonymisation_description, ds.target_user,
   dsa.subject AS "subject",
   dsa.owner AS "access_owner",
@@ -40,6 +41,7 @@ WHERE
     OR expires IS NULL
   )
 ORDER BY
+  ds.id,
   ds.last_modified DESC
 `
 
@@ -127,8 +129,10 @@ FROM
   LEFT JOIN dataset_access dsa ON dsa.dataset_id = ds.id
 WHERE
   SPLIT_PART("subject", ':', 1) = 'serviceAccount'
-  AND dsa.owner = $1
-  OR dsa.owner = ANY($2::TEXT[])
+  AND (
+    dsa.owner = $1
+    OR dsa.owner = ANY($2::TEXT[])
+  )  
   AND revoked IS NULL
   AND (
     expires > NOW()
