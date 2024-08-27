@@ -17,6 +17,7 @@ SELECT dataset_id
 FROM third_party_mappings
 WHERE "dataset_id" NOT IN (
     SELECT dataset_id FROM metabase_metadata
+    WHERE "sync_completed" IS NOT NULL
 )
 AND 'metabase' = ANY(services)
 `
@@ -114,7 +115,7 @@ FROM third_party_mappings
 WHERE "dataset_id" IN (
     SELECT dataset_id FROM metabase_metadata
 )
-  AND NOT ('metabase' = ANY(services))
+AND NOT ('metabase' = ANY(services))
 `
 
 func (q *Queries) GetRemoveMetabaseDatasetMappings(ctx context.Context) ([]uuid.UUID, error) {

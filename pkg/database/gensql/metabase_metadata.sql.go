@@ -14,40 +14,14 @@ import (
 
 const createMetabaseMetadata = `-- name: CreateMetabaseMetadata :exec
 INSERT INTO metabase_metadata (
-    "dataset_id",
-    "database_id",
-    "permission_group_id",
-    "collection_id",
-    "sa_email",
-    "deleted_at"
+    "dataset_id"
 ) VALUES (
-    $1,
-    $2,
-    $3,
-    $4,
-    $5,
-    $6
+    $1
 )
 `
 
-type CreateMetabaseMetadataParams struct {
-	DatasetID         uuid.UUID
-	DatabaseID        int32
-	PermissionGroupID sql.NullInt32
-	CollectionID      sql.NullInt32
-	SaEmail           string
-	DeletedAt         sql.NullTime
-}
-
-func (q *Queries) CreateMetabaseMetadata(ctx context.Context, arg CreateMetabaseMetadataParams) error {
-	_, err := q.db.ExecContext(ctx, createMetabaseMetadata,
-		arg.DatasetID,
-		arg.DatabaseID,
-		arg.PermissionGroupID,
-		arg.CollectionID,
-		arg.SaEmail,
-		arg.DeletedAt,
-	)
+func (q *Queries) CreateMetabaseMetadata(ctx context.Context, datasetID uuid.UUID) error {
+	_, err := q.db.ExecContext(ctx, createMetabaseMetadata, datasetID)
 	return err
 }
 
@@ -63,7 +37,7 @@ func (q *Queries) DeleteMetabaseMetadata(ctx context.Context, datasetID uuid.UUI
 }
 
 const getAllMetabaseMetadata = `-- name: GetAllMetabaseMetadata :many
-SELECT database_id, permission_group_id, sa_email, collection_id, deleted_at, dataset_id
+SELECT database_id, permission_group_id, sa_email, collection_id, deleted_at, dataset_id, sync_completed
 FROM metabase_metadata
 `
 
@@ -83,6 +57,7 @@ func (q *Queries) GetAllMetabaseMetadata(ctx context.Context) ([]MetabaseMetadat
 			&i.CollectionID,
 			&i.DeletedAt,
 			&i.DatasetID,
+			&i.SyncCompleted,
 		); err != nil {
 			return nil, err
 		}
@@ -98,7 +73,7 @@ func (q *Queries) GetAllMetabaseMetadata(ctx context.Context) ([]MetabaseMetadat
 }
 
 const getMetabaseMetadata = `-- name: GetMetabaseMetadata :one
-SELECT database_id, permission_group_id, sa_email, collection_id, deleted_at, dataset_id
+SELECT database_id, permission_group_id, sa_email, collection_id, deleted_at, dataset_id, sync_completed
 FROM metabase_metadata
 WHERE "dataset_id" = $1 AND "deleted_at" IS NULL
 `
@@ -113,12 +88,13 @@ func (q *Queries) GetMetabaseMetadata(ctx context.Context, datasetID uuid.UUID) 
 		&i.CollectionID,
 		&i.DeletedAt,
 		&i.DatasetID,
+		&i.SyncCompleted,
 	)
 	return i, err
 }
 
 const getMetabaseMetadataWithDeleted = `-- name: GetMetabaseMetadataWithDeleted :one
-SELECT database_id, permission_group_id, sa_email, collection_id, deleted_at, dataset_id
+SELECT database_id, permission_group_id, sa_email, collection_id, deleted_at, dataset_id, sync_completed
 FROM metabase_metadata
 WHERE "dataset_id" = $1
 `
@@ -133,6 +109,7 @@ func (q *Queries) GetMetabaseMetadataWithDeleted(ctx context.Context, datasetID 
 		&i.CollectionID,
 		&i.DeletedAt,
 		&i.DatasetID,
+		&i.SyncCompleted,
 	)
 	return i, err
 }
@@ -188,6 +165,38 @@ func (q *Queries) RestoreMetabaseMetadata(ctx context.Context, datasetID uuid.UU
 	return err
 }
 
+const setCollectionMetabaseMetadata = `-- name: SetCollectionMetabaseMetadata :exec
+UPDATE metabase_metadata
+SET "collection_id" = $1
+WHERE dataset_id = $2
+`
+
+type SetCollectionMetabaseMetadataParams struct {
+	CollectionID sql.NullInt32
+	DatasetID    uuid.UUID
+}
+
+func (q *Queries) SetCollectionMetabaseMetadata(ctx context.Context, arg SetCollectionMetabaseMetadataParams) error {
+	_, err := q.db.ExecContext(ctx, setCollectionMetabaseMetadata, arg.CollectionID, arg.DatasetID)
+	return err
+}
+
+const setDatabaseMetabaseMetadata = `-- name: SetDatabaseMetabaseMetadata :exec
+UPDATE metabase_metadata
+SET "database_id" = $1
+WHERE dataset_id = $2
+`
+
+type SetDatabaseMetabaseMetadataParams struct {
+	DatabaseID sql.NullInt32
+	DatasetID  uuid.UUID
+}
+
+func (q *Queries) SetDatabaseMetabaseMetadata(ctx context.Context, arg SetDatabaseMetabaseMetadataParams) error {
+	_, err := q.db.ExecContext(ctx, setDatabaseMetabaseMetadata, arg.DatabaseID, arg.DatasetID)
+	return err
+}
+
 const setPermissionGroupMetabaseMetadata = `-- name: SetPermissionGroupMetabaseMetadata :exec
 UPDATE metabase_metadata
 SET "permission_group_id" = $1
@@ -195,12 +204,39 @@ WHERE dataset_id = $2
 `
 
 type SetPermissionGroupMetabaseMetadataParams struct {
-	ID        sql.NullInt32
-	DatasetID uuid.UUID
+	PermissionGroupID sql.NullInt32
+	DatasetID         uuid.UUID
 }
 
 func (q *Queries) SetPermissionGroupMetabaseMetadata(ctx context.Context, arg SetPermissionGroupMetabaseMetadataParams) error {
-	_, err := q.db.ExecContext(ctx, setPermissionGroupMetabaseMetadata, arg.ID, arg.DatasetID)
+	_, err := q.db.ExecContext(ctx, setPermissionGroupMetabaseMetadata, arg.PermissionGroupID, arg.DatasetID)
+	return err
+}
+
+const setServiceAccountMetabaseMetadata = `-- name: SetServiceAccountMetabaseMetadata :exec
+UPDATE metabase_metadata
+SET "sa_email" = $1
+WHERE dataset_id = $2
+`
+
+type SetServiceAccountMetabaseMetadataParams struct {
+	SaEmail   string
+	DatasetID uuid.UUID
+}
+
+func (q *Queries) SetServiceAccountMetabaseMetadata(ctx context.Context, arg SetServiceAccountMetabaseMetadataParams) error {
+	_, err := q.db.ExecContext(ctx, setServiceAccountMetabaseMetadata, arg.SaEmail, arg.DatasetID)
+	return err
+}
+
+const setSyncCompletedMetabaseMetadata = `-- name: SetSyncCompletedMetabaseMetadata :exec
+UPDATE metabase_metadata
+SET "sync_completed" = NOW()
+WHERE dataset_id = $1
+`
+
+func (q *Queries) SetSyncCompletedMetabaseMetadata(ctx context.Context, datasetID uuid.UUID) error {
+	_, err := q.db.ExecContext(ctx, setSyncCompletedMetabaseMetadata, datasetID)
 	return err
 }
 

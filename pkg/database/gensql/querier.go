@@ -21,7 +21,7 @@ type Querier interface {
 	CreateInsightProduct(ctx context.Context, arg CreateInsightProductParams) (InsightProduct, error)
 	CreateJoinableViews(ctx context.Context, arg CreateJoinableViewsParams) (JoinableView, error)
 	CreateJoinableViewsDatasource(ctx context.Context, arg CreateJoinableViewsDatasourceParams) (JoinableViewsDatasource, error)
-	CreateMetabaseMetadata(ctx context.Context, arg CreateMetabaseMetadataParams) error
+	CreateMetabaseMetadata(ctx context.Context, datasetID uuid.UUID) error
 	CreatePollyDocumentation(ctx context.Context, arg CreatePollyDocumentationParams) (PollyDocumentation, error)
 	CreateSession(ctx context.Context, arg CreateSessionParams) error
 	CreateStory(ctx context.Context, arg CreateStoryParams) (Story, error)
@@ -132,9 +132,13 @@ type Querier interface {
 	RevokeAccessToDataset(ctx context.Context, id uuid.UUID) error
 	RotateNadaToken(ctx context.Context, team string) error
 	Search(ctx context.Context, arg SearchParams) ([]SearchRow, error)
+	SetCollectionMetabaseMetadata(ctx context.Context, arg SetCollectionMetabaseMetadataParams) error
+	SetDatabaseMetabaseMetadata(ctx context.Context, arg SetDatabaseMetabaseMetadataParams) error
 	SetDatasourceDeleted(ctx context.Context, id uuid.UUID) error
 	SetJoinableViewDeleted(ctx context.Context, id uuid.UUID) error
 	SetPermissionGroupMetabaseMetadata(ctx context.Context, arg SetPermissionGroupMetabaseMetadataParams) error
+	SetServiceAccountMetabaseMetadata(ctx context.Context, arg SetServiceAccountMetabaseMetadataParams) error
+	SetSyncCompletedMetabaseMetadata(ctx context.Context, datasetID uuid.UUID) error
 	SoftDeleteMetabaseMetadata(ctx context.Context, datasetID uuid.UUID) error
 	UpdateAccessRequest(ctx context.Context, arg UpdateAccessRequestParams) (DatasetAccessRequest, error)
 	UpdateBigqueryDatasource(ctx context.Context, arg UpdateBigqueryDatasourceParams) error

@@ -357,12 +357,13 @@ type JoinableViewsDatasource struct {
 }
 
 type MetabaseMetadatum struct {
-	DatabaseID        int32
+	DatabaseID        sql.NullInt32
 	PermissionGroupID sql.NullInt32
 	SaEmail           string
 	CollectionID      sql.NullInt32
 	DeletedAt         sql.NullTime
 	DatasetID         uuid.UUID
+	SyncCompleted     sql.NullTime
 }
 
 type NadaToken struct {
