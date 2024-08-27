@@ -247,10 +247,18 @@ func MarshalUUID(id uuid.UUID) string {
 	return strings.ToLower(base58.Encode(id[:]))
 }
 
+func AccountIDFromDatasetID(id uuid.UUID) string {
+	return fmt.Sprintf("nada-%s", MarshalUUID(id))
+}
+
+func (s *metabaseService) ConstantServiceAccountEmailFromDatasetID(id uuid.UUID) string {
+	return fmt.Sprintf("%s@%s.iam.gserviceaccount.com", AccountIDFromDatasetID(id), s.gcpProject)
+}
+
 func (s *metabaseService) getOrcreateServiceAccountWithKeyAndPolicy(ctx context.Context, ds *service.Dataset) (*service.ServiceAccountWithPrivateKey, error) {
 	const op errs.Op = "metabaseService.getOrcreateServiceAccountWithKeyAndPolicy"
 
-	accountID := fmt.Sprintf("nada-%s", MarshalUUID(ds.ID))
+	accountID := AccountIDFromDatasetID(ds.ID)
 
 	sa, err := s.serviceAccountAPI.EnsureServiceAccountWithKeyAndBinding(ctx, &service.ServiceAccountRequest{
 		ProjectID:   s.gcpProject,
@@ -260,7 +268,7 @@ func (s *metabaseService) getOrcreateServiceAccountWithKeyAndPolicy(ctx context.
 		Binding: &service.Binding{
 			Role: fmt.Sprintf("projects/%s/roles/nada.metabase", s.gcpProject),
 			Members: []string{
-				fmt.Sprintf("serviceAccount:%s@%s.iam.gserviceaccount.com", accountID, s.gcpProject),
+				fmt.Sprintf("serviceAccount:%s", s.ConstantServiceAccountEmailFromDatasetID(ds.ID)),
 			},
 		},
 	})
