@@ -175,6 +175,7 @@ func TestMetabase(t *testing.T) {
 	{
 		slack := static.NewSlackAPI(log)
 		s := core.NewAccessService(
+			"",
 			slack,
 			stores.PollyStorage,
 			stores.AccessStorage,

@@ -1,9 +1,6 @@
 package static
 
 import (
-	"context"
-
-	"github.com/google/uuid"
 	"github.com/rs/zerolog"
 )
 
@@ -11,8 +8,8 @@ type slackAPI struct {
 	log zerolog.Logger
 }
 
-func (s *slackAPI) InformNewAccessRequest(_ context.Context, subject string, datasetID uuid.UUID) error {
-	s.log.Info().Msgf("Informing new access request for %s to dataset %s", subject, datasetID.String())
+func (s *slackAPI) SendSlackNotification(channel, message string) error {
+	s.log.Info().Msgf("Sending slack notification to channel %v: message: %v", channel, message)
 
 	return nil
 }
