@@ -177,7 +177,7 @@ start-run-deps: | docker-login pull-all
 	@echo "Starting dependencies with docker compose... (fully local)"
 	@echo "Mocks version: $(MOCKS_VERSION)"
 	@echo "Metabase version: $(METABASE_VERSION)"
-	MOCKS_VERSION=$(MOCKS_VERSION) METABASE_VERSION=$(METABASE_VERSION) $(DOCKER_COMPOSE ) up -d $(COMPOSE_DEPS_FULLY_LOCAL)
+	MOCKS_VERSION=$(MOCKS_VERSION) METABASE_VERSION=$(METABASE_VERSION) $(DOCKER_COMPOSE) up -d $(COMPOSE_DEPS_FULLY_LOCAL)
 .PHONY: start-run-deps
 
 docker-login:

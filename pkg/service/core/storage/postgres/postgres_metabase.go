@@ -16,53 +16,106 @@ import (
 
 type MetabaseMetadata gensql.MetabaseMetadatum
 
+// Ensure that we always implement the service.MetabaseStorage interface
+var _ service.MetabaseStorage = &metabaseStorage{}
+
 // FIXME: should define an interface that uses the subset of Querier methods that we need
 // and reference that here
 type metabaseStorage struct {
 	db *database.Repo
 }
 
-// Ensure that we always implement the service.MetabaseStorage interface
-var _ service.MetabaseStorage = &metabaseStorage{}
+func (s *metabaseStorage) SetCollectionMetabaseMetadata(ctx context.Context, datasetID uuid.UUID, collectionID int) (*service.MetabaseMetadata, error) {
+	const op errs.Op = "metabaseStorage.SetCollectionMetabaseMetadata"
 
-func NewMetabaseStorage(db *database.Repo) *metabaseStorage {
-	return &metabaseStorage{
-		db: db,
+	meta, err := s.db.Querier.SetCollectionMetabaseMetadata(ctx, gensql.SetCollectionMetabaseMetadataParams{
+		CollectionID: sql.NullInt32{Valid: true, Int32: int32(collectionID)},
+		DatasetID:    datasetID,
+	})
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return nil, errs.E(errs.NotExist, op, fmt.Errorf("setting collection %v: %w", collectionID, err))
+		}
+
+		return nil, errs.E(errs.Database, op, err)
 	}
+
+	return ToLocal(meta).Convert(), nil
 }
 
-func (s *metabaseStorage) SetPermissionGroupMetabaseMetadata(ctx context.Context, datasetID uuid.UUID, groupID int) error {
-	const op errs.Op = "metabaseStorage.SetPermissionGroupMetabaseMetadata"
+func (s *metabaseStorage) SetDatabaseMetabaseMetadata(ctx context.Context, datasetID uuid.UUID, databaseID int) (*service.MetabaseMetadata, error) {
+	const op errs.Op = "metabaseStorage.SetDatabaseMetabaseMetadata"
 
-	err := s.db.Querier.SetPermissionGroupMetabaseMetadata(ctx, gensql.SetPermissionGroupMetabaseMetadataParams{
-		ID:        sql.NullInt32{Valid: true, Int32: int32(groupID)},
+	meta, err := s.db.Querier.SetDatabaseMetabaseMetadata(ctx, gensql.SetDatabaseMetabaseMetadataParams{
+		DatabaseID: sql.NullInt32{Valid: true, Int32: int32(databaseID)},
+		DatasetID:  datasetID,
+	})
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return nil, errs.E(errs.NotExist, op, fmt.Errorf("setting database %v: %w", databaseID, err))
+		}
+
+		return nil, errs.E(errs.Database, op, err)
+	}
+
+	return ToLocal(meta).Convert(), nil
+}
+
+func (s *metabaseStorage) SetServiceAccountMetabaseMetadata(ctx context.Context, datasetID uuid.UUID, saEmail string) (*service.MetabaseMetadata, error) {
+	const op errs.Op = "metabaseStorage.SetServiceAccountMetabaseMetadata"
+
+	meta, err := s.db.Querier.SetServiceAccountMetabaseMetadata(ctx, gensql.SetServiceAccountMetabaseMetadataParams{
+		SaEmail:   saEmail,
 		DatasetID: datasetID,
 	})
 	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return nil, errs.E(errs.NotExist, op, fmt.Errorf("setting sa_email %v: %w", saEmail, err))
+		}
+
+		return nil, errs.E(errs.Database, op, err)
+	}
+
+	return ToLocal(meta).Convert(), nil
+}
+
+func (s *metabaseStorage) SetSyncCompletedMetabaseMetadata(ctx context.Context, datasetID uuid.UUID) error {
+	const op errs.Op = "metabaseStorage.SetSyncCompletedMetabaseMetadata"
+
+	err := s.db.Querier.SetSyncCompletedMetabaseMetadata(ctx, datasetID)
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return errs.E(errs.NotExist, op, fmt.Errorf("setting sync completed: %w", err))
+		}
+
 		return errs.E(errs.Database, op, err)
 	}
 
 	return nil
 }
 
-func (s *metabaseStorage) CreateMetadata(ctx context.Context, metadata *service.MetabaseMetadata) error {
-	const op errs.Op = "metabaseStorage.CreateMetadata"
+func (s *metabaseStorage) SetPermissionGroupMetabaseMetadata(ctx context.Context, datasetID uuid.UUID, groupID int) (*service.MetabaseMetadata, error) {
+	const op errs.Op = "metabaseStorage.SetPermissionGroupMetabaseMetadata"
 
-	params := gensql.CreateMetabaseMetadataParams{
-		DatasetID:  metadata.DatasetID,
-		DatabaseID: int32(metadata.DatabaseID),
-		PermissionGroupID: sql.NullInt32{
-			Int32: int32(metadata.PermissionGroupID),
-			Valid: metadata.PermissionGroupID > 0,
-		},
-		CollectionID: sql.NullInt32{
-			Int32: int32(metadata.CollectionID),
-			Valid: metadata.CollectionID > 0,
-		},
-		SaEmail: metadata.SAEmail,
+	meta, err := s.db.Querier.SetPermissionGroupMetabaseMetadata(ctx, gensql.SetPermissionGroupMetabaseMetadataParams{
+		PermissionGroupID: sql.NullInt32{Valid: true, Int32: int32(groupID)},
+		DatasetID:         datasetID,
+	})
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return nil, errs.E(errs.NotExist, op, fmt.Errorf("setting permissions group %v: %w", groupID, err))
+		}
+
+		return nil, errs.E(errs.Database, op, err)
 	}
 
-	err := s.db.Querier.CreateMetabaseMetadata(ctx, params)
+	return ToLocal(meta).Convert(), nil
+}
+
+func (s *metabaseStorage) CreateMetadata(ctx context.Context, datasetID uuid.UUID) error {
+	const op errs.Op = "metabaseStorage.CreateMetadata"
+
+	err := s.db.Querier.CreateMetabaseMetadata(ctx, datasetID)
 	if err != nil {
 		return errs.E(errs.Database, op, err)
 	}
@@ -126,20 +179,6 @@ func (s *metabaseStorage) GetOpenTablesInSameBigQueryDataset(ctx context.Context
 	}
 
 	return tables, nil
-}
-
-func (s *metabaseStorage) SetPermissionsGroup(ctx context.Context, datasetID uuid.UUID, groupID int) error {
-	const op errs.Op = "metabaseStorage.SetPermissionsGroup"
-
-	err := s.db.Querier.SetPermissionGroupMetabaseMetadata(ctx, gensql.SetPermissionGroupMetabaseMetadataParams{
-		ID:        sql.NullInt32{Valid: true, Int32: int32(groupID)},
-		DatasetID: datasetID,
-	})
-	if err != nil {
-		return errs.E(errs.Database, op, err)
-	}
-
-	return nil
 }
 
 func (s *metabaseStorage) SoftDeleteMetadata(ctx context.Context, datasetID uuid.UUID) error {
@@ -222,9 +261,9 @@ func ToLocal(m gensql.MetabaseMetadatum) MetabaseMetadata {
 func (m MetabaseMetadata) Convert() *service.MetabaseMetadata {
 	return &service.MetabaseMetadata{
 		DatasetID:         m.DatasetID,
-		DatabaseID:        int(m.DatabaseID),
-		PermissionGroupID: int(m.PermissionGroupID.Int32),
-		CollectionID:      int(m.CollectionID.Int32),
+		DatabaseID:        nullInt32ToIntPtr(m.DatabaseID),
+		PermissionGroupID: nullInt32ToIntPtr(m.PermissionGroupID),
+		CollectionID:      nullInt32ToIntPtr(m.CollectionID),
 		SAEmail:           m.SaEmail,
 		DeletedAt:         nullTimeToPtr(m.DeletedAt),
 	}
@@ -236,4 +275,10 @@ func nullTimeToPtr(nt sql.NullTime) *time.Time {
 	}
 
 	return &nt.Time
+}
+
+func NewMetabaseStorage(db *database.Repo) *metabaseStorage {
+	return &metabaseStorage{
+		db: db,
+	}
 }

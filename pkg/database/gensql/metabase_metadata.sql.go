@@ -165,10 +165,11 @@ func (q *Queries) RestoreMetabaseMetadata(ctx context.Context, datasetID uuid.UU
 	return err
 }
 
-const setCollectionMetabaseMetadata = `-- name: SetCollectionMetabaseMetadata :exec
+const setCollectionMetabaseMetadata = `-- name: SetCollectionMetabaseMetadata :one
 UPDATE metabase_metadata
 SET "collection_id" = $1
 WHERE dataset_id = $2
+RETURNING database_id, permission_group_id, sa_email, collection_id, deleted_at, dataset_id, sync_completed
 `
 
 type SetCollectionMetabaseMetadataParams struct {
@@ -176,15 +177,26 @@ type SetCollectionMetabaseMetadataParams struct {
 	DatasetID    uuid.UUID
 }
 
-func (q *Queries) SetCollectionMetabaseMetadata(ctx context.Context, arg SetCollectionMetabaseMetadataParams) error {
-	_, err := q.db.ExecContext(ctx, setCollectionMetabaseMetadata, arg.CollectionID, arg.DatasetID)
-	return err
+func (q *Queries) SetCollectionMetabaseMetadata(ctx context.Context, arg SetCollectionMetabaseMetadataParams) (MetabaseMetadatum, error) {
+	row := q.db.QueryRowContext(ctx, setCollectionMetabaseMetadata, arg.CollectionID, arg.DatasetID)
+	var i MetabaseMetadatum
+	err := row.Scan(
+		&i.DatabaseID,
+		&i.PermissionGroupID,
+		&i.SaEmail,
+		&i.CollectionID,
+		&i.DeletedAt,
+		&i.DatasetID,
+		&i.SyncCompleted,
+	)
+	return i, err
 }
 
-const setDatabaseMetabaseMetadata = `-- name: SetDatabaseMetabaseMetadata :exec
+const setDatabaseMetabaseMetadata = `-- name: SetDatabaseMetabaseMetadata :one
 UPDATE metabase_metadata
 SET "database_id" = $1
 WHERE dataset_id = $2
+RETURNING database_id, permission_group_id, sa_email, collection_id, deleted_at, dataset_id, sync_completed
 `
 
 type SetDatabaseMetabaseMetadataParams struct {
@@ -192,15 +204,26 @@ type SetDatabaseMetabaseMetadataParams struct {
 	DatasetID  uuid.UUID
 }
 
-func (q *Queries) SetDatabaseMetabaseMetadata(ctx context.Context, arg SetDatabaseMetabaseMetadataParams) error {
-	_, err := q.db.ExecContext(ctx, setDatabaseMetabaseMetadata, arg.DatabaseID, arg.DatasetID)
-	return err
+func (q *Queries) SetDatabaseMetabaseMetadata(ctx context.Context, arg SetDatabaseMetabaseMetadataParams) (MetabaseMetadatum, error) {
+	row := q.db.QueryRowContext(ctx, setDatabaseMetabaseMetadata, arg.DatabaseID, arg.DatasetID)
+	var i MetabaseMetadatum
+	err := row.Scan(
+		&i.DatabaseID,
+		&i.PermissionGroupID,
+		&i.SaEmail,
+		&i.CollectionID,
+		&i.DeletedAt,
+		&i.DatasetID,
+		&i.SyncCompleted,
+	)
+	return i, err
 }
 
-const setPermissionGroupMetabaseMetadata = `-- name: SetPermissionGroupMetabaseMetadata :exec
+const setPermissionGroupMetabaseMetadata = `-- name: SetPermissionGroupMetabaseMetadata :one
 UPDATE metabase_metadata
 SET "permission_group_id" = $1
 WHERE dataset_id = $2
+RETURNING database_id, permission_group_id, sa_email, collection_id, deleted_at, dataset_id, sync_completed
 `
 
 type SetPermissionGroupMetabaseMetadataParams struct {
@@ -208,15 +231,26 @@ type SetPermissionGroupMetabaseMetadataParams struct {
 	DatasetID         uuid.UUID
 }
 
-func (q *Queries) SetPermissionGroupMetabaseMetadata(ctx context.Context, arg SetPermissionGroupMetabaseMetadataParams) error {
-	_, err := q.db.ExecContext(ctx, setPermissionGroupMetabaseMetadata, arg.PermissionGroupID, arg.DatasetID)
-	return err
+func (q *Queries) SetPermissionGroupMetabaseMetadata(ctx context.Context, arg SetPermissionGroupMetabaseMetadataParams) (MetabaseMetadatum, error) {
+	row := q.db.QueryRowContext(ctx, setPermissionGroupMetabaseMetadata, arg.PermissionGroupID, arg.DatasetID)
+	var i MetabaseMetadatum
+	err := row.Scan(
+		&i.DatabaseID,
+		&i.PermissionGroupID,
+		&i.SaEmail,
+		&i.CollectionID,
+		&i.DeletedAt,
+		&i.DatasetID,
+		&i.SyncCompleted,
+	)
+	return i, err
 }
 
-const setServiceAccountMetabaseMetadata = `-- name: SetServiceAccountMetabaseMetadata :exec
+const setServiceAccountMetabaseMetadata = `-- name: SetServiceAccountMetabaseMetadata :one
 UPDATE metabase_metadata
 SET "sa_email" = $1
 WHERE dataset_id = $2
+RETURNING database_id, permission_group_id, sa_email, collection_id, deleted_at, dataset_id, sync_completed
 `
 
 type SetServiceAccountMetabaseMetadataParams struct {
@@ -224,9 +258,19 @@ type SetServiceAccountMetabaseMetadataParams struct {
 	DatasetID uuid.UUID
 }
 
-func (q *Queries) SetServiceAccountMetabaseMetadata(ctx context.Context, arg SetServiceAccountMetabaseMetadataParams) error {
-	_, err := q.db.ExecContext(ctx, setServiceAccountMetabaseMetadata, arg.SaEmail, arg.DatasetID)
-	return err
+func (q *Queries) SetServiceAccountMetabaseMetadata(ctx context.Context, arg SetServiceAccountMetabaseMetadataParams) (MetabaseMetadatum, error) {
+	row := q.db.QueryRowContext(ctx, setServiceAccountMetabaseMetadata, arg.SaEmail, arg.DatasetID)
+	var i MetabaseMetadatum
+	err := row.Scan(
+		&i.DatabaseID,
+		&i.PermissionGroupID,
+		&i.SaEmail,
+		&i.CollectionID,
+		&i.DeletedAt,
+		&i.DatasetID,
+		&i.SyncCompleted,
+	)
+	return i, err
 }
 
 const setSyncCompletedMetabaseMetadata = `-- name: SetSyncCompletedMetabaseMetadata :exec
