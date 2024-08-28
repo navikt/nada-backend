@@ -3,6 +3,19 @@ DATE = $(shell date "+%Y-%m-%d")
 LAST_COMMIT = $(shell git --no-pager log -1 --pretty=%h)
 VERSION ?= $(DATE)-$(LAST_COMMIT)
 LDFLAGS := -X github.com/navikt/nada-backend/backend/version.Revision=$(shell git rev-parse --short HEAD) -X github.com/navikt/nada-backend/backend/version.Version=$(VERSION)
+
+METABASE_VERSION := v1.50.21
+MOCKS_VERSION := v0.0.1
+
+TARGET_ARCH := amd64
+TARGET_OS   := linux
+
+IMAGE_URL        := europe-north1-docker.pkg.dev
+IMAGE_REPOSITORY := nada-prod-6977/nada-north
+
+COMPOSE_DEPS_FULLY_LOCAL := db adminer gcs metabase-patched bq tk nc
+COMPOS_DEPS_ONLINE_LOCAL := db adminer gcs metabase
+
 APP = nada-backend
 
 # A template function for installing binaries
@@ -73,20 +86,44 @@ endif
 
 -include .env
 
-test:
-	CGO_ENABLED=1 CXX=clang++ CC=clang CXXFLAGS=-Wno-everything $(GO) test -race ./...
+test: | pull-all
+	METABASE_VERSION=$(METABASE_VERSION) CGO_ENABLED=1 CXX=clang++ CC=clang \
+		CGO_CXXFLAGS=-Wno-everything CGO_LDFLAGS=-Wno-everything \
+			go test -timeout 20m -race -coverprofile=coverage.txt -covermode=atomic -v ./...
 .PHONY: test
 
-build: $(RELEASE_DIR)
-	@echo "Building cmd applications..."
+staticcheck: $(STATICCHECK)
+	$(STATICCHECK) ./...
+
+gofumpt: $(GOFUMPT)
+	$(GOFUMPT) -w .
+
+lint: $(GOLANGCILINT)
+	$(GOLANGCILINT) run
+.PHONY: lint
+
+check: | gofumpt lint staticcheck test
+.PHONY: check
+
+compile: $(RELEASE_DIR)
+	@echo "Compiling cmd applications..."
 	@CGO_ENABLED=1 CXX=clang++ CC=clang $(GO) mod tidy
 	@for d in cmd/*; do \
 		app=$$(basename $$d); \
-		echo "Building $$app..."; \
+		echo "Compiling $$app..."; \
 		CGO_ENABLED=1 CXX=clang++ CC=clang CGO_CXXFLAGS=-Wno-everything CGO_LDFLAGS=-Wno-everything $(GO) build -o $(RELEASE_DIR)/$$app ./$$d; \
 	done
-	@echo "Build complete. Binaries are located in $(RELEASE_DIR)"
-.PHONY: build
+	@echo "Compile complete. Binaries are located in $(RELEASE_DIR)"
+.PHONY: compile
+
+generate: $(SQLC)
+	cd pkg && $(SQLC) generate
+.PHONY: generate
+
+release:
+	GOOS=linux GOARCH=amd64 CGO_EMABLED=0 $(GO) build -o $(APP) \
+		-ldflags '-linkmode "external" -extldflags "-static" -w -s $(LDFLAGS)' ./cmd/nada-backend/main.go
+.PHONY: release
 
 env:
 	@echo "Re-creating .env file..."
@@ -111,78 +148,103 @@ test-sa:
 metabase-sa:
 	@echo "Fetching metabase service account credentials..."
 	$(shell kubectl get --context=dev-gcp --namespace=nada secret/metabase-google-sa -o json | jq -r '.data."meta_creds.json"' | base64 -d > test-metabase-sa.json)
-.PHONY: test-sa
+.PHONY: metabase-sa
 
 setup-metabase:
 	./resources/scripts/configure_metabase.sh
+.PHONY: setup-metabase
 
-local-with-auth: | env test-sa metabase-sa docker-build-metabase docker-compose-up setup-metabase
+run-online: | env test-sa metabase-sa docker-build-metabase docker-compose-up setup-metabase
 	@echo "Sourcing environment variables..."
 	set -a && source ./.env && set +a && \
 		STORAGE_EMULATOR_HOST=http://localhost:8082/storage/v1/ $(GO) run ./cmd/nada-backend --config ./config-local-online.yaml
-.PHONY: local-with-auth
+.PHONY: run-online
 
-local: | env test-sa  setup-metabase
+start-run-online-deps: | docker-login pull-all
+	@echo "Starting dependencies with docker compose... (online)"
+	@echo "Mocks version: $(MOCKS_VERSION)"
+	@echo "Metabase version: $(METABASE_VERSION)"
+	MOCKS_VERSION=$(MOCKS_VERSION) METABASE_VERSION=$(METABASE_VERSION) $(DOCKER_COMPOSE ) up -d $(COMPOS_DEPS_ONLINE_LOCAL)
+.PHONY: start-run-online-deps
+
+run: | start-run-deps env test-sa setup-metabase
 	@echo "Sourcing environment variables..."
 	set -a && source ./.env && set +a && \
 		GOOGLE_CLOUD_PROJECT=test STORAGE_EMULATOR_HOST=http://localhost:8082/storage/v1/ $(GO) run ./cmd/nada-backend --config ./config-local.yaml
-.PHONY: local
+.PHONY: run
 
-local-deps: | docker-build-metabase-local-bq docker-build-apps docker-compose-up-fg
-.PHONY: local-deps
+start-run-deps: | docker-login pull-all
+	@echo "Starting dependencies with docker compose... (fully local)"
+	@echo "Mocks version: $(MOCKS_VERSION)"
+	@echo "Metabase version: $(METABASE_VERSION)"
+	MOCKS_VERSION=$(MOCKS_VERSION) METABASE_VERSION=$(METABASE_VERSION) $(DOCKER_COMPOSE) up -d $(COMPOSE_DEPS_FULLY_LOCAL)
+.PHONY: start-run-deps
 
-docker-compose-up-fg:
-	@echo "Starting dependencies with docker compose..."
-	$(DOCKER_COMPOSE) up
+docker-login:
+	@echo "Logging in to Google Cloud..."
+	gcloud auth configure-docker $(IMAGE_URL)
+.PHONY: docker-login
 
-docker-compose-up:
-	@echo "Starting dependencies with docker compose..."
-	$(DOCKER_COMPOSE ) up -d
+build-push-all: | build-all push-all
+.PHONY: build-push-all
 
-migrate:
-	$(GO) run github.com/pressly/goose/v3/cmd/goose -dir ./pkg/database/migrations postgres "user=nada-backend dbname=nada sslmode=disable password=postgres" up
-.PHONY: migrate
+pull-all: | pull-metabase pull-metabase-patched pull-deps
+.PHONY: pull-all
 
-generate-sql: $(SQLC)
-	cd pkg && $(SQLC) generate
-.PHONY: generate-sql
+pull-metabase:
+	@echo "Pulling metabase docker image from registry..."
+	docker pull $(IMAGE_URL)/$(IMAGE_REPOSITORY)/metabase:$(METABASE_VERSION)
+.PHONY: pull-metabase
 
-generate: generate-sql
-.PHONY: generate
+pull-metabase-patched:
+	@echo "Pulling patched metabase docker image from registry..."
+	docker pull $(IMAGE_URL)/$(IMAGE_REPOSITORY)/metabase-patched:$(METABASE_VERSION)
+.PHONY: pull-metabase-patched
 
-linux-build:
-	GOOS=linux GOARCH=amd64 CGO_EMABLED=0 $(GO) build -o $(APP) -ldflags '-linkmode "external" -extldflags "-static" -w -s $(LDFLAGS)' ./cmd/nada-backend/main.go
-.PHONY: linux-build
+pull-deps:
+	@echo "Pulling nada-backend mocks docker image from registry..."
+	docker pull $(IMAGE_URL)/$(IMAGE_REPOSITORY)/nada-backend-mocks:$(MOCKS_VERSION)
+.PHONY: pull-deps
 
-docker-build-metabase:
-	@echo "Building metabase docker image..."
-	docker image build -t metabase-nada-backend:latest -f Dockerfile-metabase-orig .
+build-all: | build-metabase build-metabase-patched build-deps
+.PHONY: build-all
 
-docker-build-metabase-local-bq:
-	@echo "Building metabase docker image with local BigQuery..."
-	docker image build -t metabase-nada-backend:latest -f Dockerfile-metabase-local .
+build-metabase:
+	@echo "Building original metabase docker image, for version: $(METABASE_VERSION)"
+	docker image build --platform $(TARGET_OS)/$(TARGET_ARCH) --tag $(IMAGE_URL)/$(IMAGE_REPOSITORY)/metabase:$(METABASE_VERSION) \
+		--build-arg METABASE_VERSION=$(METABASE_VERSION) --file resources/images/metabase/Dockerfile .
+.PHONY: build-metabase
 
-docker-build-apps:
-	docker image build -t nada-apps:latest -f Dockerfile-build .
+build-metabase-patched:
+	@echo "Building patched metabase docker image, for version: $(METABASE_VERSION)"
+	docker image build --platform $(TARGET_OS)/$(TARGET_ARCH) --tag $(IMAGE_URL)/$(IMAGE_REPOSITORY)/metabase-patched:$(METABASE_VERSION) \
+		--build-arg METABASE_VERSION=$(METABASE_VERSION) --file resources/images/metabase/Dockerfile-bq-patch .
+.PHONY: build-metabase-patched
 
-docker-build:
-	docker image build -t ghcr.io/navikt/$(APP):$(VERSION) -t ghcr.io/navikt/$(APP):latest .
-.PHONY: docker-build
+build-deps: build-metabase-patched
+	@echo "Building nada-backend mocks..."
+	docker image build --platform $(TARGET_OS)/$(TARGET_ARCH) --tag $(IMAGE_URL)/$(IMAGE_REPOSITORY)/nada-backend-mocks:$(MOCKS_VERSION) \
+		--file resources/images/nada-backend/Dockerfile-mocks .
+.PHONY: build-deps
 
-docker-push:
-	docker image push ghcr.io/navikt/$(APP):$(VERSION)
-	docker image push ghcr.io/navikt/$(APP):latest
-.PHONY: docker-push
+push-all: | push-metabase push-metabase-patched push-deps
+.PHONY: push-all
 
-staticcheck: $(STATICCHECK)
-	$(STATICCHECK) ./...
+push-metabase:
+	@echo "Pushing metabase docker image to registry..."
+	docker push $(IMAGE_URL)/$(IMAGE_REPOSITORY)/metabase:$(METABASE_VERSION)
+.PHONY: push-metabase
 
-gofumpt: $(GOFUMPT)
-	$(GOFUMPT) -w .
+push-metabase-patched:
+	@echo "Pushing patched metabase docker image to registry..."
+	docker push $(IMAGE_URL)/$(IMAGE_REPOSITORY)/metabase-patched:$(METABASE_VERSION)
+.PHONY: push-metabase-patched
 
-lint: $(GOLANGCILINT)
-	$(GOLANGCILINT) run
-.PHONY: lint
+push-deps:
+	@echo "Pushing nada-backend mocks docker image to registry..."
+	docker push $(IMAGE_URL)/$(IMAGE_REPOSITORY)/nada-backend-mocks:$(MOCKS_VERSION)
+.PHONY: push-deps
 
-check: | gofumpt lint staticcheck test
-.PHONY: check
+check-images:
+	@./resources/scripts/check_images.sh $(IMAGE_URL)/$(IMAGE_REPOSITORY) metabase:$(METABASE_VERSION) metabase-patched:$(METABASE_VERSION) nada-backend-mocks:$(MOCKS_VERSION)
+.PHONY: check-images

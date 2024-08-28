@@ -6,8 +6,8 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-	"math/rand"
 	"mime/multipart"
+	"net"
 	"net/http"
 	"net/http/httptest"
 	"net/http/httputil"
@@ -16,6 +16,8 @@ import (
 	"strings"
 	"testing"
 	"time"
+
+	"google.golang.org/api/iam/v1"
 
 	"github.com/go-chi/chi"
 	"github.com/google/go-cmp/cmp"
@@ -51,7 +53,6 @@ type containers struct {
 	t         *testing.T
 	log       zerolog.Logger
 	pool      *dockertest.Pool
-	network   *dockertest.Network
 	resources []*dockertest.Resource
 }
 
@@ -61,11 +62,6 @@ func (c *containers) Cleanup() {
 		if err := c.pool.Purge(r); err != nil {
 			c.log.Warn().Err(err).Msg("purging resources")
 		}
-	}
-
-	err := c.network.Close()
-	if err != nil {
-		c.log.Warn().Err(err).Msg("closing network")
 	}
 }
 
@@ -102,7 +98,6 @@ func (c *containers) RunPostgres(cfg *PostgresConfig) *PostgresConfig {
 			fmt.Sprintf("POSTGRES_DB=%s", cfg.Database),
 			"listen_addresses = '*'",
 		},
-		NetworkID: c.network.Network.ID,
 	}, func(config *docker.HostConfig) {
 		config.AutoRemove = true
 		config.RestartPolicy = docker.RestartPolicy{
@@ -187,15 +182,20 @@ func NewMetabaseConfig() *MetabaseConfig {
 }
 
 func (c *containers) RunMetabase(cfg *MetabaseConfig) *MetabaseConfig {
+	metabaseVersion := os.Getenv("METABASE_VERSION")
+	if metabaseVersion == "" {
+		metabaseVersion = "v1.50.20"
+	}
+
 	resource, err := c.pool.RunWithOptions(&dockertest.RunOptions{
-		Repository: "metabase-nada-backend",
-		Tag:        "latest",
-		NetworkID:  c.network.Network.ID,
+		Repository: "europe-north1-docker.pkg.dev/nada-prod-6977/nada-north/metabase-patched",
+		Tag:        metabaseVersion,
 		Env: []string{
 			"MB_DB_TYPE=h2",
 			"MB_ENABLE_PASSWORD_LOGIN=true",
 			fmt.Sprintf("MB_PREMIUM_EMBEDDING_TOKEN=%s", cfg.PremiumEmbeddingToken),
 		},
+		Platform: "linux/amd64",
 	}, func(config *docker.HostConfig) {
 		config.AutoRemove = true
 		config.RestartPolicy = docker.RestartPolicy{
@@ -212,12 +212,20 @@ func (c *containers) RunMetabase(cfg *MetabaseConfig) *MetabaseConfig {
 	c.pool.MaxWait = 2 * time.Minute
 	c.resources = append(c.resources, resource)
 
+	client := http.Client{
+		Timeout: 5 * time.Second,
+	}
+
 	// Exponential backoff-retry to connect to Metabase instance
 	if err := c.pool.Retry(func() error {
-		resp, err := http.Get(cfg.SessionPropertiesURL())
+		resp, err := client.Get(cfg.SessionPropertiesURL())
 		if err != nil {
+			c.log.Warn().Err(err).Msg("could not get session properties")
 			return err
 		}
+		defer func(Body io.ReadCloser) {
+			_ = Body.Close()
+		}(resp.Body)
 
 		if resp.StatusCode != 200 {
 			return fmt.Errorf("server not ready")
@@ -228,20 +236,28 @@ func (c *containers) RunMetabase(cfg *MetabaseConfig) *MetabaseConfig {
 		c.t.Fatalf("could not connect to metabase: %s", err)
 	}
 
-	resp, err := http.Get(cfg.SessionPropertiesURL())
+	resp, err := client.Get(cfg.SessionPropertiesURL())
 	if err != nil {
 		c.t.Fatalf("could not get session properties: %s", err)
 	}
+
+	defer func(Body io.ReadCloser) {
+		_ = Body.Close()
+	}(resp.Body)
 
 	token := struct {
 		SetupToken string `json:"setup-token"`
 	}{}
 	Unmarshal(c.t, resp.Body, &token)
 
-	resp, err = http.Post(cfg.SetupURL(), "application/json", bytes.NewReader(Marshal(c.t, cfg.SetupBody(token.SetupToken))))
+	resp, err = client.Post(cfg.SetupURL(), "application/json", bytes.NewReader(Marshal(c.t, cfg.SetupBody(token.SetupToken))))
 	if err != nil {
 		c.t.Fatalf("could not setup metabase: %s", err)
 	}
+
+	defer func(Body io.ReadCloser) {
+		_ = Body.Close()
+	}(resp.Body)
 
 	if resp.StatusCode != 200 {
 		c.t.Fatalf("could not setup metabase: %s", resp.Status)
@@ -261,18 +277,10 @@ func NewContainers(t *testing.T, log zerolog.Logger) *containers {
 		t.Fatalf("pinging Docker: %s", err)
 	}
 
-	networkName := fmt.Sprintf("nada-integration-test-network-%d", rand.Intn(1000))
-
-	network, err := pool.CreateNetwork(networkName)
-	if err != nil {
-		log.Fatal().Err(err).Msg("creating network")
-	}
-
 	return &containers{
 		t:         t,
 		log:       log,
 		pool:      pool,
-		network:   network,
 		resources: nil,
 	}
 }
@@ -552,4 +560,54 @@ func CreateMultipartFormRequest(t *testing.T, method, path string, files map[str
 	}
 
 	return req
+}
+
+func GetFreePort(t *testing.T) int {
+	t.Helper()
+
+	a, err := net.ResolveTCPAddr("tcp", "localhost:0")
+	if err != nil {
+		t.Fatalf("get free port, resolving: %s", err)
+	}
+
+	l, err := net.ListenTCP("tcp", a)
+	if err != nil {
+		t.Fatalf("get free port, listening: %s", err)
+	}
+
+	defer func(l *net.TCPListener) {
+		_ = l.Close()
+	}(l)
+
+	return l.Addr().(*net.TCPAddr).Port
+}
+
+func ContainsCollectionWithName(collections []*service.MetabaseCollection, expectedName string) bool {
+	for _, collection := range collections {
+		if collection.Name == expectedName {
+			return true
+		}
+	}
+
+	return false
+}
+
+func ContainsPermissionGroupWithNamePrefix(permissionGroups []service.MetabasePermissionGroup, prefix string) bool {
+	for _, permissionGroup := range permissionGroups {
+		if strings.HasPrefix(permissionGroup.Name, prefix) {
+			return true
+		}
+	}
+
+	return false
+}
+
+func ContainsServiceAccount(serviceAccounts map[string]*iam.ServiceAccount, prefix, postfix string) bool {
+	for _, sa := range serviceAccounts {
+		if strings.HasPrefix(sa.Email, prefix) && strings.HasSuffix(sa.Email, postfix) {
+			return true
+		}
+	}
+
+	return false
 }

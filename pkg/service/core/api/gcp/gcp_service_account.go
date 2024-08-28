@@ -2,186 +2,210 @@ package gcp
 
 import (
 	"context"
-	"encoding/base64"
 	"errors"
 	"fmt"
-	"net/http"
-	"strings"
 
-	"github.com/btcsuite/btcutil/base58"
-	"github.com/google/uuid"
 	"github.com/navikt/nada-backend/pkg/errs"
+	"github.com/navikt/nada-backend/pkg/sa"
 	"github.com/navikt/nada-backend/pkg/service"
-	"google.golang.org/api/cloudresourcemanager/v1"
-	"google.golang.org/api/googleapi"
-	"google.golang.org/api/iam/v1"
 )
 
 var _ service.ServiceAccountAPI = &serviceAccountAPI{}
 
-type serviceAccountAPI struct{}
-
-func (a *serviceAccountAPI) ListServiceAccounts(ctx context.Context, gcpProject string) ([]string, error) {
-	const op errs.Op = "gcp.ListServiceAccounts"
-
-	iamService, err := iam.NewService(ctx)
-	if err != nil {
-		return nil, errs.E(errs.IO, op, err)
-	}
-
-	accounts, err := iamService.Projects.ServiceAccounts.List("projects/" + gcpProject).Do()
-	if err != nil {
-		return nil, errs.E(errs.IO, op, err)
-	}
-
-	saEmails := make([]string, len(accounts.Accounts))
-	for _, account := range accounts.Accounts {
-		saEmails = append(saEmails, account.Email)
-	}
-
-	return saEmails, nil
+type serviceAccountAPI struct {
+	ops sa.Operations
 }
 
-func (a *serviceAccountAPI) DeleteServiceAccount(ctx context.Context, gcpProject, saEmail string) error {
-	const op errs.Op = "gcp.DeleteServiceAccount"
+func (a *serviceAccountAPI) ListServiceAccounts(ctx context.Context, gcpProject string) ([]*service.ServiceAccount, error) {
+	const op errs.Op = "serviceAccountAPI.ListServiceAccounts"
 
-	iamService, err := iam.NewService(ctx)
+	raw, err := a.ops.ListServiceAccounts(ctx, gcpProject)
 	if err != nil {
-		return errs.E(errs.IO, op, err)
+		return nil, errs.E(errs.IO, op, err)
 	}
 
-	_, err = iamService.Projects.ServiceAccounts.
-		Delete("projects/" + gcpProject + "/serviceAccounts/" + saEmail).
-		Do()
-	if err != nil {
-		var apiError *googleapi.Error
+	var accounts []*service.ServiceAccount
 
-		ok := errors.As(err, &apiError)
-		if ok {
-			if apiError.Code == http.StatusNotFound {
-				return nil
-			}
+	for _, r := range raw {
+		account := &service.ServiceAccount{
+			ServiceAccountMeta: &service.ServiceAccountMeta{
+				Description: r.Description,
+				DisplayName: r.DisplayName,
+				Email:       r.Email,
+				Name:        r.Name,
+				ProjectId:   r.ProjectId,
+				UniqueId:    r.UniqueId,
+			},
 		}
 
-		return errs.E(errs.IO, op, fmt.Errorf("deleting service account '%s': %w", saEmail, err))
+		keys, err := a.ops.ListServiceAccountKeys(ctx, r.Name)
+		if err != nil {
+			return nil, errs.E(errs.IO, op, fmt.Errorf("listing service account keys '%s': %w", r.Name, err))
+		}
+
+		for _, key := range keys {
+			account.Keys = append(account.Keys, &service.ServiceAccountKey{
+				Name:         key.Name,
+				KeyAlgorithm: key.KeyAlgorithm,
+				KeyOrigin:    key.KeyOrigin,
+				KeyType:      key.KeyType,
+			})
+		}
+
+		bindings, err := a.ops.ListProjectServiceAccountPolicyBindings(ctx, r.ProjectId, r.Email)
+		if err != nil {
+			return nil, errs.E(errs.IO, op, fmt.Errorf("listing project service account policy bindings '%s': %w", r.Email, err))
+		}
+
+		for _, binding := range bindings {
+			account.Bindings = append(account.Bindings, &service.Binding{
+				Role:    binding.Role,
+				Members: binding.Members,
+			})
+		}
+	}
+
+	return accounts, nil
+}
+
+func (a *serviceAccountAPI) DeleteServiceAccountAndBindings(ctx context.Context, project, email string) error {
+	const op errs.Op = "serviceAccountAPI.DeleteServiceAccount"
+
+	name := sa.ServiceAccountNameFromEmail(project, email)
+
+	err := a.ops.RemoveProjectServiceAccountPolicyBinding(ctx, project, email)
+	if err != nil {
+		return errs.E(errs.IO, op, fmt.Errorf("removing project service account policy bindings '%s': %w", name, err))
+	}
+
+	err = a.ops.DeleteServiceAccount(ctx, name)
+	if err != nil {
+		if errors.Is(err, sa.ErrNotFound) {
+			return nil
+		}
+
+		return errs.E(errs.IO, op, fmt.Errorf("deleting service account '%s': %w", name, err))
 	}
 
 	return nil
 }
 
-func (a *serviceAccountAPI) getOrCreateServiceAccount(ctx context.Context, gcpProject string, ds *service.Dataset) (*iam.ServiceAccount, error) {
-	const op errs.Op = "gcp.getOrCreateServiceAccount"
+func (a *serviceAccountAPI) EnsureServiceAccountWithKeyAndBinding(ctx context.Context, req *service.ServiceAccountRequest) (*service.ServiceAccountWithPrivateKey, error) {
+	const op errs.Op = "serviceAccountAPI.EnsureServiceAccountWithKeyAndBinding"
 
-	accountID := "nada-" + MarshalUUID(ds.ID)
-
-	iamService, err := iam.NewService(ctx)
+	accountMeta, err := a.ensureServiceAccountExists(ctx, req)
 	if err != nil {
-		return nil, errs.E(errs.IO, op, err)
+		return nil, errs.E(op, err)
 	}
 
-	account, err := iamService.Projects.ServiceAccounts.Get("projects/" + gcpProject + "/serviceAccounts/" + accountID + "@" + gcpProject + ".iam.gserviceaccount.com").Do()
-	if err == nil {
-		return account, nil
+	if req.Binding != nil {
+		err = a.ensureServiceAccountProjectBinding(ctx, req.ProjectID, req.Binding)
+		if err != nil {
+			return nil, errs.E(op, err)
+		}
 	}
 
-	request := &iam.CreateServiceAccountRequest{
-		AccountId: accountID,
-		ServiceAccount: &iam.ServiceAccount{
-			Description: "Metabase service account for dataset " + ds.ID.String(),
-			DisplayName: ds.Name,
-		},
-	}
-
-	account, err = iamService.Projects.ServiceAccounts.Create("projects/"+gcpProject, request).Do()
+	key, err := a.ensureServiceAccountKey(ctx, accountMeta.Name)
 	if err != nil {
-		return nil, errs.E(errs.IO, op, err)
+		return nil, errs.E(op, err)
 	}
 
-	return account, nil
+	return &service.ServiceAccountWithPrivateKey{
+		ServiceAccountMeta: accountMeta,
+		Key:                key,
+	}, nil
 }
 
-func (a *serviceAccountAPI) CreateServiceAccount(ctx context.Context, gcpProject string, ds *service.Dataset) ([]byte, string, error) {
-	const op errs.Op = "gcp.CreateServiceAccount"
+func (a *serviceAccountAPI) ensureServiceAccountKey(ctx context.Context, name string) (*service.ServiceAccountKeyWithPrivateKeyData, error) {
+	const op errs.Op = "serviceAccountAPI.ensureServiceAccountKey"
 
-	account, err := a.getOrCreateServiceAccount(ctx, gcpProject, ds)
+	keys, err := a.ops.ListServiceAccountKeys(ctx, name)
 	if err != nil {
-		return nil, "", errs.E(op, err)
+		return nil, errs.E(errs.IO, op, fmt.Errorf("listing service account keys '%s': %w", name, err))
 	}
 
-	crmService, err := cloudresourcemanager.NewService(ctx)
-	if err != nil {
-		return nil, "", errs.E(errs.IO, op, err)
-	}
-
-	iamPolicyCall := crmService.Projects.GetIamPolicy(gcpProject, &cloudresourcemanager.GetIamPolicyRequest{})
-	iamPolicies, err := iamPolicyCall.Do()
-	if err != nil {
-		return nil, "", errs.E(errs.IO, op, err)
-	}
-
-	iamPolicies.Bindings = append(iamPolicies.Bindings, &cloudresourcemanager.Binding{
-		Members: []string{"serviceAccount:" + account.Email},
-		Role:    "projects/" + gcpProject + "/roles/nada.metabase",
-	})
-
-	iamSetPolicyCall := crmService.Projects.SetIamPolicy(gcpProject, &cloudresourcemanager.SetIamPolicyRequest{
-		Policy: iamPolicies,
-	})
-
-	_, err = iamSetPolicyCall.Do()
-	if err != nil {
-		return nil, "", errs.E(errs.IO, op, err)
-	}
-
-	key, err := a.recreateServiceAccountKey(ctx, account.UniqueId)
-	if err != nil {
-		return nil, "", errs.E(op, err)
-	}
-
-	saJson, err := base64.StdEncoding.DecodeString(key.PrivateKeyData)
-	if err != nil {
-		return nil, "", errs.E(errs.IO, op, err)
-	}
-
-	return saJson, account.Email, nil
-}
-
-func (a *serviceAccountAPI) recreateServiceAccountKey(ctx context.Context, accountID string) (*iam.ServiceAccountKey, error) {
-	const op errs.Op = "gcp.recreateServiceAccountKey"
-
-	iamService, err := iam.NewService(ctx)
-	if err != nil {
-		return nil, errs.E(errs.IO, op, err)
-	}
-
-	keys, err := iamService.Projects.ServiceAccounts.Keys.List("projects/-/serviceAccounts/" + accountID).Do()
-	if err != nil {
-		return nil, errs.E(errs.IO, op, err)
-	}
-
-	for _, key := range keys.Keys {
+	for _, key := range keys {
 		if key.KeyType == "USER_MANAGED" {
-			_, err := iamService.Projects.ServiceAccounts.Keys.Delete(key.Name).Do()
+			err := a.ops.DeleteServiceAccountKey(ctx, key.Name)
 			if err != nil {
-				return nil, errs.E(errs.IO, op, err)
+				return nil, errs.E(errs.IO, op, fmt.Errorf("deleting service account key '%s': %w", key.Name, err))
 			}
 		}
 	}
 
-	keyRequest := &iam.CreateServiceAccountKeyRequest{}
-
-	key, err := iamService.Projects.ServiceAccounts.Keys.Create("projects/-/serviceAccounts/"+accountID, keyRequest).Do()
+	key, err := a.ops.CreateServiceAccountKey(ctx, name)
 	if err != nil {
-		return nil, errs.E(errs.IO, op, err)
+		return nil, errs.E(errs.IO, op, fmt.Errorf("creating service account key '%s': %w", name, err))
 	}
 
-	return key, nil
+	return &service.ServiceAccountKeyWithPrivateKeyData{
+		ServiceAccountKey: &service.ServiceAccountKey{
+			Name:         key.Name,
+			KeyAlgorithm: key.KeyAlgorithm,
+			KeyOrigin:    key.KeyOrigin,
+			KeyType:      key.KeyType,
+		},
+		PrivateKeyData: key.PrivateKeyData,
+	}, nil
 }
 
-func MarshalUUID(id uuid.UUID) string {
-	return strings.ToLower(base58.Encode(id[:]))
+func (a *serviceAccountAPI) ensureServiceAccountProjectBinding(ctx context.Context, project string, binding *service.Binding) error {
+	const op errs.Op = "serviceAccountAPI.ensureServiceAccountProjectBinding"
+
+	err := a.ops.AddProjectServiceAccountPolicyBinding(ctx, project, &sa.Binding{
+		Role:    binding.Role,
+		Members: binding.Members,
+	})
+	if err != nil {
+		return errs.E(errs.IO, op, fmt.Errorf("adding project service account policy binding '%s': %w", project, err))
+	}
+
+	return nil
 }
 
-func NewServiceAccountAPI() *serviceAccountAPI {
-	return &serviceAccountAPI{}
+func (a *serviceAccountAPI) ensureServiceAccountExists(ctx context.Context, req *service.ServiceAccountRequest) (*service.ServiceAccountMeta, error) {
+	const op errs.Op = "serviceAccountAPI.ensureServiceAccountExists"
+
+	account, err := a.ops.GetServiceAccount(ctx, sa.ServiceAccountNameFromAccountID(req.ProjectID, req.AccountID))
+	if err == nil {
+		return &service.ServiceAccountMeta{
+			Description: account.Description,
+			DisplayName: account.DisplayName,
+			Email:       account.Email,
+			Name:        account.Name,
+			ProjectId:   account.ProjectId,
+			UniqueId:    account.UniqueId,
+		}, nil
+	}
+
+	if !errors.Is(err, sa.ErrNotFound) {
+		return nil, errs.E(errs.IO, op, fmt.Errorf("getting service account '%s': %w", sa.ServiceAccountNameFromAccountID(req.ProjectID, req.AccountID), err))
+	}
+
+	request := &sa.ServiceAccountRequest{
+		ProjectID:   req.ProjectID,
+		AccountID:   req.AccountID,
+		DisplayName: req.DisplayName,
+		Description: req.Description,
+	}
+
+	account, err = a.ops.CreateServiceAccount(ctx, request)
+	if err != nil {
+		return nil, errs.E(errs.IO, op, fmt.Errorf("creating service account '%s': %w", sa.ServiceAccountNameFromAccountID(req.ProjectID, req.AccountID), err))
+	}
+
+	return &service.ServiceAccountMeta{
+		Description: account.Description,
+		DisplayName: account.DisplayName,
+		Email:       account.Email,
+		Name:        account.Name,
+		ProjectId:   account.ProjectId,
+		UniqueId:    account.UniqueId,
+	}, nil
+}
+
+func NewServiceAccountAPI(ops sa.Operations) *serviceAccountAPI {
+	return &serviceAccountAPI{
+		ops: ops,
+	}
 }

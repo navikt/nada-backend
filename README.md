@@ -12,11 +12,15 @@ It serves a REST-API for managing data products, and provides functionality for 
 - https://kubernetes.io/docs/tasks/tools/#kubectl
 
 2. Configure `gcloud` so you can [access Nais clusters](https://doc.nais.io/operate/how-to/command-line-access/#google-cloud-platform-gcp)  
-3. Login to GCP
+3. Login to GCP and configure docker
 ```bash
 gcloud auth login --update-adc
+gcloud auth configure-docker europe-north1-docker.pkg.dev 
 ```
-4. (Optional) If you are on mac with arm (m1, m2, m3, etc.), you might need to install rosetta: `softwareupdate --install-rosetta`
+4. (Optional) If you are on mac with arm (m1, m2, m3, etc.) install rosetta
+```bash
+softwareupdate --install-rosetta
+```
 5. Run som build commands
 
 ```bash
@@ -34,51 +38,56 @@ With this configuration all dependencies run as containers, as can be seen in `d
   IAM Policy 
   endpoints
 - Google Cloud Storage using [fake-gcs-server](https://github.com/fsouza/fake-gcs-server)
-- [Metabase](https://github.com/metabase/metabase) with a [patch](resources/metabase/001-bigquery-cloud-sdk-no-auth.patch) for enabling use of bigquery-emulator
+- [Metabase](https://github.com/metabase/metabase) with a [patch](resources/images/metabase/001-bigquery-cloud-sdk-no-auth.patch) for enabling use of bigquery-emulator
 - Fake API servers for `teamkatalogen` and `naisconsole`
 
 There are still a couple of services missing, though much functionality should work without this:
 - Fetching of Google Groups
 - Creating Google Cloud Service Accounts
 
-1. Start the dependencies
+1. Start the dependencies and API
 ```bash
-# Builds and runs dependencies in the foreground
-$ make local-deps 
+# Starts the dependencies in the background, and runs the API in the foreground
+$ make run
 ```
-
-2. Start the backend
-```bash
- # Builds and runs nada-backend using config-local.yaml
-$ make local
-```
-
 **Note:** building the big query emulator requires quite a bit of memory, so if you see something like `clang++:
 signal: killed` you need to increase the amount of memory you allocate to your container run-time.
 
-3. (Optional): Start the [nada-frontend](https://github.com/navikt/nada-frontend/?tab=readme-ov-file#development)
+2. (Optional): Start the [nada-frontend](https://github.com/navikt/nada-frontend/?tab=readme-ov-file#development)
 
-4. (Optional): Take a look at the [locally running Metabase](http://localhost:8083), the username is: `nada@nav.no`,
+3. (Optional): Take a look at the [locally running Metabase](http://localhost:8083), the username is: `nada@nav.no`,
    and password is: `superdupersecret1`
 
-## Deployment
-The application needs two GCP service accounts which are mounted in at runtime from two secrets in Google Secret Manager. These are:
+## Making changes to the database or generated models and queries
 
-- `nada-backend-google-credentials`
-- `nada-backend-metabase-sa`
+1. [Migrations](pkg/database/migrations) allows you to modify the existing database, these are automatically applied during startup of the application
+2. [Queries](pkg/database/queries) lets you generate new models and queries based on the existing structure
 
-It also needs a GCP project where the BigQuery API is enabled to host keys for pseudonymization. 
+**NB:** If you make changes to the *Queries* remember to run the generate command so your changes are propagated:
 
-The following values used by the application are also stored in Google Secret Manager in the secret `nada-backend`:
-
+```bash
+$ make generate
 ```
-CLIENT_ID
-CLIENT_SECRET
-GITHUB_READ_TOKEN
-GOOGLE_ADMIN_IMPERSONATION_SUBJECT
-METABASE_PASSWORD
-METABASE_USERNAME
-SLACK_URL
+
+## Update the images
+
+We build and push images for the patched metabase and customized big-query emulator to speed up local development and integration tests. If you need to make changes to these: 
+
+1. Make changes to the [base images](resources/images)
+
+**Note:** in the [Makefile](Makefile) we set the target version for the mocks and Metabase.
+
+If you change the `METABASE_VERSION` then it will pull the jar or source code for that version of Metabase and build the new images. We also use this as the version in the image tags for metabase(-patched).
+
+If you change the mocks, you also need to bump the `MOCKS_VERSION`, so we get the latest changes.
+
+2. Build the new images locally
+```bash
+$ make build-all
+```
+3. Push the images to the container registry
+```
+$ make push-all
 ```
 
 ## Architecture

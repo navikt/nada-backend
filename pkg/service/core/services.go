@@ -89,7 +89,7 @@ func NewServices(
 			stores.BigQueryStorage,
 			stores.DataProductsStorage,
 			stores.AccessStorage,
-			log,
+			log.With().Str("service", "metabase").Logger(),
 		),
 		PollyService: NewPollyService(
 			stores.PollyStorage,

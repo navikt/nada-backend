@@ -46,6 +46,7 @@ type Config struct {
 	Cookies                   Cookies                   `yaml:"cookies"`
 	NaisConsole               NaisConsole               `yaml:"nais_console"`
 	API                       API                       `yaml:"api"`
+	ServiceAccount            ServiceAccount            `yaml:"service_account"`
 
 	EmailSuffix                    string `yaml:"email_suffix"`
 	NaisClusterName                string `yaml:"nais_cluster_name"`
@@ -86,6 +87,11 @@ func (c Config) Validate() error {
 		validation.Field(&c.CacheDurationSeconds, validation.Required),
 		validation.Field(&c.TeamProjectsUpdateDelaySeconds, validation.Required),
 	)
+}
+
+type ServiceAccount struct {
+	EndpointOverride string `yaml:"endpoint"`
+	DisableAuth      bool   `yaml:"disable_auth"`
 }
 
 type TreatmentCatalogue struct {

@@ -1,6 +1,6 @@
 services:
   db:
-    image: postgres
+    image: postgres:12
     restart: always
     environment:
       POSTGRES_USER: nada-backend
@@ -29,10 +29,33 @@ services:
     networks:
       - metanet1
 
-  metabase:
-    image: metabase-nada-backend:latest
+  metabase-patched:
+    image: europe-north1-docker.pkg.dev/nada-prod-6977/nada-north/metabase-patched:${METABASE_VERSION}
     container_name: metabase
     hostname: metabase
+    platform: linux/amd64
+    volumes:
+      - metabase-data:/usr/src/metabase-data
+    ports:
+      - "8083:3000"
+    environment:
+      MB_DB_TYPE: h2
+      MB_DB_FILE: /usr/src/metabase-data/metabase.db
+      MB_ENABLE_PASSWORD_LOGIN: true
+      MB_PREMIUM_EMBEDDING_TOKEN: ${MB_PREMIUM_EMBEDDING_TOKEN}
+    networks:
+      - metanet1
+    healthcheck:
+      test: curl --fail -I http://localhost:3000/api/health || exit 1
+      interval: 15s
+      timeout: 5s
+      retries: 5
+
+  metabase:
+    image: europe-north1-docker.pkg.dev/nada-prod-6977/nada-north/metabase:${METABASE_VERSION}
+    container_name: metabase
+    hostname: metabase
+    platform: linux/amd64
     volumes:
       - metabase-data:/usr/src/metabase-data
     ports:
@@ -51,9 +74,10 @@ services:
       retries: 5
 
   bq:
-    image: nada-apps:latest
+    image: europe-north1-docker.pkg.dev/nada-prod-6977/nada-north/nada-backend-mocks:${MOCKS_VERSION}
     container_name: bq
     hostname: bq
+    platform: linux/amd64
     volumes:
       - ${PWD}/resources/metabase:/opt/metabase/
     ports:
@@ -70,8 +94,9 @@ services:
       - /opt/metabase/data.yaml
 
   tk:
-    image: nada-apps:latest
+    image: europe-north1-docker.pkg.dev/nada-prod-6977/nada-north/nada-backend-mocks:${MOCKS_VERSION}
     container_name: tk
+    platform: linux/amd64
     hostname: tk
     volumes:
       - ${PWD}/resources/teamkatalogen:/opt/teamkatalogen
@@ -87,8 +112,9 @@ services:
       - /opt/teamkatalogen/fake-data.json
 
   nc:
-    image: nada-apps:latest
+    image: europe-north1-docker.pkg.dev/nada-prod-6977/nada-north/nada-backend-mocks:${MOCKS_VERSION}
     container_name: nc
+    platform: linux/amd64
     hostname: nc
     volumes:
       - ${PWD}/resources/naisconsole:/opt/naisconsole

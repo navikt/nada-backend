@@ -4,11 +4,10 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"io"
 	"net/http"
-	"net/url"
+	"net/http/httputil"
 	"strconv"
 	"strings"
 	"time"
@@ -27,18 +26,16 @@ const (
 )
 
 type metabaseAPI struct {
-	c                  *http.Client
-	password           string
-	url                string
-	username           string
-	oauth2ClientID     string
-	oauth2ClientSecret string
-	oauth2TenantID     string
-	expiry             time.Time
-	sessionID          string
-	disableAuth        bool
-	endpoint           string
-	log                zerolog.Logger
+	c           *http.Client
+	password    string
+	url         string
+	username    string
+	expiry      time.Time
+	sessionID   string
+	disableAuth bool
+	endpoint    string
+	log         zerolog.Logger
+	debug       bool
 }
 
 var _ service.MetabaseAPI = &metabaseAPI{}
@@ -62,6 +59,14 @@ func (c *metabaseAPI) request(ctx context.Context, method, path string, body int
 	res, err := c.PerformRequest(ctx, method, path, buf)
 	if err != nil {
 		return errs.E(op, err)
+	}
+
+	if c.debug {
+		reqdump, _ := httputil.DumpRequestOut(res.Request, true)
+		c.log.Info().Msg(string(reqdump))
+
+		respdump, _ := httputil.DumpResponse(res, true)
+		c.log.Info().Msg(string(respdump))
 	}
 
 	if res.StatusCode > 299 {
@@ -117,13 +122,13 @@ func (c *metabaseAPI) EnsureValidSession(ctx context.Context) error {
 	payload := fmt.Sprintf(`{"username": "%v", "password": "%v"}`, c.username, c.password)
 	req, err := http.NewRequestWithContext(ctx, http.MethodPost, c.url+"/session", strings.NewReader(payload))
 	if err != nil {
-		return errs.E(errs.IO, op, err)
+		return errs.E(errs.IO, op, fmt.Errorf("creating request: %w", err))
 	}
 
 	req.Header.Set("Content-Type", "application/json")
 	res, err := c.c.Do(req)
 	if err != nil {
-		return errs.E(errs.IO, op, err)
+		return errs.E(errs.IO, op, fmt.Errorf("performing request: %w", err))
 	}
 
 	if res.StatusCode != http.StatusOK {
@@ -135,7 +140,8 @@ func (c *metabaseAPI) EnsureValidSession(ctx context.Context) error {
 		ID string `json:"id"`
 	}
 
-	if err := json.NewDecoder(res.Body).Decode(&session); err != nil {
+	err = json.NewDecoder(res.Body).Decode(&session)
+	if err != nil {
 		return errs.E(errs.IO, op, err, errs.Parameter("response_body"))
 	}
 
@@ -235,6 +241,13 @@ func (c *metabaseAPI) CreateDatabase(ctx context.Context, team, name, saJSON, sa
 	}
 	err = c.request(ctx, http.MethodPost, "/database", db, &v)
 	if err != nil {
+		c.log.Debug().Fields(map[string]any{
+			"team":        team,
+			"name":        name,
+			"sa":          saEmail,
+			"endpoint":    c.endpoint,
+			"enable_auth": enableAuth,
+		}).Msg("creating_database")
 		return 0, errs.E(op, err)
 	}
 
@@ -563,6 +576,79 @@ func (c *metabaseAPI) ArchiveCollection(ctx context.Context, colID int) error {
 	return nil
 }
 
+type CollectionID struct {
+	IntID    int
+	StringID string
+	IsString bool
+}
+
+func (c *CollectionID) UnmarshalJSON(data []byte) error {
+	if data[0] == '"' {
+		c.IsString = true
+
+		return json.Unmarshal(data, &c.StringID)
+	}
+
+	return json.Unmarshal(data, &c.IntID)
+}
+
+type Collection struct {
+	ID          CollectionID `json:"id,omitempty"`
+	Name        string       `json:"name,omitempty"`
+	Description string       `json:"description,omitempty"`
+	IsPersonal  bool         `json:"is_personal,omitempty"`
+	IsSample    bool         `json:"is_sample,omitempty"`
+}
+
+func (c *metabaseAPI) GetCollections(ctx context.Context) ([]*service.MetabaseCollection, error) {
+	const op errs.Op = "metabaseAPI.GetCollections"
+
+	var raw []Collection
+
+	if err := c.request(ctx, http.MethodGet, "/collection/", nil, &raw); err != nil {
+		return nil, errs.E(op, err)
+	}
+
+	var collections []*service.MetabaseCollection
+	for _, col := range raw {
+		if col.ID.IsString {
+			c.log.Debug().Msgf("collection id is string: %s, skipping", col.ID.StringID)
+
+			continue
+		}
+
+		if col.IsPersonal || col.IsSample {
+			c.log.Debug().Msgf("skipping personal or sample collection: %s", col.Name)
+
+			continue
+		}
+
+		collections = append(collections, &service.MetabaseCollection{
+			ID:          col.ID.IntID,
+			Name:        col.Name,
+			Description: col.Description,
+		})
+	}
+
+	return collections, nil
+}
+
+func (c *metabaseAPI) UpdateCollection(ctx context.Context, collection *service.MetabaseCollection) error {
+	const op errs.Op = "metabaseAPI.UpdateCollection"
+
+	col := Collection{
+		Name:        collection.Name,
+		Description: collection.Description,
+	}
+
+	err := c.request(ctx, http.MethodPut, fmt.Sprintf("/collection/%d", collection.ID), col, nil)
+	if err != nil {
+		return errs.E(op, err)
+	}
+
+	return nil
+}
+
 func (c *metabaseAPI) CreateCollection(ctx context.Context, name string) (int, error) {
 	const op errs.Op = "metabaseAPI.CreateCollection"
 
@@ -636,88 +722,6 @@ func (c *metabaseAPI) CreateCollectionWithAccess(ctx context.Context, groupID in
 	return cid, nil
 }
 
-// FIXME: move into something else
-func (c *metabaseAPI) GetAzureGroupID(ctx context.Context, email string) (string, error) {
-	const op errs.Op = "metabaseAPI.GetAzureGroupID"
-
-	token, err := c.getAzureAccessToken(ctx)
-	if err != nil {
-		return "", errs.E(op, err)
-	}
-
-	req, err := http.NewRequestWithContext(ctx, http.MethodGet, "https://graph.microsoft.com/v1.0/groups", nil)
-	if err != nil {
-		return "", errs.E(errs.IO, op, err)
-	}
-
-	q := req.URL.Query()
-	q.Add("$filter", fmt.Sprintf("startswith(mail, '%v')", email))
-	req.URL.RawQuery = q.Encode()
-
-	req.Header.Set("Authorization", "Bearer "+token)
-	req.Header.Set("ConsistencyLevel", "eventual")
-	res, err := c.c.Do(req)
-	if err != nil {
-		return "", errs.E(errs.IO, op, err)
-	}
-	defer res.Body.Close()
-
-	type groupRes struct {
-		Value []struct {
-			ID string `json:"id"`
-		} `json:"value"`
-	}
-	group := &groupRes{}
-
-	if err := json.NewDecoder(res.Body).Decode(group); err != nil {
-		return "", errs.E(errs.IO, op, err, errs.Parameter("response_body"))
-	}
-
-	if len(group.Value) != 1 {
-		return "", errs.E(errs.NotExist, op, fmt.Errorf("unable to find azure group with email %v", email))
-	}
-
-	return group.Value[0].ID, nil
-}
-
-// FIXME: move into something else
-func (c *metabaseAPI) getAzureAccessToken(ctx context.Context) (string, error) {
-	const op errs.Op = "metabaseAPI.getAzureAccessToken"
-
-	form := url.Values{}
-	form.Add("grant_type", "client_credentials")
-	form.Add("client_id", c.oauth2ClientID)
-	form.Add("client_secret", c.oauth2ClientSecret)
-	form.Add("scope", "https://graph.microsoft.com/.default")
-
-	req, err := http.NewRequestWithContext(ctx, http.MethodPost, fmt.Sprintf("https://login.microsoftonline.com/%v/oauth2/v2.0/token", c.oauth2TenantID), strings.NewReader(form.Encode()))
-	if err != nil {
-		return "", errs.E(errs.IO, op, err)
-	}
-
-	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
-	req.Header.Set("Keep-Alive", "true")
-	res, err := c.c.Do(req)
-	if err != nil {
-		if errors.Is(err, context.Canceled) {
-			c.log.Error().Err(context.Cause(ctx)).Msg("context canceled")
-		}
-
-		return "", errs.E(errs.IO, op, err)
-	}
-	defer res.Body.Close()
-
-	type tokenResponse struct {
-		AccessToken string `json:"access_token"`
-	}
-	tokenRes := &tokenResponse{}
-	if err := json.NewDecoder(res.Body).Decode(tokenRes); err != nil {
-		return "", errs.E(errs.IO, op, err, errs.Parameter("response_body"))
-	}
-
-	return tokenRes.AccessToken, nil
-}
-
 func getUserID(users []service.MetabaseUser, email string) (int, error) {
 	const op errs.Op = "metabase.getUserID"
 
@@ -740,19 +744,17 @@ func dbExists(dbs []service.MetabaseDatabase, nadaID string) (int, bool) {
 	return 0, false
 }
 
-func NewMetabaseHTTP(url, username, password, oauth2ClientID, oauth2ClientSecret, oauth2TenantID, endpoint string, enableAuth bool, log zerolog.Logger) *metabaseAPI {
+func NewMetabaseHTTP(url, username, password, endpoint string, disableAuth, debug bool, log zerolog.Logger) *metabaseAPI {
 	return &metabaseAPI{
 		c: &http.Client{
 			Timeout: time.Second * 300, //nolint:gomnd
 		},
-		url:                url,
-		password:           password,
-		username:           username,
-		oauth2ClientID:     oauth2ClientID,
-		oauth2ClientSecret: oauth2ClientSecret,
-		oauth2TenantID:     oauth2TenantID,
-		endpoint:           endpoint,
-		disableAuth:        enableAuth,
-		log:                log,
+		url:         url,
+		password:    password,
+		username:    username,
+		endpoint:    endpoint,
+		disableAuth: disableAuth,
+		log:         log,
+		debug:       debug,
 	}
 }

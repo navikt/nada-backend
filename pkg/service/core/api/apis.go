@@ -6,6 +6,7 @@ import (
 	"github.com/navikt/nada-backend/pkg/config/v2"
 	"github.com/navikt/nada-backend/pkg/cs"
 	"github.com/navikt/nada-backend/pkg/nc"
+	"github.com/navikt/nada-backend/pkg/sa"
 	"github.com/navikt/nada-backend/pkg/service"
 	"github.com/navikt/nada-backend/pkg/service/core/api/gcp"
 	httpapi "github.com/navikt/nada-backend/pkg/service/core/api/http"
@@ -32,6 +33,7 @@ func NewClients(
 	ncFetcher nc.Fetcher,
 	bqClient bq.Operations,
 	csClient cs.Operations,
+	saClient sa.Operations,
 	cfg config.Config,
 	log zerolog.Logger,
 ) *Clients {
@@ -49,16 +51,14 @@ func NewClients(
 			csClient,
 			log.With().Str("component", "story").Logger(),
 		),
-		ServiceAccountAPI: gcp.NewServiceAccountAPI(),
+		ServiceAccountAPI: gcp.NewServiceAccountAPI(saClient),
 		MetaBaseAPI: httpapi.NewMetabaseHTTP(
 			cfg.Metabase.APIURL,
 			cfg.Metabase.Username,
 			cfg.Metabase.Password,
-			cfg.Oauth.ClientID,
-			cfg.Oauth.ClientSecret,
-			cfg.Oauth.TenantID,
 			cfg.Metabase.BigQueryDatabase.APIEndpointOverride,
 			cfg.Metabase.BigQueryDatabase.DisableAuth,
+			cfg.Debug,
 			log.With().Str("component", "metabase").Logger(),
 		),
 		PollyAPI: httpapi.NewPollyAPI(

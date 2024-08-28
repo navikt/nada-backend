@@ -43,6 +43,12 @@ type DataProductsService interface {
 
 type PiiLevel string
 
+const (
+	PiiLevelSensitive  PiiLevel = "sensitive"
+	PiiLevelAnonymised PiiLevel = "anonymised"
+	PiiLevelNone       PiiLevel = "none"
+)
+
 type DatasourceType string
 
 type Dataset struct {

@@ -9,17 +9,24 @@ import (
 	"github.com/google/uuid"
 )
 
+const (
+	MetabaseRestrictedCollectionTag = "🔐"
+)
+
 type MetabaseStorage interface {
-	CreateMetadata(ctx context.Context, metadata *MetabaseMetadata) error
-	GetMetadata(ctx context.Context, datasetID uuid.UUID, includeDeleted bool) (*MetabaseMetadata, error)
-	GetAllMetadata(ctx context.Context) ([]*MetabaseMetadata, error)
-	GetOpenTablesInSameBigQueryDataset(ctx context.Context, projectID, dataset string) ([]string, error)
-	SetPermissionsGroup(ctx context.Context, datasetID uuid.UUID, permissionGroupID int) error
-	SoftDeleteMetadata(ctx context.Context, datasetID uuid.UUID) error
-	RestoreMetadata(ctx context.Context, datasetID uuid.UUID) error
+	CreateMetadata(ctx context.Context, datasetID uuid.UUID) error
 	DeleteMetadata(ctx context.Context, datasetID uuid.UUID) error
 	DeleteRestrictedMetadata(ctx context.Context, datasetID uuid.UUID) error
-	SetPermissionGroupMetabaseMetadata(ctx context.Context, datasetID uuid.UUID, groupID int) error
+	GetAllMetadata(ctx context.Context) ([]*MetabaseMetadata, error)
+	GetMetadata(ctx context.Context, datasetID uuid.UUID, includeDeleted bool) (*MetabaseMetadata, error)
+	GetOpenTablesInSameBigQueryDataset(ctx context.Context, projectID, dataset string) ([]string, error)
+	RestoreMetadata(ctx context.Context, datasetID uuid.UUID) error
+	SetCollectionMetabaseMetadata(ctx context.Context, datasetID uuid.UUID, collectionID int) (*MetabaseMetadata, error)
+	SetDatabaseMetabaseMetadata(ctx context.Context, datasetID uuid.UUID, databaseID int) (*MetabaseMetadata, error)
+	SetPermissionGroupMetabaseMetadata(ctx context.Context, datasetID uuid.UUID, groupID int) (*MetabaseMetadata, error)
+	SetServiceAccountMetabaseMetadata(ctx context.Context, datasetID uuid.UUID, saEmail string) (*MetabaseMetadata, error)
+	SetSyncCompletedMetabaseMetadata(ctx context.Context, datasetID uuid.UUID) error
+	SoftDeleteMetadata(ctx context.Context, datasetID uuid.UUID) error
 }
 
 type MetabaseAPI interface {
@@ -45,6 +52,8 @@ type MetabaseAPI interface {
 	SetCollectionAccess(ctx context.Context, groupID int, collectionID int) error
 	ShowTables(ctx context.Context, ids []int) error
 	Tables(ctx context.Context, dbID int) ([]MetabaseTable, error)
+	GetCollections(ctx context.Context) ([]*MetabaseCollection, error)
+	UpdateCollection(ctx context.Context, collection *MetabaseCollection) error
 }
 
 type MetabaseService interface {
@@ -97,9 +106,18 @@ type MetabaseDatabase struct {
 
 type MetabaseMetadata struct {
 	DatasetID         uuid.UUID
-	DatabaseID        int
-	PermissionGroupID int
-	CollectionID      int
+	DatabaseID        *int
+	PermissionGroupID *int
+	CollectionID      *int
 	SAEmail           string
 	DeletedAt         *time.Time
+	SyncCompleted     *time.Time
+}
+
+// MetabaseCollection represents a subset of the metadata returned
+// for a Metabase collection
+type MetabaseCollection struct {
+	ID          int
+	Name        string
+	Description string
 }

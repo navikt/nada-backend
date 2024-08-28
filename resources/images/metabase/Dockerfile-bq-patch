@@ -1,7 +1,6 @@
 FROM node:18-bullseye as builder
 
-ARG MB_EDITION=ee
-ARG VERSION=100
+ARG METABASE_VERSION
 
 WORKDIR /home/node
 
@@ -10,10 +9,10 @@ RUN apt-get update && apt-get upgrade -y && apt-get install openjdk-11-jdk curl 
     && chmod +x linux-install-1.11.1.1262.sh \
     && ./linux-install-1.11.1.1262.sh
 
-RUN git clone --depth 1 https://github.com/metabase/metabase.git
-RUN cp -R metabase/* .
+RUN curl -L https://github.com/metabase/metabase/archive/refs/tags/${METABASE_VERSION}.tar.gz -o metabase.tar.gz \
+    && tar -xzf metabase.tar.gz --strip-components=1
 
-COPY ./resources/metabase/001-bigquery-cloud-sdk-no-auth.patch .
+COPY resources/images/metabase/001-bigquery-cloud-sdk-no-auth.patch .
 
 RUN git apply 001-bigquery-cloud-sdk-no-auth.patch
 
@@ -23,7 +22,7 @@ RUN git config --global --add safe.directory /home/node
 # install frontend dependencies
 RUN yarn --frozen-lockfile
 
-RUN INTERACTIVE=false CI=true MB_EDITION=$MB_EDITION bin/build.sh :version ${VERSION}
+RUN INTERACTIVE=false CI=true MB_EDITION=ee bin/build.sh :version ${METABASE_VERSION}
 
 # ###################
 # # STAGE 2: runner
