@@ -71,9 +71,16 @@ func (s *metabaseService) CreateMappingRequest(ctx context.Context, user *servic
 func (s *metabaseService) MapDataset(ctx context.Context, datasetID uuid.UUID, services []string) error {
 	const op errs.Op = "metabaseService.MapDataset"
 
-	err := s.metabaseStorage.CreateMetadata(ctx, datasetID)
-	if err != nil {
+	meta, err := s.metabaseStorage.GetMetadata(ctx, datasetID, true)
+	if err != nil && !errs.KindIs(errs.NotExist, err) {
 		return errs.E(op, err)
+	}
+
+	if meta == nil {
+		err := s.metabaseStorage.CreateMetadata(ctx, datasetID)
+		if err != nil {
+			return errs.E(op, err)
+		}
 	}
 
 	mapMetabase := false
