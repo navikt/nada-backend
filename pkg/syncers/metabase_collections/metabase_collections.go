@@ -6,6 +6,8 @@ import (
 	"strings"
 	"time"
 
+	"github.com/navikt/nada-backend/pkg/leaderelection"
+
 	"github.com/navikt/nada-backend/pkg/errs"
 	"github.com/navikt/nada-backend/pkg/service"
 	"github.com/rs/zerolog"
@@ -21,15 +23,26 @@ type Syncer struct {
 func (s *Syncer) Run(ctx context.Context) {
 	ticker := time.NewTicker(s.syncInterval)
 
-	// Delay a little before starting
-	time.Sleep(60 * time.Second)
-
-	// Do an initial sync
-	s.log.Info().Msg("running initial metabase collections syncer")
-
-	err := s.AddRestrictedTagToCollections(ctx)
+	isLeader, err := leaderelection.IsLeader()
 	if err != nil {
-		s.log.Error().Fields(map[string]interface{}{"stack": errs.OpStack(err)}).Err(err).Msg("adding restricted tag to collections")
+		return
+	}
+
+	if isLeader {
+		// Delay a little before starting
+		time.Sleep(60 * time.Second)
+
+		// Do an initial sync
+		s.log.Info().Msg("running initial metabase collections syncer")
+
+		err = s.AddRestrictedTagToCollections(ctx)
+		if err != nil {
+			s.log.Error().Fields(map[string]interface{}{"stack": errs.OpStack(err)}).Err(err).Msg("adding restricted tag to collections")
+		}
+	}
+
+	if !isLeader {
+		s.log.Info().Msg("not leader, skipping metabase collections sync")
 	}
 
 	defer ticker.Stop()
@@ -41,7 +54,18 @@ func (s *Syncer) Run(ctx context.Context) {
 		case <-ticker.C:
 			s.log.Info().Msg("running metabase collections syncer")
 
-			err := s.AddRestrictedTagToCollections(ctx)
+			isLeader, err := leaderelection.IsLeader()
+			if err != nil {
+				s.log.Error().Err(err).Msg("checking leader status")
+				continue
+			}
+
+			if !isLeader {
+				s.log.Info().Msg("not leader, skipping metabase collections sync")
+				continue
+			}
+
+			err = s.AddRestrictedTagToCollections(ctx)
 			if err != nil {
 				s.log.Error().Fields(map[string]interface{}{"stack": errs.OpStack(err)}).Err(err).Msg("adding restricted tag to collections")
 			}
