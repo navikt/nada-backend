@@ -4,7 +4,7 @@ LAST_COMMIT = $(shell git --no-pager log -1 --pretty=%h)
 VERSION ?= $(DATE)-$(LAST_COMMIT)
 LDFLAGS := -X github.com/navikt/nada-backend/backend/version.Revision=$(shell git rev-parse --short HEAD) -X github.com/navikt/nada-backend/backend/version.Version=$(VERSION)
 
-METABASE_VERSION := v1.50.20
+METABASE_VERSION := v1.50.21
 MOCKS_VERSION := v0.0.1
 
 TARGET_ARCH := amd64
