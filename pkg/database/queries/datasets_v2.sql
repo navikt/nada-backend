@@ -29,9 +29,12 @@ WHERE
   array_length(@groups::TEXT[], 1) IS NOT NULL AND array_length(@groups::TEXT[], 1)!=0
   AND dp.group = ANY(@groups :: TEXT [])
   OR (
-    @requester::TEXT IS NOT NULL
-    AND dsa.subject = LOWER(@requester)
-    OR SPLIT_PART(dsa.subject, ':', 2) = ANY(@groups::TEXT[])
+    SPLIT_PART(dsa.subject, ':', 1) != 'serviceAccount'
+    AND (
+        @requester::TEXT IS NOT NULL
+        AND dsa.subject = LOWER(@requester)
+        OR SPLIT_PART(dsa.subject, ':', 2) = ANY(@groups::TEXT[])
+    )
   )
   AND revoked IS NULL
   AND (
