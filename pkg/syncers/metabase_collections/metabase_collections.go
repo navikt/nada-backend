@@ -183,7 +183,7 @@ func (s *Syncer) AddRestrictedTagToCollections(ctx context.Context) error {
 	for _, meta := range metas {
 		s.log.Debug().Msgf("meta: %v", meta)
 
-		if meta.SyncCompleted != nil && *meta.CollectionID != 0 {
+		if meta.SyncCompleted != nil && meta.CollectionID != nil && *meta.CollectionID != 0 {
 			collection, ok := collectionByID[*meta.CollectionID]
 			if !ok {
 				continue
