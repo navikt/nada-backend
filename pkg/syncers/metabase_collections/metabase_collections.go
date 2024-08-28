@@ -21,6 +21,17 @@ type Syncer struct {
 func (s *Syncer) Run(ctx context.Context) {
 	ticker := time.NewTicker(s.syncInterval)
 
+	// Delay a little before starting
+	time.Sleep(60 * time.Second)
+
+	// Do an initial sync
+	s.log.Info().Msg("running initial metabase collections syncer")
+
+	err := s.AddRestrictedTagToCollections(ctx)
+	if err != nil {
+		s.log.Error().Fields(map[string]interface{}{"stack": errs.OpStack(err)}).Err(err).Msg("adding restricted tag to collections")
+	}
+
 	defer ticker.Stop()
 	for {
 		select {

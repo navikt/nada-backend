@@ -9,6 +9,8 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/navikt/nada-backend/pkg/syncers/metabase_collections"
+
 	"github.com/navikt/nada-backend/pkg/sa"
 
 	"github.com/go-chi/chi/middleware"
@@ -50,10 +52,11 @@ var promErrs = prometheus.NewCounterVec(prometheus.CounterOpts{
 }, []string{"location"})
 
 const (
-	TeamProjectsUpdateFrequency = 60 * time.Minute
-	AccessEnsurerFrequency      = 5 * time.Minute
-	MetabaseUpdateFrequency     = 1 * time.Hour
-	TeamKatalogenFrequency      = 1 * time.Hour
+	TeamProjectsUpdateFrequency  = 60 * time.Minute
+	AccessEnsurerFrequency       = 5 * time.Minute
+	MetabaseUpdateFrequency      = 1 * time.Hour
+	MetabaseCollectionsFrequency = 3600
+	TeamKatalogenFrequency       = 1 * time.Hour
 )
 
 func main() {
@@ -257,6 +260,14 @@ func main() {
 		Addr:    net.JoinHostPort(cfg.Server.Address, cfg.Server.Port),
 		Handler: router,
 	}
+
+	collectionSyncer := metabase_collections.New(
+		apiClients.MetaBaseAPI,
+		stores.MetaBaseStorage,
+		MetabaseCollectionsFrequency,
+		zlog.With().Str("subsystem", "metabase_collections_syncer").Logger(),
+	)
+	go collectionSyncer.Run(ctx)
 
 	go access_ensurer.NewEnsurer(
 		googleGroups,
