@@ -55,6 +55,7 @@ func TestMetabase(t *testing.T) {
 	defer cancel()
 
 	log := zerolog.New(zerolog.NewConsoleWriter())
+	log.Level(zerolog.DebugLevel)
 
 	c := NewContainers(t, log)
 	defer c.Cleanup()
@@ -247,7 +248,7 @@ func TestMetabase(t *testing.T) {
 		require.NoError(t, err)
 
 		collectionSyncer := metabase_collections.New(mbapi, stores.MetaBaseStorage, 1, log)
-		go collectionSyncer.Run(ctx)
+		go collectionSyncer.Run(ctx, 0)
 		time.Sleep(5 * time.Second)
 
 		collections, err := mbapi.GetCollections(ctx)

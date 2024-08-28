@@ -267,7 +267,7 @@ func main() {
 		MetabaseCollectionsFrequency,
 		zlog.With().Str("subsystem", "metabase_collections_syncer").Logger(),
 	)
-	go collectionSyncer.Run(ctx)
+	go collectionSyncer.Run(ctx, 60)
 
 	go access_ensurer.NewEnsurer(
 		googleGroups,

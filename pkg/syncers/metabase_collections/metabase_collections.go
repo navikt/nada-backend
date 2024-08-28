@@ -20,17 +20,16 @@ type Syncer struct {
 	syncInterval time.Duration
 }
 
-func (s *Syncer) Run(ctx context.Context) {
-	ticker := time.NewTicker(s.syncInterval)
-
+func (s *Syncer) Run(ctx context.Context, initialDelaySec int) {
 	isLeader, err := leaderelection.IsLeader()
 	if err != nil {
+		s.log.Error().Err(err).Msg("checking leader status")
 		return
 	}
 
 	if isLeader {
 		// Delay a little before starting
-		time.Sleep(60 * time.Second)
+		time.Sleep(time.Duration(initialDelaySec) * time.Second)
 
 		// Do an initial sync
 		s.log.Info().Msg("running initial metabase collections syncer")
@@ -44,6 +43,8 @@ func (s *Syncer) Run(ctx context.Context) {
 	if !isLeader {
 		s.log.Info().Msg("not leader, skipping metabase collections sync")
 	}
+
+	ticker := time.NewTicker(s.syncInterval)
 
 	defer ticker.Stop()
 	for {
@@ -177,7 +178,11 @@ func (s *Syncer) AddRestrictedTagToCollections(ctx context.Context) error {
 		collectionByID[collection.ID] = collection
 	}
 
+	s.log.Info().Msgf("collections: %v", collections)
+
 	for _, meta := range metas {
+		s.log.Debug().Msgf("meta: %v", meta)
+
 		if meta.SyncCompleted != nil && *meta.CollectionID != 0 {
 			collection, ok := collectionByID[*meta.CollectionID]
 			if !ok {
@@ -185,9 +190,17 @@ func (s *Syncer) AddRestrictedTagToCollections(ctx context.Context) error {
 			}
 
 			if !strings.Contains(collection.Name, service.MetabaseRestrictedCollectionTag) {
+				newName := fmt.Sprintf("%s %s", collection.Name, service.MetabaseRestrictedCollectionTag)
+
+				s.log.Info().Fields(map[string]interface{}{
+					"collection_id": collection.ID,
+					"existing_name": collection.Name,
+					"new_name":      newName,
+				}).Msg("adding_restricted_tag")
+
 				err := s.api.UpdateCollection(ctx, &service.MetabaseCollection{
 					ID:   collection.ID,
-					Name: fmt.Sprintf("%s %s", collection.Name, service.MetabaseRestrictedCollectionTag),
+					Name: newName,
 				})
 				if err != nil {
 					return errs.E(op, err)

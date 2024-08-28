@@ -269,7 +269,7 @@ func TestSyncer_Run(t *testing.T) {
 			tc.setupAPI(api)
 			tc.setupStorage(storage)
 
-			go syncer.Run(ctx)
+			go syncer.Run(ctx, 0)
 			time.Sleep(2 * time.Second)
 
 			// Check logs for expected messages
