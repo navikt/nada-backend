@@ -367,17 +367,12 @@ func ensureUserInGroup(user *service.User, group string) error {
 func (s *metabaseService) GrantMetabaseAccess(ctx context.Context, dsID uuid.UUID, subject, subjectType string) error {
 	const op errs.Op = "metabaseService.GrantMetabaseAccess"
 
-	if fmt.Sprintf("%s:%s", subjectType, subject) == s.groupAllUsers {
-		err := s.addAllUsersDataset(ctx, dsID)
-		if err != nil {
-			return errs.E(op, err)
-		}
-
-		return nil
-	}
-
 	meta, err := s.metabaseStorage.GetMetadata(ctx, dsID, false)
 	if err != nil {
+		if errs.KindIs(errs.NotExist, err) {
+			return nil
+		}
+
 		return errs.E(op, err)
 	}
 

@@ -11,6 +11,8 @@ import (
 	"testing"
 	"time"
 
+	"github.com/stretchr/testify/require"
+
 	"github.com/navikt/nada-backend/pkg/config/v2"
 	"github.com/navikt/nada-backend/pkg/sa"
 	serviceAccountEmulator "github.com/navikt/nada-backend/pkg/sa/emulator"
@@ -209,12 +211,16 @@ func TestMetabase(t *testing.T) {
 		// perhaps we can bypass the queue in the test
 		time.Sleep(20 * time.Second)
 
+		meta, err := stores.MetaBaseStorage.GetMetadata(ctx, fuelData.ID, false)
+		require.NoError(t, err)
+		require.NotNil(t, meta.SyncCompleted)
+
 		collections, err := mbapi.GetCollections(ctx)
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		assert.True(t, ContainsCollectionWithName(collections, "Biofuel Consumption Rates 🔐"))
 
 		permissionGroups, err := mbapi.GetPermissionGroups(ctx)
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		assert.True(t, ContainsPermissionGroupWithNamePrefix(permissionGroups, "biofuel-consumption-rates"))
 
 		serviceAccount := saEmulator.GetServiceAccounts()
@@ -230,22 +236,22 @@ func TestMetabase(t *testing.T) {
 	})
 
 	t.Run("Removing 🔐 is added back", func(t *testing.T) {
-		mbmeta, err := stores.MetaBaseStorage.GetMetadata(ctx, fuelData.ID, false)
-		assert.NoError(t, err)
+		meta, err := stores.MetaBaseStorage.GetMetadata(ctx, fuelData.ID, false)
+		require.NoError(t, err)
 
 		err = mbapi.UpdateCollection(ctx, &service.MetabaseCollection{
-			ID:          mbmeta.CollectionID,
+			ID:          *meta.CollectionID,
 			Name:        "My new collection name",
 			Description: "My new collection description",
 		})
-		assert.NoError(t, err)
+		require.NoError(t, err)
 
 		collectionSyncer := metabase_collections.New(mbapi, stores.MetaBaseStorage, 1, log)
 		go collectionSyncer.Run(ctx)
 		time.Sleep(5 * time.Second)
 
 		collections, err := mbapi.GetCollections(ctx)
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		assert.True(t, ContainsCollectionWithName(collections, "My new collection name 🔐"))
 	})
 }
