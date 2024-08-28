@@ -100,17 +100,17 @@ func (s *Syncer) CollectionsReport(ctx context.Context) (*CollectionsReport, err
 	report := &CollectionsReport{}
 
 	for _, meta := range metas {
-		if meta.CollectionID != 0 {
-			_, ok := collectionByID[meta.CollectionID]
+		if meta.SyncCompleted != nil && *meta.CollectionID != 0 {
+			_, ok := collectionByID[*meta.CollectionID]
 			if !ok {
 				report.Missing = append(report.Missing, Missing{
 					DatasetID:    meta.DatasetID.String(),
-					CollectionID: meta.CollectionID,
-					DatabaseID:   meta.DatabaseID,
+					CollectionID: *meta.CollectionID,
+					DatabaseID:   *meta.DatabaseID,
 				})
 			}
 
-			delete(collectionByID, meta.CollectionID)
+			delete(collectionByID, *meta.CollectionID)
 		}
 	}
 
@@ -143,8 +143,8 @@ func (s *Syncer) AddRestrictedTagToCollections(ctx context.Context) error {
 	}
 
 	for _, meta := range metas {
-		if meta.CollectionID != 0 {
-			collection, ok := collectionByID[meta.CollectionID]
+		if meta.SyncCompleted != nil && *meta.CollectionID != 0 {
+			collection, ok := collectionByID[*meta.CollectionID]
 			if !ok {
 				continue
 			}

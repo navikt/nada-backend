@@ -49,6 +49,14 @@ func setupMockStorage() *MockMetabaseStorage {
 	return new(MockMetabaseStorage)
 }
 
+func intPtr(i int) *int {
+	return &i
+}
+
+func timePtr(t time.Time) *time.Time {
+	return &t
+}
+
 func TestSyncer_MissingCollections(t *testing.T) {
 	logger := zerolog.New(zerolog.NewConsoleWriter())
 	ctx := context.Background()
@@ -67,7 +75,7 @@ func TestSyncer_MissingCollections(t *testing.T) {
 			},
 			setupStorage: func(storage *MockMetabaseStorage) {
 				storage.On("GetAllMetadata", ctx).Return([]*service.MetabaseMetadata{
-					{CollectionID: 1, DatasetID: uuid.MustParse("00000000-0000-0000-0000-000000000001")},
+					{CollectionID: intPtr(1), DatasetID: uuid.MustParse("00000000-0000-0000-0000-000000000001"), SyncCompleted: timePtr(time.Now()), DatabaseID: intPtr(0)},
 				}, nil)
 			},
 			expect: &metabase_collections.CollectionsReport{
@@ -107,7 +115,7 @@ func TestSyncer_MissingCollections(t *testing.T) {
 			},
 			setupStorage: func(storage *MockMetabaseStorage) {
 				storage.On("GetAllMetadata", ctx).Return([]*service.MetabaseMetadata{
-					{CollectionID: 1, DatasetID: uuid.MustParse("00000000-0000-0000-0000-000000000001")},
+					{CollectionID: intPtr(1), DatasetID: uuid.MustParse("00000000-0000-0000-0000-000000000001"), SyncCompleted: timePtr(time.Now())},
 				}, nil)
 			},
 			expectErr: fmt.Errorf("api error"),
@@ -158,7 +166,7 @@ func TestSyncer_AddRestrictedTagToCollections(t *testing.T) {
 			},
 			setupStorage: func(storage *MockMetabaseStorage) {
 				storage.On("GetAllMetadata", ctx).Return([]*service.MetabaseMetadata{
-					{CollectionID: 1, DatasetID: uuid.MustParse("00000000-0000-0000-0000-000000000001")},
+					{CollectionID: intPtr(1), DatasetID: uuid.MustParse("00000000-0000-0000-0000-000000000001")},
 				}, nil)
 			},
 		},
@@ -175,7 +183,7 @@ func TestSyncer_AddRestrictedTagToCollections(t *testing.T) {
 			},
 			setupStorage: func(storage *MockMetabaseStorage) {
 				storage.On("GetAllMetadata", ctx).Return([]*service.MetabaseMetadata{
-					{CollectionID: 1, DatasetID: uuid.MustParse("00000000-0000-0000-0000-000000000001")},
+					{CollectionID: intPtr(1), DatasetID: uuid.MustParse("00000000-0000-0000-0000-000000000001"), SyncCompleted: timePtr(time.Now()), DatabaseID: intPtr(0)},
 				}, nil)
 			},
 			expectErr: fmt.Errorf("update error"),
@@ -220,7 +228,7 @@ func TestSyncer_Run(t *testing.T) {
 			},
 			setupStorage: func(storage *MockMetabaseStorage) {
 				storage.On("GetAllMetadata", ctx).Return([]*service.MetabaseMetadata{
-					{CollectionID: 1, DatasetID: uuid.MustParse("00000000-0000-0000-0000-000000000001")},
+					{CollectionID: intPtr(1), DatasetID: uuid.MustParse("00000000-0000-0000-0000-000000000001")},
 				}, nil)
 			},
 			expectLog: "collection_missing",
@@ -233,7 +241,7 @@ func TestSyncer_Run(t *testing.T) {
 			},
 			setupStorage: func(storage *MockMetabaseStorage) {
 				storage.On("GetAllMetadata", ctx).Return([]*service.MetabaseMetadata{
-					{CollectionID: 1, DatasetID: uuid.MustParse("00000000-0000-0000-0000-000000000001")},
+					{CollectionID: intPtr(1), DatasetID: uuid.MustParse("00000000-0000-0000-0000-000000000001")},
 				}, nil)
 			},
 			expectLog: "adding restricted tag to collections",
@@ -245,7 +253,7 @@ func TestSyncer_Run(t *testing.T) {
 			},
 			setupStorage: func(storage *MockMetabaseStorage) {
 				storage.On("GetAllMetadata", ctx).Return([]*service.MetabaseMetadata{
-					{CollectionID: 1, DatasetID: uuid.MustParse("00000000-0000-0000-0000-000000000001")},
+					{CollectionID: intPtr(1), DatasetID: uuid.MustParse("00000000-0000-0000-0000-000000000001")},
 				}, nil)
 			},
 			expectLog: "reporting missing collections",

@@ -266,6 +266,7 @@ func (m MetabaseMetadata) Convert() *service.MetabaseMetadata {
 		CollectionID:      nullInt32ToIntPtr(m.CollectionID),
 		SAEmail:           m.SaEmail,
 		DeletedAt:         nullTimeToPtr(m.DeletedAt),
+		SyncCompleted:     nullTimeToPtr(m.SyncCompleted),
 	}
 }
 
