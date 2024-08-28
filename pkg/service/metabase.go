@@ -14,16 +14,19 @@ const (
 )
 
 type MetabaseStorage interface {
-	CreateMetadata(ctx context.Context, metadata *MetabaseMetadata) error
-	GetMetadata(ctx context.Context, datasetID uuid.UUID, includeDeleted bool) (*MetabaseMetadata, error)
-	GetAllMetadata(ctx context.Context) ([]*MetabaseMetadata, error)
-	GetOpenTablesInSameBigQueryDataset(ctx context.Context, projectID, dataset string) ([]string, error)
-	SetPermissionsGroup(ctx context.Context, datasetID uuid.UUID, permissionGroupID int) error
-	SoftDeleteMetadata(ctx context.Context, datasetID uuid.UUID) error
-	RestoreMetadata(ctx context.Context, datasetID uuid.UUID) error
+	CreateMetadata(ctx context.Context, datasetID uuid.UUID) error
 	DeleteMetadata(ctx context.Context, datasetID uuid.UUID) error
 	DeleteRestrictedMetadata(ctx context.Context, datasetID uuid.UUID) error
-	SetPermissionGroupMetabaseMetadata(ctx context.Context, datasetID uuid.UUID, groupID int) error
+	GetAllMetadata(ctx context.Context) ([]*MetabaseMetadata, error)
+	GetMetadata(ctx context.Context, datasetID uuid.UUID, includeDeleted bool) (*MetabaseMetadata, error)
+	GetOpenTablesInSameBigQueryDataset(ctx context.Context, projectID, dataset string) ([]string, error)
+	RestoreMetadata(ctx context.Context, datasetID uuid.UUID) error
+	SetCollectionMetabaseMetadata(ctx context.Context, datasetID uuid.UUID, collectionID int) (*MetabaseMetadata, error)
+	SetDatabaseMetabaseMetadata(ctx context.Context, datasetID uuid.UUID, databaseID int) (*MetabaseMetadata, error)
+	SetPermissionGroupMetabaseMetadata(ctx context.Context, datasetID uuid.UUID, groupID int) (*MetabaseMetadata, error)
+	SetServiceAccountMetabaseMetadata(ctx context.Context, datasetID uuid.UUID, saEmail string) (*MetabaseMetadata, error)
+	SetSyncCompletedMetabaseMetadata(ctx context.Context, datasetID uuid.UUID) error
+	SoftDeleteMetadata(ctx context.Context, datasetID uuid.UUID) error
 }
 
 type MetabaseAPI interface {
@@ -103,11 +106,12 @@ type MetabaseDatabase struct {
 
 type MetabaseMetadata struct {
 	DatasetID         uuid.UUID
-	DatabaseID        int
-	PermissionGroupID int
-	CollectionID      int
+	DatabaseID        *int
+	PermissionGroupID *int
+	CollectionID      *int
 	SAEmail           string
 	DeletedAt         *time.Time
+	SyncCompleted     *time.Time
 }
 
 // MetabaseCollection represents a subset of the metadata returned

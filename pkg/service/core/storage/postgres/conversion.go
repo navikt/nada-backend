@@ -40,6 +40,16 @@ func matchAny(s string, targetSet []string) bool {
 	return false
 }
 
+func nullInt32ToIntPtr(ni sql.NullInt32) *int {
+	if !ni.Valid {
+		return nil
+	}
+
+	i := int(ni.Int32)
+
+	return &i
+}
+
 func nullStringToString(ns sql.NullString) string {
 	if !ns.Valid {
 		return ""

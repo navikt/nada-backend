@@ -33,6 +33,7 @@ services:
     image: europe-north1-docker.pkg.dev/nada-prod-6977/nada-north/metabase-patched:${METABASE_VERSION}
     container_name: metabase
     hostname: metabase
+    platform: linux/amd64
     volumes:
       - metabase-data:/usr/src/metabase-data
     ports:
@@ -54,6 +55,7 @@ services:
     image: europe-north1-docker.pkg.dev/nada-prod-6977/nada-north/metabase:${METABASE_VERSION}
     container_name: metabase
     hostname: metabase
+    platform: linux/amd64
     volumes:
       - metabase-data:/usr/src/metabase-data
     ports:
@@ -75,6 +77,7 @@ services:
     image: europe-north1-docker.pkg.dev/nada-prod-6977/nada-north/nada-backend-mocks:${MOCKS_VERSION}
     container_name: bq
     hostname: bq
+    platform: linux/amd64
     volumes:
       - ${PWD}/resources/metabase:/opt/metabase/
     ports:
@@ -93,6 +96,7 @@ services:
   tk:
     image: europe-north1-docker.pkg.dev/nada-prod-6977/nada-north/nada-backend-mocks:${MOCKS_VERSION}
     container_name: tk
+    platform: linux/amd64
     hostname: tk
     volumes:
       - ${PWD}/resources/teamkatalogen:/opt/teamkatalogen
@@ -110,6 +114,7 @@ services:
   nc:
     image: europe-north1-docker.pkg.dev/nada-prod-6977/nada-north/nada-backend-mocks:${MOCKS_VERSION}
     container_name: nc
+    platform: linux/amd64
     hostname: nc
     volumes:
       - ${PWD}/resources/naisconsole:/opt/naisconsole

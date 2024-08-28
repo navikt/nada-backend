@@ -132,12 +132,12 @@ type Querier interface {
 	RevokeAccessToDataset(ctx context.Context, id uuid.UUID) error
 	RotateNadaToken(ctx context.Context, team string) error
 	Search(ctx context.Context, arg SearchParams) ([]SearchRow, error)
-	SetCollectionMetabaseMetadata(ctx context.Context, arg SetCollectionMetabaseMetadataParams) error
-	SetDatabaseMetabaseMetadata(ctx context.Context, arg SetDatabaseMetabaseMetadataParams) error
+	SetCollectionMetabaseMetadata(ctx context.Context, arg SetCollectionMetabaseMetadataParams) (MetabaseMetadatum, error)
+	SetDatabaseMetabaseMetadata(ctx context.Context, arg SetDatabaseMetabaseMetadataParams) (MetabaseMetadatum, error)
 	SetDatasourceDeleted(ctx context.Context, id uuid.UUID) error
 	SetJoinableViewDeleted(ctx context.Context, id uuid.UUID) error
-	SetPermissionGroupMetabaseMetadata(ctx context.Context, arg SetPermissionGroupMetabaseMetadataParams) error
-	SetServiceAccountMetabaseMetadata(ctx context.Context, arg SetServiceAccountMetabaseMetadataParams) error
+	SetPermissionGroupMetabaseMetadata(ctx context.Context, arg SetPermissionGroupMetabaseMetadataParams) (MetabaseMetadatum, error)
+	SetServiceAccountMetabaseMetadata(ctx context.Context, arg SetServiceAccountMetabaseMetadataParams) (MetabaseMetadatum, error)
 	SetSyncCompletedMetabaseMetadata(ctx context.Context, datasetID uuid.UUID) error
 	SoftDeleteMetabaseMetadata(ctx context.Context, datasetID uuid.UUID) error
 	UpdateAccessRequest(ctx context.Context, arg UpdateAccessRequestParams) (DatasetAccessRequest, error)
