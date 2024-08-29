@@ -184,7 +184,7 @@ func NewMetabaseConfig() *MetabaseConfig {
 func (c *containers) RunMetabase(cfg *MetabaseConfig) *MetabaseConfig {
 	metabaseVersion := os.Getenv("METABASE_VERSION")
 	if metabaseVersion == "" {
-		metabaseVersion = "v1.50.20"
+		metabaseVersion = "v1.50.21"
 	}
 
 	resource, err := c.pool.RunWithOptions(&dockertest.RunOptions{

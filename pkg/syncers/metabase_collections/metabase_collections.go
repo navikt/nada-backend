@@ -6,6 +6,8 @@ import (
 	"strings"
 	"time"
 
+	"github.com/navikt/nada-backend/pkg/leaderelection"
+
 	"github.com/navikt/nada-backend/pkg/errs"
 	"github.com/navikt/nada-backend/pkg/service"
 	"github.com/rs/zerolog"
@@ -18,7 +20,30 @@ type Syncer struct {
 	syncInterval time.Duration
 }
 
-func (s *Syncer) Run(ctx context.Context) {
+func (s *Syncer) Run(ctx context.Context, initialDelaySec int) {
+	isLeader, err := leaderelection.IsLeader()
+	if err != nil {
+		s.log.Error().Err(err).Msg("checking leader status")
+		return
+	}
+
+	if isLeader {
+		// Delay a little before starting
+		time.Sleep(time.Duration(initialDelaySec) * time.Second)
+
+		// Do an initial sync
+		s.log.Info().Msg("running initial metabase collections syncer")
+
+		err = s.AddRestrictedTagToCollections(ctx)
+		if err != nil {
+			s.log.Error().Fields(map[string]interface{}{"stack": errs.OpStack(err)}).Err(err).Msg("adding restricted tag to collections")
+		}
+	}
+
+	if !isLeader {
+		s.log.Info().Msg("not leader, skipping metabase collections sync")
+	}
+
 	ticker := time.NewTicker(s.syncInterval)
 
 	defer ticker.Stop()
@@ -30,7 +55,18 @@ func (s *Syncer) Run(ctx context.Context) {
 		case <-ticker.C:
 			s.log.Info().Msg("running metabase collections syncer")
 
-			err := s.AddRestrictedTagToCollections(ctx)
+			isLeader, err := leaderelection.IsLeader()
+			if err != nil {
+				s.log.Error().Err(err).Msg("checking leader status")
+				continue
+			}
+
+			if !isLeader {
+				s.log.Info().Msg("not leader, skipping metabase collections sync")
+				continue
+			}
+
+			err = s.AddRestrictedTagToCollections(ctx)
 			if err != nil {
 				s.log.Error().Fields(map[string]interface{}{"stack": errs.OpStack(err)}).Err(err).Msg("adding restricted tag to collections")
 			}
@@ -142,17 +178,29 @@ func (s *Syncer) AddRestrictedTagToCollections(ctx context.Context) error {
 		collectionByID[collection.ID] = collection
 	}
 
+	s.log.Info().Msgf("collections: %v", collections)
+
 	for _, meta := range metas {
-		if meta.SyncCompleted != nil && *meta.CollectionID != 0 {
+		s.log.Debug().Msgf("meta: %v", meta)
+
+		if meta.SyncCompleted != nil && meta.CollectionID != nil && *meta.CollectionID != 0 {
 			collection, ok := collectionByID[*meta.CollectionID]
 			if !ok {
 				continue
 			}
 
 			if !strings.Contains(collection.Name, service.MetabaseRestrictedCollectionTag) {
+				newName := fmt.Sprintf("%s %s", collection.Name, service.MetabaseRestrictedCollectionTag)
+
+				s.log.Info().Fields(map[string]interface{}{
+					"collection_id": collection.ID,
+					"existing_name": collection.Name,
+					"new_name":      newName,
+				}).Msg("adding_restricted_tag")
+
 				err := s.api.UpdateCollection(ctx, &service.MetabaseCollection{
 					ID:   collection.ID,
-					Name: fmt.Sprintf("%s %s", collection.Name, service.MetabaseRestrictedCollectionTag),
+					Name: newName,
 				})
 				if err != nil {
 					return errs.E(op, err)
