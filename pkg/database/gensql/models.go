@@ -271,6 +271,7 @@ type DatasetView struct {
 	MappingServices []string
 	AccessID        uuid.NullUUID
 	AccessSubject   sql.NullString
+	AccessOwner     sql.NullString
 	AccessGranter   sql.NullString
 	AccessExpires   sql.NullTime
 	AccessCreated   sql.NullTime

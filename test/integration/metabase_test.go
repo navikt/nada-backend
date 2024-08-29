@@ -35,20 +35,6 @@ import (
 	"github.com/rs/zerolog"
 )
 
-const fakeMetabaseSA = `{
-  "type": "service_account",
-  "project_id": "test",
-  "private_key_id": "very-long-key-id",
-  "private_key": "-----BEGIN PRIVATE KEY-----\nMIIEvgIBADANBgkqhkiG9w0BAQEFAASCBKgwggSkAgEAAoIBAQCQ+2XPvBgrF0rC\nSNsZxYgyrTxtr47z32yKO38Hi4ViRbDZVMr2isz2gnEW3MgwzCWEDuZqFkpigAUS\n9JPTHFXbNgHv28mAcoNEUBlabmzGJG+MUL3ZbiwjOVRhAyZXexFb9XTNk/0a30tF\nPw2HHtJYKda/C0ELitOBjfz74yhVXN8U16gEU23eRAmUb82yb2v2gy9pe8CjB5AZ\n8iOEtCACte5uwpoSSpb9wUZNcI4uwlX9jUDrLP7eFeAhaYz7xSMuHHGYM9P4rdcN\n77OGB8oA3k1A+sI6vnZaU/++RvbhHkK7xVQdlrEWHd9Mkw1SBTN4TIkxAcdn1fPv\ngujC4pbNAgMBAAECggEAEeWWqdAUQ616YwVPVp0VtPvBi+CyCtS3t1Ck26+TZZAo\nxos7CrgTmRJ9F09lvvBUaTrVop7hy8r11WMvpE3JI2hFUPCWrS51mccxegJLlyIE\nSxPke6Sn+ikni1oyL3ZXrDxekMoF4n1R81hXOSjK2ms/wRGIk/4tIb7/TbC6196R\ncWtT9unK1tWpaIzBaC0MH0/hnKKC9Vq9g+ezdnFo8eesdOiBoO8R5aAOofcA00Fm\n47RW0BoQNwIeyv6YcD2jg3cg8/FzODEktOW3/WP/Svr6FFPeQKKp3wjRN/ovU4kS\n/tDsHrYa5cSrpuI1dkzqHbu3AbQBV/NNd9pzJwAfwQKBgQDDn/8D1BhllPPTqOSD\n/2Z51MpZ+1OLkp11zFLUCnxsIop1wQHI58CTdn6+6Z4z3hEpJVkcxumkH0LMFHnH\n0ZZt8PaaqMQuIhxJZC4t8a/PuAGDK2G7kvusoSq92AVZjwlrIJ9Ij/RFE2Qoyo1o\n+9tLGUI9TMBAqcsdFReUxIAZOQKBgQC9ui999G5d5S0Dyg8+qGNf/QPM/yVfSA3d\nViCw77c/UiHG4mDa/leMBMLunKp00x8aE4dpbZYP138Jwzm1YS1i/ifqNEfdu5it\nLeNKHe6lEWnjW7j31Hn9oQbSG5BNtpHyII/1qs2YwmANWmh8o42SuNnrxoq3qlbd\n13KC2B5ONQKBgGvChdKREgNbAtlUTtTbapKwAeuBQ2s+D1jlfbbqM9HJUSY+dII8\nD1vryTPXMtt1d1SIC0eL1wYeZkhO+yp0LH5RXzagwrh698QB2GJcoTE2NjcQPZz7\nAYH9obLD/WZxIYoOhU+OZMtsPB8wPKdZHVqIBnIIBltYbNePV9cOS1YZAoGBALV3\nDhOfpaxDFbIJIlmgvyPBIVCCPWGLzk8EINJ7BT8YNFxAi7kKCfxPVY7Z46NHhvju\n8tZgzWWrjMNuqZSVNM75Hn5AsPgghOAnAr0SMf5J0Ih4Y0sPO/rdeGOfn37k/2Sh\nxm+HhYv1Zd9/uG52FGPgT/bV+DnBP8KBXfJN+XZ9AoGBAIPl1Ue+ZF3aUGPEwaZk\nMPeLEvGpVfxgBs8iJszJ+PXerNlZW1Bf+Xz3M0nlQF5vV7IdvcpMdGLBEhqxbijM\n7i0RnotQpqGObSoezJivZTmy8Yn6apH5HBAwlmrSYsqYJeWfWNdMhaYiCSOsq1eT\nlz7CEBohLrUvBJZe2b0MRFIJ\n-----END PRIVATE KEY-----\n",
-  "client_email": "nada-metabase@test.iam.gserviceaccount.com",
-  "client_id": "very-long-client-id",
-  "auth_uri": "https://accounts.google.com/o/oauth2/auth",
-  "token_uri": "https://oauth2.googleapis.com/token",
-  "auth_provider_x509_cert_url": "https://www.googleapis.com/oauth2/v1/certs",
-  "client_x509_cert_url": "https://www.googleapis.com/robot/v1/metadata/x509/nada-metabase%40test.iam.gserviceaccount.com"
-}
-`
-
 func TestMetabase(t *testing.T) {
 	ctx := context.Background()
 	ctx, cancel := context.WithDeadline(ctx, time.Now().Add(20*time.Minute))
@@ -93,7 +79,7 @@ func TestMetabase(t *testing.T) {
 		Bindings: []*cloudresourcemanager.Binding{
 			{
 				Role:    "roles/owner",
-				Members: []string{fmt.Sprintf("user:%s", GroupNada)},
+				Members: []string{fmt.Sprintf("user:%s", GroupEmailNada)},
 			},
 		},
 	})
@@ -129,7 +115,7 @@ func TestMetabase(t *testing.T) {
 		Project,
 		fakeMetabaseSA,
 		"nada-metabase@test.iam.gserviceaccount.com",
-		GroupAllUsers,
+		GroupEmailAllUsers,
 		mbapi,
 		bqapi,
 		saapi,
@@ -155,20 +141,20 @@ func TestMetabase(t *testing.T) {
 		stores.BigQueryStorage,
 		bqapi,
 		stores.NaisConsoleStorage,
-		GroupAllUsers,
+		GroupEmailAllUsers,
 	)
 
 	StorageCreateProductAreasAndTeams(t, stores.ProductAreaStorage)
-	fuel, err := dataproductService.CreateDataproduct(ctx, TestUser, NewDataProductBiofuelProduction())
+	fuel, err := dataproductService.CreateDataproduct(ctx, UserOne, NewDataProductBiofuelProduction())
 	assert.NoError(t, err)
 
-	fuelData, err := dataproductService.CreateDataset(ctx, TestUser, NewDatasetBiofuelConsumptionRates(fuel.ID))
+	fuelData, err := dataproductService.CreateDataset(ctx, UserOne, NewDatasetBiofuelConsumptionRates(fuel.ID))
 	assert.NoError(t, err)
 
 	{
 		h := handlers.NewMetabaseHandler(mbService, mapper.Queue)
 		e := routes.NewMetabaseEndpoints(zlog, h)
-		f := routes.NewMetabaseRoutes(e, injectUser(TestUser))
+		f := routes.NewMetabaseRoutes(e, injectUser(UserOne))
 
 		f(r)
 	}
@@ -187,7 +173,7 @@ func TestMetabase(t *testing.T) {
 		)
 		h := handlers.NewAccessHandler(s, mbService, Project)
 		e := routes.NewAccessEndpoints(zlog, h)
-		f := routes.NewAccessRoutes(e, injectUser(TestUser))
+		f := routes.NewAccessRoutes(e, injectUser(UserOne))
 
 		f(r)
 	}
@@ -200,7 +186,7 @@ func TestMetabase(t *testing.T) {
 			Post(service.GrantAccessData{
 				DatasetID:   fuelData.ID,
 				Expires:     nil,
-				Subject:     strToStrPtr(TestUser.Email),
+				Subject:     strToStrPtr(UserOne.Email),
 				SubjectType: strToStrPtr(service.SubjectTypeUser),
 			}, "/api/accesses/grant").
 			HasStatusCode(http2.StatusNoContent)

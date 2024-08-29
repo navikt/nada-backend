@@ -666,6 +666,7 @@ func (s *dataProductStorage) datasetFromSQL(dsrows []gensql.DatasetView) (*servi
 					Created:         dsrow.AccessCreated.Time,
 					Revoked:         nullTimeToPtr(dsrow.AccessRevoked),
 					DatasetID:       dsrow.DsID,
+					Owner:           dsrow.AccessOwner.String,
 					AccessRequestID: nullUUIDToUUIDPtr(dsrow.AccessRequestID),
 				}
 				dataset.Access = append(dataset.Access, access)

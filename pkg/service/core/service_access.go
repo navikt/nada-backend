@@ -143,13 +143,7 @@ func (s *accessService) DeleteAccessRequest(ctx context.Context, user *service.U
 		return errs.E(op, err)
 	}
 
-	splits := strings.Split(accessRequest.Owner, ":")
-	if len(splits) != 2 {
-		return errs.E(errs.InvalidRequest, op, fmt.Errorf("owner is not in the correct format"))
-	}
-	owner := splits[1]
-
-	if err := ensureOwner(user, owner); err != nil {
+	if err := ensureOwner(user, accessRequest.Owner); err != nil {
 		return errs.E(op, err)
 	}
 
