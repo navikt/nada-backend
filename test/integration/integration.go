@@ -182,14 +182,14 @@ func NewMetabaseConfig() *MetabaseConfig {
 }
 
 func (c *containers) RunMetabase(cfg *MetabaseConfig) *MetabaseConfig {
-	metabaseVersion := os.Getenv("METABASE_VERSION")
-	if metabaseVersion == "" {
-		metabaseVersion = "v1.50.21"
+	metabaseVersion, err := os.ReadFile("../../.metabase_version")
+	if err != nil {
+		c.t.Fatalf("loading metabase version: %s", err)
 	}
 
 	resource, err := c.pool.RunWithOptions(&dockertest.RunOptions{
 		Repository: "europe-north1-docker.pkg.dev/nada-prod-6977/nada-north/metabase-patched",
-		Tag:        metabaseVersion,
+		Tag:        string(metabaseVersion),
 		Env: []string{
 			"MB_DB_TYPE=h2",
 			"MB_ENABLE_PASSWORD_LOGIN=true",

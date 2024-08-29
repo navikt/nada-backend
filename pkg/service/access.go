@@ -14,8 +14,8 @@ type AccessStorage interface {
 	GetAccessRequest(ctx context.Context, accessRequestID uuid.UUID) (*AccessRequest, error)
 	GetAccessToDataset(ctx context.Context, id uuid.UUID) (*Access, error)
 	GetUnrevokedExpiredAccess(ctx context.Context) ([]*Access, error)
-	GrantAccessToDatasetAndApproveRequest(ctx context.Context, user *User, datasetID uuid.UUID, subject string, accessRequestID uuid.UUID, expires *time.Time) error
-	GrantAccessToDatasetAndRenew(ctx context.Context, datasetID uuid.UUID, expires *time.Time, subject, granter string) error
+	GrantAccessToDatasetAndApproveRequest(ctx context.Context, user *User, datasetID uuid.UUID, subject, accessRequestOwner string, accessRequestID uuid.UUID, expires *time.Time) error
+	GrantAccessToDatasetAndRenew(ctx context.Context, datasetID uuid.UUID, expires *time.Time, subject, owner, granter string) error
 	ListAccessRequestsForDataset(ctx context.Context, datasetID uuid.UUID) ([]*AccessRequest, error)
 	ListAccessRequestsForOwner(ctx context.Context, owner []string) ([]*AccessRequest, error)
 	ListActiveAccessToDataset(ctx context.Context, datasetID uuid.UUID) ([]*Access, error)
@@ -37,6 +37,7 @@ type AccessService interface {
 type Access struct {
 	ID              uuid.UUID  `json:"id"`
 	Subject         string     `json:"subject"`
+	Owner           string     `json:"owner"`
 	Granter         string     `json:"granter"`
 	Expires         *time.Time `json:"expires"`
 	Created         time.Time  `json:"created"`
@@ -98,6 +99,7 @@ type GrantAccessData struct {
 	DatasetID   uuid.UUID  `json:"datasetID"`
 	Expires     *time.Time `json:"expires"`
 	Subject     *string    `json:"subject"`
+	Owner       *string    `json:"owner"`
 	SubjectType *string    `json:"subjectType"`
 }
 

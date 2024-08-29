@@ -113,7 +113,7 @@ func (s *accessStorage) CreateAccessRequestForDataset(ctx context.Context, datas
 	raw, err := s.queries.CreateAccessRequestForDataset(ctx, gensql.CreateAccessRequestForDatasetParams{
 		DatasetID:            datasetID,
 		Subject:              emailOfSubjectToLower(subject),
-		Owner:                owner,
+		Owner:                strings.Split(owner, ":")[1],
 		Expires:              ptrToNullTime(expires),
 		PollyDocumentationID: pollyDocumentationID,
 	})
@@ -194,7 +194,7 @@ func (s *accessStorage) UpdateAccessRequest(ctx context.Context, input service.U
 	return nil
 }
 
-func (s *accessStorage) GrantAccessToDatasetAndApproveRequest(ctx context.Context, user *service.User, datasetID uuid.UUID, subject string, accessRequestID uuid.UUID, expires *time.Time) error {
+func (s *accessStorage) GrantAccessToDatasetAndApproveRequest(ctx context.Context, user *service.User, datasetID uuid.UUID, subject, accessRequestOwner string, accessRequestID uuid.UUID, expires *time.Time) error {
 	const op errs.Op = "accessStorage.GrantAccessToDatasetAndApproveRequest"
 
 	q, tx, err := s.withTxFn()
@@ -207,6 +207,7 @@ func (s *accessStorage) GrantAccessToDatasetAndApproveRequest(ctx context.Contex
 		DatasetID: datasetID,
 		Subject:   subject,
 		Granter:   user.Email,
+		Owner:     accessRequestOwner,
 		Expires:   ptrToNullTime(expires),
 		AccessRequestID: uuid.NullUUID{
 			UUID:  accessRequestID,
@@ -237,7 +238,7 @@ func (s *accessStorage) GrantAccessToDatasetAndApproveRequest(ctx context.Contex
 	return nil
 }
 
-func (s *accessStorage) GrantAccessToDatasetAndRenew(ctx context.Context, datasetID uuid.UUID, expires *time.Time, subject, granter string) (err error) {
+func (s *accessStorage) GrantAccessToDatasetAndRenew(ctx context.Context, datasetID uuid.UUID, expires *time.Time, subject, owner, granter string) (err error) {
 	const op errs.Op = "accessStorage.GrantAccessToDatasetAndRenew"
 
 	a, err := s.queries.GetActiveAccessToDatasetForSubject(ctx, gensql.GetActiveAccessToDatasetForSubjectParams{
@@ -264,6 +265,7 @@ func (s *accessStorage) GrantAccessToDatasetAndRenew(ctx context.Context, datase
 		DatasetID: datasetID,
 		Subject:   emailOfSubjectToLower(subject),
 		Expires:   ptrToNullTime(expires),
+		Owner:     owner,
 		Granter:   granter,
 	})
 	if err != nil {

@@ -41,6 +41,7 @@ func NewServices(
 
 	return &Services{
 		AccessService: NewAccessService(
+			cfg.Server.Hostname,
 			clients.SlackAPI,
 			stores.PollyStorage,
 			stores.AccessStorage,

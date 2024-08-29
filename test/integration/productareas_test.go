@@ -125,7 +125,7 @@ func TestProductArea(t *testing.T) {
 							Description:  feed.Description,
 							Slug:         feed.Slug,
 							Owner: &service.DataproductOwner{
-								Group:         GroupNada,
+								Group:         GroupEmailNada,
 								TeamID:        feed.Owner.TeamID,
 								ProductAreaID: &ProductAreaOceanicID,
 							},
@@ -141,7 +141,7 @@ func TestProductArea(t *testing.T) {
 							Description:  fuel.Description,
 							Slug:         fuel.Slug,
 							Owner: &service.DataproductOwner{
-								Group:         GroupNada,
+								Group:         GroupEmailNada,
 								TeamID:        fuel.Owner.TeamID,
 								ProductAreaID: &ProductAreaOceanicID,
 							},

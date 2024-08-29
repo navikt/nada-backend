@@ -1,12 +1,9 @@
 package slack
 
 import (
-	"context"
 	"fmt"
-	"net/url"
 	"strings"
 
-	"github.com/google/uuid"
 	"github.com/navikt/nada-backend/pkg/errs"
 	"github.com/navikt/nada-backend/pkg/service"
 	slackapi "github.com/slack-go/slack"
@@ -15,55 +12,17 @@ import (
 // FIXME: create an actual slack client
 
 type slackAPI struct {
-	webhookURL          string
-	dataCatalogueURL    string
-	token               string
-	api                 *slackapi.Client
-	dataProductsStorage service.DataProductsStorage
+	webhookURL string
+	token      string
+	api        *slackapi.Client
 }
 
 var _ service.SlackAPI = &slackAPI{}
 
-func (a *slackAPI) InformNewAccessRequest(ctx context.Context, subject string, datasetID uuid.UUID) error {
-	const op = "slackAPI.InformNewAccessRequest"
+func (a *slackAPI) SendSlackNotification(channel, message string) error {
+	const op = "slackAPI.SendSlackNotification"
 
-	ds, err := a.dataProductsStorage.GetDataset(ctx, datasetID)
-	if err != nil {
-		return errs.E(op, err)
-	}
-
-	dp, err := a.dataProductsStorage.GetDataproduct(ctx, ds.DataproductID)
-	if err != nil {
-		return errs.E(op, err)
-	}
-
-	if dp.Owner.TeamContact == nil || *dp.Owner.TeamContact == "" {
-		// Access request created but skip Slack message because team contact is empty
-		return nil
-	}
-
-	link := fmt.Sprintf(
-		"\nLink: %s/dataproduct/%s/%s/%s",
-		a.dataCatalogueURL,
-		dp.ID.String(),
-		url.QueryEscape(dp.Name),
-		ds.ID.String(),
-	)
-
-	dsp := fmt.Sprintf(
-		"\nDatasett: %s\nDataprodukt: %s",
-		ds.Name,
-		dp.Name,
-	)
-
-	message := fmt.Sprintf(
-		"%s har sendt en søknad om tilgang for: %s%s",
-		subject,
-		dsp,
-		link,
-	)
-
-	_, _, _, err = a.api.SendMessage(*dp.Owner.TeamContact, slackapi.MsgOptionText(message, false))
+	_, _, _, err := a.api.SendMessage(channel, slackapi.MsgOptionText(message, false))
 	if err != nil {
 		return errs.E(errs.IO, op, err)
 	}
@@ -102,11 +61,10 @@ func (a *slackAPI) IsValidSlackChannel(name string) error {
 	return errs.E(errs.Internal, op, fmt.Errorf("too many channels to search"))
 }
 
-func NewSlackAPI(webhookURL, dataCatalogueURL, token string) *slackAPI {
+func NewSlackAPI(webhookURL, token string) *slackAPI {
 	return &slackAPI{
-		webhookURL:       webhookURL,
-		dataCatalogueURL: dataCatalogueURL,
-		token:            token,
-		api:              slackapi.New(token),
+		webhookURL: webhookURL,
+		token:      token,
+		api:        slackapi.New(token),
 	}
 }

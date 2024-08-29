@@ -3,6 +3,7 @@ package core
 import (
 	"context"
 	"fmt"
+	"net/url"
 	"strings"
 	"time"
 
@@ -14,6 +15,7 @@ import (
 var _ service.AccessService = (*accessService)(nil)
 
 type accessService struct {
+	dataCatalogueURL    string
 	slackapi            service.SlackAPI
 	pollyStorage        service.PollyStorage
 	accessStorage       service.AccessStorage
@@ -56,17 +58,20 @@ func (s *accessService) CreateAccessRequest(ctx context.Context, user *service.U
 		subj = *input.Subject
 	}
 
-	owner := "user:" + user.Email
-	if input.Owner != nil {
-		owner = "group:" + *input.Owner
-	}
-
 	subjType := service.SubjectTypeUser
 	if input.SubjectType != nil {
 		subjType = *input.SubjectType
 	}
-
 	subjWithType := subjType + ":" + subj
+
+	owner := subjWithType
+	if subjType == service.SubjectTypeServiceAccount {
+		if input.Owner != nil {
+			owner = service.SubjectTypeGroup + ":" + *input.Owner
+		} else {
+			owner = service.SubjectTypeUser + ":" + user.Email
+		}
+	}
 
 	var pollyID uuid.NullUUID
 	if input.Polly != nil {
@@ -83,12 +88,51 @@ func (s *accessService) CreateAccessRequest(ctx context.Context, user *service.U
 		return errs.E(op, err)
 	}
 
-	err = s.slackapi.InformNewAccessRequest(ctx, accessRequest.Owner, accessRequest.ID)
+	ds, err := s.dataProductStorage.GetDataset(ctx, input.DatasetID)
+	if err != nil {
+		return errs.E(op, err)
+	}
+
+	dp, err := s.dataProductStorage.GetDataproduct(ctx, ds.DataproductID)
+	if err != nil {
+		return errs.E(op, err)
+	}
+
+	slackMessage := createAccessRequestSlackNotification(dp, ds, s.dataCatalogueURL, accessRequest.Owner)
+
+	if dp.Owner.TeamContact == nil || *dp.Owner.TeamContact == "" {
+		return nil
+	}
+
+	err = s.slackapi.SendSlackNotification(*dp.Owner.TeamContact, slackMessage)
 	if err != nil {
 		return errs.E(op, err)
 	}
 
 	return nil
+}
+
+func createAccessRequestSlackNotification(dp *service.DataproductWithDataset, ds *service.Dataset, dataCatalogueURL, subject string) string {
+	link := fmt.Sprintf(
+		"\nLink: %s/dataproduct/%s/%s/%s",
+		dataCatalogueURL,
+		dp.ID.String(),
+		url.QueryEscape(dp.Name),
+		ds.ID.String(),
+	)
+
+	dsp := fmt.Sprintf(
+		"\nDatasett: %s\nDataprodukt: %s",
+		ds.Name,
+		dp.Name,
+	)
+
+	return fmt.Sprintf(
+		"%s har sendt en søknad om tilgang for: %s%s",
+		subject,
+		dsp,
+		link,
+	)
 }
 
 func (s *accessService) DeleteAccessRequest(ctx context.Context, user *service.User, accessRequestID uuid.UUID) error {
@@ -99,13 +143,7 @@ func (s *accessService) DeleteAccessRequest(ctx context.Context, user *service.U
 		return errs.E(op, err)
 	}
 
-	splits := strings.Split(accessRequest.Owner, ":")
-	if len(splits) != 2 {
-		return errs.E(errs.InvalidRequest, op, fmt.Errorf("owner is not in the correct format"))
-	}
-	owner := splits[1]
-
-	if err := ensureOwner(user, owner); err != nil {
+	if err := ensureOwner(user, accessRequest.Owner); err != nil {
 		return errs.E(op, err)
 	}
 
@@ -182,6 +220,7 @@ func (s *accessService) ApproveAccessRequest(ctx context.Context, user *service.
 		user,
 		ds.ID,
 		subjWithType,
+		ar.Owner,
 		ar.ID,
 		ar.Expires,
 	)
@@ -329,8 +368,12 @@ func (s *accessService) GrantAccessToDataset(ctx context.Context, user *service.
 	if input.SubjectType != nil {
 		subjType = *input.SubjectType
 	}
-
 	subjWithType := subjType + ":" + subj
+
+	owner := subj
+	if input.Owner != nil && *input.SubjectType == service.SubjectTypeServiceAccount {
+		owner = *input.Owner
+	}
 
 	if len(bqds.PseudoColumns) > 0 {
 		joinableViews, err := s.joinableViewStorage.GetJoinableViewsForReferenceAndUser(ctx, subj, ds.ID)
@@ -350,7 +393,7 @@ func (s *accessService) GrantAccessToDataset(ctx context.Context, user *service.
 		return errs.E(op, err)
 	}
 
-	err = s.accessStorage.GrantAccessToDatasetAndRenew(ctx, input.DatasetID, input.Expires, subjWithType, user.Email)
+	err = s.accessStorage.GrantAccessToDatasetAndRenew(ctx, input.DatasetID, input.Expires, subjWithType, owner, user.Email)
 	if err != nil {
 		return errs.E(op, err)
 	}
@@ -369,6 +412,7 @@ func ensureOwner(user *service.User, owner string) error {
 }
 
 func NewAccessService(
+	dataCatalogueURL string,
 	slackapi service.SlackAPI,
 	pollyStorage service.PollyStorage,
 	accessStorage service.AccessStorage,
@@ -378,6 +422,7 @@ func NewAccessService(
 	bigQueryAPI service.BigQueryAPI,
 ) *accessService {
 	return &accessService{
+		dataCatalogueURL:    dataCatalogueURL,
 		slackapi:            slackapi,
 		pollyStorage:        pollyStorage,
 		accessStorage:       accessStorage,

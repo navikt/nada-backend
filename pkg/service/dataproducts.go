@@ -12,7 +12,7 @@ type DataProductsStorage interface {
 	CreateDataset(ctx context.Context, ds NewDataset, referenceDatasource *NewBigQuery, user *User) (*Dataset, error)
 	DeleteDataproduct(ctx context.Context, id uuid.UUID) error
 	DeleteDataset(ctx context.Context, id uuid.UUID) error
-	GetAccessibleDatasets(ctx context.Context, userGroups []string, requester string) (owned []*AccessibleDataset, granted []*AccessibleDataset, err error)
+	GetAccessibleDatasets(ctx context.Context, userGroups []string, requester string) (owned []*AccessibleDataset, granted []*AccessibleDataset, serviceAccountGranted []*AccessibleDataset, err error)
 	GetAccessiblePseudoDatasourcesByUser(ctx context.Context, subjectsAsOwner []string, subjectsAsAccesser []string) ([]*PseudoDataset, error)
 	GetDataproduct(ctx context.Context, id uuid.UUID) (*DataproductWithDataset, error)
 	GetDataproductKeywords(ctx context.Context, dpid uuid.UUID) ([]string, error)
@@ -73,10 +73,11 @@ type Dataset struct {
 
 type AccessibleDataset struct {
 	Dataset
-	DataproductName string `json:"dataproductName"`
-	Slug            string `json:"slug"`
-	DpSlug          string `json:"dpSlug"`
-	Group           string `json:"group"`
+	DataproductName string  `json:"dataproductName"`
+	Slug            string  `json:"slug"`
+	DpSlug          string  `json:"dpSlug"`
+	Group           string  `json:"group"`
+	Subject         *string `json:"subject"`
 }
 
 type AccessibleDatasets struct {
@@ -84,6 +85,8 @@ type AccessibleDatasets struct {
 	Owned []*AccessibleDataset `json:"owned"`
 	// granted
 	Granted []*AccessibleDataset `json:"granted"`
+	// service account granted
+	ServiceAccountGranted []*AccessibleDataset `json:"serviceAccountGranted"`
 }
 
 type DatasetMinimal struct {
