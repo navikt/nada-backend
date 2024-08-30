@@ -101,7 +101,7 @@ services:
     volumes:
       - ${PWD}/resources/teamkatalogen:/opt/teamkatalogen
     ports:
-      - "8085:8080"
+      - "8087:8080"
     networks:
       - metanet1
     command:

@@ -45,7 +45,7 @@ postgres:
     max_open_connections: 5
     max_idle_connections: 3
 teams_catalogue:
-  api_url: http://localhost:8085
+  api_url: http://localhost:8087
 treatment_catalogue:
   api_url: https://polly.intern.dev.nav.no/process
   purpose_url: https://behandlingskatalog.intern.dev.nav.no/process/purpose
