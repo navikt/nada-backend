@@ -62,8 +62,8 @@ func NewClients(
 			log.With().Str("component", "metabase").Logger(),
 		),
 		PollyAPI: httpapi.NewPollyAPI(
-			cfg.TreatmentCatalogue.APIURL,
 			cfg.TreatmentCatalogue.PurposeURL,
+			cfg.TreatmentCatalogue.APIURL,
 		),
 		TeamKatalogenAPI: tkAPICacher,
 		SlackAPI: slackapi.NewSlackAPI(
