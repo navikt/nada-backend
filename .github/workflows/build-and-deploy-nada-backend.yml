@@ -143,6 +143,7 @@ jobs:
           path: nada-backend
 
   push:
+    name: Push backend image
     permissions:
       contents: write
       id-token: write
