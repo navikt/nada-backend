@@ -183,7 +183,7 @@ jobs:
         uses: nais/deploy/actions/deploy@v2
         env:
           CLUSTER: dev-gcp
-          RESOURCE: .nais/dev/nada-backend-config.yaml,.nais/dev/gcp.yaml
+          RESOURCE: .nais/dev/nada-backend/nada-backend-config.yaml,.nais/dev/nada-backend/gcp.yaml
           VAR: image=${{ needs.push.outputs.image }}
 
   deploy-prod:
@@ -199,5 +199,5 @@ jobs:
         uses: nais/deploy/actions/deploy@v2
         env:
           CLUSTER: prod-gcp
-          RESOURCE: .nais/prod/nada-backend-config.yaml,.nais/prod/gcp.yaml
+          RESOURCE: .nais/prod/nada-backend/nada-backend-config.yaml,.nais/prod/nada-backend/gcp.yaml
           VAR: image=${{ needs.push.outputs.image }}
