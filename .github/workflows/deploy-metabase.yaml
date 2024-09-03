@@ -8,6 +8,7 @@ on:
       - '.metabase_version'
       - '.nais/dev/metabase/**'
       - '.nais/prod/metabase/**'
+      - '.nais/vars.yaml'
 
 permissions:
   contents: read
