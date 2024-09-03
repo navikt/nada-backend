@@ -24,6 +24,9 @@ var (
 	TeamReefID   = uuid.MustParse("00000000-0000-0000-0000-000000000004")
 	TeamReefName = "Reef"
 
+	GroupNameReef  = "reef"
+	GroupEmailReef = "reef@nav.no"
+
 	UserOneName        = "User Userson"
 	UserOneEmail       = "user.userson@email.com"
 	UserTwoName        = "Another Userson"
@@ -79,6 +82,15 @@ const fakeMetabaseSA = `{
   }
   `
 
+func StorageCreateNaisConsoleTeamsAndProjects(t *testing.T, storage service.NaisConsoleStorage, teams map[string]string) {
+	t.Helper()
+
+	err := storage.UpdateAllTeamProjects(context.Background(), teams)
+	if err != nil {
+		t.Fatalf("creating teams and projects: %v", err)
+	}
+}
+
 func StorageCreateProductAreasAndTeams(t *testing.T, storage service.ProductAreaStorage) {
 	t.Helper()
 
@@ -112,13 +124,13 @@ func StorageCreateProductAreasAndTeams(t *testing.T, storage service.ProductArea
 	}
 }
 
-func NewDataProductBiofuelProduction() service.NewDataproduct {
+func NewDataProductBiofuelProduction(group string, teamID uuid.UUID) service.NewDataproduct {
 	return service.NewDataproduct{
 		Name:          "Biofuel Production",
 		Description:   strToStrPtr("Using seagrass as a feedstock to create renewable biofuels"),
-		Group:         GroupEmailNada,
+		Group:         group,
 		ProductAreaID: &ProductAreaOceanicID,
-		TeamID:        &TeamSeagrassID,
+		TeamID:        &teamID,
 	}
 }
 
@@ -157,33 +169,33 @@ func NewDatasetBiofuelConsumptionRates(dataProductID uuid.UUID) service.NewDatas
 	}
 }
 
-func NewDataProductAquacultureFeed() service.NewDataproduct {
+func NewDataProductAquacultureFeed(group string, teamID uuid.UUID) service.NewDataproduct {
 	return service.NewDataproduct{
 		Name:          "Aquaculture Feed",
 		Description:   strToStrPtr("Producing high-nutrient feed for aquaculture industries from processed seagrass"),
-		Group:         GroupEmailNada,
+		Group:         group,
 		ProductAreaID: &ProductAreaOceanicID,
-		TeamID:        &TeamSeagrassID,
+		TeamID:        &teamID,
 	}
 }
 
-func NewDataProductReefMonitoring() service.NewDataproduct {
+func NewDataProductReefMonitoring(group string, teamID uuid.UUID) service.NewDataproduct {
 	return service.NewDataproduct{
 		Name:          "Reef Monitoring Equipment",
 		Description:   strToStrPtr("Advanced sensors and monitoring devices for continuous assessment"),
-		Group:         GroupEmailNada,
+		Group:         group,
 		ProductAreaID: &ProductAreaCostalID,
-		TeamID:        &TeamReefID,
+		TeamID:        &teamID,
 	}
 }
 
-func NewDataProductProtectiveBarriers() service.NewDataproduct {
+func NewDataProductProtectiveBarriers(group string, teamID uuid.UUID) service.NewDataproduct {
 	return service.NewDataproduct{
 		Name:          "Protective Barriers",
 		Description:   strToStrPtr("Physical barriers to protect coral reefs from human activity"),
-		Group:         GroupEmailNada,
+		Group:         group,
 		ProductAreaID: &ProductAreaCostalID,
-		TeamID:        &TeamReefID,
+		TeamID:        &teamID,
 	}
 }
 
