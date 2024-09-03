@@ -3,7 +3,7 @@ name: Deploy metabase
 on:
   push:
     branches:
-      - main
+      - '*'
 
 permissions:
   contents: read
