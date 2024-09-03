@@ -20,6 +20,16 @@ jobs:
     runs-on: ubuntu-latest
     if: github.actor != 'dependabot[bot]'
     steps:
+      - name: Wait for tests to succeed
+        uses: lewagon/wait-on-check-action@v1.3.4
+        with:
+          ref: ${{ github.ref }}
+          # When nada-backend has successfully built and pushed its image, we can
+          # deploy the new version of Metabase with high confidence that the
+          # nada-backend deploy will succeed.
+          check-name: 'Push backend image'
+          repo-token: ${{ secrets.GITHUB_TOKEN }}
+          wait-interval: 10
       - uses: actions/checkout@v4
       - name: Read Metabase Version
         id: read_metabase_version
