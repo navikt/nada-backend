@@ -1,0 +1,94 @@
+apiVersion: nais.io/v1alpha1
+kind: Application
+metadata:
+  labels:
+    team: nada
+  name: metabase
+  namespace: nada
+  annotations:
+    {{#each annotations}}
+    {{this.key}}: "{{this.value}}"
+    {{/each}}
+spec:
+  prometheus:
+    enabled: true
+    path: /metrics
+    port: "9191"
+  env:
+  - name: JAVA_OPTS
+    value: "--XX:MaxRAMPercentage=75.0 -XX:+UseParallelGC -XX:ActiveProcessorCount=2"
+  - name: MB_PROMETHEUS_SERVER_PORT
+    value: "9191"
+  - name: MB_SITE_URL
+    value: https://metabase.ansatt.dev.nav.no
+  - name: MB_DB_USER
+    value: metabasedb
+  - name: MB_DB_HOST
+    value: "100.71.0.188"
+  {{#each envs}}
+  - name: {{this.name}}
+    value: "{{this.value}}"
+  {{/each}}
+  envFrom:
+  - secret: metabase
+  gcp:
+    sqlInstances:
+    - name: metabasedb
+      databases:
+      - name: metabase
+      type: POSTGRES_12
+      tier: db-custom-1-3840
+      flags:
+        - name: max_connections
+          value: "50"
+      diskAutoresize: true
+  image:  metabase/metabase-enterprise:{{version}}
+  ingresses:
+  - https://metabase.ansatt.dev.nav.no
+  - https://metabase-inside.intern.dev.nav.no
+  liveness:
+    path: /api/health
+  startup:
+    initialDelay: 40
+    periodSeconds: 10
+    failureThreshold: 10
+    path: /api/health
+  readiness:
+    path: /api/health
+  port: 3000
+  replicas:
+    max: 2
+    min: 1
+  resources:
+    limits:
+      memory: 1536Mi
+    requests:
+      cpu: 20m
+      memory: 1024Mi
+  accessPolicy:
+    inbound:
+      rules:
+      - application: nada-backend
+    outbound:
+      external:
+      {{#externalhosts}}
+      - host: "{{ . }}"
+      {{/externalhosts}}
+      - host: smtp.adeo.no
+        ports:
+        - port: 26
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  annotations:
+    nginx.ingress.kubernetes.io/server-snippet: |
+      return 301 https://metabase.ansatt.dev.nav.no$request_uri;
+  labels:
+    team: nada
+  name: metabase-redirect
+  namespace: nada
+spec:
+  ingressClassName: nais-ingress
+  rules:
+  - host: metabase.intern.dev.nav.no

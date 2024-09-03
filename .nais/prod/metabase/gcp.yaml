@@ -1,0 +1,114 @@
+apiVersion: nais.io/v1alpha1
+kind: Application
+metadata:
+  labels:
+    team: nada
+  name: metabase
+  namespace: nada
+  annotations:
+    {{#each annotations}}
+    {{this.key}}: "{{this.value}}"
+    {{/each}}
+spec:
+  prometheus:
+    enabled: true
+    path: /metrics
+    port: "9191"
+  env:
+  - name: MB_PROMETHEUS_SERVER_PORT
+    value: "9191"
+  - name: MB_SITE_URL
+    value: https://metabase.ansatt.nav.no
+  - name: MB_DB_USER
+    value: metabase
+  - name: MB_DB_HOST
+    value: "127.0.0.1"
+  {{#each envs}}
+  - name: {{this.name}}
+    value: "{{this.value}}"
+  {{/each}}
+  envFrom:
+  - secret: metabase
+  gcp:
+    sqlInstances:
+    - databases:
+      - name: metabase
+      type: POSTGRES_12
+      flags:
+        - name: max_connections
+          value: "100"
+      tier: db-g1-small
+  image:  metabase/metabase-enterprise:{{version}}
+  ingresses:
+  - https://metabase.ansatt.nav.no
+  - https://metabase-inside.intern.nav.no
+  liveness:
+    path: /api/health
+  startup:
+    initialDelay: 180
+    periodSeconds: 30
+    failureThreshold: 30
+    path: /api/health
+  readiness:
+    path: /api/health
+  port: 3000
+  replicas:
+    max: 4
+    min: 2
+  resources:
+    limits:
+      memory: 5Gi
+    requests:
+      cpu: 300m
+      memory: 2048Mi
+  accessPolicy:
+    inbound:
+      rules:
+        - application: nada-backend
+    outbound:
+      external:
+      {{#externalhosts}}
+      - host: "{{ . }}"
+      {{/externalhosts}}
+      - host: smtp.adeo.no
+        ports:
+        - port: 26
+
+---
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: metabase-alert
+  namespace: nada
+  labels:
+    team: nada
+spec:
+  groups:
+  - name: metabase-alert
+    rules:
+    - alert: InstanceDown
+      expr: kube_deployment_status_replicas_available{namespace="nada", deployment="metabase"} == 0
+      for: 2m
+      annotations:
+        consequence: Metabase is unavailable
+        action: "`kubectl describe pod <podname>` -> `kubectl logs <podname>`"
+        summary: |-
+          No metabase pods are running in prod-gcp
+      labels:
+        namespace: nada
+        severity: critical
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  annotations:
+    nginx.ingress.kubernetes.io/server-snippet: |
+      return 301 https://metabase.ansatt.nav.no$request_uri;
+  labels:
+    team: nada
+  name: metabase-redirect
+  namespace: nada
+spec:
+  ingressClassName: nais-ingress-external
+  rules:
+  - host: metabase.intern.nav.no

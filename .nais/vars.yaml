@@ -1,0 +1,59 @@
+annotations:
+  - key: config.linkerd.io/skip-outbound-ports
+    value: "26"
+  - key: nginx.ingress.kubernetes.io/proxy-body-size
+    value: "8m"
+  - key: nginx.ingress.kubernetes.io/proxy-read-timeout
+    value: "600"
+envs:
+  - name: MB_DB_TYPE
+    value: postgres
+  - name: MB_DB_DBNAME
+    value: metabase
+  - name: MB_DB_PORT
+    value: "5432"
+  - name: JAVA_TIMEZONE
+    value: UTC+1
+  - name: MB_COLORIZE_LOGS
+    value: "false"
+  - name: MB_PLUGINS_DIR
+    value: "/tmp"
+  - name: MB_ADMIN_EMAIL
+    value: "nada@nav.no"
+  - name: MB_METABOT_ENABLED
+    value: "true"
+  - name: MB_SAML_ENABLED
+    value: "true"
+  - name: MB_SAML_GROUP_SYNC
+    value: "true"
+  - name: MB_SAML_ATTRIBUTE_GROUP
+    value: http://schemas.microsoft.com/ws/2008/06/identity/claims/groups
+  - name: MB_SAML_IDENTITY_PROVIDER_ISSUER
+    value: https://sts.windows.net/62366534-1ec3-4962-8869-9b5535279d0b/
+  - name: MB_SAML_IDENTITY_PROVIDER_URI
+    value: HTTPS://login.microsoftonline.com/62366534-1ec3-4962-8869-9b5535279d0b/saml2
+  - name: MB_ENABLE_PASSWORD_LOGIN
+    value: "true"
+  - name: MAX_SESSION_AGE
+    value: "1440"
+  - name: MB_SESSION_COOKIES
+    value: "true"
+  - name: MB_EMAIL_FROM_ADDRESS
+    value: "metabase@nav.no"
+  - name: MB_EMAIL_SMTP_HOST
+    value: "smtp.adeo.no"
+  - name: MB_EMAIL_SMTP_PORT
+    value: "26"
+  - name: MB_EMAIL_SMTP_SECURITY
+    value: "none"
+  - name: MB_EMAIL_SMTP_USERNAME
+    value: "srvNada"
+  - name: MB_SEND_NEW_SSO_USER_ADMIN_EMAIL
+    value: "false"
+  - name: MB_HEALTH_CHECK_LOGGING_ENABLED
+    value: "false"
+externalhosts:
+  - token-check.metabase.com
+  - slack.com
+  - files.slack.com
+  - metaboat.slack.com
