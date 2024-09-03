@@ -4,6 +4,10 @@ on:
   push:
     branches:
       - '*'
+    paths:
+      - '.metabase_version'
+      - '.nais/dev/metabase/**'
+      - '.nais/prod/metabase/**'
 
 permissions:
   contents: read
