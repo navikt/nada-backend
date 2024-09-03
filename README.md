@@ -16,6 +16,9 @@ It serves a REST-API for managing data products, and provides functionality for 
 ```bash
 gcloud auth login --update-adc
 gcloud auth configure-docker europe-north1-docker.pkg.dev 
+
+# There also exists a make target for login to docker:
+make docker-login
 ```
 4. (Optional) If you are on mac with arm (m1, m2, m3, etc.) install rosetta
 ```bash
@@ -25,10 +28,10 @@ softwareupdate --install-rosetta
 
 ```bash
 # Build all binaries
-$ make build
+make build
 
 # Run the tests
-$ make test
+make test
 ```
 
 ## Run with fully local resources
@@ -50,9 +53,6 @@ There are still a couple of services missing, though much functionality should w
 # Starts the dependencies in the background, and runs the API in the foreground
 $ make run
 ```
-**Note:** building the big query emulator requires quite a bit of memory, so if you see something like `clang++:
-signal: killed` you need to increase the amount of memory you allocate to your container run-time.
-
 2. (Optional): Start the [nada-frontend](https://github.com/navikt/nada-frontend/?tab=readme-ov-file#development)
 
 3. (Optional): Take a look at the [locally running Metabase](http://localhost:8083), the username is: `nada@nav.no`,
@@ -69,23 +69,41 @@ signal: killed` you need to increase the amount of memory you allocate to your c
 $ make generate
 ```
 
-## Update the images
+## Bumping the Metabase version
+The file [.metabase_version](.metabase_version) controls the version of [Metabase](https://metabase.com) that is 
+used in tests and for deployment to **dev** and **prod**. Check the Metabase [releases](https://github.com/metabase/metabase/releases) page 
+for available versions; we follow the Metabase Enterprise track.
+
+When you bump this version the following events will occur when you make a PR:
+
+1. We build two Metabase images, which are used during integration tests and for local development
+- metabase: un-modified version of Metabase when running nada-backend locally towards GCP services
+- metabase-patched: modified version of Metabase that allows us to connect to bigquery-emulator running on the host
+2. We run the nada-backend integration tests using the new version of Metabase
+3. We deploy the new version of Metabase to `dev`
+
+On merge to `main`:
+
+1. We deploy the new version of Metabase `prod`
+
+## Bumping the Mocks version
+In the [Makefile](Makefile) we set the target version for the mocks. If you change the mocks, you also need to bump 
+the `MOCKS_VERSION`, so we get the latest changes.
+
+## Update the images locally
 
 We build and push images for the patched metabase and customized big-query emulator to speed up local development and integration tests. If you need to make changes to these: 
 
 1. Make changes to the [base images](resources/images)
 
-**Note:** in the [Makefile](Makefile) we set the target version for the mocks and Metabase.
-
-If you change the `METABASE_VERSION` then it will pull the jar or source code for that version of Metabase and build the new images. We also use this as the version in the image tags for metabase(-patched).
-
-If you change the mocks, you also need to bump the `MOCKS_VERSION`, so we get the latest changes.
+**Note:** building the big query emulator requires quite a bit of memory, so if you see something like `clang++:
+signal: killed` you need to increase the amount of memory you allocate to your container run-time.
 
 2. Build the new images locally
 ```bash
 $ make build-all
 ```
-3. Push the images to the container registry
+3. (optional) Push the images to the container registry; requires that you have run `make docker-login`
 ```
 $ make push-all
 ```
