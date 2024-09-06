@@ -1,7 +1,10 @@
 name: Deploy metabase
 
 on:
-  push:
+  workflow_run:
+    workflows: [ "Build and Deploy Nada Backend" ]
+    types:
+      - completed
     branches:
       - '*'
     paths:
@@ -18,18 +21,8 @@ jobs:
   deploy-dev:
     name: Deploy to NAIS dev
     runs-on: ubuntu-latest
-    if: github.actor != 'dependabot[bot]'
+    if: github.actor != 'dependabot[bot]' && github.event.workflow_run.conclusion == 'success'
     steps:
-      - name: Wait for tests to succeed
-        uses: lewagon/wait-on-check-action@v1.3.4
-        with:
-          ref: ${{ github.ref }}
-          # When nada-backend has successfully built and pushed its image, we can
-          # deploy the new version of Metabase with high confidence that the
-          # nada-backend deploy will succeed.
-          check-name: 'Push backend image'
-          repo-token: ${{ secrets.GITHUB_TOKEN }}
-          wait-interval: 240
       - uses: actions/checkout@v4
       - name: Read Metabase Version
         id: read_metabase_version
@@ -45,7 +38,7 @@ jobs:
     name: Deploy to NAIS prod
     runs-on: ubuntu-latest
     needs: deploy-dev
-    if: github.ref == 'refs/heads/main' && github.actor != 'dependabot[bot]'
+    if: github.ref == 'refs/heads/main' && github.actor != 'dependabot[bot]' && github.event.workflow_run.conclusion == 'success'
     steps:
       - uses: actions/checkout@v4
       - name: Read Metabase Version
