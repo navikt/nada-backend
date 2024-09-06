@@ -1,4 +1,4 @@
-From 02196275ab942919b452fcdb8e1c972e8e1daf60 Mon Sep 17 00:00:00 2001
+From d7d1dada261df3bb4cb88821043ded665f4e2adc Mon Sep 17 00:00:00 2001
 From: "Paul B. Beskow" <paul@beskow.no>
 Date: Wed, 31 Jul 2024 10:12:15 +0200
 Subject: [PATCH] chore(bq): modify driver to allow for local bq
@@ -33,7 +33,7 @@ index bc5be48d86..56e101980a 100644
        display-name: Service account JSON file
        helper-text: This JSON file contains the credentials Metabase needs to read and query your dataset.
 diff --git a/modules/drivers/bigquery-cloud-sdk/src/metabase/driver/bigquery_cloud_sdk.clj b/modules/drivers/bigquery-cloud-sdk/src/metabase/driver/bigquery_cloud_sdk.clj
-index 19e7b1ee67..917611db24 100644
+index 9480fcda54..46d77fff47 100644
 --- a/modules/drivers/bigquery-cloud-sdk/src/metabase/driver/bigquery_cloud_sdk.clj
 +++ b/modules/drivers/bigquery-cloud-sdk/src/metabase/driver/bigquery_cloud_sdk.clj
 @@ -54,11 +54,22 @@
@@ -102,11 +102,11 @@ index 19e7b1ee67..917611db24 100644
 
    (^Table [^BigQuery client :- (lib.schema.common/instance-of-class BigQuery)
 diff --git a/modules/drivers/bigquery-cloud-sdk/src/metabase/driver/bigquery_cloud_sdk/common.clj b/modules/drivers/bigquery-cloud-sdk/src/metabase/driver/bigquery_cloud_sdk/common.clj
-index ee6b4396b5..5057799c85 100644
+index e1b8b311d4..7fc5c88e90 100644
 --- a/modules/drivers/bigquery-cloud-sdk/src/metabase/driver/bigquery_cloud_sdk/common.clj
 +++ b/modules/drivers/bigquery-cloud-sdk/src/metabase/driver/bigquery_cloud_sdk/common.clj
 @@ -7,8 +7,9 @@
-    #_{:clj-kondo/ignore [:discouraged-namespace]}
+    ^{:clj-kondo/ignore [:discouraged-namespace]}
     [toucan2.core :as t2])
    (:import
 -   (com.google.auth.oauth2 ServiceAccountCredentials)
@@ -131,10 +131,10 @@ index ee6b4396b5..5057799c85 100644
    "Returns a `ServiceAccountCredentials` (not scoped) for the given `service-account-json` (String)."
    {:added "0.42.0"}
 diff --git a/package.json b/package.json
-index 2fb393da9f..53940495cd 100644
+index a5589cd0f3..bd82b9bf47 100644
 --- a/package.json
 +++ b/package.json
-@@ -418,10 +418,6 @@
+@@ -419,10 +419,6 @@
      ],
      "e2e/test/scenarios/*/{*.(js|ts),!(helpers|shared)/*.(js|ts)}": [
        "node e2e/validate-e2e-test-files.js"
