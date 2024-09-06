@@ -599,6 +599,7 @@ func (s *dataProductStorage) datasetFromSQL(dsrows []gensql.DatasetView) (*servi
 				Slug:              dsrow.DsSlug,
 				Keywords:          dsrow.DsKeywords,
 				DataproductID:     dsrow.DsDpID,
+				Repo:              nullStringToPtr(dsrow.DsRepo),
 				Mappings:          []string{},
 				Access:            []*service.Access{},
 				Datasource:        nil,
