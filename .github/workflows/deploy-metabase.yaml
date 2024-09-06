@@ -29,7 +29,7 @@ jobs:
           # nada-backend deploy will succeed.
           check-name: 'Push backend image'
           repo-token: ${{ secrets.GITHUB_TOKEN }}
-          wait-interval: 10
+          wait-interval: 240
       - uses: actions/checkout@v4
       - name: Read Metabase Version
         id: read_metabase_version
