@@ -41,30 +41,36 @@ func TestUserDataService(t *testing.T) {
 	feed := StorageCreateDataproduct(t, stores.DataProductsStorage, NewDataProductAquacultureFeed(GroupEmailNada, TeamSeagrassID))
 	reef := StorageCreateDataproduct(t, stores.DataProductsStorage, NewDataProductReefMonitoring(GroupEmailReef, TeamReefID))
 
+	user := &service.User{
+		Email: "bob.the.builder@example.com",
+		GoogleGroups: []service.Group{
+			{
+				Name:  GroupNameNada,
+				Email: GroupEmailNada,
+			},
+			{
+				Name:  GroupNameReef,
+				Email: GroupEmailReef,
+			},
+		},
+	}
+	fuelInsights := StorageCreateInsightProduct(t, user.Email, stores.InsightProductStorage, NewInsightProductBiofuelProduction(GroupEmailNada, TeamSeagrassID))
+	barriersInsights := StorageCreateInsightProduct(t, user.Email, stores.InsightProductStorage, NewInsightProductProtectiveBarriers(GroupEmailReef, TeamReefID))
+	feedInsights := StorageCreateInsightProduct(t, user.Email, stores.InsightProductStorage, NewInsightProductAquacultureFeed(GroupEmailNada, TeamSeagrassID))
+	reefInsights := StorageCreateInsightProduct(t, user.Email, stores.InsightProductStorage, NewInsightProductReefMonitoring(GroupEmailReef, TeamReefID))
+
 	{
 		s := core.NewUserService(stores.AccessStorage, stores.TokenStorage, stores.StoryStorage, stores.DataProductsStorage,
 			stores.InsightProductStorage, stores.NaisConsoleStorage, log)
 		h := handlers.NewUserHandler(s)
 		e := routes.NewUserEndpoints(log, h)
-		f := routes.NewUserRoutes(e, injectUser(&service.User{
-			Email: "bob.the.builder@example.com",
-			GoogleGroups: []service.Group{
-				{
-					Name:  GroupNameNada,
-					Email: GroupEmailNada,
-				},
-				{
-					Name:  GroupNameReef,
-					Email: GroupEmailReef,
-				},
-			},
-		}))
+		f := routes.NewUserRoutes(e, injectUser(user))
 		f(r)
 	}
 
 	server := httptest.NewServer(r)
 	defer server.Close()
-	// Would prefer to sort by dp.tema_name, but it is always null
+	// Would prefer to sort by dp.team_name, but it is always null
 	t.Run("User data products are sorted alphabetically by group_name and dp_name", func(t *testing.T) {
 		got := &service.UserInfo{}
 		expect := []service.Dataproduct{
@@ -89,6 +95,34 @@ func TestUserDataService(t *testing.T) {
 			}
 			if got.Dataproducts[i].Owner.Group != expect[i].Owner.Group {
 				t.Errorf("got %s, expected %s", got.Dataproducts[i].Owner.Group, expect[i].Owner.Group)
+			}
+		}
+	})
+	// Would prefer to sort by team_name, but it is null in the view
+	t.Run("User insight products are sorted alphabetically by group and name", func(t *testing.T) {
+		got := &service.UserInfo{}
+		expect := []service.InsightProduct{
+			{ID: feedInsights.ID, Name: feedInsights.Name, Group: GroupEmailNada},
+			{ID: fuelInsights.ID, Name: fuelInsights.Name, Group: GroupEmailNada},
+			{ID: barriersInsights.ID, Name: barriersInsights.Name, Group: GroupEmailReef},
+			{ID: reefInsights.ID, Name: reefInsights.Name, Group: GroupEmailReef},
+		}
+
+		NewTester(t, server).Get("/api/userData").
+			HasStatusCode(http.StatusOK).Value(got)
+
+		if len(got.InsightProducts) != len(expect) {
+			t.Fatalf("got %d, expected %d", len(got.InsightProducts), len(expect))
+		}
+		for i := 0; i < len(got.InsightProducts); i++ {
+			if got.InsightProducts[i].ID != expect[i].ID {
+				t.Errorf("got %s, expected %s", got.InsightProducts[i].ID, expect[i].ID)
+			}
+			if got.InsightProducts[i].Name != expect[i].Name {
+				t.Errorf("got %s, expected %s", got.InsightProducts[i].Name, expect[i].Name)
+			}
+			if got.InsightProducts[i].Group != expect[i].Group {
+				t.Errorf("got %s, expected %s", got.InsightProducts[i].Group, expect[i].Group)
 			}
 		}
 	})

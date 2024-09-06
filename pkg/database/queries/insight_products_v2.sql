@@ -12,11 +12,11 @@ ORDER BY
 SELECT
     *
 FROM
-    insight_product_with_teamkatalogen_view
+    insight_product_with_teamkatalogen_view ipwtv
 WHERE
     "group" = ANY(@groups::text[])
 ORDER BY
-    last_modified DESC;
+    ipwtv."group", ipwtv.name ASC;
 
 -- name: GetInsightProductWithTeamkatalogen :one
 SELECT

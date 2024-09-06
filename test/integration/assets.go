@@ -209,3 +209,54 @@ func StorageCreateDataproduct(t *testing.T, storage service.DataProductsStorage,
 
 	return dp
 }
+
+func StorageCreateInsightProduct(t *testing.T, userEmail string, storage service.InsightProductStorage, nip service.NewInsightProduct) *service.InsightProduct {
+	t.Helper()
+
+	ip, err := storage.CreateInsightProduct(context.Background(), userEmail, nip)
+	if err != nil {
+		t.Fatalf("creating insight product: %v", err)
+	}
+
+	return ip
+}
+
+func NewInsightProductBiofuelProduction(group string, teamID uuid.UUID) service.NewInsightProduct {
+	return service.NewInsightProduct{
+		Name:          "Biofuel Production",
+		Description:   strToStrPtr("Using seagrass as a feedstock to create renewable biofuels"),
+		Group:         group,
+		ProductAreaID: &ProductAreaOceanicID,
+		TeamID:        &teamID,
+	}
+}
+
+func NewInsightProductReefMonitoring(group string, teamID uuid.UUID) service.NewInsightProduct {
+	return service.NewInsightProduct{
+		Name:          "Reef Monitoring Equipment",
+		Description:   strToStrPtr("Advanced sensors and monitoring devices for continuous assessment"),
+		Group:         group,
+		ProductAreaID: &ProductAreaCostalID,
+		TeamID:        &teamID,
+	}
+}
+
+func NewInsightProductProtectiveBarriers(group string, teamID uuid.UUID) service.NewInsightProduct {
+	return service.NewInsightProduct{
+		Name:          "Protective Barriers",
+		Description:   strToStrPtr("Physical barriers to protect coral reefs from human activity"),
+		Group:         group,
+		ProductAreaID: &ProductAreaCostalID,
+		TeamID:        &teamID,
+	}
+}
+
+func NewInsightProductAquacultureFeed(group string, teamID uuid.UUID) service.NewInsightProduct {
+	return service.NewInsightProduct{
+		Name:          "Aquaculture Feed",
+		Description:   strToStrPtr("Producing high-nutrient feed for aquaculture industries from processed seagrass"),
+		Group:         group,
+		ProductAreaID: &ProductAreaOceanicID,
+		TeamID:        &teamID,
+	}
+}
