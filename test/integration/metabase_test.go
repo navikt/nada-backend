@@ -145,7 +145,7 @@ func TestMetabase(t *testing.T) {
 	)
 
 	StorageCreateProductAreasAndTeams(t, stores.ProductAreaStorage)
-	fuel, err := dataproductService.CreateDataproduct(ctx, UserOne, NewDataProductBiofuelProduction())
+	fuel, err := dataproductService.CreateDataproduct(ctx, UserOne, NewDataProductBiofuelProduction(GroupEmailNada, TeamSeagrassID))
 	assert.NoError(t, err)
 
 	fuelData, err := dataproductService.CreateDataset(ctx, UserOne, NewDatasetBiofuelConsumptionRates(fuel.ID))

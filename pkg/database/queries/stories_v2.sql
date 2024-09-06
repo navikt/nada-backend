@@ -6,6 +6,6 @@ ORDER BY last_modified DESC;
 
 -- name: GetStoriesWithTeamkatalogenByGroups :many
 SELECT *
-FROM story_with_teamkatalogen_view
+FROM story_with_teamkatalogen_view swtv
 WHERE "group" = ANY (@groups::text[])
-ORDER BY last_modified DESC;
+ORDER BY swtv."group", swtv.name ASC;
