@@ -37,10 +37,10 @@ func TestProductArea(t *testing.T) {
 	stores := storage.NewStores(repo, config.Config{}, log)
 
 	StorageCreateProductAreasAndTeams(t, stores.ProductAreaStorage)
-	fuel := StorageCreateDataproduct(t, stores.DataProductsStorage, NewDataProductBiofuelProduction())
-	feed := StorageCreateDataproduct(t, stores.DataProductsStorage, NewDataProductAquacultureFeed())
-	_ = StorageCreateDataproduct(t, stores.DataProductsStorage, NewDataProductReefMonitoring())
-	_ = StorageCreateDataproduct(t, stores.DataProductsStorage, NewDataProductProtectiveBarriers())
+	fuel := StorageCreateDataproduct(t, stores.DataProductsStorage, NewDataProductBiofuelProduction(GroupEmailNada, TeamSeagrassID))
+	feed := StorageCreateDataproduct(t, stores.DataProductsStorage, NewDataProductAquacultureFeed(GroupEmailNada, TeamSeagrassID))
+	_ = StorageCreateDataproduct(t, stores.DataProductsStorage, NewDataProductReefMonitoring(GroupEmailNada, TeamReefID))
+	_ = StorageCreateDataproduct(t, stores.DataProductsStorage, NewDataProductProtectiveBarriers(GroupEmailNada, TeamReefID))
 
 	{
 		s := core.NewProductAreaService(stores.ProductAreaStorage, stores.DataProductsStorage, stores.InsightProductStorage, stores.StoryStorage)
