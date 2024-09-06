@@ -454,7 +454,7 @@ func (s *metabaseService) addAllUsersDataset(ctx context.Context, dsID uuid.UUID
 		return errs.E(op, err)
 	}
 
-	if meta.PermissionGroupID != nil && *meta.PermissionGroupID == 0 {
+	if meta.PermissionGroupID != nil {
 		err = s.metabaseAPI.DeletePermissionGroup(ctx, *meta.PermissionGroupID)
 		if err != nil {
 			return errs.E(op, err)
