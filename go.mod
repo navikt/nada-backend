@@ -18,7 +18,7 @@ require (
 	github.com/go-chi/chi v4.1.2+incompatible
 	github.com/go-chi/cors v1.2.1
 	github.com/go-ozzo/ozzo-validation/v4 v4.3.0
-	github.com/goccy/bigquery-emulator v0.6.4
+	github.com/goccy/bigquery-emulator v0.6.5
 	github.com/goccy/go-json v0.10.3
 	github.com/golang-jwt/jwt/v4 v4.5.0
 	github.com/google/go-cmp v0.6.0
@@ -57,7 +57,7 @@ require (
 	github.com/DataDog/go-hll v1.0.2 // indirect
 	github.com/Microsoft/go-winio v0.6.2 // indirect
 	github.com/Nvveen/Gotty v0.0.0-20120604004816-cd527374f1e5 // indirect
-	github.com/andybalholm/brotli v1.0.6 // indirect
+	github.com/andybalholm/brotli v1.1.0 // indirect
 	github.com/apache/arrow/go/v10 v10.0.1 // indirect
 	github.com/apache/arrow/go/v15 v15.0.2 // indirect
 	github.com/apache/thrift v0.17.0 // indirect
@@ -108,7 +108,7 @@ require (
 	github.com/magiconair/properties v1.8.7 // indirect
 	github.com/mattn/go-colorable v0.1.13 // indirect
 	github.com/mattn/go-isatty v0.0.20 // indirect
-	github.com/mattn/go-runewidth v0.0.9 // indirect
+	github.com/mattn/go-runewidth v0.0.15 // indirect
 	github.com/mattn/go-sqlite3 v1.14.16 // indirect
 	github.com/mfridman/interpolate v0.0.2 // indirect
 	github.com/minio/asm2plan9s v0.0.0-20200509001527-cdd76441f9d8 // indirect
@@ -120,17 +120,18 @@ require (
 	github.com/opencontainers/go-digest v1.0.0 // indirect
 	github.com/opencontainers/image-spec v1.1.0 // indirect
 	github.com/opencontainers/runc v1.1.14 // indirect
+	github.com/parquet-go/parquet-go v0.23.0 // indirect
 	github.com/pelletier/go-toml/v2 v2.2.2 // indirect
-	github.com/pierrec/lz4/v4 v4.1.18 // indirect
+	github.com/pierrec/lz4/v4 v4.1.21 // indirect
 	github.com/pkg/xattr v0.4.10 // indirect
 	github.com/pmezard/go-difflib v1.0.1-0.20181226105442-5d4384ee4fb2 // indirect
 	github.com/prometheus/client_model v0.6.1 // indirect
 	github.com/prometheus/common v0.55.0 // indirect
 	github.com/prometheus/procfs v0.15.1 // indirect
+	github.com/rivo/uniseg v0.4.7 // indirect
 	github.com/sagikazarmark/locafero v0.6.0 // indirect
 	github.com/sagikazarmark/slog-shim v0.1.0 // indirect
-	github.com/segmentio/encoding v0.3.5 // indirect
-	github.com/segmentio/parquet-go v0.0.0-20221020201645-63215c8128ff // indirect
+	github.com/segmentio/encoding v0.4.0 // indirect
 	github.com/sergi/go-diff v1.3.1 // indirect
 	github.com/sethvargo/go-retry v0.2.4 // indirect
 	github.com/sirupsen/logrus v1.9.3 // indirect
