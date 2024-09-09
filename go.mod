@@ -30,7 +30,7 @@ require (
 	github.com/mitchellh/mapstructure v1.5.0
 	github.com/ory/dockertest/v3 v3.11.0
 	github.com/pkg/errors v0.9.1
-	github.com/pressly/goose/v3 v3.21.1
+	github.com/pressly/goose/v3 v3.22.0
 	github.com/prometheus/client_golang v1.20.3
 	github.com/qustavo/sqlhooks/v2 v2.1.0
 	github.com/rs/zerolog v1.33.0
@@ -133,7 +133,7 @@ require (
 	github.com/sagikazarmark/slog-shim v0.1.0 // indirect
 	github.com/segmentio/encoding v0.4.0 // indirect
 	github.com/sergi/go-diff v1.3.1 // indirect
-	github.com/sethvargo/go-retry v0.2.4 // indirect
+	github.com/sethvargo/go-retry v0.3.0 // indirect
 	github.com/sirupsen/logrus v1.9.3 // indirect
 	github.com/sourcegraph/conc v0.3.0 // indirect
 	github.com/spaolacci/murmur3 v0.0.0-20180118202830-f09979ecbc72 // indirect
