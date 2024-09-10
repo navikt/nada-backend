@@ -437,7 +437,10 @@ func (s *metabaseService) addAllUsersDataset(ctx context.Context, dsID uuid.UUID
 			return errs.E(op, err)
 		}
 
-		return nil
+		meta, err = s.metabaseStorage.GetMetadata(ctx, dsID, false)
+		if err != nil {
+			return errs.E(op, err)
+		}
 	}
 
 	// All users database already exists in metabase
