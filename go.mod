@@ -42,15 +42,15 @@ require (
 	github.com/sqlc-dev/sqlc v1.27.0
 	github.com/stretchr/testify v1.9.0
 	golang.org/x/oauth2 v0.23.0
-	google.golang.org/api v0.198.0
+	google.golang.org/api v0.199.0
 	gopkg.in/yaml.v3 v3.0.1
 )
 
 require (
 	cloud.google.com/go v0.115.1 // indirect
-	cloud.google.com/go/auth v0.9.4 // indirect
+	cloud.google.com/go/auth v0.9.5 // indirect
 	cloud.google.com/go/auth/oauth2adapt v0.2.4 // indirect
-	cloud.google.com/go/compute/metadata v0.5.1 // indirect
+	cloud.google.com/go/compute/metadata v0.5.2 // indirect
 	cloud.google.com/go/pubsub v1.43.0 // indirect
 	dario.cat/mergo v1.0.0 // indirect
 	github.com/Azure/go-ansiterm v0.0.0-20230124172434-306776ec8161 // indirect
