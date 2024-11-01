@@ -1,3 +1,6 @@
+> **_NOTE:_** Moved to [https://github.com/navikt/nada-markedsplassen](https://github.com/navikt/nada-markedsplassen)
+
+
 # Data management API for NAV
 
 It serves a REST-API for managing data products, and provides functionality for self-service access to the data source.
